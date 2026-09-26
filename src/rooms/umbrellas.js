@@ -190,14 +190,14 @@ export default {
       face(ctx, [[3.2, 0.01, 2.0], [5.0, 0.01, 2.0], [5.0, 0.01, 2.6], [4.2, 0.01, 2.9], [3.2, 0.01, 2.4]], C.leaf, { lw: 0.03 });
       // shop name
       paintText(ctx, 'right', 9.3, 6.25, 'BRELLA & DAUGHTERS', 0.62, C.navy);
-      paintText(ctx, 'right', 9.3, 5.7, 'umbrellas since 1903', 0.3, C.purple, 'DM Sans');
+      paintText(ctx, 'right', 9.3, 5.7, 'umbrellas since 1903', 0.3, C.purple, 'Rethink Sans');
       paintText(ctx, 'right', 8.5, 3.85, 'BOOTS', 0.4, C.navy);
       // forecast board
       onRight(ctx, 11.4, 3.0, 3.8, 2.2, C.navy, { lw: 0.05 });
       paintText(ctx, 'right', 13.3, 4.75, 'TODAY', 0.34, C.butter);
-      paintText(ctx, 'right', 13.3, 4.2, 'OUTSIDE: SUNNY', 0.26, C.white, 'DM Sans');
-      paintText(ctx, 'right', 13.3, 3.75, 'INSIDE: 100% RAIN', 0.26, C.white, 'DM Sans');
-      paintText(ctx, 'right', 13.3, 3.3, 'as usual', 0.22, C.tealLight, 'DM Sans');
+      paintText(ctx, 'right', 13.3, 4.2, 'OUTSIDE: SUNNY', 0.26, C.white, 'Rethink Sans');
+      paintText(ctx, 'right', 13.3, 3.75, 'INSIDE: 100% RAIN', 0.26, C.white, 'Rethink Sans');
+      paintText(ctx, 'right', 13.3, 3.3, 'as usual', 0.22, C.tealLight, 'Rethink Sans');
       // left wall: name, rack of hanging umbrellas, signs, door
       paintText(ctx, 'left', 5.2, 6.2, 'UMBRELLAS', 0.8, C.teal);
       for (const rz of [4.9, 3.3]) {
@@ -220,7 +220,7 @@ export default {
       onLeft(ctx, 12.9, 0, 2.0, 3.3, C.navy, { lw: 0.05 });
       onLeft(ctx, 13.05, 0.1, 1.7, 3.05, C.teal, { dots: shade(C.teal, 0.4), density: 0.15 });
       onLeft(ctx, 13.3, 1.5, 1.2, 1.3, C.sky, { dots: tint(C.sky, 0.5), density: 0.2 });
-      paintText(ctx, 'left', 13.9, 3.75, 'please drip responsibly', 0.22, C.navy, 'DM Sans');
+      paintText(ctx, 'left', 13.9, 3.75, 'please drip responsibly', 0.22, C.navy, 'Rethink Sans');
     });
 
     // wires across the ceiling
@@ -414,7 +414,7 @@ export default {
         const [X, Y] = P(5.1, 5.05, 0.55 - k * 0.55);
         ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.water; ctx.fill();
       }
-      label(ctx, 5.0, 5.2, 0.3, 'NO.47', 0.16, C.navy, 'DM Sans');
+      label(ctx, 5.0, 5.2, 0.3, 'NO.47', 0.16, C.navy, 'Rethink Sans');
     }, { anim: true });
 
     // ---------- Kids stomping in puddles ----------

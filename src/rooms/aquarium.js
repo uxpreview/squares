@@ -667,7 +667,7 @@ export default {
       const [X, Y] = P(6.9, 12.2, 0.06);
       ctx.beginPath(); ctx.moveTo(X - 0.3, Y); ctx.lineTo(X - 0.08, Y - 1.1); ctx.lineTo(X + 0.08, Y - 1.1); ctx.lineTo(X + 0.3, Y);
       paint(ctx, C.mustard, { lw: 0.04 });
-      label(ctx, 6.9, 12.2, 0.45, 'WET', 0.16, C.ink, 'DM Sans');
+      label(ctx, 6.9, 12.2, 0.45, 'WET', 0.16, C.ink, 'Rethink Sans');
     });
 
     // ---------- Touch pool ----------

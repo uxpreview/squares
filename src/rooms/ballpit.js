@@ -264,13 +264,13 @@ export default {
       // socks only sign over the cubbies
       onLeft(ctx, 4.5, 2.95, 3.3, 1.1, C.navy, { lw: 0.05 });
       paintText(ctx, 'left', 6.15, 3.63, 'SOCKS ONLY', 0.5, C.butter);
-      paintText(ctx, 'left', 6.15, 3.2, 'no shoes past here', 0.26, C.white, 'DM Sans');
+      paintText(ctx, 'left', 6.15, 3.2, 'no shoes past here', 0.26, C.white, 'Rethink Sans');
       // rules poster
       frame(ctx, 'left', 11.2, 1.6, 1.6, 1.4, C.white, (g) => {
         paintText(g, 'left', 12.0, 2.75, 'RULES', 0.34, C.coral);
-        paintText(g, 'left', 12.0, 2.35, '1. no grown-ups', 0.18, C.ink, 'DM Sans');
-        paintText(g, 'left', 12.0, 2.1, '2. no diving', 0.18, C.ink, 'DM Sans');
-        paintText(g, 'left', 12.0, 1.85, '3. no geese', 0.18, C.ink, 'DM Sans');
+        paintText(g, 'left', 12.0, 2.35, '1. no grown-ups', 0.18, C.ink, 'Rethink Sans');
+        paintText(g, 'left', 12.0, 2.1, '2. no diving', 0.18, C.ink, 'Rethink Sans');
+        paintText(g, 'left', 12.0, 1.85, '3. no geese', 0.18, C.ink, 'Rethink Sans');
       });
       clockL(ctx, 9.6, 3.1, 0.45);
       // exit door
