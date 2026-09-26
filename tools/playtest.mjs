@@ -3,7 +3,10 @@
 //   node tools/playtest.mjs <level> prepare
 //       Takes a clean shot of every area as a player sees it (no rings, no
 //       list open) into qa-out/<level>/playtest/, with labels.json: the find
-//       labels per area, and nothing about where they are.
+//       labels per area, and nothing about where they are. A whodunit also
+//       gets case/: the case file as a player meets it (the suspects, one
+//       suspect up close, a wrong accusation, the mystery suspect half-way,
+//       and the reveal), for the second part of the test.
 //
 //   node tools/playtest.mjs <level> check <guesses.json>
 //       Scores a playtester's guesses. guesses.json:
@@ -75,6 +78,63 @@ if (mode === 'prepare') {
   }
   fs.writeFileSync(path.join(dir, 'labels.json'), JSON.stringify(labels, null, 2));
   fs.writeFileSync(path.join(dir, 'answers.json'), JSON.stringify(answers, null, 2));
+
+  // A whodunit: the case file, step by step, as a player would see it.
+  const hasCase = await page.evaluate(() => window.__squares.world.goal === 'case');
+  if (hasCase) {
+    const cdir = path.join(dir, 'case');
+    fs.mkdirSync(cdir, { recursive: true });
+    const snap = async (name) => { await page.waitForTimeout(700); await page.screenshot({ path: path.join(cdir, name + '.png') }); };
+    const speak = async () => {
+      for (let i = 0; i < 14 && !(await page.isVisible('.scene-end')); i++) { await page.click('.lines'); await page.waitForTimeout(150); }
+    };
+    const plan = await page.evaluate(() => {
+      const c = window.__squares.world.map.case;
+      const culprit = c.suspects.find((s) => s.id === c.culprit);
+      const other = c.suspects.find((s) => s.id !== c.culprit);
+      return { culprit: culprit.name, hidden: culprit.hidden ? culprit.hidden.name : culprit.name, other: other.name, clues: culprit.against.map((x) => x.find).filter(Boolean) };
+    });
+    await page.evaluate(() => { const s = window.__squares; s.play.reset(); s.play.toOverview({ dur: 0.01 }); });
+    await page.click('#tally-case');
+    await snap('1-the-case-file');
+    await page.click(`.suspect >> text=${plan.other}`);
+    await snap('2-a-suspect');
+    await page.click('.case-accuse');
+    await speak();
+    await snap('3-accusing-them');
+    await page.click('.scene-end .big-btn');
+    // Half the clues against the culprit found: what the mystery card looks like then.
+    await page.evaluate((keys) => {
+      const s = window.__squares, w = s.world;
+      for (const key of keys) {
+        const [zid, fid] = key.split(':');
+        const z = w.zones.find((x) => x.id === zid);
+        s.play.markFound(z, z.finds.find((f) => f.id === fid));
+      }
+    }, plan.clues.slice(0, Math.floor(plan.clues.length / 2)));
+    await page.waitForTimeout(400);
+    await page.click(`.suspect >> text=${plan.hidden}`);
+    await snap('4-the-mystery-suspect');
+    await page.evaluate((keys) => {
+      const s = window.__squares, w = s.world;
+      for (const key of keys) {
+        const [zid, fid] = key.split(':');
+        const z = w.zones.find((x) => x.id === zid);
+        s.play.markFound(z, z.finds.find((f) => f.id === fid));
+      }
+      s.play.casefile.close();
+    }, plan.clues);
+    await page.click('#tally-case');
+    await snap('5-every-clue-found');
+    await page.click(`.suspect >> text=${plan.culprit}`);
+    await page.waitForTimeout(400);
+    await page.click('.case-accuse');
+    await speak();
+    await snap('6-naming-them');
+    await page.click('.scene-end .big-btn');
+    await page.waitForTimeout(3600);
+    await snap('7-the-reveal');
+  }
   await browser.close();
   await server.close();
   console.log(`Shots and labels.json in ${path.relative(root, dir)}/ (answers.json is for the checker, not the playtester).`);

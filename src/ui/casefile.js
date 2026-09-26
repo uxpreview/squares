@@ -258,6 +258,16 @@ export function createCasefile(o) {
 
   close.innerHTML = X;
   close.addEventListener('click', () => { o.sound('tick'); hide(); });
+  // Keep Tab inside the case file while it's open (it's a modal).
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const all = [...sheet.querySelectorAll('button:not([disabled]), [tabindex="0"]')].filter((x) => x.offsetParent !== null);
+    if (!all.length) return;
+    const first = all[0], last = all[all.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!sheet.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  });
   // A click on the dimmed map around the sheet closes it too.
   root.addEventListener('click', (e) => { if (e.target === root) hide(); });
 
