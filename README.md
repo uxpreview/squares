@@ -41,4 +41,4 @@ Deploys to Vercel as-is (framework preset: Other, no build command, output direc
 - **Swap or reorder rooms:** edit the list in `src/rooms/index.js`.
 - **Tour pacing:** `stepTour` in `src/main.js` (fly 2.2 s, linger 5.5 s).
 - **Title and tagline:** `index.html`.
-- **Back link to the Lab:** the `brand-back` link in `index.html` (styled in `styles.css`). Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044.
+- **Back link to the Lab:** the `brand-back` link in `index.html` (styled in `styles.css`). Squares is served at ryankm.com/lab/squares as Lab experiment EXP-044. The portfolio repo copies this folder in with `npm run sync:squares`, so after changing anything here, re-run that there.
