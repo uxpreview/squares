@@ -7,6 +7,7 @@ The owner is a designer who vibe codes. Explain changes in plain language, say w
 ## Plans
 
 - `docs/ROADMAP.md`: what's being built and in what order, one PR per session. Read it at the start of a session; update it at the end (tick what shipped, record decisions).
+- `docs/LEVELS.md`: the level backlog, with a pitch per idea and what engine pieces each needs.
 - `docs/INSPIRATION.md`: the owner's reference images, described (the images aren't stored), and what each teaches. Every new place starts from here.
 
 ## Commands
