@@ -1,7 +1,7 @@
 # Gooseworth Manor
 
-> Status: **Brief** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [ ] · greybox [ ] · preview [ ]
+> Status: **Brief approved** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] · greybox [ ] · preview [ ]
 
 ## In one line
 Lord Gooseworth's 80th birthday dinner, a stormy night, a body in the library, and six guests who each had a very good reason.
@@ -96,7 +96,8 @@ Dark comedy: a body in a trifle, taxidermy, a ghost, poison. No gore; death is p
 - [ ] **Weather:** rain and lightning as a place-level effect.
 - [ ] **Level pipeline tools:** scaffold, style sheet, QA script, contact sheet (see PROCESS.md). Built with this level, reused by every level after.
 
-## Open questions
-1. **Name:** "Gooseworth Manor", or something else?
-2. **The goose as the killer:** great twist here, but if the goose is the culprit in every mystery it gets predictable. Fine for the first whodunit?
-3. **Evidence gating:** should you need every piece of evidence before accusing, or can you accuse any time (and risk being wrong)?
+## Decisions
+Brief approved by the owner. The three open questions were settled with the lead's recommendations as defaults (the owner can still change them at the greybox gate):
+1. **Name:** Gooseworth Manor.
+2. **The goose is the killer** in this first whodunit. Later mysteries need a different culprit so it doesn't get predictable.
+3. **Accuse any time.** A wrong accusation plays that suspect's alibi and a joke; that's where a lot of the humor lives.

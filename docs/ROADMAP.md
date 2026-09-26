@@ -25,7 +25,7 @@ And for a game that adds levels often: **each level should be cheaper to make th
 - **Screens:** title with a drifting map, place picker, completion card.
 - **Places:** The Block. The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors.
 - **Process:** the level pipeline is written ([PROCESS.md](PROCESS.md)); its tools are next.
-- **Next level:** Gooseworth Manor, brief drafted ([levels/manor.md](levels/manor.md)), waiting on the owner.
+- **Next level:** Gooseworth Manor, brief approved ([levels/manor.md](levels/manor.md)). Next up: session 2.
 
 ## Engine work
 
@@ -79,7 +79,6 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
-- **The Manor's brief:** approve or change it ([levels/manor.md](levels/manor.md) has three open questions at the bottom).
 - **Casts beyond people:** the Catminium and the zoo need animals as characters. Assumed yes.
 - **Calm or game-y:** a calm picture book, or timers, daily challenges and scores too? This decides G3.
 - **Sound:** synthesized (tiny, fits the drawn-in-code idea) or recorded ambience (richer)?
@@ -87,7 +86,7 @@ Open, for the owner:
 
 Made:
 
-- **Next level: Gooseworth Manor**, the murder mystery. *(planning)*
+- **Next level: Gooseworth Manor**, the murder mystery. Brief approved; the goose did it; you can accuse any time. *(planning)*
 - **The Walk-Up is retired from the picker:** too similar to the Block. Still opens from a direct link (`#/tower`) and stays as the test bed for stacked floors. *(planning)*
 - **Always color.** Every place has its own palette; never a single ink. *(planning)*
 - **Diversity over formula.** Every place is a different shape (tall, wide, one big continuous map, a diorama) and its own story to investigate. Giants, trains and the like only where the theme calls for them. The main goal is that every place feels alive. *(planning)*
