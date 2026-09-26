@@ -32,27 +32,28 @@ The lead writes `docs/levels/<id>.md` from [the template](levels/_TEMPLATE.md): 
 Anything the level needs that the engine can't do yet gets built first, in its own commits, with the smoke test extended to cover it. Engine work never waits on art, and art never works around missing engine pieces.
 
 ### 4. Scaffold and greybox (gate 2: the owner approves)
-- The level's folder, map file, style sheet and a placeholder file per area, all in one step.
-- The greybox: every area blocked out in plain shapes (floors, walls, the hero, paths, where people stand), the finds placed as markers, the camera framing tuned.
-- A contact sheet (every area, desktop and phone) and a preview link go to the owner.
+- `npm run new-level -- <id>` makes the level's folder, map file, style sheet (the brief's inks), backdrop and sky, and a placeholder file per area (from the brief's Areas table), all in one step, and lists the level (hidden until it ships).
+- The greybox: every area blocked out in plain shapes with the greybox kit (`src/maps/greybox.js`): floors, walls and doors, the hero, furniture, paths, where people stand, the finds as numbered pins, the camera framing tuned. If people move between areas, their evening goes in the level's timeline (see `src/maps/manor/evening.js`).
+- `npm run qa -- <id>` must pass. Its contact sheet (every floor, key moments, every area on desktop and phone) and a preview link go to the owner.
 - This is the moment to change the layout, the composition or the shape. After this gate, the layout is fixed.
 
 ### 5. Area art (parallel)
-One agent per area, four to six at once. Each gets the brief, the style sheet, its own area's section and the list of the other areas' gags so jokes can cross over. Each checks its own area at several moments, on desktop and phone.
+One agent per area, four to six at once, each sent [prompts/area-artist.md](prompts/area-artist.md) filled in from the brief: the brief, the style sheet, its own area's section and the list of the other areas' gags so jokes can cross over. Each checks its own area at several moments, on desktop and phone.
 
 ### 6. Art direction pass
-One agent looks at the whole level and fixes consistency: palette, line weight, scale, density, duplicated ideas (the Walk-Up ended up with two goldfish and two party balloons), and whether cross-area gags land.
+One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the whole level (the contact sheet first) and fixes consistency: palette, line weight, scale, density, duplicated ideas (the Walk-Up ended up with two goldfish and two party balloons), and whether cross-area gags land.
 
 ### 7. QA (repeat until clean)
-**Automated** (one command):
-- No console errors, in any area, at any moment of the loop.
-- Performance: every area holds its frame budget with the CPU slowed to a mid-range phone.
-- Every find is on screen when its area is framed on a phone, big enough to tap, not overlapping another find, and not hidden behind anything.
+**Automated:** `npm run qa -- <id>` (about three minutes; `--quick` for about one):
+- No errors loading the level, or drawing any area (walls up and down) at 48 moments across its loop.
+- People on the level's clock go through doors, never walls, never faster than a run.
+- Performance: every view holds its frame budget with the CPU slowed 4x (a mid-range phone). The budget is set by The Block.
+- Every find is on screen when its area is framed on a phone and a desktop, clear of the find list and buttons, not crowding another find, and a real tap finds it. (Whether it's hidden behind something is for eyes: the contact sheet rings every find.)
 - Find labels are unique across the level and follow the style (sentence case, "A lost mitten").
-- Copy rules: no em dashes, names 1 to 3 words, blurbs one or two sentences.
-- A contact sheet of every area for eyeballing.
+- Copy rules: no em dashes, names 1 to 3 words, blurbs one or two sentences, no placeholders left. Colors come from `C` or the style sheet.
+- A contact sheet for eyeballing, and a report, in `qa-out/<id>/`.
 
-**Playtest:** the playtester agent's report. Every find should take between 20 and 90 seconds for a fresh player. Too easy or impossible gets moved or relabeled.
+**Playtest:** a fresh agent sent [prompts/playtester.md](prompts/playtester.md) plays from screenshots only (`node tools/playtest.mjs <id> prepare`), guesses where each find is, and scores itself (`check`). Every find should take between 20 and 90 seconds for a fresh player. Too easy or impossible gets moved or relabeled.
 
 ### 8. Preview (gate 3: the owner approves)
 The pull request's Vercel preview, with a short checklist of what to look at. The owner plays it on their phone. Feedback goes in the PR or the chat; the lead fixes and re-runs QA.
@@ -76,7 +77,8 @@ A level is done when all of these are true:
 ## Making it cheaper every time
 
 - **The kit.** Shared drawing helpers live in `src/engine/art.js` today; as levels add furniture, architecture, nature and characters that others could use, they move into a shared kit. The art director flags candidates; the lead promotes them.
-- **Style sheets.** Each level has one file with its palette and its recurring props, imported by every area, so consistency is built in rather than policed.
+- **Style sheets.** Each level has one file (`src/maps/<id>/style.js`) with its palette and its recurring props, imported by every area, so consistency is built in rather than policed.
+- **The greybox kit** (`src/maps/greybox.js`): blocks, labels, pins, stairs, walker paths. Every level's layout starts there.
 - **Casts.** People today; animals and others as levels need them. Built once, reused everywhere.
-- **Templates.** The brief template, the area-artist prompt, the art-director prompt and the playtester prompt live in the repo so every level starts from the same place.
+- **Templates.** The brief template ([levels/_TEMPLATE.md](levels/_TEMPLATE.md)) and the prompts for the area artists, the art director and the playtester ([prompts/](prompts/)) live in the repo so every level starts from the same place.
 - **Formats.** Some level ideas share a structure (a whodunit, an escape, a before-and-after). Build the format once with its first level; later levels reuse it.

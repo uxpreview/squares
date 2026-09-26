@@ -6,14 +6,14 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 
 **What it needs** says which engine pieces must exist first:
 - *Today*: works with the current engine (rooms and interiors).
-- *Terrain*: needs ground with height, water and coastlines (ROADMAP E1, E2).
-- *Animals*: needs a non-human cast (ROADMAP E4).
-- *Night*: needs lighting (windows and lamps that glow, a dark palette) (ROADMAP E3).
+- *Terrain*: needs ground with height, water and coastlines (ROADMAP E4, E5).
+- *Animals*: needs a non-human cast (ROADMAP E6).
+- *Night*: needs lighting (windows and lamps that glow, a dark palette) (ROADMAP E1, built in session 2).
 
 ## From the owner's list
 
 ### Death at Gooseworth Manor (murder mystery)
-**Status: next. Full brief in [levels/manor.md](levels/manor.md).**
+**Status: greybox, at the owner's gate 2. Full brief in [levels/manor.md](levels/manor.md).**
 - **Spin:** a dinner party in a cutaway country house on a stormy night. The host is dead in the library, every guest has a motive, and the finds are **evidence** (the poison bottle, the torn will, the muddy boots). Find it all and the game names the killer.
 - **Alive:** guests drift from room to room on a loop, candles gutter, lightning flashes light up rooms for a second (and shows who was where), secret passages behind the bookcases.
 - **Dark humor:** the body keeps getting moved by guests who each think they did it. The butler is already packing.

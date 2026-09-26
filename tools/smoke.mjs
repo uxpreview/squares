@@ -187,6 +187,54 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- 3. A house: floors, walls down, people walking room to room (desktop) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
+  await page.goto(base + '#/manor');
+  await ready(page);
+  await wait(page, 1200);
+  const floors = await page.$$eval('#storeys button', (bs) => bs.map((b) => [b.textContent, b.getAttribute('aria-pressed')]));
+  check('a house shows a floor switch, top floor first', floors.length === 3 && floors[0][0] === 'Upstairs' && floors[1][1] === 'true', JSON.stringify(floors));
+  const lifted = () => S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.veil * 100) / 100])));
+  let v = await lifted();
+  check('on the ground floor, the floor above is lifted away', v['guest-rooms'] > 0.9 && v['grand-hall'] === 0 && v.grounds === 0, JSON.stringify(v));
+
+  // Tap the middle of the dining room's floor: the ghost of the bedroom above must not steal it.
+  const [dx, dy] = await S(page, () => {
+    const s = window.__squares, z = s.world.zones.find((x) => x.id === 'dining-room');
+    return s.camera.toScreen(z.anchor[0], z.anchor[1] + 8);
+  });
+  await page.mouse.click(dx, dy);
+  await wait(page, 1800);
+  check('tapping a room under a lifted floor goes into that room', (await S(page, () => location.hash)) === '#/manor/dining-room');
+  const walls = await S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.wallK * 100) / 100])));
+  check('its walls rise; the rooms around keep theirs down', walls['dining-room'] === 1 && walls['grand-hall'] === 0 && walls.kitchen === 0, JSON.stringify(walls));
+
+  await page.click('#storeys button >> text=Upstairs');
+  await wait(page, 1800);
+  v = await lifted();
+  check('the floor switch goes up a floor', (await S(page, () => location.hash)) === '#/manor' && v['guest-rooms'] < 0.05, JSON.stringify(v));
+  await page.click('#storeys button >> text=Cellar');
+  await wait(page, 1800);
+  v = await lifted();
+  check('and down to the cellar, lifting everything above', v['grand-hall'] > 0.9 && v['guest-rooms'] > 0.9 && v.cellar === 0 && v.grounds === 0, JSON.stringify(v));
+
+  const people = await S(page, () => {
+    const w = window.__squares.world;
+    const inside = (z, p) => p.x >= z.ox && p.x < z.ox + z.w && p.y >= z.oy && p.y < z.oy + z.d && p.z >= z.oz - 0.01 && p.z < z.oz + z.span - 0.01;
+    let twice = 0;
+    for (const k of w.walkers) {
+      for (let t = 0; t < 180; t += 3.7) {
+        const p = k.at(t);
+        if (w.zones.filter((z) => inside(z, p)).length > 1) twice++;
+      }
+    }
+    return { n: w.walkers.length, twice };
+  });
+  check('people walk the house, each in one room at a time', people.n > 0 && people.twice === 0, JSON.stringify(people));
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();
