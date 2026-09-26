@@ -75,6 +75,22 @@ html, body {
   font-weight: 600;
   color: var(--ink-soft);
 }
+/* The way home to ryankm.com/lab. Quiet on purpose: the sheet is the show. */
+.brand-back {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--coral);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  pointer-events: auto;
+}
+.brand-back:hover { color: var(--ink); }
+.brand-back:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; border-radius: 2px; }
 
 .tally {
   position: fixed;
@@ -299,7 +315,8 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   .hint-long { display: none; }
   .hint-short { display: inline; }
   .hint { max-width: calc(100% - 150px); }
-  body[data-mode="room"] .brand p { display: none; }
+  body[data-mode="room"] .brand p,
+  body[data-mode="room"] .brand-back { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
