@@ -69,10 +69,11 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#title-play');
   await wait(page, 300);
   check('Play opens the picker', (await S(page, () => location.hash)) === '#/maps' && await page.isVisible('#places'));
+  const listed = await S(page, async () => (await import('/src/maps/index.js')).default.filter((m) => !m.hidden).length);
   const cards = await page.$$('.place-card');
-  check('picker lists every place', cards.length === 2, `${cards.length} cards`);
+  check('picker lists every place (and no hidden ones)', cards.length === listed, `${cards.length} cards, ${listed} places`);
   await wait(page, 800);
-  check('picker draws map pictures', (await page.$$('.place-pic canvas')).length === 2);
+  check('picker draws map pictures', (await page.$$('.place-pic canvas')).length === listed);
 
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
@@ -170,8 +171,19 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#complete-next');
   await wait(page, 500);
   check('complete card leads to the picker', (await S(page, () => location.hash)) === '#/maps');
+
+  // Finish The Block too, and the picker should say so on its card.
+  await page.goto(base + '#/block');
+  await ready(page);
   await wait(page, 800);
-  check('picker marks the place complete', (await page.textContent('.place-card >> nth=1')).includes('Complete'));
+  await S(page, () => {
+    const s = window.__squares;
+    for (const z of s.world.zones) s.play.markFound(z, z.finds.find((f) => f.goose));
+  });
+  await wait(page, 5200);
+  await page.click('#complete-next');
+  await wait(page, 1300);
+  check('picker marks the place complete', (await page.textContent('.place-card >> nth=0')).includes('Complete'));
   await page.close();
 }
 
