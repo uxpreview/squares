@@ -1,0 +1,308 @@
+/* Squares is a single printed sheet: one paper, six inks, no dark mode on purpose. */
+:root {
+  --paper: #F1E8D6;
+  --card: #FBF6EA;
+  --ink: #252D52;
+  --ink-soft: #4A5280;
+  --coral: #E3603F;
+  --mustard: #EDB53B;
+  --teal: #2E8B84;
+  --display: "Bagel Fat One", "Arial Black", system-ui, sans-serif;
+  --body: "Rethink Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gutter: 16px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+#map {
+  position: fixed;
+  inset: 0;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+#map:active { cursor: grabbing; }
+
+/* Paper fibre, multiplied over everything */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.47 0 0 0 0 0.36 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Top bar ---------- */
+.brand {
+  position: fixed;
+  top: calc(var(--safe-top) + 12px);
+  left: var(--gutter);
+  pointer-events: none;
+}
+.brand h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(30px, 5vw, 44px);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 var(--coral);
+}
+.brand p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.tally {
+  position: fixed;
+  top: calc(var(--safe-top) + 14px);
+  right: var(--gutter);
+  display: flex;
+  gap: 8px;
+}
+.tally-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 8px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.tally-item svg { width: 18px; height: 18px; color: var(--coral); }
+
+/* ---------- Buttons ---------- */
+button {
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+button:hover { background: #fff; }
+button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+
+.controls {
+  position: fixed;
+  right: var(--gutter);
+  bottom: calc(var(--safe-bottom) + 16px);
+  display: flex;
+  gap: 8px;
+}
+.controls button {
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 14px;
+}
+#tour[aria-pressed="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+
+.hint {
+  position: fixed;
+  left: var(--gutter);
+  bottom: calc(var(--safe-bottom) + 22px);
+  margin: 0;
+  max-width: calc(100% - 260px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+/* ---------- Room card ---------- */
+.card {
+  position: fixed;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: calc(var(--safe-bottom) + 64px);
+  max-width: 460px;
+  margin-inline: auto;
+  padding: 12px 14px 12px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.card-unit {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+.card-nav { display: flex; gap: 6px; }
+.card-nav button {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+.card h2 {
+  margin: 2px 0 2px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.card-blurb {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.card-find-title {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.finds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+.find {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.find-label { flex: 1; min-width: 0; }
+.find-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--card);
+}
+.find.is-goose .find-mark {
+  border-radius: 5px;
+  background: var(--mustard);
+}
+.find.is-found .find-label {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--coral);
+  text-decoration-thickness: 2px;
+}
+.find.is-found .find-mark {
+  background: var(--coral);
+  border-color: var(--coral);
+}
+.find-hint {
+  flex: none;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 1px 1px 0 var(--ink);
+  border-width: 1.5px;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--safe-top) + 70px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--card);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 3px 3px 0 var(--coral);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show { animation: pop 0.35s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop {
+  from { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  to { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* ---------- Wide screens: card moves to the left edge ---------- */
+@media (min-width: 900px) {
+  .card {
+    right: auto;
+    width: 340px;
+    bottom: calc(var(--safe-bottom) + 76px);
+    margin: 0;
+  }
+  .finds { grid-template-columns: 1fr; }
+  .hint { max-width: none; }
+}
+
+.hint-short { display: none; }
+
+@media (max-width: 520px) {
+  .brand p { font-size: 12px; }
+  .tally { gap: 6px; }
+  .tally-item { padding: 4px 8px 4px 6px; font-size: 12px; }
+  .card { padding: 10px 12px; bottom: calc(var(--safe-bottom) + 60px); }
+  .card h2 { font-size: 20px; }
+  .card-blurb { font-size: 12.5px; line-height: 1.35; margin-bottom: 6px; }
+  .finds { gap: 2px 10px; }
+  .find { font-size: 12.5px; gap: 5px; min-height: 26px; }
+  .find-hint { width: 22px; height: 22px; padding: 0; }
+  .hint-long { display: none; }
+  .hint-short { display: inline; }
+  .hint { max-width: calc(100% - 150px); }
+  body[data-mode="room"] .brand p { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast.show { animation: none; }
+  button { transition: none; }
+}
