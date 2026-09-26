@@ -1,30 +1,36 @@
-# Squares: brief for drawing a room
+# Squares: brief for drawing a zone
 
-Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). Sixteen rooms sit on a 4x4 block. You zoom into a room, and there are tiny people doing funny things everywhere. In every room there's a loose goose to find, plus three hidden objects the viewer taps to circle with a pen.
+Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on The Block, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three objects the player taps to circle with a pen.
 
-Everything is drawn in code on a canvas. Nothing is static: every room should be crawling with life.
+Everything is drawn in code on a canvas. Nothing is static: every zone should be crawling with life.
+
+## Where things live
+
+- A zone is one file: `src/maps/<map>/rooms/<id>.js` (The Block) or `src/maps/<map>/floors/<id>.js` (The Walk-Up).
+- Imports from a zone file: `'../../../engine/art.js'`, `'../../../engine/actors.js'`, `'../../../engine/iso.js'`.
+- Which zones a map has, and where they sit, is in that map's `map.js`.
 
 ## Read these first
 
-- `src/art.js`: palette `C`, primitives (`box`, `rect`, `disc`, `cylinder`, `face`, `poly`, `paint`, `onLeft`, `onRight`, `windowL/R`, `walls`, `slab`, `floor`, `tiles`, `checker`, `planks`, `rug`, `table`, `chair`, `shelfL/R`, `lamp`, `plant`, `tree`, `frame`, `clockL`, `note`, `paintText`, `label`, `speech`), people (`person`, `folk`) and the `goose`.
-- `src/actors.js`: `route` (walk a path, with pauses and ping-pong), `orbit`, `particles` (stateless particle systems), `pulse`, `wave`, `ease`, `clamp`.
-- `src/scene.js`: the room builder `R` and how layers and depth sorting work.
-- `src/rooms/pool.js`: the reference room. Match or beat its density and polish.
+- `src/engine/art.js`: palette `C`, primitives (`box`, `rect`, `disc`, `cylinder`, `face`, `poly`, `paint`, `onLeft`, `onRight`, `windowL/R`, `walls`, `slab`, `floor`, `tiles`, `checker`, `planks`, `rug`, `table`, `chair`, `shelfL/R`, `lamp`, `plant`, `tree`, `frame`, `clockL`, `note`, `paintText`, `label`, `speech`), people (`person`, `folk`) and the `goose`.
+- `src/engine/actors.js`: `route` (walk a path, with pauses and ping-pong), `orbit`, `particles` (stateless particle systems), `pulse`, `wave`, `ease`, `clamp`.
+- `src/engine/zone.js`: the zone builder `R` and how layers and depth sorting work.
+- `src/maps/block/rooms/pool.js`: the reference zone. Match or beat its density and polish.
 
 ## The rules
 
-1. **Only edit your own room files** (listed in your task). Do not edit `art.js`, `actors.js`, `scene.js`, `iso.js`, `main.js`, `ambient.js`, `index.html`, `styles.css`, `rooms/index.js`, or anyone else's room. If you need a helper, write it locally inside your room file. If you find a bug in shared code, work around it and mention it in your final report.
+1. **Only edit your own zone files** (listed in your task). Do not edit anything in `src/engine/`, `src/game/`, `src/ui/`, any `map.js` or `ambient.js`, `index.html`, `styles.css`, or anyone else's zone. If you need a helper, write it locally inside your zone file. If you find a bug in shared code, work around it and mention it in your final report.
 2. Do not run any git commands. Do not create other files except scratch screenshots outside the repo.
-3. A room module exports `{ id, name, blurb, build(R) }`. Keep the `id` you were given. `name` is 1 to 3 words. `blurb` is one or two short, funny, plain sentences about what is going on. **No em dashes anywhere** in copy.
+3. A zone module exports `{ id, name, blurb, build(R) }`. Keep the `id` you were given. `name` is 1 to 3 words. `blurb` is one or two short, funny, plain sentences about what is going on. **No em dashes anywhere** in copy.
 4. Use colors from `C` only (a six-ink riso palette plus mixes via `shade`, `tint`, `mix`, `alpha`). Use halftone `dots` on shadowed faces and big surfaces like the reference. Outline with the default ink stroke.
 
 ## Geometry
 
-- Room floor is 16 x 16 units: x runs to the screen's lower-right, y to the lower-left, z is up. The back walls are the planes x = 0 (left wall, draw on it with `onLeft(ctx, y, z, w, h, ...)`) and y = 0 (right wall, `onRight(ctx, x, z, w, h, ...)`). The open front corner is (16, 16).
-- Default wall height is 6 (`walls(ctx, { h, left, right, cap, dotsL, dotsR, leftWall, rightWall })`). Outdoor rooms can use low walls, fences, or no walls. Always draw `slab(ctx, color)` first.
+- Zone floor is 16 x 16 units: x runs to the screen's lower-right, y to the lower-left, z is up. The back walls are the planes x = 0 (left wall, draw on it with `onLeft(ctx, y, z, w, h, ...)`) and y = 0 (right wall, `onRight(ctx, x, z, w, h, ...)`). The open front corner is (16, 16).
+- Default wall height is 6 (`walls(ctx, { h, left, right, cap, dotsL, dotsR, leftWall, rightWall })`). Outdoor zones can use low walls, fences, or no walls. Always draw `slab(ctx, color)` first.
 - A person is about 2.3 units tall. The goose is about 1 unit tall. Keep scale consistent: a table top is at z 1.2, a chair seat at 0.8, a door is about 3.2 tall.
-- Tall things may rise up to about 9 units above the floor.
-- Rooms in front of the one being viewed get cut away automatically, so the whole room is visible when zoomed in.
+- Tall things may rise up to about 9 units above the floor on The Block. On The Walk-Up keep everything under about 8 (the floor above hangs over you in the overview).
+- Zones in front of (or above) the one being viewed get cut away automatically, so the whole zone is visible when zoomed in.
 
 ## Layers and depth
 
@@ -36,7 +42,7 @@ Everything is drawn in code on a canvas. Nothing is static: every room should be
 
 ## Finds and the goose
 
-- Exactly three `R.find({ id, label, at: [x, y, z] or (t) => [x, y, z], r })`. The label is how it appears in the checklist, sentence case with an article: "A lost mitten". Objects should be small (0.3 to 1 unit) but clearly visible and not hidden behind anything when the room is viewed. `at` is the visual center of the object (z included). `r` is the tap radius in units (0.6 to 1.0). Moving finds are great.
+- Exactly three `R.find({ id, label, at: [x, y, z] or (t) => [x, y, z], r })`. The label is how it appears in the checklist, sentence case with an article: "A lost mitten". Objects should be small (0.3 to 1 unit) but clearly visible and not hidden behind anything when the zone is viewed. `at` is the visual center of the object (z included). `r` is the tap radius in units (0.6 to 1.0). Moving finds are great.
 - Exactly one `R.goose(pos, opts)`. `pos` is `[x, y, z]` or a function returning `{ x, y, z, dir, pose, moving }` (poses: walk, stand, honk, swim, sit, peck). Give the goose a funny role in the scene. It should be findable but not the first thing you see.
 
 ## Density and life (this is the important part)
@@ -45,19 +51,19 @@ Everything is drawn in code on a canvas. Nothing is static: every room should be
 - At least 8 distinct animated things: people walking routes, machines, particles (steam, bubbles, sparks, snow), blinking lights, swinging, bouncing, spinning.
 - Lots of props and clutter: shelves stocked with little items, signs with text (`paintText` on walls, `label`), posters (`frame`), plants, rugs, tables.
 - At least one running gag or little story that plays out over time (like the pool's diver who walks out, bounces, dives, swims to the ladder and climbs out).
-- Stay performant: keep particle counts under about 80 per room, avoid creating gradients inside loops, and keep heavy static drawing out of anim items.
+- Stay performant: keep particle counts under about 80 per zone, avoid creating gradients inside loops, and keep heavy static drawing out of anim items.
 
 ## Check your work
 
-Take screenshots and look at them. Iterate until the room is dense, readable and funny.
+Take screenshots and look at them. Iterate until the zone is dense, readable and funny.
 
 ```
-node tools/shoot.mjs <roomId> /tmp/claude-0/-home-user-squares/caa7d277-a828-5ac5-804c-c8d3a8f31478/scratchpad/<roomId>.png          # desktop, zoomed to the room
-node tools/shoot.mjs <roomId> <out.png> --zoom=2.2 --t=4   # zoom in closer, capture a later moment
-node tools/shoot.mjs <roomId> <out.png> --mobile           # phone
-node tools/shoot.mjs overview <out.png>                    # whole block
+node tools/shoot.mjs <map>/<zoneId> <scratch>/<zoneId>.png                 # desktop, zoomed to the zone
+node tools/shoot.mjs <map>/<zoneId> <out.png> --zoom=2.2 --t=4             # closer, at a later moment
+node tools/shoot.mjs <map>/<zoneId> <out.png> --mobile                     # phone
+node tools/shoot.mjs <map> <out.png>                                        # the whole place
 ```
 
-The script prints console errors. There must be none from your room (a Google Fonts certificate error is expected in this sandbox and fine). Check several `--t` values so moving things look right at different moments. Also make sure the three finds and the goose are visible and sensible.
+For example `node tools/shoot.mjs block/pool out.png` or `node tools/shoot.mjs tower/lobby out.png`. The script prints console errors. There must be none from your zone (a Google Fonts error is expected in a sandbox without internet and is fine). Check several `--t` values so moving things look right at different moments. Also make sure the three finds and the goose are visible and sensible.
 
-When done, report: the room names and blurbs, the finds, where the goose is, and anything in shared code you had to work around.
+When done, report: the zone names and blurbs, the finds, where the goose is, and anything in shared code you had to work around.

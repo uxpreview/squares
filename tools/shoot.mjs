@@ -1,13 +1,22 @@
-// Screenshot helper for checking rooms while drawing them.
+// Screenshot helper for checking zones while drawing them.
 //
-//   node tools/shoot.mjs <roomId|overview> [out.png] [--mobile] [--t=3.5] [--zoom=1.6]
+//   node tools/shoot.mjs <target> [out.png] [--mobile] [--t=3.5] [--zoom=1.6]
 //
-// Serves the project locally, opens it in headless Chromium, flies to the room,
-// waits, and saves a PNG. Console errors are printed so broken rooms are obvious.
-import http from 'node:http';
+// Targets:
+//   title                 the title screen
+//   maps                  the place picker
+//   block                 a map's overview (any map id)
+//   block/laundromat      a zone inside a map
+//   laundromat            a zone, searching every map for it
+//   overview              same as "block" (the old name)
+//
+// Starts the Vite dev server, opens the page in headless Chromium, goes to the
+// target, waits, and saves a PNG. Console errors are printed so broken zones
+// are obvious. (A Google Fonts error is expected in sandboxes with no internet.)
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { createServer } from 'vite';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -16,28 +25,19 @@ catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);
-const target = args[0] || 'overview';
-const out = args[1] && !args[1].startsWith('--') ? args[1] : `/tmp/shot-${target}.png`;
+const target = args[0] || 'block';
+const out = args[1] && !args[1].startsWith('--') ? args[1] : `/tmp/shot-${target.replace(/\//g, '-')}.png`;
 const mobile = args.includes('--mobile');
 const waitArg = args.find((a) => a.startsWith('--t='));
 const wait = waitArg ? parseFloat(waitArg.slice(4)) : 2.5;
 const zoomArg = args.find((a) => a.startsWith('--zoom='));
 const zoom = zoomArg ? parseFloat(zoomArg.slice(7)) : 1;
 
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
-const server = http.createServer((req, res) => {
-  const p = decodeURIComponent(req.url.split('?')[0].split('#')[0]);
-  const file = path.join(root, p === '/' ? 'index.html' : p);
-  fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200, { 'content-type': types[path.extname(file)] || 'application/octet-stream' });
-    res.end(data);
-  });
-});
-await new Promise((r) => server.listen(0, r));
-const port = server.address().port;
+const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
+await server.listen();
+const port = server.httpServer.address().port;
 
-const browser = await chromium.launch({ executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? undefined : undefined });
+const browser = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium') ? { executablePath: '/opt/pw-browsers/chromium' } : {});
 const page = await browser.newPage({
   viewport: mobile ? { width: 390, height: 844 } : { width: 1400, height: 1000 },
   deviceScaleFactor: 2,
@@ -48,25 +48,51 @@ page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') 
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('response', (r) => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
 
-await page.addInitScript(() => { window.__noAutoTour = true; });
-const hash = target === 'overview' ? '' : '#' + target;
+// Resolve the target to an address.
+let hash = '#/';
+let zoneId = null;
+if (target === 'title') hash = '#/';
+else if (target === 'maps') hash = '#/maps';
+else if (target === 'overview') hash = '#/block';
+else if (target.includes('/')) { hash = '#/' + target; zoneId = target.split('/')[1]; }
+else hash = '#/' + target; // a map id, or a zone id (main.js treats unknown ids as old block links)
+
 await page.goto(`http://localhost:${port}/${hash}`);
+await page.waitForFunction(() => window.__squares && window.__squares.world, null, { timeout: 20000 });
+
+// A bare zone id that isn't on the block: find which map has it.
+if (!target.includes('/') && !['title', 'maps', 'overview'].includes(target)) {
+  const found = await page.evaluate(async (id) => {
+    const s = window.__squares;
+    if (s.world.id === id) return 'map';
+    if (s.world.indexOf(id) >= 0) return s.world.id;
+    const { default: maps } = await import('/src/maps/index.js');
+    for (const m of maps) {
+      const mod = await m.load();
+      if (mod.default.zones.some((z) => z.zone.id === id)) return m.id;
+    }
+    return null;
+  }, target);
+  if (found && found !== 'map' && found !== 'block') {
+    await page.evaluate((h) => { location.hash = h; }, `#/${found}/${target}`);
+  }
+  if (found && found !== 'map') zoneId = target;
+}
+
 await page.waitForTimeout(600);
 await page.evaluate((z) => {
   const s = window.__squares;
-  if (!s) return;
-  s.stopTour();
   if (z !== 1) s.cam.z *= z;
 }, zoom);
 await page.waitForTimeout(wait * 1000);
 await page.screenshot({ path: out });
-const stats = await page.evaluate(() => {
+const stats = await page.evaluate((id) => {
   const s = window.__squares;
-  if (!s) return null;
-  return s.rooms.map((r) => ({ id: r.id, items: r.items.length, finds: r.finds.map((f) => f.id).join(',') }));
-});
+  const z = id && s.world.zones.find((x) => x.id === id);
+  return z ? { id: z.id, map: s.world.id, items: z.items.length, finds: z.finds.map((f) => f.id).join(',') } : null;
+}, zoneId);
 console.log('saved', out);
-if (target !== 'overview' && stats) console.log(JSON.stringify(stats.find((s) => s.id === target)));
+if (stats) console.log(JSON.stringify(stats));
 if (errors.length) console.log('CONSOLE ERRORS:\n' + errors.join('\n'));
 await browser.close();
-server.close();
+await server.close();
