@@ -9,18 +9,26 @@
 //
 // Maps with named storeys (map.storeys) get a floor switch: the overview shows
 // one storey at a time, with the ones above lifted away.
+//
+// A whodunit (a map with a case file, see src/game/case.js) swaps the things
+// tally for a Case button, calls its finds evidence or curiosities, and ends
+// when you accuse the right suspect: a flash of lightning, and the camera cuts
+// to the reveal.
 
 import { isoX, isoY } from '../engine/iso.js';
 import { C, alpha } from '../engine/art.js';
 import { findPos } from '../engine/zone.js';
 import { createTray } from '../ui/tray.js';
-import { play as sound } from './audio.js';
+import { createCasefile } from '../ui/casefile.js';
+import { play as sound, bed, wake } from './audio.js';
+import { caseState, accuse as accuseIn } from './case.js';
 
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
-export function createPlay({ camera, store, reduceMotion, clock, on }) {
+export function createPlay({ camera, store, reduceMotion, clock, setClock, on }) {
   // on: { exit(), complete(world), place(mapId, zoneId|null) }
   // clock(): the scene's time in seconds, the same t the renderer draws with.
+  // setClock(t): move the scene to another moment (the reveal goes back to dinner).
   const { cam, view } = camera;
   const $ = (id) => document.getElementById(id);
   const ui = {
@@ -29,6 +37,7 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     roombar: $('roombar'), all: $('all'), prev: $('prev'), next: $('next'),
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
     places: $('to-places'), storeys: $('storeys'),
+    thingsPill: $('tally-things-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
   };
 
   let world = null;
@@ -47,6 +56,8 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
   const words = () => ({ zone: 'room', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
+  const isCase = () => !!(world && world.goal === 'case');
+  const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
 
   // ---------- Framing ----------
   // The screen area the map gets, after the UI chrome around it.
@@ -228,7 +239,15 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
   function renderTally() {
     const p = store.progress(world);
     bumpText(ui.geese, `${p.geese}/${world.totalGeese}`);
-    bumpText(ui.things, `${p.things}/${world.totalThings}`);
+    // A whodunit counts its evidence on the Case button instead of things.
+    ui.thingsPill.hidden = isCase();
+    ui.caseBtn.hidden = !isCase();
+    if (isCase()) {
+      const solved = store.caseOf(world.id).solved;
+      bumpText(ui.caseCount, solved ? 'Solved' : `${p.evidence}/${world.totals.evidence}`);
+      ui.caseBtn.classList.toggle('is-solved', solved);
+      ui.caseBtn.setAttribute('aria-label', solved ? 'The case file. Case closed.' : `The case file: ${p.evidence} of ${world.totals.evidence} pieces of evidence found. Accuse someone.`);
+    } else bumpText(ui.things, `${p.things}/${world.totalThings}`);
     return p;
   }
 
@@ -240,6 +259,7 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     el.dataset.set = '1';
     if (first || reduceMotion) return;
     const pill = el.closest('.tally-item');
+    if (!pill) return;
     pill.classList.remove('bump');
     void pill.offsetWidth;
     pill.classList.add('bump');
@@ -265,6 +285,7 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
   }
 
   function markFound(zone, f) {
+    const before = isCase() ? theCase() : null;
     if (!store.markFound(world.id, keyOf(zone, f))) return;
     const now = performance.now();
     foundAt.set(world.id + '/' + keyOf(zone, f), now);
@@ -273,6 +294,7 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     const p = renderTally();
     if (mode === 'zone' && current >= 0) tray.render(current);
     const zoneDone = zone.finds.every((x) => isFound(zone, x));
+    if (isCase()) { caseFound(zone, f, before, p, zoneDone); return; }
     const allGeese = p.geese === world.totalGeese;
     if (f.goose) {
       pops.push({ zone, f, t0: now, kind: 'honk' });
@@ -294,6 +316,107 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     } else {
       sound('pen');
       toast(zoneDone ? `${zone.name}, all found.` : `Found: ${f.label.toLowerCase()} (${p.things}/${world.totalThings})`);
+    }
+  }
+
+  // ---------- Whodunits ----------
+  // A find in a whodunit: say what it means for the case.
+  function caseFound(zone, f, before, p, zoneDone) {
+    const after = theCase();
+    const was = (id) => before.suspects.find((s) => s.id === id);
+    const newSuspect = after.suspects.find((s) => s.culprit && s.ready && !was(s.id).ready);
+    const cleared = after.suspects.find((s) => s.cleared && !was(s.id).cleared);
+    if (f.goose) {
+      pops.push({ zone, f, t0: performance.now(), kind: 'honk' });
+      sound('honk');
+    } else sound('pen');
+    let msg;
+    if (newSuspect) msg = 'All the clues are in. The case file has a new suspect.';
+    else if (cleared) msg = `Evidence: ${cleared.name}'s alibi checks out.`;
+    else if (f.goose) msg = 'HONK. You found the goose. It looks very innocent.';
+    else if (f.group === 'evidence') msg = `Evidence: ${lower(f.label)} (${p.evidence}/${world.totals.evidence})`;
+    else msg = zoneDone ? `${zone.name}, all found.` : `Found: ${lower(f.label)}`;
+    toast(msg);
+    if (f.group === 'evidence' || newSuspect) nudgeCase(!!newSuspect);
+    casefile.refresh();
+  }
+  const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+
+  // The Case button wiggles when there's news in the case file.
+  function nudgeCase(big) {
+    if (reduceMotion || !big) return;
+    ui.caseBtn.classList.remove('nudge');
+    void ui.caseBtn.offsetWidth;
+    ui.caseBtn.classList.add('nudge');
+  }
+
+  const casefile = createCasefile({
+    reduceMotion,
+    state: () => theCase(),
+    sound,
+    nameOf: (id) => (world.map.case.names && world.map.case.names[id]) || id,
+    portrait: (ctx, id, w, h, dpr) => world.map.case.portrait(ctx, id, w, h, clock(), dpr),
+    accuse: (id) => {
+      const out = accuseIn(world, theCase(), id);
+      if (out && out.kind === 'wrong') store.accuse(world.id, id);
+      renderTally();
+      return out;
+    },
+    onSolved: () => reveal(),
+    onClose: () => {},
+  });
+  ui.caseBtn.addEventListener('click', () => {
+    if (!active || !isCase()) return;
+    userAct();
+    sound('tick');
+    casefile.open();
+  });
+
+  // The case is closed: a flash of lightning, and in it the camera cuts to
+  // the reveal (the goose in the Lord's chair, at dinner), then the card.
+  function reveal() {
+    const w = world, c = w.map.case;
+    const still = () => active && world === w;
+    store.solve(w.id);
+    casefile.close();
+    sound('sting');
+    renderTally();
+    const cut = () => {
+      if (!still()) return;
+      setClock(c.reveal.at);
+      c.onSolved(clock());
+      const i = w.indexOf(c.reveal.zone);
+      if (i >= 0) {
+        seenStory.add(c.reveal.zone);
+        showZoneUI(i);
+        camera.jumpTo(zoneView(i));
+      }
+      sound('thunder', { big: true });
+    };
+    if (reduceMotion) cut();
+    else {
+      ui.flash.hidden = false;
+      const a = ui.flash.animate([{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 1, offset: 0.35 }, { opacity: 0 }], { duration: 1400, easing: 'ease-out' });
+      setTimeout(cut, 300);
+      a.onfinish = () => { ui.flash.hidden = true; };
+    }
+    setTimeout(() => { if (still()) { sound('honk'); on.complete(w); } }, reduceMotion ? 600 : 3000);
+  }
+
+  // Sounds on the place's clock (thunder after lightning), heard between one
+  // frame and the next. A jump in the clock (a tool, the reveal) plays nothing.
+  let lastTick = null;
+  function tick(t) {
+    const cues = active && world && world.map.sound && world.map.sound.cues;
+    if (!cues) { lastTick = null; return; }
+    const loop = world.map.loop || 180;
+    const prev = lastTick;
+    lastTick = t;
+    if (prev == null || t <= prev || t - prev > 1) return;
+    const a = ((prev % loop) + loop) % loop, b = ((t % loop) + loop) % loop;
+    for (const q of cues) {
+      const at = q.at % loop;
+      if (a <= b ? at > a && at <= b : at > a || at <= b) sound(q.name, q);
     }
   }
 
@@ -495,11 +618,13 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
   ui.places.addEventListener('click', () => on.exit());
   window.addEventListener('keydown', (e) => {
     if (!active || (e.target.closest && e.target.closest('input, textarea'))) return;
+    if (casefile.isOpen && e.key !== 'Escape') return; // the case file has the keys while it's open
     if (e.key === 'ArrowRight') step(1);
     else if (e.key === 'ArrowLeft') step(-1);
     else if (e.key === 'PageUp' && hasStoreys()) { e.preventDefault(); setStorey(storey + 1); }
     else if (e.key === 'PageDown' && hasStoreys()) { e.preventDefault(); setStorey(storey - 1); }
     else if (e.key === 'Escape') {
+      if (casefile.back()) return;
       if (!ui.story.hidden) showStory(false);
       else if (mode === 'zone' && tray.state === 'open' && tray.dock() === 'bottom') tray.setState('peek');
       else if (mode === 'zone') { userAct(); toOverview(); }
@@ -556,8 +681,15 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     ui.all.setAttribute('aria-label', words().whole);
     ui.geese.dataset.set = '';
     ui.things.dataset.set = '';
+    ui.caseCount.dataset.set = '';
+    // A whodunit's art needs to know if the case was solved on an earlier visit.
+    if (isCase()) {
+      if (store.caseOf(world.id).solved) world.map.case.onSolved(0);
+      else world.map.case.onOpen();
+      if (world.map.case.ink) document.body.style.setProperty('--case-ink', world.map.case.ink);
+    }
     const p = renderTally();
-    parade = p.geese === world.totalGeese && world.totalGeese > 0 ? performance.now() : 0;
+    parade = !isCase() && p.geese === world.totalGeese && world.totalGeese > 0 ? performance.now() : 0;
   }
 
   // Start playing the loaded map, at its overview or straight into a zone.
@@ -566,6 +698,7 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
   function start(zoneId, o = {}) {
     active = true;
     ui.hud.hidden = false;
+    bed(world.map.sound && world.map.sound.bed);
     const i = zoneId ? world.indexOf(zoneId) : -1;
     renderStoreys();
     showOverviewUI();
@@ -585,6 +718,8 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     active = false;
     attractInsets = getInsets || null;
     ui.hud.hidden = true;
+    bed(null);
+    casefile.close();
     showStory(false);
     tray.show(false);
     renderStoreys();
@@ -627,6 +762,16 @@ export function createPlay({ camera, store, reduceMotion, clock, on }) {
     down() {
       if (!ui.story.hidden) showStory(false);
       userAct();
+      wake();
+    },
+    tick,
+    casefile,
+    // Reset the loaded place's progress (QA and tests), including its case.
+    reset() {
+      store.resetMap(world.id);
+      if (isCase()) world.map.case.onOpen();
+      renderTally();
+      if (mode === 'zone' && current >= 0) tray.render(current);
     },
     markFound,
     enterZone: (i, o) => enterZone(typeof i === 'string' ? world.indexOf(i) : i, o),

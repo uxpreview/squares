@@ -43,12 +43,16 @@ export function createTray(o) {
   }
 
   // ---------- Drawing ----------
+  // Finds can come in groups (a whodunit's evidence and curiosities): evidence
+  // gets a magnifying glass for a mark, and comes first.
   function mark(f, found) {
     const m = document.createElement('span');
-    m.className = 'find-mark' + (f.goose ? ' is-goose' : '') + (found ? ' is-found' : '');
+    m.className = 'find-mark' + (f.goose ? ' is-goose' : '') + (f.group === 'evidence' ? ' is-evidence' : '') + (found ? ' is-found' : '');
     m.setAttribute('aria-hidden', 'true');
     return m;
   }
+  const grouped = () => o.rooms.some((r) => r.finds.some((f) => f.group));
+  const said = (f) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : '');
 
   function chip(room, f) {
     const found = o.isFound(room, f);
@@ -63,9 +67,10 @@ export function createTray(o) {
     t.className = 'chip-label';
     t.textContent = o.label(room, f);
     b.append(mark(f, found), t);
+    if (f.group === 'evidence') b.setAttribute('aria-label', said(f));
     if (found) {
       b.disabled = true;
-      b.setAttribute('aria-label', o.label(room, f) + ', found');
+      b.setAttribute('aria-label', said(f) + ', found');
     } else {
       b.addEventListener('click', () => { sel = sel === k ? null : k; render(shown); });
     }
@@ -81,6 +86,12 @@ export function createTray(o) {
     t.className = 'row-label';
     t.textContent = o.label(room, f);
     li.append(mark(f, found), t);
+    if (f.group === 'evidence') {
+      const e = document.createElement('span');
+      e.className = 'sr-only';
+      e.textContent = ' (evidence)';
+      li.append(e);
+    }
     if (found) {
       const s = document.createElement('span');
       s.className = 'sr-only';
@@ -98,7 +109,8 @@ export function createTray(o) {
     return li;
   }
 
-  const sortFinds = (room) => room.finds.slice().sort((a, b) => (b.goose ? 1 : 0) - (a.goose ? 1 : 0));
+  const rank = (f) => (f.goose ? 0 : f.group === 'evidence' ? 1 : 2);
+  const sortFinds = (room) => room.finds.slice().sort((a, b) => rank(a) - rank(b));
 
   function group(i, here) {
     const room = o.rooms[i];
@@ -160,9 +172,24 @@ export function createTray(o) {
     el.hint.hidden = !picked;
     if (picked) el.hint.setAttribute('aria-label', 'Hint for ' + o.label(room, picked));
 
-    // The whole list: this zone first, then the rest in the map's order.
+    // The whole list: this zone first, then the rest in the map's order. A
+    // place with grouped finds says what the marks mean.
     const others = o.order.filter((i) => i !== ci);
-    el.full.replaceChildren(group(ci, true), ...others.map((i) => group(i, false)));
+    const legend = [];
+    if (grouped()) {
+      const p = document.createElement('p');
+      p.className = 'tray-legend';
+      for (const [cls, text] of [['is-evidence', 'Evidence for the case'], ['', 'Curiosities, for fun']]) {
+        const sp = document.createElement('span');
+        const m = document.createElement('span');
+        m.className = 'find-mark ' + cls;
+        m.setAttribute('aria-hidden', 'true');
+        sp.append(m, text);
+        p.append(sp);
+      }
+      legend.push(p);
+    }
+    el.full.replaceChildren(...legend, group(ci, true), ...others.map((i) => group(i, false)));
 
     if (swapped) {
       el.full.scrollTop = 0;

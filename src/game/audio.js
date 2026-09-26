@@ -1,8 +1,10 @@
 // Sound, all synthesized: no files to load. Browsers only allow audio after a
 // tap or click, so the first sound after page load may be the first you hear.
 //
-// To add a sound: write a function that takes (audio, t0) and schedules
-// oscillators or noise, and add it to SOUNDS.
+// To add a sound: write a function that takes (audio, t0, o) and schedules
+// oscillators or noise, and add it to SOUNDS. A place can also have a bed (a
+// sound that loops under everything while you're there, like rain: BEDS) and
+// cues on its clock (thunder after lightning): see sound in a map.js.
 
 let ac = null;
 let muted = false;
@@ -33,6 +35,30 @@ function noise(a) {
   const d = noiseBuf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   return noiseBuf;
+}
+// Longer, softer noise (brown-ish), for rain and thunder.
+let rumbleBuf = null;
+function rumble(a) {
+  if (rumbleBuf) return rumbleBuf;
+  rumbleBuf = a.createBuffer(1, a.sampleRate * 4, a.sampleRate);
+  const d = rumbleBuf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < d.length; i++) {
+    last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04;
+    d[i] = last * 3.5;
+  }
+  return rumbleBuf;
+}
+function tone(a, t, hz, type, peak, attack, release, dest = a.destination) {
+  const o = a.createOscillator();
+  o.type = type;
+  o.frequency.value = hz;
+  const g = envelope(a, t, peak, attack, release);
+  o.connect(g);
+  g.connect(dest);
+  o.start(t);
+  o.stop(t + attack + release + 0.05);
+  return o;
 }
 
 const SOUNDS = {
@@ -86,6 +112,85 @@ const SOUNDS = {
     o.start(t0);
     o.stop(t0 + 0.08);
   },
+  // Thunder: a low roll of filtered noise, with a crack up front for a big strike.
+  thunder(a, t0, o = {}) {
+    const big = !!o.big;
+    const src = a.createBufferSource();
+    src.buffer = rumble(a);
+    const f = a.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(big ? 900 : 420, t0);
+    f.frequency.exponentialRampToValueAtTime(140, t0 + 2.6);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(big ? 0.5 : 0.22, t0 + (big ? 0.06 : 0.35));
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (big ? 3.4 : 2.6));
+    src.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    src.start(t0, Math.random() * 0.5);
+    src.stop(t0 + 3.6);
+    if (big) {
+      const c = a.createBufferSource();
+      c.buffer = noise(a);
+      const hp = a.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1800;
+      const cg = envelope(a, t0, 0.12, 0.005, 0.25);
+      c.connect(hp);
+      hp.connect(cg);
+      cg.connect(a.destination);
+      c.start(t0);
+      c.stop(t0 + 0.3);
+    }
+  },
+  // A grandfather clock's chime: a few bell partials, ringing out.
+  bell(a, t0) {
+    for (const [r, v] of [[1, 0.06], [2.01, 0.025], [2.76, 0.018], [5.4, 0.008]]) tone(a, t0, 196 * r, 'sine', v, 0.004, 2.4 / r + 0.4);
+  },
+  // The lights going out: a thunk, and a fizz from the fuse box.
+  clunk(a, t0) {
+    const o = tone(a, t0, 90, 'sine', 0.14, 0.004, 0.18);
+    o.frequency.exponentialRampToValueAtTime(40, t0 + 0.18);
+    const src = a.createBufferSource();
+    src.buffer = noise(a);
+    const f = a.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 3200;
+    f.Q.value = 3;
+    const g = envelope(a, t0 + 0.02, 0.05, 0.01, 0.3);
+    src.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    src.start(t0 + 0.02);
+    src.stop(t0 + 0.4);
+  },
+  // A rubber stamp coming down on a case file.
+  stamp(a, t0) {
+    const o = tone(a, t0, 150, 'sine', 0.2, 0.003, 0.14);
+    o.frequency.exponentialRampToValueAtTime(55, t0 + 0.12);
+    const src = a.createBufferSource();
+    src.buffer = noise(a);
+    const f = a.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 2400;
+    const g = envelope(a, t0, 0.08, 0.002, 0.06);
+    src.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    src.start(t0);
+    src.stop(t0 + 0.1);
+  },
+  // Dun, dun, DUNNN: an organ sting for the moment the case closes.
+  sting(a, t0) {
+    const lp = a.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1400;
+    lp.connect(a.destination);
+    [[0, 0.18, 196], [0.26, 0.18, 196], [0.52, 1.6, 185]].forEach(([at, len, hz]) => {
+      for (const [m, type, v] of [[1, 'square', 0.035], [2, 'triangle', 0.05], [0.5, 'triangle', 0.06]]) tone(a, t0 + at, hz * m, type, v, 0.02, len, lp);
+    });
+  },
   // Three rising notes: a place is complete.
   fanfare(a, t0) {
     [523.25, 659.25, 783.99, 1046.5].forEach((hz, i) => {
@@ -102,15 +207,68 @@ const SOUNDS = {
   },
 };
 
-export function play(name) {
+// Beds: sounds that loop under a place while you're in it. Each returns a stop().
+const BEDS = {
+  // Rain on the windows: two bands of soft noise, drifting a little.
+  rain(a) {
+    const out = a.createGain();
+    out.gain.setValueAtTime(0.0001, a.currentTime);
+    out.gain.exponentialRampToValueAtTime(0.05, a.currentTime + 2);
+    out.connect(a.destination);
+    const srcs = [[700, 0.8, 1], [2600, 1.2, 0.35]].map(([hz, q, v], i) => {
+      const src = a.createBufferSource();
+      src.buffer = i ? noise(a) : rumble(a);
+      src.loop = true;
+      const f = a.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = hz;
+      f.Q.value = q;
+      const g = a.createGain();
+      g.gain.value = v;
+      src.connect(f);
+      f.connect(g);
+      g.connect(out);
+      src.start();
+      return src;
+    });
+    return () => {
+      const t = a.currentTime;
+      out.gain.cancelScheduledValues(t);
+      out.gain.setValueAtTime(out.gain.value, t);
+      out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      for (const s of srcs) s.stop(t + 0.7);
+    };
+  },
+};
+let bedName = null, bedStop = null;
+
+export function play(name, o) {
   const a = context();
   if (!a || !SOUNDS[name]) return;
-  try { SOUNDS[name](a, a.currentTime + 0.01); } catch {}
+  try { SOUNDS[name](a, a.currentTime + 0.01, o); } catch {}
+}
+
+// The bed to loop now (a key of BEDS), or null for quiet. Keeps it going
+// across mute and unmute.
+export function bed(name) {
+  if (name === bedName && (bedStop || muted)) return;
+  if (bedStop) { try { bedStop(); } catch {} bedStop = null; }
+  bedName = name || null;
+  const a = bedName && BEDS[bedName] ? context() : null;
+  if (a) { try { bedStop = BEDS[bedName](a); } catch { bedStop = null; } }
+}
+
+// After a tap: browsers only let sound start from one, so start what's waiting.
+export function wake() {
+  if (muted) return;
+  const a = context();
+  if (a && bedName && !bedStop) bed(bedName);
 }
 
 export function setMuted(v) {
   muted = !!v;
   if (muted && ac && ac.state === 'running') ac.suspend();
+  if (!muted && bedName) { const name = bedName; bedName = null; if (bedStop) { try { bedStop(); } catch {} bedStop = null; } bed(name); }
 }
 
 export const isMuted = () => muted;

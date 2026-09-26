@@ -4,10 +4,11 @@
 // everyone moves between rooms on one clock (evening.js). The brief is
 // docs/levels/manor.md; the layout is plan.js.
 import { WALL } from '../../engine/iso.js';
-import { PAPER } from './style.js';
+import { PAPER, storm, MIDNIGHT } from './style.js';
 import { AT, STOREY, LOOP } from './plan.js';
 import { walkers } from './evening.js';
 import { backdrop, sky, PLATE } from './ambient.js';
+import manorCase from './case.js';
 
 import library from './areas/library.js';
 import diningRoom from './areas/dining-room.js';
@@ -64,11 +65,26 @@ export default {
   walkers,
   backdrop,
   sky,
+  // A whodunit: the goal is solving the case, not finding the goose (case.js).
+  case: manorCase,
+  // Rain all night, and on the clock: thunder after every strike (sooner and
+  // louder for the big ones), the lights going out, the grandfather clock
+  // striking midnight.
+  sound: {
+    bed: 'rain',
+    cues: [
+      ...storm.strikes.map((s) => ({ at: s.t + (s.big ? 0.3 : 1.1), name: 'thunder', big: s.big })),
+      { at: 82, name: 'clunk' },
+      { at: MIDNIGHT, name: 'bell' },
+      { at: MIDNIGHT + 1.7, name: 'bell' },
+      { at: MIDNIGHT + 3.4, name: 'bell' },
+    ],
+  },
   words: {
     zone: 'room',
-    hint: 'Tap a room to step inside, or change floors.',
+    hint: 'Find the evidence, then tap Case to accuse.',
     whole: 'The whole house',
-    complete: 'You found the goose. Whether it did it is another matter.',
+    complete: 'The goose did it. It has taken his chair, wearing the monocle it ordered by post.',
   },
   loop: LOOP, // the evening repeats every 3 minutes
   // What npm run qa expects of this level (the default is the Block's one

@@ -20,6 +20,7 @@ import { attachInput } from './engine/input.js';
 import { buildWorld } from './engine/world.js';
 import { createStore } from './game/store.js';
 import { createPlay } from './game/play.js';
+import { setUp } from './game/case.js';
 import { setMuted } from './game/audio.js';
 import { createScreens } from './ui/screens.js';
 
@@ -50,7 +51,8 @@ function getWorld(id) {
   if (!worlds.has(id)) {
     const meta = MAPS.find((m) => m.id === id);
     if (!meta) return Promise.reject(new Error('No map ' + id));
-    worlds.set(id, meta.load().then((mod) => buildWorld(mod.default)));
+    // Build it, then work out its format (its goal, how its finds group).
+    worlds.set(id, meta.load().then((mod) => setUp(buildWorld(mod.default))));
   }
   return worlds.get(id);
 }
@@ -70,6 +72,7 @@ const play = createPlay({
   store,
   reduceMotion,
   clock: clock.now,
+  setClock: clock.set,
   on: {
     exit: () => go('#/maps'),
     complete: (world) => screens.showComplete(world),
@@ -160,6 +163,7 @@ function frame(now) {
   lastT = now / 1000;
   camera.step(now);
   input.step(dt);
+  play.tick(t);
   renderer.render(play.world, {
     t,
     now,
