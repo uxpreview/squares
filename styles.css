@@ -70,22 +70,14 @@ html, body {
   clip: rect(0 0 0 0); white-space: nowrap;
 }
 
-/* ---------- Top bar ---------- */
-.brand {
-  position: fixed;
-  top: calc(var(--safe-top) + 12px);
-  left: var(--gutter);
-  pointer-events: none;
-  transform-origin: 0 0;
-  transition: transform 0.5s cubic-bezier(.2, .8, .2, 1);
-}
-/* The wordmark is a sticker: ink letters, a cream die-cut edge, a coral offset.
-   The edge keeps it readable when it sits over a dark room. */
-.brand h1 {
+/* ---------- Shared: the sticker wordmark ---------- */
+/* Ink letters, a cream die-cut edge, a coral offset. The edge keeps it
+   readable when it sits over a dark room. */
+.wordmark,
+.place-name {
   margin: 0;
   font-family: var(--display);
   font-weight: 400;
-  font-size: clamp(30px, 5vw, 44px);
   line-height: 0.9;
   letter-spacing: 0.01em;
   color: var(--ink);
@@ -94,52 +86,298 @@ html, body {
     1.8px 1.8px 0 var(--card), -1.8px 1.8px 0 var(--card), 1.8px -1.8px 0 var(--card), -1.8px -1.8px 0 var(--card),
     4.5px 4.5px 0 var(--coral);
 }
-.brand h1 span { display: inline-block; }
-body[data-ready] .brand h1 span {
+.wordmark span,
+.place-name span { display: inline-block; }
+.place-name .sp { width: 0.28em; }
+/* Letters drop in one after another. main.js sets --i on each. */
+body[data-ready] .wordmark span,
+body[data-ready] .place-name span {
   animation: letter 0.7s cubic-bezier(.2, 1.5, .4, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.04s);
 }
-.brand h1 span:nth-child(2) { animation-delay: 0.04s; }
-.brand h1 span:nth-child(3) { animation-delay: 0.08s; }
-.brand h1 span:nth-child(4) { animation-delay: 0.12s; }
-.brand h1 span:nth-child(5) { animation-delay: 0.16s; }
-.brand h1 span:nth-child(6) { animation-delay: 0.20s; }
-.brand h1 span:nth-child(7) { animation-delay: 0.24s; }
 @keyframes letter {
   from { transform: translateY(0.5em) rotate(-8deg); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
-body[data-ready] .brand p,
-body[data-ready] .brand-back { animation: fade-up 0.6s 0.35s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes fade-up {
   from { transform: translateY(6px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
-/* Inside a room the wordmark steps back so the room is the show. */
-body[data-mode="room"] .brand { transform: scale(0.74); }
-body[data-mode="room"] .brand p,
-body[data-mode="room"] .brand-back { display: none; }
-.brand p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
+
+/* ---------- Buttons ---------- */
+button {
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
+button:hover { background: #fff; }
+button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+
+/* The one thing to press on a screen. */
+.big-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 10px 32px;
+  background: var(--ink);
+  color: var(--card);
+  font-family: var(--display);
+  font-size: 26px;
+  line-height: 1;
+  box-shadow: 4px 4px 0 var(--coral);
+}
+.big-btn:hover { background: var(--navy, #2C3A6B); }
+.big-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--coral); }
+.big-btn-sub {
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--mustard);
+}
+.soft-btn {
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Back to the places, top left while playing. */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 0 14px 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: auto;
+}
+.back-btn svg { width: 18px; height: 18px; }
+
+.sound-btn .i-off,
+.sound-btn[aria-pressed="false"] .i-on { display: none; }
+.sound-btn[aria-pressed="false"] .i-off { display: block; }
+.sound-btn[aria-pressed="false"] { color: var(--ink-soft); }
+
 /* The way home to ryankm.com/lab. Quiet on purpose: the sheet is the show. */
 .brand-back {
   display: inline-block;
-  margin-top: 4px;
   padding: 4px 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ink-soft);
   text-decoration: underline;
   text-decoration-color: var(--coral);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
-  pointer-events: auto;
 }
 .brand-back:hover { color: var(--ink); }
 .brand-back:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; border-radius: 2px; }
+
+/* ---------- Title screen ---------- */
+/* Phones: title at the top, buttons in thumb reach at the bottom, the map
+   drifting in between. Wide screens: a column on the left, map on the right. */
+.screen { position: fixed; z-index: 10; }
+.title {
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 64px) 24px calc(var(--safe-bottom) + 24px);
+  pointer-events: none;
+}
+.title > * { pointer-events: auto; }
+.wordmark { font-size: clamp(64px, 20vw, 128px); white-space: nowrap; }
+.title-tagline {
+  max-width: 22em;
+  margin: 22px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.title-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.title-progress {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.title-foot {
+  position: fixed;
+  top: calc(var(--safe-top) + 14px);
+  right: var(--gutter);
+  left: var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.title-foot > * { pointer-events: auto; }
+body[data-ready] .title-tagline { animation: fade-up 0.6s 0.35s cubic-bezier(.2, .8, .2, 1) both; }
+body[data-ready] .title-actions { animation: fade-up 0.6s 0.55s cubic-bezier(.2, .8, .2, 1) both; }
+body[data-ready] .title-foot { animation: fade-up 0.6s 0.8s cubic-bezier(.2, .8, .2, 1) both; }
+
+@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+  .title {
+    right: auto;
+    width: min(560px, 42vw);
+    justify-content: center;
+    gap: 40px;
+    padding: 48px 0 48px 56px;
+  }
+  .wordmark { font-size: clamp(72px, 7.2vw, 116px); }
+  .title-tagline { margin-top: 30px; }
+  .title-actions { align-items: flex-start; }
+  .title-actions .big-btn { min-width: 240px; }
+  .title-progress { text-align: left; }
+  .title-foot { top: auto; bottom: 24px; left: 56px; right: 24px; }
+}
+
+/* ---------- Pick a place ---------- */
+.places {
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(var(--safe-top) + 20px) var(--gutter) calc(var(--safe-bottom) + 32px);
+  background: rgba(241, 232, 214, 0.84);
+  -webkit-backdrop-filter: blur(5px) saturate(0.9);
+  backdrop-filter: blur(5px) saturate(0.9);
+}
+.places-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 1180px;
+  margin: 0 auto 22px;
+}
+.places-title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(30px, 6vw, 48px);
+  line-height: 1;
+}
+.places-title:focus { outline: none; }
+.places-total { margin: 6px 0 0; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.places-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 22px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+body[data-screen="places"] .places { animation: sheet-in 0.35s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes sheet-in { from { opacity: 0; } to { opacity: 1; } }
+body[data-screen="places"] .places-head { animation: fade-up 0.45s cubic-bezier(.2, .8, .2, 1) both; }
+body[data-screen="places"] .places-list > li { animation: fade-up 0.5s cubic-bezier(.2, .8, .2, 1) both; }
+.places-list > li:nth-child(2) { animation-delay: 0.06s; }
+.places-list > li:nth-child(3) { animation-delay: 0.12s; }
+.places-list > li:nth-child(4) { animation-delay: 0.18s; }
+.place-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.18s cubic-bezier(.2, .8, .2, 1), box-shadow 0.18s cubic-bezier(.2, .8, .2, 1);
+}
+.place-card:hover { background: var(--card); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--card-ink); }
+.place-card:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.place-pic {
+  aspect-ratio: 16 / 10;
+  background:
+    radial-gradient(circle at 50% 55%, #fff8 0 30%, transparent 70%),
+    var(--paper);
+  border-bottom: 2px solid var(--ink);
+}
+.place-pic canvas { display: block; width: 100%; height: 100%; }
+.place-body { padding: 16px 18px 18px; }
+.place-card-name { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.05; }
+.place-card-tag { margin: 6px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--ink-soft); }
+.place-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 14px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.place-badge {
+  padding: 3px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--mustard);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.place-badge[data-kind="progress"] { background: var(--card-ink); color: var(--card); }
+.place-badge[data-kind="done"] { background: var(--coral); color: var(--card); }
+.place-stat { color: var(--ink-soft); }
+.place-card.is-locked,
+.place-card:disabled { cursor: not-allowed; opacity: 1; box-shadow: none; border-color: #CFC3AD; }
+.place-card.is-locked .place-pic { filter: grayscale(1) opacity(0.5); }
+.place-card.is-locked .place-badge { background: var(--paper); border-color: #CFC3AD; color: var(--ink-soft); }
+.place-tease {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 200px;
+  padding: 24px;
+  border: 2px dashed #B7AA92;
+  border-radius: 22px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+.place-tease-title { margin: 0; font-family: var(--display); font-size: 22px; color: var(--ink); }
+.place-tease-text { margin: 8px auto 0; max-width: 22em; font-size: 14px; font-weight: 600; line-height: 1.4; }
+
+/* ---------- Playing: the place name, top left ---------- */
+.place {
+  position: fixed;
+  top: calc(var(--safe-top) + 12px);
+  left: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.place-name { margin-top: 16px; font-size: clamp(30px, 4.4vw, 48px); }
+.place-tagline {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+body[data-ready] .place-tagline { animation: fade-up 0.6s 0.35s cubic-bezier(.2, .8, .2, 1) both; }
+/* Inside a zone the room bar says where you are; the place name steps out. */
+body[data-mode="zone"] .place-name,
+body[data-mode="zone"] .place-tagline { display: none; }
 
 .tally {
   position: fixed;
@@ -147,6 +385,7 @@ body[data-mode="room"] .brand-back { display: none; }
   right: calc(var(--gutter) + var(--tray-w, 0px));
   transition: right 0.34s cubic-bezier(.2, .8, .2, 1);
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .tally-item {
@@ -169,45 +408,17 @@ body[data-mode="room"] .brand-back { display: none; }
   35% { transform: scale(1.18) rotate(-3deg); background: var(--mustard); }
   100% { transform: scale(1); }
 }
-body[data-ready] .tally { animation: fade-up 0.6s 0.2s cubic-bezier(.2, .8, .2, 1) both; }
-body[data-ready] .controls,
-body[data-ready] .hint { animation: fade-up 0.6s 0.9s cubic-bezier(.2, .8, .2, 1) both; }
-
-/* ---------- Buttons ---------- */
-button {
-  font: inherit;
-  color: var(--ink);
-  background: var(--card);
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 var(--ink);
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-button:hover { background: #fff; }
-button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
-button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
-
-.controls {
-  position: fixed;
-  right: var(--gutter);
-  bottom: calc(var(--safe-bottom) + 16px);
-  display: flex;
-  gap: 8px;
-}
-.controls button {
-  padding: 9px 16px;
-  font-weight: 700;
-  font-size: 14px;
-}
-#tour[aria-pressed="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+.icon-btn.tally-sound { width: 36px; height: 36px; }
+.tally-sound svg { width: 18px; height: 18px; }
+#hud:not([hidden]) .tally { animation: fade-up 0.6s 0.2s cubic-bezier(.2, .8, .2, 1) both; }
+#hud:not([hidden]) .hint { animation: fade-up 0.6s 0.9s cubic-bezier(.2, .8, .2, 1) both; }
 
 .hint {
   position: fixed;
   left: var(--gutter);
   bottom: calc(var(--safe-bottom) + 22px);
   margin: 0;
-  max-width: calc(100% - 260px);
+  max-width: calc(100% - 2 * var(--gutter));
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -271,10 +482,6 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
 .room-info { flex: none; width: 18px; height: 18px; color: var(--ink-soft); }
 .room-pill[aria-expanded="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
 .room-pill[aria-expanded="true"] .room-info { color: var(--mustard); }
-#tour-room .i-stop,
-#tour-room[aria-pressed="true"] .i-play { display: none; }
-#tour-room[aria-pressed="true"] .i-stop { display: block; }
-#tour-room[aria-pressed="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
 
 /* The room's story: shown when you arrive, then behind the room name. */
 .story {
@@ -616,12 +823,39 @@ body[data-dock="right"] .story {
   margin: 0;
 }
 
-/* Inside a room the tour button lives in the room bar. */
-body[data-mode="room"] .controls { display: none; }
+
+/* ---------- A place, finished ---------- */
+.complete {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 24px);
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 2 * var(--gutter)));
+  padding: 22px 22px 20px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: 5px 5px 0 var(--coral);
+  text-align: center;
+}
+.complete-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+.complete-title { margin: 6px 0 0; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; }
+.complete-text { margin: 10px 0 0; font-size: 15px; font-weight: 600; line-height: 1.45; color: var(--ink-soft); text-wrap: pretty; }
+.complete-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.complete .big-btn { font-size: 22px; min-height: 56px; }
 
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;
+  z-index: 30;
   left: 50%;
   top: calc(var(--safe-top) + 70px);
   transform: translateX(-50%);
@@ -644,20 +878,16 @@ body[data-mode="room"] .controls { display: none; }
   to { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
-@media (min-width: 900px) {
-  .hint { max-width: none; }
-}
 
 @media (max-width: 520px) {
-  .brand p { font-size: 12px; }
   .tally { gap: 6px; }
   .tally-item { padding: 4px 8px 4px 6px; font-size: 12px; }
-  .hint { max-width: calc(100% - 150px); }
+  .back-btn { min-height: 36px; padding: 0 12px 0 6px; font-size: 13px; }
   /* Messages drop below the room bar. */
-  body[data-mode="room"] .toast { top: calc(var(--safe-top) + 114px); }
+  body[data-mode="zone"] .toast { top: calc(var(--safe-top) + 114px); }
 }
 @media (max-width: 420px) {
-  /* Five controls on a narrow phone: slimmer buttons, name only. */
+  /* A narrow phone: slimmer buttons, name only. */
   .roombar { gap: 5px; }
   .roombar .icon-btn { width: 40px; height: 40px; }
   .room-unit, .room-info { display: none; }
@@ -667,12 +897,8 @@ body[data-mode="room"] .controls { display: none; }
 
 /* Portrait phones: the overview has room for a proper poster title. */
 @media (max-width: 520px) and (orientation: portrait) {
-  /* Tallies ride along the top; the title sits under them, poster-size. */
-  .brand { top: calc(var(--safe-top) + 60px); }
-  .brand h1 { font-size: 62px; }
-  body[data-mode="overview"] .brand p { font-size: 14px; margin-top: 10px; }
-  /* In a room it shrinks back up into the corner. */
-  body[data-mode="room"] .brand { transform: translateY(-46px) scale(0.48); }
+  .place-name { margin-top: 20px; font-size: clamp(40px, 12vw, 58px); }
+  body[data-mode="overview"] .place-tagline { font-size: 14px; margin-top: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
