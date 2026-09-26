@@ -92,6 +92,40 @@ A small Japanese house in cutaway, packed with dozens of cats, more cats tumblin
 - **Plate:** soft mint background, thick friendly lines.
 - **Lesson:** a place can be tiny if the density and the joke are huge. The base of the diorama can be part of the joke.
 
+## Batch 3
+
+### 11. The guild quarter (same artist as 14; signs say "PUT GREB ON")
+A fantasy town in isometric: a grand hall with a balcony, a gallery, a library, workshops, rooftops, a garden with a tiger, and a dungeon along the bottom edge with a ritual in progress.
+- **Structure:** buildings at many heights interlock; you look down into some and across into others. Stairs and balconies link them.
+- **Running character:** "Greb" appears on protest signs and graffiti ("THE PEOPLE WANT GREB"). The artist carries the joke across pieces, the way our goose runs through every place.
+- **Plate:** muted purples, teals and brick. Rich but calm.
+- **Lesson:** a recurring in-world joke across places, beyond the goose. Levels that interlock instead of stacking.
+
+### 12. Vampire castle (watermark unreadable)
+A castle on a mountain at night, cut open along a curving line so you see into towers, halls, a crypt, a kitchen, a library. A torch-carrying mob arrives on horseback; a graveyard in the foreground.
+- **Cut line:** organic. The cutaway follows the building's shape instead of a straight dollhouse edge.
+- **Plate:** a cold night outside, warm firelight inside. The contrast does the work.
+- **Story:** the mob arriving gives the whole picture a "what happens next".
+- **Lesson:** curved cutaways, a night plate built on warm vs. cold, and one big event the whole map reacts to.
+
+### 13. Monster Hunter cube (Sozz, same as 10)
+A cube of earth: a forest on top with monsters, and the sides cut open to show caves, tunnels, an underground lake and rock strata.
+- **Why it matters for us:** it keeps a square silhouette but makes the square a slice of the world. The sides are as interesting as the top.
+- **Lesson:** our square plate could become a slab of earth with things living inside its cut faces. A small change to the Block's look with a big payoff.
+
+### 14. Neon alley (same artist as 11)
+A vertical night city: apartments stacked over shops, catwalks and stairs between them, sewer pipes, graffiti, neon signs ("TURBO GAMES", "BEWARE OF UPSIDE DANIEL").
+- **Structure:** every level has an inside (cutaway rooms) and an outside (walkways), all connected.
+- **Plate:** dark navy with neon pink, orange and cyan. Light comes from signs and windows.
+- **Content:** signage is half the humor. Every sign is a joke.
+- **Lesson:** a vertical city made of walkways, a neon night plate, and signs as a joke delivery system.
+
+### 15. Floor Plan of the Mind (Virus Comix)
+A mind drawn as a building's floor plan: rooms labelled Emotional Response Unit, Security, Hope (a tower), Distraction, Self-Justification, Stress, and a river called Denial. Hundreds of tiny identical workers, speech bubbles everywhere.
+- **Concept:** an abstract idea mapped as architecture (think Inside Out). The labels are the joke.
+- **Structure:** organic room shapes, a plan view rather than a scene.
+- **Lesson:** a place can be a concept, not a location. A strong candidate for a surprising late-game place.
+
 ## How the batches change the plan
 
 - The Walk-Up is too close to The Block (both are square dollhouse rooms). Future places should break the square.
