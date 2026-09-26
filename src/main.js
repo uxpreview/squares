@@ -2,12 +2,12 @@
 
 import { GRID, PITCH, S, WALL, ZK, SLAB, ROOM_BOUNDS, isoX, isoY, unproject } from './iso.js';
 import { C, Q, setScreen, alpha } from './art.js';
-import { buildRoom, roomAnchor, drawRoomVector, bakeRoom, drawRoomCached, findPos } from './scene.js';
+import { buildRoom, roomAnchor, drawRoomVector, snapshotRoom, drawSnapshot, findPos, bakeBackdrop, drawBackdrop as drawRoomBackdrop, dropBackdrop } from './scene.js';
 import { drawBackdrop, drawSky, EXTENT } from './ambient.js';
 import ROOMS from './rooms/index.js';
 
 const canvas = document.getElementById('map');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false });
 const $ = (id) => document.getElementById(id);
 const ui = {
   card: $('card'), unit: $('card-unit'), name: $('card-name'), blurb: $('card-blurb'), list: $('card-finds'),
@@ -44,7 +44,6 @@ let tour = null;
 let mode = 'overview';
 let current = -1;
 let lastInput = performance.now();
-let cacheScale = 0;
 const pops = []; // tap ripples and honk bubbles
 let parade = 0; // time the all-geese victory lap started
 const hints = []; // pulsing "look around here" rings
@@ -58,11 +57,6 @@ function resize() {
   canvas.style.width = vw + 'px';
   canvas.style.height = vh + 'px';
   const ov = overviewView();
-  const want = Math.max(5, Math.min(22, Math.round(ov.z * dpr * 1.5)));
-  if (Math.abs(want - cacheScale) > 1) {
-    cacheScale = want;
-    for (const r of rooms) bakeRoom(r, cacheScale, dpr);
-  }
   if (!flight) {
     const v = mode === 'room' && current >= 0 ? roomView(current) : ov;
     Object.assign(cam, v);
@@ -138,7 +132,7 @@ function enterRoom(i, o = {}) {
   ui.hint.hidden = true;
   ui.all.hidden = false;
   document.body.dataset.mode = 'room';
-  requestAnimationFrame(() => flyTo(roomView(i), o.dur ?? 1.5));
+  flyTo(roomView(i), o.dur ?? 1.5); // roomView measures the card, which is laid out now
 }
 
 function toOverview(o = {}) {
@@ -310,7 +304,42 @@ function screenToWorld(sx, sy) {
   return [(sx - vw / 2) / cam.z + cam.x, (sy - vh / 2) / cam.z + cam.y];
 }
 
+// ---------- Snapshots ----------
+// Only the room you're in is drawn live every frame. Every other visible room is
+// a snapshot bitmap, and snapshots are re-rendered a few per frame (oldest first)
+// within a small time budget, so the whole block keeps moving without the cost.
+const SNAP_STEPS = [5, 7, 10, 14, 20, 28];
+const SNAP_BUDGET_MS = 6;
+function snapScaleFor(k) {
+  const cap = vw < 700 ? 20 : 28;
+  let s = SNAP_STEPS[0];
+  for (const v of SNAP_STEPS) if (v <= Math.min(cap, k * 1.15)) s = v;
+  return s;
+}
+// Each frame earns SNAP_BUDGET_MS of credit; a snapshot spends what it actually
+// took. Expensive snapshots (big, zoomed in) therefore happen less often.
+let snapCredit = 0;
+function refreshSnapshots(list, t, k) {
+  const want = snapScaleFor(k);
+  // Catch up faster when neighbors are still at a much lower resolution than the view.
+  const blurry = list.some((r) => r.snapScale && r.snapScale < want * 0.5);
+  const budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS;
+  snapCredit = Math.min(snapCredit + budget, budget * 3);
+  const order = list.slice().sort((a, b) =>
+    (a.snap ? 1 : 0) - (b.snap ? 1 : 0) ||
+    (a.snapScale === want ? 1 : 0) - (b.snapScale === want ? 1 : 0) ||
+    a.snapT - b.snapT);
+  for (const r of order) {
+    if (r.snap && snapCredit <= 0) break;
+    const s0 = performance.now();
+    snapshotRoom(r, want, t, dpr);
+    snapCredit -= performance.now() - s0;
+  }
+}
+
+const perf = { ms: 0, snap: 0, focus: 0 };
 function frame(now) {
+  const f0 = performance.now();
   const t = now / 1000;
   const dt = Math.min(0.05, t - lastT || 0);
   lastT = t;
@@ -331,6 +360,7 @@ function frame(now) {
   // Cutaway: when you're inside a room, rooms in front of it are cut away
   // around its silhouette so their walls never hide it.
   const focus = mode === 'room' && current >= 0 ? rooms[current] : null;
+  for (const r of rooms) if (r !== focus && r.backdrop) dropBackdrop(r);
   let cut = null;
   if (focus) {
     const [fx, fy] = roomAnchor(focus);
@@ -350,22 +380,42 @@ function frame(now) {
   }
 
   const b = ROOM_BOUNDS;
-  for (const room of drawOrder) {
+  const visible = drawOrder.filter((room) => {
     const [ax, ay] = roomAnchor(room);
     const [sx0, sy0] = worldToScreen(ax + b.x0, ay + b.y0);
     const [sx1, sy1] = worldToScreen(ax + b.x1, ay + b.y1);
-    if (sx1 < 0 || sx0 > vw || sy1 < 0 || sy0 > vh) continue;
+    return !(sx1 < 0 || sx0 > vw || sy1 < 0 || sy0 > vh);
+  });
+  const p0 = performance.now();
+  refreshSnapshots(visible.filter((r) => r !== focus), t, k);
+  perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
+  setScreen(k, dpr);
+
+  for (const room of visible) {
+    const [ax, ay] = roomAnchor(room);
     ctx.save();
     if (cut && room !== focus && room.col + room.row > focus.col + focus.row) ctx.clip(cut, 'evenodd');
     ctx.translate(ax, ay);
-    if (!room.cache || k > room.cacheScale * 1.2) {
+    if (room === focus) {
+      const q0 = performance.now();
+      Q.lines = k > 6;
+      Q.detail = k > 4.5;
+      // Cache the backdrop once the camera settles; redraw it live while it moves.
+      const still = !flight && !pinch && !inertia;
+      if (still && room.backdropScale !== k) { bakeBackdrop(room, k, dpr); setScreen(k, dpr); }
+      if (still && room.backdrop) {
+        drawRoomBackdrop(ctx, room);
+        drawRoomVector(ctx, room, t, true);
+      } else {
+        drawRoomVector(ctx, room, t);
+      }
+      perf.focus = perf.focus * 0.9 + (performance.now() - q0) * 0.1;
+    } else if (!room.snap) {
       Q.lines = k > 6;
       Q.detail = k > 4.5;
       drawRoomVector(ctx, room, t);
     } else {
-      Q.lines = k > 9;
-      Q.detail = k > 6;
-      drawRoomCached(ctx, room, t);
+      drawSnapshot(ctx, room);
     }
     Q.lines = true;
     Q.detail = true;
@@ -376,6 +426,7 @@ function frame(now) {
   drawSky(ctx, t, cam.z, parade ? (now - parade) / 1000 : 0);
   Q.detail = true;
   drawPops(ctx, now, t);
+  perf.ms = perf.ms * 0.9 + (performance.now() - f0) * 0.1;
   requestAnimationFrame(frame);
 }
 
@@ -574,7 +625,8 @@ function endPointer(e) {
     else if (drag && drag.moved) inertia = performance.now() - drag.t < 80;
     drag = null;
     pinch = null;
-    settleMode();
+    // A tap may have started a flight into a room; let it land before judging the zoom.
+    if (!flight) settleMode();
   } else if (pointers.size === 1) {
     pinch = null;
     const [p] = [...pointers.values()];
@@ -697,4 +749,4 @@ async function boot() {
 boot();
 
 // Test hook for screenshots.
-window.__squares = { rooms, enterRoom, toOverview, cam, stopTour, startTour, markFound };
+window.__squares = { perf, rooms, enterRoom, toOverview, cam, stopTour, startTour, markFound };

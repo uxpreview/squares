@@ -77,8 +77,9 @@ export function buildRoom(def, col, row) {
     oy: row * PITCH,
     items,
     finds,
-    cache: null,
-    cacheScale: 0,
+    snap: null,
+    snapScale: 0,
+    snapT: -1,
   };
 }
 
@@ -93,10 +94,13 @@ function drawThings(ctx, list, t) {
   for (const k of keyed) k[2].draw(ctx, t);
 }
 
-// Full-quality vector draw (used when zoomed in).
-export function drawRoomVector(ctx, room, t) {
+// Full-quality vector draw (used when zoomed in). `from` skips items already
+// drawn into a cached backdrop.
+export function drawRoomVector(ctx, room, t, skipBackdrop = false) {
   let things = [];
-  for (const it of room.items) {
+  for (let i = 0; i < room.items.length; i++) {
+    const it = room.items[i];
+    if (skipBackdrop && it.backdrop) continue;
     if (it.layer === 4) { things.push(it); continue; }
     if (it.layer === 5 && things) { drawThings(ctx, things, t); things = null; }
     it.draw(ctx, t);
@@ -104,14 +108,16 @@ export function drawRoomVector(ctx, room, t) {
   if (things) drawThings(ctx, things, t);
 }
 
-// Bake the static parts of a room into a bitmap at `scale` device px per unit.
-export function bakeRoom(room, scale, dpr) {
+// Snapshot: the whole room (moving parts included) at time t, rendered into a
+// bitmap at `scale` device px per unit. Rooms you aren't looking at are shown as
+// snapshots that refresh a few at a time, which keeps the full block smooth.
+export function snapshotRoom(room, scale, t, dpr) {
   const b = ROOM_BOUNDS;
   const w = Math.ceil((b.x1 - b.x0) * scale);
   const h = Math.ceil((b.y1 - b.y0) * scale);
-  let cv = room.cache;
-  if (!cv || cv.width !== w || cv.height !== h) {
-    cv = document.createElement('canvas');
+  let cv = room.snap;
+  if (!cv) cv = room.snap = document.createElement('canvas');
+  if (cv.width !== w || cv.height !== h) {
     cv.width = w;
     cv.height = h;
   }
@@ -120,34 +126,62 @@ export function bakeRoom(room, scale, dpr) {
   g.clearRect(0, 0, w, h);
   g.setTransform(scale, 0, 0, scale, -b.x0 * scale, -b.y0 * scale);
   setScreen(scale, dpr);
-  Q.lines = scale > 7;
-  Q.detail = scale > 5;
-  const statics = room.items.filter((it) => !it.anim);
-  let things = [];
-  for (const it of statics) {
-    if (it.layer === 4) { things.push(it); continue; }
-    if (it.layer === 5 && things) { drawThings(g, things, 0); things = null; }
-    it.draw(g, 0);
-  }
-  if (things) drawThings(g, things, 0);
-  room.cache = cv;
-  room.cacheScale = scale;
+  Q.lines = scale > 6;
+  Q.detail = scale > 4.5;
+  drawRoomVector(g, room, t);
   Q.lines = true;
   Q.detail = true;
+  room.snapScale = scale;
+  room.snapT = t;
 }
 
-// Cached draw: the baked picture plus the moving parts on top.
-export function drawRoomCached(ctx, room, t) {
+export function drawSnapshot(ctx, room) {
   const b = ROOM_BOUNDS;
-  ctx.drawImage(room.cache, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
-  const anim = room.items.filter((it) => it.anim);
-  let things = [];
-  for (const it of anim) {
-    if (it.layer === 4) { things.push(it); continue; }
-    if (it.layer === 5 && things) { drawThings(ctx, things, t); things = null; }
-    it.draw(ctx, t);
+  ctx.drawImage(room.snap, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+}
+
+// Backdrop for the room you're in: every static floor, wall, decor and rug item.
+// Those layers sit behind everything that stands up, so caching them keeps depth
+// order; animated items in the same layers are drawn on top of the cache.
+export function bakeBackdrop(room, scale, dpr) {
+  for (const it of room.items) it.backdrop = it.layer < 4 && !it.anim;
+  const b = ROOM_BOUNDS;
+  const w = Math.ceil((b.x1 - b.x0) * scale);
+  const h = Math.ceil((b.y1 - b.y0) * scale);
+  const cv = room.backdrop || (room.backdrop = document.createElement('canvas'));
+  if (cv.width !== w || cv.height !== h) {
+    cv.width = w;
+    cv.height = h;
   }
-  if (things) drawThings(ctx, things, t);
+  const g = cv.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.setTransform(scale, 0, 0, scale, -b.x0 * scale, -b.y0 * scale);
+  setScreen(scale, dpr);
+  for (const it of room.items) if (it.backdrop) it.draw(g, 0);
+  room.backdropScale = scale;
+}
+
+export function drawBackdrop(ctx, room) {
+  const b = ROOM_BOUNDS;
+  ctx.drawImage(room.backdrop, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+}
+
+export function dropBackdrop(room) {
+  if (room.backdrop) {
+    room.backdrop.width = room.backdrop.height = 0;
+    room.backdrop = null;
+    room.backdropScale = 0;
+  }
+}
+
+// Let go of a snapshot's memory (for rooms far off screen).
+export function dropSnapshot(room) {
+  if (room.snap) {
+    room.snap.width = room.snap.height = 0;
+    room.snap = null;
+    room.snapScale = 0;
+  }
 }
 
 export function findPos(f, t) {
