@@ -41,7 +41,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   const unlocked = (m) => !config.lockMaps || !m.unlock || store.totalGeese() >= (m.unlock.geese || 0);
 
   function renderTitle() {
-    const last = store.last && maps.find((m) => m.id === store.last.map && unlocked(m));
+    const last = store.last && maps.find((m) => m.id === store.last.map && !m.hidden && unlocked(m));
     const geese = store.totalGeese();
     if (last) {
       el.playLabel.textContent = 'Continue';
@@ -58,7 +58,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
 
   el.playBtn.addEventListener('click', () => {
     sound('tick');
-    const last = store.last && maps.find((m) => m.id === store.last.map && unlocked(m));
+    const last = store.last && maps.find((m) => m.id === store.last.map && !m.hidden && unlocked(m));
     on.go(last ? `#/${last.id}${store.last.zone ? '/' + store.last.zone : ''}` : '#/maps');
   });
   el.placesBtn.addEventListener('click', () => { sound('tick'); on.go('#/maps'); });
@@ -139,7 +139,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   }
 
   function renderPlaces() {
-    const items = maps.map(card);
+    const items = maps.filter((m) => !m.hidden).map(card);
     if (config.teaseMore) {
       const li = document.createElement('li');
       li.className = 'place-tease';

@@ -126,7 +126,7 @@ async function route() {
   // Title or picker: idle the map you were last on (or the first one) behind it.
   input.setEnabled(false);
   screens.show(r.screen);
-  const id = (store.last && MAPS.some((m) => m.id === store.last.map) && store.last.map) || MAPS[0].id;
+  const id = (store.last && MAPS.some((m) => m.id === store.last.map && !m.hidden) && store.last.map) || MAPS[0].id;
   const world = await getWorld(id);
   if (n !== routing) return;
   play.attract(screens.insets, { fresh: show(world) });

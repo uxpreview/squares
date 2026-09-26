@@ -1,117 +1,98 @@
 # Roadmap
 
-Where Squares is going, and the order to build it in. Each session below is one pull request that ships something playable. Update this file at the end of every session: tick what shipped, move what didn't, and record decisions.
+Where Squares is going, and the order to build it in. Each session is one pull request that ships something. Update this file at the end of every session: tick what shipped, move what didn't, and record decisions.
 
-Inspiration notes and what each reference teaches: [INSPIRATION.md](INSPIRATION.md).
+- How a level gets made, start to finish: [PROCESS.md](PROCESS.md)
+- The level backlog: [LEVELS.md](LEVELS.md)
+- Level briefs: [levels/](levels/)
+- Reference images and what they teach: [INSPIRATION.md](INSPIRATION.md)
 
 ## The bar
 
 The goal is a game good enough for an Awwwards Site of the Day. Awwwards scores Design (40%), Usability (30%), Creativity (20%) and Content (10%). For Squares that means:
 
-- **Design:** every place looks like a different printed plate from the same studio. Recognizable from its silhouette alone.
+- **Design:** every place looks like a different printed plate from the same studio, recognizable from its thumbnail alone.
 - **Usability:** a first-time visitor on a phone finds their first goose inside 60 seconds, without reading anything.
-- **Creativity:** each place has one mechanic that only makes sense there (the tide, a lantern, steam).
+- **Creativity:** every place is a new story to investigate, and the best have a mechanic that only makes sense there (lightning that shows the past).
 - **Content:** every corner has a joke. Places reference each other.
 
-## Where we are (after PR #4)
+And for a game that adds levels often: **each level should be cheaper to make than the last**, at the same quality.
 
-- Engine: places made of zones; camera, renderer with cutaways (front, above), snapshots for speed, input.
-- Game: find the goose and three things per zone, hints, tallies, saves (v2), sound, completion.
-- Screens: title with a drifting map, place picker, completion card.
-- Places: **The Block** (16 rooms on a plate) and **The Walk-Up** (4 stacked floors).
-- Problem: both places are square dollhouse rooms. The Walk-Up reads as the Block turned on its side.
+## Where we are
 
-## Every place needs
-
-From the inspiration so far (see INSPIRATION.md for why):
-
-1. A silhouette you'd recognize from the outline alone
-2. A hero landmark
-3. Connections between areas (bridges, stairs, lifts, paths) that people actually use
-4. Its own plate (palette and print feel)
-5. Its own cast
-6. A running story in every area
-7. One mechanic that belongs only to it
-
-Places on the list (provisional until all the inspiration is in):
-
-| Place | Silhouette | Hero | Plate | Cast | Mechanic |
-| --- | --- | --- | --- | --- | --- |
-| The Block | Square plate of 16 rooms | (none yet) | Six-ink riso | People | None yet. Candidate: lights out at night, windows glow |
-| The Island | Ring of land around a lagoon, sea all round | Waterfall from a clifftop pool | Bright riso, turquoise-heavy | Beachgoers, boats, sea creatures | **The tide** goes in and out; some things only show at low tide |
-| The Chasm | Tall and narrow, surface to deep | The chasm, things falling through it | **One ink**, gray washes | People, goblins, things in the rock | **A lantern**: the deeper you go the darker it gets; you see what your light touches |
-| The Bathhouse | A floating diorama, edges fading into paper | A giant wooden tub | Soft watercolor riso | Rats | **Steam**: wipe it away to see what's behind |
-| The Corner | A tight street-and-park crop | (the chaos) | Thick-line flat color | Big New Yorkers, pigeons | **Traffic lights**: things only happen on red |
-| The Rock | Tall island, sea to sky | A cable lift and a windmill | Full color | Dragons, sea serpents, a flying whale | **Ride the lift** between levels |
-| The Walk-Up | Stacked floors | (none) | Six-ink riso | People | To decide (see Decisions) |
+- **Engine:** places made of zones; camera, renderer with cutaways (front, above), snapshots for speed, input.
+- **Game:** find the goose and hidden things per zone, hints, tallies, saves (v2), sound, completion.
+- **Screens:** title with a drifting map, place picker, completion card.
+- **Places:** The Block. The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors.
+- **Process:** the level pipeline is written ([PROCESS.md](PROCESS.md)); its tools are next.
+- **Next level:** Gooseworth Manor, brief drafted ([levels/manor.md](levels/manor.md)), waiting on the owner.
 
 ## Engine work
 
-What the places above need that the engine can't do yet. Roughly in dependency order.
+What upcoming levels need that the engine can't do yet. The level that first needs each piece builds it.
 
-- **E1. Terrain and water.** Ground with height: tiles of sand, grass, rock and water with cliff faces, stairs and ramps, and an organic coastline instead of a square slab. A water surface with moving foam at the shore. Drawn in the same halftone style. *Needed by the Island, Chasm, Rock, Bathhouse.*
-- **E2. Areas, not boxes.** Today a zone is three things at once: what gets drawn, what the camera frames, and whose finds are listed. Split them. **Chunks** are what gets drawn and cached (invisible seams). **Areas** are what players visit (framing, name, story, finds), and can be any shape. People and things can cross from one chunk to the next, sorted correctly. *Needed by every continuous place.*
-- **E3. Plates.** Each place picks its own inks (swap the palette `C`), its paper color, line weight, and edge style: hard plate (the Block), soft vignette into paper (the Bathhouse), single-ink wash (the Chasm).
-- **E4. Casts and scale.** `folk()` grows a species option (rat, goblin, sea creature) and each place sets a character scale (the Corner's people are about twice our size).
-- **E5. Camera shapes.** Tall places built for scrolling on phones. A camera that can ride a path (the lift). Framing for areas of any shape.
-- **E6. Mechanic hooks.** A place can add a `mechanic` module: it runs every frame, can draw over the scene, can decide whether a find is visible right now (tide, lantern, steam), and can take input (wiping steam).
-- **E7. Crowds and performance.** The Island's beach has hundreds of people. Bake the still ones into the chunk picture and animate a moving few; draw less detail when far away. Hold 60 fps on a mid-range Android phone.
-- **E8. Small fixes found while drawing the Walk-Up.** `route()` ignores a pause on the last waypoint of a there-and-back route (fixing it shifts timing in some Block rooms, so check them). `paintText` only paints on the two back walls. The goose can't wear hats or carry things.
+- **E0. Pipeline tools.** Scaffold a new level in one step; a style sheet per level; a QA command (errors, performance, finds on screen and tappable, label and copy rules, contact sheet); prompt templates for area artists, the art director and the playtester. *First needed by: the Manor.*
+- **E1. Night and weather.** A palette per place, lights that glow (windows, lamps, candles), lightning, rain. *The Manor.*
+- **E2. Houses.** Inside walls cut low in the overview and full height inside a room; one storey at a time with a floor switch; people passing between rooms through doors on a shared timeline. *The Manor, the Catminium, the cruise ship.*
+- **E3. Level formats.** Finds in groups (evidence, curiosities); a place's goal can be something other than "every goose" (solve the case); an accusation screen and a reveal. *The Manor (whodunit), reused by later mysteries.*
+- **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *La Dolce Riviera, Split, Boston, the siege, the zoo, Egypt.*
+- **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Every big outdoor level.*
+- **E6. Casts and scale.** Animals and other species alongside people; a character scale per place. *The Catminium, the zoo, Egypt.*
+- **E7. Camera shapes.** Tall and wide places that scroll; framing for areas of any shape.
+- **E8. Mechanic hooks.** A place can add its own rules: run every frame, draw over the scene, decide whether a find is visible right now, take input.
+- **E9. Crowds and performance.** Hundreds of people at 60 fps on a mid-range phone: bake the still ones, animate a few, less detail far away.
+- **E10. Small fixes.** `route()` ignores a pause on the last waypoint of a there-and-back route (fixing it shifts timing in some Block rooms). `paintText` only paints on the two back walls. The goose can't wear hats or carry things. Fix whenever a session touches that code.
 
 ## Game work
 
-- **G1. Progression.** Turn on unlocking places by total geese (`lockMaps` already exists). Per-place medals: all geese, all things, no hints.
-- **G2. Modes.** Explore (today). **Daily goose**: one goose hidden somewhere new each day, the same for everyone, shareable result. **Challenge**: a short list of things to find against a clock.
-- **G3. Onboarding.** First visit: the game shows you one goose, you tap it, you're playing. No text walls.
-- **G4. Accessibility.** Find list usable by keyboard and screen reader, a "describe this room" story for each area, reduced motion honored everywhere.
+- **G1. The campaign.** You're tracking the goose around the world: each place ends with a clue to where it went next, which opens the next place. Uses the unlock switch that already exists.
+- **G2. Progression.** Medals per place: all geese, all things, no hints.
+- **G3. Modes.** Explore (today). Possibly a daily goose and timed challenges (see Decisions).
+- **G4. Onboarding.** First visit: the game shows you one goose, you tap it, you're playing. No text walls.
+- **G5. Accessibility.** Find list usable by keyboard and screen reader, a "describe this room" text for each area, reduced motion everywhere.
 
 ## Polish (the Awwwards layer)
 
-- **P1. Transitions.** The picker card zooms into its place. The title letters hand off to the place name. Every change of screen is one continuous motion.
-- **P2. Sound.** A quiet ambient bed per place (waves and gulls, a dripping cave, a bathhouse), a mix that ducks under the honk, sound off by default until the first tap.
-- **P3. First load.** Title visible in under a second on 4G; places load while you're on the picker; a share image per place (made with `tools/shoot.mjs`).
+- **P1. Transitions.** The picker card zooms into its place; every change of screen is one continuous motion.
+- **P2. Sound.** A sound bed per place (rain and thunder, waves and gulls), mixed under the honk.
+- **P3. First load.** Title visible in under a second on 4G; places load while you're on the picker; a share image per place.
 - **P4. Offline and install.** Play without a connection once loaded; add to home screen.
-- **P5. The case study.** A making-of page for ryankm.com and the Awwwards submission: process, greyboxes, the engine, credits.
-
-## How a new place gets made
-
-1. **Brief.** One page: the seven things above, the areas, the running gags, the finds. The owner approves it.
-2. **Greybox.** The place built from plain shapes (terrain, hero, paths), no detail. Screenshot on desktop and phone. The owner approves the silhouette and composition. This is the cheapest moment to change your mind.
-3. **Areas.** Parallel agents draw one area each from the brief and `tools/ROOM_BRIEF.md`, cross-referencing each other's gags.
-4. **Art direction pass.** One agent (or a session) goes over the whole place for consistency: palette, scale, density, how the gags connect.
-5. **Playtest the finds.** Every find should take somewhere between 20 and 90 seconds. Too easy or impossible gets moved.
-6. **Ship.** Share image, picker card, smoke test updated.
+- **P5. The case study.** A making-of page for ryankm.com and the Awwwards submission.
 
 ## Sessions
 
 Each is one PR. Order can change; dependencies can't.
 
-- [x] **Session 1: Game foundation.** Places and zones, title, picker, completion, saves, Vite, smoke test. *(PR #4)*
-- [ ] **Session 2: Terrain and areas (E1, E2).** The engine grows terrain, water, organic coastlines and areas separate from chunks. Proven with a small hidden test cove (not in the picker). *Done when: a cove with a beach, a cliff, stairs, water and a bridge draws in our style, holds 60 fps on a phone, and a person can walk across a chunk seam without popping.*
-- [ ] **Session 3: The Island.** Brief, greybox, then art for the first hero place, plus the mechanic hooks (E6) and the tide. *Done when: it's the best-looking place in the game and the tide changes what you can find.*
-- [ ] **Session 4: Plates, casts, tall places (E3, E4, E5) and The Chasm.** One-ink plate, a goblin cast, a scrolling vertical place, the lantern.
-- [ ] **Session 5: The game loop (G1 to G3).** Unlocks, medals, the daily goose, onboarding.
-- [ ] **Session 6: The Bathhouse.** Soft-edged diorama, rat cast, steam.
-- [ ] **Session 7: Polish (P1 to P4) and performance (E7).** The Awwwards pass.
-- [ ] **Session 8: The case study and submission (P5).**
-- Later: The Corner, The Rock, the Walk-Up decision, small fixes (E8) whenever a session touches that code.
+- [x] **1. Game foundation.** Places and zones, title, picker, completion, saves, Vite, smoke test. *(PR #4)*
+- [x] **Planning.** Inspiration, level backlog, process, roadmap, the Manor brief; the Walk-Up retired from the picker. *(PR #5)*
+- [ ] **2. Pipeline and the Manor's engine (E0, E1, E2), and the Manor greybox.** The level tools, night lighting and weather, houses (walls down, storeys, door handoffs). Ends with the Manor greyboxed for the owner's gate 2. *Done when: `npm run qa manor` produces a contact sheet and passes; the greybox shows the whole house at night with every room blocked out.*
+- [ ] **3. The Manor.** The whodunit format (E3), area art by parallel agents, art direction, QA and a blind playtest, preview for gate 3, ship. *Done when: a fresh player can solve the case, every find is fair, and it passes QA.*
+- [ ] **4. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
+- [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
+- [ ] **6. La Dolce Riviera.** The first outdoor showpiece.
+- [ ] **7. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
+- [ ] **8. The campaign and onboarding (G1, G2, G4).**
+- [ ] **9. Polish and performance (P1 to P4, E9).**
+- Then a level every one or two sessions from [LEVELS.md](LEVELS.md), and the case study (P5) once there are five or six.
 
 ## Decisions
 
 Open, for the owner:
 
-- **The Walk-Up:** keep it as a small bonus place, rework it into something distinct (for example the building's cross-section becomes part of the Chasm's surface town), or retire it from the picker?
-- **Casts beyond people:** are rats, goblins and sea monsters in bounds for the brand, or should every place stay human?
-- **One-ink plates:** does a single-ink place (the Chasm) fit the "six inks" identity? (A real riso print with one drum is authentic.)
-- **How relaxing vs. how game-y:** is Squares a calm picture book (no timers), or does it want challenge modes and scores? This decides G2.
-- **Sound:** synthesized (tiny, fits the code-drawn idea) or recorded ambience (richer)?
+- **The Manor's brief:** approve or change it ([levels/manor.md](levels/manor.md) has three open questions at the bottom).
+- **Casts beyond people:** the Catminium and the zoo need animals as characters. Assumed yes.
+- **Calm or game-y:** a calm picture book, or timers, daily challenges and scores too? This decides G3.
+- **Sound:** synthesized (tiny, fits the drawn-in-code idea) or recorded ambience (richer)?
+- **Delete the Walk-Up?** It's hidden now. Delete it once the Catminium ships, or keep it hidden as a test bed.
 
 Made:
 
-- **Diversity over formula.** Every place is a different shape (tall, wide, one big continuous map, a diorama), its own color palette (never one ink), and its own story to investigate. Giants, trains and the like only where the theme calls for them. The main goal is that every place feels alive. *(after inspiration review)*
-- **Tone:** adult humor and darkness are welcome (dark comedy, not gore for its own sake). *(after inspiration review)*
-- **Levels get added often.** The level backlog lives in [LEVELS.md](LEVELS.md). Making a new level should get cheaper over time: that's an engine priority, not just an art one. *(after inspiration review)*
-- **A shared universe:** recurring characters and brands across places, beyond the goose. *(after inspiration review)*
-
-- Unlocking places is built but off (`lockMaps: false`) until there are enough places to pace. *(Session 1)*
-- Reference images are not stored in the repo; notes and credits live in INSPIRATION.md. *(Session 1 follow-up)*
+- **Next level: Gooseworth Manor**, the murder mystery. *(planning)*
+- **The Walk-Up is retired from the picker:** too similar to the Block. Still opens from a direct link (`#/tower`) and stays as the test bed for stacked floors. *(planning)*
+- **Always color.** Every place has its own palette; never a single ink. *(planning)*
+- **Diversity over formula.** Every place is a different shape (tall, wide, one big continuous map, a diorama) and its own story to investigate. Giants, trains and the like only where the theme calls for them. The main goal is that every place feels alive. *(planning)*
+- **Tone:** adult humor and darkness are welcome (dark comedy, not gore for its own sake). *(planning)*
+- **Levels get added often,** so the pipeline, its tools and a growing kit are first-class work. *(planning)*
+- **A shared universe:** recurring characters (Inspector Pidge, the Courier) and brands across places, beyond the goose. *(planning)*
+- Unlocking places is built but off (`lockMaps: false`) until the campaign (G1) uses it. *(Session 1)*
+- Reference images are not stored in the repo; notes and credits live in INSPIRATION.md. *(planning)*

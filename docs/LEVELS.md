@@ -13,6 +13,7 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 ## From the owner's list
 
 ### Death at Gooseworth Manor (murder mystery)
+**Status: next. Full brief in [levels/manor.md](levels/manor.md).**
 - **Spin:** a dinner party in a cutaway country house on a stormy night. The host is dead in the library, every guest has a motive, and the finds are **evidence** (the poison bottle, the torn will, the muddy boots). Find it all and the game names the killer.
 - **Alive:** guests drift from room to room on a loop, candles gutter, lightning flashes light up rooms for a second (and shows who was where), secret passages behind the bookcases.
 - **Dark humor:** the body keeps getting moved by guests who each think they did it. The butler is already packing.
@@ -67,7 +68,7 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Spin:** an apartment building where cats are the owners and humans are the pets. Humans asleep in giant cat beds, a human at the vet getting a cone, a cat landlord collecting rent, humans begging under the table at a cat dinner party, a human knocking a glass off a counter while making eye contact.
 - **Alive:** cats lounging, humans being walked on leashes, the building's laser pointer war.
 - **Shape:** a building seen from outside, windows and balconies (the facade reference), or cut open.
-- **Needs:** Today + Animals. **Replaces the Walk-Up**: same "neighbors" idea, a far stronger concept.
+- **Needs:** Today + Animals. **Replaces the Walk-Up** (now retired from the picker): same "neighbors" idea, a far stronger concept.
 
 ### The Pyramid Scheme (ancient Egypt)
 - **Spin:** the pharaoh's pyramid is behind schedule and over budget. The architect's plans are upside down, the workers are on strike, the Sphinx is getting a nose job, and the mummy workshop has a customer who isn't quite dead. Find the saboteur.
