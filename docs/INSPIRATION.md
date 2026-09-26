@@ -59,7 +59,40 @@ A tall rocky island rising out of the sea: a windmill tower, a cutaway house, a 
 - **Structure:** cutaway rooms inside the rock and inside buildings, stairs winding up the outside.
 - **Lesson:** a vertical journey from sea to sky, with a machine that carries you through it. Mixing outdoor terrain with cutaway interiors.
 
-## How this batch changes the plan
+## Batch 2
+
+### 6. Tycoon tower (pixel art, artist unknown)
+A tall office tower by the sea: a rooftop pool, a helipad on a cantilever, and every floor a different business (vault, office, TV studio, casino-like lounge, trading floor, lobby).
+- **Why it works where the Walk-Up doesn't:** a glass lift shaft runs through every floor and ties them together. The tower stands in a world (a plaza with a fountain, a beach, a street, a cruise ship on the horizon). The silhouette has things sticking out (the helipad, satellite dishes, an inflatable).
+- **Plate:** pixel art. A different print feel entirely.
+- **Lesson:** a stacked place needs a vertical connector that moves, a setting around it, and a silhouette that isn't a plain box.
+
+### 7. Impossible aqueducts (James Fletcher, jamesfletcherdesign.com)
+Escher-like architecture: arches, stairs and water channels that loop in impossible directions, sailing ships on the channels, a giant fishbowl sphere, planets in an orange sky.
+- **Hero:** water that flows up, around and through itself.
+- **Plate:** warm ink and wash, lots of pattern (fish, spirals, waves).
+- **Lesson:** isometric drawing makes impossible geometry possible (think Monument Valley). A surreal place where the architecture itself is the puzzle.
+
+### 8. Apartment block "209" (Vien Nha)
+A night cutaway of a building: a grid of rooms around a stairwell, every room a different color and mood, a sign on the side, a rooftop.
+- **Tone:** the original is a crime scene (some rooms are gory). That tone isn't Squares, but the idea is: **every room holds a secret, and together they tell one story**.
+- **Plate:** dark navy background, rooms lit from inside, warm lamps. Night is its own plate.
+- **Lesson:** a building works when each room has a distinct color and light, and when the rooms add up to a mystery you piece together.
+
+### 9. Snack factory, "Das Grosse Wimmeln" (artist unknown)
+A clean-line isometric factory: fields and silos, trucks, conveyor belts carrying snacks through machines, a warehouse, a supermarket at the end.
+- **Structure:** a process you can follow from field to shelf. The conveyors are the connections.
+- **Plate:** thin even lines, flat pastels, very close to what our engine already draws well.
+- **Lesson:** a place can be a journey. A find that travels the whole map on a conveyor. Machines are a natural source of motion.
+
+### 10. The cat house (signed "Sozz"?)
+A small Japanese house in cutaway, packed with dozens of cats, more cats tumbling through the air around it, and giant cats asleep inside the ground underneath the base.
+- **Hero:** the scale joke. The ground the house sits on is full of enormous sleeping cats.
+- **Cast:** one species, absurd numbers.
+- **Plate:** soft mint background, thick friendly lines.
+- **Lesson:** a place can be tiny if the density and the joke are huge. The base of the diorama can be part of the joke.
+
+## How the batches change the plan
 
 - The Walk-Up is too close to The Block (both are square dollhouse rooms). Future places should break the square.
 - The engine needs: terrain and water, zones that are invisible gameplay areas rather than drawn boxes, per-place palettes, per-place casts, character scale, and soft map edges. All in ROADMAP.md.
