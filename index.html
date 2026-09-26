@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ECE2CF">
 <title>Squares</title>
 <meta name="description" content="Sixteen tiny animated rooms and one loose goose. A hidden-object picture book you can walk through.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +16,7 @@
 <div class="grain" aria-hidden="true"></div>
 
 <header class="brand">
-  <h1>Squares</h1>
+  <h1 aria-label="Squares"><span aria-hidden="true">S</span><span aria-hidden="true">q</span><span aria-hidden="true">u</span><span aria-hidden="true">a</span><span aria-hidden="true">r</span><span aria-hidden="true">e</span><span aria-hidden="true">s</span></h1>
   <p>Sixteen rooms. One loose goose.</p>
   <a class="brand-back" href="https://ryankm.com/lab">&larr; Lab</a>
 </header>
@@ -38,18 +39,28 @@
 
 <p id="hint" class="hint">Tap a room to step inside. Pinch or scroll to zoom.</p>
 
-<section id="card" class="card" aria-live="polite" hidden>
+<section id="card" class="card" aria-label="Room" hidden>
   <div class="card-head">
-    <p id="card-unit" class="card-unit">Unit 1A</p>
+    <button id="card-grip" class="card-grip" type="button" tabindex="-1" aria-hidden="true"></button>
+    <div class="card-title">
+      <div class="card-unit"><span id="card-unit">Unit 1A</span><ul id="card-pips" class="pips" aria-hidden="true"></ul><span class="sr-only" id="card-count">0 of 4 found</span></div>
+      <h2 id="card-name">Room</h2>
+    </div>
     <div class="card-nav">
       <button id="prev" type="button" aria-label="Previous room">&larr;</button>
       <button id="next" type="button" aria-label="Next room">&rarr;</button>
+      <button id="card-toggle" class="card-toggle" type="button" aria-expanded="true" aria-controls="card-body" aria-label="Hide the list">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
   </div>
-  <h2 id="card-name">Room</h2>
-  <p id="card-blurb" class="card-blurb"></p>
-  <p class="card-find-title">Find and tap</p>
-  <ul id="card-finds" class="finds"></ul>
+  <div id="card-body" class="card-body">
+    <div class="card-body-inner" aria-live="polite">
+      <p id="card-blurb" class="card-blurb"></p>
+      <p class="card-find-title">Find and tap</p>
+      <ul id="card-finds" class="finds"></ul>
+    </div>
+  </div>
 </section>
 
 <div id="toast" class="toast" role="status" hidden></div>

@@ -2,17 +2,22 @@
 
 import { GRID, PITCH, S, WALL, ZK, SLAB, ROOM_BOUNDS, isoX, isoY, unproject } from './iso.js';
 import { C, Q, setScreen, alpha } from './art.js';
-import { buildRoom, roomAnchor, drawRoomVector, snapshotRoom, drawSnapshot, findPos, bakeBackdrop, drawBackdrop as drawRoomBackdrop, dropBackdrop } from './scene.js';
+import { buildRoom, roomAnchor, drawRoomVector, snapshotRoom, drawSnapshot, findPos, bakeBackdrop, drawBackdrop as drawRoomBackdrop, dropBackdrop, dropSnapshot } from './scene.js';
 import { drawBackdrop, drawSky, EXTENT } from './ambient.js';
 import ROOMS from './rooms/index.js';
 
 const canvas = document.getElementById('map');
-const ctx = canvas.getContext('2d', { alpha: false });
+// alpha: true on purpose. iOS 26 Safari clips an opaque full-screen layer at its
+// status bar and toolbar and paints a flat color there instead; a non-opaque
+// layer is composited normally, so the plate shows through behind the glass.
+const ctx = canvas.getContext('2d', { alpha: true });
 const $ = (id) => document.getElementById(id);
 const ui = {
   card: $('card'), unit: $('card-unit'), name: $('card-name'), blurb: $('card-blurb'), list: $('card-finds'),
   prev: $('prev'), next: $('next'), tour: $('tour'), all: $('all'), hint: $('hint'), toast: $('toast'),
   geese: $('tally-geese'), things: $('tally-things'),
+  count: $('card-count'), pips: $('card-pips'), toggle: $('card-toggle'), grip: $('card-grip'), body: $('card-body'),
+  brand: document.querySelector('.brand'),
 };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -33,11 +38,18 @@ let found = new Set();
 try { found = new Set(JSON.parse(localStorage.getItem(STORE) || '[]')); } catch {}
 const saveFound = () => { try { localStorage.setItem(STORE, JSON.stringify([...found])); } catch {} };
 const keyOf = (room, f) => room.id + ':' + f.id;
+const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
 const TOTAL_THINGS = rooms.reduce((n, r) => n + r.finds.filter((f) => !f.goose).length, 0);
 const TOTAL_GEESE = rooms.filter((r) => r.finds.some((f) => f.goose)).length;
 
 // ---------- Viewport + camera ----------
+// vw/vh: the visible viewport (what the camera frames).
+// box: where the canvas actually sits, which can bleed past the viewport on iOS.
 let vw = 0, vh = 0, dpr = 1;
+const box = { x: 0, y: 0, w: 0, h: 0 };
+// Draw at the screen's real density (3x on recent iPhones). If frames get slow
+// on a weaker phone, drop to 2x once rather than stutter.
+let dprCap = 3;
 const cam = { x: 0, y: EXTENT / 2, z: 4 };
 let flight = null;
 let tour = null;
@@ -48,14 +60,18 @@ const pops = []; // tap ripples and honk bubbles
 let parade = 0; // time the all-geese victory lap started
 const hints = []; // pulsing "look around here" rings
 
-function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
+function sizeCanvas() {
+  dpr = Math.min(window.devicePixelRatio || 1, dprCap);
   vw = window.innerWidth;
   vh = window.innerHeight;
-  canvas.width = Math.round(vw * dpr);
-  canvas.height = Math.round(vh * dpr);
-  canvas.style.width = vw + 'px';
-  canvas.style.height = vh + 'px';
+  const r = canvas.getBoundingClientRect();
+  box.x = r.left; box.y = r.top; box.w = r.width; box.h = r.height;
+  canvas.width = Math.round(box.w * dpr);
+  canvas.height = Math.round(box.h * dpr);
+}
+
+function resize() {
+  sizeCanvas();
   const ov = overviewView();
   if (!flight) {
     const v = mode === 'room' && current >= 0 ? roomView(current) : ov;
@@ -63,12 +79,15 @@ function resize() {
   }
 }
 
+let cardRectOverride = null; // the card's size after a collapse/expand that is still animating
 function insets() {
   const wide = vw >= 900;
-  const top = 72;
+  let top = 72;
+  // In the overview the title is big on phones; frame the plate below it.
+  if (mode !== 'room' && !wide && vh > vw) top = Math.max(top, ui.brand.offsetTop + ui.brand.offsetHeight + 12);
   let bottom = 76, left = 16, right = 16;
   if (mode === 'room' && !ui.card.hidden) {
-    const r = ui.card.getBoundingClientRect();
+    const r = cardRectOverride || ui.card.getBoundingClientRect();
     if (wide) left = r.right + 16;
     else bottom = vh - r.top + 12;
   }
@@ -86,7 +105,10 @@ function fit(X0, X1, Y0, Y1, pad = 0) {
 }
 
 function overviewView() {
-  return fit(-EXTENT - 8, EXTENT + 8, -WALL * ZK - 9, EXTENT + SLAB * ZK + 7);
+  // Portrait phones are width-bound: let the print marks fall off the sides so
+  // the rooms themselves get the extra size.
+  const pad = vw < vh ? 1.5 : 8;
+  return fit(-EXTENT - pad, EXTENT + pad, -WALL * ZK - 9, EXTENT + SLAB * ZK + 7);
 }
 
 function roomView(i) {
@@ -181,19 +203,36 @@ function stepTour(t, dt) {
 }
 
 // ---------- Card ----------
+let cardRoom = -1;
 function renderCard() {
   const room = rooms[current];
   if (!room) return;
   const rowL = 'ABCD'[room.row];
+  // A little page-turn when the card switches rooms (not when a find is ticked off).
+  if (cardRoom !== current && cardRoom !== -1 && !reduceMotion) {
+    ui.card.classList.remove('is-swapping');
+    void ui.card.offsetWidth;
+    ui.card.classList.add('is-swapping');
+  }
+  const fresh = cardRoom === current ? new Set([...ui.list.querySelectorAll('.is-found')].map((li) => li.dataset.id)) : null;
+  cardRoom = current;
+  ui.card.setAttribute('aria-label', room.def.name);
   ui.unit.textContent = `Unit ${room.col + 1}${rowL}`;
   ui.name.textContent = room.def.name;
   ui.blurb.textContent = room.def.blurb;
   ui.list.innerHTML = '';
+  ui.pips.innerHTML = '';
   const sorted = room.finds.slice().sort((a, b) => (b.goose ? 1 : 0) - (a.goose ? 1 : 0));
+  let got = 0;
   for (const f of sorted) {
     const li = document.createElement('li');
     const isFound = found.has(keyOf(room, f));
-    li.className = 'find' + (isFound ? ' is-found' : '') + (f.goose ? ' is-goose' : '');
+    if (isFound) got++;
+    li.dataset.id = f.id;
+    li.className = 'find' + (isFound ? ' is-found' : '') + (f.goose ? ' is-goose' : '') + (isFound && fresh && !fresh.has(f.id) ? ' just-found' : '');
+    const pip = document.createElement('li');
+    pip.className = 'pip' + (isFound ? ' is-found' : '') + (f.goose ? ' is-goose' : '');
+    ui.pips.append(pip);
     const mark = document.createElement('span');
     mark.className = 'find-mark';
     mark.setAttribute('aria-hidden', 'true');
@@ -217,14 +256,83 @@ function renderCard() {
     }
     ui.list.append(li);
   }
+  ui.count.textContent = `${got} of ${room.finds.length} found`;
+  ui.card.classList.toggle('is-complete', got === room.finds.length);
 }
+
+// ---------- Collapsing the card ----------
+// Collapsed, the card is one slim row (room name, progress pips, arrows) so the
+// room gets most of a phone screen. The choice is remembered.
+const CARD_STORE = 'squares.card.collapsed';
+let cardCollapsed = false;
+try { cardCollapsed = localStorage.getItem(CARD_STORE) === '1'; } catch {}
+function applyCollapsed() {
+  ui.card.classList.toggle('is-collapsed', cardCollapsed);
+  ui.toggle.setAttribute('aria-expanded', String(!cardCollapsed));
+  ui.toggle.setAttribute('aria-label', cardCollapsed ? 'Show the list' : 'Hide the list');
+  ui.body.inert = cardCollapsed;
+}
+function setCollapsed(v) {
+  if (v === cardCollapsed) return;
+  cardCollapsed = v;
+  try { localStorage.setItem(CARD_STORE, v ? '1' : '0'); } catch {}
+  // Measure the card's final size before it animates there, so the camera can
+  // reframe the room at the same time instead of after.
+  ui.card.classList.add('is-measuring');
+  applyCollapsed();
+  const target = ui.card.getBoundingClientRect();
+  ui.card.classList.toggle('is-collapsed', !v);
+  void ui.card.offsetWidth;
+  ui.card.classList.remove('is-measuring');
+  applyCollapsed();
+  if (mode === 'room' && current >= 0 && !tour) {
+    cardRectOverride = target;
+    const v2 = roomView(current);
+    cardRectOverride = null;
+    flyTo(v2, 0.55);
+  }
+}
+let lastSwipe = 0;
+ui.toggle.addEventListener('click', () => setCollapsed(!cardCollapsed));
+ui.grip.addEventListener('click', () => { if (performance.now() - lastSwipe > 400) setCollapsed(!cardCollapsed); });
+// Swipe the card down to tuck it away, up to bring it back.
+{
+  let sw = null;
+  const head = ui.card.querySelector('.card-head');
+  head.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.card-nav button')) return;
+    sw = { y: e.clientY, x: e.clientX, id: e.pointerId };
+  });
+  head.addEventListener('pointerup', (e) => {
+    if (!sw || e.pointerId !== sw.id) return;
+    const dy = e.clientY - sw.y, dx = e.clientX - sw.x;
+    sw = null;
+    if (Math.abs(dy) > 24 && Math.abs(dy) > Math.abs(dx)) { lastSwipe = performance.now(); setCollapsed(dy > 0); }
+    else if (Math.abs(dy) < 6 && Math.abs(dx) < 6 && e.target.closest('.card-title')) setCollapsed(!cardCollapsed);
+  });
+  head.addEventListener('pointercancel', () => { sw = null; });
+}
+applyCollapsed();
 
 function renderTally() {
   let g = 0, n = 0;
   for (const r of rooms) for (const f of r.finds) if (found.has(keyOf(r, f))) f.goose ? g++ : n++;
-  ui.geese.textContent = `${g}/${TOTAL_GEESE}`;
-  ui.things.textContent = `${n}/${TOTAL_THINGS}`;
+  bumpText(ui.geese, `${g}/${TOTAL_GEESE}`);
+  bumpText(ui.things, `${n}/${TOTAL_THINGS}`);
   return { g, n };
+}
+
+// Swap a counter's text and give its pill a little bounce when the number moves.
+function bumpText(el, text) {
+  if (el.textContent === text) return;
+  const first = !el.dataset.set;
+  el.textContent = text;
+  el.dataset.set = '1';
+  if (first || reduceMotion) return;
+  const pill = el.closest('.tally-item');
+  pill.classList.remove('bump');
+  void pill.offsetWidth;
+  pill.classList.add('bump');
 }
 
 let toastTimer = 0;
@@ -251,7 +359,10 @@ function markFound(room, f) {
   const k = keyOf(room, f);
   if (found.has(k)) return;
   found.add(k);
+  foundAt.set(k, performance.now());
   saveFound();
+  pops.push({ room, f, t0: performance.now(), kind: 'burst' });
+  try { navigator.vibrate && navigator.vibrate(f.goose ? [18, 40, 18] : 12); } catch {}
   const { g, n } = renderTally();
   if (current === rooms.indexOf(room)) renderCard();
   if (f.goose) {
@@ -308,13 +419,16 @@ function screenToWorld(sx, sy) {
 // Only the room you're in is drawn live every frame. Every other visible room is
 // a snapshot bitmap, and snapshots are re-rendered a few per frame (oldest first)
 // within a small time budget, so the whole block keeps moving without the cost.
-const SNAP_STEPS = [5, 7, 10, 14, 20, 28];
+const SNAP_STEPS = [4, 5, 6, 7, 8, 10, 12, 14, 17, 20, 24, 28, 32];
+const SNAP_CAP = 32;
 const SNAP_BUDGET_MS = 6;
+// Pick the smallest step at or above the screen's scale. A bitmap drawn a bit
+// smaller than it was rendered stays crisp; one stretched larger goes soft,
+// which is what made the block look blurry on phones.
 function snapScaleFor(k) {
-  const cap = vw < 700 ? 20 : 28;
-  let s = SNAP_STEPS[0];
-  for (const v of SNAP_STEPS) if (v <= Math.min(cap, k * 1.15)) s = v;
-  return s;
+  const need = Math.min(SNAP_CAP, k * 0.95);
+  for (const v of SNAP_STEPS) if (v >= need) return v;
+  return SNAP_CAP;
 }
 // Each frame earns SNAP_BUDGET_MS of credit; a snapshot spends what it actually
 // took. Expensive snapshots (big, zoomed in) therefore happen less often.
@@ -332,16 +446,33 @@ function refreshSnapshots(list, t, k) {
   for (const r of order) {
     if (r.snap && snapCredit <= 0) break;
     const s0 = performance.now();
-    snapshotRoom(r, want, t, dpr);
+    // A room with no picture yet always gets one now, but a cheap one if we're
+    // out of time this frame; it sharpens up on a later frame.
+    snapshotRoom(r, r.snap || snapCredit > 0 ? want : Math.min(want, 8), t, dpr);
     snapCredit -= performance.now() - s0;
   }
 }
 
-const perf = { ms: 0, snap: 0, focus: 0 };
+const perf = { ms: 0, snap: 0, focus: 0, gap: 16 };
+// Drop from 3x to 2x if frames stay slow (under ~35 fps) for a couple of seconds.
+let slowFrames = 0;
+function watchFrameRate(gap) {
+  if (!(gap > 0) || gap > 0.25 || document.hidden) return; // tab switches, first frame
+  perf.gap = perf.gap * 0.95 + gap * 1000 * 0.05;
+  if (dpr <= 2 || performance.now() < 4000) return;
+  slowFrames = perf.gap > 28 ? slowFrames + 1 : 0;
+  if (slowFrames > 90) {
+    dprCap = 2;
+    slowFrames = 0;
+    sizeCanvas();
+    for (const r of rooms) dropBackdrop(r);
+  }
+}
 function frame(now) {
   const f0 = performance.now();
   const t = now / 1000;
   const dt = Math.min(0.05, t - lastT || 0);
+  watchFrameRate(t - lastT);
   lastT = t;
   stepFlight(now);
   stepTour(t, dt);
@@ -351,7 +482,7 @@ function frame(now) {
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const k = cam.z * dpr;
-  ctx.setTransform(k, 0, 0, k, dpr * (vw / 2 - cam.x * cam.z), dpr * (vh / 2 - cam.y * cam.z));
+  ctx.setTransform(k, 0, 0, k, dpr * (vw / 2 - cam.x * cam.z - box.x), dpr * (vh / 2 - cam.y * cam.z - box.y));
   setScreen(k, dpr);
   Q.lines = true;
   Q.detail = true;
@@ -367,8 +498,8 @@ function frame(now) {
     const H = WALL + 0.3;
     const t0 = -0.45; // wall thickness
     const sil = [[t0, S, H], [t0, t0, H], [S, t0, H], [S, t0, -SLAB], [S, S, -SLAB], [t0, S, -SLAB]];
-    const [w0x, w0y] = screenToWorld(-10, -10);
-    const [w1x, w1y] = screenToWorld(vw + 10, vh + 10);
+    const [w0x, w0y] = screenToWorld(box.x - 10, box.y - 10);
+    const [w1x, w1y] = screenToWorld(box.x + box.w + 10, box.y + box.h + 10);
     cut = new Path2D();
     cut.rect(w0x, w0y, w1x - w0x, w1y - w0y);
     sil.forEach(([x, y, z], i) => {
@@ -384,8 +515,10 @@ function frame(now) {
     const [ax, ay] = roomAnchor(room);
     const [sx0, sy0] = worldToScreen(ax + b.x0, ay + b.y0);
     const [sx1, sy1] = worldToScreen(ax + b.x1, ay + b.y1);
-    return !(sx1 < 0 || sx0 > vw || sy1 < 0 || sy0 > vh);
+    return !(sx1 < box.x || sx0 > box.x + box.w || sy1 < box.y || sy0 > box.y + box.h);
   });
+  // Let go of big pictures of rooms that have been off screen for a while.
+  for (const r of rooms) if (r.snap && r.snapScale >= 17 && t - r.snapT > 6 && !visible.includes(r)) dropSnapshot(r);
   const p0 = performance.now();
   refreshSnapshots(visible.filter((r) => r !== focus), t, k);
   perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
@@ -393,9 +526,12 @@ function frame(now) {
 
   for (const room of visible) {
     const [ax, ay] = roomAnchor(room);
+    const drop = introDrop(room, now);
+    if (drop && drop.a <= 0) continue;
     ctx.save();
     if (cut && room !== focus && room.col + room.row > focus.col + focus.row) ctx.clip(cut, 'evenodd');
     ctx.translate(ax, ay);
+    if (drop) { ctx.translate(0, drop.dy); ctx.globalAlpha = drop.a; }
     if (room === focus) {
       const q0 = performance.now();
       Q.lines = k > 6;
@@ -430,6 +566,20 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// Opening: the rooms drop onto the plate one diagonal at a time, back to front.
+let introT0 = 0;
+function introDrop(room, now) {
+  if (!introT0) return null;
+  if (now - introT0 > 2500) { introT0 = 0; return null; }
+  const delay = (room.col + room.row) * 95 + ((room.col * 53 + room.row * 29) % 60);
+  const k = (now - introT0 - delay) / 780;
+  if (k >= 1) return null;
+  if (k <= 0) return { dy: -12, a: 0 };
+  const c = 1.9; // ease-out-back: overshoot a touch, then settle
+  const e = 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2);
+  return { dy: -12 * (1 - e), a: Math.min(1, k * 2.5) };
+}
+
 // Coral pen loops around everything found, plus hint rings.
 function drawMarks(ctx, room, t, now) {
   const lw = 2.4 / cam.z;
@@ -437,7 +587,9 @@ function drawMarks(ctx, room, t, now) {
     if (!found.has(keyOf(room, f))) continue;
     const [x, y, z] = findPos(f, t);
     const r = Math.max(f.r * 1.05, 16 / cam.z);
-    penLoop(ctx, isoX(x, y), isoY(x, y, z), r, lw, f.id.length, f.goose ? C.coral : C.coral);
+    const at = foundAt.get(keyOf(room, f));
+    const k = at && !reduceMotion ? Math.min(1, (now - at) / 520) : 1;
+    penLoop(ctx, isoX(x, y), isoY(x, y, z), r, lw, f.id.length, C.coral, 1 - Math.pow(1 - k, 3));
   }
   for (let i = hints.length - 1; i >= 0; i--) {
     const h = hints[i];
@@ -455,10 +607,13 @@ function drawMarks(ctx, room, t, now) {
   }
 }
 
-function penLoop(ctx, X, Y, r, lw, seed, color) {
+// A hand-drawn loop. `k` (0..1) is how much of it the pen has drawn so far.
+function penLoop(ctx, X, Y, r, lw, seed, color, k = 1) {
+  if (k <= 0) return;
   ctx.beginPath();
   const n = 42;
-  for (let i = 0; i <= n; i++) {
+  const end = Math.max(1, Math.round(n * k));
+  for (let i = 0; i <= end; i++) {
     const a = -0.6 + (i / n) * (Math.PI * 2 + 0.9);
     const w = 1 + Math.sin(a * 3 + seed) * 0.05 + (i / n) * 0.08;
     const px = X + Math.cos(a) * r * 1.25 * w;
@@ -477,7 +632,25 @@ function drawPops(ctx, now, t) {
   for (let i = pops.length - 1; i >= 0; i--) {
     const p = pops[i];
     const age = (now - p.t0) / 1000;
-    if (age > (p.kind === 'honk' ? 1.6 : 0.5)) { pops.splice(i, 1); continue; }
+    if (age > (p.kind === 'honk' ? 1.6 : p.kind === 'burst' ? 0.7 : 0.5)) { pops.splice(i, 1); continue; }
+    if (p.kind === 'burst') {
+      // A splash of ink flecks, in screen-sized units so it reads at any zoom.
+      const [ax, ay] = roomAnchor(p.room);
+      const [x, y, z] = findPos(p.f, t);
+      const X = ax + isoX(x, y), Y = ay + isoY(x, y, z);
+      const e = 1 - Math.pow(1 - age / 0.7, 3);
+      const inks = [C.coral, C.mustard, C.teal, C.coral, C.pink, C.mustard, C.coral, C.teal];
+      for (let j = 0; j < 8; j++) {
+        const a = (j / 8) * Math.PI * 2 + p.f.id.length;
+        const d = (18 + 26 * e + (j % 3) * 6) / cam.z;
+        const rr = (3.2 * (1 - e) + 0.6) / cam.z;
+        ctx.beginPath();
+        ctx.arc(X + Math.cos(a) * d, Y + Math.sin(a) * d * 0.8, rr, 0, Math.PI * 2);
+        ctx.fillStyle = inks[j];
+        ctx.fill();
+      }
+      continue;
+    }
     if (p.kind === 'honk') {
       const [ax, ay] = roomAnchor(p.room);
       const [x, y, z] = findPos(p.f, t);
@@ -727,6 +900,7 @@ async function boot() {
     ]);
   } catch {}
   document.body.dataset.mode = 'overview';
+  document.body.dataset.ready = '1';
   ui.card.hidden = true;
   ui.all.hidden = true;
   resize();
@@ -737,6 +911,7 @@ async function boot() {
     enterRoom(si, { dur: 0.01 });
   } else {
     Object.assign(cam, overviewView());
+    if (!reduceMotion) introT0 = performance.now() + 150;
     // Open with the tour, like a camera drifting across the plate. Any touch stops it.
     if (!reduceMotion && !window.__noAutoTour) setTimeout(() => { if (performance.now() - lastInput > 3000 && mode === 'overview') startTour(); }, 3500);
   }

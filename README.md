@@ -40,5 +40,9 @@ Deploys to Vercel as-is (framework preset: Other, no build command, output direc
 - **Room names, blurbs and finds:** each room file starts with `id`, `name`, `blurb`; finds are the `R.find(...)` calls.
 - **Swap or reorder rooms:** edit the list in `src/rooms/index.js`.
 - **Tour pacing:** `stepTour` in `src/main.js` (fly 2.2 s, linger 5.5 s).
+- **Sharpness vs. speed:** `dprCap` in `src/main.js` (draws at up to 3x; drops to 2x on its own if a phone struggles). Neighbor-room picture sizes are `SNAP_STEPS` / `SNAP_CAP`.
+- **Room card collapse:** `setCollapsed` in `src/main.js`; styles under "Room card" in `styles.css`. Tap the chevron, the room name or the handle, or swipe the card's top row. The choice is remembered per browser.
+- **iPhone bars:** `--bleed` in `styles.css` lets the plate run under Safari's status bar and toolbar. The body background (`#ECE2CF`) is the paper-with-grain color Safari falls back to.
+- **Opening animation:** `introDrop` in `src/main.js` (rooms drop in by diagonal); title letters in `styles.css` (`@keyframes letter`).
 - **Title and tagline:** `index.html`.
 - **Back link to the Lab:** the `brand-back` link in `index.html` (styled in `styles.css`). Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044.
