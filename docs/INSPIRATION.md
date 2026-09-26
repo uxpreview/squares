@@ -159,6 +159,27 @@ The face of an apartment block: a grid of balconies and windows, each one a tiny
 - **Plate:** dusty pink concrete, each window a different color inside.
 - **Lesson:** "Rear Window" as a place. Peeking in is the fun. A great tall, scrollable phone place. A night version (lights on and off, curtains) is a natural mechanic.
 
+## Batch 5
+
+### 21. Viaduct city (black and white ink; the "Gooby Juice" signs tie it to 3, 11, 14 and 19)
+A crowded ink city: a cathedral, factories with chimneys, cut-open tenements, a stone viaduct with a steam train crossing it, and a jungle of monsters at the bottom. Giants walk among the buildings: a woman climbing the cathedral, a deer-headed man leaning on a tower, a bear asleep on a balcony.
+- **Scale play:** giants at a different scale from everyone else, treated as normal by the townspeople.
+- **Shared universe:** the same fake brands (Gooby Juice, Fejk) and characters (Greb) appear across several of this artist's pieces.
+- **Lesson:** giants are a cheap, huge laugh. A universe of recurring brands and characters rewards people who see more than one place.
+
+## Patterns across all 21
+
+- **Tall wins.** About 12 of the 21 are portrait: towers, chasms, stacked towns, a facade. Phones are portrait. Our Block is a landscape square. **Places should be designed tall first**, with scrolling up and down as the exploration.
+- **Many ways to cut things open.** Straight dollhouse cuts (ours), curved cuts that follow a building (12), slabs of earth with life in the cut faces (13, 10), windows that reveal without cutting (20), plan views (15). We only do the first.
+- **Moving connectors.** Trains (18, 19, 21), lifts (5, 6), conveyors (9), channels (7), plus stairs and bridges everywhere. Things that move through a whole place are landmarks and make great moving finds.
+- **Giants.** A giant among normal people (21, 18, 13, 10) is the strongest single joke in the set. Our scale is uniform.
+- **Plates.** One ink appears three times (3, 19, 21), night twice (8, 14), plus watercolor, pixel art, flat pastel line and full color. One-ink and night are clearly favorites.
+- **Signs carry the humor** (11, 14, 15, 19, 21). Every sign is a joke.
+- **A shared universe.** Recurring characters and fake brands across pieces (Greb, Gooby Juice). We have the goose; we can have more.
+- **A centerpiece with a crowd** (1, 4, 16, 18): one absurd thing everyone has come to see.
+- **Concept places** (7, 15): an idea turned into architecture.
+- **Tone.** A couple are dark (8's gore, 12's vampires). Squares keeps the funny, all-ages version of each idea.
+
 ## How the batches change the plan
 
 - The Walk-Up is too close to The Block (both are square dollhouse rooms). Future places should break the square.
