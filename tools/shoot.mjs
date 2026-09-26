@@ -1,7 +1,12 @@
 // Screenshot helper for checking zones while drawing them.
 //
 //   node tools/shoot.mjs <target> [out.png] [--mobile] [--t=3.5] [--zoom=1.6]
+//                        [--at=90] [--storey=up] [--finds] [--landscape]
 //
+// --t: seconds to wait before the shot. --at: the moment of the scene to show,
+// in seconds (the evening at the manor is a 180-second loop; 88 is lights out).
+// --storey: which floor to show, for places with a floor switch. --finds: ring
+// every hidden find. --landscape: a phone on its side (844 x 390).
 // Targets:
 //   title                 the title screen
 //   maps                  the place picker
@@ -32,6 +37,12 @@ const waitArg = args.find((a) => a.startsWith('--t='));
 const wait = waitArg ? parseFloat(waitArg.slice(4)) : 2.5;
 const zoomArg = args.find((a) => a.startsWith('--zoom='));
 const zoom = zoomArg ? parseFloat(zoomArg.slice(7)) : 1;
+const atArg = args.find((a) => a.startsWith('--at='));
+const at = atArg ? parseFloat(atArg.slice(5)) : null;
+const storeyArg = args.find((a) => a.startsWith('--storey='));
+const storey = storeyArg ? storeyArg.slice(9) : null;
+const showFinds = args.includes('--finds');
+const landscape = args.includes('--landscape');
 
 const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
 await server.listen();
@@ -39,7 +50,7 @@ const port = server.httpServer.address().port;
 
 const browser = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium') ? { executablePath: '/opt/pw-browsers/chromium' } : {});
 const page = await browser.newPage({
-  viewport: mobile ? { width: 390, height: 844 } : { width: 1400, height: 1000 },
+  viewport: landscape ? { width: 844, height: 390 } : mobile ? { width: 390, height: 844 } : { width: 1400, height: 1000 },
   deviceScaleFactor: 2,
   ignoreHTTPSErrors: true,
 });
@@ -80,10 +91,17 @@ if (!target.includes('/') && !['title', 'maps', 'overview'].includes(target)) {
 }
 
 await page.waitForTimeout(600);
-await page.evaluate((z) => {
+if (storey && !zoneId) {
+  await page.evaluate((id) => window.__squares.play.setStorey(id), storey);
+  await page.waitForTimeout(1200);
+}
+await page.evaluate(([z, a, w, f]) => {
   const s = window.__squares;
   if (z !== 1) s.cam.z *= z;
-}, zoom);
+  // Land on the moment asked for when the shot is taken.
+  if (a != null) s.clock.set(a - w);
+  s.play.debug.finds = f;
+}, [zoom, at, wait, showFinds]);
 await page.waitForTimeout(wait * 1000);
 await page.screenshot({ path: out });
 const stats = await page.evaluate((id) => {

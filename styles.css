@@ -89,9 +89,10 @@ html, body {
 .wordmark span,
 .place-name span { display: inline-block; }
 .place-name .sp { width: 0.28em; }
+.place-name .word { white-space: nowrap; }
 /* Letters drop in one after another. main.js sets --i on each. */
 body[data-ready] .wordmark span,
-body[data-ready] .place-name span {
+body[data-ready] .place-name span:not(.word) {
   animation: letter 0.7s cubic-bezier(.2, 1.5, .4, 1) both;
   animation-delay: calc(var(--i, 0) * 0.04s);
 }
@@ -424,6 +425,65 @@ body[data-mode="zone"] .place-tagline { display: none; }
   color: var(--ink-soft);
   pointer-events: none;
 }
+
+/* ---------- Floor switch (places with storeys) ---------- */
+/* Like a lift panel on the left edge: top floor at the top. */
+.storeys {
+  position: fixed;
+  z-index: 4;
+  left: var(--gutter);
+  top: 0;
+  bottom: 0;
+  height: fit-content;
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+button.storey-btn {
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  white-space: nowrap;
+}
+button.storey-btn:hover { background: var(--paper); }
+button.storey-btn:active { transform: none; }
+button.storey-btn[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+#hud:not([hidden]) .storeys { animation: fade-up 0.6s 0.5s cubic-bezier(.2, .8, .2, 1) both; }
+/* Landscape phones: on the right, clear of the place name (and left of the
+   find list inside a room). */
+@media (max-height: 500px) {
+  .storeys { gap: 2px; padding: 3px; left: auto; right: calc(var(--gutter) + var(--tray-w, 0px)); }
+  button.storey-btn { min-height: 40px; }
+}
+/* Phones: bottom right, clear of the house. In a room the list and room bar
+   need the space, and the whole-map button gets you back. */
+@media (max-width: 520px) {
+  .storeys { top: auto; left: auto; right: var(--gutter); bottom: calc(var(--safe-bottom) + 60px); margin: 0; }
+  body[data-mode="zone"] .storeys { display: none; }
+  button.storey-btn { min-height: 40px; padding: 0 10px; font-size: 12.5px; }
+}
+
+/* A place printed on a dark plate (a night): loose text sits on paper chips. */
+body[data-plate="night"] .place-tagline,
+body[data-plate="night"] .hint {
+  padding: 4px 10px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+}
+body[data-plate="night"] .hint { max-width: calc(100% - 2 * var(--gutter)); }
 
 /* ---------- Icon buttons ---------- */
 .icon-btn {

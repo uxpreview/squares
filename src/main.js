@@ -30,6 +30,15 @@ const renderer = createRenderer(canvas, camera);
 const store = createStore();
 setMuted(!store.settings.sound);
 
+// The scene's clock, in seconds. Everything drawn is a pure function of it, and
+// taps are checked against the same time. set(t) jumps to any moment (the
+// screenshot and QA tools use it to see a place at, say, 90 seconds in).
+const clock = {
+  shift: 0,
+  now: () => performance.now() / 1000 + clock.shift,
+  set: (t) => { clock.shift = t - performance.now() / 1000; },
+};
+
 // ---------- Maps ----------
 // Built once, on first use. Building is cheap; drawing is what costs.
 const worlds = new Map();
@@ -56,6 +65,7 @@ const play = createPlay({
   camera,
   store,
   reduceMotion,
+  clock: clock.now,
   on: {
     exit: () => go('#/maps'),
     complete: (world) => screens.showComplete(world),
@@ -113,7 +123,12 @@ async function route() {
   first = false;
   if (r.screen === 'play') {
     let world;
-    try { world = await getWorld(r.map); } catch { go('#/maps'); return; }
+    try { world = await getWorld(r.map); } catch (e) {
+      // A place that fails to build says why (in the console), then you're back at the picker.
+      console.error(`Couldn't open ${r.map}:`, e);
+      go('#/maps');
+      return;
+    }
     if (n !== routing) return; // a newer route won
     const zone = r.zone && world.indexOf(r.zone) >= 0 ? r.zone : null;
     const fresh = show(world);
@@ -136,15 +151,16 @@ window.addEventListener('hashchange', route);
 // ---------- Frame loop ----------
 let lastT = 0;
 function frame(now) {
-  const t = now / 1000;
-  const dt = Math.min(0.05, t - lastT || 0);
-  lastT = t;
+  const t = now / 1000 + clock.shift;
+  const dt = Math.min(0.05, now / 1000 - lastT || 0);
+  lastT = now / 1000;
   camera.step(now);
   input.step(dt);
   renderer.render(play.world, {
     t,
     now,
     focus: play.focus,
+    level: play.level,
     still: !camera.flying && !camera.drifting && !input.busy,
     fx: play.fx(now),
     marks: play.drawMarks,
@@ -181,8 +197,10 @@ window.__squares = {
   perf: renderer.perf,
   cam: camera.cam,
   camera,
+  renderer,
   play,
   store,
+  clock,
   go,
   get world() { return play.world; },
   get rooms() { return play.world ? play.world.zones : []; },

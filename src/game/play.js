@@ -1,10 +1,14 @@
 // Playing a map: moving between the whole map and one zone, tapping to find
-// things, hints, the tallies, the room bar, the story, and what happens when
-// you find everything. One play controller serves every map; load() swaps maps.
+// things, hints, the tallies, the room bar, the story, the floor switch, and
+// what happens when you find everything. One play controller serves every map;
+// load() swaps maps.
 //
 // Screen modes (body[data-mode]):
 //   overview - the whole map, with its name and a hint line
 //   zone     - one zone framed, with the room bar and the find list (tray)
+//
+// Maps with named storeys (map.storeys) get a floor switch: the overview shows
+// one storey at a time, with the ones above lifted away.
 
 import { isoX, isoY } from '../engine/iso.js';
 import { C, alpha } from '../engine/art.js';
@@ -14,8 +18,9 @@ import { play as sound } from './audio.js';
 
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
-export function createPlay({ camera, store, reduceMotion, on }) {
+export function createPlay({ camera, store, reduceMotion, clock, on }) {
   // on: { exit(), complete(world), place(mapId, zoneId|null) }
+  // clock(): the scene's time in seconds, the same t the renderer draws with.
   const { cam, view } = camera;
   const $ = (id) => document.getElementById(id);
   const ui = {
@@ -23,12 +28,13 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     hint: $('hint'), toast: $('toast'), geese: $('tally-geese'), things: $('tally-things'),
     roombar: $('roombar'), all: $('all'), prev: $('prev'), next: $('next'),
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
-    places: $('to-places'),
+    places: $('to-places'), storeys: $('storeys'),
   };
 
   let world = null;
   let mode = 'overview';
   let current = -1;
+  let storey = 0; // the storey the overview shows (index into world.storeys)
   let active = false; // false while the title or picker is up (the map idles behind)
   let attractInsets = null;
   let parade = 0; // when the all-geese victory lap started
@@ -36,6 +42,8 @@ export function createPlay({ camera, store, reduceMotion, on }) {
   const hints = []; // pulsing "look around here" rings
   const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
   const seenStory = new Set();
+  const debug = { finds: false }; // QA: ring every find that's still hidden
+  const hasStoreys = () => !!(world && world.map.storeys && world.storeys.length > 1);
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
   const words = () => ({ zone: 'room', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
@@ -63,10 +71,17 @@ export function createPlay({ camera, store, reduceMotion, on }) {
         bottom = vh - r.top + 12;
       }
     }
+    // Keep the map clear of the floor switch: it's on the left on wide screens,
+    // on the right on short ones (landscape phones), and out of the way on phones.
+    if (hasStoreys() && !ui.storeys.hidden) {
+      const r = ui.storeys.getBoundingClientRect();
+      if (r.width && r.right < vw / 2 && (wide || vh < 500)) left = Math.max(left, r.right + 12);
+      else if (r.width && r.left > vw / 2 && vh < 500) right = Math.max(right, vw - r.left + 12);
+    }
     return { top, bottom, left, right };
   }
 
-  const overviewView = () => camera.fit(world.overviewBox(view.vw < view.vh), insets());
+  const overviewView = () => camera.fit(world.overviewBox(view.vw < view.vh, world.storeys[storey]?.id, view.vh < 500), insets());
   const zoneView = (i) => camera.fit(world.zoneBox(world.zones[i]), insets(), 0.5);
   const zoneModeZ = () => zoneView(current >= 0 ? current : world.order[0]).z * 0.55;
   function clampZoom(z) {
@@ -79,6 +94,9 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     const changed = current !== i || mode !== 'zone';
     current = i;
     mode = 'zone';
+    // Stepping into a room takes you to its floor (outdoors keeps the one you had).
+    if (!world.zones[i].fixed) storey = world.zones[i].storey;
+    renderStoreys();
     document.body.dataset.mode = 'zone';
     ui.hint.hidden = true;
     ui.roombar.hidden = false;
@@ -116,6 +134,41 @@ export function createPlay({ camera, store, reduceMotion, on }) {
   function toOverview(o = {}) {
     showOverviewUI();
     camera.flyTo(overviewView(), o.dur ?? 1.5);
+  }
+
+  // ---------- Floor switch ----------
+  // One button per storey, top floor first. Pressing one shows that storey:
+  // the ones above lift away. From inside a room it goes back out to the overview.
+  function buildStoreys() {
+    ui.storeys.replaceChildren();
+    if (!hasStoreys()) return;
+    const list = world.storeys.map((s, i) => ({ s, i })).reverse();
+    for (const { s, i } of list) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'storey-btn';
+      b.dataset.i = String(i);
+      b.textContent = s.short || s.name;
+      b.setAttribute('aria-label', s.name);
+      b.addEventListener('click', () => { userAct(); setStorey(i); });
+      ui.storeys.append(b);
+    }
+  }
+
+  function renderStoreys() {
+    const show = active && hasStoreys();
+    ui.storeys.hidden = !show;
+    if (!show) return;
+    for (const b of ui.storeys.children) b.setAttribute('aria-pressed', String(Number(b.dataset.i) === storey));
+  }
+
+  function setStorey(i) {
+    if (!hasStoreys() || i < 0 || i >= world.storeys.length) return;
+    const same = i === storey;
+    storey = i;
+    renderStoreys();
+    if (mode === 'zone') toOverview({ dur: 1.2 });
+    else if (!same) camera.flyTo(overviewView(), 0.9);
   }
 
   // ---------- Room bar + story ----------
@@ -250,6 +303,21 @@ export function createPlay({ camera, store, reduceMotion, on }) {
   function drawMarks(ctx, zone, t, now) {
     if (!active) return;
     const lw = 2.4 / cam.z;
+    if (debug.finds) {
+      // QA overlay: a dashed ring the size of each hidden find's tap area.
+      ctx.save();
+      ctx.setLineDash([5 / cam.z, 4 / cam.z]);
+      for (const f of zone.finds) {
+        if (isFound(zone, f)) continue;
+        const [x, y, z] = findPos(f, t);
+        ctx.beginPath();
+        ctx.arc(isoX(x, y), isoY(x, y, z), Math.max(f.r, 22 / cam.z), 0, Math.PI * 2);
+        ctx.strokeStyle = f.goose ? C.mustard : C.coral;
+        ctx.lineWidth = 2 / cam.z;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     for (const f of zone.finds) {
       if (!isFound(zone, f)) continue;
       const [x, y, z] = findPos(f, t);
@@ -347,11 +415,18 @@ export function createPlay({ camera, store, reduceMotion, on }) {
   // ---------- Tapping ----------
   const lifted = (z) => z.veil > 0.5;
 
-  // For taps, a faded floor above is fair game (tap it to go up). For settling
-  // after a pan, only zones that are really there count.
+  // For taps, a faded floor above is fair game (tap it to go up). In a house
+  // with a floor switch the lifted floors hover right over the one you're
+  // looking at, so there what's really there wins first. For settling after a
+  // pan, only zones that are really there count.
   function zoneAtScreen(sx, sy, skipLifted = false) {
     const [X, Y] = camera.toWorld(sx, sy);
-    return world.zoneAt(X, Y, skipLifted ? lifted : null);
+    if (skipLifted) return world.zoneAt(X, Y, lifted);
+    if (hasStoreys()) {
+      const i = world.zoneAt(X, Y, lifted);
+      if (i >= 0) return i;
+    }
+    return world.zoneAt(X, Y);
   }
 
   function findAtScreen(sx, sy, t) {
@@ -373,7 +448,7 @@ export function createPlay({ camera, store, reduceMotion, on }) {
 
   function tap(sx, sy) {
     if (!active) return;
-    const t = performance.now() / 1000;
+    const t = clock();
     const zoomedIn = cam.z >= zoneModeZ();
     if (zoomedIn) {
       const hit = findAtScreen(sx, sy, t);
@@ -422,6 +497,8 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     if (!active || (e.target.closest && e.target.closest('input, textarea'))) return;
     if (e.key === 'ArrowRight') step(1);
     else if (e.key === 'ArrowLeft') step(-1);
+    else if (e.key === 'PageUp' && hasStoreys()) { e.preventDefault(); setStorey(storey + 1); }
+    else if (e.key === 'PageDown' && hasStoreys()) { e.preventDefault(); setStorey(storey - 1); }
     else if (e.key === 'Escape') {
       if (!ui.story.hidden) showStory(false);
       else if (mode === 'zone' && tray.state === 'open' && tray.dock() === 'bottom') tray.setState('peek');
@@ -432,16 +509,32 @@ export function createPlay({ camera, store, reduceMotion, on }) {
 
   // ---------- Loading maps, starting and stopping ----------
   function setPlaceTitle(name, tagline) {
-    // One span per letter so they can drop in like the title.
+    // One span per letter so they can drop in like the title, grouped by word
+    // so a long name wraps between words, never inside one.
     ui.placeName.setAttribute('aria-label', name);
-    ui.placeName.replaceChildren(...[...name].map((ch, i) => {
-      const s = document.createElement('span');
-      s.setAttribute('aria-hidden', 'true');
-      s.textContent = ch;
-      s.style.setProperty('--i', i);
-      if (ch === ' ') s.className = 'sp';
-      return s;
-    }));
+    let i = 0;
+    const parts = [];
+    name.split(' ').forEach((word, w) => {
+      if (w) {
+        const sp = document.createElement('span');
+        sp.className = 'sp';
+        sp.setAttribute('aria-hidden', 'true');
+        sp.textContent = ' ';
+        sp.style.setProperty('--i', i++);
+        parts.push(sp);
+      }
+      const wd = document.createElement('span');
+      wd.className = 'word';
+      wd.setAttribute('aria-hidden', 'true');
+      for (const ch of word) {
+        const s = document.createElement('span');
+        s.textContent = ch;
+        s.style.setProperty('--i', i++);
+        wd.append(s);
+      }
+      parts.push(wd);
+    });
+    ui.placeName.replaceChildren(...parts);
     ui.placeTag.textContent = tagline;
   }
 
@@ -453,6 +546,10 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     hints.length = 0;
     pops.length = 0;
     seenStory.clear();
+    storey = world.defaultStorey;
+    buildStoreys();
+    // A place printed on a dark plate (a night) needs its loose text on chips.
+    document.body.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
     tray.use({ rooms: world.zones, order: world.order });
     setPlaceTitle(world.map.name, world.map.tagline);
     ui.hint.textContent = words().hint;
@@ -470,6 +567,7 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     active = true;
     ui.hud.hidden = false;
     const i = zoneId ? world.indexOf(zoneId) : -1;
+    renderStoreys();
     showOverviewUI();
     if (o.fresh) camera.jumpTo(overviewView());
     if (i >= 0) {
@@ -489,6 +587,7 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     ui.hud.hidden = true;
     showStory(false);
     tray.show(false);
+    renderStoreys();
     mode = 'overview';
     current = -1;
     document.body.dataset.mode = 'overview';
@@ -506,6 +605,17 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     camera.jumpTo(mode === 'zone' && current >= 0 ? zoneView(current) : overviewView());
   }
 
+  const focusZone = () => (active && mode === 'zone' && current >= 0 ? world.zones[current] : null);
+
+  // The storey being looked at, for the renderer: zones above it lift away.
+  // In a room it's the room's floor; outdoors nothing lifts.
+  function level() {
+    if (!world) return 0;
+    const f = focusZone();
+    if (f) return f.fixed ? world.top : f.storey;
+    return hasStoreys() ? storey : world.top;
+  }
+
   return {
     load,
     start,
@@ -521,10 +631,16 @@ export function createPlay({ camera, store, reduceMotion, on }) {
     markFound,
     enterZone: (i, o) => enterZone(typeof i === 'string' ? world.indexOf(i) : i, o),
     toOverview,
+    // Show a storey by id or index (the floor switch does this).
+    setStorey: (s) => setStorey(typeof s === 'string' ? world.storeys.findIndex((x) => x.id === s) : s),
     drawMarks,
     drawPops,
+    debug,
     get world() { return world; },
-    get focus() { return active && mode === 'zone' && current >= 0 ? world.zones[current] : null; },
+    get focus() { return focusZone(); },
+    get level() { return level(); },
+    get storey() { return world ? world.storeys[storey] : null; },
+    get mode() { return mode; },
     get active() { return active; },
     fx: (now) => ({ parade: parade ? (now - parade) / 1000 : 0 }),
   };
