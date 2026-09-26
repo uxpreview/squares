@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Squares</title>
+<meta name="description" content="Sixteen tiny animated rooms and one loose goose. A hidden-object picture book you can walk through.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Rethink+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="map" aria-label="An isometric block of sixteen animated rooms. Tap a room to step inside, then tap hidden things to circle them."></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="brand">
+  <h1>Squares</h1>
+  <p>Sixteen rooms. One loose goose.</p>
+</header>
+
+<div class="tally" aria-live="polite">
+  <span class="tally-item" title="Geese found">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17c0-4 3-6 7-6h2c0-3 1-6 4-6 1.6 0 2.5 1 2.5 2l2 .8-2 .8c0 2-1 3-2 4 1 2 .5 5-2 6.5-3 1.6-9 1.2-11.5-2.1z" fill="currentColor"/></svg>
+    <span class="sr-only">Geese found: </span><span id="tally-geese">0/16</span>
+  </span>
+  <span class="tally-item" title="Hidden things circled">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12c0-4.5 3.8-7.5 8.5-7.5S21 7.3 21 11.5 17 19 12 19s-8-2.5-8-6.5c0-2 1-3.6 2.4-4.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span class="sr-only">Things found: </span><span id="tally-things">0/48</span>
+  </span>
+</div>
+
+<nav class="controls" aria-label="Map controls">
+  <button id="tour" type="button" aria-pressed="false">Play tour</button>
+  <button id="all" type="button">All rooms</button>
+</nav>
+
+<p id="hint" class="hint">Tap a room to step inside. Pinch or scroll to zoom.</p>
+
+<section id="card" class="card" aria-live="polite" hidden>
+  <div class="card-head">
+    <p id="card-unit" class="card-unit">Unit 1A</p>
+    <div class="card-nav">
+      <button id="prev" type="button" aria-label="Previous room">&larr;</button>
+      <button id="next" type="button" aria-label="Next room">&rarr;</button>
+    </div>
+  </div>
+  <h2 id="card-name">Room</h2>
+  <p id="card-blurb" class="card-blurb"></p>
+  <p class="card-find-title">Find and tap</p>
+  <ul id="card-finds" class="finds"></ul>
+</section>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
