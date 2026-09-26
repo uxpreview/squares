@@ -227,6 +227,21 @@ try {
     if (caseOk) pass('case', `The case: ${c.suspects.length} suspects, ${c.totals.evidence} pieces of evidence and ${c.totals.curiosity} curiosities. Naming the culprit takes ${culprit.clues.length} clues across ${rooms.size} areas (${[...rooms].join(', ')}).`);
   }
 
+  // ---------- Sound: every cue and the bed exist and build ----------
+  const sound = await page.evaluate(async () => {
+    const m = window.__squares.world.map;
+    if (!m.sound) return null;
+    const { check } = await import('/src/game/audio.js');
+    const names = [...new Set([...(m.sound.cues || []).map((q) => q.name), ...(m.sound.bed ? [m.sound.bed] : [])])];
+    const out = [];
+    for (const n of names) { const err = await check(n, { big: true }); if (err) out.push(`${n}: ${err}`); }
+    return { names, problems: out, cues: (m.sound.cues || []).length };
+  });
+  if (sound) {
+    for (const p of sound.problems) fail('sound', p);
+    if (!sound.problems.length) pass('sound', `${sound.cues} cues on the clock and the bed (${sound.names.join(', ')}) all play.`);
+  }
+
   // ---------- Errors: draw everything at every moment ----------
   step('Drawing every area across the loop');
   const sweep = await page.evaluate(async ({ n, loop }) => {
@@ -629,7 +644,7 @@ async function contactSheet(info, shots, thumb, file) {
 
 function report(info, sheetFile) {
   const icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' };
-  const order = ['copy', 'colors', 'finds', 'case', 'errors', 'walkers', 'screen', 'speed'];
+  const order = ['copy', 'colors', 'finds', 'case', 'sound', 'errors', 'walkers', 'screen', 'speed'];
   const sorted = results.slice().sort((a, b) => order.indexOf(a.check) - order.indexOf(b.check) || ['fail', 'warn', 'pass'].indexOf(a.status) - ['fail', 'warn', 'pass'].indexOf(b.status));
   console.log('');
   for (const r of sorted) console.log(`${icon[r.status]}  ${r.check.padEnd(8)} ${r.text}`);

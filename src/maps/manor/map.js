@@ -68,12 +68,13 @@ export default {
   // A whodunit: the goal is solving the case, not finding the goose (case.js).
   case: manorCase,
   // Rain all night, and on the clock: thunder after every strike (sooner and
-  // louder for the big ones), the lights going out, the grandfather clock
-  // striking midnight.
+  // louder for the big ones), someone at the organ, the lights going out, the
+  // grandfather clock striking midnight.
   sound: {
     bed: 'rain',
     cues: [
       ...storm.strikes.map((s) => ({ at: s.t + (s.big ? 0.3 : 1.1), name: 'thunder', big: s.big })),
+      { at: 57, name: 'organ' },
       { at: 82, name: 'clunk' },
       { at: MIDNIGHT, name: 'bell' },
       { at: MIDNIGHT + 1.7, name: 'bell' },

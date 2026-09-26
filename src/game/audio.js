@@ -181,6 +181,22 @@ const SOUNDS = {
     src.start(t0);
     src.stop(t0 + 0.1);
   },
+  // Someone playing the organ somewhere in the house: the famous spooky
+  // opening (A, G, A... G, F, E, D, C sharp, D), far off and quiet.
+  organ(a, t0) {
+    const lp = a.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900;
+    const out = a.createGain();
+    out.gain.value = 0.5;
+    lp.connect(out);
+    out.connect(a.destination);
+    const A = 440, notes = [[0, 0.14, A], [0.16, 0.14, A * 8 / 9], [0.32, 0.9, A],
+      [1.5, 0.16, A * 8 / 9], [1.68, 0.16, A * 4 / 5], [1.86, 0.16, A * 3 / 4], [2.04, 0.16, A * 2 / 3], [2.22, 0.5, A * 5 / 8], [2.8, 1.6, A * 2 / 3]];
+    for (const [at, len, hz] of notes) {
+      for (const [m, type, v] of [[1, 'square', 0.012], [0.5, 'triangle', 0.03], [2, 'triangle', 0.012]]) tone(a, t0 + at, hz * m, type, v, 0.02, len, lp);
+    }
+  },
   // Dun, dun, DUNNN: an organ sting for the moment the case closes.
   sting(a, t0) {
     const lp = a.createBiquadFilter();
@@ -272,3 +288,19 @@ export function setMuted(v) {
 }
 
 export const isMuted = () => muted;
+
+// For QA: does this sound (or bed) exist and build without an error? Runs it
+// silently on an offline context. Returns null, or what went wrong.
+export async function check(name, o) {
+  const fn = SOUNDS[name] || BEDS[name];
+  if (!fn) return `there's no sound called "${name}"`;
+  try {
+    const a = new OfflineAudioContext(1, 44100 * 4, 44100);
+    const stop = fn(a, 0.01, o);
+    if (typeof stop === 'function') stop();
+    await a.startRendering();
+    return null;
+  } catch (e) {
+    return String(e && e.message ? e.message : e);
+  }
+}
