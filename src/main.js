@@ -5,6 +5,7 @@ import { C, Q, setScreen, alpha } from './art.js';
 import { buildRoom, roomAnchor, drawRoomVector, snapshotRoom, drawSnapshot, findPos, bakeBackdrop, drawBackdrop as drawRoomBackdrop, dropBackdrop, dropSnapshot } from './scene.js';
 import { drawBackdrop, drawSky, EXTENT } from './ambient.js';
 import ROOMS from './rooms/index.js';
+import { createTray } from './tray.js';
 
 const canvas = document.getElementById('map');
 // alpha: true on purpose. iOS 26 Safari clips an opaque full-screen layer at its
@@ -13,11 +14,11 @@ const canvas = document.getElementById('map');
 const ctx = canvas.getContext('2d', { alpha: true });
 const $ = (id) => document.getElementById(id);
 const ui = {
-  card: $('card'), unit: $('card-unit'), name: $('card-name'), blurb: $('card-blurb'), list: $('card-finds'),
-  prev: $('prev'), next: $('next'), tour: $('tour'), all: $('all'), hint: $('hint'), toast: $('toast'),
+  tour: $('tour'), hint: $('hint'), toast: $('toast'),
   geese: $('tally-geese'), things: $('tally-things'),
-  count: $('card-count'), pips: $('card-pips'), toggle: $('card-toggle'), grip: $('card-grip'), body: $('card-body'),
   brand: document.querySelector('.brand'),
+  roombar: $('roombar'), all: $('all'), prev: $('prev'), next: $('next'), tourRoom: $('tour-room'),
+  pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
 };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -79,17 +80,24 @@ function resize() {
   }
 }
 
-let cardRectOverride = null; // the card's size after a collapse/expand that is still animating
 function insets() {
   const wide = vw >= 900;
   let top = 72;
   // In the overview the title is big on phones; frame the plate below it.
   if (mode !== 'room' && !wide && vh > vw) top = Math.max(top, ui.brand.offsetTop + ui.brand.offsetHeight + 12);
   let bottom = 76, left = 16, right = 16;
-  if (mode === 'room' && !ui.card.hidden) {
-    const r = cardRectOverride || ui.card.getBoundingClientRect();
-    if (wide) left = r.right + 16;
-    else bottom = vh - r.top + 12;
+  if (mode === 'room' && !ui.roombar.hidden) {
+    // Frame the room around the tray as it rests (peek or hidden). The open
+    // sheet is for reading and sits over the scene without moving the camera.
+    const r = tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek');
+    const bar = ui.roombar;
+    if (tray.dock() === 'right') {
+      right = vw - r.left + 16;
+      bottom = vh - bar.offsetTop + 10;
+    } else {
+      top = bar.offsetTop + bar.offsetHeight + 10;
+      bottom = vh - r.top + 12;
+    }
   }
   return { top, bottom, left, right };
 }
@@ -146,37 +154,63 @@ function stepFlight(now) {
 }
 
 // ---------- Modes ----------
-function enterRoom(i, o = {}) {
+// What's on screen in each mode: the room bar and tray inside a room; the
+// hint line and the tour button over the whole block.
+function showRoomUI(i) {
+  const changed = current !== i || mode !== 'room';
   current = i;
   mode = 'room';
-  renderCard();
-  ui.card.hidden = false;
-  ui.hint.hidden = true;
-  ui.all.hidden = false;
   document.body.dataset.mode = 'room';
-  flyTo(roomView(i), o.dur ?? 1.5); // roomView measures the card, which is laid out now
+  ui.hint.hidden = true;
+  ui.roombar.hidden = false;
+  tray.show(true);
+  renderRoomBar();
+  tray.render(i);
+  layoutVars();
+  if (changed) {
+    const room = rooms[i];
+    // The story shows the first time you arrive (and on every stop of the tour),
+    // then lives behind the room name.
+    if (tour || !seenStory.has(room.id)) { seenStory.add(room.id); showStory(true, tour ? 7000 : 5200); }
+    else showStory(false);
+  }
+}
+
+function showOverviewUI() {
+  mode = 'overview';
+  current = -1;
+  document.body.dataset.mode = 'overview';
+  ui.hint.hidden = false;
+  ui.roombar.hidden = true;
+  tray.show(false);
+  showStory(false);
+  layoutVars();
+}
+
+function enterRoom(i, o = {}) {
+  showRoomUI(i);
+  flyTo(roomView(i), o.dur ?? 1.5); // roomView measures the tray and room bar, which are laid out now
 }
 
 function toOverview(o = {}) {
-  mode = 'overview';
-  current = -1;
-  ui.card.hidden = true;
-  ui.hint.hidden = false;
-  ui.all.hidden = true;
-  document.body.dataset.mode = 'overview';
+  showOverviewUI();
   flyTo(overviewView(), o.dur ?? 1.5);
 }
 
+function setTourButtons(on) {
+  ui.tour.setAttribute('aria-pressed', String(on));
+  ui.tour.textContent = on ? 'Stop tour' : 'Play tour';
+  ui.tourRoom.setAttribute('aria-pressed', String(on));
+  ui.tourRoom.setAttribute('aria-label', on ? 'Stop tour' : 'Play tour');
+}
 function startTour() {
   tour = { i: 0, next: 0, dwell: false };
-  ui.tour.setAttribute('aria-pressed', 'true');
-  ui.tour.textContent = 'Stop tour';
+  setTourButtons(true);
 }
 function stopTour() {
   if (!tour) return;
   tour = null;
-  ui.tour.setAttribute('aria-pressed', 'false');
-  ui.tour.textContent = 'Play tour';
+  setTourButtons(false);
 }
 
 let lastT = 0;
@@ -202,117 +236,62 @@ function stepTour(t, dt) {
   tour.next = t + 2.2 + 5.5;
 }
 
-// ---------- Card ----------
-let cardRoom = -1;
-function renderCard() {
+// ---------- Room bar + story ----------
+function renderRoomBar() {
   const room = rooms[current];
   if (!room) return;
-  const rowL = 'ABCD'[room.row];
-  // A little page-turn when the card switches rooms (not when a find is ticked off).
-  if (cardRoom !== current && cardRoom !== -1 && !reduceMotion) {
-    ui.card.classList.remove('is-swapping');
-    void ui.card.offsetWidth;
-    ui.card.classList.add('is-swapping');
-  }
-  const fresh = cardRoom === current ? new Set([...ui.list.querySelectorAll('.is-found')].map((li) => li.dataset.id)) : null;
-  cardRoom = current;
-  ui.card.setAttribute('aria-label', room.def.name);
-  ui.unit.textContent = `Unit ${room.col + 1}${rowL}`;
+  ui.unit.textContent = `Unit ${room.col + 1}${'ABCD'[room.row]}`;
   ui.name.textContent = room.def.name;
-  ui.blurb.textContent = room.def.blurb;
-  ui.list.innerHTML = '';
-  ui.pips.innerHTML = '';
-  const sorted = room.finds.slice().sort((a, b) => (b.goose ? 1 : 0) - (a.goose ? 1 : 0));
-  let got = 0;
-  for (const f of sorted) {
-    const li = document.createElement('li');
-    const isFound = found.has(keyOf(room, f));
-    if (isFound) got++;
-    li.dataset.id = f.id;
-    li.className = 'find' + (isFound ? ' is-found' : '') + (f.goose ? ' is-goose' : '') + (isFound && fresh && !fresh.has(f.id) ? ' just-found' : '');
-    const pip = document.createElement('li');
-    pip.className = 'pip' + (isFound ? ' is-found' : '') + (f.goose ? ' is-goose' : '');
-    ui.pips.append(pip);
-    const mark = document.createElement('span');
-    mark.className = 'find-mark';
-    mark.setAttribute('aria-hidden', 'true');
-    const text = document.createElement('span');
-    text.className = 'find-label';
-    text.textContent = f.goose ? 'The goose' : f.label;
-    li.append(mark, text);
-    if (!isFound) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'find-hint';
-      b.innerHTML = '<span class="hint-long">Hint</span><span class="hint-short" aria-hidden="true">?</span>';
-      b.setAttribute('aria-label', `Hint for ${text.textContent}`);
-      b.addEventListener('click', () => showHint(room, f));
-      li.append(b);
-    } else {
-      const s = document.createElement('span');
-      s.className = 'sr-only';
-      s.textContent = ' (found)';
-      li.append(s);
-    }
-    ui.list.append(li);
-  }
-  ui.count.textContent = `${got} of ${room.finds.length} found`;
-  ui.card.classList.toggle('is-complete', got === room.finds.length);
+  ui.storyText.textContent = room.def.blurb;
+  ui.pill.setAttribute('aria-label', `${room.def.name}, unit ${room.col + 1}${'ABCD'[room.row]}. Show the story`);
 }
 
-// ---------- Collapsing the card ----------
-// Collapsed, the card is one slim row (room name, progress pips, arrows) so the
-// room gets most of a phone screen. The choice is remembered.
-const CARD_STORE = 'squares.card.collapsed';
-let cardCollapsed = false;
-try { cardCollapsed = localStorage.getItem(CARD_STORE) === '1'; } catch {}
-function applyCollapsed() {
-  ui.card.classList.toggle('is-collapsed', cardCollapsed);
-  ui.toggle.setAttribute('aria-expanded', String(!cardCollapsed));
-  ui.toggle.setAttribute('aria-label', cardCollapsed ? 'Show the list' : 'Hide the list');
-  ui.body.inert = cardCollapsed;
-}
-function setCollapsed(v) {
-  if (v === cardCollapsed) return;
-  cardCollapsed = v;
-  try { localStorage.setItem(CARD_STORE, v ? '1' : '0'); } catch {}
-  // Measure the card's final size before it animates there, so the camera can
-  // reframe the room at the same time instead of after.
-  ui.card.classList.add('is-measuring');
-  applyCollapsed();
-  const target = ui.card.getBoundingClientRect();
-  ui.card.classList.toggle('is-collapsed', !v);
-  void ui.card.offsetWidth;
-  ui.card.classList.remove('is-measuring');
-  applyCollapsed();
-  if (mode === 'room' && current >= 0 && !tour) {
-    cardRectOverride = target;
-    const v2 = roomView(current);
-    cardRectOverride = null;
-    flyTo(v2, 0.55);
+const seenStory = new Set();
+let storyTimer = 0;
+function showStory(v, ms = 0) {
+  clearTimeout(storyTimer);
+  const was = !ui.story.hidden;
+  ui.story.hidden = !v;
+  ui.pill.setAttribute('aria-expanded', String(v));
+  if (v && !was && !reduceMotion) {
+    ui.story.animate([{ opacity: 0, transform: 'translateY(-6px) scale(0.97)' }, { opacity: 1, transform: 'none' }],
+      { duration: 280, easing: 'cubic-bezier(.2, 1.2, .4, 1)' });
   }
+  if (v && ms) storyTimer = setTimeout(() => showStory(false), ms);
 }
-let lastSwipe = 0;
-ui.toggle.addEventListener('click', () => setCollapsed(!cardCollapsed));
-ui.grip.addEventListener('click', () => { if (performance.now() - lastSwipe > 400) setCollapsed(!cardCollapsed); });
-// Swipe the card down to tuck it away, up to bring it back.
-{
-  let sw = null;
-  const head = ui.card.querySelector('.card-head');
-  head.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.card-nav button')) return;
-    sw = { y: e.clientY, x: e.clientX, id: e.pointerId };
-  });
-  head.addEventListener('pointerup', (e) => {
-    if (!sw || e.pointerId !== sw.id) return;
-    const dy = e.clientY - sw.y, dx = e.clientX - sw.x;
-    sw = null;
-    if (Math.abs(dy) > 24 && Math.abs(dy) > Math.abs(dx)) { lastSwipe = performance.now(); setCollapsed(dy > 0); }
-    else if (Math.abs(dy) < 6 && Math.abs(dx) < 6 && e.target.closest('.card-title')) setCollapsed(!cardCollapsed);
-  });
-  head.addEventListener('pointercancel', () => { sw = null; });
+ui.pill.addEventListener('click', () => showStory(ui.story.hidden));
+
+// ---------- The find list ----------
+const tray = createTray({
+  rooms,
+  order: tourOrder,
+  reduceMotion,
+  isFound: (room, f) => found.has(keyOf(room, f)),
+  foundAge: (room, f) => { const at = foundAt.get(keyOf(room, f)); return at ? performance.now() - at : Infinity; },
+  label: (room, f) => (f.goose ? 'The goose' : f.label),
+  onHint: (room, f) => {
+    // On a phone the open sheet would cover the nudge; drop it back to the chips.
+    if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
+    showHint(room, f);
+  },
+  onGoRoom: (i) => {
+    userAct();
+    if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
+    enterRoom(i, { dur: 1.3 });
+  },
+  onStateChange: (prev, next) => {
+    layoutVars();
+    if (next === 'open' && tray.dock() === 'bottom') showStory(false);
+    const moved = prev === next || (prev === 'hidden') !== (next === 'hidden');
+    if (moved && mode === 'room' && current >= 0 && !tour) flyTo(roomView(current), 0.55);
+  },
+});
+
+// The side panel pushes the tallies over; CSS reads its width from here.
+function layoutVars() {
+  const w = mode === 'room' && tray.dock() === 'right' ? tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').width : 0;
+  document.body.style.setProperty('--tray-w', Math.round(w) + 'px');
 }
-applyCollapsed();
 
 function renderTally() {
   let g = 0, n = 0;
@@ -364,7 +343,7 @@ function markFound(room, f) {
   pops.push({ room, f, t0: performance.now(), kind: 'burst' });
   try { navigator.vibrate && navigator.vibrate(f.goose ? [18, 40, 18] : 12); } catch {}
   const { g, n } = renderTally();
-  if (current === rooms.indexOf(room)) renderCard();
+  if (mode === 'room' && current >= 0) tray.render(current);
   if (f.goose) {
     pops.push({ room, f, t0: performance.now(), kind: 'honk' });
     honk();
@@ -722,7 +701,7 @@ function tap(sx, sy) {
     if (hit) {
       markFound(hit.room, hit.f);
       const i = rooms.indexOf(hit.room);
-      if (i !== current) { current = i; mode = 'room'; renderCard(); ui.card.hidden = false; ui.hint.hidden = true; ui.all.hidden = false; }
+      if (i !== current || mode !== 'room') showRoomUI(i);
       return;
     }
   }
@@ -746,6 +725,7 @@ function userAct() {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
+  if (!ui.story.hidden) showStory(false);
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   userAct();
@@ -839,26 +819,11 @@ function stepInertia(dt) {
 // After free panning/zooming, decide whether we're "in" a room or looking at the block.
 function settleMode() {
   if (cam.z < ROOM_MODE_Z()) {
-    if (mode !== 'overview') {
-      mode = 'overview';
-      current = -1;
-      ui.card.hidden = true;
-      ui.hint.hidden = false;
-      ui.all.hidden = true;
-      document.body.dataset.mode = 'overview';
-    }
+    if (mode !== 'overview') showOverviewUI();
     return;
   }
   const i = roomAtScreen(vw / 2, vh / 2);
-  if (i >= 0 && i !== current) {
-    current = i;
-    mode = 'room';
-    renderCard();
-    ui.card.hidden = false;
-    ui.hint.hidden = true;
-    ui.all.hidden = false;
-    document.body.dataset.mode = 'room';
-  }
+  if (i >= 0 && i !== current) showRoomUI(i);
 }
 
 // ---------- Buttons + keys ----------
@@ -871,20 +836,27 @@ const step = (d) => {
 ui.prev.addEventListener('click', () => step(-1));
 ui.next.addEventListener('click', () => step(1));
 ui.all.addEventListener('click', () => { userAct(); toOverview(); });
-ui.tour.addEventListener('click', () => {
-  if (tour) { stopTour(); return; }
-  userAct();
-  startTour();
-});
+for (const b of [ui.tour, ui.tourRoom]) {
+  b.addEventListener('click', () => {
+    if (tour) { stopTour(); return; }
+    userAct();
+    startTour();
+  });
+}
 window.addEventListener('keydown', (e) => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   if (e.key === 'ArrowRight') step(1);
   else if (e.key === 'ArrowLeft') step(-1);
-  else if (e.key === 'Escape') { userAct(); toOverview(); }
+  else if (e.key === 'Escape') {
+    if (!ui.story.hidden) showStory(false);
+    else if (mode === 'room' && tray.state === 'open' && tray.dock() === 'bottom') tray.setState('peek');
+    else { userAct(); toOverview(); }
+  }
 });
 
 window.addEventListener('resize', () => {
   resize();
+  layoutVars();
   if (mode === 'room' && current >= 0) Object.assign(cam, roomView(current));
 });
 
@@ -901,8 +873,7 @@ async function boot() {
   } catch {}
   document.body.dataset.mode = 'overview';
   document.body.dataset.ready = '1';
-  ui.card.hidden = true;
-  ui.all.hidden = true;
+  showOverviewUI();
   resize();
   if (renderTally().g === TOTAL_GEESE && TOTAL_GEESE > 0) parade = performance.now();
   const start = location.hash.slice(1);
