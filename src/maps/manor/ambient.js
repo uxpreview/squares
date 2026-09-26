@@ -64,7 +64,7 @@ function plate(ctx) {
   ctx.fillStyle = alpha(C.ink, 0.55);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('GOOSEWORTH MANOR  ·  A DARK AND STORMY NIGHT  ·  GREYBOX', 0, 0);
+  ctx.fillText('GOOSEWORTH MANOR  ·  A DARK AND STORMY NIGHT', 0, 0);
   ctx.restore();
 }
 

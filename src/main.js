@@ -32,11 +32,15 @@ setMuted(!store.settings.sound);
 
 // The scene's clock, in seconds. Everything drawn is a pure function of it, and
 // taps are checked against the same time. set(t) jumps to any moment (the
-// screenshot and QA tools use it to see a place at, say, 90 seconds in).
+// screenshot and QA tools use it to see a place at, say, 90 seconds in);
+// freeze(t) stops it there (for catching a flash of lightning), and set()
+// starts it again.
 const clock = {
   shift: 0,
-  now: () => performance.now() / 1000 + clock.shift,
-  set: (t) => { clock.shift = t - performance.now() / 1000; },
+  frozen: null,
+  now: () => clock.frozen ?? performance.now() / 1000 + clock.shift,
+  set: (t) => { clock.frozen = null; clock.shift = t - performance.now() / 1000; },
+  freeze: (t = clock.now()) => { clock.frozen = t; },
 };
 
 // ---------- Maps ----------
@@ -151,7 +155,7 @@ window.addEventListener('hashchange', route);
 // ---------- Frame loop ----------
 let lastT = 0;
 function frame(now) {
-  const t = now / 1000 + clock.shift;
+  const t = clock.frozen ?? now / 1000 + clock.shift;
   const dt = Math.min(0.05, now / 1000 - lastT || 0);
   lastT = now / 1000;
   camera.step(now);

@@ -2,11 +2,18 @@
 //
 //   node tools/shoot.mjs <target> [out.png] [--mobile] [--t=3.5] [--zoom=1.6]
 //                        [--at=90] [--storey=up] [--finds] [--landscape]
+//                        [--eval="<js>"] [--freeze]
 //
 // --t: seconds to wait before the shot. --at: the moment of the scene to show,
 // in seconds (the evening at the manor is a 180-second loop; 88 is lights out).
+// --freeze: stop the scene's clock at --at, to catch an exact moment (a flash
+// of lightning lasts a fraction of a second).
 // --storey: which floor to show, for places with a floor switch. --finds: ring
-// every hidden find. --landscape: a phone on its side (844 x 390).
+// every hidden find. --landscape: a phone on its side (844 x 390). --eval: run
+// some JavaScript in the page before the shot, to set up a state (it can use
+// await and import(), and window.__squares). For example, the Manor with its
+// case solved:
+//   --eval="(await import('/src/maps/manor/style.js')).verdict.solved = 0"
 // Targets:
 //   title                 the title screen
 //   maps                  the place picker
@@ -42,7 +49,10 @@ const at = atArg ? parseFloat(atArg.slice(5)) : null;
 const storeyArg = args.find((a) => a.startsWith('--storey='));
 const storey = storeyArg ? storeyArg.slice(9) : null;
 const showFinds = args.includes('--finds');
+const freeze = args.includes('--freeze');
 const landscape = args.includes('--landscape');
+const evalArg = args.find((a) => a.startsWith('--eval='));
+const setup = evalArg ? evalArg.slice(7) : null;
 
 const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
 await server.listen();
@@ -91,17 +101,19 @@ if (!target.includes('/') && !['title', 'maps', 'overview'].includes(target)) {
 }
 
 await page.waitForTimeout(600);
+if (setup) await page.evaluate(`(async () => { ${setup} })()`);
 if (storey && !zoneId) {
   await page.evaluate((id) => window.__squares.play.setStorey(id), storey);
   await page.waitForTimeout(1200);
 }
-await page.evaluate(([z, a, w, f]) => {
+await page.evaluate(([z, a, w, f, fr]) => {
   const s = window.__squares;
   if (z !== 1) s.cam.z *= z;
-  // Land on the moment asked for when the shot is taken.
-  if (a != null) s.clock.set(a - w);
+  // Land on the moment asked for when the shot is taken (or stop right on it).
+  if (a != null && fr) s.clock.freeze(a);
+  else if (a != null) s.clock.set(a - w);
   s.play.debug.finds = f;
-}, [zoom, at, wait, showFinds]);
+}, [zoom, at, wait, showFinds, freeze]);
 await page.waitForTimeout(wait * 1000);
 await page.screenshot({ path: out });
 const stats = await page.evaluate((id) => {

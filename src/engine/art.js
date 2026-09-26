@@ -388,8 +388,14 @@ export function walls(ctx, o = {}) {
 // ---------- People ----------
 // A small, cheerful billboard person standing at (x, y, z).
 // o: { skin, hair, style: short|long|bun|curly|pony|bald, hat: cap|beanie|chef|helmet|party|none,
-//      top, bottom, dress, pose, dir: 'l'|'r', back, phase, speed, scale, hold(ctx) }
+//      top, bottom, dress, pose, dir: 'l'|'r', back, phase, speed, scale, hold(ctx),
+//      wear(ctx, body, t), face(ctx, hy, back, t) }
 // Poses: stand walk run sit wave cheer jump dance swim sleep skate point carry read drum lie
+// wear and face let a place dress its cast without new engine code: wear draws
+// over the torso (an apron, medals) with body = { hipY, top, shoulderY, dress,
+// back }, and face draws over the head (a mustache, spectacles, a beak) with
+// the head's center at (0.02, hy). Both draw in the person's own units, facing
+// right (the person is flipped for you when they face left).
 export function person(ctx, x, y, z, o = {}, t = 0) {
   const X = x - y, Y = (x + y) / 2 - z * ZK;
   const s = o.scale || 1;
@@ -499,6 +505,7 @@ export function person(ctx, x, y, z, o = {}, t = 0) {
     ctx.fillStyle = bottom;
     ctx.fill();
   }
+  if (o.wear) o.wear(ctx, { hipY, top: hipY - torsoH, shoulderY, dress: !!o.dress, back }, t);
 
   // Held item
   if (o.hold) {
@@ -531,6 +538,7 @@ export function person(ctx, x, y, z, o = {}, t = 0) {
     ctx.arc(0.24, hy + 0.02, 0.035, 0, Math.PI * 2);
     ctx.fill();
   }
+  if (o.face) o.face(ctx, hy, back, t);
   ctx.restore();
 
   if (pose === 'sleep' && Q.detail) {

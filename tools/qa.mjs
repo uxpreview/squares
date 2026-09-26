@@ -124,7 +124,7 @@ try {
       storeys: m.storeys ? w.storeys.map((s) => ({ id: s.id, name: s.name })).reverse() : [], // top floor first
       defaultStorey: w.storeys[w.defaultStorey] ? w.storeys[w.defaultStorey].id : null,
       order: w.order.map((i) => w.zones[i].id),
-      walkers: w.walkers.map((k) => k.name || k.id),
+      walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
       zones: w.zones.map((z) => ({
         id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '',
         finds: z.finds.map((f) => {
