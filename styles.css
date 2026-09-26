@@ -12,16 +12,31 @@
   --gutter: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* How far the plate bleeds past the screen edges. 0 everywhere except iOS, below. */
+  --bleed: 0px;
   color-scheme: light;
 }
 
+/* iOS Safari (26+) floats its status bar and toolbar over the page. The plate
+   bleeds under both so you see the block through the glass instead of a flat
+   strip of paper. main.js measures the canvas, so this number can change freely. */
+@supports (-webkit-touch-callout: none) {
+  :root { --bleed: 120px; }
+  /* A layer that isn't fully opaque is composited under the bars rather than
+     clipped at them. The canvas is also created with alpha for the same reason. */
+  #map { opacity: 0.999; }
+}
+
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html, body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: var(--paper);
+  /* The paper as it looks with the grain printed over it. If Safari paints its
+     bars as a flat color, this is the color it picks, so they melt into the sheet. */
+  background: #ECE2CF;
   color: var(--ink);
   font-family: var(--body);
   -webkit-font-smoothing: antialiased;
@@ -30,7 +45,10 @@ html, body {
 
 #map {
   position: fixed;
-  inset: 0;
+  top: calc(-1 * var(--bleed));
+  left: 0;
+  width: 100%;
+  height: calc(100% + 2 * var(--bleed));
   display: block;
   touch-action: none;
   cursor: grab;
@@ -40,7 +58,7 @@ html, body {
 /* Paper fibre, multiplied over everything */
 .grain {
   position: fixed;
-  inset: 0;
+  inset: calc(-1 * var(--bleed)) 0;
   pointer-events: none;
   opacity: 0.32;
   mix-blend-mode: multiply;
@@ -58,7 +76,11 @@ html, body {
   top: calc(var(--safe-top) + 12px);
   left: var(--gutter);
   pointer-events: none;
+  transform-origin: 0 0;
+  transition: transform 0.5s cubic-bezier(.2, .8, .2, 1);
 }
+/* The wordmark is a sticker: ink letters, a cream die-cut edge, a coral offset.
+   The edge keeps it readable when it sits over a dark room. */
 .brand h1 {
   margin: 0;
   font-family: var(--display);
@@ -67,8 +89,35 @@ html, body {
   line-height: 0.9;
   letter-spacing: 0.01em;
   color: var(--ink);
-  text-shadow: 2px 2px 0 var(--coral);
+  text-shadow:
+    0 2.5px 0 var(--card), 2.5px 0 0 var(--card), 0 -2.5px 0 var(--card), -2.5px 0 0 var(--card),
+    1.8px 1.8px 0 var(--card), -1.8px 1.8px 0 var(--card), 1.8px -1.8px 0 var(--card), -1.8px -1.8px 0 var(--card),
+    4.5px 4.5px 0 var(--coral);
 }
+.brand h1 span { display: inline-block; }
+body[data-ready] .brand h1 span {
+  animation: letter 0.7s cubic-bezier(.2, 1.5, .4, 1) both;
+}
+.brand h1 span:nth-child(2) { animation-delay: 0.04s; }
+.brand h1 span:nth-child(3) { animation-delay: 0.08s; }
+.brand h1 span:nth-child(4) { animation-delay: 0.12s; }
+.brand h1 span:nth-child(5) { animation-delay: 0.16s; }
+.brand h1 span:nth-child(6) { animation-delay: 0.20s; }
+.brand h1 span:nth-child(7) { animation-delay: 0.24s; }
+@keyframes letter {
+  from { transform: translateY(0.5em) rotate(-8deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+body[data-ready] .brand p,
+body[data-ready] .brand-back { animation: fade-up 0.6s 0.35s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes fade-up {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+/* Inside a room the wordmark steps back so the room is the show. */
+body[data-mode="room"] .brand { transform: scale(0.74); }
+body[data-mode="room"] .brand p,
+body[data-mode="room"] .brand-back { display: none; }
 .brand p {
   margin: 6px 0 0;
   font-size: 13px;
@@ -95,7 +144,8 @@ html, body {
 .tally {
   position: fixed;
   top: calc(var(--safe-top) + 14px);
-  right: var(--gutter);
+  right: calc(var(--gutter) + var(--tray-w, 0px));
+  transition: right 0.34s cubic-bezier(.2, .8, .2, 1);
   display: flex;
   gap: 8px;
 }
@@ -113,6 +163,15 @@ html, body {
   box-shadow: 2px 2px 0 var(--ink);
 }
 .tally-item svg { width: 18px; height: 18px; color: var(--coral); }
+.tally-item.bump { animation: bump 0.5s cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18) rotate(-3deg); background: var(--mustard); }
+  100% { transform: scale(1); }
+}
+body[data-ready] .tally { animation: fade-up 0.6s 0.2s cubic-bezier(.2, .8, .2, 1) both; }
+body[data-ready] .controls,
+body[data-ready] .hint { animation: fade-up 0.6s 0.9s cubic-bezier(.2, .8, .2, 1) both; }
 
 /* ---------- Buttons ---------- */
 button {
@@ -155,27 +214,149 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   pointer-events: none;
 }
 
-/* ---------- Room card ---------- */
-.card {
+/* ---------- Icon buttons ---------- */
+.icon-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.icon-btn svg { width: 20px; height: 20px; display: block; }
+
+/* ---------- Room bar: where you are, its story, getting around ---------- */
+/* Phones: a second row under the wordmark and tallies. */
+.roombar {
   position: fixed;
+  z-index: 6;
+  top: calc(var(--safe-top) + 58px);
   left: var(--gutter);
   right: var(--gutter);
-  bottom: calc(var(--safe-bottom) + 64px);
-  max-width: 460px;
-  margin-inline: auto;
-  padding: 12px 14px 12px;
-  background: var(--card);
-  border: 2px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: 4px 4px 0 var(--ink);
-}
-.card-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
 }
-.card-unit {
+.room-pill {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px 0 16px;
+  text-align: left;
+}
+.room-unit {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+.room-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--display);
+  font-size: 17px;
+  line-height: 1.1;
+}
+.room-info { flex: none; width: 18px; height: 18px; color: var(--ink-soft); }
+.room-pill[aria-expanded="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+.room-pill[aria-expanded="true"] .room-info { color: var(--mustard); }
+#tour-room .i-stop,
+#tour-room[aria-pressed="true"] .i-play { display: none; }
+#tour-room[aria-pressed="true"] .i-stop { display: block; }
+#tour-room[aria-pressed="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+
+/* The room's story: shown when you arrive, then behind the room name. */
+.story {
+  position: fixed;
+  z-index: 7;
+  top: calc(var(--safe-top) + 112px);
+  left: var(--gutter);
+  right: var(--gutter);
+  max-width: 420px;
+  margin-inline: auto;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.story p { margin: 0; font-size: 14px; line-height: 1.42; color: var(--ink-soft); text-wrap: pretty; }
+@media (max-width: 520px) {
+  .story { padding: 10px 14px; }
+  .story p { font-size: 13.5px; line-height: 1.38; }
+}
+
+/* ---------- The tray (find list) ---------- */
+.tray {
+  position: fixed;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 640px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: calc(var(--safe-bottom) + 14px);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -3px 0 rgba(37, 45, 82, 0.12);
+}
+@media (max-width: 640px) {
+  .tray { border-left: 0; border-right: 0; }
+}
+.tray-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 12px 0 16px;
+  touch-action: none; /* vertical swipes on the head grow or shrink the tray */
+}
+button.tray-grip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 72px;
+  height: 18px;
+  margin-left: -36px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: grab;
+}
+.tray-grip::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  width: 36px;
+  height: 4px;
+  margin-left: -18px;
+  border-radius: 4px;
+  background: var(--ink);
+  opacity: 0.25;
+}
+button.tray-grip:hover { background: none; }
+button.tray-grip:active { transform: none; }
+.tray-title { flex: 1; min-width: 0; }
+.tray-kicker {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
@@ -183,85 +364,260 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   text-transform: uppercase;
   color: var(--coral);
 }
-.card-nav { display: flex; gap: 6px; }
-.card-nav button {
-  width: 34px;
-  height: 30px;
-  padding: 0;
-  font-size: 16px;
+.tray-count {
+  margin: 1px 0 0;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
-.card h2 {
-  margin: 2px 0 2px;
-  font-family: var(--display);
-  font-weight: 400;
-  font-size: 24px;
-  line-height: 1.05;
-  text-wrap: balance;
-}
-.card-blurb {
-  margin: 0 0 8px;
-  font-size: 13.5px;
-  line-height: 1.4;
-  color: var(--ink-soft);
-}
-.card-find-title {
-  margin: 0 0 4px;
-  font-size: 11px;
+.tray-hint {
+  flex: none;
+  min-height: 40px;
+  padding: 0 16px;
+  background: var(--mustard);
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
 }
-.finds {
-  list-style: none;
+.tray-hint:hover { background: var(--butter, #F7DD8E); }
+#tray-more[aria-expanded="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+
+/* Chips: one row you can scroll sideways, so a level can hold any number of things. */
+.chips {
+  display: flex;
+  gap: 8px;
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
+  padding: 12px 16px 4px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
-.find {
+.chips::-webkit-scrollbar { display: none; }
+.chips li { flex: none; }
+.chip {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 28px;
-  font-size: 13.5px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 1.2;
+  white-space: nowrap;
 }
-.find-label { flex: 1; min-width: 0; }
+.chip.is-selected { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+.chip.is-selected .find-mark { border-color: var(--card); }
+.chip.is-found,
+.chip:disabled {
+  background: var(--paper);
+  border-color: #CFC3AD;
+  box-shadow: none;
+  color: var(--ink-soft);
+  cursor: default;
+  opacity: 1;
+}
+.chip.is-found .chip-label,
+.row.is-found .row-label {
+  text-decoration: line-through;
+  text-decoration-color: var(--coral);
+  text-decoration-thickness: 2px;
+  color: var(--ink-soft);
+}
+
 .find-mark {
   flex: none;
   width: 16px;
   height: 16px;
+  box-sizing: border-box;
   border: 2px solid var(--ink);
   border-radius: 50%;
   background: var(--card);
 }
-.find.is-goose .find-mark {
-  border-radius: 5px;
-  background: var(--mustard);
+.find-mark.is-goose { border-radius: 4px; background: var(--mustard); }
+.find-mark.is-found { background: var(--coral); border-color: var(--coral); }
+.just-found .find-mark { animation: stamp 0.5s cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes stamp {
+  0% { transform: scale(0.3) rotate(-30deg); }
+  100% { transform: none; }
 }
-.find.is-found .find-label {
-  color: var(--ink-soft);
-  text-decoration: line-through;
-  text-decoration-color: var(--coral);
-  text-decoration-thickness: 2px;
+
+/* The whole list: this room first, then every other room. */
+.tray-full {
+  display: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 16px 10px;
 }
-.find.is-found .find-mark {
-  background: var(--coral);
-  border-color: var(--coral);
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 0 4px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: left;
 }
-.find-hint {
-  flex: none;
-  padding: 2px 8px;
-  font-size: 11px;
+button.group-head:hover { background: none; }
+button.group-head:hover .group-name { text-decoration: underline; text-decoration-color: var(--coral); text-decoration-thickness: 2px; }
+button.group-head:active { transform: none; }
+.group-unit {
+  font-size: 10.5px;
   font-weight: 700;
-  box-shadow: 1px 1px 0 var(--ink);
-  border-width: 1.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
 }
+.group-name { font-family: var(--display); font-size: 16px; }
+.group-frac { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.group.is-complete .group-frac { color: var(--coral); }
+.group.is-here {
+  margin: 4px -10px 6px;
+  padding: 0 10px 6px;
+  background: #F6EDD6;
+  border-radius: 12px;
+}
+.rows { list-style: none; margin: 0; padding: 0; }
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.row-label { flex: 1; min-width: 0; }
+.row-hint {
+  flex: none;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-width: 1.5px;
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.tray[data-dock="bottom"] .row-hint { padding: 0; }
+.tray[data-dock="bottom"] .hint-long,
+.tray[data-dock="right"] .hint-short { display: none; }
+
+/* Hidden state: just a pill (phones) or a slim rail (side dock). */
+.tray-pill {
+  display: none;
+  align-self: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 3px 3px 0 var(--ink);
+  pointer-events: auto;
+}
+.tray-pill svg { width: 18px; height: 18px; flex: none; }
+.pill-frac { display: none; font-variant-numeric: tabular-nums; }
+.pips { display: flex; gap: 3px; }
+.pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.pip.is-goose { border-radius: 2px; background: var(--mustard); }
+.pip.is-found { background: var(--coral); box-shadow: inset 0 0 0 1.5px var(--coral); }
+
+/* Bottom dock states */
+.tray[data-state="peek"] .tray-full { display: none; }
+.tray[data-state="open"] .chips { display: none; }
+.tray[data-state="open"] .tray-full { display: block; height: min(60vh, 540px); }
+.tray[data-state="open"] .tray-count { font-family: var(--display); font-weight: 400; font-size: 21px; }
+.tray[data-state="hidden"] {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  pointer-events: none;
+  padding-bottom: calc(var(--safe-bottom) + 22px);
+}
+.tray[data-state="hidden"] .tray-head,
+.tray[data-state="hidden"] .chips,
+.tray[data-state="hidden"] .tray-full { display: none; }
+.tray[data-state="hidden"] .tray-pill { display: flex; }
+
+/* Side dock: wide screens and landscape. The panel pushes the scene over. */
+.tray[data-dock="right"] {
+  top: 0;
+  left: auto;
+  width: 340px;
+  max-width: none;
+  margin: 0;
+  padding: calc(var(--safe-top) + 4px) 0 calc(var(--safe-bottom) + 8px);
+  border: 0;
+  border-left: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: -3px 0 0 rgba(37, 45, 82, 0.1);
+}
+.tray[data-dock="right"] .tray-head { padding: 16px 14px 12px 20px; border-bottom: 2px solid #E4D7BE; touch-action: auto; }
+.tray[data-dock="right"] .tray-grip,
+.tray[data-dock="right"] #tray-more,
+.tray[data-dock="right"] .chips { display: none; }
+.tray[data-dock="right"] #tray-hide svg { transform: rotate(-90deg); }
+.tray[data-dock="right"] .tray-count { font-family: var(--display); font-weight: 400; font-size: 22px; }
+.tray[data-dock="right"] .tray-full { display: block; flex: 1; height: auto; padding: 4px 20px 16px; }
+.tray[data-dock="right"][data-state="hidden"] {
+  width: 76px;
+  background: var(--card);
+  border-left: 2px solid var(--ink);
+  box-shadow: -3px 0 0 rgba(37, 45, 82, 0.1);
+  pointer-events: auto;
+}
+.tray[data-dock="right"][data-state="hidden"] .tray-full { display: none; }
+.tray[data-dock="right"] .tray-pill {
+  flex-direction: column;
+  gap: 12px;
+  width: 52px;
+  margin: 16px auto 0;
+  padding: 14px 0;
+  min-height: 0;
+  border-radius: 999px;
+}
+.tray[data-dock="right"] .pill-left { display: none; }
+.tray[data-dock="right"] .pill-frac { display: block; font-size: 14px; }
+.tray[data-dock="right"] .tray-pill .pips { flex-direction: column; gap: 6px; }
+.tray[data-dock="right"] .tray-pill .pip { width: 10px; height: 10px; }
+.tray[data-dock="right"] .tray-pill svg { order: -1; transform: rotate(-90deg); }
+
+/* Landscape phones: a narrower panel leaves more of the room. */
+@media (max-width: 899px) {
+  .tray[data-dock="right"] { width: 280px; }
+  .tray[data-dock="right"] .tray-head { padding: 10px 10px 8px 16px; }
+  .tray[data-dock="right"] .tray-full { padding: 2px 14px 12px; }
+  .tray[data-dock="right"] .row { min-height: 36px; font-size: 13.5px; }
+  body[data-dock="right"] .roombar .icon-btn { width: 40px; height: 40px; }
+  body[data-dock="right"] .room-pill { min-height: 40px; }
+}
+
+/* Side dock: the room bar floats at the bottom left of the scene. */
+body[data-dock="right"] .roombar {
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 16px);
+  right: auto;
+  max-width: calc(100% - var(--tray-w, 0px) - 2 * var(--gutter));
+  justify-content: flex-start;
+}
+body[data-dock="right"] .story {
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 72px);
+  right: auto;
+  width: min(400px, calc(100% - var(--tray-w, 0px) - 2 * var(--gutter)));
+  margin: 0;
+}
+
+/* Inside a room the tour button lives in the room bar. */
+body[data-mode="room"] .controls { display: none; }
 
 /* ---------- Toast ---------- */
 .toast {
@@ -288,38 +644,37 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   to { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
-/* ---------- Wide screens: card moves to the left edge ---------- */
 @media (min-width: 900px) {
-  .card {
-    right: auto;
-    width: 340px;
-    bottom: calc(var(--safe-bottom) + 76px);
-    margin: 0;
-  }
-  .finds { grid-template-columns: 1fr; }
   .hint { max-width: none; }
 }
-
-.hint-short { display: none; }
 
 @media (max-width: 520px) {
   .brand p { font-size: 12px; }
   .tally { gap: 6px; }
   .tally-item { padding: 4px 8px 4px 6px; font-size: 12px; }
-  .card { padding: 10px 12px; bottom: calc(var(--safe-bottom) + 60px); }
-  .card h2 { font-size: 20px; }
-  .card-blurb { font-size: 12.5px; line-height: 1.35; margin-bottom: 6px; }
-  .finds { gap: 2px 10px; }
-  .find { font-size: 12.5px; gap: 5px; min-height: 26px; }
-  .find-hint { width: 22px; height: 22px; padding: 0; }
-  .hint-long { display: none; }
-  .hint-short { display: inline; }
   .hint { max-width: calc(100% - 150px); }
-  body[data-mode="room"] .brand p,
-  body[data-mode="room"] .brand-back { display: none; }
+  /* Messages drop below the room bar. */
+  body[data-mode="room"] .toast { top: calc(var(--safe-top) + 114px); }
+}
+@media (max-width: 420px) {
+  /* Five controls on a narrow phone: slimmer buttons, name only. */
+  .roombar { gap: 5px; }
+  .roombar .icon-btn { width: 40px; height: 40px; }
+  .room-unit, .room-info { display: none; }
+  .room-pill { min-height: 40px; padding: 0 14px; }
+  .room-name { font-size: 15.5px; }
+}
+
+/* Portrait phones: the overview has room for a proper poster title. */
+@media (max-width: 520px) and (orientation: portrait) {
+  /* Tallies ride along the top; the title sits under them, poster-size. */
+  .brand { top: calc(var(--safe-top) + 60px); }
+  .brand h1 { font-size: 62px; }
+  body[data-mode="overview"] .brand p { font-size: 14px; margin-top: 10px; }
+  /* In a room it shrinks back up into the corner. */
+  body[data-mode="room"] .brand { transform: translateY(-46px) scale(0.48); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toast.show { animation: none; }
-  button { transition: none; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

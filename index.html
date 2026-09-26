@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ECE2CF">
 <title>Squares</title>
 <meta name="description" content="Sixteen tiny animated rooms and one loose goose. A hidden-object picture book you can walk through.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +16,7 @@
 <div class="grain" aria-hidden="true"></div>
 
 <header class="brand">
-  <h1>Squares</h1>
+  <h1 aria-label="Squares"><span aria-hidden="true">S</span><span aria-hidden="true">q</span><span aria-hidden="true">u</span><span aria-hidden="true">a</span><span aria-hidden="true">r</span><span aria-hidden="true">e</span><span aria-hidden="true">s</span></h1>
   <p>Sixteen rooms. One loose goose.</p>
   <a class="brand-back" href="https://ryankm.com/lab">&larr; Lab</a>
 </header>
@@ -33,23 +34,58 @@
 
 <nav class="controls" aria-label="Map controls">
   <button id="tour" type="button" aria-pressed="false">Play tour</button>
-  <button id="all" type="button">All rooms</button>
 </nav>
 
 <p id="hint" class="hint">Tap a room to step inside. Pinch or scroll to zoom.</p>
 
-<section id="card" class="card" aria-live="polite" hidden>
-  <div class="card-head">
-    <p id="card-unit" class="card-unit">Unit 1A</p>
-    <div class="card-nav">
-      <button id="prev" type="button" aria-label="Previous room">&larr;</button>
-      <button id="next" type="button" aria-label="Next room">&rarr;</button>
+<!-- Inside a room: where you are, its story, and getting around. -->
+<nav id="roombar" class="roombar" aria-label="Room" hidden>
+  <button id="all" class="icon-btn" type="button" aria-label="All rooms">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="prev" class="icon-btn" type="button" aria-label="Previous room">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="room-pill" class="room-pill" type="button" aria-expanded="false" aria-controls="story">
+    <span class="room-unit" id="room-unit">Unit 1A</span>
+    <span class="room-name" id="room-name">Room</span>
+    <svg class="room-info" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+  </button>
+  <button id="next" class="icon-btn" type="button" aria-label="Next room">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="tour-room" class="icon-btn" type="button" aria-pressed="false" aria-label="Play tour">
+    <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
+    <svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5" fill="currentColor"/></svg>
+  </button>
+</nav>
+<div id="story" class="story" hidden><p id="story-text"></p></div>
+
+<!-- The find list. Bottom of the screen on phones, docked right on wide screens.
+     States: hidden (focus mode), peek (chips), open (the whole list). -->
+<section id="tray" class="tray" aria-label="Things to find" data-state="peek" hidden>
+  <div class="tray-head">
+    <button id="tray-grip" class="tray-grip" type="button" tabindex="-1" aria-hidden="true"></button>
+    <div class="tray-title">
+      <p class="tray-kicker">Find and tap</p>
+      <p class="tray-count" id="tray-count" aria-live="polite">0 of 4 found</p>
     </div>
+    <button id="tray-hint" class="tray-hint" type="button" hidden>Hint</button>
+    <button id="tray-hide" class="icon-btn" type="button" aria-label="Hide the list">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="tray-more" class="icon-btn" type="button" aria-label="Show the whole list" aria-expanded="false" aria-controls="tray-full">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </button>
   </div>
-  <h2 id="card-name">Room</h2>
-  <p id="card-blurb" class="card-blurb"></p>
-  <p class="card-find-title">Find and tap</p>
-  <ul id="card-finds" class="finds"></ul>
+  <ul id="tray-chips" class="chips"></ul>
+  <div id="tray-full" class="tray-full"></div>
+  <button id="tray-pill" class="tray-pill" type="button" aria-label="Show the list">
+    <span id="tray-pips" class="pips" aria-hidden="true"></span>
+    <span id="tray-left" class="pill-left">4 left to find</span>
+    <span id="tray-frac" class="pill-frac" aria-hidden="true">0/4</span>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
 </section>
 
 <div id="toast" class="toast" role="status" hidden></div>

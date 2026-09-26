@@ -2,17 +2,23 @@
 
 import { GRID, PITCH, S, WALL, ZK, SLAB, ROOM_BOUNDS, isoX, isoY, unproject } from './iso.js';
 import { C, Q, setScreen, alpha } from './art.js';
-import { buildRoom, roomAnchor, drawRoomVector, snapshotRoom, drawSnapshot, findPos, bakeBackdrop, drawBackdrop as drawRoomBackdrop, dropBackdrop } from './scene.js';
+import { buildRoom, roomAnchor, drawRoomVector, snapshotRoom, drawSnapshot, findPos, bakeBackdrop, drawBackdrop as drawRoomBackdrop, dropBackdrop, dropSnapshot } from './scene.js';
 import { drawBackdrop, drawSky, EXTENT } from './ambient.js';
 import ROOMS from './rooms/index.js';
+import { createTray } from './tray.js';
 
 const canvas = document.getElementById('map');
-const ctx = canvas.getContext('2d', { alpha: false });
+// alpha: true on purpose. iOS 26 Safari clips an opaque full-screen layer at its
+// status bar and toolbar and paints a flat color there instead; a non-opaque
+// layer is composited normally, so the plate shows through behind the glass.
+const ctx = canvas.getContext('2d', { alpha: true });
 const $ = (id) => document.getElementById(id);
 const ui = {
-  card: $('card'), unit: $('card-unit'), name: $('card-name'), blurb: $('card-blurb'), list: $('card-finds'),
-  prev: $('prev'), next: $('next'), tour: $('tour'), all: $('all'), hint: $('hint'), toast: $('toast'),
+  tour: $('tour'), hint: $('hint'), toast: $('toast'),
   geese: $('tally-geese'), things: $('tally-things'),
+  brand: document.querySelector('.brand'),
+  roombar: $('roombar'), all: $('all'), prev: $('prev'), next: $('next'), tourRoom: $('tour-room'),
+  pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
 };
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -33,11 +39,18 @@ let found = new Set();
 try { found = new Set(JSON.parse(localStorage.getItem(STORE) || '[]')); } catch {}
 const saveFound = () => { try { localStorage.setItem(STORE, JSON.stringify([...found])); } catch {} };
 const keyOf = (room, f) => room.id + ':' + f.id;
+const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
 const TOTAL_THINGS = rooms.reduce((n, r) => n + r.finds.filter((f) => !f.goose).length, 0);
 const TOTAL_GEESE = rooms.filter((r) => r.finds.some((f) => f.goose)).length;
 
 // ---------- Viewport + camera ----------
+// vw/vh: the visible viewport (what the camera frames).
+// box: where the canvas actually sits, which can bleed past the viewport on iOS.
 let vw = 0, vh = 0, dpr = 1;
+const box = { x: 0, y: 0, w: 0, h: 0 };
+// Draw at the screen's real density (3x on recent iPhones). If frames get slow
+// on a weaker phone, drop to 2x once rather than stutter.
+let dprCap = 3;
 const cam = { x: 0, y: EXTENT / 2, z: 4 };
 let flight = null;
 let tour = null;
@@ -48,14 +61,18 @@ const pops = []; // tap ripples and honk bubbles
 let parade = 0; // time the all-geese victory lap started
 const hints = []; // pulsing "look around here" rings
 
-function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
+function sizeCanvas() {
+  dpr = Math.min(window.devicePixelRatio || 1, dprCap);
   vw = window.innerWidth;
   vh = window.innerHeight;
-  canvas.width = Math.round(vw * dpr);
-  canvas.height = Math.round(vh * dpr);
-  canvas.style.width = vw + 'px';
-  canvas.style.height = vh + 'px';
+  const r = canvas.getBoundingClientRect();
+  box.x = r.left; box.y = r.top; box.w = r.width; box.h = r.height;
+  canvas.width = Math.round(box.w * dpr);
+  canvas.height = Math.round(box.h * dpr);
+}
+
+function resize() {
+  sizeCanvas();
   const ov = overviewView();
   if (!flight) {
     const v = mode === 'room' && current >= 0 ? roomView(current) : ov;
@@ -65,12 +82,22 @@ function resize() {
 
 function insets() {
   const wide = vw >= 900;
-  const top = 72;
+  let top = 72;
+  // In the overview the title is big on phones; frame the plate below it.
+  if (mode !== 'room' && !wide && vh > vw) top = Math.max(top, ui.brand.offsetTop + ui.brand.offsetHeight + 12);
   let bottom = 76, left = 16, right = 16;
-  if (mode === 'room' && !ui.card.hidden) {
-    const r = ui.card.getBoundingClientRect();
-    if (wide) left = r.right + 16;
-    else bottom = vh - r.top + 12;
+  if (mode === 'room' && !ui.roombar.hidden) {
+    // Frame the room around the tray as it rests (peek or hidden). The open
+    // sheet is for reading and sits over the scene without moving the camera.
+    const r = tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek');
+    const bar = ui.roombar;
+    if (tray.dock() === 'right') {
+      right = vw - r.left + 16;
+      bottom = vh - bar.offsetTop + 10;
+    } else {
+      top = bar.offsetTop + bar.offsetHeight + 10;
+      bottom = vh - r.top + 12;
+    }
   }
   return { top, bottom, left, right };
 }
@@ -86,7 +113,10 @@ function fit(X0, X1, Y0, Y1, pad = 0) {
 }
 
 function overviewView() {
-  return fit(-EXTENT - 8, EXTENT + 8, -WALL * ZK - 9, EXTENT + SLAB * ZK + 7);
+  // Portrait phones are width-bound: let the print marks fall off the sides so
+  // the rooms themselves get the extra size.
+  const pad = vw < vh ? 1.5 : 8;
+  return fit(-EXTENT - pad, EXTENT + pad, -WALL * ZK - 9, EXTENT + SLAB * ZK + 7);
 }
 
 function roomView(i) {
@@ -124,37 +154,63 @@ function stepFlight(now) {
 }
 
 // ---------- Modes ----------
-function enterRoom(i, o = {}) {
+// What's on screen in each mode: the room bar and tray inside a room; the
+// hint line and the tour button over the whole block.
+function showRoomUI(i) {
+  const changed = current !== i || mode !== 'room';
   current = i;
   mode = 'room';
-  renderCard();
-  ui.card.hidden = false;
-  ui.hint.hidden = true;
-  ui.all.hidden = false;
   document.body.dataset.mode = 'room';
-  flyTo(roomView(i), o.dur ?? 1.5); // roomView measures the card, which is laid out now
+  ui.hint.hidden = true;
+  ui.roombar.hidden = false;
+  tray.show(true);
+  renderRoomBar();
+  tray.render(i);
+  layoutVars();
+  if (changed) {
+    const room = rooms[i];
+    // The story shows the first time you arrive (and on every stop of the tour),
+    // then lives behind the room name.
+    if (tour || !seenStory.has(room.id)) { seenStory.add(room.id); showStory(true, tour ? 7000 : 5200); }
+    else showStory(false);
+  }
+}
+
+function showOverviewUI() {
+  mode = 'overview';
+  current = -1;
+  document.body.dataset.mode = 'overview';
+  ui.hint.hidden = false;
+  ui.roombar.hidden = true;
+  tray.show(false);
+  showStory(false);
+  layoutVars();
+}
+
+function enterRoom(i, o = {}) {
+  showRoomUI(i);
+  flyTo(roomView(i), o.dur ?? 1.5); // roomView measures the tray and room bar, which are laid out now
 }
 
 function toOverview(o = {}) {
-  mode = 'overview';
-  current = -1;
-  ui.card.hidden = true;
-  ui.hint.hidden = false;
-  ui.all.hidden = true;
-  document.body.dataset.mode = 'overview';
+  showOverviewUI();
   flyTo(overviewView(), o.dur ?? 1.5);
 }
 
+function setTourButtons(on) {
+  ui.tour.setAttribute('aria-pressed', String(on));
+  ui.tour.textContent = on ? 'Stop tour' : 'Play tour';
+  ui.tourRoom.setAttribute('aria-pressed', String(on));
+  ui.tourRoom.setAttribute('aria-label', on ? 'Stop tour' : 'Play tour');
+}
 function startTour() {
   tour = { i: 0, next: 0, dwell: false };
-  ui.tour.setAttribute('aria-pressed', 'true');
-  ui.tour.textContent = 'Stop tour';
+  setTourButtons(true);
 }
 function stopTour() {
   if (!tour) return;
   tour = null;
-  ui.tour.setAttribute('aria-pressed', 'false');
-  ui.tour.textContent = 'Play tour';
+  setTourButtons(false);
 }
 
 let lastT = 0;
@@ -180,51 +236,82 @@ function stepTour(t, dt) {
   tour.next = t + 2.2 + 5.5;
 }
 
-// ---------- Card ----------
-function renderCard() {
+// ---------- Room bar + story ----------
+function renderRoomBar() {
   const room = rooms[current];
   if (!room) return;
-  const rowL = 'ABCD'[room.row];
-  ui.unit.textContent = `Unit ${room.col + 1}${rowL}`;
+  ui.unit.textContent = `Unit ${room.col + 1}${'ABCD'[room.row]}`;
   ui.name.textContent = room.def.name;
-  ui.blurb.textContent = room.def.blurb;
-  ui.list.innerHTML = '';
-  const sorted = room.finds.slice().sort((a, b) => (b.goose ? 1 : 0) - (a.goose ? 1 : 0));
-  for (const f of sorted) {
-    const li = document.createElement('li');
-    const isFound = found.has(keyOf(room, f));
-    li.className = 'find' + (isFound ? ' is-found' : '') + (f.goose ? ' is-goose' : '');
-    const mark = document.createElement('span');
-    mark.className = 'find-mark';
-    mark.setAttribute('aria-hidden', 'true');
-    const text = document.createElement('span');
-    text.className = 'find-label';
-    text.textContent = f.goose ? 'The goose' : f.label;
-    li.append(mark, text);
-    if (!isFound) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'find-hint';
-      b.innerHTML = '<span class="hint-long">Hint</span><span class="hint-short" aria-hidden="true">?</span>';
-      b.setAttribute('aria-label', `Hint for ${text.textContent}`);
-      b.addEventListener('click', () => showHint(room, f));
-      li.append(b);
-    } else {
-      const s = document.createElement('span');
-      s.className = 'sr-only';
-      s.textContent = ' (found)';
-      li.append(s);
-    }
-    ui.list.append(li);
+  ui.storyText.textContent = room.def.blurb;
+  ui.pill.setAttribute('aria-label', `${room.def.name}, unit ${room.col + 1}${'ABCD'[room.row]}. Show the story`);
+}
+
+const seenStory = new Set();
+let storyTimer = 0;
+function showStory(v, ms = 0) {
+  clearTimeout(storyTimer);
+  const was = !ui.story.hidden;
+  ui.story.hidden = !v;
+  ui.pill.setAttribute('aria-expanded', String(v));
+  if (v && !was && !reduceMotion) {
+    ui.story.animate([{ opacity: 0, transform: 'translateY(-6px) scale(0.97)' }, { opacity: 1, transform: 'none' }],
+      { duration: 280, easing: 'cubic-bezier(.2, 1.2, .4, 1)' });
   }
+  if (v && ms) storyTimer = setTimeout(() => showStory(false), ms);
+}
+ui.pill.addEventListener('click', () => showStory(ui.story.hidden));
+
+// ---------- The find list ----------
+const tray = createTray({
+  rooms,
+  order: tourOrder,
+  reduceMotion,
+  isFound: (room, f) => found.has(keyOf(room, f)),
+  foundAge: (room, f) => { const at = foundAt.get(keyOf(room, f)); return at ? performance.now() - at : Infinity; },
+  label: (room, f) => (f.goose ? 'The goose' : f.label),
+  onHint: (room, f) => {
+    // On a phone the open sheet would cover the nudge; drop it back to the chips.
+    if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
+    showHint(room, f);
+  },
+  onGoRoom: (i) => {
+    userAct();
+    if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
+    enterRoom(i, { dur: 1.3 });
+  },
+  onStateChange: (prev, next) => {
+    layoutVars();
+    if (next === 'open' && tray.dock() === 'bottom') showStory(false);
+    const moved = prev === next || (prev === 'hidden') !== (next === 'hidden');
+    if (moved && mode === 'room' && current >= 0 && !tour) flyTo(roomView(current), 0.55);
+  },
+});
+
+// The side panel pushes the tallies over; CSS reads its width from here.
+function layoutVars() {
+  const w = mode === 'room' && tray.dock() === 'right' ? tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').width : 0;
+  document.body.style.setProperty('--tray-w', Math.round(w) + 'px');
 }
 
 function renderTally() {
   let g = 0, n = 0;
   for (const r of rooms) for (const f of r.finds) if (found.has(keyOf(r, f))) f.goose ? g++ : n++;
-  ui.geese.textContent = `${g}/${TOTAL_GEESE}`;
-  ui.things.textContent = `${n}/${TOTAL_THINGS}`;
+  bumpText(ui.geese, `${g}/${TOTAL_GEESE}`);
+  bumpText(ui.things, `${n}/${TOTAL_THINGS}`);
   return { g, n };
+}
+
+// Swap a counter's text and give its pill a little bounce when the number moves.
+function bumpText(el, text) {
+  if (el.textContent === text) return;
+  const first = !el.dataset.set;
+  el.textContent = text;
+  el.dataset.set = '1';
+  if (first || reduceMotion) return;
+  const pill = el.closest('.tally-item');
+  pill.classList.remove('bump');
+  void pill.offsetWidth;
+  pill.classList.add('bump');
 }
 
 let toastTimer = 0;
@@ -251,9 +338,12 @@ function markFound(room, f) {
   const k = keyOf(room, f);
   if (found.has(k)) return;
   found.add(k);
+  foundAt.set(k, performance.now());
   saveFound();
+  pops.push({ room, f, t0: performance.now(), kind: 'burst' });
+  try { navigator.vibrate && navigator.vibrate(f.goose ? [18, 40, 18] : 12); } catch {}
   const { g, n } = renderTally();
-  if (current === rooms.indexOf(room)) renderCard();
+  if (mode === 'room' && current >= 0) tray.render(current);
   if (f.goose) {
     pops.push({ room, f, t0: performance.now(), kind: 'honk' });
     honk();
@@ -308,13 +398,16 @@ function screenToWorld(sx, sy) {
 // Only the room you're in is drawn live every frame. Every other visible room is
 // a snapshot bitmap, and snapshots are re-rendered a few per frame (oldest first)
 // within a small time budget, so the whole block keeps moving without the cost.
-const SNAP_STEPS = [5, 7, 10, 14, 20, 28];
+const SNAP_STEPS = [4, 5, 6, 7, 8, 10, 12, 14, 17, 20, 24, 28, 32];
+const SNAP_CAP = 32;
 const SNAP_BUDGET_MS = 6;
+// Pick the smallest step at or above the screen's scale. A bitmap drawn a bit
+// smaller than it was rendered stays crisp; one stretched larger goes soft,
+// which is what made the block look blurry on phones.
 function snapScaleFor(k) {
-  const cap = vw < 700 ? 20 : 28;
-  let s = SNAP_STEPS[0];
-  for (const v of SNAP_STEPS) if (v <= Math.min(cap, k * 1.15)) s = v;
-  return s;
+  const need = Math.min(SNAP_CAP, k * 0.95);
+  for (const v of SNAP_STEPS) if (v >= need) return v;
+  return SNAP_CAP;
 }
 // Each frame earns SNAP_BUDGET_MS of credit; a snapshot spends what it actually
 // took. Expensive snapshots (big, zoomed in) therefore happen less often.
@@ -332,16 +425,33 @@ function refreshSnapshots(list, t, k) {
   for (const r of order) {
     if (r.snap && snapCredit <= 0) break;
     const s0 = performance.now();
-    snapshotRoom(r, want, t, dpr);
+    // A room with no picture yet always gets one now, but a cheap one if we're
+    // out of time this frame; it sharpens up on a later frame.
+    snapshotRoom(r, r.snap || snapCredit > 0 ? want : Math.min(want, 8), t, dpr);
     snapCredit -= performance.now() - s0;
   }
 }
 
-const perf = { ms: 0, snap: 0, focus: 0 };
+const perf = { ms: 0, snap: 0, focus: 0, gap: 16 };
+// Drop from 3x to 2x if frames stay slow (under ~35 fps) for a couple of seconds.
+let slowFrames = 0;
+function watchFrameRate(gap) {
+  if (!(gap > 0) || gap > 0.25 || document.hidden) return; // tab switches, first frame
+  perf.gap = perf.gap * 0.95 + gap * 1000 * 0.05;
+  if (dpr <= 2 || performance.now() < 4000) return;
+  slowFrames = perf.gap > 28 ? slowFrames + 1 : 0;
+  if (slowFrames > 90) {
+    dprCap = 2;
+    slowFrames = 0;
+    sizeCanvas();
+    for (const r of rooms) dropBackdrop(r);
+  }
+}
 function frame(now) {
   const f0 = performance.now();
   const t = now / 1000;
   const dt = Math.min(0.05, t - lastT || 0);
+  watchFrameRate(t - lastT);
   lastT = t;
   stepFlight(now);
   stepTour(t, dt);
@@ -351,7 +461,7 @@ function frame(now) {
   ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const k = cam.z * dpr;
-  ctx.setTransform(k, 0, 0, k, dpr * (vw / 2 - cam.x * cam.z), dpr * (vh / 2 - cam.y * cam.z));
+  ctx.setTransform(k, 0, 0, k, dpr * (vw / 2 - cam.x * cam.z - box.x), dpr * (vh / 2 - cam.y * cam.z - box.y));
   setScreen(k, dpr);
   Q.lines = true;
   Q.detail = true;
@@ -367,8 +477,8 @@ function frame(now) {
     const H = WALL + 0.3;
     const t0 = -0.45; // wall thickness
     const sil = [[t0, S, H], [t0, t0, H], [S, t0, H], [S, t0, -SLAB], [S, S, -SLAB], [t0, S, -SLAB]];
-    const [w0x, w0y] = screenToWorld(-10, -10);
-    const [w1x, w1y] = screenToWorld(vw + 10, vh + 10);
+    const [w0x, w0y] = screenToWorld(box.x - 10, box.y - 10);
+    const [w1x, w1y] = screenToWorld(box.x + box.w + 10, box.y + box.h + 10);
     cut = new Path2D();
     cut.rect(w0x, w0y, w1x - w0x, w1y - w0y);
     sil.forEach(([x, y, z], i) => {
@@ -384,8 +494,10 @@ function frame(now) {
     const [ax, ay] = roomAnchor(room);
     const [sx0, sy0] = worldToScreen(ax + b.x0, ay + b.y0);
     const [sx1, sy1] = worldToScreen(ax + b.x1, ay + b.y1);
-    return !(sx1 < 0 || sx0 > vw || sy1 < 0 || sy0 > vh);
+    return !(sx1 < box.x || sx0 > box.x + box.w || sy1 < box.y || sy0 > box.y + box.h);
   });
+  // Let go of big pictures of rooms that have been off screen for a while.
+  for (const r of rooms) if (r.snap && r.snapScale >= 17 && t - r.snapT > 6 && !visible.includes(r)) dropSnapshot(r);
   const p0 = performance.now();
   refreshSnapshots(visible.filter((r) => r !== focus), t, k);
   perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
@@ -393,9 +505,12 @@ function frame(now) {
 
   for (const room of visible) {
     const [ax, ay] = roomAnchor(room);
+    const drop = introDrop(room, now);
+    if (drop && drop.a <= 0) continue;
     ctx.save();
     if (cut && room !== focus && room.col + room.row > focus.col + focus.row) ctx.clip(cut, 'evenodd');
     ctx.translate(ax, ay);
+    if (drop) { ctx.translate(0, drop.dy); ctx.globalAlpha = drop.a; }
     if (room === focus) {
       const q0 = performance.now();
       Q.lines = k > 6;
@@ -430,6 +545,20 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// Opening: the rooms drop onto the plate one diagonal at a time, back to front.
+let introT0 = 0;
+function introDrop(room, now) {
+  if (!introT0) return null;
+  if (now - introT0 > 2500) { introT0 = 0; return null; }
+  const delay = (room.col + room.row) * 95 + ((room.col * 53 + room.row * 29) % 60);
+  const k = (now - introT0 - delay) / 780;
+  if (k >= 1) return null;
+  if (k <= 0) return { dy: -12, a: 0 };
+  const c = 1.9; // ease-out-back: overshoot a touch, then settle
+  const e = 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2);
+  return { dy: -12 * (1 - e), a: Math.min(1, k * 2.5) };
+}
+
 // Coral pen loops around everything found, plus hint rings.
 function drawMarks(ctx, room, t, now) {
   const lw = 2.4 / cam.z;
@@ -437,7 +566,9 @@ function drawMarks(ctx, room, t, now) {
     if (!found.has(keyOf(room, f))) continue;
     const [x, y, z] = findPos(f, t);
     const r = Math.max(f.r * 1.05, 16 / cam.z);
-    penLoop(ctx, isoX(x, y), isoY(x, y, z), r, lw, f.id.length, f.goose ? C.coral : C.coral);
+    const at = foundAt.get(keyOf(room, f));
+    const k = at && !reduceMotion ? Math.min(1, (now - at) / 520) : 1;
+    penLoop(ctx, isoX(x, y), isoY(x, y, z), r, lw, f.id.length, C.coral, 1 - Math.pow(1 - k, 3));
   }
   for (let i = hints.length - 1; i >= 0; i--) {
     const h = hints[i];
@@ -455,10 +586,13 @@ function drawMarks(ctx, room, t, now) {
   }
 }
 
-function penLoop(ctx, X, Y, r, lw, seed, color) {
+// A hand-drawn loop. `k` (0..1) is how much of it the pen has drawn so far.
+function penLoop(ctx, X, Y, r, lw, seed, color, k = 1) {
+  if (k <= 0) return;
   ctx.beginPath();
   const n = 42;
-  for (let i = 0; i <= n; i++) {
+  const end = Math.max(1, Math.round(n * k));
+  for (let i = 0; i <= end; i++) {
     const a = -0.6 + (i / n) * (Math.PI * 2 + 0.9);
     const w = 1 + Math.sin(a * 3 + seed) * 0.05 + (i / n) * 0.08;
     const px = X + Math.cos(a) * r * 1.25 * w;
@@ -477,7 +611,25 @@ function drawPops(ctx, now, t) {
   for (let i = pops.length - 1; i >= 0; i--) {
     const p = pops[i];
     const age = (now - p.t0) / 1000;
-    if (age > (p.kind === 'honk' ? 1.6 : 0.5)) { pops.splice(i, 1); continue; }
+    if (age > (p.kind === 'honk' ? 1.6 : p.kind === 'burst' ? 0.7 : 0.5)) { pops.splice(i, 1); continue; }
+    if (p.kind === 'burst') {
+      // A splash of ink flecks, in screen-sized units so it reads at any zoom.
+      const [ax, ay] = roomAnchor(p.room);
+      const [x, y, z] = findPos(p.f, t);
+      const X = ax + isoX(x, y), Y = ay + isoY(x, y, z);
+      const e = 1 - Math.pow(1 - age / 0.7, 3);
+      const inks = [C.coral, C.mustard, C.teal, C.coral, C.pink, C.mustard, C.coral, C.teal];
+      for (let j = 0; j < 8; j++) {
+        const a = (j / 8) * Math.PI * 2 + p.f.id.length;
+        const d = (18 + 26 * e + (j % 3) * 6) / cam.z;
+        const rr = (3.2 * (1 - e) + 0.6) / cam.z;
+        ctx.beginPath();
+        ctx.arc(X + Math.cos(a) * d, Y + Math.sin(a) * d * 0.8, rr, 0, Math.PI * 2);
+        ctx.fillStyle = inks[j];
+        ctx.fill();
+      }
+      continue;
+    }
     if (p.kind === 'honk') {
       const [ax, ay] = roomAnchor(p.room);
       const [x, y, z] = findPos(p.f, t);
@@ -549,7 +701,7 @@ function tap(sx, sy) {
     if (hit) {
       markFound(hit.room, hit.f);
       const i = rooms.indexOf(hit.room);
-      if (i !== current) { current = i; mode = 'room'; renderCard(); ui.card.hidden = false; ui.hint.hidden = true; ui.all.hidden = false; }
+      if (i !== current || mode !== 'room') showRoomUI(i);
       return;
     }
   }
@@ -573,6 +725,7 @@ function userAct() {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
+  if (!ui.story.hidden) showStory(false);
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   userAct();
@@ -666,26 +819,11 @@ function stepInertia(dt) {
 // After free panning/zooming, decide whether we're "in" a room or looking at the block.
 function settleMode() {
   if (cam.z < ROOM_MODE_Z()) {
-    if (mode !== 'overview') {
-      mode = 'overview';
-      current = -1;
-      ui.card.hidden = true;
-      ui.hint.hidden = false;
-      ui.all.hidden = true;
-      document.body.dataset.mode = 'overview';
-    }
+    if (mode !== 'overview') showOverviewUI();
     return;
   }
   const i = roomAtScreen(vw / 2, vh / 2);
-  if (i >= 0 && i !== current) {
-    current = i;
-    mode = 'room';
-    renderCard();
-    ui.card.hidden = false;
-    ui.hint.hidden = true;
-    ui.all.hidden = false;
-    document.body.dataset.mode = 'room';
-  }
+  if (i >= 0 && i !== current) showRoomUI(i);
 }
 
 // ---------- Buttons + keys ----------
@@ -698,20 +836,27 @@ const step = (d) => {
 ui.prev.addEventListener('click', () => step(-1));
 ui.next.addEventListener('click', () => step(1));
 ui.all.addEventListener('click', () => { userAct(); toOverview(); });
-ui.tour.addEventListener('click', () => {
-  if (tour) { stopTour(); return; }
-  userAct();
-  startTour();
-});
+for (const b of [ui.tour, ui.tourRoom]) {
+  b.addEventListener('click', () => {
+    if (tour) { stopTour(); return; }
+    userAct();
+    startTour();
+  });
+}
 window.addEventListener('keydown', (e) => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   if (e.key === 'ArrowRight') step(1);
   else if (e.key === 'ArrowLeft') step(-1);
-  else if (e.key === 'Escape') { userAct(); toOverview(); }
+  else if (e.key === 'Escape') {
+    if (!ui.story.hidden) showStory(false);
+    else if (mode === 'room' && tray.state === 'open' && tray.dock() === 'bottom') tray.setState('peek');
+    else { userAct(); toOverview(); }
+  }
 });
 
 window.addEventListener('resize', () => {
   resize();
+  layoutVars();
   if (mode === 'room' && current >= 0) Object.assign(cam, roomView(current));
 });
 
@@ -727,8 +872,8 @@ async function boot() {
     ]);
   } catch {}
   document.body.dataset.mode = 'overview';
-  ui.card.hidden = true;
-  ui.all.hidden = true;
+  document.body.dataset.ready = '1';
+  showOverviewUI();
   resize();
   if (renderTally().g === TOTAL_GEESE && TOTAL_GEESE > 0) parade = performance.now();
   const start = location.hash.slice(1);
@@ -737,6 +882,7 @@ async function boot() {
     enterRoom(si, { dur: 0.01 });
   } else {
     Object.assign(cam, overviewView());
+    if (!reduceMotion) introT0 = performance.now() + 150;
     // Open with the tour, like a camera drifting across the plate. Any touch stops it.
     if (!reduceMotion && !window.__noAutoTour) setTimeout(() => { if (performance.now() - lastInput > 3000 && mode === 'overview') startTour(); }, 3500);
   }
