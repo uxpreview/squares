@@ -41,3 +41,4 @@ Deploys to Vercel as-is (framework preset: Other, no build command, output direc
 - **Swap or reorder rooms:** edit the list in `src/rooms/index.js`.
 - **Tour pacing:** `stepTour` in `src/main.js` (fly 2.2 s, linger 5.5 s).
 - **Title and tagline:** `index.html`.
+- **Back link to the Lab:** the `brand-back` link in `index.html` (styled in `styles.css`). Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044.
