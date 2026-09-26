@@ -52,11 +52,46 @@ function reg(ctx, X, Y) {
 // ---------- Blimp ----------
 const P3 = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
 
-export function drawSky(ctx, t, z) {
+export function drawSky(ctx, t, z, parade = 0) {
   blimp(ctx, t);
   birds(ctx, t, 0);
   birds(ctx, t + 17, 1);
   plane(ctx, t);
+  if (parade) geeseV(ctx, t, parade);
+}
+
+// The victory lap: sixteen geese in a V, flying low over the whole block.
+function geeseV(ctx, t, age) {
+  const k = (age % 14) / 14;
+  const cx = -30 + k * (EXTENT + 60), cy = EXTENT + 20 - k * (EXTENT + 40);
+  for (let i = 0; i < 16; i++) {
+    const side = i % 2 ? 1 : -1, rank = Math.ceil(i / 2);
+    const x = cx - rank * 2.2, y = cy + side * rank * 2.2 + rank * 0.6;
+    const z = 14 + Math.sin(t * 2 + i) * 0.3;
+    const [X, Y] = P3(x, y, z);
+    const flap = Math.sin(t * 7 + i * 0.7);
+    ctx.save();
+    ctx.translate(X, Y);
+    ctx.scale(1.3, 1.3);
+    // wings
+    ctx.beginPath();
+    ctx.moveTo(-0.2, 0); ctx.quadraticCurveTo(-0.5, -0.8 * flap, -1.1, -1.1 * flap);
+    ctx.lineTo(0.1, -0.05);
+    ctx.moveTo(-0.2, 0.05); ctx.quadraticCurveTo(0.1, -0.6 * flap, -0.2, -1.3 * flap);
+    ctx.lineTo(0.3, 0);
+    paint(ctx, C.greyLight, { lw: 0.05 });
+    // body, neck, head, beak
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 0.55, 0.2, -0.46, 0, Math.PI * 2);
+    paint(ctx, C.white, { lw: 0.05 });
+    ctx.beginPath();
+    ctx.moveTo(0.4, -0.2); ctx.lineTo(0.85, -0.45);
+    ctx.strokeStyle = C.white; ctx.lineWidth = 0.14; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0.95, -0.5); ctx.lineTo(1.2, -0.58); ctx.lineTo(0.97, -0.42);
+    ctx.fillStyle = C.coral; ctx.fill();
+    ctx.restore();
+  }
 }
 
 function blimp(ctx, t) {

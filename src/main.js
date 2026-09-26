@@ -46,6 +46,7 @@ let current = -1;
 let lastInput = performance.now();
 let cacheScale = 0;
 const pops = []; // tap ripples and honk bubbles
+let parade = 0; // time the all-geese victory lap started
 const hints = []; // pulsing "look around here" rings
 
 function resize() {
@@ -210,7 +211,7 @@ function renderCard() {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'find-hint';
-      b.textContent = 'Hint';
+      b.innerHTML = '<span class="hint-long">Hint</span><span class="hint-short" aria-hidden="true">?</span>';
       b.setAttribute('aria-label', `Hint for ${text.textContent}`);
       b.addEventListener('click', () => showHint(room, f));
       li.append(b);
@@ -261,10 +262,44 @@ function markFound(room, f) {
   if (current === rooms.indexOf(room)) renderCard();
   if (f.goose) {
     pops.push({ room, f, t0: performance.now(), kind: 'honk' });
+    honk();
+    if (g === TOTAL_GEESE) { parade = performance.now(); setTimeout(() => { honk(); toOverview({ dur: 2.5 }); }, 1800); }
     toast(g === TOTAL_GEESE ? 'Every goose, found. The block thanks you.' : `HONK. Goose ${g} of ${TOTAL_GEESE}.`);
   } else {
     toast(`Found: ${f.label.toLowerCase()} (${n}/${TOTAL_THINGS})`);
   }
+}
+
+// ---------- Sound ----------
+// A synthesized honk: two detuned buzzy oscillators through a nasal band-pass.
+let audio = null;
+function honk() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = audio.currentTime;
+    for (const at of [0, 0.3]) {
+      const t = t0 + at;
+      const f = audio.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 1150;
+      f.Q.value = 2.2;
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.22, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+      f.connect(g);
+      g.connect(audio.destination);
+      for (const [type, hz] of [['sawtooth', 430], ['square', 436]]) {
+        const o = audio.createOscillator();
+        o.type = type;
+        o.frequency.setValueAtTime(hz, t);
+        o.frequency.exponentialRampToValueAtTime(hz * 0.7, t + 0.24);
+        o.connect(f);
+        o.start(t);
+        o.stop(t + 0.28);
+      }
+    }
+  } catch {}
 }
 
 // ---------- Rendering ----------
@@ -338,7 +373,7 @@ function frame(now) {
     ctx.restore();
   }
   Q.detail = k > 4.5;
-  drawSky(ctx, t, cam.z);
+  drawSky(ctx, t, cam.z, parade ? (now - parade) / 1000 : 0);
   Q.detail = true;
   drawPops(ctx, now, t);
   requestAnimationFrame(frame);
@@ -643,7 +678,7 @@ async function boot() {
   ui.card.hidden = true;
   ui.all.hidden = true;
   resize();
-  renderTally();
+  if (renderTally().g === TOTAL_GEESE && TOTAL_GEESE > 0) parade = performance.now();
   const start = location.hash.slice(1);
   const si = rooms.findIndex((r) => r.id === start);
   if (si >= 0) {
