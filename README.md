@@ -71,7 +71,7 @@ tools/
 | Change a sound, or add one | `src/game/audio.js` |
 | Change what finishing a place says | `words.complete` in that place's `map.js`; the card itself is in `src/ui/screens.js` |
 | Change the title screen's drift | `startDrift` in `src/engine/camera.js` |
-| Change how floors lift away in a building | `LIFT` and `GHOST` at the top of `src/engine/renderer.js` |
+| Change how floors lift away (and dim below) in a building | `LIFT`, `GHOST` and `BELOW` at the top of `src/engine/renderer.js` |
 | Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |
 

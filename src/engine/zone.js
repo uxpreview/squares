@@ -92,6 +92,7 @@ export function buildZone(def, place = {}) {
     snapT: -1,
     veil: 0, // 0 = fully shown, 1 = lifted out of the way (see cutaway in the renderer)
     lift: 0, // how far up it's drawn right now because of that, in world iso units
+    dim: 0, // 0..1, faded back because it's below the zone you're in
   };
 }
 

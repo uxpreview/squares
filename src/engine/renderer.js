@@ -22,9 +22,11 @@ function snapScaleFor(k) {
   return SNAP_CAP;
 }
 
-// Cutaway "above": how far a lifted zone rises (world iso units) and how faint it gets.
+// Cutaway "above": how far a lifted zone rises (world iso units) and how faint
+// it gets. Zones below the one you're in dim a little so it stands out.
 const LIFT = 9;
 const GHOST = 0.1;
+const BELOW = 0.55;
 
 export function createRenderer(canvas, camera) {
   // alpha: true on purpose. iOS 26 Safari clips an opaque full-screen layer at its
@@ -142,7 +144,9 @@ export function createRenderer(canvas, camera) {
     const cut = focus && world.cutaway.front ? cutPath(focus) : null;
     for (const z of world.zones) {
       const up = focus && world.cutaway.above && z.oz > focus.oz + 0.1 ? 1 : 0;
+      const down = focus && world.cutaway.above && z.oz < focus.oz - 0.1 ? 1 : 0;
       z.veil += (up - z.veil) * Math.min(1, dt * 7);
+      z.dim = (z.dim || 0) + (down - (z.dim || 0)) * Math.min(1, dt * 7);
       if (Math.abs(z.veil - up) < 0.002) z.veil = up;
       z.lift = z.veil * LIFT; // hit testing reads this, so taps land where the zone is drawn
     }
@@ -168,7 +172,7 @@ export function createRenderer(canvas, camera) {
       ctx.save();
       if (cut && z !== focus && z.ox + z.oy > focus.ox + focus.oy + 0.01 && Math.abs(z.oz - focus.oz) < focus.h) ctx.clip(cut, 'evenodd');
       ctx.translate(ax, ay - z.lift);
-      let a = 1 - (1 - GHOST) * z.veil;
+      let a = (1 - (1 - GHOST) * z.veil) * (1 - (1 - BELOW) * z.dim);
       if (drop) { ctx.translate(0, drop.dy); a *= drop.a; }
       if (a < 1) ctx.globalAlpha = a;
       if (z === focus) {
@@ -231,7 +235,7 @@ export function createRenderer(canvas, camera) {
   // Free every bitmap a world holds (when switching maps).
   function dispose(world) {
     if (!world) return;
-    for (const z of world.zones) { dropSnapshot(z); dropBackdrop(z); z.veil = 0; z.lift = 0; }
+    for (const z of world.zones) { dropSnapshot(z); dropBackdrop(z); z.veil = 0; z.lift = 0; z.dim = 0; }
   }
 
   return { render, startIntro, thumbnail, dispose, perf, ctx };
