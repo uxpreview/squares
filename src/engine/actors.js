@@ -58,6 +58,83 @@ export function route(points, o = {}) {
   };
 }
 
+// Someone's evening on a clock, for people who walk between zones (a map's
+// walkers; see src/engine/world.js). Steps, in order, in world units:
+//   [x, y] or [x, y, z]     walk there at the current speed (z changes on stairs)
+//   { until: t, ...extra }  stand still until t seconds into the loop
+//   { wait: s, ...extra }   stand still for s seconds
+//   { speed: v }            units per second from here on (1.3 walks, 3 runs)
+// extra (pose, dir, say, anything) is returned while they stand at that stop.
+// The first step is where they start; after the last they walk back to it, and
+// the whole walk has to fit in o.loop seconds. Returns at(t) =>
+// { x, y, z, dir, back, moving, speed, pose, ...extra }, a pure function of t.
+export function schedule(steps, o = {}) {
+  const loop = o.loop || 180;
+  const start = o.start || 0;
+  let speed = o.speed || 1.3;
+  let [x, y, z] = [steps[0][0], steps[0][1], steps[0][2] ?? 0];
+  let t = start;
+  const segs = [];
+  const walk = (nx, ny, nz) => {
+    const dist = Math.hypot(nx - x, ny - y, (nz - z) * 0.7);
+    if (dist < 1e-6) return;
+    const dur = dist / speed;
+    segs.push({ t0: t, t1: t + dur, x0: x, y0: y, z0: z, x1: nx, y1: ny, z1: nz, moving: true, speed, extra: null });
+    t += dur;
+    x = nx; y = ny; z = nz;
+  };
+  const stand = (until, extra) => {
+    if (until < t - 1e-6) throw new Error(`schedule: ${o.name || 'someone'} can't stand until ${until}s, they only get there at ${t.toFixed(1)}s`);
+    if (until > t) segs.push({ t0: t, t1: until, x0: x, y0: y, z0: z, x1: x, y1: y, z1: z, moving: false, speed: 0, extra });
+    t = Math.max(t, until);
+  };
+  for (const s of steps.slice(1)) {
+    if (Array.isArray(s)) { walk(s[0], s[1], s[2] ?? z); continue; }
+    const { until, wait, speed: v, ...extra } = s;
+    if (v) speed = v;
+    if (until != null) stand(until, extra);
+    else if (wait != null) stand(t + wait, extra);
+  }
+  walk(steps[0][0], steps[0][1], steps[0][2] ?? 0);
+  stand(start + loop, {});
+  if (t > start + loop + 1e-6) throw new Error(`schedule: ${o.name || 'someone'}'s walk takes ${(t - start).toFixed(1)}s, longer than the ${loop}s loop`);
+  // Which way they face: the way they last walked (standing keeps it).
+  let dir = 'r', back = false;
+  for (let pass = 0; pass < 2; pass++) {
+    for (const s of segs) {
+      if (s.moving) {
+        const dX = (s.x1 - s.x0) - (s.y1 - s.y0), dY = (s.x1 - s.x0) + (s.y1 - s.y0);
+        s.dir = dX >= 0 ? 'r' : 'l';
+        s.back = dY < -0.01;
+        dir = s.dir; back = s.back;
+      } else {
+        s.dir = (s.extra && s.extra.dir) || dir;
+        s.back = s.extra && s.extra.back != null ? s.extra.back : back;
+      }
+    }
+  }
+  let lastT = NaN, last = null, seg = segs[0];
+  return (tq) => {
+    if (tq === lastT) return last;
+    const tt = ((((tq - start) % loop) + loop) % loop) + start;
+    if (!(tt >= seg.t0 && tt < seg.t1)) seg = segs.find((g) => tt >= g.t0 && tt < g.t1) || segs[segs.length - 1];
+    const k = seg.t1 > seg.t0 ? (tt - seg.t0) / (seg.t1 - seg.t0) : 0;
+    last = {
+      x: seg.x0 + (seg.x1 - seg.x0) * k,
+      y: seg.y0 + (seg.y1 - seg.y0) * k,
+      z: seg.z0 + (seg.z1 - seg.z0) * k,
+      dir: seg.dir,
+      back: seg.back,
+      moving: seg.moving,
+      speed: seg.speed,
+      pose: seg.moving ? (seg.speed > 2.2 ? 'run' : 'walk') : 'stand',
+      ...(seg.extra || {}),
+    };
+    lastT = tq;
+    return last;
+  };
+}
+
 // Point on a loop around an ellipse centred at (cx, cy).
 export function orbit(cx, cy, rx, ry, period, offset = 0, clockwise = false) {
   return (t) => {

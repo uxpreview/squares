@@ -6,7 +6,8 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 
 ## Where things live
 
-- A zone is one file: `src/maps/<map>/rooms/<id>.js` (The Block) or `src/maps/<map>/floors/<id>.js` (The Walk-Up).
+- A zone is one file: `src/maps/<map>/areas/<id>.js` for levels made with `npm run new-level` (the Manor), `src/maps/<map>/rooms/<id>.js` (The Block) or `src/maps/<map>/floors/<id>.js` (The Walk-Up).
+- A level made with the pipeline has a style sheet, `src/maps/<map>/style.js`: its inks and shared props. Use it.
 - Imports from a zone file: `'../../../engine/art.js'`, `'../../../engine/actors.js'`, `'../../../engine/iso.js'`.
 - Which zones a map has, and where they sit, is in that map's `map.js`.
 
@@ -22,7 +23,7 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 1. **Only edit your own zone files** (listed in your task). Do not edit anything in `src/engine/`, `src/game/`, `src/ui/`, any `map.js` or `ambient.js`, `index.html`, `styles.css`, or anyone else's zone. If you need a helper, write it locally inside your zone file. If you find a bug in shared code, work around it and mention it in your final report.
 2. Do not run any git commands. Do not create other files except scratch screenshots outside the repo.
 3. A zone module exports `{ id, name, blurb, build(R) }`. Keep the `id` you were given. `name` is 1 to 3 words. `blurb` is one or two short, funny, plain sentences about what is going on. **No em dashes anywhere** in copy.
-4. Use colors from `C` only (a six-ink riso palette plus mixes via `shade`, `tint`, `mix`, `alpha`). Use halftone `dots` on shadowed faces and big surfaces like the reference. Outline with the default ink stroke.
+4. Use colors from `C` or the level's style sheet only (plus mixes via `shade`, `tint`, `mix`, `alpha`); never a raw hex code. Use halftone `dots` on shadowed faces and big surfaces like the reference. Outline with the default ink stroke.
 
 ## Geometry
 
@@ -39,6 +40,15 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 - `R.mover(posFn, draw, { bias })` for anything that moves. `posFn(t)` returns `{ x, y, ... }`. Use `route`/`orbit`/custom math. Everything must be a pure function of time `t` in seconds (no per-frame state).
 - Mark static-looking items that still animate with `{ anim: true }` (e.g. swaying plants, blinking lights). Items without `anim` are baked into a bitmap for the zoomed-out view and drawn at `t = 0`, so anything that moves MUST be `anim: true` (movers and air are always animated).
 - Respect `Q.detail`: skip tiny details and particles when `!Q.detail` (zoomed far out).
+
+## Houses: walls, lights and people passing through
+
+Some levels are houses (the Manor). Their zones use a few more builder calls:
+
+- `R.walls({ left, right, h, doors })` draws the back walls for you, so the engine can drop inside walls to waist height when you're not in the room. Keep the `doors` the greybox gave you (they come from the level's `plan.js`). Anything you paint on a wall goes in `R.wall` or `R.decor`, and is cut down with it.
+- `R.light({ at, r, color, k(t), draw })` is a glow (a lamp, a candle, a fire) that still shines when the room goes dark. The style sheet has `lamp`, `candle` and `fire` ready made.
+- `R.dark(fn)` darkens the whole room: `fn(t)` from 0 (lit) to 1. Keep the one the greybox has, so your room's lights go out with the rest.
+- People on the level's shared clock (its `walkers`) are drawn by the engine in whichever room they're standing in. Don't draw them; you'll see them walk through your doors.
 
 ## Finds and the goose
 

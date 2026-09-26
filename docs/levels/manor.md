@@ -1,6 +1,6 @@
 # Gooseworth Manor
 
-> Status: **Brief approved** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Greybox, at gate 2** · Brief → Greybox → Art → QA → Preview → Shipped
 > Owner approvals: brief [x] · greybox [ ] · preview [ ]
 
 ## In one line
@@ -88,16 +88,72 @@ The tray groups finds as **Evidence** and **Curiosities**. The goose is a find t
 Dark comedy: a body in a trifle, taxidermy, a ghost, poison. No gore; death is played for laughs. Adult jokes welcome in the margins (the conservatory, the cellar).
 
 ## Engine and kit needs
-- [ ] **Night lighting:** a dark palette per place, lights that glow (windows, lamps, candles), a flash for lightning.
-- [ ] **Walls down:** inside walls cut low in the overview, full height inside a room.
-- [ ] **Storeys:** show one floor at a time with a floor switch; the others fade (builds on the Walk-Up's stacked floors).
-- [ ] **Door handoffs:** a shared timeline for the evening, so a guest leaving one room appears in the next.
-- [ ] **Evidence and accusation:** finds can be grouped (evidence, curiosities); a place's goal can be "solve the case"; an accusation screen with suspect portraits; the reveal.
-- [ ] **Weather:** rain and lightning as a place-level effect.
-- [ ] **Level pipeline tools:** scaffold, style sheet, QA script, contact sheet (see PROCESS.md). Built with this level, reused by every level after.
+- [x] **Night lighting:** a dark palette per place, lights that glow (windows, lamps, candles), a flash for lightning. *(Session 2: `R.light`, `R.dark`, `glow`, a place's `plate`.)*
+- [x] **Walls down:** inside walls cut low in the overview, full height inside a room. *(Session 2: `R.walls`, `cutaway.walls`.)*
+- [x] **Storeys:** show one floor at a time with a floor switch; the others fade. *(Session 2: `storeys` in the map, and a floor switch.)*
+- [x] **Door handoffs:** a shared timeline for the evening, so a guest leaving one room appears in the next. *(Session 2: `walkers`, `schedule()`, doors in `plan.js`.)*
+- [ ] **Evidence and accusation:** finds can be grouped (evidence, curiosities); a place's goal can be "solve the case"; an accusation screen with suspect portraits; the reveal. *(Session 3.)*
+- [x] **Weather:** rain and lightning as a place-level effect. *(Session 2: `engine/weather.js`.)*
+- [x] **Level pipeline tools:** scaffold, style sheet, QA script, contact sheet, prompt templates (see PROCESS.md). *(Session 2.)*
+
+## The greybox (session 2)
+
+Open it at `#/manor` (it's hidden from the picker until it ships). `npm run qa -- manor` makes the contact sheet.
+
+**The plan** (`src/maps/manor/plan.js`). Every area is 16 x 16; the library is two storeys tall.
+
+| | Back | Middle | Front / wing |
+| --- | --- | --- | --- |
+| **Upstairs** | (the library's upper half) | Master Bedroom · Taxidermy Room | Guest Rooms (the landing, a corridor, the Brigadier's and Dr. Crane's rooms) |
+| **Ground** | Library | Dining Room · Billiard Room | Grand Hall (front door, stairs up) · Kitchen (wing) · Conservatory (wing) |
+| **Cellar** | | | Cellar, under the kitchen, seen through the cut in the ground |
+| **Outside** | | | The Grounds, in front of the hall: the drive, Pidge's car, the maze, the crypt |
+
+Doors: hall to billiard room, dining room, conservatory and the front door; library to dining room and billiard room; kitchen to dining room and conservatory; upstairs, the landing to both bedrooms. Stairs up from the hall, and down to the cellar through a hatch in the kitchen.
+
+**The plate.** A storm-navy panel on the paper with the house on a slab of lawn, cut open on two sides (the cellar shows in the right-hand cut, bones in the front). The silhouette is the tower (lit windows, a lightning rod the big strikes hit), three chimneys and storm trees. Rain on everything outside; lightning every 15 to 25 seconds, with a flash.
+
+**The evening** (`src/maps/manor/evening.js`), a 3-minute loop that nine people walk through the doors:
+
+| Seconds | What happens |
+| --- | --- |
+| 0 to 28 | Dinner. The Brigadier starts his war story. |
+| 28 to 50 | People drift off: Crane upstairs, Philippa to the conservatory (the gardener joins her from his maze), Rupert to the billiard room, Jenkins down to the cellar, Pidge out to his car. The Brigadier tells his story to an empty table, then goes up too. |
+| 75 | Crane and the Brigadier creep past each other in the upstairs corridor, each off to search the other's luggage. |
+| 78 to 95 | The lights flicker and go out; only candles and fires. |
+| 95 | The maid screams in the library. The lights come back. Everyone runs there. |
+| 118 to 150 | Everyone in the library; Pidge questions the bear. |
+| 148 to 180 | Everyone drifts back to dinner (for the second trifle), and the loop begins again. |
+
+**The finds** (numbered pins in the greybox; 26 things and the goose):
+
+| Area | Finds |
+| --- | --- |
+| Library | Goose feathers on the rug, A pill bottle with beak marks, A wine glass with lipstick |
+| Kitchen | Webbed footprints in flour, A kitchen timer, A sausage on the run (it moves, with the dog) |
+| Taxidermy Room | An order form for a goose, An empty stand marked GOOSE, The owl that turns its head |
+| Master Bedroom | The Lord's diary, The new will |
+| Guest Rooms | Dr. Crane's bag, An empty tin of mints, The family silver, half packed, A duelling pistol |
+| Grand Hall | Mrs. Hatchett's rolling pin, and the goose (by the coats, looking innocent) |
+| Billiard Room | A pawn ticket, Rupert's shoes |
+| Dining Room | A false tooth in the soup, A place set for the goose |
+| Conservatory | Love letters in a flowerpot, A fig leaf, worn once |
+| Cellar | Jenkins's resignation letter, A poster about a missing goose |
+| The Grounds | A soaked parcel for G. Goose, The gardener's compass |
+
+Not in the greybox yet (session 3): the art, the evidence and curiosities groups, the accusation and reveal, lightning showing the past, the Lord's ghost, thunder and the sound bed.
 
 ## Decisions
 Brief approved by the owner. The three open questions were settled with the lead's recommendations as defaults (the owner can still change them at the greybox gate):
 1. **Name:** Gooseworth Manor.
 2. **The goose is the killer** in this first whodunit. Later mysteries need a different culprit so it doesn't get predictable.
 3. **Accuse any time.** A wrong accusation plays that suspect's alibi and a joke; that's where a lot of the humor lives.
+
+Greybox choices (session 2), for the owner to confirm or change at gate 2:
+4. **It opens on the ground floor**, with the upstairs lifted off as a faint ghost, because that's where the crime scene and six of the eleven areas are. The floor switch shows the whole house (Upstairs) or the cellar.
+5. **The grounds are one area, in front of the house:** the drive, Pidge's car, a very small maze, the crypt and the front door (whose wall rises when you step outside). The greenhouse and the rest of the lawn are scenery around it. Wrapping the grounds all the way round the house needs areas of any shape (E5); the alternative now is a second outdoor area.
+6. **No roof.** The silhouette comes from the tower, the chimneys and the trees rather than a roof floating over the house.
+7. **The cellar is always visible** in the cut through the ground, as well as from the floor switch.
+8. **Guest Rooms** holds the Brigadier's and Dr. Crane's rooms and the corridor; Rupert's half-packed silver is in the corridor, not in a room of his own.
+9. **Outdoors, the house stays whole:** stepping into the grounds lifts nothing, so the upstairs shows over the front wall.
+10. **Tagline:** "A stormy night, a body in the trifle, six suspects and a goose." 

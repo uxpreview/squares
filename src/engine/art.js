@@ -39,8 +39,9 @@ export const SKIN = ['#F4CDAA', '#E3A97F', '#C3835B', '#95603F', '#633F2A', '#F7
 export const HAIR = ['#252D52', '#3D2B22', '#7A4A2A', '#DDA43F', '#B9B5AE', '#C8413A', '#1D1B19', '#E98FA3'];
 export const CLOTH = [C.coral, C.teal, C.mustard, C.navy, C.blush, C.green, C.white, C.purple, C.red, C.sky, C.pink, C.tealLight];
 
-// Quality flags, set by the renderer for each pass.
-export const Q = { lines: true, detail: true, pxPerUnit: 20 };
+// Quality flags, set by the renderer for each pass. own: drawing into a zone's
+// own picture (a snapshot), where only that zone's pixels are on the canvas.
+export const Q = { lines: true, detail: true, pxPerUnit: 20, own: false };
 
 // ---------- Seeded randomness ----------
 export function rng(seed = 1) {
@@ -880,6 +881,37 @@ export function lamp(ctx, x, y, t = 0, color = C.mustard, glow = true) {
   ctx.moveTo(X - 0.35, Y); ctx.lineTo(X + 0.35, Y); ctx.lineTo(X + 0.55, Y + 0.7); ctx.lineTo(X - 0.55, Y + 0.7);
   ctx.closePath();
   paint(ctx, color);
+}
+
+// A soft glow centred on (x, y, z), r units out: lamps, candles, fires, lit
+// windows. Screened over what's under it, so it brightens without covering.
+// k: strength, 0..1. The gradient is drawn once per color and reused.
+const glowSprites = new Map();
+function glowSprite(color) {
+  let cv = glowSprites.get(color);
+  if (!cv) {
+    cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, alpha(color, 0.9));
+    gr.addColorStop(0.3, alpha(color, 0.45));
+    gr.addColorStop(0.65, alpha(color, 0.12));
+    gr.addColorStop(1, alpha(color, 0));
+    g.fillStyle = gr;
+    g.fillRect(0, 0, 128, 128);
+    glowSprites.set(color, cv);
+  }
+  return cv;
+}
+export function glow(ctx, x, y, z, r, color = C.butter, k = 1) {
+  if (!(k > 0.01) || !(r > 0)) return;
+  const X = x - y, Y = (x + y) / 2 - z * ZK;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha *= Math.min(1, k);
+  ctx.drawImage(glowSprite(color), X - r, Y - r, r * 2, r * 2);
+  ctx.restore();
 }
 
 // Rug on the floor.

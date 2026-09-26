@@ -23,7 +23,8 @@ function snapScaleFor(k) {
 }
 
 // Cutaway "above": how far a lifted zone rises (world iso units) and how faint
-// it gets. Zones below the one you're in dim a little so it stands out.
+// it gets. Zones below the one you're in dim a little so it stands out. A map
+// can change the first two (cutaway.lift, cutaway.ghost).
 const LIFT = 9;
 const GHOST = 0.1;
 const BELOW = 0.55;
@@ -34,7 +35,9 @@ export function createRenderer(canvas, camera) {
   // layer is composited normally, so the plate shows through behind the glass.
   const ctx = canvas.getContext('2d', { alpha: true });
   const { cam, view } = camera;
-  const perf = { ms: 0, snap: 0, focus: 0, gap: 16 };
+  // Frame costs in ms (smoothed): the whole render, refreshing neighbor pictures,
+  // the zone you're in, the other zones, the backdrop and sky, and the frame gap.
+  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16 };
   let snapCredit = 0;
   let lastT = 0;
   let slowFrames = 0;
@@ -48,8 +51,11 @@ export function createRenderer(canvas, camera) {
     const blurry = list.some((z) => z.snapScale && z.snapScale < want * 0.5);
     const budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS;
     snapCredit = Math.min(snapCredit + budget, budget * 3);
+    // No picture yet first, then pictures that are out of date (walls moving),
+    // then the wrong size, then the oldest.
     const order = list.slice().sort((a, b) =>
       (a.snap ? 1 : 0) - (b.snap ? 1 : 0) ||
+      (a.stale ? 0 : 1) - (b.stale ? 0 : 1) ||
       (a.snapScale === want ? 1 : 0) - (b.snapScale === want ? 1 : 0) ||
       a.snapT - b.snapT);
     for (const z of order) {
@@ -82,7 +88,7 @@ export function createRenderer(canvas, camera) {
     let end = 0;
     for (const z of world.zones) {
       const d = ((z.ox + z.oy) / 21 + z.oz / 10) * 95 + ((z.index * 53) % 60);
-      delays.set(z, d);
+      delays.set(z, Math.max(0, d));
       end = Math.max(end, d + 800);
     }
     intro = { t0: performance.now() + 150, delays, end };
@@ -119,16 +125,17 @@ export function createRenderer(canvas, camera) {
     return cut;
   }
 
-  // o: { t, now, focus, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
+  // o: { t, now, focus, level, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
+  // level: the storey being looked at; zones on storeys above it lift out of the way.
   function render(world, o) {
     const f0 = performance.now();
     const { t, now, focus } = o;
-    const dt = Math.min(0.05, t - lastT || 0);
+    const dt = Math.max(0, Math.min(0.05, t - lastT || 0)); // the clock can jump (tools)
     watchFrameRate(t - lastT, world);
     lastT = t;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = C.paper;
+    ctx.fillStyle = (world && world.map.plate && world.map.plate.paper) || C.paper;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (!world) return;
     const { dpr, box } = view;
@@ -137,18 +144,37 @@ export function createRenderer(canvas, camera) {
     setScreen(k, dpr);
     Q.lines = true;
     Q.detail = true;
-    if (world.map.backdrop) world.map.backdrop(ctx, t, world);
+
+    // What a backdrop or sky might want: the visible world rect, the cutaway
+    // around the zone you're in (to keep weather out of it), the storey.
+    const [vx0, vy0] = camera.toWorld(box.x, box.y);
+    const [vx1, vy1] = camera.toWorld(box.x + box.w, box.y + box.h);
+    const level = o.level ?? world.top;
+    const cut = focus && world.cutaway.front ? cutPath(focus) : null;
+    const fx = { ...(o.fx || {}), view: [vx0, vy0, vx1, vy1], cut, level, focus };
+    const b0 = performance.now();
+    if (world.map.backdrop) world.map.backdrop(ctx, t, world, fx);
+    perf.back = perf.back * 0.9 + (performance.now() - b0) * 0.1;
 
     // Cutaways
+    const lift = world.cutaway.lift ?? LIFT;
+    const ghost = world.cutaway.ghost ?? GHOST;
     for (const z of world.zones) if (z !== focus && z.backdrop) dropBackdrop(z);
-    const cut = focus && world.cutaway.front ? cutPath(focus) : null;
     for (const z of world.zones) {
-      const up = focus && world.cutaway.above && z.oz > focus.oz + 0.1 ? 1 : 0;
-      const down = focus && world.cutaway.above && z.oz < focus.oz - 0.1 ? 1 : 0;
+      const up = world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
+      const down = focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
       z.veil += (up - z.veil) * Math.min(1, dt * 7);
       z.dim = (z.dim || 0) + (down - (z.dim || 0)) * Math.min(1, dt * 7);
       if (Math.abs(z.veil - up) < 0.002) z.veil = up;
-      z.lift = z.veil * LIFT; // hit testing reads this, so taps land where the zone is drawn
+      z.lift = z.veil * lift; // hit testing reads this, so taps land where the zone is drawn
+      // Walls down: only the room you're in has its inside walls up.
+      if (z.low != null) {
+        const want = z === focus ? 1 : 0;
+        const was = z.wallK;
+        z.wallK += (want - z.wallK) * Math.min(1, dt * 6);
+        if (Math.abs(z.wallK - want) < 0.004) z.wallK = want;
+        if (z.wallK !== was) z.stale = true;
+      }
     }
 
     const visible = world.drawOrder.filter((z) => {
@@ -165,6 +191,8 @@ export function createRenderer(canvas, camera) {
     perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
     setScreen(k, dpr);
 
+    const zs0 = performance.now();
+    let focusMs = 0;
     for (const z of visible) {
       const [ax, ay] = z.anchor;
       const drop = introDrop(z, now);
@@ -172,22 +200,25 @@ export function createRenderer(canvas, camera) {
       ctx.save();
       if (cut && z !== focus && z.ox + z.oy > focus.ox + focus.oy + 0.01 && Math.abs(z.oz - focus.oz) < focus.h) ctx.clip(cut, 'evenodd');
       ctx.translate(ax, ay - z.lift);
-      let a = (1 - (1 - GHOST) * z.veil) * (1 - (1 - BELOW) * z.dim);
+      let a = (1 - (1 - ghost) * z.veil) * (1 - (1 - BELOW) * z.dim);
       if (drop) { ctx.translate(0, drop.dy); a *= drop.a; }
       if (a < 1) ctx.globalAlpha = a;
       if (z === focus) {
         const q0 = performance.now();
         Q.lines = k > 6;
         Q.detail = k > 4.5;
-        // Cache the backdrop once the camera settles; redraw it live while it moves.
-        if (o.still && z.backdropScale !== k) { bakeBackdrop(z, k, dpr); setScreen(k, dpr); }
-        if (o.still && z.backdrop) {
+        // Cache the backdrop once the camera settles (and the walls have stopped
+        // moving); redraw it live until then.
+        const settled = z.wallK === 0 || z.wallK === 1;
+        if (o.still && settled && (z.backdropScale !== k || z.backdropWallK !== z.wallK)) { bakeBackdrop(z, k, dpr); setScreen(k, dpr); }
+        if (o.still && z.backdrop && z.backdropWallK === z.wallK) {
           drawBackdrop(ctx, z);
           drawZoneVector(ctx, z, t, true);
         } else {
           drawZoneVector(ctx, z, t);
         }
-        perf.focus = perf.focus * 0.9 + (performance.now() - q0) * 0.1;
+        focusMs = performance.now() - q0;
+        perf.focus = perf.focus * 0.9 + focusMs * 0.1;
       } else if (!z.snap) {
         Q.lines = k > 6;
         Q.detail = k > 4.5;
@@ -200,14 +231,18 @@ export function createRenderer(canvas, camera) {
       if (o.marks && z.veil < 0.5) o.marks(ctx, z, t, now);
       ctx.restore();
     }
+    perf.zones = perf.zones * 0.9 + (performance.now() - zs0 - focusMs) * 0.1;
     Q.detail = k > 4.5;
-    if (world.map.sky) world.map.sky(ctx, t, world, o.fx || {});
+    const s0 = performance.now();
+    if (world.map.sky) world.map.sky(ctx, t, world, fx);
+    perf.sky = perf.sky * 0.9 + (performance.now() - s0) * 0.1;
     Q.detail = true;
     if (o.top) o.top(ctx, t, now);
     perf.ms = perf.ms * 0.9 + (performance.now() - f0) * 0.1;
   }
 
-  // A small still picture of a whole map, for the level picker.
+  // A small still picture of a whole map, for the level picker. A place printed
+  // on its own plate (a night, say) gets its backdrop too, since that's its look.
   function thumbnail(world, w, h, t = 6) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cv = document.createElement('canvas');
@@ -217,16 +252,21 @@ export function createRenderer(canvas, camera) {
     const [X0, X1, Y0, Y1] = world.overviewBox(false);
     const z = Math.min(w / (X1 - X0), h / (Y1 - Y0)) * 1.12;
     const k = z * dpr;
-    g.setTransform(k, 0, 0, k, cv.width / 2 - ((X0 + X1) / 2) * k, cv.height / 2 - ((Y0 + Y1) / 2) * k);
+    const cx = (X0 + X1) / 2, cy = (Y0 + Y1) / 2;
+    g.setTransform(k, 0, 0, k, cv.width / 2 - cx * k, cv.height / 2 - cy * k);
     setScreen(k, dpr);
     Q.lines = k > 6;
     Q.detail = false;
+    const plate = world.map.plate;
+    const fx = { view: [cx - w / 2 / z, cy - h / 2 / z, cx + w / 2 / z, cy + h / 2 / z], level: world.top, thumb: true };
+    if (plate && world.map.backdrop) world.map.backdrop(g, t, world, fx);
     for (const zone of world.drawOrder) {
       g.save();
       g.translate(zone.anchor[0], zone.anchor[1]);
       drawZoneVector(g, zone, t);
       g.restore();
     }
+    if (plate && world.map.sky) world.map.sky(g, t, world, fx);
     Q.lines = true;
     Q.detail = true;
     return cv;
@@ -235,7 +275,12 @@ export function createRenderer(canvas, camera) {
   // Free every bitmap a world holds (when switching maps).
   function dispose(world) {
     if (!world) return;
-    for (const z of world.zones) { dropSnapshot(z); dropBackdrop(z); z.veil = 0; z.lift = 0; z.dim = 0; }
+    for (const z of world.zones) {
+      dropSnapshot(z);
+      dropBackdrop(z);
+      z.veil = 0; z.lift = 0; z.dim = 0; z.stale = false;
+      if (z.low != null) z.wallK = 0;
+    }
   }
 
   return { render, startIntro, thumbnail, dispose, perf, ctx };

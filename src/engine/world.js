@@ -5,28 +5,88 @@
 // A map module (see src/maps/*/map.js) exports:
 //   {
 //     id, name, tagline,
-//     zones: [{ zone, at: [x, y, z], tag }],  // zone modules and where they go
+//     zones: [{ zone, at: [x, y, z], tag, h, span, fixed }],  // zone modules and where they go
 //     order: ['zoneId', ...],                   // prev/next and list order (optional)
-//     cutaway: { front: true, above: false },   // how zones get out of the way (below)
-//     overview(portrait) => [X0, X1, Y0, Y1],   // the framing for the whole map (optional)
-//     backdrop(ctx, t, world), sky(ctx, t, world, fx),  // drawn under / over the zones (optional)
+//     cutaway: { front, above, walls, lift, ghost },  // how zones get out of the way (below)
+//     storeys: [{ id, name, short, z }],        // named floors, for the floor switch (optional)
+//     storey: 'ground',                         // which floor the overview starts on
+//     overview(portrait, storeyId, short) => [X0, X1, Y0, Y1],  // the framing for the whole map (optional)
+//     backdrop(ctx, t, world, fx), sky(ctx, t, world, fx),  // drawn under / over the zones (optional)
+//     plate: { paper },                         // the sheet this place is printed on (optional)
+//     walkers: [{ id, at(t), draw(ctx, t, p) }], // people on a shared timeline (optional)
 //     words: { ... },                           // map-specific copy (see src/game/play.js)
 //   }
 //
 // Cutaways, for when you're looking at one zone:
 //   front: zones in front of it are cut away around its outline (the block)
-//   above: zones stacked above it lift up and fade out (a building's floors)
+//   above: zones on floors above it lift up and fade out (a building's floors).
+//          With named storeys, the floor switch does the same in the overview.
+//   walls: waist height for inside walls (a number turns "walls down" on): a wall
+//          with a room right behind it drops to this height unless you're in its room
+//   lift, ghost: how far lifted floors rise (iso units) and how faint they get
+//
+// Walkers: people who move between zones on one clock. Each is drawn by the zone
+// they're standing in, so they walk out of one room's door and into the next.
+// at(t) gives world units { x, y, z, ... }; draw gets the same point in the
+// zone's own units. See schedule() in src/engine/actors.js.
 
-import { buildZone } from './zone.js';
+import { buildZone, inside, wallHeight, WALL_T } from './zone.js';
 import { ZK, SLAB, unproject } from './iso.js';
 
+const overlap = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
+
 export function buildWorld(map) {
-  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, place), { index }));
+  const cutaway = { front: false, above: false, walls: null, ...(map.cutaway || { front: true }) };
+  const walkers = map.walkers || [];
+  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers }), { index }));
   // Back to front: along the floor first, then upward.
   const drawOrder = zones.slice().sort((a, b) => a.ox + a.oy - (b.ox + b.oy) || a.oz - b.oz || a.ox - b.ox);
   const order = map.order
     ? map.order.map((id) => zones.findIndex((z) => z.id === id)).filter((i) => i >= 0)
     : drawOrder.map((z) => z.index);
+
+  // Storeys, bottom to top: the map's named floors, or one per floor height.
+  const storeys = (map.storeys
+    ? map.storeys.map((s) => ({ ...s }))
+    : [...new Set(zones.map((z) => Math.round(z.oz * 100) / 100))].map((z) => ({ id: String(z), name: '', z }))
+  ).sort((a, b) => a.z - b.z);
+  for (const z of zones) {
+    z.storey = 0;
+    storeys.forEach((s, i) => { if (z.oz >= s.z - 0.05) z.storey = i; });
+  }
+  const top = storeys.length - 1;
+  const named = map.storey ? storeys.findIndex((s) => s.id === map.storey) : -1;
+  const defaultStorey = named >= 0 ? named : top;
+
+  // Walls down: an inside wall is one with another zone right behind it.
+  if (cutaway.walls != null) {
+    for (const z of zones) {
+      z.low = cutaway.walls;
+      z.wallK = 0;
+      z.inner.left = zones.some((a) => a !== z && Math.abs(a.ox + a.w - z.ox) < 0.01 &&
+        overlap(a.oy, a.oy + a.d, z.oy, z.oy + z.d) && overlap(a.oz, a.oz + a.span, z.oz, z.oz + z.h));
+      z.inner.right = zones.some((a) => a !== z && Math.abs(a.oy + a.d - z.oy) < 0.01 &&
+        overlap(a.ox, a.ox + a.w, z.ox, z.ox + z.w) && overlap(a.oz, a.oz + a.span, z.oz, z.oz + z.h));
+    }
+  }
+
+  // Every door in world units: the wall's plane, where the opening runs, how tall.
+  const doors = zones.flatMap((z) => z.doors.map((dd) => {
+    const left = dd.side === 'left';
+    return {
+      zone: z.id,
+      side: dd.side,
+      id: dd.id,
+      axis: left ? 'x' : 'y', // the wall is the plane x = at (left) or y = at (right)
+      plane: left ? z.ox : z.oy,
+      from: (left ? z.oy : z.ox) + dd.at - dd.w / 2,
+      to: (left ? z.oy : z.ox) + dd.at + dd.w / 2,
+      z0: z.oz,
+      z1: z.oz + dd.h,
+      x: left ? z.ox : z.ox + dd.at,
+      y: left ? z.oy + dd.at : z.oy,
+    };
+  }));
 
   const totalGeese = zones.filter((z) => z.finds.some((f) => f.goose)).length;
   const totalThings = zones.reduce((n, z) => n + z.finds.filter((f) => !f.goose).length, 0);
@@ -37,8 +97,9 @@ export function buildWorld(map) {
     return [ax - z.d, ax + z.w, ay - z.h * ZK, ay + (z.w + z.d) / 2 + SLAB * ZK];
   };
 
-  function overviewBox(portrait) {
-    if (map.overview) return map.overview(portrait);
+  // short: a landscape phone, where height is scarce.
+  function overviewBox(portrait, storeyId, short = false) {
+    if (map.overview) return map.overview(portrait, storeyId, short);
     let X0 = Infinity, X1 = -Infinity, Y0 = Infinity, Y1 = -Infinity;
     for (const z of zones) {
       const [a, b, c, d] = body(z);
@@ -61,7 +122,7 @@ export function buildWorld(map) {
       const z = drawOrder[i];
       if (skip && skip(z)) continue;
       const [ax, ay] = [z.anchor[0], z.anchor[1] - (z.lift || 0)];
-      for (const h of [0, 2, 4, 6]) {
+      for (let h = 0; h <= Math.max(6, z.h); h += 2) {
         const [lx, ly] = unproject(X - ax, Y - ay + h * ZK);
         if (lx < -0.5 || ly < -0.5 || lx > z.w || ly > z.d) continue;
         if (h > 0 && lx > 1.2 && ly > 1.2) continue; // above the floor only near the back walls
@@ -71,18 +132,55 @@ export function buildWorld(map) {
     return -1;
   }
 
+  // The zone a world point is standing in, if any.
+  const zoneAtPoint = (x, y, z = 0) => zones.find((zn) => inside(zn, x, y, z)) || null;
+
+  // Does walking in a straight line from p to q (world { x, y, z }) go through
+  // a wall rather than a door? Returns null, or { zone, side, x, y } where it
+  // hits. Walls count at their full height, as they are when you're in the room.
+  function blocked(p, q) {
+    for (const z of zones) {
+      const o = z.walls;
+      if (!o) continue;
+      for (const side of ['left', 'right']) {
+        if (o[side] === false) continue;
+        const left = side === 'left';
+        const plane = left ? z.ox : z.oy;
+        const a = left ? p.x : p.y, b = left ? q.x : q.y;
+        if ((a >= plane) === (b >= plane)) continue;
+        const k = (plane - a) / (b - a);
+        const u = left ? p.y + (q.y - p.y) * k : p.x + (q.x - p.x) * k; // along the wall
+        const zz = (p.z || 0) + ((q.z || 0) - (p.z || 0)) * k;
+        const u0 = left ? z.oy : z.ox;
+        if (u < u0 - WALL_T || u > u0 + (left ? z.d : z.w) || zz < z.oz - 0.1 || zz >= z.oz + o.h) continue;
+        const through = z.doors.some((dd) => dd.side === side && u >= u0 + dd.at - dd.w / 2 + 0.15 &&
+          u <= u0 + dd.at + dd.w / 2 - 0.15 && zz < z.oz + dd.h);
+        if (!through) return { zone: z.id, side, x: left ? plane : u, y: left ? u : plane, z: zz };
+      }
+    }
+    return null;
+  }
+
   return {
     map,
     id: map.id,
     zones,
     drawOrder,
     order,
+    storeys,
+    defaultStorey,
+    top,
+    walkers,
+    doors,
     totalGeese,
     totalThings,
-    cutaway: { front: false, above: false, ...(map.cutaway || { front: true }) },
+    cutaway,
     overviewBox,
     zoneBox,
     zoneAt,
+    zoneAtPoint,
+    blocked,
+    wallHeight,
     indexOf: (id) => zones.findIndex((z) => z.id === id),
   };
 }
