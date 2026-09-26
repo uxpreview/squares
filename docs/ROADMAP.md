@@ -108,5 +108,8 @@ Open, for the owner:
 
 Made:
 
+- **Diversity over formula.** Every place is a different shape (tall, wide, one big continuous map, a diorama), its own color palette (never one ink), and its own story to investigate. Giants, trains and the like only where the theme calls for them. The main goal is that every place feels alive. *(after inspiration review)*
+- **A shared universe:** recurring characters and brands across places, beyond the goose. *(after inspiration review)*
+
 - Unlocking places is built but off (`lockMaps: false`) until there are enough places to pace. *(Session 1)*
 - Reference images are not stored in the repo; notes and credits live in INSPIRATION.md. *(Session 1 follow-up)*

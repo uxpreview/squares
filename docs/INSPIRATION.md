@@ -169,6 +169,9 @@ A crowded ink city: a cathedral, factories with chimneys, cut-open tenements, a 
 
 ## Patterns across all 21
 
+> **Owner's direction (after reviewing these):** the goal is diversity and uniqueness. Every place should be fun to explore and feel like a new story to investigate. Shapes should vary (some tall, some wide, some a single large map), plates are always in color (the palette changes per place, never one ink), giants and travelling things depend on each place's theme, not a rule, and the main goal is that every place feels alive. A shared universe across places: yes. Most references come from r/wimmelbilder.
+
+
 - **Tall wins.** About 12 of the 21 are portrait: towers, chasms, stacked towns, a facade. Phones are portrait. Our Block is a landscape square. **Places should be designed tall first**, with scrolling up and down as the exploration.
 - **Many ways to cut things open.** Straight dollhouse cuts (ours), curved cuts that follow a building (12), slabs of earth with life in the cut faces (13, 10), windows that reveal without cutting (20), plan views (15). We only do the first.
 - **Moving connectors.** Trains (18, 19, 21), lifts (5, 6), conveyors (9), channels (7), plus stairs and bridges everywhere. Things that move through a whole place are landmarks and make great moving finds.
