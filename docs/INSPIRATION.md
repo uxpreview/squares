@@ -126,6 +126,39 @@ A mind drawn as a building's floor plan: rooms labelled Emotional Response Unit,
 - **Structure:** organic room shapes, a plan view rather than a scene.
 - **Lesson:** a place can be a concept, not a location. A strong candidate for a surprising late-game place.
 
+## Batch 4
+
+### 16. Warp Core Cafe (signature unreadable)
+An eye-level view into a huge sci-fi bar under a glass dome full of spaceships, packed with hundreds of characters from films and TV.
+- **The game here is recognition:** spotting characters you know.
+- **Caution:** that only works with other people's characters, which we can't use. The version for us is our own recurring cast (the goose, and characters who turn up in more than one place) so returning players get the "I know them!" moment.
+- **Plate:** lavender, cool blues, glowing tubes.
+- **Lesson:** cameos across places are a reward for exploring. Build our own.
+
+### 17. Overgrown Chicago (EvanArt)
+A real skyline (the Willis Tower) swallowed by giant plants, a beanstalk rising through the middle, chunks of building floating in the sky, jellyfish drifting over the city.
+- **Hero:** the beanstalk.
+- **Concept:** a real, recognizable place, reimagined.
+- **Lesson:** a real city twisted by one strange idea is instantly readable. Floating debris and sky creatures make the top of a map alive.
+
+### 18. Manatee festival (James Fletcher, same as 7)
+An underwater world under glass arches: a giant manatee in a sombrero sits in a hot tub at the center while a massive crowd gathers around it. A tunnel, a steam train and a river lead toward a glowing pyramid.
+- **Hero:** the absurd giant at the center. Everything points at it.
+- **Composition:** one-point perspective down a tunnel. Very strong pull to the center.
+- **Lesson:** a ridiculous centerpiece plus a crowd reacting to it. An underwater plate (teal, greens, glowing).
+
+### 19. Hillside town with a train (black and white ink, likely same artist as 3)
+Houses, shops and a greenhouse stacked up a hill, each cut open; an Inter-City train runs through a station at the bottom; sewers, a skeleton and a monster below that.
+- **Structure:** layers from sky (rooftops) to street to railway to sewer to bones.
+- **Content:** signs are jokes ("DUBIOUS DAVE'S SPAGHETTI EMPORIUM", "RATS FOR LUNCH").
+- **Lesson:** a transport line running through a place is a great moving landmark (and a moving find). One-ink plates keep showing up.
+
+### 20. Balcony facade (artist unknown)
+The face of an apartment block: a grid of balconies and windows, each one a tiny scene (a pool on a balcony, a skate ramp, someone abseiling down, a robbery, a yoga class, a pet monkey).
+- **Structure:** a grid, like the Block, but it works because each cell is small, framed by the same architecture, and seen from the front. Nothing is cut away; windows do the revealing.
+- **Plate:** dusty pink concrete, each window a different color inside.
+- **Lesson:** "Rear Window" as a place. Peeking in is the fun. A great tall, scrollable phone place. A night version (lights on and off, curtains) is a natural mechanic.
+
 ## How the batches change the plan
 
 - The Walk-Up is too close to The Block (both are square dollhouse rooms). Future places should break the square.
