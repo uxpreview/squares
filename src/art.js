@@ -253,7 +253,7 @@ export function windowR(ctx, x, z, w, h, glass = C.sky, frame = C.white) {
 // for walls v is height z, for the floor (u, v) is (x, y).
 export function paintText(ctx, plane, u, v, text, size, color = C.ink, font = 'Bagel Fat One') {
   ctx.save();
-  if (plane === 'left') ctx.transform(-1, 0.5, 0, ZK, -u, u / 2 - v * ZK);
+  if (plane === 'left') ctx.transform(1, -0.5, 0, ZK, -u, u / 2 - v * ZK);
   else if (plane === 'right') ctx.transform(1, 0.5, 0, ZK, u, u / 2 - v * ZK);
   else ctx.transform(1, 0.5, -1, 0.5, u - v, (u + v) / 2);
   const k = 40;
