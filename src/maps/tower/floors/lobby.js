@@ -7,7 +7,6 @@ import {
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, frame, clockL, note, hash,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp } from '../../../engine/actors.js';
-import { ZK } from '../../../engine/iso.js';
 
 const PI = Math.PI;
 
@@ -223,7 +222,7 @@ function balloon(ctx, x, y, z, t) {
   ctx.ellipse(X - 0.12, Y - 0.16, 0.06, 0.12, 0.5, 0, PI * 2);
   ctx.fillStyle = alpha(C.white, 0.7);
   ctx.fill();
-  if (Q.detail) label(ctx, x, y, z / 1 - 0.02, '2B', 0.24, C.white);
+  if (Q.detail) label(ctx, x, y, z - 0.02, '2B', 0.24, C.white);
 }
 
 // The flickering light: on or off at time t.
@@ -722,7 +721,7 @@ export default {
     });
 
     // ---------- the super, the ladder and the light ----------
-    const LXd = 9.8, LYd = 6.2;
+    const LXd = 12.5, LYd = 8.8;
     R.thing(LXd + 0.3, LYd + 0.75, (ctx) => {
       for (const x of [LXd - 0.3, LXd + 0.3]) {
         rod(ctx, [x, LYd - 0.7, 0], [x, LYd - 0.05, 2.6], C.coral, 0.1);
@@ -732,11 +731,11 @@ export default {
       box(ctx, LXd - 0.4, LYd - 0.25, 2.6, 0.8, 0.5, 0.12, C.coral);
     });
     // toolbox and a box of spare bulbs
-    R.thing(7.6, 8.5, (ctx) => {
-      box(ctx, 6.7, 8.0, 0, 0.9, 0.5, 0.45, C.red);
-      face(ctx, [[6.95, 8.25, 0.45], [6.95, 8.25, 0.65], [7.35, 8.25, 0.65], [7.35, 8.25, 0.45]], null, { lw: 0.05 });
-      box(ctx, 7.1, 8.8, 0, 0.5, 0.5, 0.35, C.white);
-      if (Q.detail) for (const [bx, by] of [[7.25, 8.95], [7.45, 9.1]]) disc(ctx, bx, by, 0.4, 0.09, C.butter, { lw: 0.02 });
+    R.thing(14.5, 8.4, (ctx) => {
+      box(ctx, 13.6, 7.9, 0, 0.9, 0.5, 0.45, C.red);
+      face(ctx, [[13.85, 8.15, 0.45], [13.85, 8.15, 0.65], [14.25, 8.15, 0.65], [14.25, 8.15, 0.45]], null, { lw: 0.05 });
+      box(ctx, 13.7, 8.6, 0, 0.5, 0.5, 0.35, C.white);
+      if (Q.detail) for (const [bx, by] of [[13.85, 8.75], [14.05, 8.9]]) disc(ctx, bx, by, 0.4, 0.09, C.butter, { lw: 0.02 });
     });
     // The super, the fixture and the sparks
     R.mover(() => ({ x: LXd, y: LYd }), (ctx, t) => {
@@ -776,13 +775,13 @@ export default {
           ctx.fillRect(FX + Math.cos(a) * d, FY + 0.4 + Math.sin(a) * d * 0.6 + k * k * 0.6, 0.07, 0.07);
         }, 11);
       }
-      if (Q.detail && s > 5.7 && s < 8.2) speech(ctx, LXd, LYd, 5.2, 'FIXED IT.', { size: 0.42, dx: -1.4 });
+      if (Q.detail && s > 5.7 && s < 8.2) speech(ctx, LXd, LYd, 6.3, 'FIXED IT.', { size: 0.42, dx: 1.0 });
     }, { bias: 1.3 });
     // The super's kid, holding the ladder, not really
-    R.mover(() => ({ x: 10.7, y: 7.2 }), (ctx, t) => {
+    R.mover(() => ({ x: 13.1, y: 10.0 }), (ctx, t) => {
       const s = pulse(t, 10) * 10;
-      person(ctx, 10.7, 7.2, 0, folk(91, { pose: s > 3.6 && s < 5.6 ? 'point' : 'carry', dir: 'l', scale: 0.8, top: C.mustard, bottom: C.navy, hat: 'beanie', arms: s > 3.6 && s < 5.6 ? [2.6, 0.3] : undefined }), t);
-      if (Q.detail && s > 3.8 && s < 5.6) speech(ctx, 10.7, 7.2, 2.2, 'STILL OFF!', { size: 0.4, dx: -0.9 });
+      person(ctx, 13.1, 10.0, 0, folk(91, { pose: s > 3.6 && s < 5.6 ? 'point' : 'carry', dir: 'l', scale: 0.8, top: C.mustard, bottom: C.navy, hat: 'beanie', arms: s > 3.6 && s < 5.6 ? [2.6, 0.3] : undefined }), t);
+      if (Q.detail && s > 3.8 && s < 5.6) speech(ctx, 13.1, 10.0, 2.2, 'STILL OFF!', { size: 0.4, dx: -0.9 });
     });
     // The whole lobby dims when the light gives up
     R.air((ctx, t) => {
@@ -824,18 +823,19 @@ export default {
       paint(ctx, C.sky, { lw: 0.03 });
     });
     // Somebody mopping the puddle, which is a losing battle
-    R.mover(() => ({ x: 11.4, y: 6.7 }), (ctx, t) => {
+    const MX0 = 14.0, MY0 = 4.9;
+    R.mover(() => ({ x: MX0, y: MY0 }), (ctx, t) => {
       const sw = Math.sin(t * 3);
-      const mx = 11.95 + sw * 0.45, my = 6.0 - sw * 0.3;
-      const [X, Y] = P(11.4, 6.7, 0);
+      const mx = 13.25 + sw * 0.35, my = 5.55 - sw * 0.3;
+      const [X, Y] = P(MX0, MY0, 0);
       const [MX, MY] = P(mx, my, 0);
       ctx.beginPath();
       ctx.ellipse(MX, MY, 0.35, 0.14, 0, 0, PI * 2);
       paint(ctx, C.white, { lw: 0.04, dots: C.grey, density: 0.3 });
-      person(ctx, 11.4, 6.7, 0, folk(121, { pose: 'carry', dir: 'r', style: 'short', hat: 'beanie', top: C.teal, bottom: C.ink, arms: [1.0 + sw * 0.2, 0.9 + sw * 0.2] }), t);
+      person(ctx, MX0, MY0, 0, folk(121, { pose: 'carry', dir: 'l', style: 'short', hat: 'beanie', top: C.teal, bottom: C.ink, arms: [1.0 + sw * 0.2, 0.9 + sw * 0.2] }), t);
       ctx.beginPath();
       ctx.moveTo(MX, MY - 0.05);
-      ctx.lineTo(X + 0.7 + sw * 0.1, Y - 1.35);
+      ctx.lineTo(X - 0.7 - sw * 0.1, Y - 1.35);
       ctx.strokeStyle = C.ink;
       ctx.lineWidth = 0.1;
       ctx.stroke();
@@ -843,7 +843,7 @@ export default {
       ctx.lineWidth = 0.05;
       ctx.stroke();
       const s = pulse(t, 14) * 14;
-      if (Q.detail && s > 2 && s < 5) speech(ctx, 11.4, 6.7, 2.8, 'SAME PUDDLE. EVERY DAY.', { size: 0.36, dx: 1.6 });
+      if (Q.detail && s > 2 && s < 5) speech(ctx, MX0, MY0, 2.8, 'SAME PUDDLE. EVERY DAY.', { size: 0.36, dx: 1.4 });
     });
     // wet floor sign
     R.thing(13.9, 6.6, (ctx) => {
@@ -932,10 +932,14 @@ export default {
           g.rect(-0.1, -0.45, 0.95, 0.8);
           paint(g, C.white, { lw: 0.04 });
           if (Q.detail) {
+            // the person is drawn mirrored (facing left), so un-mirror the headline
+            g.save();
+            g.scale(-1, 1);
             g.fillStyle = C.ink;
             g.font = '0.16px "Arial Black", sans-serif';
-            g.fillText('GOOSE', -0.02, -0.25);
-            g.fillText('AT LARGE', -0.02, -0.08);
+            g.fillText('GOOSE', -0.76, -0.25);
+            g.fillText('AT LARGE', -0.76, -0.08);
+            g.restore();
             g.fillStyle = C.grey;
             for (let i = 0; i < 3; i++) g.fillRect(-0.02, 0.02 + i * 0.09, 0.75, 0.04);
           }
@@ -953,7 +957,7 @@ export default {
     });
 
     // Kid on a scooter doing laps of the lobby
-    const scoot = route([[5.2, 10.0], [7.2, 13.6], [12.9, 13.9], [13.4, 8.6], [10.4, 8.9], [6.8, 9.4]], { speed: 2.6 });
+    const scoot = route([[5.2, 10.0], [7.2, 13.6], [12.9, 13.9], [14.9, 11.8], [15.0, 7.0], [10.5, 7.3], [7.2, 9.2]], { speed: 2.6 });
     R.mover(scoot, (ctx, t, p) => {
       const [X, Y] = P(p.x, p.y, 0);
       const f = p.dir === 'l' ? -1 : 1;
@@ -1029,7 +1033,7 @@ export default {
     });
 
     // Plants
-    R.thing(15.4, 10.4, (ctx, t) => plant(ctx, 15.4, 10.4, 0, t, { kind: 'palm', scale: 1.2, potColor: C.teal, leaf: C.green }), { anim: true });
+    R.thing(3.7, 15.5, (ctx, t) => plant(ctx, 3.7, 15.5, 0, t, { kind: 'palm', scale: 1.2, potColor: C.teal, leaf: C.green }), { anim: true });
     R.thing(0.6, 15.5, (ctx, t) => plant(ctx, 0.6, 15.5, 0, t, { kind: 'spiky', scale: 1.2, potColor: C.mustard, leaf: C.leaf }), { anim: true });
   },
 };

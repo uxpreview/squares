@@ -57,16 +57,18 @@ export function backdrop(ctx, t) {
 
   // Print marks and a caption, like the block's sheet.
   const top = -TOP * ZK - 6 * ZK - 5;
+  // Centered under the pavement so it fits a narrow phone too.
   reg(ctx, 0, top);
-  reg(ctx, 0, S + 8);
+  reg(ctx, 0, S + 12.5);
   reg(ctx, -S - 12, (top + S) / 2);
   reg(ctx, S + 12, (top + S) / 2);
   const k = 40;
   ctx.save();
-  ctx.translate(-S - 10, S + 5.6);
+  ctx.translate(0, S + 9.2);
   ctx.scale(1 / k, 1 / k);
   ctx.font = `${0.9 * k}px "Rethink Sans", system-ui, sans-serif`;
   ctx.fillStyle = alpha(C.ink, 0.55);
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('THE WALK-UP  ·  EXPLODED VIEW  ·  4 FLOORS, NO LIFT', 0, 0);
   ctx.restore();

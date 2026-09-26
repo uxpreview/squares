@@ -27,7 +27,7 @@ export default {
   overview: (portrait) => {
     const top = -(FLOORS.length - 1) * FLOOR * ZK - 6 * ZK - 8;
     const pad = portrait ? 3 : 14;
-    return [-S - 4 - pad, S + 4 + pad, top, S + SLAB * ZK + 7];
+    return [-S - 4 - pad, S + 4 + pad, top, S + SLAB * ZK + 11];
   },
   backdrop,
   sky,
