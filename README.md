@@ -104,6 +104,7 @@ docs/
 | How the lift (the floor buttons) looks | "The lift" in `styles.css`; a place's own colors (the Manor's brass) are `lift` in its `map.js` |
 | What a first visit is invited to do, and where the card points | `words.invite` and `words.hint` (what it says) and `invite` (which room, where the ring pings, where the card pins) in the place's `map.js`; the card's look is "The invitation" in `styles.css` |
 | How often rooms honk on the overview | `CALL_EVERY` in `src/game/play.js` (the bubble is `callBubble` next to it) |
+| How big the pen circles around found things are | `drawMarks` in `src/game/play.js`: 16px in a room, shrinking with the picture when you zoom out, never under 5px |
 | The lift's ding | `ding` in `src/game/audio.js` |
 | Who's where at the Manor, and when | `src/maps/manor/evening.js` (doors and stairs are in `plan.js`) |
 | When the Manor's lights go out, how often lightning strikes | `lightsOut` and `storm` in `src/maps/manor/style.js` |

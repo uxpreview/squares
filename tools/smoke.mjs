@@ -154,6 +154,19 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 600);
   check('old #room links still work', (await S(page, () => location.hash)) === '#/block/laundromat' && await page.isVisible('#roombar'));
 
+  // The room bar rides just above the list, never on it, however the list got there.
+  const barGap = () => S(page, () => {
+    const bar = document.getElementById('roombar').getBoundingClientRect(), t = document.getElementById('tray');
+    return Math.round((t.dataset.state === 'hidden' ? document.getElementById('tray-pill') : t).getBoundingClientRect().top - bar.bottom);
+  });
+  await page.click('#tray-hide');
+  await wait(page, 700);
+  const tucked = await barGap();
+  await page.click('#tray-pill');
+  await wait(page, 700);
+  const shown = await barGap();
+  check('the room bar sits just above the list, tucked away or not', tucked >= 6 && shown >= 6, `tucked ${tucked}px, shown ${shown}px`);
+
   await page.goto(base + '#/tower/flat2');
   await ready(page);
   await wait(page, 1800);

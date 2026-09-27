@@ -620,14 +620,15 @@ button.lift-floor[aria-current]:hover .lift-btn {
   button.lift-floor { min-height: 40px; }
 }
 
-/* Measures env(safe-area-inset-*) for play.js, which frames around them. */
+/* For play.js: the phone's home bar (its height) and the bottom of the box
+   fixed things are placed in (its bottom edge). No width, so it has no area
+   for Safari to color its bars after. */
 .safe-probe {
   position: fixed;
-  top: 0;
+  bottom: 0;
   left: 0;
   width: 0;
   height: 0;
-  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   visibility: hidden;
   pointer-events: none;

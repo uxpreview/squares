@@ -70,7 +70,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let safeFor = '', safeNow = 0;
   function safeBottom() {
     const key = view.vw + 'x' + view.vh;
-    if (key !== safeFor) { safeFor = key; safeNow = parseFloat(getComputedStyle(ui.safe).paddingBottom) || 0; }
+    if (key !== safeFor) { safeFor = key; safeNow = ui.safe.offsetHeight; }
     return safeNow;
   }
 
@@ -128,6 +128,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     return insetsNow;
   }
   camera.setBounds(() => (active && world ? { box: mapBox(), insets: edgeInsets() } : null));
+
+  // About how close a room is framed on this screen (no measuring, so it's
+  // cheap enough for every frame): what the pen marks are sized against.
+  const roomZ = () => camera.fit(world.zoneBox(world.zones[world.order[0]]), { top: 72, bottom: 190, left: 16, right: 16 }, 0.5).z;
 
   // Framings land inside the map's edges, so the camera never has to spring back.
   const overviewView = () => camera.clamp(camera.fit(world.overviewBox(view.vw < view.vh, world.storeys[storey]?.id, view.vh < 500), insets()));
@@ -380,11 +384,23 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function layoutVars() {
     const w = mode === 'zone' && tray.dock() === 'right' ? tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').width : 0;
     document.body.style.setProperty('--tray-w', Math.round(w) + 'px');
-    // On a phone the room bar sits on the list as it rests (peek or tucked
-    // away), and steps out of the way while the whole list is open.
-    const rest = mode === 'zone' && tray.dock() === 'bottom' ? view.vh - tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').top : 0;
-    document.body.style.setProperty('--tray-rest', Math.round(rest) + 'px');
+    keepRoombar();
     document.body.dataset.tray = tray.state;
+  }
+
+  // On a phone the room bar sits on the list as it rests (peek or tucked
+  // away), 10px above it, and steps out of the way while the whole list is
+  // open. --tray-rest is how far the list's top is from the bottom of the box
+  // fixed things are placed in (the #safe probe marks that bottom; iOS Safari
+  // doesn't always agree with innerHeight about it). tick() checks it every
+  // frame, so nothing settling late can leave the two overlapping.
+  let restNow = null;
+  function keepRoombar() {
+    const on = mode === 'zone' && tray.dock() === 'bottom';
+    const rest = on ? ui.safe.offsetTop + ui.safe.offsetHeight - tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').top : 0;
+    if (rest === restNow) return;
+    restNow = rest;
+    document.body.style.setProperty('--tray-rest', rest + 'px');
   }
 
   function renderTally() {
@@ -620,6 +636,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let lastTick = null;
   function tick(t) {
     placeInvite();
+    // (The open list is measured as it would rest; that's a style change, so
+    // it's left to layoutVars rather than done every frame.)
+    if (active && mode === 'zone' && tray.state !== 'open') keepRoombar();
     call(performance.now());
     const cues = active && world && world.map.sound && world.map.sound.cues;
     if (!cues) { lastTick = null; return; }
@@ -639,7 +658,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // with ctx at the zone's corner.
   function drawMarks(ctx, zone, t, now) {
     if (!active) return;
-    const lw = 2.4 / cam.z;
+    // The pen marks are a readable size in a room. Zoomed out past a room's
+    // framing they shrink with the picture, like ink on the page, so the whole
+    // map shows small circles rather than loops the size of a table.
+    const out = Math.min(1, cam.z / roomZ());
+    const lw = Math.max(1.3, 2.4 * out) / cam.z;
     if (debug.finds) {
       // QA overlay: a dashed ring the size of each hidden find's tap area.
       ctx.save();
@@ -658,7 +681,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     for (const f of zone.finds) {
       if (!isFound(zone, f)) continue;
       const [x, y, z] = findPos(f, t);
-      const r = Math.max(f.r * 1.05, 16 / cam.z);
+      const r = Math.max(f.r * 1.05, (16 * out) / cam.z, 5 / cam.z);
       const at = foundAt.get(world.id + '/' + keyOf(zone, f));
       const k = at && !reduceMotion ? Math.min(1, (now - at) / 520) : 1;
       penLoop(ctx, isoX(x, y), isoY(x, y, z), r, lw, f.id.length, C.coral, 1 - Math.pow(1 - k, 3));
