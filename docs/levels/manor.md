@@ -214,6 +214,9 @@ Gate 3, third look (the owner, on an iPhone):
 35. **On a phone, the room bar sits on the find list**, where thumbs are: "‹ Grand Hall ›" rides just above the list as it rests, steps out of the way while the whole list is open, and the top keeps one row. The story card drops to just under that row.
 36. **The hint line shows until your first find in a place**, then steps out: it's how to play, not something to read every time. With the floor switch gone the house is framed a little larger on an upright phone.
 
-Open, for the owner:
-- **To confirm on the iPhone:** the bars on the overview (29), the overview no longer stretched (32), and the new floor tags and room bar.
-- **From the playtest:** the mystery card says "Not on the guest list", while the dining table has a place set for G. Goose (a joke, or a contradiction?); and the monocle in the reveal pays off only if you found the parcel.
+37. **"Not on the guest list" stays, as a joke** (the owner): the goose isn't on the guest list, and has set itself a place at dinner anyway.
+
+Open, for next session:
+- **The floor tags (33): the owner isn't sure yet.** Revisit how you change floors, with the tags as the starting point. Other ideas from this session: a small lift panel of three brass buttons on the side, or the staircase in the Grand Hall and the cellar steps in the kitchen doubling as the way up and down.
+- **To confirm on the iPhone:** the bars on the overview (29), the overview no longer stretched (32), and the room bar on the find list (35).
+- The monocle in the reveal pays off only if you found the parcel (from the playtest).
