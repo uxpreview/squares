@@ -882,19 +882,34 @@ function pillBottle(ctx, x, y, z, o = {}) {
   ctx.fillRect(-0.24, -0.09, 0.36, 0.035);
   ctx.beginPath();
   if (bitten) {
-    // The cap, bitten: a zigzag of beak marks where its end should be.
-    ctx.moveTo(0.16, -0.1); ctx.lineTo(0.3, -0.1);
-    ctx.lineTo(0.26, -0.05); ctx.lineTo(0.31, -0.01); ctx.lineTo(0.25, 0.03); ctx.lineTo(0.3, 0.07);
-    ctx.lineTo(0.3, 0.1); ctx.lineTo(0.16, 0.1);
+    // The cap, bitten: a deep beak-shaped notch out of its end, big enough
+    // to read once you zoom in on the table (the playtester couldn't find
+    // the fine zigzag this used to be).
+    ctx.moveTo(0.16, -0.1); ctx.lineTo(0.33, -0.1);
+    ctx.lineTo(0.2, -0.02); ctx.lineTo(0.33, 0.04);
+    ctx.lineTo(0.33, 0.1); ctx.lineTo(0.16, 0.1);
     ctx.closePath();
   } else {
     ctx.roundRect(0.16, -0.1, 0.14, 0.2, 0.02);
   }
   paint(ctx, C.white, { lw: 0.03 });
+  if (bitten) {
+    // Crumbs of cap, and a little grey feather caught in the bite.
+    for (const [cx, cy, r] of [[0.4, -0.13, 0.03], [0.45, -0.07, 0.022]]) {
+      ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx, cy - r); ctx.lineTo(cx + r, cy + r * 0.6); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.015 });
+    }
+    ctx.beginPath();
+    ctx.moveTo(0.22, -0.02);
+    ctx.quadraticCurveTo(0.36, -0.2, 0.5, -0.3);
+    ctx.quadraticCurveTo(0.42, -0.12, 0.22, -0.02);
+    paint(ctx, mix(INK.bone, C.ink, 0.3), { lw: 0.015 });
+  }
   ctx.beginPath();
   if (bitten) {
-    // Little dents across it.
-    ctx.moveTo(0.19, -0.06); ctx.lineTo(0.22, -0.02); ctx.lineTo(0.19, 0.02); ctx.lineTo(0.22, 0.06);
+    // Beak dents along the edges of the bite.
+    ctx.moveTo(0.28, -0.1); ctx.lineTo(0.27, -0.06);
+    ctx.moveTo(0.28, 0.07); ctx.lineTo(0.27, 0.03);
   } else {
     // A plain cap has straight ribs.
     for (const u of [0.2, 0.24]) { ctx.moveTo(u, -0.08); ctx.lineTo(u, 0.08); }

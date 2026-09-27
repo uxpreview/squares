@@ -1153,9 +1153,19 @@ function diary(ctx) {
     g.moveTo(0.44, 0.33); g.quadraticCurveTo(0.47, 0.42, 0.42, 0.5); g.lineTo(0.38, 0.49); g.quadraticCurveTo(0.42, 0.42, 0.4, 0.33);
     g.closePath();
     paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.014 });
+    // and the little brass lock every diary has, sprung open: the one
+    // thing on the table that says "diary" from across the room
     g.beginPath();
-    g.rect(0.375, 0.47, 0.055, 0.04);
-    g.strokeStyle = BRASS; g.lineWidth = 0.016; g.stroke();
+    g.arc(0.39, 0.51, 0.05, Math.PI, 0);
+    g.strokeStyle = C.ink; g.lineWidth = 0.034; g.stroke();
+    g.strokeStyle = BRASS; g.lineWidth = 0.02; g.stroke();
+    g.beginPath();
+    g.roundRect(0.32, 0.5, 0.14, 0.11, 0.018);
+    paint(g, BRASS, { lw: 0.016 });
+    g.beginPath();
+    g.arc(0.39, 0.54, 0.014, 0, Math.PI * 2);
+    g.moveTo(0.385, 0.545); g.lineTo(0.385, 0.58); g.lineTo(0.395, 0.58); g.lineTo(0.395, 0.545);
+    g.fillStyle = C.ink; g.fill();
     // the covers
     g.beginPath();
     g.roundRect(-0.025, -0.025, 0.55, 0.39, 0.03);
@@ -1173,9 +1183,10 @@ function diary(ctx) {
     g.moveTo(0.245, 0.33); g.quadraticCurveTo(0.22, 0.42, 0.26, 0.47); g.lineTo(0.285, 0.46); g.quadraticCurveTo(0.25, 0.41, 0.262, 0.33);
     g.closePath();
     g.fillStyle = INK.candleGold; g.fill();
-    if (!Q.detail) return;
-    // the left page: his wobbly hand, and a goose in the margin, looking at you
+    // the left page: his wobbly hand (at any zoom: the other books are print),
     for (let i = 0; i < 6; i++) scribble(g, 0.03, 0.05 + i * 0.045, 0.19 - (i % 3) * 0.03, 11 + i, alpha(C.ink, 0.7), 0.009);
+    if (!Q.detail) return;
+    // and a goose in the margin, looking at you
     g.save();
     g.translate(0.19, 0.28);
     g.scale(0.6, 0.6);

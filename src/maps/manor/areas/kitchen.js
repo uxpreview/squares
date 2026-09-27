@@ -31,7 +31,7 @@ const IRON_TOP = mix(IRON, INK.bone, 0.2);
 const COPPER = mix(INK.oxblood, INK.candleGold, 0.5);
 const COPPER_HI = mix(INK.candleGold, INK.bone, 0.35);
 const COPPER_LO = mix(INK.oxblood, INK.deepPlum, 0.3);
-const SAUSAGE = mix(C.pink, INK.oxblood, 0.25);
+const SAUSAGE = mix(mix(C.pink, INK.oxblood, 0.25), C.brown, 0.35); // browned, so it isn't a tongue
 const SAUSAGE_HI = mix(C.pink, INK.bone, 0.5);
 const FLOUR = C.white;
 const CHINA = mix(INK.bone, C.white, 0.55);
@@ -275,6 +275,8 @@ function drawDog(ctx, X, Y, f, d, t, flat) {
   };
   const bite = (mx, my, len, rot = 0) => {
     if (!(len > 0.02)) return;
+    // Long enough to stick out both sides of the jaws: shorter, it read as a tongue.
+    len *= 1.6;
     ctx.save();
     ctx.translate(mx, my);
     ctx.rotate(rot);
