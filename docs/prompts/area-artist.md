@@ -6,6 +6,8 @@ How the lead runs it (learned on the Manor):
 - **Launch each artist in its own git worktree** (the Agent tool's `isolation: "worktree"`). One artist's half-finished file would otherwise break the whole level for everyone else's screenshots. Commit the prep first (style sheet, cast, hooks); the worktree starts from it. When an artist finishes, copy just its area file back into the main copy.
 - **Save the filled-in prompt to a file and point the agent at it**, rather than pasting it into the call.
 - **Give exact positions and times** for everyone who passes through the area (a scratch script can sample the level's walkers), and every find's role in the story and what it must show.
+- **Their report is their final message:** agents can't write report files. Ask for it to be short and specific (what changed, new find positions, worries).
+- **While several run, QA's taps and timings are noisy** (every artist runs Chrome at once). Rerun the full QA once they're all back.
 - **Decide the room colors in the style sheet before launching** (the Manor's `ROOM` and `MAT`), so parallel artists start from one palette instead of drifting apart.
 
 ---
