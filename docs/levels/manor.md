@@ -1,7 +1,7 @@
 # Gooseworth Manor
 
-> Status: **Preview, at gate 3** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] · greybox [x] · preview [ ]
+> Status: **Shipped** (PR #9) · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] · greybox [x] · preview [x] (the owner asked to add it to the picker)
 
 ## In one line
 Lord Gooseworth's 80th birthday dinner, a stormy night, a body in the library, and six guests who each had a very good reason.
@@ -224,7 +224,10 @@ The UI and controls review (the owner asked for the first screen to feel invitin
 42. **The goose never honks from its room here.** On the Block, rooms that still hide a goose honk now and then on the whole map; in a whodunit the goose's room is a secret.
 43. **Finds are small:** a player who sits in their first room for 12 seconds without finding anything or zooming in is told, once, that they can pinch (or scroll) to look closer.
 
-Open, for next session:
-- **The lift (38) and the invitation (39): the owner's call.** If the lift isn't it, the other idea on the table is the grand staircase and the cellar steps doubling as the way up and down (on the picture, but hard to see and tap on a phone).
-- **To confirm on the iPhone:** the bars on the overview (29), the overview no longer stretched (32), and the room bar on the find list (35).
+The owner's look on an iPhone, then shipping:
+44. **Two bugs from the iPhone, fixed:** the room bar sat 8px into the find list after you tucked it away or brought it back (measured mid-slide), and found things had table-sized loops on the whole house (a minimum meant for rooms; now they shrink with the picture when you zoom out). The same screenshots confirm the night reaches Safari's bars (29), the overview isn't stretched (the hall's round rug is round, 32), and the room bar rides on the list (35).
+45. **In the picker** (the owner: "Are we ready to add Manor to the selection screen?"): `hidden` is off in `src/maps/index.js`, and it's listed after the Block, the gentler start. Its card shows the night and "Case open · 0/17 evidence". The title screen drifts your last place behind it, so after the Manor it's printed on the night: its words in the light ink, its big button in cream, and the page goes night from the save before the map loads (`index.html`), rather than starting on paper and flipping.
+
+Open:
+- If the lift isn't it after all, the other idea on the table is the grand staircase and the cellar steps doubling as the way up and down (on the picture, but hard to see and tap on a phone).
 - The monocle in the reveal pays off only if you found the parcel (from the playtest).

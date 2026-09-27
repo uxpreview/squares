@@ -7,7 +7,7 @@ A hidden-object picture book you can walk through. Tiny animated places, drawn e
 - **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it. A first visit gets a card pinned to a room saying where to start; on the whole map, rooms that still hide their goose honk now and then. A house changes floors from its lift, in the corner.
 - **Whodunits** (Gooseworth Manor): the finds are **evidence** and **curiosities**, and the goal is solving the case. **Case** opens the case file: every suspect, what points at them, their alibi, and **Accuse**. Accuse anyone, any time; the wrong one gives you their alibi (and a joke), and the culprit stays a mystery until you've found every clue against them.
 
-Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made are hidden from the picker but open from a link: `/#/manor`.
+Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made (or retired, like the Walk-Up) are hidden from the picker but open from a link: `/#/tower`.
 
 ## Run it
 

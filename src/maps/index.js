@@ -33,7 +33,6 @@ export default [
     name: 'Gooseworth Manor',
     tagline: 'A stormy night, a body in the trifle, six suspects and a goose.',
     ink: '#8E2F3A',
-    hidden: true, // unfinished: out of the picker until it ships (open it at #/manor)
     load: () => import('./manor/map.js'),
   },
 ];

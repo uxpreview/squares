@@ -72,8 +72,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const listed = await S(page, async () => (await import('/src/maps/index.js')).default.filter((m) => !m.hidden).length);
   const cards = await page.$$('.place-card');
   check('picker lists every place (and no hidden ones)', cards.length === listed, `${cards.length} cards, ${listed} places`);
-  await wait(page, 800);
-  check('picker draws map pictures', (await page.$$('.place-pic canvas')).length === listed);
+  // (A place loads the first time its card needs a picture: the Manor takes a moment.)
+  const drawn = await page.waitForFunction((n) => document.querySelectorAll('.place-pic canvas').length === n, listed, { timeout: 8000 }).then(() => true, () => false);
+  check('picker draws map pictures', drawn, `${(await page.$$('.place-pic canvas')).length} of ${listed}`);
 
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
@@ -383,6 +384,17 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 800);
   check('a solved case stays solved', (await page.textContent('#tally-case-count')) === 'Solved' &&
     (await S(page, async () => (await import('/src/maps/manor/style.js')).verdict.solved)) === 0);
+
+  // The Manor was the last place played: the title drifts it behind, so the
+  // page is printed on its night from the start, and the title's words in the light ink.
+  await page.goto(base + '#/');
+  await page.reload();
+  const firstPlate = await S(page, () => document.documentElement.dataset.plate);
+  await ready(page);
+  await wait(page, 600);
+  const title = await S(page, () => ({ map: window.__squares.world.id, ink: getComputedStyle(document.getElementById('title-tagline')).color }));
+  check('after the Manor, the title is printed on its night, in the light ink', firstPlate === 'night' && title.map === 'manor' && title.ink === 'rgb(251, 246, 234)',
+    JSON.stringify({ firstPlate, ...title }));
   await page.close();
 }
 

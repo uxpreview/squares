@@ -916,8 +916,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     storey = world.defaultStorey;
     nextCall = 0;
     lastCaller = null;
-    // A place printed on a dark plate (a night) needs its loose text on chips.
-    document.body.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
+    // A place printed on a dark plate (a night) prints its loose text, and the
+    // title's, in the light ink. (On <html>, so index.html can set it first.)
+    document.documentElement.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
     // The page and the browser's bars take the place's paper, so a night has
     // no strip of daylight at the top of a phone.
     const paper = world.map.plate && world.map.plate.paper;

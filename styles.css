@@ -85,7 +85,7 @@ html, body {
 .edge-top { top: 0; }
 .edge-bottom { bottom: 0; }
 @supports (-webkit-touch-callout: none) {
-  body[data-plate="night"] .edge { display: block; }
+  :root[data-plate="night"] .edge { display: block; }
 }
 
 .sr-only {
@@ -257,6 +257,16 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
 body[data-ready] .title-tagline { animation: fade-up 0.6s 0.35s cubic-bezier(.2, .8, .2, 1) both; }
 body[data-ready] .title-actions { animation: fade-up 0.6s 0.55s cubic-bezier(.2, .8, .2, 1) both; }
 body[data-ready] .title-foot { animation: fade-up 0.6s 0.8s cubic-bezier(.2, .8, .2, 1) both; }
+
+/* The title over a place printed on the night (the Manor, when it was the
+   last place you played): its words in the light ink, and the big button
+   printed in it too, since an ink button would vanish into the night. */
+:root[data-plate="night"] .title-tagline,
+:root[data-plate="night"] .title-progress,
+:root[data-plate="night"] .brand-back { color: var(--card); text-shadow: 0 1px 0 var(--ink); }
+:root[data-plate="night"] .title .big-btn { background: var(--card); color: var(--ink); }
+:root[data-plate="night"] .title .big-btn:hover { background: #fff; }
+:root[data-plate="night"] .title .big-btn-sub { color: var(--coral); }
 
 @media (min-width: 900px) and (min-aspect-ratio: 1/1) {
   .title {
@@ -460,7 +470,7 @@ button.tally-case:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var
 
 /* A place printed on a dark plate (a night): its loose text is printed in the
    light ink, straight onto the night. */
-body[data-plate="night"] .place-tagline { color: var(--card); text-shadow: 0 1px 0 var(--ink); }
+:root[data-plate="night"] .place-tagline { color: var(--card); text-shadow: 0 1px 0 var(--ink); }
 
 /* ---------- The invitation (a first visit) ---------- */
 /* A card pinned to a room until you step into one: where to start, and what a
