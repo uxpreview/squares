@@ -216,7 +216,15 @@ Gate 3, third look (the owner, on an iPhone):
 
 37. **"Not on the guest list" stays, as a joke** (the owner): the goose isn't on the guest list, and has set itself a place at dinner anyway.
 
+The UI and controls review (the owner asked for the first screen to feel inviting, and a better way to change floors):
+38. **Floors change from a lift**, replacing the tags (33). A brass plate in the bottom right corner, in thumb reach, with every floor on it, top floor at the top (Upstairs, Ground, Cellar). The floor you're on has its button lit, a coral lamp behind it; one press goes to any floor, with one ding going up and two going down. Why not the tags: they had no home (the Upstairs tag sat on the tower, the others in the lawn or the sky), they never said which floor you were on, and they only knew the floors next door. Why not the old switch: it read as a settings panel; the lift is an object from the house. It stays put, so your thumb learns where it is, and it steps out inside a room as before. Tapping a faded floor above, and PageUp and PageDown, still work. Its colors are the Manor's (`lift` in `map.js`: the plate in candle gold, the engraving in storm navy).
+39. **A first visit starts with the body.** Until you step into a room, a card pinned over the library says "Start with the body. In the library. Tap to step inside.", with a ring pinging on the table where he lies. It replaces the hint line at the bottom of the screen, and hides while the library is lifted away (the cellar). Tapping it goes in.
+40. **The Case button explains itself when it matters.** The old hint ("Find the evidence, then tap Case to accuse") is gone from the first screen; your first piece of evidence says "Evidence! Tap Case to see who it points at." and wiggles the button.
+41. **The tagline is printed in the light ink, straight onto the night**, rather than on a cream chip.
+42. **The goose never honks from its room here.** On the Block, rooms that still hide a goose honk now and then on the whole map; in a whodunit the goose's room is a secret.
+43. **Finds are small:** a player who sits in their first room for 12 seconds without finding anything or zooming in is told, once, that they can pinch (or scroll) to look closer.
+
 Open, for next session:
-- **The floor tags (33): the owner isn't sure yet.** Revisit how you change floors, with the tags as the starting point. Other ideas from this session: a small lift panel of three brass buttons on the side, or the staircase in the Grand Hall and the cellar steps in the kitchen doubling as the way up and down.
+- **The lift (38) and the invitation (39): the owner's call.** If the lift isn't it, the other idea on the table is the grand staircase and the cellar steps doubling as the way up and down (on the picture, but hard to see and tap on a phone).
 - **To confirm on the iPhone:** the bars on the overview (29), the overview no longer stretched (32), and the room bar on the find list (35).
 - The monocle in the reveal pays off only if you found the parcel (from the playtest).
