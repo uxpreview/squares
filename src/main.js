@@ -177,10 +177,25 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-window.addEventListener('resize', () => {
+function resized() {
   camera.measure();
   play.resize();
-});
+}
+window.addEventListener('resize', resized);
+// iOS Safari can settle its toolbars after the first measure without a resize
+// event, and the picture came out stretched (seen on an iPhone). Watch the
+// canvas and the visible viewport too, and re-measure once a frame at most.
+let resizing = 0;
+const settle = () => {
+  if (resizing) return;
+  resizing = requestAnimationFrame(() => {
+    resizing = 0;
+    const v = camera.view, r = canvas.getBoundingClientRect();
+    if (v.vw !== window.innerWidth || v.vh !== window.innerHeight || v.box.w !== r.width || v.box.h !== r.height || v.box.y !== r.top) resized();
+  });
+};
+new ResizeObserver(settle).observe(canvas);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', settle);
 
 // ---------- Boot ----------
 async function boot() {
