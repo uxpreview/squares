@@ -1704,6 +1704,9 @@ export default {
     // A candle stuck in an old bottle, on the newel post.
     R.thing(STEPS.x + STEPS.w, STEPS.y + 0.2, (ctx) => bottle(ctx, STEPS.x + STEPS.w - 0.06, STEPS.y + 0.1, 1.5, GLASS[1], { s: 0.8 }), { bias: 0 });
     candleLight(STEPS.x + STEPS.w - 0.06, STEPS.y + 0.1, 1.9, 73, { h: 0.18, r: 1.6 });
+    // A stub on the tasting barrel, so his papers on the floor beside it can be
+    // read when the lights go (two playtesters lost the letter in the dark).
+    candleLight(9.1, 5.85, 0.86, 74, { h: 0.14, r: 2.2 });
 
     // ---------- In front of the right-hand rack (art direction pass) ----------
     // Demijohns of something homemade in wicker jackets, a tasting barrel with

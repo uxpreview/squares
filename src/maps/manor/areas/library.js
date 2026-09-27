@@ -1335,8 +1335,8 @@ function wineGlass(ctx, x, y, z, o = {}) {
   if (lip) {
     // Her oxblood, a kiss on the rim.
     ctx.beginPath();
-    ctx.ellipse(0.1, -0.53, 0.07, 0.035, -0.3, 0, Math.PI * 2);
-    ctx.ellipse(0.11, -0.49, 0.06, 0.03, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(0.1, -0.54, 0.1, 0.05, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(0.11, -0.48, 0.09, 0.045, -0.3, 0, Math.PI * 2);
     ctx.fillStyle = INK.oxblood;
     ctx.fill();
   }
@@ -2035,8 +2035,6 @@ export default {
     // More glasses from the toast, put down wherever: by an armchair, on a
     // pile of books, halfway up the ladder (none of them hers).
     R.thing(3.75, 8.8, (ctx) => wineGlass(ctx, 3.75, 8.8, 0, { fill: 0.3 }));
-    // And one more of his pill bottles, dropped under the table's corner.
-    R.thing(6.2, 9.7, (ctx) => pillBottle(ctx, 6.2, 9.7, 0.09, { rot: 0.5 }));
     lamp(R, 14.4, 3.0, { h: 2.7 });
     candle(R, 8.34, 7.16, TABLE.h + 0.643, 11);
     candle(R, 8.55, 6.95, TABLE.h + 0.893, 12);
