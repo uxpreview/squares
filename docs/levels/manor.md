@@ -1,7 +1,7 @@
 # Gooseworth Manor
 
-> Status: **Greybox, at gate 2** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] · greybox [ ] · preview [ ]
+> Status: **Preview, at gate 3** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] · greybox [x] · preview [ ]
 
 ## In one line
 Lord Gooseworth's 80th birthday dinner, a stormy night, a body in the library, and six guests who each had a very good reason.
@@ -92,7 +92,7 @@ Dark comedy: a body in a trifle, taxidermy, a ghost, poison. No gore; death is p
 - [x] **Walls down:** inside walls cut low in the overview, full height inside a room. *(Session 2: `R.walls`, `cutaway.walls`.)*
 - [x] **Storeys:** show one floor at a time with a floor switch; the others fade. *(Session 2: `storeys` in the map, and a floor switch.)*
 - [x] **Door handoffs:** a shared timeline for the evening, so a guest leaving one room appears in the next. *(Session 2: `walkers`, `schedule()`, doors in `plan.js`.)*
-- [ ] **Evidence and accusation:** finds can be grouped (evidence, curiosities); a place's goal can be "solve the case"; an accusation screen with suspect portraits; the reveal. *(Session 3.)*
+- [x] **Evidence and accusation:** finds can be grouped (evidence, curiosities); a place's goal can be "solve the case"; an accusation screen with suspect portraits; the reveal. *(Session 3: `game/case.js`, `ui/casefile.js`, this level's `case.js`.)*
 - [x] **Weather:** rain and lightning as a place-level effect. *(Session 2: `engine/weather.js`.)*
 - [x] **Level pipeline tools:** scaffold, style sheet, QA script, contact sheet, prompt templates (see PROCESS.md). *(Session 2.)*
 
@@ -141,7 +141,17 @@ Doors: hall to billiard room, dining room, conservatory and the front door; libr
 | Cellar | Jenkins's resignation letter, A poster about a missing goose |
 | The Grounds | A soaked parcel for G. Goose, The gardener's compass |
 
-Not in the greybox yet (session 3): the art, the evidence and curiosities groups, the accusation and reveal, lightning showing the past, the Lord's ghost, thunder and the sound bed.
+All of that shipped in session 3 (below).
+
+## Session 3: the art and the case
+
+**How it plays.** Every find the case file names is **evidence** (17, marked with a magnifying glass); the rest are **curiosities** (9), plus the goose by the coats in the hall. The **Case** button counts evidence and opens the case file: seven portrait cards (the six suspects and "Someone else?"). Tap one for their motive, what points at them and their alibi, and Accuse. A wrong accusation plays as a conversation with Inspector Pidge (the alibi, and a joke) and stamps them Cleared; finding their alibi clears them too. "Someone else?" is a goose-shaped shadow until all six clues against the goose are found (Library 2, Kitchen 1, Taxidermy Room 2, Master Bedroom 1); naming it before then gets "I can't arrest a question mark." Naming the goose: Pidge's summing up, GUILTY, a flash of lightning, and the camera cuts to dinner, where the goose sits in the Lord's chair wearing the monocle from the Courier's parcel. Then "Case closed".
+
+**The mechanic.** Every lightning flash shows dark shapes of where everyone stood at midnight (88 s), each in the room they were in, and a goose-shaped one by the body in the library.
+
+**Sound.** Rain all night; thunder after each strike (sooner and louder for the big ones); a distant organ at 57 s; the lights' clunk at 82; the grandfather clock striking midnight; a stamp and a sting for the verdict.
+
+**The art.** Eleven rooms and the outside, drawn by parallel agents, then one art direction pass (see "Decisions" 11 to 20). Everything draws from `ROOM` and `MAT` in the style sheet.
 
 ## Decisions
 Brief approved by the owner. The three open questions were settled with the lead's recommendations as defaults (the owner can still change them at the greybox gate):
@@ -156,4 +166,18 @@ Greybox choices (session 2), for the owner to confirm or change at gate 2:
 7. **The cellar is always visible** in the cut through the ground, as well as from the floor switch.
 8. **Guest Rooms** holds the Brigadier's and Dr. Crane's rooms and the corridor; Rupert's half-packed silver is in the corridor, not in a room of his own.
 9. **Outdoors, the house stays whole:** stepping into the grounds lifts nothing, so the upstairs shows over the front wall.
-10. **Tagline:** "A stormy night, a body in the trifle, six suspects and a goose." 
+10. **Tagline:** "A stormy night, a body in the trifle, six suspects and a goose."
+
+Owner approved the greybox (gate 2) at the start of session 3.
+
+Session 3 choices, for the owner to confirm or change at gate 3:
+11. **Accuse any time, but the culprit needs the evidence.** Wrong accusations are free and play the alibi; the goose stays "Someone else?" until all six clues against it are found. That keeps "accuse any time" and "evidence needed" both true.
+12. **Evidence is whatever the case file names**; everything else is a curiosity. The goose find is separate and doesn't count toward solving.
+13. **The reveal happens at dinner**: the clock jumps back to 9 s under a flash of lightning so the whole table is there to see the goose in the Lord's chair.
+14. **A closed circle:** no extra people in the house beyond the brief's cast. Rooms get their life from creatures, stuffed animals, portraits, weather and light.
+15. **Name tags over the cast** stay (small, only when zoomed in): in a whodunit, knowing who's who matters. Easy to turn off (`readable` in `evening.js`).
+16. **The conservatory catches sheet lightning** the rest of the house doesn't, so Philippa and the gardener change pose every 5 to 8 seconds, not just on the big strikes.
+17. **Mrs. Hatchett turns round every 6 seconds**, and the dog only steals when her back is turned.
+18. **Repeats cut by the art director:** one stag head, four cats (none alike), one tiger rug (the taxidermy room's), one set of moving portrait eyes (the hall's). The house still has three portraits of the Lord (hall, bedroom, library), each with a different joke, and party hats and "80" everywhere, since it's his birthday.
+19. **The goose's trail** of floury webbed prints runs from the kitchen flour, through the dining room, to where it stood by the body.
+20. **The goose stays in the Grand Hall** (by the coats) rather than roaming the house; a find still belongs to one area (ROADMAP E10). 

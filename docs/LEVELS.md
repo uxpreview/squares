@@ -13,7 +13,7 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 ## From the owner's list
 
 ### Death at Gooseworth Manor (murder mystery)
-**Status: greybox, at the owner's gate 2. Full brief in [levels/manor.md](levels/manor.md).**
+**Status: drawn and playtested, at the owner's gate 3 (preview). Full brief in [levels/manor.md](levels/manor.md).**
 - **Spin:** a dinner party in a cutaway country house on a stormy night. The host is dead in the library, every guest has a motive, and the finds are **evidence** (the poison bottle, the torn will, the muddy boots). Find it all and the game names the killer.
 - **Alive:** guests drift from room to room on a loop, candles gutter, lightning flashes light up rooms for a second (and shows who was where), secret passages behind the bookcases.
 - **Dark humor:** the body keeps getting moved by guests who each think they did it. The butler is already packing.
