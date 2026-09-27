@@ -492,13 +492,14 @@ button.storey-btn[aria-pressed="true"] { background: var(--ink); color: var(--ca
   button.storey-btn { min-height: 40px; }
   body[data-mode="zone"] .storeys { display: none; }
 }
-/* Upright phones: a row along the bottom, above the hint, so it never sits
-   on the house (the map is framed above it). In a room the list and room bar
-   need the space, and the whole-map button gets you back. */
+/* Upright phones: a row along the bottom, left on the gutter like the hint
+   under it and the name up top, so it never sits on the house (the map is
+   framed above it). In a room the list and room bar need the space, and the
+   whole-map button gets you back. */
 @media (max-width: 520px) {
   .storeys {
-    top: auto; left: 0; right: 0; bottom: calc(var(--safe-bottom) + 56px);
-    width: fit-content; margin: 0 auto; flex-direction: row;
+    top: auto; left: var(--gutter); right: auto; bottom: calc(var(--safe-bottom) + 56px);
+    margin: 0; flex-direction: row;
   }
   body[data-mode="zone"] .storeys { display: none; }
   button.storey-btn { min-height: 40px; padding: 0 14px; font-size: 12.5px; }
