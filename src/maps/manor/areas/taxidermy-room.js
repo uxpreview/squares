@@ -503,7 +503,7 @@ OWL.z = 3.1 - (OWL.head * OWL.s) / ZK; // its feet, on the perch
 // Where it can look: yaw in degrees (0 at you, -90 your left, 90 your right,
 // 180 away) and a roll (a curious tilt, or upside down).
 const LOOK = {
-  room: [-30, 0], you: [0, 0], stand: [-96, 0], right: [96, 0], back: [180, 0],
+  room: [-30, 0], you: [0, 0], stand: [-104, 0], right: [96, 0], back: [180, 0],
   tilt: [-12, -0.85], upside: [0, Math.PI], library: [168, 0.3],
 };
 // Every lightning flash catches it somewhere new: its biggest turns.
@@ -763,63 +763,113 @@ function drawSeat(ctx) {
   }, CAT.s);
 }
 
-// ---------- The empty stand, marked GOOSE (a find) ----------
-const STAND = { x: 7.5, y: 5.5, w: 1.2, d: 1.2, h: 0.82 };
+// ---------- The row of new stands, and the empty one (a find) ----------
+// Four matching plinths in a row, in line with the penguin's ice. Every one has
+// its brass plate. The pheasant, the hare and the badger are on theirs; the
+// newest has nothing on it yet but two webbed feet chalked where it will stand
+// and the price tag. Its plate says GOOSE.
+const ROW = [4.6, 6.0, 7.4, 8.8].map((x) => ({ x, y: 4.75, w: 0.9, d: 0.9, h: 0.72 }));
+const STAND = ROW[2];
+const on = (p, s) => ({ x: p.x + 0.45, y: p.y + 0.45, z: p.h, s });
+const PHEASANT = on(ROW[0], 1.35), HARE = on(ROW[1], 1.4), BADGER = on(ROW[3], 1.45);
+function drawPheasant(ctx) {
+  rowPlinth(ctx, ROW[0], ['PHEASANT, 1966']);
+  bb(ctx, PHEASANT.x, PHEASANT.y, PHEASANT.z, true, (g) => {
+    const gold = mix(FOX, INK.candleGold, 0.3);
+    // the long tail, then legs, body, neck and head
+    g.beginPath(); g.moveTo(-0.12, -0.32); g.quadraticCurveTo(-0.45, -0.4, -0.72, -0.62); g.lineTo(-0.66, -0.52); g.quadraticCurveTo(-0.4, -0.3, -0.1, -0.24);
+    paint(g, shade(gold, 0.15), { lw: 0.025 });
+    for (const lx of [-0.02, 0.08]) { g.beginPath(); g.moveTo(lx, -0.2); g.lineTo(lx + 0.02, 0); limb(g, GREY, 0.03); }
+    ell(g, 0.02, -0.3, 0.2, 0.13, -0.15); paint(g, gold, { dots: shade(gold, 0.4), density: 0.2 });
+    g.beginPath(); g.moveTo(0.12, -0.36); g.quadraticCurveTo(0.2, -0.46, 0.18, -0.56); limb(g, INK.bone, 0.07);
+    g.beginPath(); g.moveTo(0.14, -0.5); g.quadraticCurveTo(0.2, -0.58, 0.19, -0.64); limb(g, mix(INK.verdigris, INK.stormNavy, 0.2), 0.08);
+    ell(g, 0.2, -0.66, 0.05, 0.035); paint(g, INK.oxblood, { stroke: false });
+    g.beginPath(); g.moveTo(0.24, -0.65); g.lineTo(0.3, -0.63); g.lineTo(0.24, -0.61);
+    paint(g, INK.bone, { lw: 0.015 });
+    glassEye(g, 0.215, -0.665, 0.014);
+  }, PHEASANT.s);
+}
+function rowPlinth(ctx, p, lines) {
+  plinth(ctx, p.x, p.y, p.w, p.d, p.h);
+  plate(ctx, 'y', p.y + p.d + 0.07, p.x + p.w / 2, 0.36, 0.66, 0.17, lines, 0.085);
+}
+function drawHare(ctx) {
+  rowPlinth(ctx, ROW[1], ['HARE, 1958']);
+  bb(ctx, HARE.x, HARE.y, HARE.z, false, (g) => {
+    const f = mix(FUR, INK.bone, 0.3), fd = shade(f, 0.2);
+    // ears first, then the haunch, the chest and the head
+    ell(g, 0.1, -0.86, 0.045, 0.19, -0.25); paint(g, fd, { lw: 0.03 });
+    ell(g, 0.22, -0.85, 0.045, 0.19, 0.2); paint(g, f, { lw: 0.03 });
+    if (Q.detail) { ell(g, 0.22, -0.85, 0.018, 0.13, 0.2); g.fillStyle = PINK; g.fill(); }
+    ell(g, -0.1, -0.2, 0.27, 0.2); paint(g, f, { dots: shade(f, 0.4), density: 0.16 });
+    ell(g, -0.36, -0.2, 0.06, 0.06); paint(g, INK.bone, { lw: 0.025 });
+    ell(g, 0.08, -0.38, 0.15, 0.23, 0.35); paint(g, f, { dots: shade(f, 0.4), density: 0.16 });
+    for (const lx of [0.1, 0.18]) { g.beginPath(); g.moveTo(lx, -0.24); g.lineTo(lx + 0.02, 0); limb(g, f, 0.05); }
+    ell(g, 0.2, -0.62, 0.13, 0.1, 0.25); paint(g, f, { lw: 0.03 });
+    ell(g, 0.32, -0.6, 0.02, 0.018); g.fillStyle = PINK; g.fill();
+    glassEye(g, 0.24, -0.65, 0.022, INK.candleGold);
+  }, HARE.s);
+}
+function drawBadger(ctx) {
+  rowPlinth(ctx, ROW[3], ['BADGER, 1962']);
+  bb(ctx, BADGER.x, BADGER.y, BADGER.z, false, (g) => {
+    for (const lx of [-0.28, 0.16]) { g.beginPath(); g.moveTo(lx, -0.16); g.lineTo(lx + 0.02, 0); limb(g, BLACK, 0.07); }
+    g.beginPath();
+    g.moveTo(-0.42, -0.14);
+    g.bezierCurveTo(-0.48, -0.5, -0.1, -0.56, 0.18, -0.48);
+    g.bezierCurveTo(0.32, -0.44, 0.34, -0.24, 0.3, -0.14);
+    g.closePath();
+    paint(g, GREY, { dots: shade(GREY, 0.45), density: 0.22 });
+    // the striped face, snout down
+    g.beginPath(); g.moveTo(0.2, -0.4); g.lineTo(0.54, -0.2); g.lineTo(0.22, -0.13); g.closePath();
+    paint(g, INK.bone, { lw: 0.03 });
+    g.fillStyle = BLACK;
+    g.beginPath(); g.moveTo(0.23, -0.35); g.lineTo(0.5, -0.21); g.lineTo(0.26, -0.28); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(0.23, -0.2); g.lineTo(0.48, -0.19); g.lineTo(0.25, -0.15); g.closePath(); g.fill();
+    ell(g, 0.53, -0.2, 0.03, 0.025); g.fillStyle = C.ink; g.fill();
+    glassEye(g, 0.34, -0.28, 0.018);
+  }, BADGER.s);
+}
 function drawStand(ctx) {
   const { x, y, w, d, h } = STAND;
-  // new, pale and polished: the only plinth in the room without a coat of dust
-  plinth(ctx, x, y, w, d, h, MAT.oakLight, mix(MAT.oakLight, INK.bone, 0.35));
-  plate(ctx, 'y', y + d + 0.07, x + w / 2, 0.45, 0.95, 0.3, ['GOOSE'], 0.22);
+  rowPlinth(ctx, STAND, ['GOOSE']);
+  // two webbed feet chalked on top, where it will stand
   if (Q.detail) {
-    face(ctx, [[x + 0.15, y + d + 0.071, 0.2], [x + 0.28, y + d + 0.071, 0.2], [x + 0.08, y + d + 0.071, 0.64], [x + 0.02, y + d + 0.071, 0.64]], alpha(C.white, 0.35), { stroke: false });
+    flat(ctx, h + 0.005, (g) => {
+      g.strokeStyle = alpha(INK.bone, 0.5);
+      g.lineWidth = 0.022;
+      g.lineJoin = 'round';
+      for (const [fx, fy] of [[x + 0.24, y + 0.3], [x + 0.5, y + 0.44]]) {
+        g.beginPath();
+        g.moveTo(fx, fy + 0.02);
+        g.lineTo(fx + 0.16, fy - 0.1);
+        g.lineTo(fx + 0.11, fy + 0.02);
+        g.lineTo(fx + 0.18, fy + 0.09);
+        g.lineTo(fx + 0.07, fy + 0.09);
+        g.lineTo(fx + 0.02, fy + 0.18);
+        g.closePath();
+        g.stroke();
+      }
+    });
   }
-  // two webbed feet chalked on top, where it will stand, and a tape measure
-  flat(ctx, h + 0.005, (g) => {
-    g.strokeStyle = alpha(C.white, 0.9);
-    g.lineWidth = 0.028;
-    g.lineJoin = 'round';
-    for (const [fx, fy] of [[x + 0.38, y + 0.46], [x + 0.7, y + 0.62]]) {
-      g.beginPath();
-      g.moveTo(fx, fy + 0.02);
-      g.lineTo(fx + 0.19, fy - 0.12);
-      g.lineTo(fx + 0.13, fy + 0.02);
-      g.lineTo(fx + 0.21, fy + 0.11);
-      g.lineTo(fx + 0.08, fy + 0.11);
-      g.lineTo(fx + 0.02, fy + 0.22);
-      g.closePath();
-      g.stroke();
-    }
-    g.beginPath();
-    g.rect(x + 0.18, y + 0.92, 0.8, 0.06);
-    g.fillStyle = BRASS;
-    g.fill();
-    g.strokeStyle = C.ink;
-    g.lineWidth = 0.015;
-    g.stroke();
-    if (Q.detail) {
-      g.beginPath();
-      for (let i = 1; i < 16; i++) { g.moveTo(x + 0.18 + i * 0.05, y + 0.92); g.lineTo(x + 0.18 + i * 0.05, y + (i % 4 ? 0.945 : 0.965)); }
-      g.stroke();
-    }
-  });
-  cylinder(ctx, x + 0.12, y + 0.95, h, 0.1, 0.1, INK.candleGold, { top: mix(INK.candleGold, INK.bone, 0.3) });
   // the price tag, on a string from the corner
   const [ax, ay] = P(x + w + 0.07, y + d + 0.07, h - 0.02);
-  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + 0.05, ay + 0.28);
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + 0.04, ay + 0.2);
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.015; ctx.stroke();
   ctx.save();
-  ctx.translate(ax + 0.1, ay + 0.44);
+  ctx.translate(ax + 0.07, ay + 0.3);
   ctx.rotate(-0.25);
+  ctx.scale(0.7, 0.7);
   ctx.beginPath();
   ctx.moveTo(-0.16, -0.15); ctx.lineTo(0.07, -0.15); ctx.lineTo(0.16, 0); ctx.lineTo(0.07, 0.15); ctx.lineTo(-0.16, 0.15);
   ctx.closePath();
-  paint(ctx, INK.bone, { lw: 0.02 });
+  paint(ctx, mix(INK.bone, FUR, 0.25), { lw: 0.025 });
   if (Q.detail) write(ctx, '£40', 0.11, INK.oxblood);
   ctx.restore();
 }
 
 // ---------- The Lord's desk and the order form (a find) ----------
-const FORM = { x: 3.0, y: 12.1, z: 1.105 };
+const FORM = { x: 2.98, y: 12.08, z: 1.106 };
 function drawDesk(ctx) {
   // his chair, pushed back from the desk
   const cx = 2.6, cy = 10.5;
@@ -842,49 +892,60 @@ function drawDesk(ctx) {
   }
   box(ctx, x - 0.05, y - 0.05, h - 0.12, w + 0.1, d + 0.1, 0.12, PLINTH, { top: PLINTH_TOP, lw: 0.04 });
   face(ctx, [[x + 0.12, y + 0.1, h + 0.002], [x + w - 0.12, y + 0.1, h + 0.002], [x + w - 0.12, y + d - 0.1, h + 0.002], [x + 0.12, y + d - 0.1, h + 0.002]], LEATHER, { lw: 0.025, stroke: BRASS_D });
-  // the order form
+  // The paperwork: bills, letters, a catalogue, a delivery note, receipts on
+  // a spike, and somewhere in it the order form (small, with a beak-sized bite).
+  flat(ctx, h + 0.003, (g) => {
+    paperwork(g, 2.62, 11.86, 0.3, 0.5, 0.6, YELLOWED, 'invoice');
+    paperwork(g, 3.42, 11.98, -0.2, 0.46, 0.56, MAT.paper, 'bill');
+    paperwork(g, 2.5, 12.32, -0.22, 0.46, 0.54, YELLOWED, 'letter');
+  });
   flat(ctx, FORM.z, (g) => {
     g.translate(FORM.x, FORM.y);
-    g.rotate(-0.1);
+    g.rotate(0.12);
+    const W = 0.25, H = 0.28;
     g.beginPath();
-    g.rect(-0.42, -0.47, 0.84, 0.94);
-    paint(g, MAT.paper, { lw: 0.025 });
+    g.rect(-W, -H, W * 2, H * 2);
+    paint(g, MAT.paper, { lw: 0.02 });
     // a bite out of the corner, the size of a beak
     g.beginPath();
-    g.arc(0.42, 0.47, 0.1, Math.PI, Math.PI * 1.5);
-    g.lineTo(0.42, 0.47);
+    g.arc(W, H, 0.07, Math.PI, Math.PI * 1.5);
+    g.lineTo(W, H);
     g.closePath();
     g.fillStyle = LEATHER;
     g.fill();
     g.beginPath();
-    g.rect(-0.42, -0.47, 0.84, 0.16);
+    g.rect(-W, -H, W * 2, 0.08);
     g.fillStyle = INK.oxblood;
     g.fill();
     if (Q.detail) {
-      g.save(); g.translate(0, -0.2); write(g, '1 x GOOSE', 0.15, C.ink, FAT); g.restore();
-      g.save(); g.translate(-0.08, -0.05); write(g, 'STUFFED.', 0.09, C.ink); g.restore();
-      g.save(); g.translate(-0.06, 0.06); write(g, 'BY TUESDAY.', 0.09, INK.oxblood); g.restore();
+      g.save(); g.translate(0, -0.11); write(g, '1 x GOOSE', 0.085, C.ink, FAT); g.restore();
+      g.save(); g.translate(-0.05, -0.02); write(g, 'STUFFED.', 0.05, C.ink); g.restore();
+      g.save(); g.translate(-0.03, 0.04); write(g, 'BY TUESDAY.', 0.05, INK.oxblood); g.restore();
       // the goose, sketched from life
       g.strokeStyle = C.ink;
-      g.lineWidth = 0.02;
+      g.lineWidth = 0.012;
       g.lineCap = 'round';
       g.beginPath();
-      g.ellipse(0.17, 0.27, 0.11, 0.06, 0, 0, TAU);
-      g.moveTo(0.25, 0.24); g.quadraticCurveTo(0.3, 0.14, 0.27, 0.1);
-      g.moveTo(0.3, 0.1); g.arc(0.27, 0.1, 0.03, 0, TAU);
-      g.moveTo(0.3, 0.1); g.lineTo(0.36, 0.11);
+      g.ellipse(0.1, 0.16, 0.065, 0.035, 0, 0, TAU);
+      g.moveTo(0.15, 0.14); g.quadraticCurveTo(0.18, 0.08, 0.16, 0.06);
+      g.moveTo(0.178, 0.06); g.arc(0.16, 0.06, 0.018, 0, TAU);
+      g.moveTo(0.178, 0.06); g.lineTo(0.215, 0.066);
       g.stroke();
       // his squiggle
       g.beginPath();
-      g.moveTo(-0.34, 0.31);
-      g.bezierCurveTo(-0.29, 0.19, -0.23, 0.37, -0.18, 0.27);
-      g.bezierCurveTo(-0.14, 0.19, -0.09, 0.36, -0.04, 0.28);
-      g.moveTo(-0.35, 0.37); g.lineTo(-0.03, 0.36);
+      g.moveTo(-0.2, 0.18);
+      g.bezierCurveTo(-0.17, 0.11, -0.14, 0.22, -0.11, 0.16);
+      g.bezierCurveTo(-0.08, 0.11, -0.05, 0.21, -0.02, 0.17);
+      g.moveTo(-0.21, 0.22); g.lineTo(-0.02, 0.215);
       g.strokeStyle = INK.stormNavy;
       g.stroke();
     }
   });
-  // an inkwell and quill, a jar of eyes and a magnifying glass
+  flat(ctx, h + 0.009, (g) => {
+    paperwork(g, 3.35, 12.42, -0.35, 0.56, 0.4, INK.oxblood, 'catalogue');
+    paperwork(g, 2.95, 12.55, 0.15, 0.36, 0.3, mix(MAT.pine, INK.bone, 0.3), 'delivery');
+  });
+  // an inkwell and quill, a jar of eyes, the receipt spike and a magnifying glass
   cylinder(ctx, 3.72, 11.75, h, 0.09, 0.12, C.ink, { top: shade(C.ink, 0.2) });
   bb(ctx, 3.72, 11.75, h + 0.12, false, (g) => {
     g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(0.14, -0.3, 0.3, -0.46);
@@ -892,13 +953,96 @@ function drawDesk(ctx) {
     paint(g, INK.bone, { lw: 0.02 });
   });
   eyeJar(ctx, 2.3, 12.5, h, 0.13, 0.28, 3);
-  flat(ctx, h + 0.01, (g) => {
-    g.beginPath(); g.moveTo(3.55, 12.35); g.lineTo(3.3, 12.6);
-    g.strokeStyle = C.ink; g.lineWidth = 0.08; g.lineCap = 'round'; g.stroke();
-    g.strokeStyle = MAT.mahoganyDark; g.lineWidth = 0.05; g.stroke();
-    g.beginPath(); g.arc(3.68, 12.22, 0.14, 0, TAU);
+  spike(ctx, 3.82, 12.55, h);
+  flat(ctx, h + 0.012, (g) => {
+    g.beginPath(); g.moveTo(2.95, 11.62); g.lineTo(3.2, 11.52);
+    g.strokeStyle = C.ink; g.lineWidth = 0.07; g.lineCap = 'round'; g.stroke();
+    g.strokeStyle = MAT.mahoganyDark; g.lineWidth = 0.045; g.stroke();
+    g.beginPath(); g.arc(2.82, 11.68, 0.13, 0, TAU);
     paint(g, alpha(MAT.glass, 0.5), { lw: 0.03, stroke: BRASS_D });
   });
+}
+
+const YELLOWED = mix(INK.bone, INK.candleGold, 0.22);
+// One sheet of the Lord's paperwork, flat, centered at (x, y) and turned by a.
+// None of it is laid out like the order form: no colored band, no "1 x".
+function paperwork(g, x, y, a, w, d, color, kind) {
+  g.save();
+  g.translate(x, y);
+  g.rotate(a);
+  g.beginPath();
+  g.rect(-w / 2, -d / 2, w, d);
+  paint(g, color, { lw: 0.02 });
+  if (!Q.detail) { g.restore(); return; }
+  const L = -w / 2 + 0.05, lines = alpha(C.ink, 0.45);
+  if (kind === 'invoice' || kind === 'bill') {
+    // a letterhead, columns of sums, a total and (on the invoice) PAID
+    g.save(); g.translate(0, -d / 2 + 0.07); write(g, kind === 'invoice' ? 'INVOICE' : 'GLASS EYES LTD', 0.055, INK.stormNavy, SANS, w * 0.85); g.restore();
+    g.fillStyle = lines;
+    for (let i = 0; i < 5; i++) {
+      const ly = -d / 2 + 0.15 + i * 0.065;
+      g.fillRect(L, ly, w * 0.45, 0.018);
+      g.fillRect(w / 2 - 0.16, ly, 0.11, 0.018);
+    }
+    g.fillStyle = C.ink;
+    g.fillRect(w / 2 - 0.18, d / 2 - 0.13, 0.14, 0.012);
+    g.save(); g.translate(w / 2 - 0.11, d / 2 - 0.08); write(g, kind === 'invoice' ? '£212' : '£9', 0.05, C.ink); g.restore();
+    if (kind === 'invoice') {
+      g.save(); g.translate(-0.06, d / 2 - 0.12); g.rotate(-0.3);
+      g.strokeStyle = alpha(INK.oxblood, 0.8); g.lineWidth = 0.014;
+      g.strokeRect(-0.11, -0.04, 0.22, 0.08);
+      write(g, 'PAID', 0.05, alpha(INK.oxblood, 0.8));
+      g.restore();
+    } else {
+      g.save(); g.translate(-0.08, d / 2 - 0.1); write(g, 'OVERDUE', 0.045, INK.oxblood); g.restore();
+    }
+  } else if (kind === 'letter') {
+    // handwriting, and a wax seal
+    g.strokeStyle = alpha(INK.stormNavy, 0.6); g.lineWidth = 0.012;
+    g.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const ly = -d / 2 + 0.09 + i * 0.07, len = i === 5 ? w * 0.4 : w * 0.8;
+      g.moveTo(L, ly);
+      for (let k = 1; k <= 8; k++) g.lineTo(L + (k / 8) * len, ly + (k % 2 ? -0.012 : 0.01));
+    }
+    g.stroke();
+    g.beginPath(); g.arc(w / 2 - 0.1, d / 2 - 0.1, 0.045, 0, TAU);
+    paint(g, INK.oxblood, { lw: 0.012 });
+  } else if (kind === 'catalogue') {
+    // the supplier's catalogue: a stag's head on the cover
+    g.save(); g.translate(0, -d / 2 + 0.08); write(g, 'STUFF & CO.', 0.06, INK.bone, FAT, w * 0.85); g.restore();
+    g.beginPath(); g.ellipse(0, 0.04, 0.06, 0.08, 0, 0, TAU);
+    paint(g, INK.bone, { stroke: false });
+    g.strokeStyle = INK.bone; g.lineWidth = 0.018; g.lineCap = 'round';
+    g.beginPath();
+    for (const sd of [-1, 1]) { g.moveTo(sd * 0.04, -0.02); g.lineTo(sd * 0.12, -0.1); g.moveTo(sd * 0.09, -0.07); g.lineTo(sd * 0.14, -0.04); }
+    g.stroke();
+    g.save(); g.translate(0, d / 2 - 0.06); write(g, 'AUTUMN', 0.04, INK.bone); g.restore();
+  } else {
+    // a delivery note, ticked off
+    g.save(); g.translate(0, -d / 2 + 0.06); write(g, 'DELIVERED', 0.045, C.ink, SANS, w * 0.85); g.restore();
+    g.save(); g.translate(0, 0.01); write(g, 'BADGER (DEAD)', 0.038, INK.stormNavy, SANS, w * 0.85); g.restore();
+    g.strokeStyle = INK.oxblood; g.lineWidth = 0.016;
+    g.beginPath(); g.moveTo(w / 2 - 0.1, d / 2 - 0.07); g.lineTo(w / 2 - 0.08, d / 2 - 0.05); g.lineTo(w / 2 - 0.04, d / 2 - 0.11); g.stroke();
+  }
+  g.restore();
+}
+// A receipt spike, with the week's receipts on it.
+function spike(ctx, x, y, z) {
+  cylinder(ctx, x, y, z, 0.07, 0.03, C.ink, { top: shade(C.ink, 0.2) });
+  const [X, Y] = P(x, y, z);
+  ctx.beginPath(); ctx.moveTo(X, Y - 0.02); ctx.lineTo(X, Y - 0.5);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    const sy = Y - 0.08 - i * 0.055, a = (hash(i, 7) - 0.5) * 0.7;
+    ctx.save();
+    ctx.translate(X, sy);
+    ctx.transform(1, 0.5 * Math.cos(a * 3), 0, 0.5, 0, 0);
+    ctx.rotate(a);
+    ctx.beginPath(); ctx.rect(-0.13, -0.09, 0.26, 0.18);
+    paint(ctx, i % 2 ? YELLOWED : MAT.paper, { lw: 0.012 });
+    ctx.restore();
+  }
 }
 
 // A jar of glass eyes, all looking somewhere different.
@@ -1892,7 +2036,7 @@ export default {
         g.fillStyle = SHADOW;
         for (const [x, y, w, d] of [
           [0.95, 0.95, 1.7, 1.7], [4.45, 0.55, 2.3, 1.5], [0.55, 4.95, 1.7, 1.7], [9.45, 0.55, 1.3, 1.1], [0.55, 13.95, 1.3, 1.3],
-          [7.45, 5.45, 1.5, 1.5], [1.9, 11.4, 2.4, 1.5], [0, 7.7, 1.35, 2.7], [13.2, 8.2, 0.95, 0.95], [6.85, 0, 2.6, 1.35],
+          [4.5, 4.65, 1.15, 1.15], [5.9, 4.65, 1.15, 1.15], [7.3, 4.65, 1.15, 1.15], [8.7, 4.65, 1.15, 1.15], [1.9, 11.4, 2.4, 1.5], [0, 7.7, 1.35, 2.7], [13.2, 8.2, 0.95, 0.95], [6.85, 0, 2.6, 1.35],
           [12.55, 0, 3, 1.1], [3.85, 8.55, 1.5, 1.5], [5.45, 13.95, 1.35, 1.2], [10.5, 4.8, 0.95, 0.95],
         ]) { g.beginPath(); g.rect(x, y, w, d); g.fill(); }
         for (const [x, y, r] of [[OWL.x + 0.1, OWL.y + 0.1, 0.5], [6.1, 10.1, 0.35], [OSTRICH.x + 0.1, OSTRICH.y + 0.1, 0.6], [5.9, 9.25, 0.4]]) {
@@ -1959,7 +2103,9 @@ export default {
     R.thing(12.5, 2.5, (ctx, t) => drawOwl(ctx, t), { anim: true });
     R.thing(BEAR.x, BEAR.y, (ctx) => drawBear(ctx));
     R.thing(0.56, 9.0, (ctx) => drawSeat(ctx));
-    R.thing(8.1, 6.7, (ctx) => drawStand(ctx));
+    for (const [p, draw] of [[ROW[0], drawPheasant], [ROW[1], drawHare], [STAND, drawStand], [ROW[3], drawBadger]]) {
+      R.thing(p.x + 0.45, p.y + 0.95, (ctx) => draw(ctx));
+    }
     R.thing(10.9, 5.55, (ctx) => drawPenguin(ctx));
     R.thing(3.0, 12.7, (ctx) => drawDesk(ctx));
     candle(R, 2.25, 11.7, 1.1, 5);
@@ -2023,6 +2169,9 @@ export default {
     eyeAt(PEACOCK.x, PEACOCK.y, PEACOCK.z, 0.16, -0.99, PEACOCK.s);
     eyeAt(DOME.x, DOME.y, 1.2, 0.17, -0.46, 1.15);
     for (const sd of [-1, 1]) eyeAt(10.9, 5.2, 0.34, sd * 0.07, -0.72, 1.15);
+    eyeAt(PHEASANT.x, PHEASANT.y, PHEASANT.z, 0.215, -0.665, PHEASANT.s, true);
+    eyeAt(HARE.x, HARE.y, HARE.z, 0.24, -0.65, HARE.s);
+    eyeAt(BADGER.x, BADGER.y, BADGER.z, 0.34, -0.28, BADGER.s);
     R.air((ctx, t) => {
       if (!Q.detail) return;
       const dark = lightsOut(t), fl = storm.flash(t);
@@ -2063,8 +2212,8 @@ export default {
     });
 
     // ---- the finds ----
-    R.find({ id: 'order-form', label: 'An order form for a goose', at: [3, 12.1, 1.2], r: 0.7 });
-    R.find({ id: 'empty-stand', label: 'An empty display stand', at: [8.1, 6.1, 0.95], r: 0.8 });
+    R.find({ id: 'order-form', label: 'An order form for a goose', at: [2.98, 12.08, 1.12], r: 0.6 });
+    R.find({ id: 'empty-stand', label: 'An empty display stand', at: [7.85, 5.2, 0.5], r: 0.65 });
     R.find({ id: 'owl', label: 'The owl that turns its head', at: [12.5, 2.5, 3.1], r: 0.8 });
   },
 };

@@ -42,6 +42,7 @@ const OLDWOOD = mix(MAT.oak, INK.stormNavy, 0.42); // the cellar hatch, scuffed 
 const SPONGE = mix(INK.candleGold, INK.bone, 0.3);
 const SOAKED = mix(SPONGE, INK.oxblood, 0.35);
 const GLASS = MAT.glass;
+const ENAMEL = mix(INK.verdigris, INK.stormNavy, 0.15); // the timer's case, like the tins round it
 const FUR = MAT.fur, FUR_D = MAT.furDark, MUZZLE = mix(MAT.fur, INK.bone, 0.6);
 const CAT = C.black;
 const TAU = Math.PI * 2;
@@ -57,7 +58,8 @@ const HOP = [8.9, 9.75]; // where it jumps up onto the table from
 const ONTOP = [8.9, 8.6]; // where it lands
 const REST = [9.55, 8.5]; // where it leaves its sausage while it eats
 const TRIFLE = [7.4, 7.5];
-const TIMER = [10.4, 7.2];
+const TIMER = [10.5, 7.3]; // in among the tins at the busy end of the table
+const TIMER_K = 0.62; // drawn at a timer's size, not a clock's
 const N0 = 10; // sausages on a fresh string
 const LINK = 0.22; // one sausage, on the string
 const KNOT = 0.06; // the bit of string at the top
@@ -917,6 +919,7 @@ function drawTimer(ctx, x, y, z, t, hand, ring) {
   ctx.save();
   ctx.translate(X + shake, Y);
   ctx.rotate(ring ? Math.sin(t * 47) * 0.12 * ring : 0);
+  ctx.scale(TIMER_K, TIMER_K);
   ctx.fillStyle = C.ink;
   ctx.fillRect(-0.18, -0.07, 0.08, 0.07);
   ctx.fillRect(0.1, -0.07, 0.08, 0.07);
@@ -934,7 +937,7 @@ function drawTimer(ctx, x, y, z, t, hand, ring) {
   // the case and the face
   ctx.beginPath();
   ctx.arc(0, -0.3, 0.26, 0, TAU);
-  paint(ctx, INK.oxblood, { lw: 0.04, dots: shade(INK.oxblood, 0.4), density: 0.2 });
+  paint(ctx, ENAMEL, { lw: 0.05, dots: shade(ENAMEL, 0.4), density: 0.2 });
   ctx.beginPath();
   ctx.arc(0, -0.3, 0.19, 0, TAU);
   paint(ctx, CHINA, { lw: 0.025 });
@@ -1575,42 +1578,116 @@ export default {
       rect(ctx, 0.3, 11.75, 1.05, 1.5, 0.013, null, { lw: 0.03, stroke: shade(SACKING, 0.4) });
       floorTextY(ctx, 0.83, 12.5, 'NO GEESE', 0.3, INK.oxblood);
     });
-    // The spilled flour, and what walked through it.
+    // The spilled flour, and what walked through it. It's a busy floor: the
+    // dog, Mrs. Hatchett's shoes and a dragged sack have all been through, so
+    // the webbed prints are one set among several, in the same pressed ink.
+    const FLOURED = mix(FLOUR, FLAG, 0.3); // flour on stone, not a white sheet
+    const PRESSED = mix(FLOUR, FLAG, 0.62); // a print pressed into it
+    const PRESSED_D = mix(FLAG, JOINT, 0.35);
+    const DUSTY = (k) => alpha(FLOUR, 0.42 * k); // a floury print on bare stone
+    const INFLOUR = [9.6, 12.4]; // where the goose's prints cross the spill
     const PRINTS = [];
     for (let i = 0; i < 15; i++) {
-      const x = 10.1 - i * 0.66;
-      PRINTS.push([x, 12.5 + (i % 2 ? 0.18 : -0.16) + Math.sin(i * 0.9) * 0.05, Math.PI + (i % 2 ? 0.16 : -0.16)]);
+      const x = 10.25 - i * 0.66;
+      PRINTS.push([x, 12.5 + (i % 2 ? 0.14 : -0.13) + Math.sin(i * 0.9) * 0.05, Math.PI + (i % 2 ? 0.16 : -0.16)]);
     }
+    // Mrs. Hatchett's shoes, across it one way and back the other.
+    const SHOES = [];
+    for (let i = 0; i < 8; i++) {
+      const k = i / 7;
+      const x = lerp(10.9, 7.9, k), y = lerp(13.3, 11.0, k);
+      const side = i % 2 ? 1 : -1;
+      SHOES.push([x + side * 0.08, y - side * 0.1, Math.atan2(11.0 - 13.3, 7.9 - 10.9)]);
+    }
+    for (let i = 0; i < 4; i++) SHOES.push([8.4 + i * 0.5 + (i % 2) * 0.1, 11.95 + i * 0.28 - (i % 2) * 0.16, 0.5]);
+    // The dog, skittering about in it and off to its spot by the table.
+    const PAWS = [
+      [10.2, 12.9], [9.95, 12.75], [9.75, 12.2], [9.55, 12.35], [9.1, 11.95], [8.95, 12.1],
+      [9.3, 11.55], [9.45, 11.3], [9.5, 10.85], [9.7, 10.6], [9.75, 10.15], [9.95, 9.95],
+      [8.6, 12.85], [8.35, 12.95],
+    ];
+    // Lay a print flat on the floor, turned to ang (0 points along +x).
+    const flat = (ctx, x, y, ang, fn) => {
+      const [X, Y] = P(x, y, 0.015);
+      ctx.save();
+      ctx.transform(1, 0.5, -1, 0.5, X, Y);
+      ctx.rotate(ang);
+      fn();
+      ctx.restore();
+    };
+    const shoe = (ctx, x, y, ang, col) => flat(ctx, x, y, ang, () => {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(0.07, 0, 0.13, 0.07, 0, 0, TAU); ctx.fill(); // the sole
+      ctx.beginPath(); ctx.ellipse(-0.14, 0, 0.06, 0.06, 0, 0, TAU); ctx.fill(); // the heel
+    });
+    const paw = (ctx, x, y, ang, col) => flat(ctx, x, y, ang, () => {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(0, 0, 0.055, 0.065, 0, 0, TAU); ctx.fill();
+      for (const a of [-0.9, -0.3, 0.3, 0.9]) { ctx.beginPath(); ctx.arc(Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0.025, 0, TAU); ctx.fill(); }
+    });
+    const inSpill = (x, y) => Math.hypot((x - 9.55) / 1.15, (y - 12.35) / 0.8) < 1;
     R.rug((ctx) => {
-      // a sack burst open by a beak, and the flour everywhere
-      blob(ctx, 8.75, 12.5, 2.0, 1.2, 7);
-      paint(ctx, alpha(FLOUR, 0.95), { stroke: false, dots: mix(FLOUR, FLAG, 0.25), density: 0.15 });
-      blob(ctx, 10.3, 12.0, 0.8, 0.55, 9);
-      paint(ctx, alpha(FLOUR, 0.95), { stroke: false });
-      blob(ctx, 6.9, 13.3, 0.45, 0.35, 11);
-      paint(ctx, alpha(FLOUR, 0.85), { stroke: false });
+      // a sack burst open by a beak, the flour spread about, and a smear where
+      // somebody dragged the sack back toward the range
+      blob(ctx, 9.55, 12.35, 1.1, 0.7, 7);
+      paint(ctx, alpha(FLOURED, 0.9), { stroke: false, dots: PRESSED, density: 0.2 });
+      blob(ctx, 10.35, 12.05, 0.45, 0.35, 9);
+      paint(ctx, alpha(FLOURED, 0.9), { stroke: false });
+      flat(ctx, 10.1, 11.75, -Math.PI / 2 - 0.2, () => {
+        ctx.fillStyle = alpha(FLOURED, 0.45);
+        ctx.beginPath(); ctx.roundRect(0, -0.24, 1.1, 0.48, 0.22); ctx.fill();
+        ctx.strokeStyle = alpha(PRESSED, 0.8);
+        ctx.lineWidth = 0.03;
+        ctx.beginPath();
+        for (const v of [-0.14, -0.04, 0.07, 0.16]) { ctx.moveTo(0.1, v); ctx.lineTo(1.0, v + 0.02); }
+        ctx.stroke();
+      });
+      // Two more floury patches, with no goose in them: where she dusts off
+      // her apron by the range, and a spill the dog and the mouse have been
+      // through at the end of the table.
+      blob(ctx, 6.3, 3.0, 0.75, 0.45, 21);
+      paint(ctx, alpha(FLOURED, 0.8), { stroke: false, dots: PRESSED, density: 0.2 });
+      blob(ctx, 3.3, 10.1, 0.85, 0.6, 23);
+      paint(ctx, alpha(FLOURED, 0.85), { stroke: false, dots: PRESSED, density: 0.2 });
+      for (const [x, y, a] of [[5.9, 2.9, 0.3], [6.25, 3.2, 0.3], [6.6, 2.85, -2.8], [6.45, 3.25, 1.9]]) shoe(ctx, x, y, a, PRESSED_D);
+      for (const [x, y, a] of [[3.0, 10.4, 0.2], [3.45, 10.25, 0.2], [3.9, 10.5, 0.2]]) shoe(ctx, x, y, a, x < 3.9 ? PRESSED_D : DUSTY(0.9));
       if (Q.detail) {
-        const r = rng(5);
-        ctx.fillStyle = alpha(FLOUR, 0.8);
-        for (let i = 0; i < 40; i++) {
-          const [X, Y] = P(6 + r() * 5.5, 10.8 + r() * 3.6, 0.01);
-          ctx.beginPath(); ctx.ellipse(X, Y, 0.04 + r() * 0.08, 0.02 + r() * 0.04, 0, 0, TAU); ctx.fill();
+        for (const [x, y] of [[2.9, 9.8], [3.2, 9.95], [3.6, 9.75], [3.75, 10.0], [4.2, 9.7], [4.6, 9.85]]) paw(ctx, x, y, -0.3, x < 4 ? PRESSED_D : DUSTY(0.8));
+        ctx.fillStyle = PRESSED_D; // the mouse, in and out
+        for (let i = 0; i < 9; i++) {
+          const [X, Y] = P(2.6 + i * 0.16, 10.0 - i * 0.07 + (i % 2) * 0.05, 0.015);
+          ctx.beginPath(); ctx.arc(X, Y, 0.022, 0, TAU); ctx.fill();
         }
       }
-      // webbed footprints: pressed into the flour, then floury all the way to the door
-      for (const [x, y, a] of PRINTS) {
-        const inFlour = x > 6.9;
-        const fade = inFlour ? 1 : clamp(0.95 - (6.9 - x) / 8, 0.3, 1);
-        if (inFlour) webPrint(ctx, x, y, a, mix(FLOUR, FLAG, 0.55), mix(FLOUR, JOINT, 0.7));
-        else webPrint(ctx, x, y, a, alpha(FLOUR, 0.75 * fade), alpha(FLOUR, fade));
-      }
-      // and the dog's, round the edge
       if (Q.detail) {
-        for (const [x, y] of [[9.1, 10.95], [8.7, 11.25], [8.1, 11.35], [7.6, 11.15]]) {
-          const [X, Y] = P(x, y, 0.015);
-          ctx.fillStyle = alpha(FLOUR, 0.8);
-          ctx.beginPath(); ctx.ellipse(X, Y, 0.09, 0.05, 0, 0, TAU); ctx.fill();
-          for (const [dx, dy] of [[-0.09, -0.07], [-0.03, -0.1], [0.04, -0.1], [0.1, -0.06]]) { ctx.beginPath(); ctx.arc(X + dx, Y + dy, 0.03, 0, TAU); ctx.fill(); }
+        const r = rng(5);
+        ctx.fillStyle = alpha(FLOURED, 0.8);
+        for (let i = 0; i < 22; i++) {
+          const [X, Y] = P(8.1 + r() * 3.2, 11.3 + r() * 2.2, 0.01);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.03 + r() * 0.06, 0.015 + r() * 0.03, 0, 0, TAU); ctx.fill();
+        }
+      }
+      // everything that walked through it: pressed in where it's in the flour,
+      // floury on the stones after, fading as the flour wears off
+      const trail = (x, y, x0, y0) => clamp(1 - Math.hypot(x - x0, y - y0) / 4, 0.25, 1);
+      SHOES.forEach(([x, y, a], i) => {
+        if (inSpill(x, y)) shoe(ctx, x, y, a, PRESSED_D);
+        else if (Q.detail) shoe(ctx, x, y, a, DUSTY(trail(x, y, 9.55, 12.35) * (i < 8 ? 1 : 0.8)));
+      });
+      if (Q.detail) {
+        PAWS.forEach(([x, y], i) => {
+          const a = -2.4 + Math.sin(i * 2.1) * 0.5;
+          if (inSpill(x, y)) paw(ctx, x, y, a, PRESSED_D);
+          else paw(ctx, x, y, a, DUSTY(trail(x, y, 9.55, 12.35)));
+        });
+      }
+      // webbed footprints, smaller than a shoe: pressed into the flour, then
+      // faintly floury all the way to the dining room door
+      for (const [x, y, a] of PRINTS) {
+        if (inSpill(x, y)) webPrint(ctx, x, y, a, PRESSED, PRESSED_D, 0.3);
+        else {
+          const fade = clamp(1 - (8.4 - x) / 9, 0.35, 1);
+          webPrint(ctx, x, y, a, DUSTY(0.32 * fade), DUSTY(0.62 * fade), 0.3);
         }
       }
     });
@@ -1863,12 +1940,42 @@ export default {
       ctx.strokeStyle = INK.candleGold;
       ctx.lineCap = 'round';
       for (let i = 0; i < 3; i++) {
-        const r = 0.42 + i * 0.16 + ((t * 3) % 0.16);
-        ctx.lineWidth = 0.06 - i * 0.012;
-        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(X, Y - 0.4, r, s > 0 ? -0.6 : Math.PI - 0.6, s > 0 ? 0.6 : Math.PI + 0.6); ctx.stroke(); }
+        const r = 0.3 + i * 0.13 + ((t * 3) % 0.13);
+        ctx.lineWidth = 0.05 - i * 0.01;
+        for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(X, Y - 0.27, r, s > 0 ? -0.6 : Math.PI - 0.6, s > 0 ? 0.6 : Math.PI + 0.6); ctx.stroke(); }
       }
-      if (Q.detail) label(ctx, TIMER[0], TIMER[1], th + 1.35, 'BRRRING!', 0.34, INK.candleGold);
+      if (Q.detail) label(ctx, TIMER[0], TIMER[1], th + 1.05, 'BRRRING!', 0.3, INK.candleGold);
       ctx.restore();
+    });
+    // Round things round the timer, none of them a timer: the biscuit tin and
+    // the raisin canister in the same green enamel, the cocoa tin, the sugar
+    // bowl, a jar of jam and an egg in a cup.
+    R.thing(9.95, 6.6, (ctx) => { // the biscuit tin, with a ring pressed in its lid
+      cylinder(ctx, 9.95, 6.6, th, 0.21, 0.13, ENAMEL, { top: tint(ENAMEL, 0.12) });
+      disc(ctx, 9.95, 6.6, th + 0.131, 0.14, null, { lw: 0.02, stroke: shade(ENAMEL, 0.35) });
+      if (Q.detail) disc(ctx, 9.95, 6.6, th + 0.132, 0.05, MAT.brass, { lw: 0.015 });
+    });
+    R.thing(10.8, 7.1, (ctx) => { // the raisins
+      cylinder(ctx, 10.8, 7.1, th, 0.12, 0.36, ENAMEL, { top: tint(ENAMEL, 0.12) });
+      cylinder(ctx, 10.8, 7.1, th + 0.36, 0.125, 0.05, MAT.brass, { top: MAT.brassDark });
+      if (Q.detail) { const p = P(10.8, 7.1, th + 0.2); smallPrint(ctx, p[0], p[1], 'RAISINS', 0.055, INK.bone); }
+    });
+    R.thing(10.75, 6.7, (ctx) => { // cocoa
+      cylinder(ctx, 10.75, 6.7, th, 0.14, 0.24, INK.oxblood, { top: MAT.brass });
+      if (Q.detail) { const p = P(10.75, 6.7, th + 0.13); smallPrint(ctx, p[0], p[1], 'COCOA', 0.06, INK.bone); }
+    });
+    R.thing(10.05, 7.7, (ctx) => { // the sugar bowl, lid on
+      cylinder(ctx, 10.05, 7.7, th, 0.14, 0.14, CHINA, { top: CHINA });
+      const [X, Y] = P(10.05, 7.7, th + 0.14);
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.13, 0, Math.PI, TAU); paint(ctx, CHINA, { lw: 0.025 });
+      ctx.beginPath(); ctx.arc(X, Y - 0.14, 0.035, 0, TAU); paint(ctx, INK.verdigris, { lw: 0.015 });
+      if (Q.detail) { ctx.beginPath(); ctx.ellipse(X, Y + 0.08, 0.2, 0.05, 0, 0, Math.PI); ctx.strokeStyle = INK.verdigris; ctx.lineWidth = 0.02; ctx.stroke(); }
+    });
+    R.thing(10.8, 7.65, (ctx) => jar(ctx, 10.8, 7.65, th, 0.1, 0.22, MAT.trifle, MAT.brass, { label: CHINA }));
+    R.thing(10.35, 8.0, (ctx) => { // an egg in a cup, for later
+      cylinder(ctx, 10.35, 8.0, th, 0.07, 0.07, CHINA, { top: CHINA });
+      const [X, Y] = P(10.35, 8.0, th + 0.07);
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.07, 0.075, 0.1, 0, 0, TAU); paint(ctx, INK.bone, { lw: 0.02 });
     });
 
     // The light over the table, on a flex from the ceiling.
@@ -2085,8 +2192,8 @@ export default {
     R.dark(house.dark);
 
     // ---------- The finds ----------
-    R.find({ id: 'footprints', label: 'Webbed footprints in flour', at: [8.7, 12.6, 0.02], r: 0.9 });
-    R.find({ id: 'timer', label: 'A kitchen timer', at: [TIMER[0], TIMER[1], th + 0.27], r: 0.7 });
+    R.find({ id: 'footprints', label: 'Webbed footprints in flour', at: [INFLOUR[0], INFLOUR[1], 0.02], r: 0.75 });
+    R.find({ id: 'timer', label: 'A kitchen timer', at: [TIMER[0], TIMER[1], th + 0.2], r: 0.6 });
     R.find({
       id: 'sausage', label: 'A stolen sausage', r: 1.1,
       at: (t) => {

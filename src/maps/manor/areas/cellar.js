@@ -44,6 +44,11 @@ const RATS = mix(C.grey, INK.stormNavy, 0.35);
 const TRUNK_C = mix(INK.verdigris, INK.stormNavy, 0.45);
 const STRAP = shade(MAT.mahogany, 0.1);
 const CHALK = alpha(INK.bone, 0.82);
+// Jenkins's paperwork, gone a bit damp and grey down here.
+const PAPER = mix(MAT.paper, FLAG, 0.14);
+const PAPER_OLD = mix(MAT.paper, PINE, 0.4);
+const NEWS = mix(MAT.paper, FLAG, 0.36);
+const PEN = alpha(INK.stormNavy, 0.6);
 const WORDS = '"Rethink Sans", system-ui, sans-serif';
 const DISPLAY = '"Bagel Fat One", "Arial Black", sans-serif';
 
@@ -95,6 +100,33 @@ function shout(ctx, x, y, z, s, size, color, a = 1) {
   ctx.translate(X, Y);
   words(ctx, s, 0, 0, size, color, { font: DISPLAY, weight: 400, outline: 0.08 });
   ctx.restore();
+}
+
+// ---------- Papers ----------
+// A sheet lying flat at (x, y, z), turned by rot in its own plane, w across
+// and h down. marks(ctx) draws on it in its own units, from its center.
+function sheet(ctx, x, y, z, w, h, rot, color, marks) {
+  ctx.save();
+  inZ(ctx, x, y, z);
+  ctx.rotate(rot);
+  ctx.beginPath();
+  ctx.rect(-w / 2, -h / 2, w, h);
+  paint(ctx, color, { lw: 0.016 });
+  if (marks && Q.detail) marks(ctx);
+  ctx.restore();
+}
+
+// Lines of handwriting (or print): n of them from b0, step apart, ragged.
+function scrawl(ctx, a0, a1, b0, step, n, color, seed = 1, lw = 0.011) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const b = b0 + i * step;
+    ctx.moveTo(a0, b);
+    ctx.lineTo(a0 + (a1 - a0) * (0.55 + 0.45 * hash(seed, i)), b);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.stroke();
 }
 
 // A line of dots of thread: cobwebs, strung between points.
@@ -1092,31 +1124,89 @@ export default {
         paint(ctx, INK.oxblood, { lw: 0.02, dots: INK.candleGold, density: 0.2 });
         ctx.restore();
       }
-      // The resignation letter, folded, propped up on the lid (a find).
-      const k = 0.28; // it leans back a little
-      const [LX, LY] = P(6.2, 6.62, 1.0 + bulge);
-      ctx.save();
-      ctx.transform(1, 0.5, -k, k / 2 + ZK, LX, LY);
-      ctx.fillStyle = alpha(C.ink, 0.22);
-      ctx.fillRect(-0.3, -0.19, 0.64, 0.4);
-      ctx.beginPath();
-      ctx.rect(-0.33, -0.21, 0.64, 0.41);
-      paint(ctx, INK.bone, { lw: 0.025 });
-      if (Q.detail) {
-        ctx.beginPath();
-        ctx.moveTo(-0.33, -0.07); ctx.lineTo(0.31, -0.07);
-        ctx.moveTo(-0.33, 0.07); ctx.lineTo(0.31, 0.07);
-        ctx.strokeStyle = alpha(INK.stormNavy, 0.22);
-        ctx.lineWidth = 0.012;
-        ctx.stroke();
-        words(ctx, 'LAST WEEK', 0.19, -0.16, 0.04, INK.stormNavy, { weight: 600 }); // the date: his alibi
-        words(ctx, 'Jenkins', 0.04, 0.12, 0.075, INK.stormNavy, { weight: 600 });
-      }
-      ctx.beginPath();
-      ctx.arc(0.22, 0.13, 0.045, 0, Math.PI * 2);
-      paint(ctx, INK.oxblood, { lw: 0.012 });
-      ctx.restore();
+      // His paperwork on the lid, sorted for the new job: the cellar book on
+      // a clipboard (every 1974 ticked off) and a train timetable.
+      const lz = 0.805 + bulge;
+      sheet(ctx, 6.42, 6.5, lz, 0.4, 0.5, 0.12, OAK_D);
+      sheet(ctx, 6.42, 6.52, lz + 0.004, 0.34, 0.42, 0.12, PAPER, (g) => {
+        words(g, 'CELLAR BOOK', 0, -0.15, 0.04, PEN, { weight: 700 });
+        scrawl(g, -0.14, 0.06, -0.09, 0.045, 6, PEN, 3);
+        g.beginPath(); // the ticks
+        for (let i = 0; i < 6; i++) { const b = -0.09 + i * 0.045; g.moveTo(0.09, b - 0.005); g.lineTo(0.105, b + 0.012); g.lineTo(0.14, b - 0.02); }
+        g.strokeStyle = INK.oxblood;
+        g.lineWidth = 0.013;
+        g.stroke();
+      });
+      sheet(ctx, 6.42, 6.32, lz + 0.008, 0.16, 0.05, 0.12, MAT.brass); // the clip
+      sheet(ctx, 6.78, 6.98, lz + 0.004, 0.17, 0.38, -0.42, PAPER_OLD, (g) => {
+        g.fillStyle = INK.oxblood;
+        g.fillRect(-0.085, -0.19, 0.17, 0.06);
+        words(g, 'TRAINS', 0, -0.16, 0.035, PAPER_OLD, { weight: 700 });
+        g.beginPath(); // the grid of times
+        for (let a = -0.05; a < 0.08; a += 0.05) { g.moveTo(a, -0.11); g.lineTo(a, 0.17); }
+        g.strokeStyle = alpha(INK.stormNavy, 0.3);
+        g.lineWidth = 0.008;
+        g.stroke();
+        scrawl(g, -0.07, 0.07, -0.09, 0.03, 9, PEN, 7, 0.009);
+      });
     }, { anim: true });
+
+    // More of it, slid off the end of the trunk onto the floor: the wine
+    // list, the Lord's reference for him, his resignation (dated, signed:
+    // a find), the paper, his laundry list and two luggage labels.
+    // Only one of them is a letter he signed.
+    R.rug((ctx) => {
+      const z = 0.006;
+      sheet(ctx, 7.5, 5.12, z, 0.26, 0.38, 0.2, mix(PAPER_OLD, INK.candleGold, 0.25), (g) => {
+        words(g, 'WINES', 0, -0.14, 0.06, INK.oxblood, { font: DISPLAY, weight: 400 });
+        g.setLineDash([0.012, 0.02]);
+        scrawl(g, -0.1, 0.1, -0.07, 0.04, 6, alpha(INK.oxblood, 0.7), 11);
+        g.setLineDash([]);
+      });
+      // The Lord's reference: his crest at the top, "B.G." at the bottom, no date.
+      sheet(ctx, 8.2, 5.28, z, 0.33, 0.44, -0.38, PAPER, (g) => {
+        g.beginPath(); // the crest, a little shield
+        g.moveTo(-0.04, -0.19); g.lineTo(0.04, -0.19); g.lineTo(0.04, -0.145); g.lineTo(0, -0.115); g.lineTo(-0.04, -0.145);
+        g.closePath();
+        paint(g, INK.oxblood, { lw: 0.008 });
+        scrawl(g, -0.13, 0.13, -0.075, 0.038, 6, PEN, 5);
+        words(g, 'B.G.', 0.08, 0.175, 0.065, INK.stormNavy, { weight: 'italic 600' });
+      });
+      // The resignation: dated at the top, "Sir," and signed Jenkins.
+      sheet(ctx, 7.72, 5.86, z, 0.33, 0.44, 0.28, PAPER, (g) => {
+        words(g, 'LAST WEEK', 0.1, -0.185, 0.04, INK.stormNavy, { weight: 700 }); // the date: his alibi
+        words(g, 'Sir,', -0.11, -0.125, 0.045, INK.stormNavy, { weight: 'italic 600' });
+        scrawl(g, -0.13, 0.13, -0.07, 0.038, 5, PEN, 2);
+        words(g, 'Jenkins', 0.03, 0.165, 0.08, INK.stormNavy, { weight: 'italic 600' });
+      });
+      // The evening paper, folded, over a corner of it.
+      sheet(ctx, 8.22, 5.92, z, 0.5, 0.36, -0.12, NEWS, (g) => {
+        g.fillStyle = alpha(INK.stormNavy, 0.8);
+        g.fillRect(-0.23, -0.16, 0.46, 0.055);
+        words(g, 'GALE WARNING', 0, -0.132, 0.036, NEWS, { weight: 800 });
+        g.fillStyle = alpha(INK.stormNavy, 0.3);
+        g.fillRect(-0.22, -0.08, 0.14, 0.11); // a photo
+        scrawl(g, -0.06, 0.22, -0.07, 0.028, 5, alpha(INK.stormNavy, 0.4), 13, 0.01);
+        scrawl(g, -0.22, 0.22, 0.07, 0.028, 4, alpha(INK.stormNavy, 0.4), 17, 0.01);
+      });
+      // The laundry list, torn from a pad.
+      sheet(ctx, 7.3, 6.5, z, 0.17, 0.27, 0.55, mix(PAPER, INK.verdigris, 0.12), (g) => {
+        words(g, 'SOCKS x6', 0, -0.095, 0.032, PEN, { weight: 700 });
+        scrawl(g, -0.06, 0.06, -0.04, 0.035, 4, PEN, 23);
+      });
+      // Luggage labels, strings and all.
+      for (const [lx, ly, rot] of [[8.72, 5.5, 0.9], [7.18, 5.62, -0.6]]) {
+        sheet(ctx, lx, ly, z, 0.12, 0.2, rot, PAPER_OLD, (g) => {
+          g.beginPath();
+          g.arc(0, -0.07, 0.015, 0, Math.PI * 2);
+          g.moveTo(0, -0.07); g.quadraticCurveTo(0.09, -0.16, 0.03, -0.24);
+          g.strokeStyle = INK.oxblood;
+          g.lineWidth = 0.01;
+          g.stroke();
+          scrawl(g, -0.04, 0.04, 0, 0.03, 2, PEN, 29);
+        });
+      }
+    });
 
     // The case of 1974 he's working through, lid off, "for my funeral".
     const CASE = { x: SX + 0.9, y: SY - 1.45, w: 0.9, d: 0.6, h: 0.42 };
@@ -1746,7 +1836,7 @@ export default {
     });
 
     // ---------- Finds ----------
-    R.find({ id: 'resignation', label: "Jenkins's resignation letter", at: [6.2, 6.6, 0.95], r: 0.7 });
+    R.find({ id: 'resignation', label: "Jenkins's resignation letter", at: [7.72, 5.86, 0.02], r: 0.6 });
     R.find({ id: 'poster', label: 'A poster about a missing goose', at: [13, 0.05, 3], r: 0.8 });
   },
 };
