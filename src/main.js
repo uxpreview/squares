@@ -186,9 +186,13 @@ window.addEventListener('resize', () => {
 async function boot() {
   try {
     await Promise.race([
+      // Every weight the HUD uses: the map is framed around the text, so it
+      // shouldn't change size after the camera has settled.
       Promise.all([
         document.fonts.load('20px "Bagel Fat One"'),
         document.fonts.load('20px "Rethink Sans"'),
+        document.fonts.load('600 20px "Rethink Sans"'),
+        document.fonts.load('700 20px "Rethink Sans"'),
       ]),
       new Promise((r) => setTimeout(r, 1500)),
     ]);

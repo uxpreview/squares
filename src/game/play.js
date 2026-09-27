@@ -40,6 +40,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     thingsPill: $('tally-things-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
   };
 
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  const themeDefault = themeColor ? themeColor.content : '';
+
   let world = null;
   let mode = 'overview';
   let current = -1;
@@ -65,10 +68,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (!active && attractInsets) return attractInsets();
     const { vw, vh } = view;
     const wide = vw >= 900;
-    let top = 72;
-    // In the overview the place name is big on phones; frame the map below it.
-    if (mode !== 'zone' && !wide && vh > vw) top = Math.max(top, ui.place.offsetTop + ui.place.offsetHeight + 12);
-    let bottom = 76, left = 16, right = 16;
+    let top = 72, bottom = 76, left = 16, right = 16;
+    if (mode !== 'zone') {
+      // On a phone the overview frames the map between the place name and the
+      // hint (measured, so it's snug whatever the name).
+      const shown = (el) => el.getClientRects().length > 0;
+      if (!wide && shown(ui.place)) top = Math.max(56, ui.place.offsetTop + ui.place.offsetHeight + 12);
+      if (shown(ui.hint) && ui.hint.textContent) bottom = Math.max(40, vh - ui.hint.offsetTop + 10);
+    }
     if (mode === 'zone' && !ui.roombar.hidden) {
       // Frame the zone around the tray as it rests (peek or hidden). The open
       // sheet is for reading and sits over the scene without moving the camera.
@@ -83,20 +90,54 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       }
     }
     // Keep the map clear of the floor switch: it's on the left on wide screens,
-    // on the right on short ones (landscape phones), and out of the way on phones.
+    // on the right on short ones (landscape phones), and along the bottom on
+    // upright phones.
     if (hasStoreys() && !ui.storeys.hidden) {
-      const r = ui.storeys.getBoundingClientRect();
-      if (r.width && r.right < vw / 2 && (wide || vh < 500)) left = Math.max(left, r.right + 12);
-      else if (r.width && r.left > vw / 2 && vh < 500) right = Math.max(right, vw - r.left + 12);
+      const el = ui.storeys, r = el.getBoundingClientRect();
+      if (!r.width) { /* hidden by the layout (a phone, in a room) */ }
+      else if (r.right < vw / 2 && (wide || vh < 500)) left = Math.max(left, r.right + 12);
+      else if (r.left > vw / 2 && vh < 500) right = Math.max(right, vw - r.left + 12);
+      else if (el.offsetTop > vh / 2 && !wide) bottom = Math.max(bottom, vh - el.offsetTop + 10);
     }
     return { top, bottom, left, right };
   }
 
-  const overviewView = () => camera.fit(world.overviewBox(view.vw < view.vh, world.storeys[storey]?.id, view.vh < 500), insets());
-  const zoneView = (i) => camera.fit(world.zoneBox(world.zones[i]), insets(), 0.5);
-  const zoneModeZ = () => zoneView(current >= 0 ? current : world.order[0]).z * 0.55;
+  // The whole map: every zone, and what the overview frames on any screen.
+  // The camera keeps it on screen (soft edges), so panning can't lose it.
+  let boxFor = null, box = null;
+  function mapBox() {
+    const key = world.id + '/' + storey;
+    if (boxFor === key) return box;
+    const id = world.storeys[storey]?.id;
+    const all = [world.overviewBox(true, id, false), world.overviewBox(false, id, false), world.overviewBox(false, id, true),
+      ...world.zones.map((z) => world.zoneBox(z))];
+    box = [Math.min(...all.map((b) => b[0])), Math.max(...all.map((b) => b[1])), Math.min(...all.map((b) => b[2])), Math.max(...all.map((b) => b[3]))];
+    boxFor = key;
+    return box;
+  }
+  // The screen area it's framed in, remembered until the UI around the map
+  // changes: the edges ask on every frame of a drag, and measuring isn't free.
+  let insetsKey = '', insetsNow = null;
+  function edgeInsets() {
+    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.hint.hidden, ui.storeys.hidden, ui.roombar.hidden].join();
+    if (key !== insetsKey) { insetsKey = key; insetsNow = insets(); }
+    return insetsNow;
+  }
+  camera.setBounds(() => (active && world ? { box: mapBox(), insets: edgeInsets() } : null));
+
+  // Framings land inside the map's edges, so the camera never has to spring back.
+  const overviewView = () => camera.clamp(camera.fit(world.overviewBox(view.vw < view.vh, world.storeys[storey]?.id, view.vh < 500), insets()));
+  const zoneView = (i) => camera.clamp(camera.fit(world.zoneBox(world.zones[i]), insets(), 0.5));
+  // Zoomed in this far, a tap looks for finds (and panning lands you in a
+  // room). A phone's overview fills the screen, so it sits above that; a
+  // room's own framing is always past it.
+  function zoneModeZ() {
+    const room = zoneView(current >= 0 ? current : world.order[0]).z;
+    return Math.min(room * 0.9, Math.max(room * 0.55, overviewView().z * 1.25));
+  }
   function clampZoom(z) {
-    const lo = overviewView().z * 0.6, hi = zoneView(world.order[0]).z * 3.5;
+    // Out: until the whole map fits. In: well into a room.
+    const lo = Math.min(overviewView().z, camera.fit(mapBox(), insets()).z), hi = zoneView(world.order[0]).z * 3.5;
     return Math.max(lo, Math.min(hi, z));
   }
 
@@ -675,6 +716,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     buildStoreys();
     // A place printed on a dark plate (a night) needs its loose text on chips.
     document.body.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
+    // The page and the browser's bars take the place's paper, so a night has
+    // no strip of daylight at the top of a phone.
+    const paper = world.map.plate && world.map.plate.paper;
+    if (paper) document.documentElement.style.setProperty('--plate', paper);
+    else document.documentElement.style.removeProperty('--plate');
+    if (themeColor) themeColor.content = paper || themeDefault;
     tray.use({ rooms: world.zones, order: world.order });
     setPlaceTitle(world.map.name, world.map.tagline);
     ui.hint.textContent = words().hint;

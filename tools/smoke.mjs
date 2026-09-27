@@ -194,6 +194,22 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.goto(base + '#/block');
   await ready(page);
   await wait(page, 800);
+
+  // On a phone the map fills the screen: The Block runs off the sides, a swipe away.
+  const swipe = await S(page, () => { const r = window.__squares.camera.range(); return r ? r.x1 - r.x0 : 0; });
+  check('on a phone the map fills the screen, running off the sides', swipe > 20, 'room to swipe: ' + Math.round(swipe));
+  // Soft edges: from the left edge, drag further left and it gives; let go and it springs back.
+  const offBy = () => S(page, () => { const s = window.__squares, c = s.camera.clamp(s.cam); return Math.hypot(c.x - s.cam.x, c.y - s.cam.y); });
+  await S(page, () => { const s = window.__squares; s.camera.jumpTo(s.camera.clamp({ x: -1e3, y: s.cam.y, z: s.cam.z })); });
+  await page.mouse.move(60, 420);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) { await page.mouse.move(60 + i * 30, 420); await wait(page, 16); }
+  const past = await offBy();
+  await wait(page, 150);
+  await page.mouse.up();
+  await wait(page, 1400);
+  const after = await offBy();
+  check('dragged past its edge the map gives, and springs back', past > 1 && after < 0.01, `past ${past.toFixed(1)}, after ${after.toFixed(3)}`);
   await S(page, () => {
     const s = window.__squares;
     for (const z of s.world.zones) s.play.markFound(z, z.finds.find((f) => f.goose));

@@ -260,6 +260,7 @@ export function createTray(o) {
   // The tray's box in a given state, measured without showing it.
   function rectFor(s) {
     const cur = el.tray.dataset.state;
+    if (cur === s) return el.tray.getBoundingClientRect();
     el.tray.dataset.state = s;
     const r = el.tray.getBoundingClientRect();
     el.tray.dataset.state = cur;
