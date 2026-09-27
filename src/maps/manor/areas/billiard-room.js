@@ -154,7 +154,7 @@ const CANDLE = [12.86, 12.86]; // on the near corner, by the pot
 const LAMP_Z = 3.1; // the billiard lamp's bar, low over the table
 const DECK = [12.72, 12.02];
 const SLEEVE = [13.3, 11.55, 1.4];
-// Patience: six piles, clear of the pawn ticket in the far corner.
+// Patience: six piles, clear of Rupert's paperwork in the far corner.
 const TAB = [[11.55, 12.22], [11.9, 12.22], [12.25, 12.22], [11.55, 12.62], [11.9, 12.62], [12.25, 12.62]];
 const RUP_CARD = (j) => [10.95, 11.98 + j * 0.16];
 const OWN_CARD = (j) => [12.5, 11.4 + j * 0.16];
@@ -410,30 +410,115 @@ function deedScroll(ctx, x, y, z) {
     if (Q.detail) dot(g, -0.01, 0, 0.03, INK.oxblood);
   });
 }
-// A pawnshop ticket: a manila tag with a number and a string.
-function pawnTicket(ctx) {
-  onFlat(ctx, 11.2, 11.2, TOP + 0.005, -0.45, (g) => {
+// Rupert's paperwork, in a heap by his elbow: IOUs, a betting slip, the
+// scorecard, the last of his banknotes, and somewhere in it the pawn ticket.
+// Only the ticket is a tag (clipped corners, a string through an eyelet, the
+// pawnbroker's three balls); everything else is a plain oblong.
+const NOTE = mix(INK.bone, INK.verdigris, 0.3);
+function slip(g, w, h, color) {
+  g.beginPath();
+  g.rect(-w / 2, -h / 2, w, h);
+  paint(g, color, { lw: 0.016 });
+}
+function inkLines(g, rows, x0, x1, color = alpha(C.ink, 0.45), lw = 0.012) {
+  g.beginPath();
+  for (const y of rows) { g.moveTo(x0, y); g.lineTo(x1, y); }
+  g.strokeStyle = color;
+  g.lineWidth = lw;
+  g.stroke();
+}
+function iou(ctx, x, y, rot, seed) {
+  onFlat(ctx, x, y, TOP + 0.004, rot, (g) => {
+    slip(g, 0.3, 0.19, INK.bone);
+    if (!Q.detail) return;
+    words(g, 'IOU', -0.07, -0.04, 0.07, INK.oxblood);
+    words(g, seed ? '£50' : '£200', 0.07, -0.04, 0.05, C.ink, { font: SANS });
+    // his signature, a scrawl
+    g.beginPath();
+    g.moveTo(-0.1, 0.05);
+    for (let i = 1; i <= 6; i++) g.lineTo(-0.1 + i * 0.03, 0.05 + (i % 2 ? -0.025 : 0.01) * (1 + hash(seed, i)));
+    g.strokeStyle = C.ink;
+    g.lineWidth = 0.01;
+    g.stroke();
+  });
+}
+function paperPile(ctx) {
+  // the scorecard for the cards: two columns, and only one of them adds up
+  onFlat(ctx, 10.97, 10.86, TOP + 0.003, 0.15, (g) => {
+    slip(g, 0.26, 0.36, INK.bone);
+    if (!Q.detail) return;
+    inkLines(g, [-0.1, -0.04, 0.02, 0.08, 0.14], -0.11, 0.11);
+    g.beginPath();
+    g.moveTo(0, -0.16); g.lineTo(0, 0.16);
+    g.strokeStyle = alpha(C.ink, 0.45);
+    g.lineWidth = 0.012;
+    g.stroke();
+    words(g, 'R', -0.055, -0.13, 0.05, C.ink, { font: SANS });
+    words(g, 'C', 0.055, -0.13, 0.05, C.ink, { font: SANS });
+    for (let i = 0; i < 4; i++) words(g, '0', -0.055, -0.07 + i * 0.06, 0.04, INK.oxblood, { font: SANS });
+    for (let i = 0; i < 4; i++) words(g, String(20 + i * 17), 0.055, -0.07 + i * 0.06, 0.04, C.ink, { font: SANS });
+  });
+  iou(ctx, 11.7, 10.95, -0.35, 0);
+  iou(ctx, 10.88, 11.58, 0.55, 1);
+  // a betting slip for a horse that is still running
+  onFlat(ctx, 11.76, 11.5, TOP + 0.004, 0.3, (g) => {
+    slip(g, 0.32, 0.2, MANILA);
+    if (!Q.detail) return;
+    words(g, 'SLOW COACH', -0.02, -0.05, 0.045, C.ink, { font: SANS, max: 0.2 });
+    words(g, '100-1', 0.09, 0.05, 0.05, INK.oxblood);
+    inkLines(g, [0.02, 0.07], -0.13, 0.02);
+  });
+  // two banknotes, his last
+  for (const [x, y, rot] of [[11.44, 11.93, 0.2], [11.52, 11.86, -0.12]]) {
+    onFlat(ctx, x, y, TOP + 0.005, rot, (g) => {
+      slip(g, 0.36, 0.19, NOTE);
+      if (!Q.detail) return;
+      g.strokeStyle = shade(NOTE, 0.35);
+      g.lineWidth = 0.012;
+      g.strokeRect(-0.155, -0.07, 0.31, 0.14);
+      g.beginPath();
+      g.ellipse(0, 0, 0.045, 0.055, 0, 0, Math.PI * 2);
+      paint(g, shade(NOTE, 0.2), { lw: 0.01 });
+      words(g, '5', -0.12, -0.04, 0.05, C.ink);
+      words(g, '5', 0.12, 0.04, 0.05, C.ink);
+    });
+  }
+  // The pawn ticket, on top of an IOU. (His alibi is the date: the case file
+  // says it's dated tomorrow.)
+  onFlat(ctx, 11.15, 11.33, TOP + 0.006, -0.5, (g) => {
     if (Q.detail) {
       g.beginPath();
-      g.moveTo(-0.26, 0);
-      g.bezierCurveTo(-0.42, -0.02, -0.4, 0.2, -0.52, 0.16);
-      g.bezierCurveTo(-0.62, 0.12, -0.55, -0.05, -0.66, -0.08);
+      g.moveTo(-0.14, 0);
+      g.bezierCurveTo(-0.22, -0.01, -0.2, 0.11, -0.28, 0.09);
+      g.bezierCurveTo(-0.34, 0.07, -0.3, -0.03, -0.37, -0.05);
       g.strokeStyle = INK.oxblood;
-      g.lineWidth = 0.025;
+      g.lineWidth = 0.016;
       g.stroke();
     }
     g.beginPath();
-    g.moveTo(-0.28, -0.07); g.lineTo(-0.2, -0.15); g.lineTo(0.28, -0.15); g.lineTo(0.28, 0.15); g.lineTo(-0.2, 0.15); g.lineTo(-0.28, 0.07);
+    g.moveTo(-0.18, -0.04); g.lineTo(-0.13, -0.09); g.lineTo(0.17, -0.09); g.lineTo(0.17, 0.09); g.lineTo(-0.13, 0.09); g.lineTo(-0.18, 0.04);
     g.closePath();
-    paint(g, MANILA, { lw: 0.025 });
+    paint(g, MANILA, { lw: 0.016 });
     g.beginPath();
-    g.arc(-0.2, 0, 0.035, 0, Math.PI * 2);
-    paint(g, INK.bone, { lw: 0.015 });
+    g.arc(-0.135, 0, 0.022, 0, Math.PI * 2);
+    paint(g, INK.bone, { lw: 0.01, stroke: MAT.brassDark });
     if (!Q.detail) return;
-    // (His alibi is the date: the case file says it's dated tomorrow.)
-    words(g, 'No 73', -0.01, -0.06, 0.1, C.ink);
-    words(g, 'TOMORROW', 0.04, 0.07, 0.06, INK.oxblood);
-    dot(g, 0.22, -0.07, 0.03, alpha(INK.oxblood, 0.8)); // the pawnbroker's stamp
+    // the tear-off stub, and the pawnbroker's three balls
+    g.setLineDash([0.015, 0.012]);
+    g.beginPath();
+    g.moveTo(-0.08, -0.09); g.lineTo(-0.08, 0.09);
+    g.strokeStyle = alpha(C.ink, 0.6);
+    g.lineWidth = 0.008;
+    g.stroke();
+    g.setLineDash([]);
+    inkLines(g, [-0.06], 0.095, 0.155, C.ink, 0.01);
+    for (const [bx, by] of [[0.105, -0.035], [0.145, -0.035], [0.125, -0.005]]) {
+      g.beginPath();
+      g.arc(bx, by, 0.018, 0, Math.PI * 2);
+      paint(g, MAT.brass, { lw: 0.008 });
+    }
+    words(g, 'No 73', 0.0, -0.035, 0.05, C.ink);
+    words(g, 'TOMORROW', 0.035, 0.045, 0.032, INK.oxblood, { font: SANS });
   });
 }
 
@@ -1289,12 +1374,14 @@ export default {
       box(ctx, x0 + 0.1, y0 + 0.1, 0.78, s - 0.2, s - 0.2, 0.18, WOOD, { dotsL: MAT.mahoganyDark });
       box(ctx, x0, y0, 0.95, s, s, 0.07, WOOD, { top: tint(WOOD, 0.1), flat: true });
       rect(ctx, x0 + 0.18, y0 + 0.18, s - 0.36, s - 0.36, 1.021, BAIZE, { lw: 0.02, dots: shade(BAIZE, 0.25), density: 0.12 });
-      pawnTicket(ctx);
       for (const c of cardsAt(tt)) card(ctx, c);
       // the candle's brass saucer (the flame is a light, so it burns in the dark)
       cylinder(ctx, CANDLE[0], CANDLE[1], TOP, 0.13, 0.03, MAT.brass, { flat: true });
     }, { anim: true, depth: 23.2 });
     candle(R, CANDLE[0], CANDLE[1], TOP + 0.03, 7, { r: 2.4 });
+    // Rupert's heap of paper (static, so it sits just above the table's baize
+    // and under anything in the pot).
+    R.thing(11.3, 11.3, paperPile, { depth: 23.25 });
 
     // Rupert's chair (he's on the evening's clock; the engine sits him in it).
     R.thing(9.8, 11.8, (ctx) => cardChair(ctx, 9.4, 11.4, 'px'), { depth: 21.2 });
@@ -1546,7 +1633,7 @@ export default {
     R.dark((t) => house.dark(t));
 
     // ---------- Finds ----------
-    R.find({ id: 'pawn-ticket', label: 'A pawn ticket', at: [11.2, 11.2, 1.05], r: 0.7 });
+    R.find({ id: 'pawn-ticket', label: 'A pawn ticket', at: [11.15, 11.33, 1.04], r: 0.6 });
     R.find({ id: 'shoes', label: "Rupert's shoes", at: (t) => { const [x, y, z] = shoesAt(lt(t)); return [x, y, z + 0.14]; }, r: 0.8 });
   },
 };
