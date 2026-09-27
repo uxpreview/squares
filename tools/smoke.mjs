@@ -230,6 +230,13 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.goto(base + '#/manor');
   await ready(page);
   await wait(page, 1200);
+  // The page is night from the first frame (index.html), the same night the map prints on.
+  const early = await S(page, async () => {
+    const html = await (await fetch('index.html')).text();
+    const m = html.match(/plates = \{ manor: '(#[0-9A-Fa-f]{6})'/);
+    return [m && m[1], window.__squares.world.map.plate.paper];
+  });
+  check("index.html paints the page in the Manor's plate before it draws", early[0] === early[1], JSON.stringify(early));
   const floors = await page.$$eval('#storeys button', (bs) => bs.map((b) => [b.textContent, b.getAttribute('aria-pressed')]));
   check('a house shows a floor switch, top floor first', floors.length === 3 && floors[0][0] === 'Upstairs' && floors[1][1] === 'true', JSON.stringify(floors));
   const lifted = () => S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.veil * 100) / 100])));

@@ -10,6 +10,19 @@
 <meta property="og:description" content="A hidden-object picture book you can walk through. Every place has a loose goose.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
+<script>
+  // A place printed on something other than paper (the Manor's night) colors
+  // the page before anything draws: iOS Safari picks its bar colors early and
+  // doesn't always look again. Must match each map's plate.paper (the smoke
+  // test checks); play.js sets it for good once the map loads.
+  (function () {
+    var plates = { manor: '#1F2749' };
+    var p = plates[location.hash.split('/')[1]];
+    if (!p) return;
+    document.documentElement.style.setProperty('--plate', p);
+    document.querySelector('meta[name="theme-color"]').content = p;
+  })();
+</script>
 </head>
 <body data-screen="title" data-mode="overview">
 <canvas id="map" aria-label="An isometric map of tiny animated places. Tap a place to step inside, then tap hidden things to circle them."></canvas>

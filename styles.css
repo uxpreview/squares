@@ -865,6 +865,16 @@ button.group-head:active { transform: none; }
   pointer-events: none;
   padding-bottom: calc(var(--safe-bottom) + 22px);
 }
+/* Tucked away it's just the pill, floating clear of the bottom edge. iOS
+   Safari (26+) colors its toolbar after whatever fixed box touches the bottom
+   of the screen, so a full-width tray here turned the bar behind it into a
+   strip of paper under the night. */
+.tray[data-dock="bottom"][data-state="hidden"] {
+  bottom: calc(var(--safe-bottom) + 22px);
+  width: fit-content;
+  padding-bottom: 0;
+  overflow: visible;
+}
 .tray[data-state="hidden"] .tray-head,
 .tray[data-state="hidden"] .chips,
 .tray[data-state="hidden"] .tray-full { display: none; }
