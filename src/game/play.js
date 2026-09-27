@@ -1,14 +1,15 @@
 // Playing a map: moving between the whole map and one zone, tapping to find
-// things, hints, the tallies, the room bar, the story, the floor tags, and
-// what happens when you find everything. One play controller serves every map;
+// things, hints, the tallies, the room bar, the story, the lift, and what
+// happens when you find everything. One play controller serves every map;
 // load() swaps maps.
 //
 // Screen modes (body[data-mode]):
-//   overview - the whole map, with its name and a hint line
+//   overview - the whole map, with its name (and, on a first visit, an
+//              invitation pinned to a room: where to start)
 //   zone     - one zone framed, with the room bar and the find list (tray)
 //
 // Maps with named storeys (map.storeys) show one storey at a time in the
-// overview, with the ones above lifted away; tags on the house go up and down.
+// overview, with the ones above lifted away; a lift panel changes floors.
 //
 // A whodunit (a map with a case file, see src/game/case.js) swaps the things
 // tally for a Case button, calls its finds evidence or curiosities, and ends
@@ -33,7 +34,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const $ = (id) => document.getElementById(id);
   const ui = {
     hud: $('hud'), place: $('place'), placeName: $('place-name'), placeTag: $('place-tagline'),
-    hint: $('hint'), toast: $('toast'), geese: $('tally-geese'), things: $('tally-things'),
+    invite: $('invite'), inviteTitle: $('invite-title'), inviteText: $('invite-text'), ring: $('invite-ring'), safe: $('safe'),
+    toast: $('toast'), geese: $('tally-geese'), things: $('tally-things'),
     roombar: $('roombar'), prev: $('prev'), next: $('next'),
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
     places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
@@ -47,6 +49,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let mode = 'overview';
   let current = -1;
   let storey = 0; // the storey the overview shows (index into world.storeys)
+  let entered = false; // stepped into a room of this place yet (this visit)
   let active = false; // false while the title or picker is up (the map idles behind)
   let attractInsets = null;
   let parade = 0; // when the all-geese victory lap started
@@ -54,15 +57,23 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const hints = []; // pulsing "look around here" rings
   const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
   const seenStory = new Set();
-  const debug = { finds: false }; // QA: ring every find that's still hidden
+  const debug = { finds: false, calls: 0 }; // QA: ring every find that's still hidden; tests: honks so far
   const hasStoreys = () => !!(world && world.map.storeys && world.storeys.length > 1);
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
-  const words = () => ({ zone: 'room', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
+  const words = () => ({ zone: 'room', invite: '', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
 
   // ---------- Framing ----------
+  // The phone's home bar, in px (it only changes with the screen's size).
+  let safeFor = '', safeNow = 0;
+  function safeBottom() {
+    const key = view.vw + 'x' + view.vh;
+    if (key !== safeFor) { safeFor = key; safeNow = parseFloat(getComputedStyle(ui.safe).paddingBottom) || 0; }
+    return safeNow;
+  }
+
   // The screen area the map gets, after the UI chrome around it.
   function insets() {
     if (!active && attractInsets) return attractInsets();
@@ -70,11 +81,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const wide = vw >= 900;
     let top = 72, bottom = 76, left = 16, right = 16;
     if (mode !== 'zone') {
-      // On a phone the overview frames the map between the place name and the
-      // hint (measured, so it's snug whatever the name).
+      // On a phone the overview frames the map under the place name (measured,
+      // so it's snug whatever the name), with a strip at the bottom that
+      // browsers float their bars over. The lift sits in a corner, over the
+      // edge of the picture, and doesn't push it.
       const shown = (el) => el.getClientRects().length > 0;
       if (!wide && shown(ui.place)) top = Math.max(56, ui.place.offsetTop + ui.place.offsetHeight + 12);
-      if (shown(ui.hint) && ui.hint.textContent) bottom = Math.max(40, vh - ui.hint.offsetTop + 10);
+      bottom = safeBottom() + (vh < 500 ? 32 : 48);
     }
     if (mode === 'zone' && !ui.roombar.hidden) {
       // Frame the zone around the tray as it rests (peek or hidden). The open
@@ -110,7 +123,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // changes: the edges ask on every frame of a drag, and measuring isn't free.
   let insetsKey = '', insetsNow = null;
   function edgeInsets() {
-    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.hint.hidden, ui.roombar.hidden].join();
+    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.roombar.hidden].join();
     if (key !== insetsKey) { insetsKey = key; insetsNow = insets(); }
     return insetsNow;
   }
@@ -137,12 +150,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const changed = current !== i || mode !== 'zone';
     current = i;
     mode = 'zone';
+    entered = true;
     // Stepping into a room takes you to its floor (outdoors keeps the one you had).
     if (!world.zones[i].fixed) storey = world.zones[i].storey;
     document.body.dataset.mode = 'zone';
     renderFloors();
     renderBack();
-    ui.hint.hidden = true;
+    renderInvite();
     ui.roombar.hidden = false;
     tray.show(true);
     renderRoomBar();
@@ -154,7 +168,25 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       // The story shows the first time you arrive, then lives behind the zone name.
       if (!seenStory.has(zone.id)) { seenStory.add(zone.id); showStory(true, 5200); }
       else showStory(false);
+      closer();
     }
+  }
+
+  // Finds are small. A new player who has sat in a room for a while without
+  // finding anything, or zooming in, hears that they can look closer. Once.
+  const coarse = matchMedia('(pointer: coarse)');
+  let closerTimer = 0, closerSaid = false;
+  function closer() {
+    clearTimeout(closerTimer);
+    const none = () => { const p = store.progress(world); return p.geese + p.things === 0; };
+    if (closerSaid || !none()) return;
+    const w = world, i = current;
+    closerTimer = setTimeout(() => {
+      if (!active || world !== w || mode !== 'zone' || current !== i || !none() || camera.flying) return;
+      if (cam.z > zoneView(i).z * 1.15) return; // already looking closer
+      closerSaid = true;
+      toast(coarse.matches ? 'Things are small. Pinch to look closer.' : 'Things are small. Scroll to look closer.');
+    }, 12000);
   }
 
   function showOverviewUI() {
@@ -162,11 +194,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     mode = 'overview';
     current = -1;
     document.body.dataset.mode = 'overview';
-    ui.hint.hidden = !hintNow();
     ui.roombar.hidden = true;
     tray.show(false);
     renderFloors();
     renderBack();
+    renderInvite();
     showStory(false);
     layoutVars();
     if (changed && active) on.place(world.id, null);
@@ -182,68 +214,100 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     camera.flyTo(overviewView(), o.dur ?? 1.5);
   }
 
-  // ---------- Floors ----------
-  // Two tags pinned to the house: the floor above the one you're looking at and
-  // the floor below it ("Upstairs", "Cellar"). They ride along with the
-  // picture (placeFloors, every frame), so changing floors is something you do
-  // to the house rather than to a menu. The floor you're on is the solid one.
-  const ARROW = { up: 'M12 19V6M6.5 11.5L12 6l5.5 5.5', down: 'M12 5v13M6.5 12.5L12 18l5.5-5.5' };
-  const floorTags = {};
-  for (const dir of ['up', 'down']) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = `floor-tag floor-${dir}`;
-    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ARROW[dir]}" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span></span>`;
-    b.addEventListener('click', () => { userAct(); setStorey(storey + (dir === 'up' ? 1 : -1)); });
-    ui.floors.append(b);
-    floorTags[dir] = b;
+  // ---------- Floors: the lift ----------
+  // A lift panel in the corner, in thumb reach: every floor, the top one at
+  // the top, the one you're on lit. One press goes to any floor (with a ding)
+  // and the floors above lift away. It stays put rather than riding on the
+  // picture, so it never covers the house and always says where you are.
+  // Tapping a faded floor above still goes up, and PageUp and PageDown work.
+  let liftFor = null;
+  function buildLift() {
+    liftFor = world;
+    const rows = world.storeys.map((s, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lift-floor';
+      b.dataset.storey = s.id;
+      const name = document.createElement('span');
+      name.className = 'lift-name';
+      name.textContent = s.short || s.name;
+      const lamp = document.createElement('span');
+      lamp.className = 'lift-btn';
+      lamp.setAttribute('aria-hidden', 'true');
+      b.append(name, lamp);
+      b.addEventListener('click', () => { userAct(); setStorey(i); });
+      return b;
+    });
+    ui.floors.replaceChildren(...rows.reverse());
   }
 
   function renderFloors() {
     const show = active && hasStoreys() && mode !== 'zone';
     ui.floors.hidden = !show;
     if (!show) return;
-    for (const [dir, d] of [['up', 1], ['down', -1]]) {
-      const s = world.storeys[storey + d], b = floorTags[dir];
-      b.hidden = !s;
-      if (!s) continue;
-      b.lastChild.textContent = s.name;
-      b.setAttribute('aria-label', `${s.name}: the floor ${dir === 'up' ? 'above' : 'below'}`);
+    if (liftFor !== world) buildLift();
+    for (const b of ui.floors.children) {
+      const i = world.storeys.findIndex((s) => s.id === b.dataset.storey), here = i === storey;
+      if (here) b.setAttribute('aria-current', 'true');
+      else b.removeAttribute('aria-current');
+      b.setAttribute('aria-label', world.storeys[i].name + (here ? ', where you are' : ''));
     }
-    placeFloors();
   }
 
-  // Where a storey's rooms are on screen, as drawn (lifted floors included).
-  function storeyRect(k) {
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-    for (const z of world.zones) {
-      if (z.fixed || z.storey !== k) continue;
-      const [X0, X1, Y0, Y1] = world.zoneBox(z), l = z.lift || 0;
-      const [ax, ay] = camera.toScreen(X0, Y0 - l), [bx, by] = camera.toScreen(X1, Y1 - l);
-      x0 = Math.min(x0, ax); x1 = Math.max(x1, bx); y0 = Math.min(y0, ay); y1 = Math.max(y1, by);
-    }
-    return x0 < x1 ? { x0, x1, y0, y1 } : null;
+  // ---------- The invitation ----------
+  // A first visit to a place (nothing found yet, no room stepped into) gets a
+  // card pinned to a room on the map: where to start, and what a tap does,
+  // with a ring pinging where to tap. It rides along with the picture
+  // (placeInvite, every frame) and goes once you step into a room. A map says
+  // what it says (words.invite, words.hint) and where (invite: the zone, the
+  // spot the ring marks, and the pin the card points at, which by default is
+  // the same spot), in its map.js.
+  function inviteSpot() {
+    const inv = world.map.invite || {};
+    const i = inv.zone ? world.indexOf(inv.zone) : world.order[0];
+    const zone = world.zones[i];
+    if (!zone) return null;
+    const at = inv.at || [zone.w / 2, zone.d / 2, 0];
+    return { zone, at, pin: inv.pin || at };
   }
 
-  // Up sits on the top edge of the floor you're on, down on the bottom edge of
-  // the one below (the cellar, in the cut): each by the floor it leads to, and
-  // kept inside the part of the screen the map gets.
-  function placeFloors() {
-    if (ui.floors.hidden) return;
-    const s = edgeInsets(), { vw, vh } = view;
-    const put = (b, r, above) => {
-      if (b.hidden) return;
-      if (!r) { b.style.visibility = 'hidden'; return; }
-      const w = b.offsetWidth, h = b.offsetHeight;
-      const x = Math.max(s.left, Math.min(vw - s.right - w, (r.x0 + r.x1) / 2 - w / 2));
-      const y = Math.max(s.top, Math.min(vh - s.bottom - h, above ? r.y0 - h - 6 : r.y1 + 6));
-      b.style.visibility = '';
-      // (translate, not transform: a pressed button nudges its transform)
-      b.style.translate = `${Math.round(x)}px ${Math.round(y)}px`;
-    };
-    put(floorTags.up, storeyRect(storey), true);
-    put(floorTags.down, storeyRect(storey - 1), false);
+  function renderInvite() {
+    const p = world && store.progress(world);
+    const show = !!(active && mode === 'overview' && !entered && words().invite && p && p.geese + p.things === 0);
+    if (show) {
+      ui.inviteTitle.textContent = words().invite;
+      ui.inviteText.textContent = words().hint;
+      ui.invite.setAttribute('aria-label', `${words().invite}. ${words().hint}`);
+    }
+    ui.invite.hidden = !show;
+    ui.ring.hidden = !show;
+    placeInvite();
   }
+
+  function placeInvite() {
+    if (ui.invite.hidden) return;
+    const spot = inviteSpot();
+    // Its room on another floor (lifted away, or under the one showing):
+    // nothing to point at until you're back on its floor.
+    const away = !spot || lifted(spot.zone) || (hasStoreys() && !spot.zone.fixed && spot.zone.storey !== storey);
+    ui.invite.style.visibility = ui.ring.style.visibility = away ? 'hidden' : '';
+    if (away) return;
+    const { zone } = spot;
+    const screen = ([x, y, z]) => camera.toScreen(zone.anchor[0] + isoX(x, y), zone.anchor[1] - (zone.lift || 0) + isoY(x, y, z));
+    const [rx, ry] = screen(spot.at), [px, py] = screen(spot.pin);
+    const w = ui.invite.offsetWidth, h = ui.invite.offsetHeight, { vw } = view;
+    const left = Math.max(12, Math.min(vw - 12 - w, px - w / 2));
+    // (translate, not transform: the card bobs on its transform)
+    ui.invite.style.translate = `${Math.round(left)}px ${Math.round(py - h - (spot.pin === spot.at ? 22 : 12))}px`;
+    ui.invite.style.setProperty('--tip', Math.round(Math.max(22, Math.min(w - 22, px - left))) + 'px');
+    ui.ring.style.translate = `${Math.round(rx)}px ${Math.round(ry)}px`;
+  }
+  ui.invite.addEventListener('click', () => {
+    const spot = inviteSpot();
+    if (!spot || !active) return;
+    userAct();
+    enterZone(spot.zone.index);
+  });
 
   // Back goes up one level: from a room out to the whole place, from there to
   // the places.
@@ -253,16 +317,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ui.places.setAttribute('aria-label', inRoom ? `Back to ${words().whole.toLowerCase()}` : 'Back to the places');
   }
 
-  // The hint line says how to play until your first find in a place.
-  function hintNow() {
-    if (!words().hint) return false;
-    const p = store.progress(world);
-    return p.geese + p.things === 0;
-  }
-
   function setStorey(i) {
     if (!hasStoreys() || i < 0 || i >= world.storeys.length) return;
     const same = i === storey;
+    // The lift arriving: one ding going up, two going down.
+    if (!same) sound('ding', { down: i < storey });
     storey = i;
     renderFloors();
     if (mode === 'zone') toOverview({ dur: 1.2 });
@@ -384,6 +443,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pops.push({ zone, f, t0: now, kind: 'burst' });
     try { navigator.vibrate && navigator.vibrate(f.goose ? [18, 40, 18] : 12); } catch {}
     const p = renderTally();
+    renderInvite();
     if (mode === 'zone' && current >= 0) tray.render(current);
     const zoneDone = zone.finds.every((x) => isFound(zone, x));
     if (isCase()) { caseFound(zone, f, before, p, zoneDone); return; }
@@ -422,14 +482,17 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       pops.push({ zone, f, t0: performance.now(), kind: 'honk' });
       sound('honk');
     } else sound('pen');
+    // Your first piece of evidence says what the Case button is for.
+    const first = f.group === 'evidence' && p.evidence === 1;
     let msg;
     if (newSuspect) msg = `That's all ${newSuspect.clues} clues. The case file has a new suspect.`;
     else if (cleared) msg = `Evidence: ${cleared.name}'s alibi checks out.`;
     else if (f.goose) msg = 'HONK. You found the goose. It looks very innocent.';
+    else if (first) msg = 'Evidence! Tap Case to see who it points at.';
     else if (f.group === 'evidence') msg = `Evidence: ${lower(f.label)} (${p.evidence}/${world.totals.evidence})`;
     else msg = zoneDone ? `${zone.name}, all found.` : `Found: ${lower(f.label)}`;
     toast(msg);
-    if (f.group === 'evidence' || newSuspect) nudgeCase(!!newSuspect);
+    if (f.group === 'evidence' || newSuspect) nudgeCase(!!newSuspect || first);
     casefile.refresh();
   }
   const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -495,11 +558,69 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     setTimeout(() => { if (still()) { sound('honk'); on.complete(w); } }, reduceMotion ? 600 : 3000);
   }
 
+  // ---------- Geese calling ----------
+  // On the whole map, now and then a room that still hides its goose honks:
+  // where to look, without a word, and quiet once you've found it. Not in a
+  // whodunit, where the goose's room is a secret.
+  const CALL_EVERY = [3.2, 5.6]; // seconds between honks, at random in this range
+  let nextCall = 0, lastCaller = null;
+  function call(now) {
+    if (!active || !world || mode !== 'overview' || isCase() || reduceMotion || camera.flying) return;
+    if (now < nextCall) return;
+    const first = !nextCall;
+    nextCall = now + (CALL_EVERY[0] + Math.random() * (CALL_EVERY[1] - CALL_EVERY[0])) * 1000;
+    if (first) return; // the place is still inking in
+    const s = edgeInsets(), { vw, vh } = view;
+    const seen = (z) => {
+      const [sx, sy] = camera.toScreen(...callAt(z));
+      return sx > s.left + 20 && sx < vw - s.right - 20 && sy > s.top + 30 && sy < vh - s.bottom;
+    };
+    const left = world.zones.filter((z) => z !== lastCaller && !lifted(z) && z.finds.some((f) => f.goose && !isFound(z, f)) && seen(z));
+    if (!left.length) return;
+    lastCaller = left[Math.floor(Math.random() * left.length)];
+    pops.push({ kind: 'call', zone: lastCaller, t0: now });
+    debug.calls++;
+  }
+  // Over the middle of the room, about head height.
+  const callAt = (z) => [z.anchor[0] + isoX(z.w / 2, z.d / 2), z.anchor[1] - (z.lift || 0) + isoY(z.w / 2, z.d / 2, Math.min(z.h, 6) * 0.6)];
+
+  // A little "HONK!" in a speech bubble, like the signs in the rooms, sized in
+  // screen pixels so it reads at any zoom.
+  function callBubble(ctx, X, Y, age) {
+    const u = 1 / cam.z;
+    const grow = reduceMotion ? 1 : 1 - Math.pow(1 - Math.min(1, age / 0.22), 3);
+    const fade = Math.min(1, (1.5 - age) / 0.35);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.translate(X, Y - age * 10 * u);
+    ctx.scale(grow, grow);
+    ctx.font = `${14 * u}px "Bagel Fat One", "Arial Black", sans-serif`;
+    const text = 'HONK!';
+    const w = ctx.measureText(text).width + 18 * u, h = 26 * u, by = -h - 9 * u;
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, by, w, h, h / 2);
+    ctx.moveTo(-5 * u, by + h);
+    ctx.lineTo(0, 0);
+    ctx.lineTo(6 * u, by + h);
+    ctx.fillStyle = C.white;
+    ctx.fill();
+    ctx.lineWidth = 2 * u;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = C.ink;
+    ctx.stroke();
+    ctx.fillStyle = C.coral;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 0, by + h / 2 + 1 * u);
+    ctx.restore();
+  }
+
   // Sounds on the place's clock (thunder after lightning), heard between one
   // frame and the next. A jump in the clock (a tool, the reveal) plays nothing.
   let lastTick = null;
   function tick(t) {
-    placeFloors();
+    placeInvite();
+    call(performance.now());
     const cues = active && world && world.map.sound && world.map.sound.cues;
     if (!cues) { lastTick = null; return; }
     const loop = world.map.loop || 180;
@@ -584,8 +705,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     for (let i = pops.length - 1; i >= 0; i--) {
       const p = pops[i];
       const age = (now - p.t0) / 1000;
-      if (age > (p.kind === 'honk' ? 1.6 : p.kind === 'burst' ? 0.7 : 0.5)) { pops.splice(i, 1); continue; }
-      if (p.kind === 'burst') {
+      if (age > (p.kind === 'honk' ? 1.6 : p.kind === 'call' ? 1.5 : p.kind === 'burst' ? 0.7 : 0.5)) { pops.splice(i, 1); continue; }
+      if (p.kind === 'call') {
+        // (Gone if you've stepped into a room or left the place meanwhile.)
+        if (active && mode === 'overview' && !lifted(p.zone)) callBubble(ctx, ...callAt(p.zone), age);
+      } else if (p.kind === 'burst') {
         // A splash of ink flecks, in screen-sized units so it reads at any zoom.
         const [ax, ay] = p.zone.anchor;
         const [x, y, z] = findPos(p.f, t);
@@ -762,10 +886,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     world = w;
     mode = 'overview';
     current = -1;
+    entered = false;
     hints.length = 0;
     pops.length = 0;
     seenStory.clear();
     storey = world.defaultStorey;
+    nextCall = 0;
+    lastCaller = null;
     // A place printed on a dark plate (a night) needs its loose text on chips.
     document.body.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
     // The page and the browser's bars take the place's paper, so a night has
@@ -774,9 +901,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (paper) document.documentElement.style.setProperty('--plate', paper);
     else document.documentElement.style.removeProperty('--plate');
     if (themeColor) themeColor.content = paper || themeDefault;
+    // The lift can be the place's own (brass, at the Manor): map.lift.
+    const lift = world.map.lift || {};
+    for (const k of ['plate', 'ink', 'lamp']) {
+      if (lift[k]) document.body.style.setProperty('--lift-' + k, lift[k]);
+      else document.body.style.removeProperty('--lift-' + k);
+    }
     tray.use({ rooms: world.zones, order: world.order });
     setPlaceTitle(world.map.name, world.map.tagline);
-    ui.hint.textContent = words().hint;
     ui.geese.dataset.set = '';
     ui.things.dataset.set = '';
     ui.caseCount.dataset.set = '';
@@ -821,6 +953,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     showStory(false);
     tray.show(false);
     renderFloors();
+    renderInvite();
     mode = 'overview';
     current = -1;
     document.body.dataset.mode = 'overview';

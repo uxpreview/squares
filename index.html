@@ -29,6 +29,8 @@
 <div class="grain" aria-hidden="true"></div>
 <div class="edge edge-top" aria-hidden="true"></div>
 <div class="edge edge-bottom" aria-hidden="true"></div>
+<!-- Measures the phone's safe areas (the notch, the home bar) for framing. -->
+<div id="safe" class="safe-probe" aria-hidden="true"></div>
 
 <!-- ============ Title ============ -->
 <section id="title" class="screen title" aria-labelledby="wordmark" hidden>
@@ -99,11 +101,19 @@
     </button>
   </div>
 
-  <p id="hint" class="hint"></p>
+  <!-- A first visit: where to start, pinned to a room on the map (it rides
+       along with the picture) until you step into one. -->
+  <button id="invite" class="invite" type="button" hidden>
+    <span class="invite-card">
+      <span id="invite-title" class="invite-title"></span>
+      <span id="invite-text" class="invite-text"></span>
+    </span>
+  </button>
+  <span id="invite-ring" class="invite-ring" aria-hidden="true" hidden></span>
 
-  <!-- Places with floors: tags pinned to the house, to the floor above and the
-       floor below the one you're looking at. They ride along with the picture. -->
-  <nav id="floors" class="floors" aria-label="Floors" hidden></nav>
+  <!-- Places with floors: a lift panel in the corner, every floor on it, top
+       floor at the top, the one you're on lit. play.js builds the buttons. -->
+  <nav id="floors" class="lift" aria-label="Floors" hidden></nav>
 
   <!-- Inside a zone: where you are, its story, and getting around. -->
   <nav id="roombar" class="roombar" aria-label="Where you are" hidden>

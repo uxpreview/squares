@@ -173,9 +173,13 @@ export default {
   plate: { paper: PAPER },
   backdrop,
   sky,
+  // A first visit: a card pinned to a room says where to start (words.invite,
+  // words.hint). zone: the room it points into; at: where its ring pings.
+  invite: { zone: AREAS[0].id },
   words: {
     zone: 'room',
-    hint: 'Tap a room to step inside. Pinch or scroll to zoom.',
+    invite: 'Pick a room, any room',
+    hint: 'Tap one to step inside.',
     whole: 'The whole place',
     complete: 'Every goose, found.',
   },

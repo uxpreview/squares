@@ -122,7 +122,7 @@ try {
   const info = await page.evaluate(() => {
     const w = window.__squares.world, m = w.map;
     return {
-      id: w.id, name: m.name, tagline: m.tagline || '', words: m.words || {}, qa: m.qa || {},
+      id: w.id, name: m.name, tagline: m.tagline || '', words: m.words || {}, invite: m.invite || null, qa: m.qa || {},
       loop: m.loop || (w.walkers[0] && w.walkers[0].loop) || 60,
       storeys: m.storeys ? w.storeys.map((s) => ({ id: s.id, name: s.name })).reverse() : [], // top floor first
       defaultStorey: w.storeys[w.defaultStorey] ? w.storeys[w.defaultStorey].id : null,
@@ -163,7 +163,10 @@ try {
   const bad = (msg) => { copyOk = false; fail('copy', msg); };
   if (words(info.name) < 1 || words(info.name) > 3) bad(`The place's name "${info.name}" should be 1 to 3 words.`);
   if (info.tagline.length > 90) warn('copy', `The tagline is ${info.tagline.length} characters; under 90 reads better on a phone.`);
-  if (!info.words.hint) warn('copy', 'The map has no hint line (words.hint).');
+  // The invitation a first visit gets (words.invite, and words.hint under it): short enough for its card.
+  if (!info.words.invite || !info.words.hint) warn('copy', 'The map has no invitation for a first visit (words.invite and words.hint).');
+  else if (info.words.invite.length > 26 || info.words.hint.length > 40) warn('copy', `The invitation ("${info.words.invite}" / "${info.words.hint}") is long for its card on a phone: aim for under 26 and 40 characters.`);
+  if (info.invite && info.invite.zone && !info.zones.some((z) => z.id === info.invite.zone)) bad(`The invitation points into "${info.invite.zone}", which isn't one of the areas.`);
   const seen = new Map();
   for (const z of info.zones) {
     if (words(z.name) < 1 || words(z.name) > 3) bad(`${z.id}: the name "${z.name}" should be 1 to 3 words.`);

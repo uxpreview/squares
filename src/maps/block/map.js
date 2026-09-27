@@ -47,9 +47,13 @@ const order = ROOMS.map((r, i) => i).sort((a, b) => {
 export default {
   id: 'block',
   name: 'The Block',
-  tagline: 'Sixteen rooms. One loose goose.',
+  tagline: 'Sixteen rooms. One loose goose in each.',
   zones,
   order,
+  // A first visit: the invitation (words.invite, words.hint) is pinned to the
+  // top of the laundromat's back walls, in the middle of the block, so it
+  // doesn't cover the room; the ring pings in the middle of its floor.
+  invite: { zone: 'laundromat', pin: [0, 0, WALL] },
   cutaway: { front: true },
   // On a phone the block fills the screen instead of floating in paper: held
   // upright, the print fills the height (its marks just inside the top and
@@ -66,7 +70,8 @@ export default {
   sky,
   words: {
     zone: 'room',
-    hint: 'Tap a room to step inside. Pinch or scroll to zoom.',
+    invite: 'Pick a room, any room',
+    hint: 'Tap one to step inside.',
     whole: 'The whole block',
     complete: 'Every goose, found. The block thanks you.',
   },

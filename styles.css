@@ -457,59 +457,181 @@ button.tally-case:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var
 }
 .tally-sound svg { width: 18px; height: 18px; }
 #hud:not([hidden]) .tally { animation: fade-up 0.6s 0.2s cubic-bezier(.2, .8, .2, 1) both; }
-#hud:not([hidden]) .hint { animation: fade-up 0.6s 0.9s cubic-bezier(.2, .8, .2, 1) both; }
 
-.hint {
-  position: fixed;
-  left: var(--gutter);
-  bottom: calc(var(--safe-bottom) + 22px);
-  margin: 0;
-  max-width: calc(100% - 2 * var(--gutter));
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  pointer-events: none;
-}
+/* A place printed on a dark plate (a night): its loose text is printed in the
+   light ink, straight onto the night. */
+body[data-plate="night"] .place-tagline { color: var(--card); text-shadow: 0 1px 0 var(--ink); }
 
-/* ---------- Floors (places with storeys) ---------- */
-/* Tags pinned to the house, to the floor above and the floor below: play.js
-   moves them with the picture every frame. */
-.floors {
+/* ---------- The invitation (a first visit) ---------- */
+/* A card pinned to a room until you step into one: where to start, and what a
+   tap does. play.js moves it with the picture every frame (translate) and
+   aims its point at the room (--tip); the card bobs on its transform. */
+button.invite {
   position: fixed;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-button.floor-tag {
-  position: absolute;
+  z-index: 4;
   left: 0;
   top: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 14px 0 10px;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: left;
   will-change: translate;
 }
-button.floor-tag svg { width: 18px; height: 18px; flex: none; color: var(--coral); }
-button.floor-tag:active { box-shadow: 0 0 0 var(--ink); }
-#hud:not([hidden]) .floors { animation: floors-in 0.6s 0.5s ease both; }
-@keyframes floors-in { from { opacity: 0; } }
-
-/* A place printed on a dark plate (a night): loose text sits on paper chips. */
-body[data-plate="night"] .place-tagline,
-body[data-plate="night"] .hint {
-  padding: 4px 10px;
+button.invite:hover { background: none; }
+button.invite:active { transform: none; }
+.invite-card {
+  position: relative;
+  display: block;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 9px 15px 10px;
   background: var(--card);
   border: 2px solid var(--ink);
-  border-radius: 14px;
-  color: var(--ink);
+  border-radius: 16px;
+  box-shadow: 3px 3px 0 var(--coral);
+  animation: invite-in 0.5s 0.8s cubic-bezier(.2, 1.3, .4, 1) both, bob 2.8s 1.3s ease-in-out infinite;
 }
-body[data-plate="night"] .hint { max-width: calc(100% - 2 * var(--gutter)); }
+button.invite:active .invite-card { box-shadow: 1px 1px 0 var(--coral); }
+/* Its point, aimed at the room. */
+.invite-card::after {
+  content: "";
+  position: absolute;
+  left: var(--tip, 50%);
+  bottom: -8px;
+  width: 13px;
+  height: 13px;
+  margin-left: -6.5px;
+  background: var(--card);
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  border-bottom-right-radius: 3px;
+  transform: rotate(45deg);
+}
+.invite-title { display: block; font-family: var(--display); font-size: 18px; line-height: 1.1; }
+.invite-text { display: block; margin-top: 3px; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--ink-soft); }
+/* Where the tap goes: a ring, and a wider one that keeps pinging like sonar.
+   Mustard, like a hint's ring in a room (coral is for what you've found). */
+.invite-ring {
+  position: fixed;
+  z-index: 3;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  border: 3.5px solid var(--mustard);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ink), inset 0 0 0 1.5px var(--ink);
+  pointer-events: none;
+  animation: invite-in 0.4s 0.9s ease both;
+}
+.invite-ring::after {
+  content: "";
+  position: absolute;
+  inset: -3.5px;
+  border: 3px solid var(--mustard);
+  border-radius: 50%;
+  animation: ping 1.9s 1.3s cubic-bezier(.2, .8, .3, 1) infinite;
+}
+@keyframes invite-in { from { opacity: 0; transform: scale(0.85); } }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+@keyframes ping {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* ---------- The lift (places with storeys) ---------- */
+/* A lift panel in the corner, in thumb reach: every floor, the top one at the
+   top, the one you're on lit. A place can make it its own (brass, at the
+   Manor): --lift-plate, --lift-ink and --lift-lamp, from its map's `lift`. */
+.lift {
+  position: fixed;
+  z-index: 3;
+  right: calc(var(--gutter) + var(--tray-w, 0px));
+  bottom: calc(var(--safe-bottom) + 20px);
+  display: flex;
+  flex-direction: column;
+  padding: 13px 7px 13px 6px;
+  background: var(--lift-plate, var(--card));
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+/* Two screws hold the plate on. */
+.lift::before,
+.lift::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, transparent 40%, var(--ink) 40% 60%, transparent 60%), var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.lift::before { top: 3px; }
+.lift::after { bottom: 3px; }
+button.lift-floor {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  min-height: 42px;
+  padding: 0 1px 0 9px;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  color: var(--lift-ink, var(--ink));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+button.lift-floor:hover { background: none; }
+button.lift-floor:active { transform: none; }
+.lift-name { opacity: 0.62; transition: opacity 0.3s ease; }
+/* The push button: a face in a ring, pressed in when you tap it, and lit
+   (like a lamp behind it) on the floor you're on. */
+.lift-btn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.35s ease;
+}
+button.lift-floor:hover .lift-btn { background-color: #fff; }
+button.lift-floor:active .lift-btn { transform: translateY(2.5px); box-shadow: 0 0.5px 0 var(--ink); }
+.lift-floor[aria-current] .lift-name { opacity: 1; }
+.lift-floor[aria-current] .lift-btn,
+button.lift-floor[aria-current]:hover .lift-btn {
+  background: radial-gradient(circle at 38% 34%, #FFF6DC 0 18%, transparent 46%), var(--lift-lamp, var(--coral));
+  box-shadow: 0 3px 0 var(--ink), 0 0 0 4px rgba(255, 244, 214, 0.35), 0 0 16px 4px var(--lift-lamp, var(--coral));
+}
+#hud:not([hidden]) .lift { animation: fade-up 0.6s 0.5s cubic-bezier(.2, .8, .2, 1) both; }
+/* Landscape phones: a notch smaller, so it clears more of the lawn. */
+@media (max-height: 500px) {
+  .lift { bottom: calc(var(--safe-bottom) + 12px); padding: 11px 6px 11px 5px; }
+  button.lift-floor { min-height: 40px; }
+}
+
+/* Measures env(safe-area-inset-*) for play.js, which frames around them. */
+.safe-probe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  visibility: hidden;
+  pointer-events: none;
+}
 
 /* ---------- Icon buttons ---------- */
 .icon-btn {
@@ -987,7 +1109,7 @@ body[data-dock="right"] .story {
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
-body[data-case] .floors,
+body[data-case] .lift,
 body[data-case] .tray { visibility: hidden; }
 .case-sheet {
   position: relative;
@@ -1241,7 +1363,6 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
       2.5px 2.5px 0 var(--coral);
   }
   .place-tagline { display: none; }
-  .hint { bottom: calc(var(--safe-bottom) + 12px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

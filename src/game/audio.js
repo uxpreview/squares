@@ -144,6 +144,13 @@ const SOUNDS = {
       c.stop(t0 + 0.3);
     }
   },
+  // A lift arriving at a floor: one soft chime going up, two (falling) going down.
+  ding(a, t0, o = {}) {
+    const notes = o.down ? [1175, 932] : [1175];
+    notes.forEach((hz, i) => {
+      for (const [r, v] of [[1, 0.05], [2.76, 0.008], [5.4, 0.003]]) tone(a, t0 + i * 0.24, hz * r, 'sine', v, 0.004, 0.8 / r + 0.2);
+    });
+  },
   // A grandfather clock's chime: a few bell partials, ringing out.
   bell(a, t0) {
     for (const [r, v] of [[1, 0.06], [2.01, 0.025], [2.76, 0.018], [5.4, 0.008]]) tone(a, t0, 196 * r, 'sine', v, 0.004, 2.4 / r + 0.4);
