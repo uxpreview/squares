@@ -1013,76 +1013,193 @@ function cat(ctx, p, t, glowOnly = false) {
 }
 
 // ---------- The rest of the room ----------
+// The bedside table, heaped with his night reading. The diary is one open
+// book among several: the one in his handwriting, with a strap and a ribbon.
+const NT = { x0: 7.55, y0: 2.62, x1: 9.05, y1: 3.8, z: 1.01 };
+const PAGE = shade(PAPER, 0.06); // every page on the table shares one tone, so none of them glows
+const NEWS = mix(PAPER, LINEN_S, 0.55);
 function bedsideTable(ctx) {
-  const x0 = 7.7, y0 = 2.7, x1 = 8.7, y1 = 3.7;
+  const { x0, y0, x1, y1 } = NT;
   for (const [lx, ly] of [[x0 + 0.05, y1 - 0.15], [x1 - 0.15, y1 - 0.15], [x1 - 0.15, y0 + 0.05]]) box(ctx, lx, ly, 0, 0.1, 0.1, 0.5, WOOD_D, { flat: true });
   box(ctx, x0, y0, 0.45, x1 - x0, y1 - y0, 0.48, WOOD, { dotsL: WOOD_D });
   box(ctx, x0 - 0.04, y0 - 0.04, 0.93, x1 - x0 + 0.08, y1 - y0 + 0.08, 0.08, WOOD_D);
-  face(ctx, [[x0 + 0.1, y1, 0.55], [x1 - 0.1, y1, 0.55], [x1 - 0.1, y1, 0.83], [x0 + 0.1, y1, 0.83]], WOOD_L, { lw: 0.03 });
-  const [kx, ky] = P(8.2, y1, 0.69);
-  ctx.beginPath();
-  ctx.arc(kx, ky, 0.045, 0, Math.PI * 2);
-  paint(ctx, BRASS, { lw: 0.02 });
+  for (const [a, b] of [[x0 + 0.1, 8.25], [8.35, x1 - 0.1]]) {
+    face(ctx, [[a, y1, 0.55], [b, y1, 0.55], [b, y1, 0.83], [a, y1, 0.83]], WOOD_L, { lw: 0.03 });
+    const [kx, ky] = P((a + b) / 2, y1, 0.69);
+    ctx.beginPath();
+    ctx.arc(kx, ky, 0.045, 0, Math.PI * 2);
+    paint(ctx, BRASS, { lw: 0.02 });
+  }
   // the lamp's foot
   const [fx, fy] = P(7.95, 2.88, 1.01);
   ctx.beginPath();
   ctx.ellipse(fx, fy, 0.2, 0.1, 0, 0, Math.PI * 2);
   paint(ctx, BRASS, { lw: 0.03 });
-  diary(ctx);
-  // His teeth, in a glass, one short (it's in the soup downstairs).
-  cylinder(ctx, 8.52, 2.95, 1.01, 0.11, 0.3, alpha(GLASS, 0.9), { top: alpha(tint(GLASS, 0.4), 0.9) });
+  bedsideHeap(ctx);
+}
+// Straight printed lines (a book, a newspaper): the diary's are wobbly.
+function printed(g, x, y, w, n, gap, color = alpha(C.ink, 0.45), lw = 0.008) {
+  g.beginPath();
+  for (let i = 0; i < n; i++) { g.moveTo(x, y + i * gap); g.lineTo(x + w, y + i * gap); }
+  g.strokeStyle = color;
+  g.lineWidth = lw;
+  g.stroke();
+}
+// A small card standing up (a birthday card), in the upright plane from (x0, y0) to (x1, y1).
+function standingCard(ctx, x0, y0, x1, y1, z, h, color, draw) {
+  const w = Math.hypot(x1 - x0, y1 - y0);
+  plane(ctx, x0, y0, z + h, x1, y1, (g) => {
+    g.beginPath();
+    g.rect(0, 0, w, h);
+    paint(g, color, { lw: 0.02 });
+    if (Q.detail && draw) draw(g, w, h);
+  });
+}
+function bedsideHeap(ctx) {
+  const z = NT.z;
+  // a letter, under everything at the back
+  flat(ctx, 8.2, 2.66, z + 0.002, (g) => {
+    g.rotate(0.12);
+    g.beginPath();
+    g.rect(0, 0, 0.36, 0.24);
+    paint(g, PAGE, { lw: 0.018 });
+    if (Q.detail) { g.beginPath(); g.moveTo(0, 0); g.lineTo(0.18, 0.12); g.lineTo(0.36, 0); g.strokeStyle = alpha(C.ink, 0.5); g.lineWidth = 0.01; g.stroke(); }
+  });
+  // a birthday card, standing between the lamp and the books
+  standingCard(ctx, 8.14, 2.78, 8.42, 2.78, z, 0.28, mix(PAGE, INK.candleGold, 0.25), (g, w, h) => {
+    words(g, '80', w / 2, h * 0.45, 0.13, INK.oxblood, { font: DISPLAY });
+  });
+  // a stack of books, and his teeth in a glass on top (one short: it's in the soup downstairs)
+  const books = [[8.47, 2.7, 0.46, 0.34, LEATHER], [8.5, 2.73, 0.42, 0.3, TARTAN], [8.46, 2.71, 0.44, 0.33, PLUM]];
+  books.forEach(([bx, by, w, d, c], i) => {
+    box(ctx, bx, by, z + i * 0.075, w, d, 0.07, c, { lw: 0.02 });
+    if (Q.detail) line3(ctx, [[bx + 0.03, by + d, z + i * 0.075 + 0.035], [bx + w - 0.03, by + d, z + i * 0.075 + 0.035]], PAGE, 0.03);
+  });
+  const zs = z + 0.225;
+  cylinder(ctx, 8.68, 2.87, zs, 0.1, 0.27, alpha(GLASS, 0.9), { top: alpha(tint(GLASS, 0.4), 0.9) });
   if (Q.detail) {
-    const [X, Y] = P(8.52, 2.95, 1.12);
+    const [X, Y] = P(8.68, 2.87, zs + 0.1);
     ctx.beginPath();
-    ctx.ellipse(X, Y, 0.1, 0.06, 0, 0, Math.PI * 2);
+    ctx.ellipse(X, Y, 0.09, 0.055, 0, 0, Math.PI * 2);
     ctx.fillStyle = mix(C.pink, INK.oxblood, 0.2);
     ctx.fill();
     ctx.fillStyle = BONE;
-    for (let i = 0; i < 5; i++) if (i !== 2) ctx.fillRect(X - 0.085 + i * 0.035, Y - 0.07, 0.028, 0.05);
+    for (let i = 0; i < 5; i++) if (i !== 2) ctx.fillRect(X - 0.078 + i * 0.032, Y - 0.065, 0.025, 0.045);
   }
-}
-// The Lord's diary, open at the page (the find).
-function diary(ctx) {
-  flat(ctx, 7.78, 2.9, 1.015, (g) => {
+  // the evening paper, folded, at the front
+  flat(ctx, 7.62, 3.12, z + 0.004, (g) => {
+    g.rotate(-0.1);
     g.beginPath();
-    g.roundRect(-0.04, -0.04, 0.92, 0.68, 0.05);
-    paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.04 });
-    g.beginPath();
-    g.moveTo(0, 0); g.quadraticCurveTo(0.22, -0.04, 0.42, 0.02); g.lineTo(0.42, 0.62); g.quadraticCurveTo(0.22, 0.56, 0, 0.6);
-    g.closePath();
-    paint(g, PAPER, { lw: 0.02 });
-    g.beginPath();
-    g.moveTo(0.42, 0.02); g.quadraticCurveTo(0.62, -0.04, 0.84, 0); g.lineTo(0.84, 0.6); g.quadraticCurveTo(0.62, 0.56, 0.42, 0.62);
-    g.closePath();
-    paint(g, tint(PAPER, 0.3), { lw: 0.02 });
+    g.rect(0, 0, 0.6, 0.48);
+    paint(g, NEWS, { lw: 0.02 });
+    g.fillStyle = alpha(C.ink, 0.75);
+    g.fillRect(0.05, 0.05, 0.5, 0.06);
     if (!Q.detail) return;
-    // the left page: scribbles, and a goose in the margin, looking at you
-    for (let i = 0; i < 7; i++) scribble(g, 0.05, 0.08 + i * 0.07, 0.3 - (i % 3) * 0.05, 11 + i, alpha(C.ink, 0.7), 0.012);
+    words(g, 'THE EVENING QUACK', 0.3, 0.08, 0.04, NEWS, { font: DISPLAY });
+    g.fillStyle = alpha(C.ink, 0.35);
+    g.fillRect(0.05, 0.15, 0.2, 0.14);
+    printed(g, 0.29, 0.16, 0.26, 4, 0.04);
+    printed(g, 0.05, 0.34, 0.24, 3, 0.04);
+    printed(g, 0.31, 0.34, 0.24, 3, 0.04);
+  });
+  diary(ctx);
+  // the Bible, open at Genesis, where the birds are made (no ribbon, no strap, all print)
+  flat(ctx, 8.6, 3.2, z + 0.006, (g) => {
+    g.rotate(-0.08);
+    g.beginPath();
+    g.roundRect(-0.03, -0.03, 0.47, 0.37, 0.03);
+    paint(g, mix(C.ink, INK.deepPlum, 0.4), { lw: 0.025 });
+    g.beginPath();
+    g.rect(0, 0, 0.41, 0.31);
+    paint(g, PAGE, { lw: 0.015 });
+    g.beginPath();
+    g.moveTo(0.205, 0); g.lineTo(0.205, 0.31);
+    g.strokeStyle = alpha(C.ink, 0.6); g.lineWidth = 0.012; g.stroke();
+    if (!Q.detail) return;
+    for (const px of [0.025, 0.105, 0.23, 0.31]) printed(g, px, 0.04, 0.065, 7, 0.035);
+    g.fillStyle = INK.oxblood;
+    g.fillRect(0.025, 0.03, 0.025, 0.03);
+  });
+  // his spectacles, left on the Bible
+  if (Q.detail) {
+    for (const [sx, sy] of [[8.7, 3.36], [8.84, 3.33]]) {
+      const [X, Y] = P(sx, sy, z + 0.02);
+      ctx.beginPath();
+      ctx.ellipse(X, Y, 0.06, 0.035, 0, 0, Math.PI * 2);
+      ctx.fillStyle = alpha(tint(GLASS, 0.5), 0.5);
+      ctx.fill();
+      ctx.strokeStyle = BRASS_D; ctx.lineWidth = 0.018; ctx.stroke();
+    }
+    line3(ctx, [[8.75, 3.35, z + 0.03], [8.79, 3.34, z + 0.03]], BRASS_D, 0.016);
+    line3(ctx, [[8.66, 3.35, z + 0.02], [8.64, 3.24, z + 0.02]], BRASS_D, 0.014);
+  }
+  // another card, fallen flat at the front corner
+  flat(ctx, 7.66, 3.5, z + 0.008, (g) => {
+    g.rotate(0.45);
+    g.beginPath();
+    g.rect(0, 0, 0.22, 0.17);
+    paint(g, mix(PAGE, INK.verdigris, 0.3), { lw: 0.015 });
+    if (Q.detail) words(g, '80', 0.11, 0.085, 0.08, INK.candleGold, { font: DISPLAY });
+  });
+}
+// The Lord's diary, open at the page (the find). Small, and the only book on
+// the table in his handwriting: a leather strap undone and a ribbon marker.
+function diary(ctx) {
+  const z = NT.z + 0.008;
+  flat(ctx, 8.1, 3.22, z, (g) => {
+    g.rotate(0.06);
+    // the strap, undone, hanging toward you off the front cover, with its buckle
+    g.beginPath();
+    g.moveTo(0.44, 0.33); g.quadraticCurveTo(0.47, 0.42, 0.42, 0.5); g.lineTo(0.38, 0.49); g.quadraticCurveTo(0.42, 0.42, 0.4, 0.33);
+    g.closePath();
+    paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.014 });
+    g.beginPath();
+    g.rect(0.375, 0.47, 0.055, 0.04);
+    g.strokeStyle = BRASS; g.lineWidth = 0.016; g.stroke();
+    // the covers
+    g.beginPath();
+    g.roundRect(-0.025, -0.025, 0.55, 0.39, 0.03);
+    paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.025 });
+    g.beginPath();
+    g.moveTo(0, 0); g.quadraticCurveTo(0.13, -0.02, 0.25, 0.01); g.lineTo(0.25, 0.35); g.quadraticCurveTo(0.13, 0.32, 0, 0.34);
+    g.closePath();
+    paint(g, PAGE, { lw: 0.014 });
+    g.beginPath();
+    g.moveTo(0.25, 0.01); g.quadraticCurveTo(0.37, -0.02, 0.5, 0); g.lineTo(0.5, 0.34); g.quadraticCurveTo(0.37, 0.32, 0.25, 0.35);
+    g.closePath();
+    paint(g, PAGE, { lw: 0.014 });
+    // the ribbon marker, out of the gutter at the bottom
+    g.beginPath();
+    g.moveTo(0.245, 0.33); g.quadraticCurveTo(0.22, 0.42, 0.26, 0.47); g.lineTo(0.285, 0.46); g.quadraticCurveTo(0.25, 0.41, 0.262, 0.33);
+    g.closePath();
+    g.fillStyle = INK.candleGold; g.fill();
+    if (!Q.detail) return;
+    // the left page: his wobbly hand, and a goose in the margin, looking at you
+    for (let i = 0; i < 6; i++) scribble(g, 0.03, 0.05 + i * 0.045, 0.19 - (i % 3) * 0.03, 11 + i, alpha(C.ink, 0.7), 0.009);
     g.save();
-    g.translate(0.33, 0.47);
+    g.translate(0.19, 0.28);
+    g.scale(0.6, 0.6);
     g.beginPath();
     g.ellipse(0, 0.02, 0.06, 0.035, 0, 0, Math.PI * 2);
     g.moveTo(0.04, 0.0); g.quadraticCurveTo(0.07, -0.06, 0.05, -0.1);
-    g.strokeStyle = C.ink; g.lineWidth = 0.012; g.stroke();
+    g.strokeStyle = C.ink; g.lineWidth = 0.014; g.stroke();
     g.beginPath();
     g.arc(0.05, -0.105, 0.02, 0, Math.PI * 2);
     g.stroke();
-    g.fillStyle = C.ink;
-    g.fillRect(0.048, -0.11, 0.01, 0.01);
     g.restore();
     // the right page: the line itself, underlined twice
-    const lines = ['THE GOOSE', 'IS LOOKING', 'AT ME', 'AGAIN'];
-    lines.forEach((s, i) => words(g, s, 0.63, 0.12 + i * 0.1, 0.075, INK.oxblood, { weight: 700, italic: true }));
-    g.strokeStyle = INK.oxblood;
-    g.lineWidth = 0.012;
+    const lines = ['the goose', 'is looking', 'at me', 'again'];
+    lines.forEach((s, i) => words(g, s, 0.375, 0.06 + i * 0.055, 0.042, alpha(C.ink, 0.85), { weight: 700, italic: true }));
+    g.strokeStyle = alpha(C.ink, 0.85);
+    g.lineWidth = 0.008;
     g.beginPath();
-    g.moveTo(0.47, 0.5); g.lineTo(0.8, 0.49);
-    g.moveTo(0.48, 0.53); g.lineTo(0.79, 0.525);
+    g.moveTo(0.29, 0.285); g.lineTo(0.47, 0.28);
+    g.moveTo(0.3, 0.3); g.lineTo(0.46, 0.297);
     g.stroke();
   });
-  // the pen, left across the page
-  line3(ctx, [[8.35, 3.4, 1.05], [8.72, 3.25, 1.07]], C.ink, 0.05);
-  line3(ctx, [[8.63, 3.29, 1.065], [8.72, 3.25, 1.07]], BRASS, 0.05);
+  // the pen, left beside it
+  line3(ctx, [[8.2, 3.68, z + 0.02], [8.48, 3.62, z + 0.02]], C.ink, 0.035);
+  line3(ctx, [[8.42, 3.63, z + 0.02], [8.48, 3.62, z + 0.02]], BRASS, 0.035);
 }
 
 function slippers(ctx) {
@@ -1359,6 +1476,22 @@ function fox(ctx) {
 // Where the fox's pipe and candle are, on screen.
 const FOX_PIPE = (() => { const [X, Y] = P(FOX[0], FOX[1], 0.14); return [X - 0.57, Y - 1.74]; })();
 
+// The writing desk, buried in birthday post, bills and drafts. The will is
+// one handwritten page among them: the only one with a signature line, a
+// wax seal and a ribbon.
+const DESK_Z = 1.205;
+const DESK_PAGE = shade(PAPER, 0.05);
+const DESK_PAGE2 = mix(PAPER, LINEN_S, 0.4);
+// A loose sheet lying on the desk, turned by rot, with fn drawing on it.
+function sheet(ctx, x, y, z, rot, w, h, color, fn) {
+  flat(ctx, x, y, z, (g) => {
+    g.rotate(rot);
+    g.beginPath();
+    g.rect(0, 0, w, h);
+    paint(g, color, { lw: 0.018 });
+    if (Q.detail && fn) fn(g);
+  });
+}
 function desk(ctx) {
   const x0 = 12, y0 = 10.5, x1 = 14, y1 = 11.7;
   for (const [lx, ly] of [[x0 + 0.08, y1 - 0.2], [x1 - 0.2, y1 - 0.2], [x1 - 0.2, y0 + 0.08]]) box(ctx, lx, ly, 0, 0.12, 0.12, 0.95, WOOD_D, { flat: true });
@@ -1367,8 +1500,18 @@ function desk(ctx) {
   box(ctx, x0 - 0.05, y0 - 0.05, 1.09, x1 - x0 + 0.1, y1 - y0 + 0.1, 0.11, WOOD);
   rect(ctx, x0 + 0.12, y0 + 0.1, x1 - x0 - 0.24, y1 - y0 - 0.2, 1.201, LEATHER, { lw: 0.03 });
   if (Q.detail) rect(ctx, x0 + 0.2, y0 + 0.18, x1 - x0 - 0.4, y1 - y0 - 0.36, 1.202, null, { lw: 0.02, stroke: BRASS });
-  // letters, the candlestick's dish, sealing wax
-  for (let i = 0; i < 3; i++) rect(ctx, 12.12 + i * 0.03, 11.12 - i * 0.04, 0.45, 0.32, 1.205 + i * 0.012, PAPER, { lw: 0.02 });
+  // the blotter, with last week's letters on it backwards
+  rect(ctx, 12.5, 10.82, 1.05, 0.66, 1.203, mix(GREEN, LINEN_S, 0.25), { lw: 0.02 });
+  if (Q.detail) {
+    flat(ctx, 12.5, 10.82, 1.204, (g) => {
+      for (let i = 0; i < 4; i++) scribble(g, 0.2, 0.4 + i * 0.06, 0.5, 71 + i, alpha(C.ink, 0.22), 0.012);
+    });
+  }
+  for (const [cx, cy] of [[12.5, 10.82], [13.55, 11.48]]) {
+    const s = cx < 13 ? 1 : -1;
+    face(ctx, [[cx, cy, 1.205], [cx + 0.2 * s, cy, 1.205], [cx, cy + 0.2 * s, 1.205]], LEATHER, { lw: 0.015 });
+  }
+  // the candlestick's dish
   const [dx, dy] = P(12.35, 10.75, 1.21);
   ctx.beginPath();
   ctx.ellipse(dx, dy, 0.2, 0.1, 0, 0, Math.PI * 2);
@@ -1376,8 +1519,55 @@ function desk(ctx) {
   ctx.beginPath();
   ctx.rect(dx - 0.05, dy - 0.12, 0.1, 0.12);
   paint(ctx, BRASS, { lw: 0.02 });
-  box(ctx, 13.45, 11.38, 1.205, 0.3, 0.06, 0.06, INK.oxblood, { flat: true });
+  // birthday cards, standing along the back
+  standingCard(ctx, 12.62, 10.6, 12.88, 10.64, DESK_Z, 0.3, mix(DESK_PAGE, INK.verdigris, 0.35), (g, w, h) => {
+    words(g, '80', w / 2, h * 0.45, 0.13, INK.candleGold, { font: DISPLAY });
+  });
+  standingCard(ctx, 12.95, 10.62, 13.2, 10.58, DESK_Z, 0.26, DESK_PAGE, (g, w, h) => {
+    words(g, 'Many', w / 2, h * 0.3, 0.045, INK.oxblood, { italic: true });
+    words(g, 'happy', w / 2, h * 0.5, 0.045, INK.oxblood, { italic: true });
+    words(g, 'returns', w / 2, h * 0.7, 0.045, INK.oxblood, { italic: true });
+  });
+  standingCard(ctx, 13.26, 10.6, 13.46, 10.7, DESK_Z, 0.24, mix(DESK_PAGE, INK.oxblood, 0.3), (g, w, h) => {
+    words(g, '80', w / 2, h * 0.5, 0.1, BONE, { font: DISPLAY });
+  });
+  // an opened envelope by the candle
+  sheet(ctx, 12.14, 10.9, 1.206, -0.2, 0.3, 0.2, DESK_PAGE2, (g) => {
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(0.15, 0.1); g.lineTo(0.3, 0);
+    g.strokeStyle = alpha(C.ink, 0.5); g.lineWidth = 0.01; g.stroke();
+  });
+  // a bill from the taxidermist, printed, with a total nobody paid
+  sheet(ctx, 12.58, 10.86, 1.208, -0.28, 0.34, 0.46, DESK_PAGE2, (g) => {
+    words(g, 'PLUME & SONS', 0.17, 0.05, 0.035, C.ink, { font: DISPLAY });
+    words(g, '1 bear, stuffed', 0.03, 0.12, 0.026, C.ink, { align: 'left' });
+    printed(g, 0.03, 0.17, 0.2, 5, 0.035);
+    printed(g, 0.26, 0.17, 0.05, 5, 0.035);
+    g.fillStyle = INK.oxblood;
+    g.fillRect(0.2, 0.38, 0.12, 0.025);
+  });
+  // the new will, half on the blotter
   theWill(ctx);
+  // a draft letter, crossed out, over the will's corner
+  sheet(ctx, 13.3, 10.8, 1.214, 0.3, 0.3, 0.4, DESK_PAGE, (g) => {
+    for (let i = 0; i < 6; i++) scribble(g, 0.04, 0.05 + i * 0.055, 0.22, 81 + i, alpha(C.ink, 0.65), 0.009);
+    g.strokeStyle = alpha(C.ink, 0.7); g.lineWidth = 0.012;
+    g.beginPath(); g.moveTo(0.03, 0.04); g.lineTo(0.27, 0.34); g.moveTo(0.27, 0.04); g.lineTo(0.03, 0.34); g.stroke();
+  });
+  // letters, in his cousin's hand, signed off with love (no line, no seal)
+  for (let i = 0; i < 3; i++) {
+    sheet(ctx, 12.14 + i * 0.05, 11.12 - i * 0.03, 1.206 + i * 0.004, 0.08 - i * 0.12, 0.3, 0.38, i === 1 ? DESK_PAGE2 : DESK_PAGE, i === 2 ? (g) => {
+      words(g, 'Dear Barnaby,', 0.03, 0.05, 0.026, C.ink, { italic: true, align: 'left' });
+      for (let j = 0; j < 4; j++) scribble(g, 0.03, 0.1 + j * 0.05, 0.24, 91 + j, alpha(C.ink, 0.65), 0.009);
+      words(g, 'Love, Mabel', 0.27, 0.33, 0.026, C.ink, { italic: true, align: 'right' });
+    } : null);
+  }
+  // an envelope with a red stamp, and the stick of sealing wax
+  sheet(ctx, 13.45, 11.25, 1.212, -0.15, 0.3, 0.2, DESK_PAGE2, (g) => {
+    g.fillStyle = INK.oxblood;
+    g.fillRect(0.22, 0.03, 0.05, 0.06);
+    for (let j = 0; j < 2; j++) scribble(g, 0.06, 0.1 + j * 0.04, 0.14, 101 + j, alpha(C.ink, 0.6), 0.009);
+  });
+  box(ctx, 13.4, 11.5, 1.205, 0.22, 0.05, 0.05, INK.oxblood, { flat: true, lw: 0.02 });
   // inkpot and a goose quill (he'd have hated that)
   cylinder(ctx, 13.72, 10.78, 1.2, 0.12, 0.16, alpha(GLASS, 0.95), { top: C.ink });
   const [qx, qy] = P(13.72, 10.78, 1.34);
@@ -1394,29 +1584,40 @@ function desk(ctx) {
   ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.02; ctx.stroke();
   ctx.restore();
 }
-// The new will: Dr. Crane gets the good armchair.
+// The new will: Dr. Crane gets the good armchair. A page at its real size,
+// told from the letters by the signature line, the seal and the ribbon.
+const WILL = { x: 12.88, y: 11.02, rot: 0.12, w: 0.34, h: 0.46 };
 function theWill(ctx) {
-  flat(ctx, 12.69, 10.62, 1.215, (g) => {
-    g.beginPath();
-    g.rect(0, 0, 0.62, 0.95);
-    paint(g, tint(PAPER, 0.2), { lw: 0.025 });
-    // No printed title (it gave the find away): a heading in his own hand.
-    scribble(g, 0.12, 0.11, 0.38, 29, alpha(INK.oxblood, 0.9), 0.022);
+  sheet(ctx, WILL.x, WILL.y, 1.211, WILL.rot, WILL.w, WILL.h, DESK_PAGE, null);
+  flat(ctx, WILL.x, WILL.y, 1.212, (g) => {
+    g.rotate(WILL.rot);
+    // a heading in his own hand
+    scribble(g, 0.08, 0.05, 0.18, 29, alpha(C.ink, 0.85), 0.014);
     if (Q.detail) {
-      for (let i = 0; i < 3; i++) scribble(g, 0.07, 0.24 + i * 0.07, 0.48 - (i === 2 ? 0.15 : 0), 31 + i, alpha(C.ink, 0.75), 0.011);
-      words(g, 'To Dr. Crane:', 0.29, 0.47, 0.048, C.ink, { italic: true });
-      words(g, 'the good armchair.', 0.3, 0.53, 0.048, C.ink, { italic: true });
-      for (let i = 0; i < 2; i++) scribble(g, 0.07, 0.62 + i * 0.07, 0.44, 41 + i, alpha(C.ink, 0.75), 0.011);
+      for (let i = 0; i < 3; i++) scribble(g, 0.03, 0.1 + i * 0.04, 0.28 - (i === 2 ? 0.1 : 0), 31 + i, alpha(C.ink, 0.65), 0.008);
+      words(g, 'To Dr. Crane:', 0.17, 0.235, 0.028, C.ink, { italic: true });
+      words(g, 'the good armchair.', 0.17, 0.27, 0.028, C.ink, { italic: true });
+      scribble(g, 0.03, 0.31, 0.26, 41, alpha(C.ink, 0.65), 0.008);
+      // the signature, on its line
       g.beginPath();
-      g.moveTo(0.3, 0.86); g.bezierCurveTo(0.36, 0.78, 0.4, 0.92, 0.46, 0.83); g.quadraticCurveTo(0.5, 0.8, 0.56, 0.86);
-      g.strokeStyle = C.ink; g.lineWidth = 0.014; g.stroke();
+      g.moveTo(0.15, 0.41); g.lineTo(0.31, 0.41);
+      g.strokeStyle = C.ink; g.lineWidth = 0.008; g.stroke();
+      g.beginPath();
+      g.moveTo(0.16, 0.4); g.bezierCurveTo(0.19, 0.35, 0.21, 0.42, 0.24, 0.38); g.quadraticCurveTo(0.27, 0.36, 0.3, 0.4);
+      g.lineWidth = 0.009; g.stroke();
     }
+    // the ribbon and the wax seal, bottom left
     g.beginPath();
-    g.moveTo(0.08, 0.8); g.lineTo(0.05, 0.98); g.moveTo(0.14, 0.8); g.lineTo(0.18, 0.98);
-    g.strokeStyle = INK.oxblood; g.lineWidth = 0.03; g.stroke();
+    g.moveTo(0.06, 0.4); g.lineTo(0.03, 0.5); g.moveTo(0.1, 0.4); g.lineTo(0.12, 0.5);
+    g.strokeStyle = INK.oxblood; g.lineWidth = 0.022; g.stroke();
     g.beginPath();
-    g.arc(0.12, 0.82, 0.07, 0, Math.PI * 2);
-    paint(g, INK.oxblood, { lw: 0.02 });
+    g.arc(0.08, 0.4, 0.045, 0, Math.PI * 2);
+    paint(g, INK.oxblood, { lw: 0.014 });
+    if (Q.detail) {
+      g.beginPath();
+      g.arc(0.08, 0.4, 0.025, 0, Math.PI * 2);
+      g.strokeStyle = shade(INK.oxblood, 0.35); g.lineWidth = 0.008; g.stroke();
+    }
   });
 }
 function deskChair(ctx) {
@@ -1668,6 +1869,30 @@ function bench(ctx) {
       words(g, 'GOOSE SIGHTED', 0.35, 0.1, 0.07, C.ink, { font: DISPLAY });
       for (let i = 0; i < 4; i++) scribble(g, 0.06, 0.22 + i * 0.07, 0.58, 61 + i, alpha(C.ink, 0.5), 0.01);
     }
+  });
+  // his bird book, open at geese, and a closed one under it (printed, no strap)
+  box(ctx, 3.1, 8.5, 0.87, 0.5, 0.36, 0.07, TARTAN, { lw: 0.02 });
+  flat(ctx, 3.62, 8.46, 0.875, (g) => {
+    g.rotate(0.1);
+    g.beginPath();
+    g.roundRect(-0.025, -0.025, 0.5, 0.36, 0.03);
+    paint(g, LEATHER, { lw: 0.022 });
+    g.beginPath();
+    g.rect(0, 0, 0.45, 0.31);
+    paint(g, PAGE, { lw: 0.014 });
+    g.beginPath();
+    g.moveTo(0.225, 0); g.lineTo(0.225, 0.31);
+    g.strokeStyle = alpha(C.ink, 0.6); g.lineWidth = 0.012; g.stroke();
+    if (!Q.detail) return;
+    // a printed goose, in a neat box, and neat print beside it
+    g.strokeStyle = alpha(C.ink, 0.6); g.lineWidth = 0.008;
+    g.strokeRect(0.03, 0.04, 0.17, 0.13);
+    g.beginPath();
+    g.ellipse(0.1, 0.12, 0.045, 0.025, 0, 0, Math.PI * 2);
+    g.moveTo(0.135, 0.11); g.quadraticCurveTo(0.15, 0.07, 0.14, 0.06);
+    g.stroke();
+    printed(g, 0.03, 0.21, 0.17, 3, 0.03);
+    printed(g, 0.25, 0.04, 0.17, 8, 0.033);
   });
 }
 
@@ -2400,7 +2625,7 @@ export default {
     }, { depth: 10.3, anim: true });
 
     // ---------- The finds ----------
-    R.find({ id: 'diary', label: "The Lord's diary", at: [8.2, 3.2, 1.1], r: 0.7 });
-    R.find({ id: 'new-will', label: 'The new will', at: [13, 11.1, 1.3], r: 0.95 });
+    R.find({ id: 'diary', label: "The Lord's diary", at: [8.33, 3.4, 1.03], r: 0.6 });
+    R.find({ id: 'new-will', label: 'The new will', at: [13.02, 11.27, 1.22], r: 0.6 });
   },
 };
