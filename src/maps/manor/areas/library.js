@@ -616,7 +616,8 @@ const BOWL = (() => {
   const sum = 2 * (sy + (z + rim) * ZK);
   return { x: (sum + sx) / 2, y: (sum - sx) / 2, z, rim, r: 0.46 };
 })();
-const PILLS = { x: 7.1, y: 9.2, z: TABLE.h + 0.14 };
+const PILLS = { x: 7.1, y: 9.2, z: TABLE.h + 0.1 }; // the bottle with beak marks (a find)
+const LIPSTICK = { x: 9.2, y: 6.85, z: TABLE.h + 0.01 }; // the glass with lipstick (a find)
 
 function tableTop(ctx) {
   const { x0, y0, x1, y1, h } = TABLE;
@@ -851,42 +852,118 @@ function bowl(ctx, part) {
   }
 }
 
-// The pill bottle (a find): amber, on its side, the cap chewed by a beak, and
-// the "pills" spilled out of it (they're mints).
-function pillBottle(ctx) {
-  const { x, y, z } = PILLS;
+// The Lord's medicine, and the dinner things, in a heap at his elbow. He was
+// eighty: there are a lot of bottles. Only one pill bottle has a chewed cap
+// (a find), and only that one has spilled its "pills" (the doctor's mints).
+
+// An amber pill bottle at (x, y, z). Lying, its cap points along rot;
+// standing (up), the cap is on top.
+function pillBottle(ctx, x, y, z, o = {}) {
+  const { s = 0.72, rot = -0.28, up = false, bitten = false, mints = false } = o;
   const [X, Y] = P3(x, y, z);
   ctx.save();
   ctx.translate(X, Y);
-  ctx.rotate(-0.28);
-  // Mints.
-  ctx.fillStyle = C.white;
-  for (const [mx, my] of [[0.36, 0.12], [0.5, 0.02], [0.44, 0.2], [0.62, 0.14]]) {
-    ctx.beginPath();
-    ctx.ellipse(mx, my, 0.065, 0.04, 0, 0, Math.PI * 2);
-    paint(ctx, C.white, { lw: 0.015 });
+  if (up) { ctx.translate(0, -0.28 * s); ctx.rotate(-Math.PI / 2); } else ctx.rotate(rot);
+  ctx.scale(s, s);
+  if (mints) {
+    // Two mints, rolled out of it.
+    for (const [mx, my] of [[0.42, 0.12], [0.56, 0.03]]) {
+      ctx.beginPath();
+      ctx.ellipse(mx, my, 0.065, 0.04, 0, 0, Math.PI * 2);
+      paint(ctx, C.white, { lw: 0.02 });
+    }
   }
-  // The bottle.
   ctx.beginPath();
   ctx.roundRect(-0.28, -0.12, 0.44, 0.24, 0.06);
-  paint(ctx, mix(INK.candleGold, INK.oxblood, 0.35), { lw: 0.025 });
+  paint(ctx, mix(INK.candleGold, INK.oxblood, 0.35), { lw: 0.03 });
   ctx.fillStyle = INK.bone;
   ctx.fillRect(-0.18, -0.08, 0.2, 0.16);
-  ctx.fillStyle = alpha(C.white, 0.55);
+  ctx.fillStyle = alpha(C.white, 0.45);
   ctx.fillRect(-0.24, -0.09, 0.36, 0.035);
-  // The white cap, bitten: a zigzag of beak marks.
   ctx.beginPath();
-  ctx.moveTo(0.16, -0.1); ctx.lineTo(0.3, -0.1);
-  ctx.lineTo(0.27, -0.05); ctx.lineTo(0.31, -0.01); ctx.lineTo(0.26, 0.03); ctx.lineTo(0.3, 0.07);
-  ctx.lineTo(0.3, 0.1); ctx.lineTo(0.16, 0.1);
-  ctx.closePath();
-  paint(ctx, C.white, { lw: 0.025 });
+  if (bitten) {
+    // The cap, bitten: a zigzag of beak marks where its end should be.
+    ctx.moveTo(0.16, -0.1); ctx.lineTo(0.3, -0.1);
+    ctx.lineTo(0.26, -0.05); ctx.lineTo(0.31, -0.01); ctx.lineTo(0.25, 0.03); ctx.lineTo(0.3, 0.07);
+    ctx.lineTo(0.3, 0.1); ctx.lineTo(0.16, 0.1);
+    ctx.closePath();
+  } else {
+    ctx.roundRect(0.16, -0.1, 0.14, 0.2, 0.02);
+  }
+  paint(ctx, C.white, { lw: 0.03 });
   ctx.beginPath();
-  ctx.moveTo(0.19, -0.06); ctx.lineTo(0.22, -0.02); ctx.lineTo(0.19, 0.02); ctx.lineTo(0.22, 0.06);
+  if (bitten) {
+    // Little dents across it.
+    ctx.moveTo(0.19, -0.06); ctx.lineTo(0.22, -0.02); ctx.lineTo(0.19, 0.02); ctx.lineTo(0.22, 0.06);
+  } else {
+    // A plain cap has straight ribs.
+    for (const u of [0.2, 0.24]) { ctx.moveTo(u, -0.08); ctx.lineTo(u, 0.08); }
+  }
   ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.018;
+  ctx.lineWidth = 0.02;
   ctx.stroke();
   ctx.restore();
+}
+
+// Any other bottle, standing: its outline as [half-width, height] pairs up
+// from the base. Tonic in green glass with a cork, a squat sauce, salt and pepper.
+const BOTTLES = {
+  tonic: { body: mix(INK.verdigris, INK.stormNavy, 0.35), cap: MAT.oakLight, label: INK.bone, shape: [[0.1, 0], [0.1, 0.34], [0.04, 0.44], [0.035, 0.56]] },
+  sauce: { body: INK.oxblood, cap: C.ink, label: MAT.custard, shape: [[0.09, 0], [0.09, 0.22], [0.035, 0.34], [0.035, 0.4]] },
+  salt: { body: INK.bone, cap: MAT.silver, shape: [[0.055, 0], [0.06, 0.16], [0.05, 0.2]] },
+  pepper: { body: mix(INK.stormNavy, INK.deepPlum, 0.4), cap: MAT.silver, shape: [[0.055, 0], [0.06, 0.16], [0.05, 0.2]] },
+};
+function bottle(ctx, x, y, z, kind, s = 1) {
+  const b = BOTTLES[kind];
+  const pts = b.shape;
+  const top = pts[pts.length - 1][1], w = pts[pts.length - 1][0];
+  const [X, Y] = P3(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(-pts[0][0], 0);
+  for (const [pw, ph] of pts) ctx.lineTo(-pw, -ph);
+  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i][0], -pts[i][1]);
+  ctx.closePath();
+  paint(ctx, b.body, { lw: 0.025 });
+  ctx.beginPath();
+  ctx.roundRect(-w - 0.008, -top - 0.06, (w + 0.008) * 2, 0.07, 0.015);
+  paint(ctx, b.cap, { lw: 0.02 });
+  if (b.label) {
+    const lw = pts[0][0] - 0.01, lh = pts[1][1];
+    ctx.fillStyle = b.label;
+    ctx.fillRect(-lw, -lh * 0.75, lw * 2, lh * 0.42);
+  }
+  ctx.fillStyle = alpha(C.white, 0.35);
+  ctx.fillRect(-pts[0][0] * 0.65, -pts[1][1] * 0.9, 0.025, pts[1][1] * 0.7);
+  ctx.restore();
+}
+
+// A silver hip flask, lying flat.
+function hipFlask(ctx, x, y, z, rot = 0.35) {
+  const [X, Y] = P3(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(rot);
+  ctx.beginPath();
+  ctx.roundRect(-0.18, -0.09, 0.3, 0.18, 0.07);
+  paint(ctx, MAT.silver, { lw: 0.025, dots: shade(MAT.silver, 0.3), density: 0.2 });
+  ctx.beginPath();
+  ctx.roundRect(0.12, -0.035, 0.07, 0.07, 0.015);
+  paint(ctx, MAT.brassDark, { lw: 0.02 });
+  ctx.restore();
+}
+
+// A pill box with a lid for each day, flat on the cloth.
+function pillBox(ctx, x, y, z) {
+  box(ctx, x - 0.1, y - 0.2, z, 0.2, 0.4, 0.06, INK.oxblood, { top: tint(INK.oxblood, 0.15), lw: 0.02 });
+  if (!Q.detail) return;
+  ctx.beginPath();
+  for (let i = 1; i < 4; i++) { const a = P3(x - 0.1, y - 0.2 + i * 0.1, z + 0.06), b = P3(x + 0.1, y - 0.2 + i * 0.1, z + 0.06); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.015;
+  ctx.stroke();
 }
 
 // Party things on the table, round the Lord.
@@ -957,13 +1034,33 @@ function tableThings(ctx) {
   ctx.fill();
 }
 
+// The bottles and glasses on the table, back to front so they overlap right.
+function tableClutter(ctx) {
+  const h = TABLE.h;
+  // The toast: one glass went over when he did, one is still half full, and
+  // one has Lady Philippa's lipstick on it (a find).
+  wineGlass(ctx, 7.75, 7.3, h + 0.01, { over: 1 });
+  wineGlass(ctx, LIPSTICK.x, LIPSTICK.y, LIPSTICK.z, { lip: true, fill: 0.15 });
+  bottle(ctx, 9.3, 8.45, h, 'sauce', 0.85);
+  // His medicine, at his elbow.
+  pillBox(ctx, 7.05, 8.4, h);
+  bottle(ctx, 6.9, 8.8, h, 'tonic', 0.9);
+  pillBottle(ctx, 7.3, 8.85, h, { up: true });
+  bottle(ctx, 9.3, 8.9, h, 'salt');
+  bottle(ctx, 8.95, 9.3, h, 'pepper');
+  pillBottle(ctx, PILLS.x, PILLS.y, PILLS.z, { bitten: true, mints: true });
+  pillBottle(ctx, 7.65, 9.3, h + 0.09, { rot: 2.9 });
+  hipFlask(ctx, 8.6, 9.3, h + 0.03);
+  wineGlass(ctx, 9.35, 9.2, h + 0.01, { fill: 0.5 });
+}
+
 // Everything at the table, in the order it stacks up.
 function tableScene(ctx, t) {
   lordChair(ctx);
   lordLegs(ctx, t);
   tableTop(ctx);
   tableThings(ctx);
-  pillBottle(ctx);
+  tableClutter(ctx);
   bowl(ctx, 'back');
   lord(ctx, t);
   bowl(ctx, 'front');
@@ -1167,70 +1264,180 @@ function sideTable(ctx) {
   ctx.fillRect(aX + 0.26, aY - 0.1, 0.04, 0.06);
 }
 
-// The wine glass (a find): a red lipstick print on the rim, a little wine left.
-function lipstickGlass(ctx) {
-  const [X, Y] = P3(12.62, 4.1, SIDE.h + 0.08);
+// A wine glass at (x, y, z), standing, or knocked over on its side (over: 1
+// or -1, which way it fell). fill: how much wine is left (0 to 1). Only one
+// glass in the room has a lipstick print on its rim (lip): Lady Philippa's (a find).
+function wineGlass(ctx, x, y, z, o = {}) {
+  const { s = 0.78, fill = 0, lip = false, over = 0 } = o;
+  const [X, Y] = P3(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(s, s);
+  if (over) {
+    // Knocked over: what was in it, run out across whatever it's on.
+    ctx.beginPath();
+    ctx.ellipse(over * 0.5, 0.02, 0.3, 0.11, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(MAT.wine, 0.85);
+    ctx.fill();
+    ctx.translate(0, -0.17);
+    ctx.rotate(over * 1.45);
+    ctx.translate(0, 0.28);
+  }
   const g = alpha(MAT.glass, 0.4);
   ctx.beginPath();
-  ctx.ellipse(X, Y, 0.16, 0.07, 0, 0, Math.PI * 2);
-  paint(ctx, g, { lw: 0.02 });
-  ctx.fillStyle = alpha(MAT.glass, 0.8);
-  ctx.fillRect(X - 0.02, Y - 0.26, 0.04, 0.26);
-  // The bowl, with a little wine in the bottom.
-  ctx.beginPath();
-  ctx.moveTo(X - 0.19, Y - 0.56);
-  ctx.quadraticCurveTo(X - 0.2, Y - 0.26, X, Y - 0.25);
-  ctx.quadraticCurveTo(X + 0.2, Y - 0.26, X + 0.19, Y - 0.56);
-  ctx.closePath();
+  ctx.ellipse(0, 0, 0.16, 0.07, 0, 0, Math.PI * 2);
   paint(ctx, g, { lw: 0.025 });
+  ctx.fillStyle = alpha(MAT.glass, 0.8);
+  ctx.fillRect(-0.02, -0.26, 0.04, 0.26);
+  const bowlPath = () => {
+    ctx.beginPath();
+    ctx.moveTo(-0.19, -0.56);
+    ctx.quadraticCurveTo(-0.2, -0.26, 0, -0.25);
+    ctx.quadraticCurveTo(0.2, -0.26, 0.19, -0.56);
+    ctx.closePath();
+  };
+  bowlPath();
+  paint(ctx, g, { lw: 0.03 });
+  if (fill > 0 && !over) {
+    // The wine, up to its level, flat on top.
+    const lv = -0.27 - fill * 0.25;
+    ctx.save();
+    bowlPath();
+    ctx.clip();
+    ctx.fillStyle = MAT.wine;
+    ctx.fillRect(-0.25, lv, 0.5, 0.3);
+    ctx.restore();
+    ctx.beginPath();
+    ctx.ellipse(0, lv, 0.1 + fill * 0.08, 0.035, 0, 0, Math.PI * 2);
+    ctx.fillStyle = shade(MAT.wine, 0.25);
+    ctx.fill();
+  }
   ctx.beginPath();
-  ctx.moveTo(X - 0.15, Y - 0.36);
-  ctx.quadraticCurveTo(X, Y - 0.32, X + 0.15, Y - 0.36);
-  ctx.quadraticCurveTo(X + 0.13, Y - 0.27, X, Y - 0.26);
-  ctx.quadraticCurveTo(X - 0.13, Y - 0.27, X - 0.15, Y - 0.36);
-  ctx.fillStyle = MAT.wine;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(X, Y - 0.56, 0.19, 0.06, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -0.56, 0.19, 0.06, 0, 0, Math.PI * 2);
   ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.02;
+  ctx.lineWidth = 0.025;
   ctx.stroke();
-  // The lipstick: her oxblood, a kiss on the rim.
+  if (lip) {
+    // Her oxblood, a kiss on the rim.
+    ctx.beginPath();
+    ctx.ellipse(0.1, -0.53, 0.07, 0.035, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(0.11, -0.49, 0.06, 0.03, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = INK.oxblood;
+    ctx.fill();
+  }
   ctx.beginPath();
-  ctx.ellipse(X + 0.1, Y - 0.53, 0.07, 0.035, -0.3, 0, Math.PI * 2);
-  ctx.ellipse(X + 0.11, Y - 0.49, 0.06, 0.03, -0.3, 0, Math.PI * 2);
-  ctx.fillStyle = INK.oxblood;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(X - 0.12, Y - 0.5); ctx.lineTo(X - 0.1, Y - 0.34);
-  ctx.strokeStyle = alpha(C.white, 0.8);
+  ctx.moveTo(-0.12, -0.5); ctx.lineTo(-0.1, -0.34);
+  ctx.strokeStyle = alpha(C.white, 0.7);
   ctx.lineWidth = 0.03;
   ctx.stroke();
+  ctx.restore();
 }
 
-// Goose feathers on the rug (a find): a small tuft, curling.
-function feathers(ctx, t) {
+// Goose feathers on the rug (a find): three small ones, in with the rest of
+// the party's mess, where the goose stood at midnight.
+const FEATHERS = { x: 10.85, y: 10.95 };
+function feathers(ctx) {
   const [X, Y] = P3(FEATHERS.x, FEATHERS.y, 0.03);
-  const lift = Q.detail ? Math.max(0, Math.sin(t * 0.9)) * 0.06 : 0;
-  const list = [[-0.18, 0.02, -0.5, 0.3], [0.02, -0.06, 0.25, 0.34], [0.2, 0.05, 1.2, 0.28], [-0.02, 0.1, -1.9, 0.3], [0.15, -0.1, 2.4, 0.22]];
-  list.forEach(([fx, fy, a, len], i) => {
+  const white = mix(C.white, INK.bone, 0.3);
+  for (const [fx, fy, a, len] of [[-0.14, 0.02, -0.4, 0.24], [0.04, -0.05, 0.5, 0.22], [0.12, 0.07, 2.6, 0.18]]) {
     ctx.save();
-    ctx.translate(X + fx, Y + fy - (i === 2 ? lift : 0));
+    ctx.translate(X + fx, Y + fy);
     ctx.rotate(a);
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(len * 0.5, -0.1, len, -0.02);
-    ctx.quadraticCurveTo(len * 0.55, 0.08, 0, 0);
-    paint(ctx, C.white, { lw: 0.018, dots: C.greyLight, density: 0.15 });
+    ctx.quadraticCurveTo(len * 0.5, -0.09, len, -0.02);
+    ctx.quadraticCurveTo(len * 0.55, 0.07, 0, 0);
+    paint(ctx, white, { lw: 0.018 });
     ctx.beginPath();
     ctx.moveTo(-0.04, 0.01); ctx.quadraticCurveTo(len * 0.5, -0.03, len * 0.95, -0.02);
     ctx.strokeStyle = C.grey;
     ctx.lineWidth = 0.012;
     ctx.stroke();
+    // A wisp of down where the quill starts.
+    ctx.beginPath();
+    ctx.moveTo(0.04, -0.01); ctx.quadraticCurveTo(0.0, -0.06, -0.04, -0.05);
+    ctx.moveTo(0.04, 0.01); ctx.quadraticCurveTo(0.0, 0.06, -0.03, 0.06);
+    ctx.strokeStyle = white;
+    ctx.lineWidth = 0.02;
+    ctx.stroke();
     ctx.restore();
-  });
+  }
 }
-const FEATHERS = { x: 11.3, y: 10.7 };
+
+// What the party left on the rug: confetti, streamers, crumbs, a crown,
+// napkins, a cracker's joke. Lots of small pale bits, so the feathers are
+// just three more of them until you look.
+function partyMess(ctx) {
+  const { x0, y0, x1, y1 } = RUG;
+  const skip = (x, y) => (x > TABLE.x0 - 0.2 && x < TABLE.x1 + 0.2 && y > TABLE.y0 - 0.2 && y < TABLE.y1 + 0.2)
+    || Math.hypot(x - FEATHERS.x, y - FEATHERS.y) < 0.3;
+  // Streamers, curled where they fell.
+  const curl = (x, y, len, a, col) => {
+    const [X, Y] = P3(x, y, 0.02);
+    ctx.beginPath();
+    for (let i = 0; i <= 18; i++) {
+      const k = i / 18, u = k * len;
+      const px = X + Math.cos(a) * u + Math.cos(k * 14) * 0.06, py = Y + Math.sin(a) * u * 0.5 + Math.sin(k * 14) * 0.05;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 0.045;
+    ctx.stroke();
+  };
+  curl(11.2, 11.4, 0.7, -0.3, INK.bone);
+  curl(5.4, 9.8, 0.9, 0.4, INK.candleGold);
+  curl(10.3, 5.3, 0.8, 2.6, C.pink);
+  curl(9.9, 10.6, 0.6, 0.9, INK.verdigris);
+  curl(6.2, 5.5, 0.6, -2.5, INK.bone);
+  curl(11.4, 8.2, 0.7, 1.9, INK.bone);
+  // A paper crown out of a cracker, flattened.
+  const [cX, cY] = P3(11.55, 10.35, 0.02);
+  ctx.beginPath();
+  ctx.moveTo(cX - 0.2, cY); ctx.lineTo(cX - 0.2, cY - 0.1); ctx.lineTo(cX - 0.12, cY - 0.04); ctx.lineTo(cX - 0.04, cY - 0.13);
+  ctx.lineTo(cX + 0.04, cY - 0.04); ctx.lineTo(cX + 0.12, cY - 0.13); ctx.lineTo(cX + 0.19, cY - 0.04); ctx.lineTo(cX + 0.2, cY);
+  ctx.closePath();
+  paint(ctx, C.pink, { lw: 0.02 });
+  // Napkins, dropped as everyone ran in.
+  for (const [nx, ny, r] of [[5.5, 10.9, 0.3], [10.1, 11.55, -0.5], [9.9, 5.6, 0.9]]) {
+    const [X, Y] = P3(nx, ny, 0.02);
+    ctx.save();
+    ctx.translate(X, Y);
+    ctx.rotate(r);
+    ctx.beginPath();
+    ctx.moveTo(-0.2, -0.04); ctx.lineTo(0.16, -0.1); ctx.lineTo(0.22, 0.06); ctx.lineTo(0.02, 0.12); ctx.lineTo(-0.18, 0.08);
+    ctx.closePath();
+    paint(ctx, INK.bone, { lw: 0.02 });
+    ctx.restore();
+  }
+  // The joke out of a cracker: a slip of paper, face up.
+  const [jX, jY] = P3(11.5, 11.2, 0.02);
+  ctx.save();
+  ctx.translate(jX, jY);
+  ctx.rotate(0.35);
+  ctx.fillStyle = INK.bone;
+  ctx.fillRect(-0.14, -0.05, 0.28, 0.1);
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(-0.1, -0.02, 0.18, 0.012);
+  ctx.fillRect(-0.1, 0.01, 0.12, 0.012);
+  ctx.restore();
+  if (!Q.detail) return;
+  // Confetti and crumbs everywhere.
+  const cols = [INK.bone, INK.candleGold, INK.verdigris, C.pink, MAT.custard, INK.bone, C.white];
+  for (let i = 0; i < 70; i++) {
+    const x = x0 + 0.5 + hash(i, 71) * (x1 - x0 - 1), y = y0 + 0.5 + hash(i, 72) * (y1 - y0 - 1);
+    if (skip(x, y)) continue;
+    const [X, Y] = P3(x, y, 0.02);
+    ctx.fillStyle = cols[i % cols.length];
+    if (i % 3 === 0) { ctx.beginPath(); ctx.arc(X, Y, 0.035, 0, Math.PI * 2); ctx.fill(); }
+    else ctx.fillRect(X - 0.04, Y - 0.022, 0.08, 0.045);
+  }
+  // A few more round the feathers, so they aren't the only pale spot there.
+  for (const [dx, dy, c] of [[-0.45, 0.2, INK.bone], [0.4, -0.1, MAT.custard], [0.2, 0.45, C.white], [-0.3, -0.35, INK.candleGold], [0.5, 0.3, INK.bone]]) {
+    const [X, Y] = P3(FEATHERS.x + dx, FEATHERS.y + dy, 0.02);
+    ctx.fillStyle = c;
+    ctx.fillRect(X - 0.04, Y - 0.022, 0.08, 0.045);
+  }
+}
 
 // ---------- The mantelpiece ----------
 const MANTEL = FIRE.h + 0.18; // the top of the shelf
@@ -1785,7 +1992,7 @@ export default {
 
     // ---------- The floor ----------
     R.rug((ctx) => drawRug(ctx));
-    R.rug((ctx, t) => feathers(ctx, t), { anim: true });
+    R.rug((ctx) => { partyMess(ctx); feathers(ctx); });
     // The end of the goose's trail: the last floury prints, in from the dining
     // room door, to where it stood at midnight (they show up in the lightning).
     const prints = [];
@@ -1805,7 +2012,16 @@ export default {
     R.thing(4.8, 11.8, (ctx, t) => bear(ctx, t), { anim: true });
     R.thing(3.5, 6.3, (ctx) => armchair(ctx, 5.2));
     R.thing(3.5, 8.3, (ctx) => armchair(ctx, 7.2));
-    R.thing(SIDE.x + 0.5, SIDE.y + 0.5, (ctx) => { sideTable(ctx); lipstickGlass(ctx); });
+    R.thing(SIDE.x + 0.5, SIDE.y + 0.5, (ctx) => {
+      sideTable(ctx);
+      wineGlass(ctx, 13.05, 4.15, SIDE.h + 0.08);
+      wineGlass(ctx, 12.35, 4.4, SIDE.h + 0.08, { fill: 0.45 });
+    });
+    // More glasses from the toast, put down wherever: by an armchair, on a
+    // pile of books, halfway up the ladder (none of them hers).
+    R.thing(3.75, 8.8, (ctx) => wineGlass(ctx, 3.75, 8.8, 0, { fill: 0.3 }));
+    // And one more of his pill bottles, dropped under the table's corner.
+    R.thing(6.2, 9.7, (ctx) => pillBottle(ctx, 6.2, 9.7, 0.09, { rot: 0.5 }));
     lamp(R, 14.4, 3.0, { h: 2.7 });
     candle(R, 8.34, 7.16, TABLE.h + 0.643, 11);
     candle(R, 8.55, 6.95, TABLE.h + 0.893, 12);
@@ -1813,7 +2029,7 @@ export default {
 
     // ---------- The mantelpiece and the portrait ----------
     // A clock that stopped at midnight, birthday cards, and the Lord over it all.
-    R.decor((ctx) => { clockBody(ctx); cards(ctx); portrait(ctx, 0); });
+    R.decor((ctx) => { clockBody(ctx); cards(ctx); wineGlass(ctx, 0.7, 7.85, MANTEL); portrait(ctx, 0); });
     R.decor((ctx, t) => clockFace(ctx, t), { anim: true });
 
     // ---------- The party that was ----------
@@ -1830,17 +2046,17 @@ export default {
     R.thing(BOARD.x1, BOARD.y + 0.3, (ctx) => blackboard(ctx));
 
     // ---------- Library things ----------
-    R.thing(4.4, 3.3, (ctx) => ladder(ctx, 4.4, 3.3, 2.4, GAL + 1.05));
+    R.thing(4.4, 3.3, (ctx) => { ladder(ctx, 4.4, 3.3, 2.4, GAL + 1.05); wineGlass(ctx, 3.9, 3.3, 2.04, { fill: 0.2 }); });
     R.thing(5.2, 1.9, (ctx, t) => globe(ctx, 5.2, 1.9, t), { anim: true });
     R.thing(11.4, 1.8, (ctx) => floorBooks(ctx, 11.4, 1.8, 5, 3));
     R.thing(1.9, 9.6, (ctx) => floorBooks(ctx, 1.9, 9.6, 3, 7));
-    R.thing(14.3, 7.6, (ctx) => floorBooks(ctx, 14.3, 7.6, 4, 11));
+    R.thing(14.3, 7.6, (ctx) => { floorBooks(ctx, 14.3, 7.6, 4, 11); wineGlass(ctx, 14.25, 7.55, 0.44, { fill: 0.6 }); });
 
     R.dark(house.dark);
 
     // ---------- Finds ----------
-    R.find({ id: 'feathers', label: 'Goose feathers on the rug', at: [FEATHERS.x, FEATHERS.y, 0.05], r: 0.8 });
-    R.find({ id: 'pill-bottle', label: 'A pill bottle with beak marks', at: [PILLS.x + 0.05, PILLS.y, PILLS.z], r: 0.7 });
-    R.find({ id: 'lipstick-glass', label: 'A wine glass with lipstick', at: [12.62, 4.1, SIDE.h + 0.3], r: 0.7 });
+    R.find({ id: 'feathers', label: 'Goose feathers on the rug', at: [FEATHERS.x, FEATHERS.y, 0.05], r: 0.65 });
+    R.find({ id: 'pill-bottle', label: 'A pill bottle with beak marks', at: [PILLS.x, PILLS.y, PILLS.z], r: 0.6 });
+    R.find({ id: 'lipstick-glass', label: 'A wine glass with lipstick', at: [LIPSTICK.x, LIPSTICK.y, LIPSTICK.z + 0.3], r: 0.6 });
   },
 };
