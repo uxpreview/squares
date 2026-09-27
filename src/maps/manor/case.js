@@ -6,7 +6,7 @@
 //
 // Lines are [who, what they say]; who is a cast id (style.js), or 'goose'.
 import { C, Q, mix, shade, alpha, setScreen, dots, person } from '../../engine/art.js';
-import { INK, MAT, CAST, dressed, monocleGoose, echoGoose, verdict } from './style.js';
+import { INK, MAT, CAST, dressed, monocleGoose, verdict } from './style.js';
 
 const suspects = [
   {
@@ -114,7 +114,8 @@ const suspects = [
     name: 'The goose',
     role: 'Loose, as usual',
     motive: 'It read the order form: one goose, stuffed, by Tuesday.',
-    hidden: { name: 'Someone else?', role: 'Small, feathered, looks innocent' },
+    // Until the clues are in, nothing on the card says goose: the evidence has to.
+    hidden: { name: 'Someone else?', role: 'Not on the guest list' },
     against: [
       { find: 'library:feathers', says: 'Goose feathers on the rug, by the body.' },
       { find: 'library:pill-bottle', says: 'Beak marks on the cap of his pill bottle.' },
@@ -163,9 +164,9 @@ export default {
   onOpen() { verdict.solved = null; },
 
   // A portrait for the case file: anyone in the case, in an oval gilt frame,
-  // on their own ink. id: a cast id, 'goose', or 'someone' (the goose as a
-  // shadow with a question mark). w, h: the canvas area in pixels; dpr: its
-  // pixel density.
+  // on their own ink. id: a cast id, 'goose', or 'someone' (a plain shadow
+  // with a question mark: it could be anyone). w, h: the canvas area in
+  // pixels; dpr: its pixel density.
   portrait(ctx, id, w, h, t = 0, dpr = 1) {
     const cast = CAST[id];
     const ground = id === 'goose' || id === 'someone' ? mix(INK.candleGold, INK.bone, 0.35) : mix(cast.color, INK.bone, 0.62);
@@ -197,18 +198,26 @@ export default {
     const lines = Q.lines, detail = Q.detail;
     Q.lines = true;
     Q.detail = true;
-    if (id === 'goose' || id === 'someone') {
+    if (id === 'someone') {
+      // Head and shoulders in shadow, and a question mark.
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - h * 0.1, w * 0.15, h * 0.16, 0, 0, Math.PI * 2);
+      ctx.moveTo(cx - w * 0.4, cy + h * 0.5);
+      ctx.bezierCurveTo(cx - w * 0.38, cy + h * 0.12, cx - w * 0.2, cy + h * 0.08, cx, cy + h * 0.08);
+      ctx.bezierCurveTo(cx + w * 0.2, cy + h * 0.08, cx + w * 0.38, cy + h * 0.12, cx + w * 0.4, cy + h * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = mix(INK.stormNavy, INK.deepPlum, 0.3);
+      ctx.fill();
+      ctx.font = `400 ${Math.round(h * 0.22)}px "Bagel Fat One", "Arial Black", sans-serif`;
+      ctx.fillStyle = INK.bone;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', cx, cy - h * 0.09);
+    } else if (id === 'goose') {
       const g = h * 0.62;
       ctx.translate(cx - g * 0.12, cy + g * 0.52);
       ctx.scale(g, g);
-      if (id === 'goose') monocleGoose(ctx, 0, 0, 0, t, { dir: 'r' });
-      else {
-        echoGoose(ctx, 0, 0, 0, 'r', 1.4);
-        ctx.font = '700 0.55px "Bagel Fat One", "Arial Black", sans-serif';
-        ctx.fillStyle = INK.bone;
-        ctx.textAlign = 'center';
-        ctx.fillText('?', 0.02, -0.34);
-      }
+      monocleGoose(ctx, 0, 0, 0, t, { dir: 'r' });
     } else {
       // A bust: the head and shoulders, turned a little toward us.
       ctx.translate(cx - k * 0.05, cy + k * 1.78);

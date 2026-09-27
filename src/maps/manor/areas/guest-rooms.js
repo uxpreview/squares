@@ -1401,7 +1401,6 @@ export default {
       disc(ctx, 6.0, 4.2, 0.076, 0.15, shade(MAT.silver, 0.25), { stroke: false });
       disc(ctx, 6.38, 4.43, 0.03, 0.2, INK.verdigris, { lw: 0.03 });
       disc(ctx, 6.38, 4.43, 0.031, 0.15, INK.bone, { stroke: false });
-      flat(ctx, 'z', 0.032, (g) => words(g, 'MINTS', 6.38, 4.43, 0.075, INK.verdigris, true));
       if (Q.detail) {
         flat(ctx, 'z', 0.02, (g) => {
           g.beginPath(); g.moveTo(6.55, 3.95); g.quadraticCurveTo(6.8, 3.8, 6.95, 3.95); g.quadraticCurveTo(6.75, 4.02, 6.55, 3.95);

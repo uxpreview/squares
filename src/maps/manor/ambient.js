@@ -14,13 +14,14 @@
 import { ZK } from '../../engine/iso.js';
 import { C, Q, box, face, poly, paint, alpha, mix, shade, hash, dots, glow, disc } from '../../engine/art.js';
 import { rain, bolt } from '../../engine/weather.js';
-import { reg, geeseV } from '../shared.js';
+import { geeseV } from '../shared.js';
 import { HOUSE, LAWN, DEPTH } from './plan.js';
 import { INK, NIGHT, MAT, storm, lightsOut } from './style.js';
 
 const P3 = (x, y, z = 0) => [x - y, (x + y) / 2 - z * ZK];
 
-// The printed image area, in world iso units: the night, on the paper.
+// The picture, in world iso units: what the overview frames and the camera
+// may pan across. The night itself runs past it to every edge of the screen.
 export const PLATE = [-74, -52, 66, 68];
 
 const [LX0, LY0, LX1, LY1] = LAWN;
@@ -64,6 +65,20 @@ const OUT = {
 // The visible world rect this frame (fx.view), so what's off screen is skipped.
 let VIEW = null;
 const seen = (X0, Y0, X1, Y1) => !VIEW || !(X1 < VIEW[0] || X0 > VIEW[2] || Y1 < VIEW[1] || Y0 > VIEW[3]);
+// Where the night is printed: everywhere you can see, and at least the plate.
+const sheet = () => (VIEW && VIEW.every(Number.isFinite)
+  ? [Math.min(PLATE[0], VIEW[0] - 2), Math.min(PLATE[1], VIEW[1] - 2), Math.max(PLATE[2], VIEW[2] + 2), Math.max(PLATE[3], VIEW[3] + 2)]
+  : PLATE);
+// Copies of a pattern that repeats every `span` across the sheet, for things
+// strung along the sky (the cloud bank, the wisps): offsets to draw it at.
+function repeats(from, to, span) {
+  const [S0, , S1] = sheet();
+  const k0 = Math.floor((S0 - to) / span), k1 = Math.ceil((S1 - from) / span);
+  if (!(k1 - k0 < 40)) return [0]; // a view that wide is nothing we'd draw; don't try
+  const out = [];
+  for (let k = k0; k <= k1; k++) out.push(k * span);
+  return out;
+}
 
 // A line between two world points, added to the current path.
 function seg(ctx, a, b) {
@@ -971,17 +986,16 @@ const THINGS = [
   [27.4 + 53.3, (ctx) => signpost(ctx)],
 ].sort((a, b) => a[0] - b[0]);
 
-// ---------- The plate and the sky behind ----------
+// ---------- The night and the sky behind ----------
 function platePath(ctx) {
-  const [X0, Y0, X1, Y1] = PLATE;
+  const [X0, Y0, X1, Y1] = sheet();
   ctx.beginPath();
-  ctx.roundRect(X0, Y0, X1 - X0, Y1 - Y0, 3);
+  ctx.rect(X0, Y0, X1 - X0, Y1 - Y0);
 }
 
-// The night: a storm-navy panel on the paper, with registration marks, a
-// caption and the six inks it was printed with.
+// The night, printed storm navy to every edge of the screen: the map is the
+// whole picture, not a panel on paper.
 function plate(ctx) {
-  const [X0, Y0, X1, Y1] = PLATE;
   platePath(ctx);
   ctx.fillStyle = NIGHT.plate;
   ctx.fill();
@@ -989,27 +1003,6 @@ function plate(ctx) {
     ctx.fillStyle = dots(NIGHT.plateDots, 0.22);
     ctx.fill();
   }
-  reg(ctx, (X0 + X1) / 2, Y0 - 4);
-  reg(ctx, (X0 + X1) / 2, Y1 + 8);
-  reg(ctx, X0 - 4, (Y0 + Y1) / 2);
-  reg(ctx, X1 + 4, (Y0 + Y1) / 2);
-  const k = 40;
-  ctx.save();
-  ctx.translate((X0 + X1) / 2, Y1 + 3.6);
-  ctx.scale(1 / k, 1 / k);
-  ctx.font = `${1.1 * k}px "Rethink Sans", system-ui, sans-serif`;
-  ctx.fillStyle = alpha(C.ink, 0.55);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('GOOSEWORTH MANOR  ·  A DARK AND STORMY NIGHT', 0, 0);
-  ctx.restore();
-  ctx.lineWidth = 0.06;
-  ctx.strokeStyle = alpha(C.ink, 0.35);
-  Object.values(INK).forEach((c, i) => {
-    ctx.fillStyle = c;
-    ctx.fillRect(X1 - 10.4 + i * 1.7, Y1 + 2.9, 1.4, 1.4);
-    ctx.strokeRect(X1 - 10.4 + i * 1.7, Y1 + 2.9, 1.4, 1.4);
-  });
 }
 
 // The moon, breaking through behind the spire: it's what makes the tower, the
@@ -1040,17 +1033,22 @@ const BILLOWS = 30;
 const WISPS = [[2, -38.2, 15, 0.9, 1.1], [-40, -33, 20, 1.2, 0.8], [40, -29, 16, 1, 0.95]];
 function clouds(ctx, t) {
   const [X0, Y0, X1] = PLATE;
+  const [S0, S1, S2] = sheet();
   const span = X1 - X0 + 24;
   const lit = [], all = [];
-  for (let i = 0; i < BILLOWS; i++) {
-    const X = X0 - 12 + ((((i * span) / BILLOWS + hash(i, 51) * 3 - t * 0.45) % span) + span) % span;
-    const side = Math.min(1, ((X - MOON.X) / 36) ** 2);
-    const Y = Y0 + 1.6 + hash(i, 52) * 2.6 + side * 4.5;
-    const d = Math.hypot(X - MOON.X, Y - MOON.Y);
-    const r = (3 + hash(i, 53) * 2.8) * Math.min(1, Math.max(0, (d - MOON.r + 0.5) / 7));
-    if (r < 0.4) continue;
-    all.push(X, Y, r, d);
-    if (d < MOON.r + 15) lit.push(X, Y, r, d);
+  // The bank repeats every span, so it runs on past the plate to the screen's edges.
+  for (const off of repeats(X0 - 12, X1 + 12, span)) {
+    for (let i = 0; i < BILLOWS; i++) {
+      const X = off + X0 - 12 + ((((i * span) / BILLOWS + hash(i, 51) * 3 - t * 0.45) % span) + span) % span;
+      if (X < S0 - 6 || X > S2 + 6) continue;
+      const side = Math.min(1, ((X - MOON.X) / 36) ** 2);
+      const Y = Y0 + 1.6 + hash(i, 52) * 2.6 + side * 4.5;
+      const d = Math.hypot(X - MOON.X, Y - MOON.Y);
+      const r = (3 + hash(i, 53) * 2.8) * Math.min(1, Math.max(0, (d - MOON.r + 0.5) / 7));
+      if (r < 0.4) continue;
+      all.push(X, Y, r, d);
+      if (d < MOON.r + 15) lit.push(X, Y, r, d);
+    }
   }
   // The edges facing the moon, then the billows, then the dark mass above them.
   ctx.beginPath();
@@ -1062,8 +1060,9 @@ function clouds(ctx, t) {
   }
   ctx.fillStyle = OUT.cloudRim;
   ctx.fill();
+  // Above the billows, cloud all the way up: the storm is the whole sky.
   ctx.beginPath();
-  ctx.rect(X0, Y0 - 1, X1 - X0, 2.6);
+  ctx.rect(S0, S1, S2 - S0, Y0 + 1.6 - S1);
   for (let i = 0; i < all.length; i += 4) {
     ctx.moveTo(all[i] + all[i + 2], all[i + 1]);
     ctx.arc(all[i], all[i + 1], all[i + 2], 0, Math.PI * 2);
@@ -1072,10 +1071,13 @@ function clouds(ctx, t) {
   // Wisps: long and thin, tapering at both ends.
   ctx.beginPath();
   const wspan = X1 - X0 + 40;
-  for (const [x0, Y, len, th, v] of WISPS) {
-    const X = X0 - 20 + ((((x0 - X0 + 20 - t * v) % wspan) + wspan) % wspan);
-    ctx.moveTo(X + len / 2, Y);
-    ctx.ellipse(X, Y, len / 2, th / 2, 0, 0, Math.PI * 2);
+  for (const off of repeats(X0 - 20, X1 + 20, wspan)) {
+    for (const [x0, Y, len, th, v] of WISPS) {
+      const X = off + X0 - 20 + ((((x0 - X0 + 20 - t * v) % wspan) + wspan) % wspan);
+      if (X + len / 2 < S0 || X - len / 2 > S2) continue;
+      ctx.moveTo(X + len / 2, Y);
+      ctx.ellipse(X, Y, len / 2, th / 2, 0, 0, Math.PI * 2);
+    }
   }
   ctx.fillStyle = OUT.wisp;
   ctx.fill();
@@ -1084,15 +1086,15 @@ function clouds(ctx, t) {
 // A printed haze low in the sky, the dots denser toward the horizon (the
 // lawn's far edges), so the dark trees and the railings stand out against it.
 function haze(ctx) {
-  const [X0, , X1, Y1] = PLATE;
+  const [X0, , X1, Y1] = sheet();
   const [LX, LY] = P3(LX0, LY1), [BX, BY] = P3(LX0, LY0), [RX, RY] = P3(LX1, LY0);
-  // The horizon, straight on out to the plate's sides.
+  // The horizon, straight on out to the sides of the screen.
   const hz = (X) => (X < BX ? BY + (X - BX) * (LY - BY) / (LX - BX) : BY + (X - BX) * (RY - BY) / (RX - BX));
   for (const [lift, d] of [[15, 0.1], [8, 0.18], [3, 0.28]]) {
     ctx.beginPath();
-    ctx.moveTo(X0, hz(X0) - lift);
+    ctx.moveTo(X0, Math.min(Y1, hz(X0) - lift));
     ctx.lineTo(BX, BY - lift);
-    ctx.lineTo(X1, hz(X1) - lift);
+    ctx.lineTo(X1, Math.min(Y1, hz(X1) - lift));
     ctx.lineTo(X1, Y1);
     ctx.lineTo(X0, Y1);
     ctx.closePath();

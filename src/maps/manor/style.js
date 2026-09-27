@@ -23,9 +23,6 @@ export const INK = {
   bone: '#EFE3C8',
 };
 
-// The paper this level is printed on.
-export const PAPER = '#E9DCC4';
-
 // The night outside.
 export const NIGHT = {
   plate: INK.stormNavy,

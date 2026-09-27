@@ -1110,7 +1110,6 @@ export default {
         ctx.lineWidth = 0.012;
         ctx.stroke();
         words(ctx, 'LAST WEEK', 0.19, -0.16, 0.04, INK.stormNavy, { weight: 600 }); // the date: his alibi
-        words(ctx, 'I RESIGN.', -0.03, -0.02, 0.105, C.ink, { weight: 700 });
         words(ctx, 'Jenkins', 0.04, 0.12, 0.075, INK.stormNavy, { weight: 600 });
       }
       ctx.beginPath();

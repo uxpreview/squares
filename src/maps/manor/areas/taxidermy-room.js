@@ -861,7 +861,6 @@ function drawDesk(ctx) {
     g.fillStyle = INK.oxblood;
     g.fill();
     if (Q.detail) {
-      g.save(); g.translate(0, -0.39); write(g, 'ORDER FORM', 0.1, INK.bone, FAT); g.restore();
       g.save(); g.translate(0, -0.2); write(g, '1 x GOOSE', 0.15, C.ink, FAT); g.restore();
       g.save(); g.translate(-0.08, -0.05); write(g, 'STUFFED.', 0.09, C.ink); g.restore();
       g.save(); g.translate(-0.06, 0.06); write(g, 'BY TUESDAY.', 0.09, INK.oxblood); g.restore();
@@ -2065,7 +2064,7 @@ export default {
 
     // ---- the finds ----
     R.find({ id: 'order-form', label: 'An order form for a goose', at: [3, 12.1, 1.2], r: 0.7 });
-    R.find({ id: 'empty-stand', label: 'An empty stand marked GOOSE', at: [8.1, 6.1, 0.95], r: 0.8 });
+    R.find({ id: 'empty-stand', label: 'An empty display stand', at: [8.1, 6.1, 0.95], r: 0.8 });
     R.find({ id: 'owl', label: 'The owl that turns its head', at: [12.5, 2.5, 3.1], r: 0.8 });
   },
 };

@@ -1400,7 +1400,8 @@ function theWill(ctx) {
     g.beginPath();
     g.rect(0, 0, 0.62, 0.95);
     paint(g, tint(PAPER, 0.2), { lw: 0.025 });
-    words(g, 'NEW WILL', 0.31, 0.1, 0.1, INK.oxblood, { font: DISPLAY });
+    // No printed title (it gave the find away): a heading in his own hand.
+    scribble(g, 0.12, 0.11, 0.38, 29, alpha(INK.oxblood, 0.9), 0.022);
     if (Q.detail) {
       for (let i = 0; i < 3; i++) scribble(g, 0.07, 0.24 + i * 0.07, 0.48 - (i === 2 ? 0.15 : 0), 31 + i, alpha(C.ink, 0.75), 0.011);
       words(g, 'To Dr. Crane:', 0.29, 0.47, 0.048, C.ink, { italic: true });

@@ -4,7 +4,7 @@
 // everyone moves between rooms on one clock (evening.js). The brief is
 // docs/levels/manor.md; the layout is plan.js.
 import { WALL } from '../../engine/iso.js';
-import { PAPER, storm, MIDNIGHT } from './style.js';
+import { NIGHT, storm, MIDNIGHT } from './style.js';
 import { AT, STOREY, LOOP } from './plan.js';
 import { walkers } from './evening.js';
 import { backdrop, sky, PLATE } from './ambient.js';
@@ -53,14 +53,15 @@ export default {
   ],
   storey: 'ground',
   cutaway: { front: true, above: true, walls: 1.2, lift: 16, ghost: 0.05 },
-  plate: { paper: PAPER, kind: 'night' },
-  // The whole plate on a wide screen; on a phone, the house and its lawn, with
-  // the plate's far corners running off the sides; on a phone held sideways,
-  // just the house.
+  // Printed on the night itself: it runs to every edge of the screen.
+  plate: { paper: NIGHT.plate, kind: 'night' },
+  // The whole picture on a wide screen; on a phone, the house edge to edge,
+  // the lawn's far corners running off the sides; on a phone held sideways,
+  // the rooms filling the height. The night runs on past all of it.
   overview: (portrait, storey, short) => {
     if (portrait) return [-35, 50, PLATE[1] + 4, PLATE[3] + 4];
-    if (short) return [-42, 56, -42, 52];
-    return [PLATE[0] - 4, PLATE[2] + 4, PLATE[1] - 6, PLATE[3] + 10];
+    if (short) return [-40, 54, -24, 46];
+    return [PLATE[0] - 2, PLATE[2] + 2, PLATE[1] - 2, PLATE[3] + 2];
   },
   walkers,
   backdrop,
