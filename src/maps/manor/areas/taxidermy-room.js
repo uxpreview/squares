@@ -1776,7 +1776,7 @@ function drawPenguin(ctx) {
 export default {
   id: 'taxidermy-room',
   name: 'Taxidermy Room',
-  blurb: 'Stuffed everything, and one empty stand marked GOOSE. The owl turns its head whenever you look away.',
+  blurb: 'Stuffed everything, and one new stand with nothing on it yet. The owl turns its head whenever you look away.',
 
   build(R) {
     // ---- floor and walls ----
