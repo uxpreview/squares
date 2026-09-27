@@ -130,10 +130,10 @@ Doors: hall to billiard room, dining room, conservatory and the front door; libr
 | Area | Finds |
 | --- | --- |
 | Library | Goose feathers on the rug, A pill bottle with beak marks, A wine glass with lipstick |
-| Kitchen | Webbed footprints in flour, A kitchen timer, A sausage on the run (it moves, with the dog) |
+| Kitchen | Webbed footprints in flour, A kitchen timer, A stolen sausage (it moves, with the dog) |
 | Taxidermy Room | An order form for a goose, An empty stand marked GOOSE, The owl that turns its head |
 | Master Bedroom | The Lord's diary, The new will |
-| Guest Rooms | Dr. Crane's bag, An empty tin of mints, The family silver, half packed, A duelling pistol |
+| Guest Rooms | Dr. Crane's medical bag, An empty tin of mints, The family silver, half packed, A duelling pistol |
 | Grand Hall | Mrs. Hatchett's rolling pin, and the goose (by the coats, looking innocent) |
 | Billiard Room | A pawn ticket, Rupert's shoes |
 | Dining Room | A false tooth in the soup, A place set for the goose |
@@ -180,4 +180,5 @@ Session 3 choices, for the owner to confirm or change at gate 3:
 17. **Mrs. Hatchett turns round every 6 seconds**, and the dog only steals when her back is turned.
 18. **Repeats cut by the art director:** one stag head, four cats (none alike), one tiger rug (the taxidermy room's), one set of moving portrait eyes (the hall's). The house still has three portraits of the Lord (hall, bedroom, library), each with a different joke, and party hats and "80" everywhere, since it's his birthday.
 19. **The goose's trail** of floury webbed prints runs from the kitchen flour, through the dining room, to where it stood by the body.
-20. **The goose stays in the Grand Hall** (by the coats) rather than roaming the house; a find still belongs to one area (ROADMAP E10). 
+20. **Playtest fixes:** "Dr. Crane's bag" is now "Dr. Crane's medical bag" (his trunk is labelled too), "A sausage on the run" is now "A stolen sausage" (the dog is often mid-leap, not running), bigger tap areas where the drawn object outgrew its circle (the silver, the bag, the pistol, the mints, the will), and a monocle on the end of the chain poking out of the parcel so the ending has a setup.
+21. **The goose stays in the Grand Hall** (by the coats) rather than roaming the house; a find still belongs to one area (ROADMAP E10). 

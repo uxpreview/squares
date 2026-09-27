@@ -1544,6 +1544,13 @@ export default {
       ctx.strokeStyle = GOLD;
       ctx.lineWidth = 0.025;
       ctx.stroke();
+      // and on the end of it, the monocle (the goose will be wearing it later)
+      ctx.beginPath();
+      ctx.arc(tX + 0.17, tY + 0.07, 0.07, 0, TAU);
+      ctx.fillStyle = alpha(INK.bone, 0.5);
+      ctx.fill();
+      ctx.lineWidth = 0.03;
+      ctx.stroke();
     });
     R.find({ id: 'parcel', label: 'A soaked parcel for G. Goose', at: PARCEL, r: 0.75 });
 

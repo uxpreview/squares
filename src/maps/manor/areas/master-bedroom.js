@@ -2400,6 +2400,6 @@ export default {
 
     // ---------- The finds ----------
     R.find({ id: 'diary', label: "The Lord's diary", at: [8.2, 3.2, 1.1], r: 0.7 });
-    R.find({ id: 'new-will', label: 'The new will', at: [13, 11.1, 1.3], r: 0.7 });
+    R.find({ id: 'new-will', label: 'The new will', at: [13, 11.1, 1.3], r: 0.95 });
   },
 };

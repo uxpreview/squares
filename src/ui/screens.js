@@ -162,8 +162,9 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     el.completeKicker.textContent = world.goal === 'case' ? 'Case closed' : 'Place complete';
     const left = world.totalThings - p.things + (world.totalGeese - p.geese);
     if (world.goal === 'case') {
+      const all = world.totalThings + world.totalGeese;
       el.completeText.textContent = `${world.map.case.reveal.text} ${left > 0
-        ? `${left} more ${left === 1 ? 'find is' : 'finds are'} still hidden in the house.`
+        ? `You found ${all - left} of the ${all} things in the house.`
         : 'You found everything, too.'}`;
     } else {
       el.completeText.textContent = left > 0

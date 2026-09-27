@@ -1829,9 +1829,9 @@ export default {
     R.dark(house.dark);
 
     // ---------- The finds ----------
-    R.find({ id: 'doctors-bag', label: "Dr. Crane's bag", at: [10.5, 13, 0.6], r: 0.8 });
-    R.find({ id: 'mint-tin', label: 'An empty tin of mints', at: [6.2, 4.3, 0.05], r: 0.7 });
-    R.find({ id: 'silver', label: 'The family silver, half packed', at: [13.7, 4.5, 0.8], r: 0.8 });
-    R.find({ id: 'pistol', label: 'A duelling pistol', at: [6.2, 13, 0.8], r: 0.7 });
+    R.find({ id: 'doctors-bag', label: "Dr. Crane's medical bag", at: [10.5, 13, 0.3], r: 1.0 });
+    R.find({ id: 'mint-tin', label: 'An empty tin of mints', at: [6.2, 4.3, 0.05], r: 0.9 });
+    R.find({ id: 'silver', label: 'The family silver, half packed', at: [13.7, 4.5, 0.45], r: 1.15 });
+    R.find({ id: 'pistol', label: 'A duelling pistol', at: [6.2, 13, 0.55], r: 0.95 });
   },
 };

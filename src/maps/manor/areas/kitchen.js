@@ -2088,7 +2088,7 @@ export default {
     R.find({ id: 'footprints', label: 'Webbed footprints in flour', at: [8.7, 12.6, 0.02], r: 0.9 });
     R.find({ id: 'timer', label: 'A kitchen timer', at: [TIMER[0], TIMER[1], th + 0.27], r: 0.7 });
     R.find({
-      id: 'sausage', label: 'A sausage on the run', r: 0.9,
+      id: 'sausage', label: 'A stolen sausage', r: 1.1,
       at: (t) => {
         const d = dog.at(t);
         if (d.resting) return [REST[0], REST[1], th + 0.07];

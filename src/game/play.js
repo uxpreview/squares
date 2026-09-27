@@ -331,7 +331,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       sound('honk');
     } else sound('pen');
     let msg;
-    if (newSuspect) msg = 'All the clues are in. The case file has a new suspect.';
+    if (newSuspect) msg = `That's all ${newSuspect.clues} clues. The case file has a new suspect.`;
     else if (cleared) msg = `Evidence: ${cleared.name}'s alibi checks out.`;
     else if (f.goose) msg = 'HONK. You found the goose. It looks very innocent.';
     else if (f.group === 'evidence') msg = `Evidence: ${lower(f.label)} (${p.evidence}/${world.totals.evidence})`;
