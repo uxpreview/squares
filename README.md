@@ -4,10 +4,10 @@ A hidden-object picture book you can walk through. Tiny animated places, drawn e
 
 - **Title screen:** the current place drifts behind the title. **Play** (or **Continue**) and **All places**.
 - **Pick a place:** one card per map, with a live picture and your progress.
-- **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it.
+- **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it. A first visit gets a card pinned to a room saying where to start; on the whole map, rooms that still hide their goose honk now and then. A house changes floors from its lift, in the corner.
 - **Whodunits** (Gooseworth Manor): the finds are **evidence** and **curiosities**, and the goal is solving the case. **Case** opens the case file: every suspect, what points at them, their alibi, and **Accuse**. Accuse anyone, any time; the wrong one gives you their alibi (and a joke), and the culprit stays a mystery until you've found every clue against them.
 
-Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made are hidden from the picker but open from a link: `/#/manor`.
+Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made (or retired, like the Walk-Up) are hidden from the picker but open from a link: `/#/tower`.
 
 ## Run it
 
@@ -41,7 +41,7 @@ src/
     renderer.js      Draws a world every frame; cutaways and floors lifting; the fade-in
     input.js         Touch, mouse and wheel; stretching past an edge and springing back
   game/            The rules
-    play.js          Playing a map: tapping, finding, hints, tallies, the floor tags, the reveal
+    play.js          Playing a map: tapping, finding, hints, tallies, the lift, the invitation, the reveal
     case.js          Level formats: a place's goal, evidence and curiosities, accusations
     store.js         Saved progress and settings (and upgrading old saves)
     audio.js         Every sound, synthesized (honk, pen, thunder, rain...)
@@ -101,7 +101,11 @@ docs/
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |
 | A house's floors, and which one it opens on | `storeys` and `storey` in its `map.js` (the Manor: `src/maps/manor/map.js`) |
 | How low inside walls drop, how far floors lift | `cutaway.walls`, `cutaway.lift`, `cutaway.ghost` in the map's `map.js` |
-| How the floor tags look | "Floors" in `styles.css` (where they sit: `placeFloors` in `play.js`) |
+| How the lift (the floor buttons) looks | "The lift" in `styles.css`; a place's own colors (the Manor's brass) are `lift` in its `map.js` |
+| What a first visit is invited to do, and where the card points | `words.invite` and `words.hint` (what it says) and `invite` (which room, where the ring pings, where the card pins) in the place's `map.js`; the card's look is "The invitation" in `styles.css` |
+| How often rooms honk on the overview | `CALL_EVERY` in `src/game/play.js` (the bubble is `callBubble` next to it) |
+| How big the pen circles around found things are | `drawMarks` in `src/game/play.js`: 16px in a room, shrinking with the picture when you zoom out, never under 5px |
+| The lift's ding | `ding` in `src/game/audio.js` |
 | Who's where at the Manor, and when | `src/maps/manor/evening.js` (doors and stairs are in `plan.js`) |
 | When the Manor's lights go out, how often lightning strikes | `lightsOut` and `storm` in `src/maps/manor/style.js` |
 | What QA expects of a place (finds per area, key moments) | `qa` in its `map.js`; the checks and budgets are at the top of `tools/qa.mjs` |
@@ -124,9 +128,10 @@ The whole pipeline is in `docs/PROCESS.md`. In short: write the brief (`docs/lev
 What a map file holds (`src/maps/beach/map.js`; see `tower/map.js` or `manor/map.js`):
    - `zones`: each zone file and where it sits, `at: [x, y, z]` in world units. A zone is 16 x 16. Side by side with no gap (`[0,0,0]`, `[16,0,0]`...) makes one continuous place like a beach; gaps make separate rooms; stacking `z` makes floors.
    - `cutaway`: `{ front: true }` cuts away zones in front of the one you're in (the block). `{ above: true }` lifts zones above it out of the way (a building). `walls: 1.2` drops inside walls to waist height except in the room you're in (a house). Use `{}` for an open place where nothing is in the way.
-   - `words`: what the hint line and messages say ("Tap a stretch of beach...").
+   - `words`: what the invitation and messages say ("Pick a cove, any cove", "Tap one to step inside.").
+   - `invite` (optional): where a first visit's invitation points: `{ zone, at, pin }` (see `block/map.js`).
    - `backdrop` and `sky` (optional): art drawn under and over the whole place. See `tower/ambient.js`.
-   - `storeys` (optional): named floors, with tags on the house to change them (see the Manor).
+   - `storeys` (optional): named floors, with a lift panel to change them (see the Manor).
    - `walkers` (optional): people who walk from area to area on one clock (see `manor/evening.js`).
    - `case` (optional): makes the place a whodunit (see `manor/case.js` and the top of `src/game/case.js`).
    - `sound` (optional): a bed that loops while you're there, and cues on the place's clock.

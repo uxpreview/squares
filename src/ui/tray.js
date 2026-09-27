@@ -215,6 +215,8 @@ export function createTray(o) {
     try { localStorage.setItem(STORE, state); } catch {}
     apply();
     const r1 = el.tray.getBoundingClientRect();
+    // The game measures where the tray rests before it starts sliding there.
+    o.onStateChange(prev, next);
     if (!o.reduceMotion && !el.tray.hidden) {
       if (dock() === 'right') {
         el.tray.animate([{ width: r0.width + 'px' }, { width: r1.width + 'px' }], { duration: 340, easing: EASE });
@@ -224,7 +226,6 @@ export function createTray(o) {
         el.tray.animate([{ height: r0.height + 'px' }, { height: r1.height + 'px' }], { duration: 340, easing: EASE });
       }
     }
-    o.onStateChange(prev, next);
   }
   const up = () => setState(state === 'hidden' ? 'peek' : 'open');
   const down = () => setState(state === 'open' && dock() === 'bottom' ? 'peek' : 'hidden');
@@ -257,13 +258,14 @@ export function createTray(o) {
     target.addEventListener('pointercancel', () => { sw = null; });
   }
 
-  // The tray's box in a given state, measured without showing it.
+  // The tray's box in a given state, measured without showing it. Its layout
+  // box, not getBoundingClientRect: that includes the slide it does between
+  // states, and the room bar once rested 8px into the list because of it.
   function rectFor(s) {
-    const cur = el.tray.dataset.state;
-    if (cur === s) return el.tray.getBoundingClientRect();
-    el.tray.dataset.state = s;
-    const r = el.tray.getBoundingClientRect();
-    el.tray.dataset.state = cur;
+    const cur = el.tray.dataset.state, t = el.tray;
+    if (cur !== s) t.dataset.state = s;
+    const r = { left: t.offsetLeft, top: t.offsetTop, width: t.offsetWidth, height: t.offsetHeight };
+    if (cur !== s) t.dataset.state = cur;
     return r;
   }
 

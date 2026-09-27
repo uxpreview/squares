@@ -33,7 +33,8 @@ export default {
   sky,
   words: {
     zone: 'floor',
-    hint: 'Tap a floor to step inside. Pinch or scroll to zoom.',
+    invite: 'Pick a floor, any floor',
+    hint: 'Tap one to step inside.',
     whole: 'The whole building',
     complete: 'Every goose in the building, found. The super is thrilled.',
   },

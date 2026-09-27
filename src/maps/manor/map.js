@@ -4,7 +4,7 @@
 // everyone moves between rooms on one clock (evening.js). The brief is
 // docs/levels/manor.md; the layout is plan.js.
 import { WALL } from '../../engine/iso.js';
-import { NIGHT, storm, MIDNIGHT } from './style.js';
+import { INK, NIGHT, storm, MIDNIGHT } from './style.js';
 import { AT, STOREY, LOOP } from './plan.js';
 import { walkers } from './evening.js';
 import { backdrop, sky, PLATE } from './ambient.js';
@@ -53,9 +53,14 @@ export default {
     { id: 'up', name: 'Upstairs', z: STOREY },
   ],
   storey: 'ground',
+  // The lift that changes floors: a brass plate (its lamp is the coral one).
+  lift: { plate: INK.candleGold, ink: NIGHT.plate },
   cutaway: { front: true, above: true, walls: 1.2, lift: 16, ghost: 0.05 },
   // Printed on the night itself: it runs to every edge of the screen.
   plate: { paper: NIGHT.plate, kind: 'night' },
+  // A first visit: the invitation (words.invite, words.hint) points at the
+  // body, face down in the trifle on the library table.
+  invite: { zone: 'library', at: [8, 8, 1.3] },
   // The whole picture on a wide screen; on a phone, the house edge to edge,
   // the lawn's far corners running off the sides; on a phone held sideways,
   // the rooms filling the height. The night runs on past all of it.
@@ -85,7 +90,8 @@ export default {
   },
   words: {
     zone: 'room',
-    hint: 'Find the evidence, then tap Case to accuse.',
+    invite: 'Start with the body',
+    hint: 'Find the evidence. Name the killer.',
     whole: 'The whole house',
     complete: 'The goose did it. It has taken his chair, wearing the monocle it ordered by post.',
   },

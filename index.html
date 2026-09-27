@@ -13,13 +13,21 @@
 <script>
   // A place printed on something other than paper (the Manor's night) colors
   // the page before anything draws: iOS Safari picks its bar colors early and
-  // doesn't always look again. Must match each map's plate.paper (the smoke
-  // test checks); play.js sets it for good once the map loads.
+  // doesn't always look again, and the title shouldn't start on paper and
+  // flip. The place is the one in the link, or on the title and the picker,
+  // the last one you played (it drifts behind them). Must match each map's
+  // plate.paper (the smoke test checks); play.js sets it for good once the
+  // map loads.
   (function () {
     var plates = { manor: '#1F2749' };
-    var p = plates[location.hash.split('/')[1]];
+    var id = location.hash.replace(/^#\/?/, '').split('/')[0];
+    if (!id || id === 'maps') {
+      try { id = JSON.parse(localStorage.getItem('squares.save.v3')).last.map; } catch (e) { id = ''; }
+    }
+    var p = plates[id];
     if (!p) return;
     document.documentElement.style.setProperty('--plate', p);
+    document.documentElement.dataset.plate = 'night';
     document.querySelector('meta[name="theme-color"]').content = p;
   })();
 </script>
@@ -29,6 +37,8 @@
 <div class="grain" aria-hidden="true"></div>
 <div class="edge edge-top" aria-hidden="true"></div>
 <div class="edge edge-bottom" aria-hidden="true"></div>
+<!-- Measures the home bar and the bottom of the screen, for framing and the room bar. -->
+<div id="safe" class="safe-probe" aria-hidden="true"></div>
 
 <!-- ============ Title ============ -->
 <section id="title" class="screen title" aria-labelledby="wordmark" hidden>
@@ -99,11 +109,19 @@
     </button>
   </div>
 
-  <p id="hint" class="hint"></p>
+  <!-- A first visit: where to start, pinned to a room on the map (it rides
+       along with the picture) until you step into one. -->
+  <button id="invite" class="invite" type="button" hidden>
+    <span class="invite-card">
+      <span id="invite-title" class="invite-title"></span>
+      <span id="invite-text" class="invite-text"></span>
+    </span>
+  </button>
+  <span id="invite-ring" class="invite-ring" aria-hidden="true" hidden></span>
 
-  <!-- Places with floors: tags pinned to the house, to the floor above and the
-       floor below the one you're looking at. They ride along with the picture. -->
-  <nav id="floors" class="floors" aria-label="Floors" hidden></nav>
+  <!-- Places with floors: a lift panel in the corner, every floor on it, top
+       floor at the top, the one you're on lit. play.js builds the buttons. -->
+  <nav id="floors" class="lift" aria-label="Floors" hidden></nav>
 
   <!-- Inside a zone: where you are, its story, and getting around. -->
   <nav id="roombar" class="roombar" aria-label="Where you are" hidden>

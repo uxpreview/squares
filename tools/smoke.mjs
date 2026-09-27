@@ -72,8 +72,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const listed = await S(page, async () => (await import('/src/maps/index.js')).default.filter((m) => !m.hidden).length);
   const cards = await page.$$('.place-card');
   check('picker lists every place (and no hidden ones)', cards.length === listed, `${cards.length} cards, ${listed} places`);
-  await wait(page, 800);
-  check('picker draws map pictures', (await page.$$('.place-pic canvas')).length === listed);
+  // (A place loads the first time its card needs a picture: the Manor takes a moment.)
+  const drawn = await page.waitForFunction((n) => document.querySelectorAll('.place-pic canvas').length === n, listed, { timeout: 8000 }).then(() => true, () => false);
+  check('picker draws map pictures', drawn, `${(await page.$$('.place-pic canvas')).length} of ${listed}`);
 
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
@@ -154,6 +155,19 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 600);
   check('old #room links still work', (await S(page, () => location.hash)) === '#/block/laundromat' && await page.isVisible('#roombar'));
 
+  // The room bar rides just above the list, never on it, however the list got there.
+  const barGap = () => S(page, () => {
+    const bar = document.getElementById('roombar').getBoundingClientRect(), t = document.getElementById('tray');
+    return Math.round((t.dataset.state === 'hidden' ? document.getElementById('tray-pill') : t).getBoundingClientRect().top - bar.bottom);
+  });
+  await page.click('#tray-hide');
+  await wait(page, 700);
+  const tucked = await barGap();
+  await page.click('#tray-pill');
+  await wait(page, 700);
+  const shown = await barGap();
+  check('the room bar sits just above the list, tucked away or not', tucked >= 6 && shown >= 6, `tucked ${tucked}px, shown ${shown}px`);
+
   await page.goto(base + '#/tower/flat2');
   await ready(page);
   await wait(page, 1800);
@@ -194,7 +208,25 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   // Finish The Block too, and the picker should say so on its card.
   await page.goto(base + '#/block');
   await ready(page);
-  await wait(page, 800);
+  await wait(page, 1600);
+
+  // A first visit: a card pinned to a room says where to start, with a ring on the room.
+  check('a first visit invites you into a room', await page.isVisible('#invite') && await page.isVisible('#invite-ring'));
+  const ring = await S(page, () => {
+    const s = window.__squares, r = document.getElementById('invite-ring').getBoundingClientRect();
+    const [X, Y] = s.camera.toWorld(r.x + r.width / 2, r.y + r.height / 2);
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2, zone: s.world.zones[s.world.zoneAt(X, Y)]?.id };
+  });
+  check('its ring is on screen, on the room it names', ring.x > 0 && ring.x < 390 && ring.y > 0 && ring.y < 844 && ring.zone === 'laundromat', JSON.stringify(ring));
+  await page.click('#invite');
+  await wait(page, 1800);
+  check('tapping the invitation steps into its room', (await S(page, () => location.hash)) === '#/block/laundromat');
+  await page.click('#to-places');
+  await wait(page, 1800);
+  check('once you have been in a room, the invitation is gone', !(await page.isVisible('#invite')) && (await S(page, () => location.hash)) === '#/block');
+  // Rooms that still hide a goose honk now and then.
+  const honked = await page.waitForFunction(() => window.__squares.play.debug.calls > 0, null, { timeout: 9000 }).then(() => true, () => false);
+  check('on the whole map, rooms still hiding a goose honk', honked);
 
   // On a phone the map fills the screen: The Block runs off the sides, a swipe away.
   const swipe = await S(page, () => { const r = window.__squares.camera.range(); return r ? r.x1 - r.x0 : 0; });
@@ -238,10 +270,12 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return [m && m[1], window.__squares.world.map.plate.paper];
   });
   check("index.html paints the page in the Manor's plate before it draws", early[0] === early[1], JSON.stringify(early));
-  const tags = () => page.$$eval('#floors .floor-tag', (bs) => bs.filter((b) => !b.hidden).map((b) => b.textContent));
-  const floors = await tags();
-  check('a house has tags on it to the floor above and the floor below', floors.join() === 'Upstairs,Cellar', JSON.stringify(floors));
-  check('the hint says how to play before your first find', await page.isVisible('#hint'));
+  const floors = () => page.$$eval('#floors .lift-floor', (bs) => bs.map((b) => b.textContent));
+  const lit = () => page.$$eval('#floors .lift-floor[aria-current]', (bs) => bs.map((b) => b.textContent).join());
+  check('a house has a lift with every floor, top to bottom, the one you are on lit',
+    (await floors()).join() === 'Upstairs,Ground,Cellar' && (await lit()) === 'Ground', JSON.stringify([await floors(), await lit()]));
+  check('a first visit invites you in before your first find', await page.isVisible('#invite') &&
+    (await page.textContent('#invite-title')) === (await S(page, () => window.__squares.world.map.words.invite)));
   const lifted = () => S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.veil * 100) / 100])));
   let v = await lifted();
   check('on the ground floor, the floor above is lifted away', v['guest-rooms'] > 0.9 && v['grand-hall'] === 0 && v.grounds === 0, JSON.stringify(v));
@@ -257,20 +291,20 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const walls = await S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.wallK * 100) / 100])));
   check('its walls rise; the rooms around keep theirs down', walls['dining-room'] === 1 && walls['grand-hall'] === 0 && walls.kitchen === 0, JSON.stringify(walls));
 
-  check('in a room, the floor tags step out', !(await page.isVisible('#floors')));
+  check('in a room, the lift steps out', !(await page.isVisible('#floors')));
   await page.click('#to-places');
   await wait(page, 1800);
   check('back from a room goes out to the whole house', (await S(page, () => location.hash)) === '#/manor');
-  await page.click('.floor-up');
+  await page.click('#floors [data-storey="up"]');
   await wait(page, 1800);
   v = await lifted();
-  check('the Upstairs tag goes up a floor', v['guest-rooms'] < 0.05 && (await tags()).join() === 'Ground floor', JSON.stringify(v));
-  await page.click('.floor-down');
-  await wait(page, 1800);
-  await page.click('.floor-down');
+  check('the lift goes up a floor, and lights it', v['guest-rooms'] < 0.05 && (await lit()) === 'Upstairs', JSON.stringify(v));
+  await page.click('#floors [data-storey="cellar"]');
   await wait(page, 1800);
   v = await lifted();
-  check('and down to the cellar, lifting everything above', v['grand-hall'] > 0.9 && v['guest-rooms'] > 0.9 && v.cellar === 0 && v.grounds === 0, JSON.stringify(v));
+  check('and straight down to the cellar, lifting everything above', v['grand-hall'] > 0.9 && v['guest-rooms'] > 0.9 && v.cellar === 0 && v.grounds === 0 &&
+    (await lit()) === 'Cellar', JSON.stringify(v));
+  check("a whodunit's goose never honks from its room", (await S(page, () => window.__squares.play.debug.calls)) === 0);
 
   const people = await S(page, () => {
     const w = window.__squares.world;
@@ -287,7 +321,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('people walk the house, each in one room at a time', people.n > 0 && people.twice === 0, JSON.stringify(people));
 
   // ---------- 4. A whodunit: evidence, the case file, accusing, the reveal ----------
-  await page.click('.floor-up');
+  await page.click('#floors [data-storey="ground"]');
   await wait(page, 1200);
   check('a whodunit shows a Case button instead of the things tally',
     await page.isVisible('#tally-case') && !(await page.isVisible('#tally-things-pill')) && (await page.textContent('#tally-case-count')) === '0/17');
@@ -299,9 +333,10 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.mouse.click(ex, ey);
   await wait(page, 400);
   check('tapping evidence counts it on the Case button', (await page.textContent('#tally-case-count')) === '1/17');
+  check('your first evidence says what the Case button is for', (await page.textContent('#toast')).includes('Tap Case'));
   await page.click('#to-places');
   await wait(page, 1600);
-  check('after your first find, the hint steps out', (await S(page, () => document.body.dataset.mode)) === 'overview' && !(await page.isVisible('#hint')));
+  check('after your first find, the invitation steps out', (await S(page, () => document.body.dataset.mode)) === 'overview' && !(await page.isVisible('#invite')));
 
   await page.click('#tally-case');
   await wait(page, 700);
@@ -349,6 +384,17 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 800);
   check('a solved case stays solved', (await page.textContent('#tally-case-count')) === 'Solved' &&
     (await S(page, async () => (await import('/src/maps/manor/style.js')).verdict.solved)) === 0);
+
+  // The Manor was the last place played: the title drifts it behind, so the
+  // page is printed on its night from the start, and the title's words in the light ink.
+  await page.goto(base + '#/');
+  await page.reload();
+  const firstPlate = await S(page, () => document.documentElement.dataset.plate);
+  await ready(page);
+  await wait(page, 600);
+  const title = await S(page, () => ({ map: window.__squares.world.id, ink: getComputedStyle(document.getElementById('title-tagline')).color }));
+  check('after the Manor, the title is printed on its night, in the light ink', firstPlate === 'night' && title.map === 'manor' && title.ink === 'rgb(251, 246, 234)',
+    JSON.stringify({ firstPlate, ...title }));
   await page.close();
 }
 
