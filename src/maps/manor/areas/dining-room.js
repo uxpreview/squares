@@ -13,25 +13,11 @@ import {
 } from '../../../engine/art.js';
 import { particles, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
-import * as SHEET from '../style.js';
+import {
+  INK, NIGHT, MAT, ROOM, house, storm, lightsOut, stormWindow, verdict, isSolved, pastK,
+  drapes, stripes, trim, painting, monocleGoose, lordGhost, MIDNIGHT, webPrint,
+} from '../style.js';
 import { DOORS, LOOP } from '../plan.js';
-
-// ---------- Style sheet ----------
-// (Temporary stand-ins for the art pass's style sheet, used only while this
-// copy's style.js doesn't have them yet. See the bottom of the file.)
-const { INK, NIGHT, house, storm, lightsOut, stormWindow } = SHEET;
-const MAT = SHEET.MAT || fallbackMAT();
-const ROOM = SHEET.ROOM || { 'dining-room': { wall: mix(INK.candleGold, INK.bone, 0.35), floor: MAT.oak, trim: MAT.mahogany } };
-const verdict = SHEET.verdict || { solved: null };
-const isSolved = SHEET.isSolved || (() => verdict.solved != null);
-const pastK = SHEET.pastK || fallbackPastK;
-const drapes = SHEET.drapes || fallbackDrapes;
-const stripes = SHEET.stripes || fallbackStripes;
-const trim = SHEET.trim || fallbackTrim;
-const painting = SHEET.painting || fallbackPainting;
-const monocleGoose = SHEET.monocleGoose || fallbackMonocleGoose;
-const lordGhost = SHEET.lordGhost || fallbackLordGhost;
-const MIDNIGHT = SHEET.MIDNIGHT ?? 88;
 
 // ---------- The room's inks ----------
 const RC = ROOM['dining-room'];
@@ -331,20 +317,6 @@ function steam(ctx, t, x, y, z, k, seed) {
   ctx.restore();
 }
 
-// A webbed footprint on the floor at (x, y), pointing the way it walked.
-function webPrint(ctx, x, y, dir, s = 1) {
-  const c = Math.cos(dir), si = Math.sin(dir);
-  const at = (f, w) => P(x + (f * c - w * si) * s, y + (f * si + w * c) * s, 0.012);
-  const heel = at(-0.12, 0), toes = [at(0.13, -0.11), at(0.16, 0), at(0.13, 0.11)];
-  ctx.beginPath();
-  ctx.moveTo(...heel);
-  ctx.lineTo(...toes[0]);
-  ctx.quadraticCurveTo(...at(0.1, -0.05), ...toes[1]);
-  ctx.quadraticCurveTo(...at(0.1, 0.05), ...toes[2]);
-  ctx.closePath();
-  ctx.fill();
-}
-
 // ---------- The evening, as this room sees it ----------
 // When a diner gets up from their seat and sits back down, read off the
 // level's shared clock, so if the evening changes the chairs follow.
@@ -506,16 +478,12 @@ function floorAndRug(R) {
   }
   R.rug((ctx) => {
     if (!Q.detail) return;
-    for (const [x, y, dir, a] of prints) {
-      ctx.fillStyle = alpha(C.white, 0.16 + 0.36 * a);
-      webPrint(ctx, x, y, dir, 1.25);
-    }
+    for (const [x, y, dir, a] of prints) webPrint(ctx, x, y, dir, alpha(C.white, 0.12 + 0.3 * a), alpha(C.white, 0.2 + 0.4 * a), 0.36);
   });
   R.rug((ctx, t) => {
     const k = pastK(t);
     if (!(k > 0.02) || !Q.detail) return;
-    ctx.fillStyle = alpha(C.white, 0.8 * k);
-    for (const [x, y, dir] of prints) webPrint(ctx, x, y, dir, 1.35);
+    for (const [x, y, dir] of prints) webPrint(ctx, x, y, dir, alpha(C.white, 0.6 * k), alpha(C.white, 0.85 * k), 0.38);
   }, { anim: true });
 }
 
@@ -777,7 +745,7 @@ function banner(R) {
   R.decor((ctx, t) => flag(ctx, LOOSE, t), { anim: true });
 }
 
-// ---------- The left wall: the library door, the stag, a still life ----------
+// ---------- The left wall: the library door, the swordfish, a still life ----------
 function leftWall(R) {
   R.decor((ctx) => {
     // The library door's frame, and a sign.
@@ -847,54 +815,42 @@ function leftWall(R) {
       g.stroke();
     });
   });
-  // The stag over the fireplace, in a party hat, with glass eyes that catch
-  // the lightning.
+  // A swordfish over the fireplace (the Lord caught it; it's the only thing in
+  // the house he didn't stuff himself), in a party hat, with a glass eye that
+  // catches the lightning.
   R.decor((ctx, t) => {
     const f = storm.flash(t);
     onWallL(ctx, (g) => {
-      const u = -4.7, z = 3.5;
-      g.strokeStyle = C.ink; g.lineWidth = 0.03;
-      g.beginPath(); // the shield it's mounted on
-      g.moveTo(u - 0.42, -z - 0.3); g.lineTo(u + 0.42, -z - 0.3); g.lineTo(u + 0.38, -z + 0.25); g.quadraticCurveTo(u, -z + 0.6, u - 0.38, -z + 0.25);
-      g.closePath();
+      const u = -4.7, z = 3.75;
+      g.strokeStyle = C.ink; g.lineWidth = 0.03; g.lineJoin = 'round';
+      g.beginPath(); // the board it's mounted on
+      g.roundRect(u - 0.95, -z - 0.32, 1.9, 0.62, 0.28);
       g.fillStyle = MAT.mahogany; g.fill(); g.stroke();
-      // Antlers.
-      g.strokeStyle = INK.bone; g.lineWidth = 0.07; g.lineCap = 'round';
-      g.beginPath();
-      for (const sgn of [-1, 1]) {
-        g.moveTo(u + sgn * 0.14, -z - 0.45);
-        g.quadraticCurveTo(u + sgn * 0.5, -z - 0.7, u + sgn * 0.55, -z - 1.25);
-        g.moveTo(u + sgn * 0.42, -z - 0.72); g.lineTo(u + sgn * 0.75, -z - 0.95);
-        g.moveTo(u + sgn * 0.52, -z - 1.0); g.lineTo(u + sgn * 0.32, -z - 1.2);
-      }
-      g.stroke();
-      g.lineWidth = 0.03; g.strokeStyle = C.ink;
-      g.beginPath(); // head and muzzle
-      g.ellipse(u, -z - 0.28, 0.24, 0.3, 0, 0, Math.PI * 2);
-      g.fillStyle = FUR; g.fill(); g.stroke();
-      g.beginPath();
-      g.ellipse(u, -z - 0.02, 0.14, 0.12, 0, 0, Math.PI * 2);
-      g.fillStyle = FUR_DARK; g.fill(); g.stroke();
-      g.beginPath(); // ears
-      g.ellipse(u - 0.27, -z - 0.47, 0.12, 0.05, 0.5, 0, Math.PI * 2);
-      g.ellipse(u + 0.27, -z - 0.47, 0.12, 0.05, -0.5, 0, Math.PI * 2);
-      g.fillStyle = FUR; g.fill(); g.stroke();
-      g.fillStyle = C.ink; // glass eyes
-      g.beginPath();
-      g.arc(u - 0.1, -z - 0.33, 0.04, 0, Math.PI * 2);
-      g.arc(u + 0.1, -z - 0.33, 0.04, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = f > 0.2 ? C.white : alpha(C.white, 0.7);
-      g.beginPath();
-      g.arc(u - 0.09, -z - 0.345, f > 0.2 ? 0.03 : 0.013, 0, Math.PI * 2);
-      g.arc(u + 0.11, -z - 0.345, f > 0.2 ? 0.03 : 0.013, 0, Math.PI * 2);
-      g.fill();
-      g.beginPath(); // the party hat, at an angle
-      g.moveTo(u - 0.2, -z - 0.52); g.lineTo(u + 0.12, -z - 1.02); g.lineTo(u + 0.18, -z - 0.5);
+      g.beginPath(); // the bill
+      g.moveTo(u - 0.5, -z - 0.02); g.lineTo(u - 1.35, -z + 0.02); g.lineTo(u - 0.5, -z + 0.06);
+      g.closePath();
+      g.fillStyle = MAT.silver; g.fill(); g.stroke();
+      g.beginPath(); // the sail on its back, and the tail
+      g.moveTo(u - 0.3, -z - 0.14); g.quadraticCurveTo(u - 0.1, -z - 0.62, u + 0.3, -z - 0.14);
+      g.moveTo(u + 0.5, -z); g.lineTo(u + 0.82, -z - 0.32); g.lineTo(u + 0.72, -z); g.lineTo(u + 0.82, -z + 0.3);
       g.closePath();
       g.fillStyle = INK.verdigris; g.fill(); g.stroke();
+      g.beginPath(); // the body: dark back, pale belly
+      g.ellipse(u, -z, 0.56, 0.18, 0, 0, Math.PI * 2);
+      g.fillStyle = mix(INK.verdigris, INK.stormNavy, 0.45); g.fill(); g.stroke();
+      g.beginPath();
+      g.ellipse(u + 0.02, -z + 0.07, 0.46, 0.08, 0, 0, Math.PI);
+      g.fillStyle = MAT.silver; g.fill();
+      g.fillStyle = C.ink; // glass eye
+      g.beginPath(); g.arc(u - 0.36, -z - 0.03, 0.045, 0, Math.PI * 2); g.fill();
+      g.fillStyle = f > 0.2 ? C.white : alpha(C.white, 0.7);
+      g.beginPath(); g.arc(u - 0.35, -z - 0.045, f > 0.2 ? 0.03 : 0.014, 0, Math.PI * 2); g.fill();
+      g.beginPath(); // the party hat, at an angle
+      g.moveTo(u - 0.5, -z - 0.12); g.lineTo(u - 0.32, -z - 0.62); g.lineTo(u - 0.18, -z - 0.14);
+      g.closePath();
+      g.fillStyle = INK.oxblood; g.fill(); g.stroke();
       g.fillStyle = INK.candleGold;
-      g.beginPath(); g.arc(u + 0.12, -z - 1.04, 0.06, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(u - 0.32, -z - 0.64, 0.06, 0, Math.PI * 2); g.fill();
     });
   }, { anim: true });
 }
@@ -2060,138 +2016,4 @@ function mouse(R) {
       }
     }
   });
-}
-
-// ---------- Stand-ins for the art pass's style sheet ----------
-// This copy's style.js predates MAT, ROOM, the verdict and the shared props;
-// these copies of them are only used until it has them. Delete this block
-// (and the fallbacks at the top) once it does.
-function fallbackMAT() {
-  return {
-    mahogany: mix(INK.oxblood, INK.deepPlum, 0.45),
-    mahoganyDark: shade(mix(INK.oxblood, INK.deepPlum, 0.45), 0.3),
-    oak: mix(INK.candleGold, INK.oxblood, 0.35),
-    oakLight: mix(INK.candleGold, INK.bone, 0.45),
-    pine: mix(INK.candleGold, INK.bone, 0.55),
-    velvet: INK.oxblood,
-    velvetDark: mix(INK.oxblood, INK.deepPlum, 0.55),
-    brass: INK.candleGold,
-    brassDark: mix(INK.candleGold, INK.oxblood, 0.3),
-    silver: mix(INK.bone, INK.stormNavy, 0.18),
-    linen: INK.bone,
-    marble: INK.bone,
-    marbleVein: mix(INK.bone, INK.stormNavy, 0.3),
-    stone: mix(INK.bone, INK.stormNavy, 0.35),
-    stoneDark: mix(INK.bone, INK.stormNavy, 0.55),
-    terracotta: mix(INK.oxblood, INK.candleGold, 0.4),
-    glass: mix(INK.bone, INK.verdigris, 0.45),
-    leaf: mix(INK.verdigris, C.green, 0.35),
-    leafDark: mix(INK.verdigris, INK.stormNavy, 0.3),
-    fur: mix(INK.oxblood, INK.candleGold, 0.3),
-    furDark: mix(INK.oxblood, INK.stormNavy, 0.45),
-    trifle: mix(INK.oxblood, C.pink, 0.55),
-    custard: mix(INK.candleGold, INK.bone, 0.6),
-    cream: C.white,
-    wine: mix(INK.oxblood, INK.deepPlum, 0.3),
-    paper: INK.bone,
-  };
-}
-function fallbackPastK(t) {
-  const s = storm.strike(t);
-  if (!s) return 0;
-  return Math.max(0, 1 - s.age / 1.3) * (s.age < 0.05 ? 0.5 : 1);
-}
-function fallbackDrapes(R, side, u, z, w, h, color = MAT.velvet) {
-  const f = side === 'left' ? onLeft : onRight;
-  R.decor((ctx) => {
-    const top = z + h + 0.35;
-    for (const [a, b] of [[u - 0.75, u + 0.1], [u + w - 0.1, u + w + 0.75]]) {
-      f(ctx, a, z - 0.6, b - a, top - z + 0.6, color, { dots: shade(color, 0.45), density: 0.22 });
-      if (Q.detail) {
-        for (let k = 1; k < 3; k++) {
-          const v = a + ((b - a) * k) / 3;
-          const p = side === 'left' ? [[0, v, z - 0.6], [0, v, top]] : [[v, 0, z - 0.6], [v, 0, top]];
-          face(ctx, p, null, { lw: 0.03, stroke: shade(color, 0.35) });
-        }
-      }
-    }
-    f(ctx, u - 0.9, top - 0.1, w + 1.8, 0.55, shade(color, 0.15));
-    f(ctx, u - 0.9, top - 0.18, w + 1.8, 0.1, MAT.brass, { stroke: false });
-  });
-}
-function fallbackStripes(R, side, color, o = {}) {
-  const f = side === 'left' ? onLeft : onRight;
-  const h = o.h ?? 6, step = o.step ?? 0.8, w = o.w ?? 0.3, z0 = o.z ?? 0;
-  R.wall((ctx) => {
-    if (!Q.detail) return;
-    for (let u = step / 2; u < 16; u += step) f(ctx, u, z0, w, h - z0, color, { stroke: false });
-  });
-}
-function fallbackTrim(R, side, color, o = {}) {
-  const f = side === 'left' ? onLeft : onRight;
-  R.decor((ctx) => {
-    f(ctx, 0, 0, 16, o.skirt ?? 0.35, color, { stroke: false });
-    if (o.dado) f(ctx, 0, o.dado, 16, 0.12, color, { stroke: false });
-  });
-}
-function fallbackPainting(R, side, u, z, w, h, ground, art, o = {}) {
-  const f = side === 'left' ? onLeft : onRight;
-  const draw = (ctx, t) => {
-    f(ctx, u - 0.22, z - 0.22, w + 0.44, h + 0.44, MAT.brass, { dots: MAT.brassDark, density: 0.25 });
-    f(ctx, u, z, w, h, ground, { dots: shade(ground, 0.3), density: 0.15 });
-    if (art) art(ctx, t);
-  };
-  R.decor(draw, { anim: !!o.anim });
-}
-function fallbackMonocleGoose(ctx, x, y, z, t, o = {}) {
-  goose(ctx, x, y, z, t, o);
-  const pose = o.pose || 'stand';
-  if (pose !== 'stand' && pose !== 'sit' && pose !== 'walk') return;
-  const s = o.scale || 1, f = o.dir === 'l' ? -1 : 1;
-  const by = pose === 'sit' ? -0.2 : -0.45;
-  const bob = pose === 'walk' ? Math.abs(Math.sin(t * 9 + (o.phase || 0))) * 0.06 : 0;
-  const Xs = x - y, Ys = (x + y) / 2 - z * ZK;
-  const ex = 0.33, ey = by - 0.66 - bob;
-  ctx.save();
-  ctx.translate(Xs, Ys);
-  ctx.scale(f * s, s);
-  ctx.beginPath();
-  ctx.moveTo(ex - 0.02, ey + 0.08);
-  ctx.quadraticCurveTo(0.1, by - 0.2, 0.2, by - 0.05);
-  ctx.strokeStyle = INK.candleGold;
-  ctx.lineWidth = 0.025;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(ex, ey, 0.085, 0, Math.PI * 2);
-  ctx.fillStyle = alpha(INK.bone, 0.45);
-  ctx.fill();
-  ctx.strokeStyle = INK.candleGold;
-  ctx.lineWidth = 0.035;
-  ctx.stroke();
-  if (Q.detail) {
-    ctx.beginPath();
-    ctx.arc(ex + 0.025, ey - 0.03, 0.022, 0, Math.PI * 2);
-    ctx.fillStyle = C.white;
-    ctx.fill();
-  }
-  ctx.restore();
-}
-function fallbackLordGhost(ctx, x, y, z, t, k, dir = 'r') {
-  if (!(k > 0.02)) return;
-  const pale = mix(INK.bone, NIGHT.flash, 0.5);
-  const bob = Math.sin(t * 2.2) * 0.12;
-  ctx.save();
-  ctx.globalAlpha *= 0.75 * k;
-  person(ctx, x, y, z + 0.35 + bob, {
-    ...SHEET.CAST.lord.look, hat: 'party', pose: 'swim', arms: [1.45, -0.35], dir, skin: pale, top: pale, bottom: pale, hair: pale,
-  }, t);
-  const Xs = x - y, Ys = (x + y) / 2 - (z + 0.35 + bob) * ZK;
-  ctx.beginPath();
-  ctx.moveTo(Xs - 0.26, Ys - 0.8);
-  ctx.quadraticCurveTo(Xs - 0.3, Ys - 0.2, Xs + Math.sin(t * 3) * 0.2, Ys + 0.25);
-  ctx.quadraticCurveTo(Xs + 0.2, Ys - 0.2, Xs + 0.26, Ys - 0.8);
-  ctx.closePath();
-  ctx.fillStyle = pale;
-  ctx.fill();
-  ctx.restore();
 }

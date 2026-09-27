@@ -773,16 +773,37 @@ function topiary(ctx, t, x, y, kind) {
   }
 }
 
-// A sundial, keeping time by moonlight. It's always wrong at night.
-function sundial(ctx) {
+// A stone goose on a plinth, the family's ancestral goose. (The Grounds
+// already has the sundial; this is the lawn's statue.) Its plaque is the only
+// thing on the estate that trusts a goose.
+function gooseStatue(ctx) {
   const x = 40, y = 42.5;
   const [X, Y] = P3(x, y);
-  if (!seen(X - 2, Y - 3, X + 2, Y + 1)) return;
+  if (!seen(X - 2, Y - 4, X + 2, Y + 1)) return;
   box(ctx, x - 0.8, y - 0.8, 0, 1.6, 1.6, 0.25, MAT.stone, { left: MAT.stoneDark, right: OUT.stone, top: OUT.stoneTop, flat: true });
   box(ctx, x - 0.4, y - 0.4, 0.25, 0.8, 0.8, 1.1, MAT.stone, { left: MAT.stoneDark, right: OUT.stone, top: OUT.stoneTop, flat: true });
-  disc(ctx, x, y, 1.36, 0.62, mix(INK.candleGold, INK.stormNavy, 0.45), { lw: 0.05 });
-  face(ctx, [[x - 0.45, y, 1.36], [x + 0.35, y, 1.36], [x - 0.45, y, 1.9]], OUT.dark, { lw: 0.03 });
-  if (Q.detail) flat(ctx, 'front', x, y + 0.4, 0.8, (g) => tiny(g, 'SUNNY HOURS ONLY', 0, 0, 0.13, INK.bone));
+  const [GX, GY] = P3(x, y, 1.35);
+  ctx.save();
+  ctx.translate(GX, GY);
+  ctx.scale(1.3, 1.3);
+  ctx.beginPath();
+  ctx.ellipse(0, -0.42, 0.44, 0.25, -0.12, 0, Math.PI * 2);
+  ctx.moveTo(-0.3, -0.48); ctx.lineTo(-0.58, -0.66); ctx.lineTo(-0.38, -0.34);
+  paint(ctx, OUT.stone, { lw: 0.04, dots: MAT.stoneDark, density: 0.25 });
+  ctx.beginPath();
+  ctx.moveTo(0.22, -0.55); ctx.quadraticCurveTo(0.36, -0.76, 0.28, -1.07);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.2; ctx.stroke();
+  ctx.strokeStyle = OUT.stone; ctx.lineWidth = 0.12; ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0.28, -1.08, 0.12, 0, Math.PI * 2);
+  ctx.moveTo(0.37, -1.13); ctx.lineTo(0.6, -1.06); ctx.lineTo(0.37, -1.0);
+  paint(ctx, OUT.stone, { lw: 0.04 });
+  ctx.fillStyle = MAT.stoneDark; // moss on its back, and a blank stone eye
+  ctx.beginPath(); ctx.ellipse(-0.08, -0.6, 0.18, 0.05, -0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0.3, -1.11, 0.025, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  if (Q.detail) flat(ctx, 'front', x, y + 0.4, 0.8, (g) => tiny(g, 'IN GOOSE WE TRUST', 0, 0, 0.13, INK.bone));
 }
 
 // The family's pets, under little headstones at the lawn's front edge (their
@@ -944,7 +965,7 @@ const THINGS = [
   ...TREES.map((tr) => [tr[0] + tr[1], (ctx, t) => stormTree(ctx, t, ...tr)]),
   [GH.x + GH.y + (GH.w + GH.d) / 2, (ctx, t) => greenhouse(ctx, t)],
   ...TOPIARY.map(([x, y, kind]) => [x + y, (ctx, t) => topiary(ctx, t, x, y, kind)]),
-  [82.5, (ctx) => sundial(ctx)],
+  [82.5, (ctx) => gooseStatue(ctx)],
   ...GRAVES.map(([x, y, name, side]) => [x + y, (ctx) => headstone(ctx, x, y, name, side)]),
   [15.2 + 51.8, (ctx, t) => fallenTree(ctx, t)],
   [27.4 + 53.3, (ctx) => signpost(ctx)],

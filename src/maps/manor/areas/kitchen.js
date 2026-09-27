@@ -14,7 +14,7 @@ import {
 } from '../../../engine/art.js';
 import { clamp } from '../../../engine/actors.js';
 import { S, ZK } from '../../../engine/iso.js';
-import { INK, MAT, ROOM, house, fire, candle, stormWindow, storm, MIDNIGHT, pastK } from '../style.js';
+import { INK, MAT, ROOM, house, fire, candle, stormWindow, storm, MIDNIGHT, pastK, webPrint } from '../style.js';
 import { DOORS, LOOP } from '../plan.js';
 
 // ---------- Inks (all mixed from the level's six) ----------
@@ -996,38 +996,6 @@ function hangingPan(ctx, u, at, z, r, swing) {
   ctx.restore();
 }
 
-// A goose's webbed foot in the flour, heel at (x, y), toes pointing along ang.
-// web: the webbing between the toes; toe: the three toes, the heel and claws.
-function webbed(ctx, x, y, ang, web, toe, len = 0.5) {
-  const pt = (dd, a) => P(x + Math.cos(ang + a) * dd, y + Math.sin(ang + a) * dd, 0.015);
-  const heel = pt(0.03, 0);
-  const tips = [pt(len, -0.62), pt(len * 1.12, 0), pt(len, 0.62)];
-  const dips = [pt(len * 0.78, -0.31), pt(len * 0.82, 0.31)];
-  const side = [pt(len * 0.45, -0.75), pt(len * 0.45, 0.75)];
-  // the webbed pad, pressed in
-  ctx.beginPath();
-  ctx.moveTo(heel[0], heel[1]);
-  ctx.quadraticCurveTo(side[0][0], side[0][1], tips[0][0], tips[0][1]);
-  ctx.quadraticCurveTo(dips[0][0], dips[0][1], tips[1][0], tips[1][1]);
-  ctx.quadraticCurveTo(dips[1][0], dips[1][1], tips[2][0], tips[2][1]);
-  ctx.quadraticCurveTo(side[1][0], side[1][1], heel[0], heel[1]);
-  ctx.closePath();
-  ctx.fillStyle = web;
-  ctx.fill();
-  // three toes, with round ends
-  ctx.beginPath();
-  for (const tp of tips) { ctx.moveTo(heel[0], heel[1]); ctx.lineTo(tp[0], tp[1]); }
-  ctx.strokeStyle = toe;
-  ctx.lineWidth = 0.045;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  ctx.fillStyle = toe;
-  for (const tp of tips) { ctx.beginPath(); ctx.ellipse(tp[0], tp[1], 0.06, 0.045, 0, 0, TAU); ctx.fill(); }
-  ctx.beginPath();
-  ctx.ellipse(heel[0], heel[1], 0.07, 0.045, 0, 0, TAU);
-  ctx.fill();
-}
-
 // A lumpy blob on the floor (spilled flour): center, radii, seed.
 function blob(ctx, cx, cy, rx, ry, seed, n = 14) {
   const r = rng(seed);
@@ -1181,11 +1149,11 @@ export default {
         paintText(ctx, 'left', 14.85, 2.87, 'NO GEESE', 0.24, INK.oxblood);
         paintText(ctx, 'left', 14.85, 2.52, 'BEYOND THIS POINT', 0.12, C.ink, 'Rethink Sans');
       }
-      // A calendar nobody has turned since 1974.
+      // The calendar: today, ringed. HIS 80TH.
       onRight(ctx, 15.2, 2.6, 0.7, 1.0, CHINA, { lw: 0.03 });
       onRight(ctx, 15.26, 3.05, 0.58, 0.48, mix(INK.verdigris, INK.bone, 0.3), { stroke: false });
       if (Q.detail) {
-        paintText(ctx, 'right', 15.55, 2.82, '1974', 0.17, INK.oxblood);
+        paintText(ctx, 'right', 15.55, 2.82, 'HIS 80TH', 0.13, INK.oxblood);
         ctx.beginPath(); // a goose on it, naturally
         const g = P(15.55, 0, 3.25);
         ctx.ellipse(g[0], g[1], 0.14, 0.08, 0.4, 0, TAU);
@@ -1633,8 +1601,8 @@ export default {
       for (const [x, y, a] of PRINTS) {
         const inFlour = x > 6.9;
         const fade = inFlour ? 1 : clamp(0.95 - (6.9 - x) / 8, 0.3, 1);
-        if (inFlour) webbed(ctx, x, y, a, mix(FLOUR, FLAG, 0.55), mix(FLOUR, JOINT, 0.7));
-        else webbed(ctx, x, y, a, alpha(FLOUR, 0.75 * fade), alpha(FLOUR, fade));
+        if (inFlour) webPrint(ctx, x, y, a, mix(FLOUR, FLAG, 0.55), mix(FLOUR, JOINT, 0.7));
+        else webPrint(ctx, x, y, a, alpha(FLOUR, 0.75 * fade), alpha(FLOUR, fade));
       }
       // and the dog's, round the edge
       if (Q.detail) {

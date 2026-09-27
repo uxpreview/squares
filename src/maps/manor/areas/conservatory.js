@@ -5,9 +5,9 @@
 // pose. evening.js does the poses, on exactly these flashes; this room does
 // the flashbulb. Around them, a room full of witnesses: a fern that has seen
 // things, a gnome that can't look, goldfish in the front row, and glass that
-// steams up while they're in. Nobody has watered the plants since 1974.
+// steams up while they're in. Nobody has watered the plants since Easter.
 import {
-  C, Q, P, SKIN, box, rect, disc, cylinder, face, paint, onLeft, onRight, slab, tiles, paintText, speech,
+  C, Q, P, SKIN, box, rect, disc, cylinder, face, paint, onLeft, onRight, slab, tiles, paintText, speech, note,
   mix, shade, tint, alpha, hash, dots,
 } from '../../../engine/art.js';
 import { clamp } from '../../../engine/actors.js';
@@ -31,7 +31,6 @@ const DEAD = mix(MAT.oak, INK.deepPlum, 0.3); // brown and crisp
 const WICKER = MAT.oakLight;
 const WATER = mix(INK.verdigris, INK.stormNavy, 0.4);
 const FISH = mix(INK.candleGold, INK.oxblood, 0.35);
-const CAT = mix(C.ink, INK.deepPlum, 0.25);
 const MUD = mix(NIGHT.mud, RC.floor, 0.2);
 const ORCHID = mix(INK.deepPlum, INK.bone, 0.55);
 const SLATE = shade(INK.stormNavy, 0.15);
@@ -649,7 +648,7 @@ function pottingBench(ctx, t) {
   ctx.save();
   ctx.translate(-0.19, 0.095);
   paintText(ctx, 'right', 5.65, 1.83, 'LAST WATERED:', 0.15, alpha(INK.bone, 0.9));
-  paintText(ctx, 'right', 5.65, 1.43, '1974', 0.36, alpha(INK.bone, 0.9));
+  paintText(ctx, 'right', 5.65, 1.43, 'EASTER', 0.3, alpha(INK.bone, 0.9));
   ctx.restore();
 
   // A sack of compost, slumped, spilling.
@@ -853,12 +852,8 @@ function bench(ctx) {
   disc(ctx, 9.0, 9.6, 0.92, 0.14, MAT.silver, { lw: 0.02 });
 }
 
-// The goldfish pond, with a fountain in the middle. The cat on the rim is
-// drawn here too; its eyes are a light (so they glow when the lights go out).
+// The goldfish pond, with a fountain in the middle.
 const POND = { x: 9.8, y: 5.4, r: 1.8, h: 0.45 };
-const CAT_AT = { a: -0.9 }; // where on the rim the cat sits (an angle)
-CAT_AT.x = POND.x + Math.cos(CAT_AT.a) * (POND.r - 0.1);
-CAT_AT.y = POND.y + Math.sin(CAT_AT.a) * (POND.r - 0.1);
 
 function pondAndFountain(ctx, t, watch) {
   const { x: cx, y: cy, r, h } = POND;
@@ -966,9 +961,6 @@ function pondAndFountain(ctx, t, watch) {
   }
   ctx.restore();
 
-  // The cat, on the far rim, facing us and staring into the water.
-  catBody(ctx, t);
-
   // The fountain: a pedestal, a shallow bowl, a jet, and water over the lip.
   cylinder(ctx, cx, cy, h - 0.05, 0.3, 0.12, MAT.stone, { top: tint(MAT.stone, 0.1) });
   cylinder(ctx, cx, cy, h, 0.14, 0.95, MAT.stone, { top: tint(MAT.stone, 0.1) });
@@ -1025,74 +1017,6 @@ function pondAndFountain(ctx, t, watch) {
       ctx.fill();
     }
   }
-}
-
-const CAT_S = 1.25;
-function catBody(ctx, t) {
-  const [X0, Y0] = P(CAT_AT.x, CAT_AT.y, POND.h);
-  ctx.save();
-  ctx.translate(X0, Y0);
-  ctx.scale(CAT_S, CAT_S);
-  const X = 0, Y = 0;
-  const sw = Math.sin(t * 2.3) * 0.1 + Math.sin(t * 5.3) * 0.03;
-  ctx.beginPath();
-  ctx.moveTo(X + 0.12, Y - 0.04);
-  ctx.quadraticCurveTo(X + 0.42 + sw, Y - 0.02, X + 0.36 + sw * 1.6, Y - 0.34 + sw * 0.5);
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.12;
-  ctx.stroke();
-  ctx.strokeStyle = CAT;
-  ctx.lineWidth = 0.065;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(X - 0.18, Y);
-  ctx.bezierCurveTo(X - 0.24, Y - 0.28, X - 0.13, Y - 0.42, X, Y - 0.42);
-  ctx.bezierCurveTo(X + 0.13, Y - 0.42, X + 0.24, Y - 0.28, X + 0.18, Y);
-  ctx.closePath();
-  paint(ctx, CAT, { lw: 0.03 });
-  // head and ears
-  ctx.beginPath();
-  ctx.arc(X, Y - 0.5, 0.15, 0, Math.PI * 2);
-  ctx.moveTo(X - 0.14, Y - 0.53); ctx.lineTo(X - 0.12, Y - 0.72); ctx.lineTo(X - 0.02, Y - 0.63);
-  ctx.moveTo(X + 0.14, Y - 0.53); ctx.lineTo(X + 0.12, Y - 0.72); ctx.lineTo(X + 0.02, Y - 0.63);
-  paint(ctx, CAT, { lw: 0.03 });
-  // a paw, dipped at the water every so often
-  const k = t % 7;
-  const dip = k > 5.2 && k < 6.2 ? Math.sin(((k - 5.2) / 1) * Math.PI) : 0;
-  ctx.beginPath();
-  ctx.ellipse(X - 0.1 - dip * 0.2, Y - 0.08 + dip * 0.12, 0.06, 0.045, 0, 0, Math.PI * 2);
-  paint(ctx, CAT, { lw: 0.02 });
-  ctx.restore();
-}
-
-// Its eyes, gold, looking down into the pond (or shut, for a blink).
-function catEyes(ctx, t) {
-  const [X0, Y0] = P(CAT_AT.x, CAT_AT.y, POND.h);
-  ctx.save();
-  ctx.translate(X0, Y0);
-  ctx.scale(CAT_S, CAT_S);
-  const X = 0, Y = 0;
-  const blink = (t % 4.3) < 0.14;
-  for (const dx of [-0.06, 0.06]) {
-    ctx.beginPath();
-    if (blink) {
-      ctx.moveTo(X + dx - 0.04, Y - 0.51);
-      ctx.lineTo(X + dx + 0.04, Y - 0.51);
-      ctx.strokeStyle = INK.candleGold;
-      ctx.lineWidth = 0.02;
-      ctx.stroke();
-      continue;
-    }
-    ctx.ellipse(X + dx, Y - 0.51, 0.04, 0.03, 0, 0, Math.PI * 2);
-    ctx.fillStyle = INK.candleGold;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(X + dx - 0.012, Y - 0.505, 0.01, 0.025, 0, 0, Math.PI * 2);
-    ctx.fillStyle = C.ink;
-    ctx.fill();
-  }
-  ctx.restore();
 }
 
 // The rose bush that was "pruned nightly". It has never met a pair of shears.
@@ -1357,13 +1281,14 @@ function stageRug(ctx) {
   ctx.stroke();
 }
 
-// A brass birdcage on a stand, and a parrot who repeats the one thing it
-// heard all night. It flaps at every flash.
-const PARROT = mix(MAT.leaf, C.green, 0.35);
+// A brass birdcage on a stand, and a canary who sings through the whole
+// affair. It flaps at every flash. (The talking bird is the Brigadier's
+// parrot, upstairs; this one keeps its opinions to itself.)
+const PARROT = mix(INK.candleGold, INK.bone, 0.25);
 const CAGE = { x: 15.2, y: 4.9 };
-// What it says, and when (seconds into the evening): right after she runs
-// out, and now and then all night, because it's heard it before.
-const PARROT_LINES = [[97.5, 103, 'WE WERE PRUNING!'], [22, 25.5, 'PRUNING!'], [138, 141.5, 'PRUNING!']];
+// When it sings (seconds into the evening): a long song while the two of
+// them are out here, and a verse now and then all night.
+const PARROT_LINES = [[62, 94, 'song'], [22, 25.5, 'song'], [138, 141.5, 'song']];
 function parrotSays(t) {
   const tt = mod(t);
   for (const [a, b, line] of PARROT_LINES) if (tt >= a && tt < b) return line;
@@ -1398,7 +1323,7 @@ function birdcage(ctx, t, x, y, flap, line) {
   ctx.strokeStyle = alpha(dark, 0.8);
   ctx.lineWidth = 0.02;
   ctx.stroke();
-  // the perch, and the parrot on it
+  // the perch, and the canary on it
   ctx.beginPath();
   ctx.moveTo(X - 0.35, base - 0.35);
   ctx.lineTo(X + 0.35, base - 0.35);
@@ -1412,7 +1337,7 @@ function birdcage(ctx, t, x, y, flap, line) {
   ctx.beginPath();
   ctx.moveTo(-0.05, -0.05); ctx.lineTo(-0.16, 0.26); ctx.lineTo(-0.04, 0.26); ctx.lineTo(0.04, -0.02);
   ctx.closePath();
-  paint(ctx, INK.oxblood, { lw: 0.02 });
+  paint(ctx, MAT.brassDark, { lw: 0.02 });
   // wings out when it flaps
   if (flap > 0.05) {
     for (const s of [-1, 1]) {
@@ -1429,7 +1354,7 @@ function birdcage(ctx, t, x, y, flap, line) {
   paint(ctx, PARROT, { dots: shade(PARROT, 0.4), density: 0.15, lw: 0.025 });
   ctx.beginPath();
   ctx.arc(0.04, -0.34, 0.085, 0, Math.PI * 2);
-  paint(ctx, INK.candleGold, { lw: 0.025 });
+  paint(ctx, PARROT, { lw: 0.025 });
   // beak: open when it talks
   ctx.beginPath();
   ctx.moveTo(0.1, -0.37); ctx.quadraticCurveTo(0.2, -0.36, 0.15, -0.27 + (line ? 0.03 : 0)); ctx.lineTo(0.1, -0.31);
@@ -2341,7 +2266,7 @@ export default {
     });
     R.thing(12.6, 3.3, (ctx, t) => palmTall(ctx, t), { anim: true });
     R.thing(POND.x + 0.2, POND.y + 0.2, (ctx, t) => pondAndFountain(ctx, t, at(watch, t)), { anim: true });
-    // A little sign on a stake by the pond, which the cat has read.
+    // A little sign on a stake by the pond.
     R.thing(11.75, 6.6, (ctx) => {
       face(ctx, [[11.75, 6.6, 0], [11.75, 6.6, 0.95]], null, { lw: 0.05, stroke: MAT.oak });
       face(ctx, [[11.3, 6.6, 0.6], [12.2, 6.6, 0.6], [12.2, 6.6, 1.0], [11.3, 6.6, 1.0]], MAT.pine, { lw: 0.025 });
@@ -2356,7 +2281,7 @@ export default {
       floorPlant(ctx, t, 7.7, 3.1, 'dead', 0.75);
       floorPlant(ctx, t, 7.2, 3.6, 'fern', 0.7);
     }, { anim: true });
-    // The parrot: it flaps at every flash, and says what it heard.
+    // The canary: it flaps at every flash, and sings while they prune.
     R.thing(15.3, 5.1, (ctx, t) => birdcage(ctx, t, CAGE.x, CAGE.y, startle(t), parrotSays(t)), { anim: true });
     // The drip from the leak lands on the one happy plant's top leaf, which bounces.
     const DRIP = 1.6;
@@ -2417,11 +2342,6 @@ export default {
     // ---------- Lights ----------
     candle(R, 9.0, 9.6, 0.92, 41);
     candle(R, 4.51, 0.67, 1.07, 44, { r: 1.5 });
-    // The cat's eyes, which shine when the lights go out.
-    R.light({
-      at: [CAT_AT.x, CAT_AT.y, POND.h + 0.45], r: 0.5, color: INK.candleGold, k: (t) => 0.15 + 0.85 * lightsOut(t),
-      draw: (ctx, t) => catEyes(ctx, t),
-    });
     // The flashbulb: every flash lights the two of them up, cold, mid-pose.
     R.light({ at: [8.6, 11.2, 1.3], r: 9.5, color: NIGHT.flash, k: (t) => 0.9 * roomK(t) });
     R.dark(house.dark);
@@ -2462,10 +2382,16 @@ export default {
       }
     });
 
-    // What the parrot says (over everything, so nothing hides it).
+    // The canary's song: notes drifting up out of the cage.
     R.air((ctx, t) => {
-      const line = parrotSays(t);
-      if (line && Q.detail && Q.pxPerUnit >= 14) speech(ctx, CAGE.x, CAGE.y, 3.25, line, { size: 0.42 });
+      if (!parrotSays(t) || !Q.detail) return;
+      for (let i = 0; i < 3; i++) {
+        const k = (t * 0.6 + i / 3) % 1;
+        ctx.save();
+        ctx.globalAlpha *= 1 - k;
+        note(ctx, CAGE.x - 0.2 - k * 0.5, CAGE.y - 0.2 + (i - 1) * 0.3, 3.0 + k * 1.3, INK.candleGold, 0.8);
+        ctx.restore();
+      }
     });
 
     // ---------- Finds ----------

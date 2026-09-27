@@ -6,7 +6,7 @@ import {
   C, Q, SKIN, box, rect, disc, face, paint, shade, tint, mix, alpha, hash, rng, slab, planks,
 } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
-import { INK, MAT, ROOM, CAST, house, storm, fire, candle, lamp, drawCast } from '../style.js';
+import { INK, MAT, ROOM, CAST, MIDNIGHT, house, storm, pastK, fire, candle, lamp, drawCast, webPrint } from '../style.js';
 import { DOORS } from '../plan.js';
 
 const RM = ROOM.library;
@@ -1440,30 +1440,32 @@ function stagHead(ctx) {
 }
 
 // ---------- The portrait over the fireplace ----------
-// Lord Gooseworth in his prime, monocle and all, up where the gallery can't
-// hide him. His eyes move: to the bear when Pidge questions it, up to heaven at
-// "six feet", and down to the spot by the table whenever the lightning shows it.
+// Lord Gooseworth in his prime, monocle and all (the monocle the goose ends up
+// wearing), up where the gallery can't hide him. His painted eyes look down at
+// the spot by the table where the goose stood at midnight. They don't move: the
+// portrait whose eyes follow you is the one in the hall.
 const PORTRAIT = { u: 5.2, z: 7.75, w: 2.2, h: 3.1 };
-function portraitEyes(t) {
-  const T = lt(t);
-  if (pastK(t) > 0.05) return [-0.025, 0.05];
-  const asking = (T >= 8 && T < 16) || (T >= 140 && T < 148) || (T >= 120 && T < 128);
-  if (asking) return [-0.05, 0.035];
-  if (T >= 30 && T < 36) {
-    const a = (T - 30) * 1.6;
-    return [Math.sin(a) * 0.045, -Math.abs(Math.cos(a * 0.5)) * 0.05];
-  }
-  return [Math.sin(t * 0.35) * 0.04, 0.012];
-}
+const portraitEyes = () => [-0.025, 0.05];
 function portrait(ctx, t) {
   const { u, z, w, h } = PORTRAIT;
   onPlane(ctx, 'left', u + w, 0.02, z + h, (g) => {
     const cx = w / 2;
+    // A gilt frame, and a dark ground to paint him on (as painting() in the style sheet).
+    g.beginPath();
+    g.rect(-0.22, -0.22, w + 0.44, h + 0.44);
+    paint(g, MAT.brass, { lw: 0.035, dots: MAT.brassDark, density: 0.25 });
+    g.beginPath();
+    g.rect(0, 0, w, h);
+    paint(g, MAT.velvetDark, { lw: 0.025, dots: shade(MAT.velvetDark, 0.35), density: 0.15 });
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, w, h);
+    g.clip();
     // Velvet coat, a white cravat, the gold chain of office.
     g.beginPath();
     g.moveTo(0.15, h); g.lineTo(0.45, 2.15); g.quadraticCurveTo(cx, 1.95, w - 0.45, 2.15); g.lineTo(w - 0.15, h);
     g.closePath();
-    paint(g, MAT.velvetDark, { lw: 0.03, dots: shade(MAT.velvetDark, 0.4), density: 0.2 });
+    paint(g, MAT.velvet, { lw: 0.03, dots: shade(MAT.velvet, 0.4), density: 0.2 });
     g.beginPath();
     g.moveTo(cx - 0.26, 2.05); g.lineTo(cx + 0.26, 2.05); g.lineTo(cx, 2.65);
     g.closePath();
@@ -1519,52 +1521,8 @@ function portrait(ctx, t) {
     g.moveTo(cx + 0.33, 1.36); g.quadraticCurveTo(cx + 0.5, 1.9, cx + 0.3, 2.2);
     g.lineWidth = 0.02;
     g.stroke();
+    g.restore();
   });
-}
-
-// ---------- Balloons: 8 and 0, tied to his chair ----------
-function balloons(ctx, t) {
-  const bx = LORD.x - 0.7, by = LORD.y - 0.4;
-  const list = [['8', bx - 0.25, by - 0.45, 4.1, 0], ['0', bx + 0.05, by + 0.55, 3.8, 1.7]];
-  for (const [ch, x, y, z, ph] of list) {
-    const sway = Math.sin(t * 0.9 + ph) * 0.12, bob = Math.sin(t * 1.4 + ph) * 0.08;
-    const [aX, aY] = P3(bx + 0.02, ch === '8' ? by + 0.1 : by + 0.8, 2.45);
-    const [X, Y] = P3(x, y, z + bob);
-    ctx.beginPath();
-    ctx.moveTo(aX, aY);
-    ctx.quadraticCurveTo(aX + sway, (aY + Y) / 2, X + sway, Y + 0.42);
-    ctx.strokeStyle = INK.bone;
-    ctx.lineWidth = 0.02;
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(X + sway, Y);
-    ctx.rotate(sway * 0.4);
-    ctx.beginPath();
-    if (ch === '8') {
-      ctx.ellipse(0, -0.2, 0.2, 0.19, 0, 0, Math.PI * 2);
-      ctx.moveTo(0.26, 0.18);
-      ctx.ellipse(0, 0.18, 0.26, 0.23, 0, 0, Math.PI * 2);
-    } else {
-      ctx.ellipse(0, 0, 0.27, 0.4, 0, 0, Math.PI * 2);
-    }
-    paint(ctx, INK.candleGold, { lw: 0.035 });
-    ctx.beginPath();
-    if (ch === '8') {
-      ctx.ellipse(0, -0.2, 0.07, 0.07, 0, 0, Math.PI * 2);
-      ctx.moveTo(0.1, 0.18);
-      ctx.ellipse(0, 0.18, 0.1, 0.09, 0, 0, Math.PI * 2);
-    } else {
-      ctx.ellipse(0, 0, 0.1, 0.22, 0, 0, Math.PI * 2);
-    }
-    paint(ctx, MAT.velvetDark, { lw: 0.025 });
-    if (Q.detail) {
-      ctx.beginPath();
-      ctx.arc(-0.12, -0.12, 0.05, 0, Math.PI * 2);
-      ctx.fillStyle = alpha(C.white, 0.8);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
 }
 
 // ---------- Pidge's evidence ----------
@@ -1828,6 +1786,19 @@ export default {
     // ---------- The floor ----------
     R.rug((ctx) => drawRug(ctx));
     R.rug((ctx, t) => feathers(ctx, t), { anim: true });
+    // The end of the goose's trail: the last floury prints, in from the dining
+    // room door, to where it stood at midnight (they show up in the lightning).
+    const prints = [];
+    for (let i = 0, x = 15.7; x > 11.7; i++, x -= 0.42) prints.push([x, 10.05 + (i % 2 ? 0.11 : -0.11) + (15.7 - x) * 0.05, (15.7 - x) / 4]);
+    R.rug((ctx) => {
+      if (!Q.detail) return;
+      for (const [x, y, k] of prints) webPrint(ctx, x, y, Math.PI, alpha(C.white, 0.2 - 0.1 * k), alpha(C.white, 0.3 - 0.15 * k), 0.34);
+    });
+    R.rug((ctx, t) => {
+      const k = pastK(t);
+      if (!(k > 0.02) || !Q.detail) return;
+      for (const [x, y] of prints) webPrint(ctx, x, y, Math.PI, alpha(C.white, 0.55 * k), alpha(C.white, 0.8 * k), 0.36);
+    }, { anim: true });
 
     // ---------- The scene ----------
     R.thing(TABLE.x1, TABLE.y1, (ctx, t) => tableScene(ctx, t));
@@ -1839,6 +1810,31 @@ export default {
     candle(R, 8.34, 7.16, TABLE.h + 0.643, 11);
     candle(R, 8.55, 6.95, TABLE.h + 0.893, 12);
     candle(R, 8.76, 6.74, TABLE.h + 0.643, 13);
+
+    // ---------- The mantelpiece and the portrait ----------
+    // A clock that stopped at midnight, birthday cards, and the Lord over it all.
+    R.decor((ctx) => { clockBody(ctx); cards(ctx); portrait(ctx, 0); });
+    R.decor((ctx, t) => clockFace(ctx, t), { anim: true });
+
+    // ---------- The party that was ----------
+    // (The balloons are on the Lord's empty chair in the dining room, and the
+    // hall's newel post: here it's just the bunting.)
+    R.thing(7.5, 7.5, (ctx, t) => bunting(ctx, t), { anim: true, depth: 32 });
+
+    // ---------- Pidge's investigation ----------
+    // He measured the rug ("Hmm. Six feet."), numbered the wrong things, and
+    // put the bear at the top of his list twice.
+    R.rug((ctx) => chalk(ctx));
+    R.rug((ctx, t) => tape(ctx, t), { anim: true });
+    for (const [x, y, n] of [[14.2, 9.5, 1], [5.6, 3.6, 2], [14.6, 12.2, 3], [2.3, 9.9, 4]]) R.thing(x, y, (ctx) => marker(ctx, x, y, n));
+    R.thing(BOARD.x1, BOARD.y + 0.3, (ctx) => blackboard(ctx));
+
+    // ---------- Library things ----------
+    R.thing(4.4, 3.3, (ctx) => ladder(ctx, 4.4, 3.3, 2.4, GAL + 1.05));
+    R.thing(5.2, 1.9, (ctx, t) => globe(ctx, 5.2, 1.9, t), { anim: true });
+    R.thing(11.4, 1.8, (ctx) => floorBooks(ctx, 11.4, 1.8, 5, 3));
+    R.thing(1.9, 9.6, (ctx) => floorBooks(ctx, 1.9, 9.6, 3, 7));
+    R.thing(14.3, 7.6, (ctx) => floorBooks(ctx, 14.3, 7.6, 4, 11));
 
     R.dark(house.dark);
 

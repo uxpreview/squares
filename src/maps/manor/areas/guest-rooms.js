@@ -23,10 +23,9 @@ const GOLD = MAT.brass;
 const AMBER = mix(INK.oxblood, INK.candleGold, 0.45); // brown glass
 const TAN = mix(INK.oxblood, INK.candleGold, 0.6); // Rupert's leather case
 const WALNUT = mix(INK.oxblood, INK.candleGold, 0.2);
-const TIGER = mix(INK.candleGold, INK.oxblood, 0.25);
 const GREY = mix(INK.bone, INK.stormNavy, 0.45); // Dr. Crane's socks, the mouse
 const MINT = mix(INK.verdigris, INK.bone, 0.35); // Dr. Crane's side: surgery green
-const CAT = mix(C.black, INK.stormNavy, 0.25);
+const CAT = mix(INK.candleGold, INK.oxblood, 0.35); // Dr. Crane's ginger tom
 
 // ---------- The plan ----------
 const HOLE = [1.5, 0.4, 11, 2.8]; // the stairwell: x0, y0, x1, y1
@@ -316,57 +315,35 @@ function runner(ctx, x0, y0, x1, y1) {
   ctx.stroke();
 }
 
-// The Brigadier's tiger (1974, he says), flat on the floor with its glass eyes.
-function tigerRug(ctx) {
+// The Brigadier's rug: the regiment's colours, crossed sabres, and a
+// scorch where he knocked his pipe out. (His tiger is in the taxidermy
+// room, "shot" by him; it was already stuffed.)
+function brigRug(ctx) {
   flat(ctx, 'z', 0.012, (g) => {
+    const x0 = 4.2, y0 = 9.05, x1 = 6.6, y1 = 11.35;
+    g.beginPath(); g.rect(x0, y0, x1 - x0, y1 - y0);
+    paint(g, OLIVE, { lw: 0.04, dots: shade(OLIVE, 0.35), density: 0.14 });
+    g.beginPath(); g.rect(x0 + 0.16, y0 + 0.16, x1 - x0 - 0.32, y1 - y0 - 0.32);
+    g.strokeStyle = INK.oxblood; g.lineWidth = 0.12; g.stroke();
+    g.beginPath(); g.rect(x0 + 0.3, y0 + 0.3, x1 - x0 - 0.6, y1 - y0 - 0.6);
+    g.strokeStyle = GOLD; g.lineWidth = 0.04; g.stroke();
+    // the crest: crossed sabres over a laurel ring
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    g.beginPath(); g.arc(cx, cy, 0.5, 0, Math.PI * 2);
+    g.strokeStyle = GOLD; g.lineWidth = 0.07; g.stroke();
     g.beginPath();
-    g.moveTo(4.6, 9.72);
-    g.lineTo(4.62, 9.3); g.lineTo(4.45, 9.0); g.lineTo(4.95, 8.98); g.lineTo(5.02, 9.45);
-    g.lineTo(6.0, 9.45);
-    g.lineTo(6.05, 9.0); g.lineTo(6.55, 8.98); g.lineTo(6.45, 9.5);
-    g.lineTo(6.55, 10.9);
-    g.lineTo(6.55, 11.42); g.lineTo(6.05, 11.4); g.lineTo(6.0, 10.95);
-    g.lineTo(5.02, 10.95);
-    g.lineTo(4.95, 11.42); g.lineTo(4.45, 11.4); g.lineTo(4.62, 11.1);
-    g.lineTo(4.6, 10.68);
-    g.closePath();
-    paint(g, TIGER, { lw: 0.04, dots: shade(TIGER, 0.35), density: 0.12 });
-    // tail
-    g.beginPath();
-    g.moveTo(6.5, 10.2);
-    g.quadraticCurveTo(6.75, 10.35, 6.7, 10.75);
+    g.moveTo(cx - 0.45, cy - 0.45); g.lineTo(cx + 0.45, cy + 0.45);
+    g.moveTo(cx + 0.45, cy - 0.45); g.lineTo(cx - 0.45, cy + 0.45);
     g.lineCap = 'round';
-    g.strokeStyle = C.ink; g.lineWidth = 0.16; g.stroke();
-    g.strokeStyle = TIGER; g.lineWidth = 0.1; g.stroke();
-    // stripes
+    g.strokeStyle = C.ink; g.lineWidth = 0.1; g.stroke();
+    g.strokeStyle = MAT.silver; g.lineWidth = 0.05; g.stroke();
+    // the scorch
+    g.beginPath(); g.ellipse(x1 - 0.55, y0 + 0.6, 0.16, 0.1, 0.4, 0, Math.PI * 2);
+    g.fillStyle = alpha(C.ink, 0.45); g.fill();
+    // a fringe at each end
     g.beginPath();
-    for (let x = 4.95; x < 6.45; x += 0.3) {
-      g.moveTo(x, 9.5); g.quadraticCurveTo(x + 0.12, 9.75, x + 0.02, 9.98);
-      g.moveTo(x + 0.02, 10.9); g.quadraticCurveTo(x - 0.1, 10.65, x, 10.42);
-    }
-    g.strokeStyle = INK.stormNavy; g.lineWidth = 0.08; g.stroke();
-    // head
-    g.beginPath(); g.arc(4.45, 9.75, 0.13, 0, Math.PI * 2); g.arc(4.45, 10.65, 0.13, 0, Math.PI * 2);
-    paint(g, TIGER, { lw: 0.03 });
-    g.beginPath(); g.arc(4.3, 10.2, 0.42, 0, Math.PI * 2);
-    paint(g, TIGER, { lw: 0.04 });
-    g.beginPath(); g.ellipse(4.0, 10.2, 0.2, 0.25, 0, 0, Math.PI * 2);
-    paint(g, INK.bone, { lw: 0.03 });
-    g.beginPath(); g.ellipse(3.93, 10.2, 0.1, 0.14, 0, 0, Math.PI * 2);
-    paint(g, INK.oxblood, { lw: 0.02 });
-    g.fillStyle = INK.bone;
-    g.beginPath(); g.moveTo(3.9, 10.08); g.lineTo(4.02, 10.12); g.lineTo(3.95, 10.16); g.fill();
-    g.beginPath(); g.moveTo(3.9, 10.32); g.lineTo(4.02, 10.28); g.lineTo(3.95, 10.24); g.fill();
-    dot(g, 4.13, 10.2, 0.05, C.ink);
-    for (const y of [10.03, 10.37]) { dot(g, 4.32, y, 0.07, INK.candleGold); dot(g, 4.3, y, 0.035, C.ink); }
-    g.beginPath();
-    g.moveTo(4.5, 9.95); g.lineTo(4.68, 10.05); g.moveTo(4.5, 10.45); g.lineTo(4.68, 10.35); g.moveTo(4.56, 10.2); g.lineTo(4.72, 10.2);
-    g.moveTo(4.36, 9.86); g.lineTo(4.46, 9.9); g.moveTo(4.36, 10.54); g.lineTo(4.46, 10.5);
-    g.strokeStyle = INK.stormNavy; g.lineWidth = 0.06; g.stroke();
-    // whiskers
-    g.beginPath();
-    for (const s of [-1, 1]) { g.moveTo(4.02, 10.2 + s * 0.2); g.lineTo(3.86, 10.2 + s * 0.42); g.moveTo(4.06, 10.2 + s * 0.22); g.lineTo(3.98, 10.2 + s * 0.48); }
-    g.strokeStyle = INK.bone; g.lineWidth = 0.025; g.stroke();
+    for (let y = y0 + 0.08; y < y1; y += 0.16) { g.moveTo(x0, y); g.lineTo(x0 - 0.14, y); g.moveTo(x1, y); g.lineTo(x1 + 0.14, y); }
+    g.strokeStyle = KHAKI; g.lineWidth = 0.03; g.stroke();
   });
 }
 
@@ -1307,17 +1284,9 @@ export default {
     sconce('right', 11.7, 3.3);
     sconce('left', 10.8, 3.3);
 
-    // Great-Aunt Goose, in oils. Her eyes follow whoever is creeping about.
-    const whoToWatch = (t) => {
-      const c = crane(t), b = brig(t);
-      if (c && b) return { x: (c.x + b.x) / 2, y: (c.y + b.y) / 2 };
-      return c || b;
-    };
-    painting(R, 'right', 9.0, 2.35, 1.5, 1.8, mix(INK.deepPlum, INK.stormNavy, 0.35), (ctx, t) => {
-      const p = whoToWatch(t);
-      const drift = Math.sin(t * 0.37) > 0.8 ? 1 : 0;
-      const lx = p ? clamp(((p.x - p.y) - (9.75 - 0)) / 7, -1, 1) : drift * 0.8;
-      const ly = p ? 0.8 : 0;
+    // Great-Aunt Goose, in oils (the family has always had a goose problem).
+    // She gets the monocle once the case is solved.
+    painting(R, 'right', 9.0, 2.35, 1.5, 1.8, mix(INK.deepPlum, INK.stormNavy, 0.35), (ctx) => {
       flat(ctx, 'y', 0.004, (g) => {
         g.save();
         g.beginPath(); g.rect(9.0, -4.15, 1.5, 1.8); g.clip();
@@ -1332,9 +1301,10 @@ export default {
         g.strokeStyle = C.white; g.lineWidth = 0.19; g.stroke();
         g.beginPath(); g.arc(9.66, -3.66, 0.18, 0, Math.PI * 2); paint(g, C.white, { lw: 0.03 });
         g.beginPath(); g.moveTo(9.52, -3.73); g.lineTo(9.22, -3.64); g.lineTo(9.52, -3.56); g.closePath(); paint(g, C.coral, { lw: 0.025 });
-        // her eye: it follows whoever is creeping about
+        // her eye: beady, and fixed on the stairs (the portrait whose eyes
+        // follow you is the Lord's, down in the hall)
         g.beginPath(); g.arc(9.64, -3.71, 0.065, 0, Math.PI * 2); paint(g, INK.bone, { lw: 0.02 });
-        dot(g, 9.64 + lx * 0.032, -3.71 + ly * 0.022, 0.032, C.ink);
+        dot(g, 9.61, -3.7, 0.032, C.ink);
         // a lace cap and a string of pearls
         g.beginPath(); g.ellipse(9.72, -3.83, 0.17, 0.08, 0.35, Math.PI, 0); g.closePath(); paint(g, INK.bone, { lw: 0.02 });
         g.fillStyle = INK.bone;
@@ -1363,16 +1333,6 @@ export default {
       flat(ctx, 'y', 0.004, (g) => {
         words(g, 'HIS LORDSHIP', 13.5, -4.37, 0.18, INK.stormNavy);
         if (Q.detail) words(g, 'DO NOT DISTURB', 13.5, -4.17, 0.09, INK.stormNavy, true);
-      });
-      // a stag on the landing wall, glass eyes and all
-      flat(ctx, 'x', 0.004, (g) => {
-        g.beginPath(); g.ellipse(-1.6, -3.5, 0.34, 0.42, 0, 0, Math.PI * 2); paint(g, MAT.mahogany, { lw: 0.03 });
-        g.beginPath(); g.moveTo(-1.6, -3.8); g.lineTo(-1.9, -4.4); g.lineTo(-2.1, -4.5); g.moveTo(-1.9, -4.4); g.lineTo(-1.85, -4.7);
-        g.moveTo(-1.6, -3.8); g.lineTo(-1.3, -4.4); g.lineTo(-1.1, -4.5); g.moveTo(-1.3, -4.4); g.lineTo(-1.35, -4.7);
-        g.lineCap = 'round'; g.strokeStyle = C.ink; g.lineWidth = 0.1; g.stroke(); g.strokeStyle = INK.bone; g.lineWidth = 0.06; g.stroke();
-        g.beginPath(); g.ellipse(-1.6, -3.55, 0.17, 0.3, 0, 0, Math.PI * 2); paint(g, MAT.fur, { lw: 0.03 });
-        g.beginPath(); g.ellipse(-1.6, -3.3, 0.09, 0.08, 0, 0, Math.PI * 2); paint(g, shade(MAT.fur, 0.3), { lw: 0.02 });
-        for (const ex of [-1.69, -1.51]) { dot(g, ex, -3.62, 0.04, INK.bone); dot(g, ex, -3.62, 0.018, C.ink); }
       });
     });
 
@@ -1433,7 +1393,7 @@ export default {
     R.rug((ctx) => {
       runner(ctx, 0.35, 1.5, 1.42, 3.85);
       runner(ctx, 0.55, 3.85, 15.2, 5.15);
-      tigerRug(ctx);
+      brigRug(ctx);
       craneRug(ctx);
       // The tin of mints: empty, lid off. (A white feather beside it.)
       disc(ctx, 6.0, 4.2, 0.02, 0.2, MAT.silver, { lw: 0.03 });

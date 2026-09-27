@@ -644,7 +644,7 @@ function roseBush(ctx, x, y, seed) {
   }
 }
 
-// The garden bench, facing the drive. (There's a cat under it; see below.)
+// The garden bench, facing the drive.
 function bench(ctx) {
   const x = 0.55, y0 = 2.5, y1 = 4.5;
   shadow(ctx, 0.9, 3.5, 1.2, 0.45, 0.15);
@@ -678,43 +678,6 @@ function birdBath(ctx, t) {
   ctx.lineWidth = 0.04;
   ctx.strokeStyle = alpha(INK.bone, 0.7);
   ctx.stroke();
-}
-
-// A cat, sheltering under the bench. Its eyes catch the light.
-function cat(ctx, t) {
-  const [X, Y] = P(1.35, 3.55, 0);
-  const tt = loopT(t);
-  const s = lastStrike(tt, 1.2);
-  const puff = s ? 1.15 : 1; // the lightning makes its fur stand up
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(puff, puff);
-  ctx.beginPath();
-  ctx.ellipse(0, -0.17, 0.3, 0.17, 0, 0, TAU);
-  ctx.arc(0.26, -0.32, 0.13, 0, TAU);
-  paint(ctx, C.black, { lw: 0.03 });
-  ctx.beginPath();
-  ctx.moveTo(0.18, -0.4); ctx.lineTo(0.2, -0.53); ctx.lineTo(0.27, -0.43);
-  ctx.moveTo(0.3, -0.43); ctx.lineTo(0.37, -0.53); ctx.lineTo(0.39, -0.39);
-  ctx.fillStyle = C.black;
-  ctx.fill();
-  // the tail, flicking
-  ctx.beginPath();
-  ctx.moveTo(-0.27, -0.14);
-  ctx.quadraticCurveTo(-0.5, -0.2 + Math.sin(t * 2.3) * 0.1, -0.45 + Math.sin(t * 2.3) * 0.08, -0.42);
-  ctx.lineWidth = 0.07;
-  ctx.strokeStyle = C.black;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  // eyes: open, but they blink now and then
-  if ((t % 4.3) > 0.18) {
-    ctx.fillStyle = GOLD;
-    ctx.beginPath();
-    ctx.arc(0.21, -0.34, 0.035, 0, TAU);
-    ctx.arc(0.32, -0.34, 0.035, 0, TAU);
-    ctx.fill();
-  }
-  ctx.restore();
 }
 
 // A frog hops between spots, sitting a while (croaking) at each.
@@ -1709,7 +1672,6 @@ export default {
       words(ctx, 'y', y + 0.38, x + 0.04, 0.61, 'ORDER', 0.075, INK.oxblood, SANS);
     });
     R.thing(1.3, 4.5, (ctx) => bench(ctx));
-    R.thing(1.35, 3.55, (ctx, t) => cat(ctx, t), { anim: true, depth: 4.6 });
     R.thing(3.2, 3.5, (ctx, t) => birdBath(ctx, t), { anim: true });
     // Frogs, loving it.
     const frogs = [

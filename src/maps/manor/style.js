@@ -108,7 +108,9 @@ export const MAT = {
 export const ROOM = {
   library: { wall: mix(INK.oxblood, INK.deepPlum, 0.25), floor: MAT.mahogany, trim: MAT.mahoganyDark },
   'dining-room': { wall: mix(INK.candleGold, INK.bone, 0.35), floor: MAT.oak, trim: MAT.mahogany },
-  kitchen: { wall: mix(INK.bone, INK.verdigris, 0.12), floor: MAT.stone, trim: INK.verdigris },
+  // (The kitchen's flags are warmed by the range, so the servants' side still
+  // reads as lit from inside next to the cellar's cold stone.)
+  kitchen: { wall: mix(INK.bone, INK.verdigris, 0.12), floor: mix(MAT.stone, INK.candleGold, 0.2), trim: INK.verdigris },
   'billiard-room': { wall: mix(INK.verdigris, INK.stormNavy, 0.2), floor: MAT.oak, trim: MAT.mahoganyDark },
   'grand-hall': { wall: mix(INK.deepPlum, INK.bone, 0.18), floor: MAT.marble, trim: MAT.mahogany },
   conservatory: { wall: MAT.glass, floor: MAT.terracotta, trim: INK.bone },
@@ -277,6 +279,42 @@ export function candle(R, x, y, z, seed = 1, o = {}) {
 export function fire(R, x, y, z, seed = 3, r = 3.2) {
   R.light({ at: [x, y, z], r, color: INK.candleGold, k: house.flicker(seed) });
   R.light({ at: [x, y, z], r: r * 0.45, color: C.coral, k: house.flicker(seed + 1) });
+}
+
+// One webbed goose footprint on the floor: the trail runs from the kitchen's
+// flour through the dining room to the library, so every room draws it the
+// same way. (x, y): the heel; ang: the way it's walking; web: the pad's fill;
+// toe: the toes; len: its size (0.5 in the flour, smaller as it runs out).
+export function webPrint(ctx, x, y, ang, web, toe = web, len = 0.5) {
+  const pt = (dd, a) => {
+    const px = x + Math.cos(ang + a) * dd, py = y + Math.sin(ang + a) * dd;
+    return [px - py, (px + py) / 2 - 0.015 * ZK];
+  };
+  const heel = pt(0.03, 0);
+  const tips = [pt(len, -0.62), pt(len * 1.12, 0), pt(len, 0.62)];
+  const dips = [pt(len * 0.78, -0.31), pt(len * 0.82, 0.31)];
+  const side = [pt(len * 0.45, -0.75), pt(len * 0.45, 0.75)];
+  ctx.beginPath(); // the webbed pad, pressed in
+  ctx.moveTo(heel[0], heel[1]);
+  ctx.quadraticCurveTo(side[0][0], side[0][1], tips[0][0], tips[0][1]);
+  ctx.quadraticCurveTo(dips[0][0], dips[0][1], tips[1][0], tips[1][1]);
+  ctx.quadraticCurveTo(dips[1][0], dips[1][1], tips[2][0], tips[2][1]);
+  ctx.quadraticCurveTo(side[1][0], side[1][1], heel[0], heel[1]);
+  ctx.closePath();
+  ctx.fillStyle = web;
+  ctx.fill();
+  const w = len / 0.5; // three toes, with round ends
+  ctx.beginPath();
+  for (const tp of tips) { ctx.moveTo(heel[0], heel[1]); ctx.lineTo(tp[0], tp[1]); }
+  ctx.strokeStyle = toe;
+  ctx.lineWidth = 0.045 * w;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.fillStyle = toe;
+  for (const tp of tips) { ctx.beginPath(); ctx.ellipse(tp[0], tp[1], 0.06 * w, 0.045 * w, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.beginPath();
+  ctx.ellipse(heel[0], heel[1], 0.07 * w, 0.045 * w, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // ---------- The cast ----------
@@ -527,31 +565,41 @@ export function echoPerson(ctx, look, p, t, k) {
   Q.detail = detail;
 }
 
-// The goose's shape, flat, for the same trick.
+// The goose's shape, flat, for the same trick. It's the level's big clue, so
+// it's a size up from life, darker than the people's shapes, and edged in
+// the flash's cold light so it reads on the library's dark rug.
 export function echoGoose(ctx, x, y, z, dir, k) {
   if (!(k > 0.02)) return;
   const X = x - y, Y = (x + y) / 2 - z * ZK, f = dir === 'l' ? -1 : 1;
   ctx.save();
   ctx.translate(X, Y);
-  ctx.scale(f, 1);
-  ctx.globalAlpha *= 0.62 * k;
+  ctx.scale(f * 1.2, 1.2);
+  ctx.globalAlpha *= Math.min(1, 0.9 * k);
+  const body = () => {
+    ctx.beginPath();
+    ctx.ellipse(0, -0.45, 0.42, 0.24, -0.12, 0, Math.PI * 2);
+    ctx.moveTo(-0.3, -0.5); ctx.lineTo(-0.55, -0.67); ctx.lineTo(-0.38, -0.37);
+    ctx.moveTo(0.4, -1.07); ctx.arc(0.28, -1.07, 0.12, 0, Math.PI * 2);
+    ctx.moveTo(0.36, -1.12); ctx.lineTo(0.58, -1.06); ctx.lineTo(0.36, -1.01);
+    ctx.rect(-0.08, -0.34, 0.05, 0.34);
+    ctx.rect(0.06, -0.34, 0.05, 0.34);
+  };
+  const neck = () => {
+    ctx.beginPath();
+    ctx.moveTo(0.22, -0.55);
+    ctx.quadraticCurveTo(0.35, -0.75, 0.28, -1.07);
+  };
+  // the cold rim
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = alpha(NIGHT.flash, 0.85);
+  body(); ctx.lineWidth = 0.1; ctx.stroke();
+  neck(); ctx.lineWidth = 0.27; ctx.stroke();
+  // the shape
   ctx.fillStyle = INK.stormNavy;
-  ctx.beginPath();
-  ctx.ellipse(0, -0.45, 0.42, 0.24, -0.12, 0, Math.PI * 2);
-  ctx.moveTo(-0.3, -0.5); ctx.lineTo(-0.55, -0.67); ctx.lineTo(-0.38, -0.37);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(0.22, -0.55);
-  ctx.quadraticCurveTo(0.35, -0.75, 0.28, -1.07);
-  ctx.lineWidth = 0.15;
   ctx.strokeStyle = INK.stormNavy;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0.28, -1.07, 0.12, 0, Math.PI * 2);
-  ctx.moveTo(0.36, -1.12); ctx.lineTo(0.58, -1.06); ctx.lineTo(0.36, -1.01);
-  ctx.fill();
-  ctx.fillRect(-0.08, -0.34, 0.05, 0.34);
-  ctx.fillRect(0.06, -0.34, 0.05, 0.34);
+  body(); ctx.fill();
+  neck(); ctx.lineWidth = 0.16; ctx.stroke();
   ctx.restore();
 }
 

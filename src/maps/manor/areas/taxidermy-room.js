@@ -1713,7 +1713,7 @@ function crateEyes(t) {
 }
 
 // ---------- An ostrich, shy ----------
-const OSTRICH = { x: 14.4, y: 12.6 };
+const OSTRICH = { x: 10.4, y: 14.7 }; // (moved off the tiger rug's head, which it was standing on)
 function drawOstrich(ctx) {
   const { x, y } = OSTRICH;
   cylinder(ctx, x, y, 0, 0.5, 0.12, PLINTH, { top: PLINTH_TOP });

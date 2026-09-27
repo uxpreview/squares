@@ -37,7 +37,9 @@ export function createRenderer(canvas, camera) {
   const { cam, view } = camera;
   // Frame costs in ms (smoothed): the whole render, refreshing neighbor pictures,
   // the zone you're in, the other zones, the backdrop and sky, and the frame gap.
-  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16 };
+  // n and worst count frames and keep the slowest since a tool last reset them
+  // (QA times each view on its own frames that way).
+  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0 };
   let snapCredit = 0;
   let lastT = 0;
   let slowFrames = 0;
@@ -238,7 +240,11 @@ export function createRenderer(canvas, camera) {
     perf.sky = perf.sky * 0.9 + (performance.now() - s0) * 0.1;
     Q.detail = true;
     if (o.top) o.top(ctx, t, now);
-    perf.ms = perf.ms * 0.9 + (performance.now() - f0) * 0.1;
+    const took = performance.now() - f0;
+    perf.ms = perf.ms * 0.9 + took * 0.1;
+    perf.n++;
+    perf.total += took;
+    perf.worst = Math.max(perf.worst, took);
   }
 
   // A small still picture of a whole map, for the level picker. A place printed

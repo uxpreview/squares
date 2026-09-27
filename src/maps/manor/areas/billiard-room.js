@@ -26,7 +26,7 @@ const MANILA = mix(INK.bone, INK.candleGold, 0.38);
 const SLATE = mix(C.ink, INK.verdigris, 0.22);
 const CHALK = alpha(INK.bone, 0.92);
 const ANTLER = mix(INK.bone, MAT.oak, 0.35);
-const TIGER = mix(INK.candleGold, C.coral, 0.45);
+const TIGER = INK.bone; // the zebra (stripes in ink)
 const GLASS = alpha(MAT.glass, 0.5);
 const PINE = MAT.pine;
 const SMOKE = INK.bone;
@@ -430,11 +430,10 @@ function pawnTicket(ctx) {
     g.arc(-0.2, 0, 0.035, 0, Math.PI * 2);
     paint(g, INK.bone, { lw: 0.015 });
     if (!Q.detail) return;
-    words(g, 'No 73', 0.05, -0.04, 0.12, C.ink);
-    g.fillStyle = alpha(C.ink, 0.6);
-    g.fillRect(-0.1, 0.05, 0.3, 0.02);
-    g.fillRect(-0.1, 0.09, 0.2, 0.02);
-    dot(g, 0.19, 0.08, 0.04, alpha(INK.oxblood, 0.8)); // the pawnbroker's stamp
+    // (His alibi is the date: the case file says it's dated tomorrow.)
+    words(g, 'No 73', -0.01, -0.06, 0.1, C.ink);
+    words(g, 'TOMORROW', 0.04, 0.07, 0.06, INK.oxblood);
+    dot(g, 0.22, -0.07, 0.03, alpha(INK.oxblood, 0.8)); // the pawnbroker's stamp
   });
 }
 
@@ -479,9 +478,10 @@ function cardChair(ctx, x, y, facing, part = 'all') {
 }
 
 // ---------- Creatures ----------
-// The black cat: sitting, side on, facing right. o: { look (-1..1), swipe (0..1) }
-function blackCat(ctx, X, Y, t, o = {}) {
-  const fur = C.black, sheen = mix(C.black, C.navy, 0.55);
+// The club's white cat (every den needs one to stroke): sitting, side on,
+// facing right. o: { look (-1..1), swipe (0..1) }
+function whiteCat(ctx, X, Y, t, o = {}) {
+  const fur = INK.bone, sheen = C.ink;
   ctx.save();
   ctx.translate(X, Y);
   const sw = Math.sin(t * 2.3) * 0.12;
@@ -578,11 +578,11 @@ function stagHead(ctx) {
   ctx.beginPath();
   ctx.ellipse(0, 0.47, 0.12, 0.08, 0, 0, Math.PI * 2);
   paint(ctx, C.ink, { lw: 0.02 });
-  // A little brass plate: he's been here since 1974.
+  // A little brass plate with his name on it.
   ctx.beginPath();
   ctx.roundRect(-0.2, 0.55, 0.4, 0.12, 0.03);
   paint(ctx, MAT.brass, { lw: 0.02 });
-  if (Q.detail) words(ctx, '1974', 0, 0.612, 0.085, C.ink, { font: SANS });
+  if (Q.detail) words(ctx, 'NIGEL', 0, 0.612, 0.085, C.ink, { font: SANS });
 }
 function stagEyes(ctx, look) {
   for (const s of [-1, 1]) {
@@ -887,7 +887,7 @@ export default {
           face(ctx, [[x, 15.2, 0.01], [x - 0.05, 15.45, 0.01]], null, { lw: 0.03, stroke: INK.bone });
         }
       }
-      // A tiger, formerly. Flat, with his head still on.
+      // A zebra, formerly. Flat, with his head still on, and still cross about it.
       onFlat(ctx, 2.15, 10.3, 0.015, 0.2, (g) => {
         g.beginPath();
         g.moveTo(-0.55, -1.2);
@@ -1219,7 +1219,7 @@ export default {
       }
       // the cat
       const [cX, cY] = P(CAT[0], CAT[1], 1.0);
-      blackCat(ctx, cX, cY, t, { swipe: cb.swipe, look: cb.p[1] < 6.5 ? -1 : 0.5 });
+      whiteCat(ctx, cX, cY, t, { swipe: cb.swipe, look: cb.p[1] < 6.5 ? -1 : 0.5 });
       // A spider, lowering itself off the lamp and scuttling back up.
       {
         const k = ((t % 15.7) + 15.7) % 15.7;

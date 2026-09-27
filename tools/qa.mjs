@@ -391,9 +391,13 @@ try {
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     const times = [];
+    // Each view on its own frames: let it settle, reset the counters, then wait
+    // for a dozen frames (or 20 seconds) and take their average.
     const measure = async (label) => {
-      await p.waitForTimeout(2600);
-      times.push([label, await p.evaluate(() => window.__squares.perf.ms)]);
+      await p.waitForTimeout(1500);
+      await p.evaluate(() => { const f = window.__squares.perf; f.n = 0; f.total = 0; f.worst = 0; });
+      await p.waitForFunction(() => window.__squares.perf.n >= 12, null, { timeout: 20000 }).catch(() => {});
+      times.push([label, await p.evaluate(() => { const f = window.__squares.perf; return f.n ? f.total / f.n : f.ms; })]);
     };
     for (const s of info.storeys.length ? info.storeys : [{ id: null, name: 'The whole place' }]) {
       if (s.id) await p.evaluate((i) => window.__squares.play.setStorey(i), s.id);

@@ -2175,7 +2175,7 @@ export default {
         g.setLineDash([]);
         words(g, 'BEWARE', 0.6, 0.32, 0.15, INK.oxblood, { font: DISPLAY });
         words(g, 'THE GOOSE', 0.6, 0.52, 0.13, INK.verdigris, { font: DISPLAY });
-        if (Q.detail) words(g, 'B.G. 1974', 0.6, 0.7, 0.06, C.ink);
+        if (Q.detail) words(g, 'B.G.', 0.6, 0.7, 0.06, C.ink);
       });
     });
     painting(R, 'left', PORTRAIT.y0, PORTRAIT.z0, PORTRAIT.w, PORTRAIT.h, PORTRAIT_GROUND, portraitArt);

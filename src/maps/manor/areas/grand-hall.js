@@ -1291,49 +1291,6 @@ function gong(ctx, t) {
   ctx.beginPath(); ctx.arc(MX, MY, 0.09, 0, Math.PI * 2); paint(ctx, INK.bone, { lw: 0.025 });
 }
 
-// ---------- The leak ----------
-// A drip from the ceiling (the roof's been going since 1974), into a bucket.
-const BUCKET = { x: 14.3, y: 4.7 };
-function bucket(ctx, t) {
-  const { x, y } = BUCKET;
-  const [X, Y] = P(x, y, 0), top = 0.55 * ZK;
-  ctx.beginPath();
-  ctx.moveTo(X - 0.4, Y - top); ctx.lineTo(X - 0.3, Y); ctx.ellipse(X, Y, 0.3, 0.13, 0, Math.PI, 0, true); ctx.lineTo(X + 0.4, Y - top);
-  ctx.closePath();
-  paint(ctx, MAT.stone, { lw: 0.035, dots: MAT.stoneDark, density: 0.25 });
-  ctx.beginPath(); ctx.ellipse(X, Y - top, 0.4, 0.17, 0, 0, Math.PI * 2); paint(ctx, MAT.stoneDark, { lw: 0.035 });
-  ctx.beginPath(); ctx.ellipse(X, Y - top + 0.03, 0.33, 0.13, 0, 0, Math.PI * 2); ctx.fillStyle = mix(INK.stormNavy, INK.verdigris, 0.3); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(X, Y - top - 0.05, 0.42, 0.5, 0, Math.PI * 1.05, Math.PI * 1.95); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
-  const q = (t % 1.9) / 1.9;
-  if (q > 0.3 && Q.detail) { // the ring where the last drop landed
-    const k = (q - 0.3) / 0.7;
-    ellipse(ctx, X, Y - top + 0.03, 0.05 + k * 0.28, 0.02 + k * 0.11);
-    ctx.strokeStyle = alpha(C.white, 0.7 * (1 - k)); ctx.lineWidth = 0.02; ctx.stroke();
-  }
-  if (Q.detail) { // a card, propped against it
-    flat(ctx, 'right', x - 0.1, y + 0.36, 0.3, (g) => {
-      g.rotate(-0.12);
-      g.fillStyle = INK.bone; g.fillRect(-0.3, -0.2, 0.6, 0.36);
-      g.strokeStyle = C.ink; g.lineWidth = 0.02; g.strokeRect(-0.3, -0.2, 0.6, 0.36);
-      g.scale(1 / 40, 1 / 40);
-      g.fillStyle = C.ink; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = `${0.12 * 40}px "Bagel Fat One", "Arial Black", sans-serif`;
-      g.fillText('LEAK', 0, -0.08 * 40);
-      g.font = `${0.09 * 40}px "Rethink Sans", system-ui, sans-serif`;
-      g.fillText('SINCE 1974', 0, 0.06 * 40);
-    });
-  }
-}
-function drip(ctx, t) {
-  const q = (t % 1.9) / 1.9;
-  if (q > 0.3) return;
-  const k = q / 0.3;
-  const [X, Y] = P(BUCKET.x, BUCKET.y, 6 - 5.45 * k * k);
-  ellipse(ctx, X, Y, 0.04, 0.07);
-  ctx.fillStyle = storm.flash(t) > 0.2 ? C.white : mix(INK.bone, INK.verdigris, 0.35);
-  ctx.fill();
-}
-
 // ---------- The tea trolley ----------
 // Tea, and the birthday cake (eighty candles, give or take), waiting to be
 // wheeled in. A slice has gone missing. The crumbs lead to the coats.
@@ -1668,10 +1625,8 @@ export default {
     R.light({ at: [TROLLEY.x - 0.05, TROLLEY.y + 0.02, 1.9], r: 1.9, color: INK.candleGold, k: house.flicker(55) });
     R.rug(crumbs);
 
-    // The gong, the leak, the mouse, and mud on the marble.
+    // The gong, the mouse, and mud on the marble.
     R.thing(GONG.x, GONG.y, gong, { anim: true });
-    R.thing(BUCKET.x, BUCKET.y, bucket, { anim: true });
-    R.mover(() => ({ x: BUCKET.x, y: BUCKET.y }), drip, { bias: 0.02 });
     R.mover(mouseTimes(R), mouse, { bias: 0.02 });
     R.rug(makePrints(R), { anim: true });
 

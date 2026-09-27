@@ -748,75 +748,40 @@ export default {
       ctx.restore();
     }, { anim: true });
 
-    // A stag's head between the vaults, with the butler's bowler hat on one
-    // antler (he's leaving). Glass eyes that catch the lightning.
-    const STAG = [0.3, 4.9, 4.45];
-    const antlers = (ctx, X, Y) => {
-      ctx.beginPath();
-      for (const f of [-1, 1]) {
-        ctx.moveTo(X + f * 0.12, Y - 0.34);
-        ctx.quadraticCurveTo(X + f * 0.45, Y - 0.7, X + f * 0.5, Y - 1.25);
-        ctx.moveTo(X + f * 0.3, Y - 0.62); ctx.lineTo(X + f * 0.62, Y - 0.72);
-        ctx.moveTo(X + f * 0.44, Y - 0.9); ctx.lineTo(X + f * 0.72, Y - 1.1);
-        ctx.moveTo(X + f * 0.49, Y - 1.1); ctx.lineTo(X + f * 0.34, Y - 1.4);
-      }
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = C.ink;
-      ctx.lineWidth = 0.11;
-      ctx.stroke();
-      ctx.strokeStyle = mix(INK.bone, MAT.fur, 0.35);
-      ctx.lineWidth = 0.065;
-      ctx.stroke();
-    };
+    // Jenkins's peg between the vaults: his bowler hat and his umbrella,
+    // ready by the secret passage (he's leaving).
+    const PEG = [0.3, 4.9, 4.45];
     R.decor((ctx) => {
-      const [X, Y] = P(...STAG);
+      const [X, Y] = P(...PEG);
       ctx.save();
-      // plaque
+      // the peg rail, and two pegs
       ctx.beginPath();
-      ctx.ellipse(X, Y + 0.15, 0.36, 0.48, 0, 0, Math.PI * 2);
-      paint(ctx, OAK_D, { lw: 0.035 });
-      antlers(ctx, X, Y);
-      // head, snout, ears
-      ctx.beginPath();
-      ctx.ellipse(X - 0.3, Y - 0.25, 0.14, 0.07, -0.5, 0, Math.PI * 2);
-      ctx.ellipse(X + 0.3, Y - 0.25, 0.14, 0.07, 0.5, 0, Math.PI * 2);
-      paint(ctx, MAT.fur, { lw: 0.03 });
-      ctx.beginPath();
-      ctx.moveTo(X - 0.2, Y - 0.3);
-      ctx.quadraticCurveTo(X, Y - 0.42, X + 0.2, Y - 0.3);
-      ctx.lineTo(X + 0.1, Y + 0.28);
-      ctx.quadraticCurveTo(X, Y + 0.36, X - 0.1, Y + 0.28);
+      ctx.moveTo(X - 0.55, Y + 0.28); ctx.lineTo(X + 0.55, Y - 0.27); ctx.lineTo(X + 0.55, Y - 0.07); ctx.lineTo(X - 0.55, Y + 0.48);
       ctx.closePath();
-      paint(ctx, MAT.fur, { dots: MAT.furDark, density: 0.2, lw: 0.035 });
+      paint(ctx, OAK_D, { lw: 0.03 });
+      for (const dx of [-0.3, 0.3]) {
+        ctx.beginPath();
+        ctx.arc(X + dx, Y + 0.18 - dx * 0.5, 0.05, 0, Math.PI * 2);
+        paint(ctx, MAT.brass, { lw: 0.02 });
+      }
+      // the umbrella, furled, hanging by its crook
       ctx.beginPath();
-      ctx.ellipse(X, Y + 0.27, 0.07, 0.05, 0, 0, Math.PI * 2);
-      ctx.fillStyle = C.ink;
-      ctx.fill();
-      // the bowler hat, hung on the left antler
+      ctx.arc(X + 0.38, Y + 0.08, 0.08, Math.PI, 0);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke();
       ctx.beginPath();
-      ctx.ellipse(X - 0.66, Y - 0.72, 0.24, 0.06, -0.1, 0, Math.PI * 2);
+      ctx.moveTo(X + 0.46, Y + 0.08); ctx.lineTo(X + 0.56, Y + 0.45); ctx.lineTo(X + 0.46, Y + 1.25); ctx.lineTo(X + 0.36, Y + 0.45);
+      ctx.closePath();
+      paint(ctx, C.ink, { lw: 0.02, stroke: INK.stormNavy });
+      // the bowler hat
+      ctx.beginPath();
+      ctx.ellipse(X - 0.3, Y + 0.3, 0.24, 0.06, -0.1, 0, Math.PI * 2);
       paint(ctx, C.ink, { lw: 0.02, stroke: INK.stormNavy });
       ctx.beginPath();
-      ctx.arc(X - 0.66, Y - 0.76, 0.15, Math.PI, 0);
+      ctx.arc(X - 0.3, Y + 0.26, 0.15, Math.PI, 0);
       paint(ctx, C.ink, { lw: 0.02, stroke: INK.stormNavy });
       ctx.restore();
       cobweb(ctx, [0.3, 4.62, 5.6], [0, 1, -0.4], [0, 0.5, -1], 0.45, 2);
     });
-    R.decor((ctx, t) => {
-      const [X, Y] = P(...STAG);
-      const f = storm.flash(t);
-      ctx.fillStyle = f > 0.3 ? C.white : INK.candleGold;
-      ctx.beginPath();
-      ctx.arc(X - 0.1, Y - 0.12, 0.045, 0, Math.PI * 2);
-      ctx.arc(X + 0.1, Y - 0.12, 0.045, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = C.ink;
-      const look = Math.sin(t * 0.4) * 0.018;
-      ctx.beginPath();
-      ctx.arc(X - 0.1 + look, Y - 0.12, 0.02, 0, Math.PI * 2);
-      ctx.arc(X + 0.1 + look, Y - 0.12, 0.02, 0, Math.PI * 2);
-      ctx.fill();
-    }, { anim: true });
 
     // The bat that lives on the pipe: flaps when the thunder wakes it.
     R.decor((ctx, t) => {
@@ -1144,7 +1109,7 @@ export default {
         ctx.strokeStyle = alpha(INK.stormNavy, 0.22);
         ctx.lineWidth = 0.012;
         ctx.stroke();
-        words(ctx, '3rd OCT', 0.2, -0.16, 0.04, INK.stormNavy, { weight: 600 });
+        words(ctx, 'LAST WEEK', 0.19, -0.16, 0.04, INK.stormNavy, { weight: 600 }); // the date: his alibi
         words(ctx, 'I RESIGN.', -0.03, -0.02, 0.105, C.ink, { weight: 700 });
         words(ctx, 'Jenkins', 0.04, 0.12, 0.075, INK.stormNavy, { weight: 600 });
       }
@@ -1650,6 +1615,67 @@ export default {
     // A candle stuck in an old bottle, on the newel post.
     R.thing(STEPS.x + STEPS.w, STEPS.y + 0.2, (ctx) => bottle(ctx, STEPS.x + STEPS.w - 0.06, STEPS.y + 0.1, 1.5, GLASS[1], { s: 0.8 }), { bias: 0 });
     candleLight(STEPS.x + STEPS.w - 0.06, STEPS.y + 0.1, 1.9, 73, { h: 0.18, r: 1.6 });
+
+    // ---------- In front of the right-hand rack (art direction pass) ----------
+    // Demijohns of something homemade in wicker jackets, a tasting barrel with
+    // two glasses (one his, one "for the auditor"), and a mousetrap that went
+    // off hours ago and caught nothing: the cheese is gone.
+    R.thing(11.2, 3.6, (ctx) => {
+      for (const [x, y, s] of [[10.4, 2.8, 1.45], [11.5, 2.7, 1.3], [11.0, 3.75, 1.55]]) {
+        const [X, Y] = P(x, y, 0);
+        ctx.save();
+        ctx.translate(X, Y);
+        ctx.scale(s, s);
+        ctx.beginPath(); // the glass belly
+        ctx.ellipse(0, -0.38, 0.34, 0.38, 0, 0, Math.PI * 2);
+        paint(ctx, alpha(GLASS[1], 0.85), { lw: 0.03 });
+        ctx.beginPath(); // the neck
+        ctx.rect(-0.06, -0.98, 0.12, 0.25);
+        paint(ctx, GLASS[1], { lw: 0.025 });
+        ctx.beginPath(); // the wicker jacket
+        ctx.moveTo(-0.34, -0.36); ctx.quadraticCurveTo(0, -0.26, 0.34, -0.36);
+        ctx.lineTo(0.3, -0.12); ctx.quadraticCurveTo(0, 0.02, -0.3, -0.12);
+        ctx.closePath();
+        paint(ctx, MAT.pine, { lw: 0.025, dots: MAT.oak, density: 0.35 });
+        if (Q.detail) {
+          ctx.beginPath(); // a glint, and a paper label
+          ctx.moveTo(-0.2, -0.56); ctx.quadraticCurveTo(-0.24, -0.46, -0.2, -0.4);
+          ctx.strokeStyle = alpha(INK.bone, 0.6); ctx.lineWidth = 0.03; ctx.stroke();
+          ctx.fillStyle = INK.bone;
+          ctx.fillRect(0.02, -0.6, 0.18, 0.12);
+        }
+        ctx.restore();
+      }
+    });
+    R.thing(9.3, 5.6, (ctx) => {
+      cylinder(ctx, 9.3, 5.6, 0, 0.42, 0.85, OAK, { top: tint(OAK, 0.15), dots: OAK_D });
+      for (const z of [0.18, 0.66]) {
+        const [X, Y] = P(9.3, 5.6, z);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.42 * Math.SQRT2 * 0.5 + 0.3, 0.3 * 0.5 + 0.06, 0, 0, Math.PI);
+        ctx.strokeStyle = IRON; ctx.lineWidth = 0.05; ctx.stroke();
+      }
+      for (const [dx, full] of [[-0.15, 0.6], [0.15, 0]]) {
+        const [X, Y] = P(9.3 + dx, 5.6 - dx, 0.86);
+        ctx.beginPath(); // a glass on a stem
+        ctx.moveTo(X - 0.1, Y - 0.34); ctx.quadraticCurveTo(X - 0.1, Y - 0.16, X, Y - 0.15);
+        ctx.quadraticCurveTo(X + 0.1, Y - 0.16, X + 0.1, Y - 0.34); ctx.closePath();
+        paint(ctx, alpha(MAT.glass, 0.45), { lw: 0.02 });
+        if (full) { ctx.fillStyle = MAT.wine; ctx.fillRect(X - 0.08, Y - 0.26, 0.16, 0.08); }
+        ctx.fillStyle = alpha(MAT.glass, 0.8);
+        ctx.fillRect(X - 0.015, Y - 0.15, 0.03, 0.15);
+      }
+    });
+    R.thing(11.4, 6.6, (ctx) => {
+      box(ctx, 11.1, 6.4, 0, 0.6, 0.3, 0.05, PINE, { flat: true, lw: 0.02 });
+      const a = P(11.15, 6.55, 0.06), b = P(11.2, 6.55, 0.3);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(b[0] + 0.28, b[1] - 0.14);
+      ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.03; ctx.stroke();
+      if (Q.detail) {
+        const [X, Y] = P(11.55, 6.55, 0.08); // crumbs, where the cheese was
+        ctx.fillStyle = MAT.custard;
+        for (const [dx, dy] of [[0, 0], [0.08, 0.03], [-0.06, 0.04]]) ctx.fillRect(X + dx - 0.02, Y + dy - 0.02, 0.04, 0.04);
+      }
+    });
 
     R.dark(house.dark);
 
