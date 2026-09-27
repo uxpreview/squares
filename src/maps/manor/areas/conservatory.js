@@ -412,11 +412,133 @@ function cloche(ctx, X, Y, t) {
   ctx.stroke();
 }
 
-// What's on the staging: three steps, back (highest) to front.
+// Things poking out of the front of the staging's pots, stuck in the soil in
+// front of the plant (behind it, the leaves hid them completely). Most are the usual potting-shed paper
+// (plant labels, seed packets, a trowel). One pot has the love letters (the
+// find): two envelopes, only their tops showing, tied with her red ribbon.
+function tucked(ctx, X, Y, kind, c) {
+  if (kind === 'tag') {
+    // a plant label stake, leaning, with a scribble nobody can read
+    ctx.save();
+    ctx.translate(X - 0.08, Y + 0.02);
+    ctx.rotate(-0.18);
+    ctx.beginPath();
+    ctx.moveTo(-0.035, 0); ctx.lineTo(-0.035, -0.24); ctx.lineTo(0, -0.28); ctx.lineTo(0.035, -0.24); ctx.lineTo(0.035, 0);
+    ctx.closePath();
+    paint(ctx, INK.bone, { lw: 0.015 });
+    if (Q.detail) {
+      ctx.beginPath();
+      ctx.moveTo(-0.02, -0.19); ctx.lineTo(0.02, -0.2);
+      ctx.moveTo(-0.02, -0.14); ctx.lineTo(0.015, -0.15);
+      ctx.strokeStyle = shade(INK.bone, 0.45);
+      ctx.lineWidth = 0.012;
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (kind === 'seeds') {
+    // a seed packet on a stick, the picture on it faded
+    ctx.save();
+    ctx.translate(X + 0.07, Y + 0.02);
+    ctx.rotate(0.2);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(0, -0.12);
+    ctx.strokeStyle = shade(TWINE, 0.2);
+    ctx.lineWidth = 0.015;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.rect(-0.08, -0.3, 0.16, 0.19);
+    paint(ctx, c, { lw: 0.015 });
+    ctx.beginPath();
+    ctx.arc(0, -0.2, 0.035, 0, Math.PI * 2);
+    ctx.fillStyle = shade(c, 0.3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-0.08, -0.26); ctx.lineTo(0.08, -0.26);
+    ctx.strokeStyle = shade(c, 0.35);
+    ctx.lineWidth = 0.012;
+    ctx.stroke();
+    ctx.restore();
+  } else if (kind === 'envelope') {
+    // a paper envelope of saved seeds, flap folded, a pencilled leaf on it:
+    // the one that looks most like a letter, and isn't
+    ctx.save();
+    ctx.translate(X - 0.05, Y + 0.02);
+    ctx.rotate(-0.12);
+    ctx.beginPath();
+    ctx.rect(-0.1, -0.17, 0.2, 0.16);
+    paint(ctx, MAT.paper, { lw: 0.015 });
+    ctx.beginPath();
+    ctx.moveTo(-0.1, -0.17); ctx.lineTo(0, -0.1); ctx.lineTo(0.1, -0.17);
+    ctx.strokeStyle = shade(MAT.paper, 0.35);
+    ctx.lineWidth = 0.012;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0.03, -0.06, 0.035, 0.018, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = LEAF_D;
+    ctx.fill();
+    ctx.restore();
+  } else if (kind === 'trowel') {
+    ctx.save();
+    ctx.translate(X + 0.06, Y + 0.02);
+    ctx.rotate(0.35);
+    ctx.beginPath();
+    ctx.roundRect(-0.025, -0.3, 0.05, 0.2, 0.02);
+    paint(ctx, MAT.oak, { lw: 0.015 });
+    ctx.beginPath();
+    ctx.moveTo(-0.045, -0.1); ctx.lineTo(0.045, -0.1); ctx.lineTo(0.03, 0); ctx.lineTo(-0.03, 0);
+    ctx.closePath();
+    paint(ctx, MAT.silver, { lw: 0.015 });
+    ctx.restore();
+  } else if (kind === 'letters') {
+    const env = (dx, a) => {
+      ctx.save();
+      ctx.translate(X + dx, Y + 0.02);
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.rect(-0.1, -0.2, 0.2, 0.19);
+      paint(ctx, shade(MAT.paper, 0.06), { lw: 0.015 });
+      ctx.beginPath();
+      ctx.moveTo(-0.1, -0.2); ctx.lineTo(0, -0.12); ctx.lineTo(0.1, -0.2);
+      ctx.strokeStyle = shade(MAT.paper, 0.35);
+      ctx.lineWidth = 0.012;
+      ctx.stroke();
+      ctx.restore();
+    };
+    env(0.07, 0.3);
+    env(-0.04, -0.14);
+    // her ribbon round the pair, bowed at the side, and a small heart
+    ctx.beginPath();
+    ctx.moveTo(X - 0.15, Y - 0.08); ctx.lineTo(X + 0.16, Y - 0.04);
+    ctx.strokeStyle = INK.oxblood;
+    ctx.lineWidth = 0.03;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(X + 0.13, Y - 0.07, 0.04, 0.022, -0.6, 0, Math.PI * 2);
+    ctx.ellipse(X + 0.19, Y - 0.04, 0.04, 0.022, 0.4, 0, Math.PI * 2);
+    paint(ctx, INK.oxblood, { lw: 0.012 });
+    const hx = X - 0.05, hy = Y - 0.14;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy + 0.035);
+    ctx.bezierCurveTo(hx - 0.05, hy, hx - 0.025, hy - 0.04, hx, hy - 0.015);
+    ctx.bezierCurveTo(hx + 0.025, hy - 0.04, hx + 0.05, hy, hx, hy + 0.035);
+    ctx.fillStyle = INK.oxblood;
+    ctx.fill();
+    // one of the snake plant's blades, standing up in front of them
+    ctx.beginPath();
+    ctx.moveTo(X + 0.01, Y + 0.04);
+    ctx.quadraticCurveTo(X - 0.01, Y - 0.2, X + 0.05, Y - 0.36);
+    ctx.quadraticCurveTo(X + 0.08, Y - 0.2, X + 0.08, Y + 0.04);
+    ctx.closePath();
+    paint(ctx, LEAF_D, { dots: MAT.brassDark, density: 0.2, lw: 0.02, stroke: MAT.brassDark });
+  }
+}
+
+// What's on the staging: three steps, back (highest) to front. `in` is what
+// has been stuck in the pot besides the plant.
 const STAGING = [
-  { x: 0.3, z: 1.22, pots: [{ y: 1.6, kind: 'fern', c: WILT }, { y: 2.8, kind: 'orchid', n: 1 }, { y: 4.0, kind: 'fern', c: DEAD }, { y: 5.3, kind: 'sticks' }] },
-  { x: 0.78, z: 0.82, pots: [{ y: 1.5, kind: 'cactus' }, { y: 2.55, kind: 'geranium' }, { y: 3.65, kind: 'orchid', n: 2 }, { y: 4.75, kind: 'snake' }, { y: 5.6, kind: 'fern', c: WILT, r: 0.17 }] },
-  { x: 1.24, z: 0.42, pots: [{ y: 1.8, kind: 'sticks', r: 0.16 }, { y: 3.05, kind: 'fern', c: LEAF_D }, { y: 4.3, kind: 'cloche' }, { y: 5.4, kind: 'geranium', r: 0.17 }] },
+  { x: 0.3, z: 1.22, pots: [{ y: 1.6, kind: 'fern', c: WILT, in: 'tag' }, { y: 2.8, kind: 'orchid', n: 1, in: 'envelope' }, { y: 4.0, kind: 'fern', c: DEAD, in: 'tag' }, { y: 5.3, kind: 'sticks', in: 'seeds', ic: C.coral }] },
+  { x: 0.78, z: 0.82, pots: [{ y: 1.5, kind: 'cactus', in: 'tag' }, { y: 2.55, kind: 'geranium', in: 'seeds', ic: INK.candleGold }, { y: 3.65, kind: 'orchid', n: 2, in: 'envelope' }, { y: 4.75, kind: 'snake', in: 'letters' }, { y: 5.6, kind: 'fern', c: WILT, r: 0.17, in: 'trowel' }] },
+  { x: 1.24, z: 0.42, pots: [{ y: 1.8, kind: 'sticks', r: 0.16, in: 'tag' }, { y: 3.05, kind: 'fern', c: LEAF_D, in: 'seeds', ic: mix(INK.bone, INK.verdigris, 0.3) }, { y: 4.3, kind: 'cloche' }, { y: 5.4, kind: 'geranium', r: 0.17, in: 'tag' }] },
 ];
 
 function staging(ctx, t) {
@@ -438,6 +560,7 @@ function staging(ctx, t) {
       else if (p.kind === 'sticks') sticks(ctx, X, Y, 1);
       else if (p.kind === 'geranium') geranium(ctx, X, Y, 1, t);
       else if (p.kind === 'snake') snake(ctx, X, Y, 1);
+      if (p.in) tucked(ctx, X, Y, p.in, p.ic);
     }
   }
   // the near end frame
@@ -717,8 +840,10 @@ function pottingBench(ctx, t) {
   }
 }
 
-// A marble pedestal with a flowerpot on it. The plant died, so the pot's
-// been put to use: love letters, tied with a ribbon (the find).
+// A marble pedestal with a flowerpot on it, in pride of place. The plant died,
+// and someone has given it a label, like a headstone. (It's paper in a pot
+// on a plinth, so it's where everyone looks first for the letters. They're
+// on the staging, with the other pots.)
 function letterStand(ctx) {
   box(ctx, 4.6, 5.6, 0, 0.8, 0.8, 0.1, MAT.marble, { lw: 0.035 });
   cylinder(ctx, 5, 6, 0.1, 0.19, 0.34, MAT.marble);
@@ -729,6 +854,26 @@ function letterStand(ctx) {
   }
   box(ctx, 4.66, 5.66, 0.44, 0.68, 0.68, 0.08, MAT.marble, { lw: 0.035 });
   const [X, Y] = pot(ctx, 5, 6, 0.52, 0.3, 0.38, MAT.terracotta);
+  // the label, stuck in front of what's left
+  ctx.save();
+  ctx.translate(X - 0.1, Y + 0.03);
+  ctx.rotate(-0.1);
+  ctx.beginPath();
+  ctx.moveTo(-0.07, 0); ctx.lineTo(-0.07, -0.34); ctx.lineTo(0, -0.4); ctx.lineTo(0.07, -0.34); ctx.lineTo(0.07, 0);
+  ctx.closePath();
+  paint(ctx, INK.bone, { lw: 0.02 });
+  if (Q.detail) {
+    // a small cross, and dates
+    ctx.beginPath();
+    ctx.moveTo(0, -0.33); ctx.lineTo(0, -0.21);
+    ctx.moveTo(-0.035, -0.29); ctx.lineTo(0.035, -0.29);
+    ctx.moveTo(-0.04, -0.14); ctx.lineTo(0.04, -0.15);
+    ctx.moveTo(-0.04, -0.09); ctx.lineTo(0.03, -0.1);
+    ctx.strokeStyle = shade(INK.bone, 0.5);
+    ctx.lineWidth = 0.015;
+    ctx.stroke();
+  }
+  ctx.restore();
   // the plant that was
   ctx.beginPath();
   ctx.moveTo(X + 0.12, Y); ctx.lineTo(X + 0.2, Y - 0.62); ctx.lineTo(X + 0.3, Y - 0.72);
@@ -736,48 +881,9 @@ function letterStand(ctx) {
   ctx.strokeStyle = DEAD;
   ctx.lineWidth = 0.03;
   ctx.stroke();
-  // the letters: a bundle of envelopes, fanned out of the pot
-  const env = (dx, dy, a, heart) => {
-    ctx.save();
-    ctx.translate(X + dx, Y + dy);
-    ctx.rotate(a);
-    ctx.beginPath();
-    ctx.rect(-0.26, -0.5, 0.52, 0.38);
-    paint(ctx, MAT.paper, { lw: 0.03 });
-    ctx.beginPath();
-    ctx.moveTo(-0.26, -0.5); ctx.lineTo(0, -0.3); ctx.lineTo(0.26, -0.5);
-    ctx.strokeStyle = shade(MAT.paper, 0.35);
-    ctx.lineWidth = 0.025;
-    ctx.stroke();
-    if (heart) {
-      // a heart doodled on the top one, in her lipstick red
-      ctx.beginPath();
-      ctx.moveTo(0.11, -0.19);
-      ctx.bezierCurveTo(-0.03, -0.27, -0.01, -0.39, 0.11, -0.32);
-      ctx.bezierCurveTo(0.23, -0.39, 0.25, -0.27, 0.11, -0.19);
-      ctx.fillStyle = INK.oxblood;
-      ctx.fill();
-    }
-    ctx.restore();
-  };
-  env(-0.13, 0.02, -0.34, false);
-  env(0.14, 0.0, 0.3, false);
-  env(0, 0.08, -0.04, true);
-  // the ribbon round them, tied in a bow at the side
   ctx.beginPath();
-  ctx.rect(X - 0.27, Y - 0.1, 0.54, 0.06);
-  paint(ctx, INK.oxblood, { lw: 0.02 });
-  const bx = X - 0.17, by = Y - 0.08;
-  ctx.beginPath();
-  ctx.ellipse(bx - 0.08, by - 0.02, 0.08, 0.045, -0.5, 0, Math.PI * 2);
-  ctx.ellipse(bx + 0.08, by - 0.02, 0.08, 0.045, 0.5, 0, Math.PI * 2);
-  paint(ctx, INK.oxblood, { lw: 0.02 });
-  ctx.beginPath();
-  ctx.moveTo(bx, by); ctx.lineTo(bx - 0.08, by + 0.15);
-  ctx.moveTo(bx, by); ctx.lineTo(bx + 0.06, by + 0.14);
-  ctx.strokeStyle = INK.oxblood;
-  ctx.lineWidth = 0.035;
-  ctx.stroke();
+  ctx.ellipse(X + 0.3, Y - 0.66, 0.035, 0.07, 0.5, 0, Math.PI * 2);
+  paint(ctx, DEAD, { lw: 0.015 });
 }
 
 // The wicker loveseat: camelback, velvet cushions, one knocked askew.
@@ -2395,7 +2501,7 @@ export default {
     });
 
     // ---------- Finds ----------
-    R.find({ id: 'love-letters', label: 'Love letters in a flowerpot', at: [5, 6, 1.0], r: 0.7 });
+    R.find({ id: 'love-letters', label: 'Love letters in a flowerpot', at: [1.01, 4.75, 1.18], r: 0.6 });
     R.find({ id: 'fig-leaf', label: 'A fig leaf, worn once', at: [12.5, 11.5, 0.05], r: 0.8 });
   },
 };
