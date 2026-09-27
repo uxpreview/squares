@@ -246,51 +246,6 @@ function balustrade(ctx) {
   face(ctx, [[nx + 0.22, Y - 0.12, 0.4], [nx + 0.22, Y + 0.12, 0.4], [nx + 0.22, Y + 0.12, 1.5], [nx + 0.22, Y - 0.12, 1.5]], shade(WOOD, 0.2), { lw: 0.03 });
 }
 
-// ---------- The rolling pin (a find) ----------
-const PIN = { x: 8, y: 5.5, a: 0.5 };
-function rollingPin(ctx) {
-  const dx = Math.cos(PIN.a), dy = Math.sin(PIN.a);
-  const at = (k, z = 0.11) => P(PIN.x + dx * k, PIN.y + dy * k, z);
-  const [SX, SY0] = P(PIN.x, PIN.y, 0);
-  ellipse(ctx, SX, SY0, 0.55, 0.14, Math.atan2(at(1)[1] - at(-1)[1], at(1)[0] - at(-1)[0]));
-  ctx.fillStyle = alpha(C.ink, 0.18);
-  ctx.fill();
-  const seg = (k0, k1, w, color) => {
-    const [X0, Y0] = at(k0), [X1, Y1] = at(k1);
-    ctx.beginPath();
-    ctx.moveTo(X0, Y0); ctx.lineTo(X1, Y1);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.07; ctx.stroke();
-    ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
-  };
-  seg(-0.62, -0.36, 0.1, MAT.oak);
-  seg(0.36, 0.62, 0.1, MAT.oak);
-  seg(-0.36, 0.36, 0.24, MAT.pine);
-  // A highlight along the top, and the flour on the handles.
-  const [A0, B0] = at(-0.3, 0.17), [A1, B1] = at(0.3, 0.17);
-  ctx.beginPath();
-  ctx.moveTo(A0, B0 - 0.03); ctx.lineTo(A1, B1 - 0.03);
-  ctx.strokeStyle = alpha(C.white, 0.65); ctx.lineWidth = 0.05; ctx.stroke();
-  ctx.fillStyle = C.white;
-  for (const k of [-0.58, -0.47, -0.4, 0.42, 0.5, 0.6]) {
-    const [X, Y] = at(k, 0.13);
-    ctx.beginPath();
-    ctx.arc(X + (hash(k * 100, 1) - 0.5) * 0.06, Y - 0.02, 0.035, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-// Flour on the marble where it landed (and rolled).
-function flour(ctx) {
-  if (!Q.detail) return;
-  for (let k = 0; k < 16; k++) {
-    const x = PIN.x - 0.9 + hash(k, 21) * 1.6, y = PIN.y - 0.5 + hash(k, 22) * 1.1;
-    const [X, Y] = P(x, y, 0.01);
-    ellipse(ctx, X, Y, 0.05 + hash(k, 23) * 0.07, 0.025 + hash(k, 24) * 0.03);
-    ctx.fillStyle = alpha(C.white, 0.85);
-    ctx.fill();
-  }
-}
-
 // ---------- The rug ----------
 // Flat shapes lying level (on the floor, or a table at z), in world units,
 // centred on (x, y).
@@ -1098,7 +1053,58 @@ function puddle(ctx, t) {
 }
 
 // ---------- The hall table ----------
-const TABLE = { x: 0.08, y: 12.8, w: 0.8, d: 2.2, h: 1.12 };
+// Where everything long gets put down on the way in: spare candles, a telescope, the evening paper, and Mrs. Hatchett's rolling pin
+// (a find), which has to be picked out from the rest. Flour on its handles
+// says whose it is.
+const TABLE = { x: 0.08, y: 11.9, w: 0.85, d: 3.2, h: 1.12 };
+const PIN = { a: [0.5, 13.5], b: [0.66, 14.15] };
+// Something round lying on the table top, from a to b ([x, y]), at height z.
+const along = (a, b, k, z) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, z];
+function rollingPin(ctx) {
+  const z = TABLE.h + 0.075, { a, b } = PIN;
+  if (Q.detail) { // a dusting of flour where it was put down
+    const [mx, my] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    onFloor(ctx, mx + 0.06, my, (g) => {
+      g.rotate(Math.atan2(b[1] - a[1], b[0] - a[0]));
+      g.fillStyle = alpha(INK.bone, 0.3);
+      g.beginPath(); g.ellipse(0, 0, 0.4, 0.1, 0, 0, Math.PI * 2); g.fill();
+    }, TABLE.h + 0.005);
+  }
+  stick(ctx, along(a, b, 0, z), along(a, b, 0.22, z), MAT.oak, 0.055); // the handles
+  stick(ctx, along(a, b, 0.78, z), along(a, b, 1, z), MAT.oak, 0.055);
+  stick(ctx, along(a, b, 0.2, z), along(a, b, 0.8, z), MAT.pine, 0.15); // the barrel
+  if (!Q.detail) return;
+  ctx.fillStyle = C.white;
+  for (const k of [0.03, 0.09, 0.15, 0.27, 0.31, 0.72, 0.85, 0.92, 0.97]) { // floury fingers, mostly on the handles
+    const [X, Y] = P(...along(a, b, k, z + 0.03));
+    ctx.beginPath(); ctx.arc(X + (hash(k * 100, 1) - 0.5) * 0.07, Y + (hash(k * 100, 2) - 0.5) * 0.05, 0.012 + hash(k * 100, 3) * 0.014, 0, Math.PI * 2); ctx.fill();
+  }
+}
+// The look-alikes: long, round, and not a rolling pin once you look.
+function tableClutter(ctx, z0) {
+  // Spare candles, tied in a bundle.
+  for (const dx of [-0.07, 0, 0.07]) stick(ctx, [0.36 + dx, 12.95, z0 + 0.04], [0.36 + dx, 13.45, z0 + 0.04], INK.bone, 0.05);
+  stick(ctx, [0.27, 13.2, z0 + 0.08], [0.45, 13.2, z0 + 0.08], INK.oxblood, 0.035);
+  // A brass telescope, for looking at the weather.
+  const ta = [0.76, 12.9], tb = [0.7, 13.5], tz = z0 + 0.07;
+  stick(ctx, along(ta, tb, 0, tz), along(ta, tb, 0.35, tz), GOLD, 0.06);
+  stick(ctx, along(ta, tb, 0.3, tz), along(ta, tb, 0.65, tz), GOLD, 0.09);
+  stick(ctx, along(ta, tb, 0.62, tz), along(ta, tb, 1, tz), GOLD, 0.13);
+  for (const k of [0.33, 0.64]) stick(ctx, along(ta, tb, k, tz), along(ta, tb, k + 0.03, tz), GOLD_D, k < 0.5 ? 0.09 : 0.13);
+  const [LX, LY] = P(...along(ta, tb, 1.02, tz)); // the big lens, catching the candles
+  ctx.beginPath(); ctx.ellipse(LX, LY, 0.045, 0.065, 0.5, 0, Math.PI * 2); paint(ctx, MAT.glass, { lw: 0.02 });
+  // The evening paper, rolled up (the print shows at the ends).
+  const na = [0.3, 13.6], nb = [0.33, 14.15], nz = z0 + 0.065;
+  stick(ctx, along(na, nb, 0, nz), along(na, nb, 1, nz), INK.bone, 0.13);
+  if (Q.detail) {
+    const [X0, Y0] = P(...along(na, nb, 0.08, nz + 0.02)), [X1, Y1] = P(...along(na, nb, 0.92, nz + 0.02));
+    ctx.save();
+    ctx.setLineDash([0.035, 0.025]);
+    ctx.beginPath(); ctx.moveTo(X0, Y0); ctx.lineTo(X1, Y1);
+    ctx.strokeStyle = alpha(C.ink, 0.45); ctx.lineWidth = 0.04; ctx.stroke();
+    ctx.restore();
+  }
+}
 function hallTable(ctx) {
   const { x, y, w, d, h } = TABLE;
   for (const yy of [y + 0.14, y + d - 0.14]) {
@@ -1115,9 +1121,15 @@ function hallTable(ctx) {
   for (let i = 0; i <= 12; i++) { const k = i / 12, [X, Y] = P(cx, cy - 0.3 + k * 0.6, h + 0.55 + Math.sin(k * Math.PI) * -0.12); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
   ctx.strokeStyle = GOLD; ctx.lineWidth = 0.05; ctx.stroke();
   for (const dy of [-0.3, 0, 0.3]) disc(ctx, cx, cy + dy, h + 0.56, 0.07, GOLD, { lw: 0.02 });
-  // The post, on a silver tray, and the guest book.
-  const sx = x + 0.42, sy = y + 1.25;
-  disc(ctx, sx, sy, h + 0.01, 0.27, MAT.silver, { lw: 0.03 });
+  tableClutter(ctx, h);
+  // A quill in its ink, then the pin, the post on a silver tray, and the guest book.
+  const [IX, IY] = P(0.2, 14.25, h);
+  ctx.beginPath(); ctx.rect(IX - 0.06, IY - 0.1, 0.12, 0.1); paint(ctx, C.ink, { lw: 0.02 });
+  ctx.beginPath(); ctx.moveTo(IX, IY - 0.08); ctx.quadraticCurveTo(IX + 0.14, IY - 0.35, IX + 0.08, IY - 0.55); ctx.quadraticCurveTo(IX + 0.02, IY - 0.35, IX, IY - 0.08);
+  paint(ctx, INK.bone, { lw: 0.02 });
+  rollingPin(ctx);
+  const sx = x + 0.42, sy = 14.47;
+  disc(ctx, sx, sy, h + 0.01, 0.25, MAT.silver, { lw: 0.03 });
   for (const [dx, dy, a] of [[-0.05, -0.04, 0.2], [0.06, 0.05, -0.3]]) {
     onFloor(ctx, sx + dx, sy + dy, (g) => {
       g.rotate(a);
@@ -1126,7 +1138,7 @@ function hallTable(ctx) {
     }, h + 0.03);
   }
   const [WX, WY] = P(sx + 0.06, sy + 0.05, h + 0.02); ctx.beginPath(); ctx.arc(WX, WY - 0.02, 0.035, 0, Math.PI * 2); ctx.fillStyle = INK.oxblood; ctx.fill();
-  const bx = x + 0.42, by = y + 1.8;
+  const bx = x + 0.44, by = 14.86;
   onFloor(ctx, bx, by, (g) => {
     g.save();
     g.fillStyle = INK.oxblood; g.fillRect(-0.24, -0.2, 0.48, 0.4);
@@ -1137,10 +1149,45 @@ function hallTable(ctx) {
     g.stroke();
     g.restore();
   }, h + 0.02);
-  const [IX, IY] = P(x + 0.25, y + 2.05, h);
-  ctx.beginPath(); ctx.rect(IX - 0.06, IY - 0.1, 0.12, 0.1); paint(ctx, C.ink, { lw: 0.02 });
-  ctx.beginPath(); ctx.moveTo(IX, IY - 0.08); ctx.quadraticCurveTo(IX + 0.14, IY - 0.35, IX + 0.08, IY - 0.55); ctx.quadraticCurveTo(IX + 0.02, IY - 0.35, IX, IY - 0.08);
-  paint(ctx, INK.bone, { lw: 0.02 });
+}
+
+// The stick stand at the end of the table: more long wooden things, and
+// the nearest thing to a rolling pin in the house (the croquet mallet).
+const STAND = { x: 1.3, y: 11.7 };
+function stickStand(ctx) {
+  const { x, y } = STAND;
+  const crook = (tx, ty, tz, color) => { // a walking stick, with its crook
+    stick(ctx, [x, y, 0.2], [tx, ty, tz], color, 0.05);
+    const [CX, CY] = P(tx, ty, tz);
+    ctx.beginPath(); ctx.arc(CX + 0.08, CY, 0.08, Math.PI, Math.PI * 2);
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.stroke(); }
+    ctx.strokeStyle = color; ctx.lineWidth = 0.05; ctx.stroke();
+  };
+  crook(x - 0.2, y - 0.1, 1.45, WOOD_D);
+  // A cricket bat, blade down, grip up.
+  const [BX, BY] = P(x + 0.05, y - 0.12, 1.0);
+  ctx.beginPath(); ctx.moveTo(BX - 0.1, BY + 0.4); ctx.lineTo(BX - 0.1, BY); ctx.quadraticCurveTo(BX, BY - 0.08, BX + 0.1, BY); ctx.lineTo(BX + 0.1, BY + 0.4); ctx.closePath();
+  paint(ctx, MAT.pine, { lw: 0.03 });
+  stick(ctx, [x + 0.05, y - 0.12, 1.02], [x + 0.05, y - 0.12, 1.42], INK.oxblood, 0.06);
+  // The croquet mallet: a wooden roller too, but on one long handle.
+  const mt = [x + 0.18, y + 0.05, 1.55];
+  stick(ctx, [x + 0.05, y, 0.2], mt, MAT.oak, 0.045);
+  stick(ctx, [mt[0] - 0.2, mt[1] + 0.12, mt[2]], [mt[0] + 0.2, mt[1] - 0.12, mt[2]], MAT.oak, 0.14);
+  stick(ctx, [mt[0] - 0.14, mt[1] + 0.084, mt[2]], [mt[0] - 0.1, mt[1] + 0.06, mt[2]], INK.verdigris, 0.14);
+  stick(ctx, [mt[0] + 0.1, mt[1] - 0.06, mt[2]], [mt[0] + 0.14, mt[1] - 0.084, mt[2]], INK.verdigris, 0.14);
+  // A shooting stick, its leather seat folded up.
+  stick(ctx, [x, y + 0.05, 0.2], [x + 0.25, y + 0.12, 1.3], shade(WOOD_D, 0.2), 0.05);
+  const [SX, SY2] = P(x + 0.25, y + 0.12, 1.3);
+  ctx.beginPath(); ctx.moveTo(SX - 0.12, SY2 + 0.02); ctx.lineTo(SX + 0.12, SY2 - 0.02); ctx.lineTo(SX + 0.06, SY2 - 0.12); ctx.lineTo(SX - 0.06, SY2 - 0.1); ctx.closePath();
+  paint(ctx, INK.oxblood, { lw: 0.025 });
+  crook(x + 0.1, y + 0.22, 1.25, C.black);
+  const [X, Y] = P(x, y, 0);
+  ctx.beginPath(); // the stand, a tall glazed pot with a gold band
+  ctx.moveTo(X - 0.3, Y - 0.8); ctx.lineTo(X - 0.27, Y); ctx.ellipse(X, Y, 0.27, 0.12, 0, Math.PI, 0, true); ctx.lineTo(X + 0.3, Y - 0.8);
+  ctx.closePath();
+  paint(ctx, INK.stormNavy, { lw: 0.035, dots: INK.deepPlum, density: 0.3 });
+  ctx.fillStyle = GOLD; ctx.fillRect(X - 0.29, Y - 0.62, 0.58, 0.06);
+  ctx.beginPath(); ctx.ellipse(X, Y - 0.8, 0.3, 0.12, 0, 0, Math.PI * 2); paint(ctx, mix(INK.stormNavy, C.black, 0.4), { lw: 0.035 });
 }
 
 // ---------- The chandelier ----------
@@ -1359,11 +1406,13 @@ function crumbs(ctx) {
     const [X, Y] = P(ax + (bx - ax) * k + wob, ay + (by - ay) * k - wob, 0.01);
     ctx.beginPath(); ctx.ellipse(X, Y, 0.035 + hash(i, 32) * 0.03, 0.02, 0, 0, Math.PI * 2); ctx.fill();
   }
+  const [NX, NY] = P(NIBBLE[0] + 0.12, NIBBLE[1] + 0.02, 0.01); // the lump the mouse comes out for
+  ctx.beginPath(); ctx.ellipse(NX, NY - 0.02, 0.07, 0.04, 0, 0, Math.PI * 2); paint(ctx, MAT.custard, { lw: 0.02 });
 }
 
 // ---------- The mouse ----------
-// Out of its hole under the stairs to nibble the flour off the rolling pin,
-// and back. It stays in when anyone's about.
+// Out of its hole under the stairs to nibble a lump of dropped cake, and
+// back. It stays in when anyone's about.
 const HOLE = [8.7, 2.95], NIBBLE = [7.45, 4.95], MOUSE_EVERY = 20;
 function mouseTimes(R) {
   const [ox, oy] = R.origin, safe = [];
@@ -1548,7 +1597,6 @@ export default {
     R.wall((ctx) => { damask(ctx, 'left'); damask(ctx, 'right'); });
     R.decor((ctx) => { wainscot(ctx, 'left'); wainscot(ctx, 'right'); });
     R.rug(rug);
-    R.rug(flour);
 
     // The family, on the walls, watching. A picture light over his Lordship.
     hangPortraits(R);
@@ -1601,9 +1649,6 @@ export default {
     R.thing(SPOT.A[0], SPOT.A[1], plinth);
     R.mover(armorAt, armor, { bias: 0.05 });
 
-    R.thing(PIN.x, PIN.y, rollingPin);
-    R.find({ id: 'rolling-pin', label: "Mrs. Hatchett's rolling pin", at: [8, 5.5, 0.1], r: 0.8 });
-
     // The coats, and the goose pretending to be one.
     R.thing(COATS.x, COATS.y, coatStand);
     R.goose(gooseAt, {});
@@ -1612,8 +1657,11 @@ export default {
     R.rug(puddle, { anim: true });
     R.rug(doormat);
 
-    // The hall table: candles, the post, the guest book. A palm in the corner.
+    // The hall table (candles, the post, the guest book, and everything long
+    // left on it by the door), its stick stand, and a palm in the corner.
     R.thing(TABLE.x + TABLE.w, TABLE.y + TABLE.d / 2, hallTable);
+    R.find({ id: 'rolling-pin', label: "Mrs. Hatchett's rolling pin", at: [0.58, 13.82, TABLE.h + 0.08], r: 0.6 });
+    R.thing(STAND.x, STAND.y, stickStand);
     [-0.3, 0, 0.3].forEach((dy, i) => candle(R, TABLE.x + 0.4, TABLE.y + 0.55 + dy, TABLE.h + 0.6, 40 + i, { r: 1.5 }));
     R.thing(0.8, 3.0, (ctx, t) => plant(ctx, 0.8, 3.0, 0, t, { kind: 'palm', scale: 1.25, potColor: GOLD, leaf: MAT.leaf }), { anim: true });
 

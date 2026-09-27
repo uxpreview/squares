@@ -59,6 +59,16 @@ if (mode === 'prepare') {
   for (const z of zones) {
     await page.evaluate((id) => window.__squares.play.enterZone(id, { dur: 0.01 }), z.id);
     await page.waitForTimeout(1500);
+    // Changing floors slides the storeys past each other for a while: wait
+    // until the floors and the camera are still, or the answers are taken
+    // from where the finds were a moment before the shot.
+    await page.waitForFunction(() => {
+      const s = window.__squares;
+      const now = JSON.stringify([s.cam, s.world.zones.map((z) => z.lift)]);
+      const still = now === window.__lastPose;
+      window.__lastPose = now;
+      return still;
+    }, null, { polling: 300, timeout: 10000 }).catch(() => {});
     // Freeze the moment: note where everything is, then take the shot.
     const found = await page.evaluate((id) => {
       const s = window.__squares;

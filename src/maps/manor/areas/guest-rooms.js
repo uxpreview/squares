@@ -5,7 +5,7 @@
 // throw over their shoulders lands on the clock, so both rooms are tidy until
 // 82 s and a mess from then until the evening starts again.
 import {
-  C, Q, box, rect, disc, face, poly, paint, P, onLeft, onRight, planks, slab, speech, note, glow,
+  C, Q, box, rect, disc, cylinder, face, poly, paint, P, onLeft, onRight, planks, slab, speech, note, glow,
   mix, shade, tint, alpha, hash,
 } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
@@ -21,7 +21,7 @@ const KHAKI = mix(INK.bone, INK.candleGold, 0.4); // his pith helmet, his maps
 const IRON = INK.stormNavy;
 const GOLD = MAT.brass;
 const AMBER = mix(INK.oxblood, INK.candleGold, 0.45); // brown glass
-const TAN = mix(INK.oxblood, INK.candleGold, 0.6); // Rupert's leather case
+const TAN = shade(mix(INK.oxblood, INK.candleGold, 0.5), 0.15); // Rupert's scuffed leather case
 const WALNUT = mix(INK.oxblood, INK.candleGold, 0.2);
 const GREY = mix(INK.bone, INK.stormNavy, 0.45); // Dr. Crane's socks, the mouse
 const MINT = mix(INK.verdigris, INK.bone, 0.35); // Dr. Crane's side: surgery green
@@ -347,7 +347,7 @@ function brigRug(ctx) {
   });
 }
 
-// Dr. Crane's rug, surgery green, under his bag.
+// Dr. Crane's rug, surgery green, under his luggage.
 function craneRug(ctx) {
   const x0 = 9.3, y0 = 12.1, x1 = 12.9, y1 = 15.5;
   rect(ctx, x0, y0, x1 - x0, y1 - y0, 0.01, mix(INK.verdigris, INK.stormNavy, 0.35), { lw: 0.03 });
@@ -392,61 +392,82 @@ function landingTable(ctx) {
   }
 }
 
-// Rupert's suitcase, open by the Lord's door, full of the family silver.
+// The corner by the Lord's door, where the house puts what it has nowhere
+// else for: a golf bag, a hatbox, and Rupert's suitcase, shut. Nearly: the
+// lid won't close over the family silver, so a couple of forks, a candlestick
+// and the teapot's spout stick out of the crack (and one of his socks).
+const CASE = { x0: 14.8, y0: 2.4, w: 1.1, d: 0.7, h: 0.3, lift: 0.13, th: 0.12 };
 function silverCase(ctx) {
-  const x0 = 13.0, y0 = 4.05, w = 1.4, d = 0.85, h = 0.42;
-  // the lid, open, leaning back against nothing in particular
-  face(ctx, [[x0, y0, h], [x0 + w, y0, h], [x0 + w, y0 - 0.22, h + 0.78], [x0, y0 - 0.22, h + 0.78]], shade(TAN, 0.1), { lw: 0.035 });
-  face(ctx, [[x0 + 0.08, y0 - 0.01, h + 0.05], [x0 + w - 0.08, y0 - 0.01, h + 0.05], [x0 + w - 0.08, y0 - 0.2, h + 0.72], [x0 + 0.08, y0 - 0.2, h + 0.72]], INK.deepPlum, { stroke: false, dots: shade(INK.deepPlum, 0.4), density: 0.2 });
-  if (Q.detail) {
-    // forks tucked under the lid's elastic
-    for (let i = 0; i < 4; i++) {
-      const x = x0 + 0.3 + i * 0.26;
-      line3(ctx, [[x, y0 - 0.05, h + 0.18], [x, y0 - 0.17, h + 0.62]], MAT.silver, 0.05);
-    }
-    line3(ctx, [[x0 + 0.1, y0 - 0.09, h + 0.36], [x0 + w - 0.1, y0 - 0.09, h + 0.36]], INK.oxblood, 0.05);
-  }
-  box(ctx, x0, y0, 0, w, d, h, TAN, { lw: 0.04, dotsL: shade(TAN, 0.5) });
-  rect(ctx, x0 + 0.06, y0 + 0.06, w - 0.12, d - 0.12, h + 0.001, shade(INK.deepPlum, 0.2), { lw: 0.02 });
-  // straps and a label
-  for (const x of [x0 + 0.3, x0 + w - 0.3]) face(ctx, [[x, y0 + d, 0.02], [x + 0.12, y0 + d, 0.02], [x + 0.12, y0 + d, h], [x, y0 + d, h]], shade(TAN, 0.4), { stroke: false });
-  face(ctx, [[x0 + w, y0 + 0.25, 0.08], [x0 + w, y0 + 0.6, 0.08], [x0 + w, y0 + 0.6, 0.34], [x0 + w, y0 + 0.25, 0.34]], INK.bone, { lw: 0.02 });
-  if (readable()) flat(ctx, 'x', x0 + w + 0.005, (g) => words(g, 'R.G.', -(y0 + 0.43), -0.21, 0.13, C.ink, true));
-  // candlesticks standing up in it
-  for (const [x, y] of [[x0 + 0.3, y0 + 0.3], [x0 + 0.55, y0 + 0.6]]) {
-    const [X, Y] = P(x, y, h);
-    ctx.beginPath();
-    ctx.moveTo(X - 0.1, Y); ctx.lineTo(X + 0.1, Y); ctx.lineTo(X + 0.04, Y - 0.2); ctx.lineTo(X + 0.035, Y - 0.62);
-    ctx.lineTo(X + 0.09, Y - 0.66); ctx.lineTo(X - 0.09, Y - 0.66); ctx.lineTo(X - 0.035, Y - 0.62); ctx.lineTo(X - 0.04, Y - 0.2);
-    ctx.closePath();
-    paint(ctx, MAT.silver, { lw: 0.03 });
-    ctx.beginPath(); ctx.rect(X - 0.035, Y - 0.86, 0.07, 0.2); paint(ctx, INK.bone, { lw: 0.02 });
-  }
-  // the teapot
-  const [TX, TY] = P(x0 + 1.0, y0 + 0.42, h);
-  ctx.beginPath(); ctx.ellipse(TX, TY - 0.2, 0.24, 0.2, 0, 0, Math.PI * 2); paint(ctx, MAT.silver, { lw: 0.035, dots: shade(MAT.silver, 0.35), density: 0.15 });
-  ctx.beginPath(); ctx.moveTo(TX + 0.2, TY - 0.2); ctx.quadraticCurveTo(TX + 0.36, TY - 0.24, TX + 0.4, TY - 0.42);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.stroke(); ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.05; ctx.stroke();
-  ctx.beginPath(); ctx.arc(TX - 0.24, TY - 0.22, 0.1, Math.PI * 0.5, Math.PI * 1.5);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke(); ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.04; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(TX, TY - 0.38, 0.1, 0.05, 0, 0, Math.PI * 2); paint(ctx, MAT.silver, { lw: 0.03 });
-  dot(ctx, TX, TY - 0.44, 0.035, GOLD);
-  if (Q.detail) dot(ctx, TX - 0.08, TY - 0.28, 0.035, INK.bone);
-  // spoons and forks sticking out, and one green sock
-  if (Q.detail) {
-    for (const [x, y, lean] of [[x0 + 0.8, y0 + 0.7, 0.15], [x0 + 0.95, y0 + 0.72, -0.1], [x0 + 1.2, y0 + 0.66, 0.2]]) {
-      const [X, Y] = P(x, y, h);
-      line3(ctx, [[x, y, h], [x + lean * 0.3, y, h + 0.42]], MAT.silver, 0.045);
-      dot(ctx, X + lean * 0.3, Y - 0.47, 0.06, MAT.silver);
+  const { x0, y0, w, d, h, lift, th } = CASE;
+  const x1 = x0 + w, y1 = y0 + d;
+  box(ctx, x0, y0, 0, w, d, h, TAN, { lw: 0.035, dotsL: shade(TAN, 0.5) });
+  // the label on the end
+  face(ctx, [[x1, y0 + 0.2, 0.06], [x1, y0 + 0.5, 0.06], [x1, y0 + 0.5, 0.24], [x1, y0 + 0.2, 0.24]], shade(INK.bone, 0.12), { lw: 0.02 });
+  if (readable()) flat(ctx, 'x', x1 + 0.005, (g) => words(g, 'R.G.', -(y0 + 0.35), -0.15, 0.1, C.ink, true));
+  // the crack under the lid
+  const gap = shade(INK.deepPlum, 0.4);
+  face(ctx, [[x0, y1, h], [x1, y1, h], [x1, y1, h + lift], [x0, y1, h + lift]], gap, { stroke: false });
+  face(ctx, [[x1, y0, h], [x1, y1, h], [x1, y1, h + lift]], gap, { stroke: false });
+  // what's sticking out of it: two forks...
+  for (const x of [x0 + 0.16, x0 + 0.3]) {
+    rod(ctx, [[x, y1 - 0.05, h + 0.05], [x + 0.01, y1 + 0.14, h + 0.04]], MAT.silver, 0.035);
+    if (Q.detail) {
+      for (const dx of [-0.035, 0, 0.035]) line3(ctx, [[x + 0.01 + dx, y1 + 0.13, h + 0.04], [x + 0.01 + dx, y1 + 0.24, h + 0.035]], MAT.silver, 0.018);
     }
   }
-  const [SX, SY] = P(x0 + w - 0.02, y0 + d * 0.55, h);
+  // ...a candlestick, on its side, its cup poking out...
+  rod(ctx, [[x0 + 0.5, y1 - 0.06, h + 0.06], [x0 + 0.54, y1 + 0.12, h + 0.06]], MAT.silver, 0.05);
+  { const [X, Y] = P(x0 + 0.55, y1 + 0.15, h + 0.06);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.07, 0.05, -0.4, 0, Math.PI * 2); paint(ctx, MAT.silver, { lw: 0.02 });
+    rod(ctx, [[x0 + 0.55, y1 + 0.15, h + 0.06], [x0 + 0.57, y1 + 0.3, h + 0.06]], INK.bone, 0.04); }
+  // ...the teapot's spout, curling up out of the crack...
+  { const [X, Y] = P(x0 + 0.78, y1, h + 0.05);
+    ctx.beginPath(); ctx.moveTo(X - 0.03, Y); ctx.quadraticCurveTo(X + 0.04, Y - 0.02, X + 0.1, Y - 0.14);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.075; ctx.stroke(); ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.04; ctx.stroke(); }
+  // ...and a green sock, hanging down the front
+  face(ctx, [[x0 + 0.95, y1 + 0.004, h + 0.06], [x0 + 1.04, y1 + 0.004, h + 0.06], [x0 + 1.04, y1 + 0.004, 0.08], [x0 + 1.08, y1 + 0.004, 0.02], [x0 + 0.95, y1 + 0.004, 0.02]], INK.verdigris, { lw: 0.02 });
+  // the lid, down on top of it all
+  const top = [[x0, y0, h + th], [x1, y0, h + th], [x1, y1, h + lift + th], [x0, y1, h + lift + th]];
+  face(ctx, [[x1, y0, h], [x1, y1, h + lift], [x1, y1, h + lift + th], [x1, y0, h + th]], shade(TAN, 0.1), { lw: 0.03 });
+  face(ctx, [[x0, y1, h + lift], [x1, y1, h + lift], [x1, y1, h + lift + th], [x0, y1, h + lift + th]], shade(TAN, 0.24), { lw: 0.03, dots: shade(TAN, 0.5), density: 0.18 });
+  face(ctx, top, TAN, { lw: 0.03 });
+  // its straps, unbuckled, and the handle
+  for (const x of [x0 + 0.25, x0 + w - 0.3]) {
+    face(ctx, [[x, y0, h + th + 0.002], [x + 0.08, y0, h + th + 0.002], [x + 0.08, y1, h + lift + th + 0.002], [x, y1, h + lift + th + 0.002]], shade(TAN, 0.4), { stroke: false });
+    face(ctx, [[x, y1 + 0.004, h + lift + th], [x + 0.08, y1 + 0.004, h + lift + th], [x + 0.09, y1 + 0.004, h + lift - 0.1], [x + 0.01, y1 + 0.004, h + lift - 0.1]], shade(TAN, 0.4), { stroke: false });
+  }
+  const [HX, HY] = P(x0 + w / 2, y1 + 0.005, h + lift + th / 2);
+  ctx.beginPath(); ctx.ellipse(HX, HY, 0.12, 0.07, 0, 0, Math.PI);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.stroke(); ctx.strokeStyle = shade(TAN, 0.3); ctx.lineWidth = 0.03; ctx.stroke();
+}
+// A golf bag beside the suitcase: two woods in knitted covers, and an iron.
+function golfBag(ctx) {
+  const x = 14.5, y = 2.4, h = 0.9, r = 0.17;
+  const cloth = mix(KHAKI, INK.oxblood, 0.3);
+  const [X, Y] = P(x, y, h);
+  // the clubs first, so the bag's rim sits over their shafts
   ctx.beginPath();
-  ctx.moveTo(SX - 0.12, SY - 0.02); ctx.quadraticCurveTo(SX + 0.02, SY + 0.05, SX + 0.08, SY + 0.28);
-  ctx.lineTo(SX + 0.2, SY + 0.3); ctx.lineTo(SX + 0.2, SY + 0.18); ctx.lineTo(SX + 0.1, SY + 0.12);
-  ctx.quadraticCurveTo(SX + 0.06, SY - 0.1, SX - 0.1, SY - 0.12);
-  ctx.closePath();
-  paint(ctx, INK.verdigris, { lw: 0.025 });
+  for (const dx of [-0.1, 0.02, 0.13]) { ctx.moveTo(X + dx, Y); ctx.lineTo(X + dx * 1.3, Y - 0.34); }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X + 0.15, Y - 0.38); ctx.lineTo(X + 0.32, Y - 0.35); ctx.lineTo(X + 0.3, Y - 0.29); ctx.lineTo(X + 0.16, Y - 0.32); ctx.closePath();
+  paint(ctx, MAT.silver, { lw: 0.018 });
+  for (const [dx, c] of [[-0.13, INK.oxblood], [0.03, INK.verdigris]]) {
+    ctx.beginPath(); ctx.roundRect(X + dx - 0.075, Y - 0.5, 0.15, 0.18, 0.06); paint(ctx, c, { lw: 0.02 });
+    if (Q.detail) dot(ctx, X + dx, Y - 0.52, 0.045, INK.bone);
+  }
+  tin(ctx, x, y, 0, r, h, shade(cloth, 0.12), shade(cloth, 0.5));
+  // a leather base and rim, and a strap
+  band(ctx, x, y, 0.02, r + 0.002, 0.14, WALNUT);
+  band(ctx, x, y, h - 0.1, r + 0.002, 0.1, WALNUT);
+  line3(ctx, [[x + 0.1, y + 0.13, 0.25], [x + 0.14, y + 0.12, 0.7]], shade(WALNUT, 0.3), 0.04);
+}
+// A hatbox on the floor in front of it all, ribboned.
+function cornerHatbox(ctx) {
+  const x = 15.65, y = 3.65, c = mix(INK.verdigris, INK.stormNavy, 0.35);
+  cylinder(ctx, x, y, 0, 0.25, 0.22, c, { lw: 0.03 });
+  band(ctx, x, y, 0.08, 0.251, 0.05, INK.bone);
+  cylinder(ctx, x, y, 0.2, 0.265, 0.06, shade(c, 0.1), { lw: 0.03 });
 }
 
 // A potted palm by the Lord's door. Nobody in this house waters anything.
@@ -552,7 +573,7 @@ function brigNightstand(ctx) {
 }
 const SKIN_B = mix(INK.bone, INK.oxblood, 0.25);
 
-// The campaign trunk, with the duelling pistol laid out on it in its case.
+// The campaign trunk, locked. (Dr. Crane hasn't got to it yet.)
 function trunk(ctx) {
   const x0 = 5.5, y0 = 12.5, w = 1.5, d = 1.0, h = 0.66;
   box(ctx, x0, y0, 0, w, d, h, MAT.oak, { lw: 0.04, dotsL: shade(MAT.oak, 0.45) });
@@ -567,25 +588,20 @@ function trunk(ctx) {
     words(g, '1974', x0 + w / 2, -0.28, 0.3, INK.bone);
     if (readable()) words(g, 'BRIG. SNORT', x0 + w / 2, -0.07, 0.1, INK.bone, true);
   });
-  // the case: lined in dark velvet so the pistol shows, lid up
-  const cz = h, lining = mix(INK.deepPlum, INK.stormNavy, 0.35);
-  face(ctx, [[5.62, 12.6, cz + 0.12], [6.86, 12.6, cz + 0.12], [6.86, 12.54, cz + 0.84], [5.62, 12.54, cz + 0.84]], MAT.mahogany, { lw: 0.035 });
-  face(ctx, [[5.68, 12.605, cz + 0.17], [6.8, 12.605, cz + 0.17], [6.8, 12.55, cz + 0.79], [5.68, 12.55, cz + 0.79]], lining, { stroke: false, dots: shade(lining, 0.4), density: 0.18 });
-  box(ctx, 5.62, 12.6, cz, 1.24, 0.8, 0.12, MAT.mahogany, { lw: 0.035 });
-  rect(ctx, 5.68, 12.66, 1.12, 0.68, cz + 0.121, lining, { lw: 0.02, dots: shade(lining, 0.4), density: 0.18 });
-  pistol(ctx, cz + 0.13);
-  // the polishing rag, over the end of the trunk
-  face(ctx, [[6.88, 12.55, h + 0.005], [7.0, 12.55, h + 0.005], [7.0, 12.98, h + 0.005], [6.88, 12.98, h + 0.005]], INK.bone, { lw: 0.02 });
-  face(ctx, [[7.005, 12.55, h], [7.005, 12.98, h], [7.005, 13.0, h - 0.3], [7.005, 12.84, h - 0.22], [7.005, 12.7, h - 0.36], [7.005, 12.55, h - 0.26]], INK.bone, { lw: 0.02 });
-  if (Q.detail) {
-    const [X, Y] = P(7.0, 12.78, h - 0.12);
-    ctx.beginPath(); ctx.ellipse(X, Y, 0.05, 0.07, 0.3, 0, Math.PI * 2); ctx.fillStyle = shade(INK.bone, 0.45); ctx.fill();
-  }
+  // his greatcoat, folded on the lid, and his swagger stick
+  const coat = mix(OLIVE, INK.stormNavy, 0.25);
+  box(ctx, x0 + 0.15, y0 + 0.15, h, 0.8, 0.62, 0.12, coat, { lw: 0.03, dotsL: shade(coat, 0.5) });
+  if (Q.detail) for (const y of [y0 + 0.32, y0 + 0.6]) { const [X, Y] = P(x0 + 0.95, y, h + 0.07); dot(ctx, X, Y, 0.03, GOLD); }
+  rod(ctx, [[x0 + 1.08, y0 + 0.2, h + 0.03], [x0 + 1.32, y0 + 0.85, h + 0.03]], WALNUT, 0.045);
 }
 // A flintlock on its side, so its profile faces up: walnut stock, a polished
-// barrel, and a dusty cork jammed in the muzzle since 1974.
-function pistol(ctx, z) {
+// barrel, and a dusty cork jammed in the muzzle since 1974. Drawn at scale s
+// with the breech at (ox, oy), the muzzle pointing along +x.
+function pistol(ctx, ox, oy, z, s = 0.6) {
+  const L = (w) => ({ lw: (w * 0.85) / s });
   flat(ctx, 'z', z, (g) => {
+    g.save();
+    g.translate(ox, oy); g.scale(s, s); g.translate(-6.24, -12.98);
     // stock and grip
     g.beginPath();
     g.moveTo(6.24, 12.9); g.lineTo(5.96, 12.89);
@@ -593,24 +609,25 @@ function pistol(ctx, z) {
     g.lineTo(5.8, 13.3); g.lineTo(5.93, 13.25);
     g.quadraticCurveTo(5.99, 13.08, 6.24, 13.07);
     g.closePath();
-    paint(g, MAT.oak, { lw: 0.028 });
+    paint(g, WALNUT, L(0.028));
     // barrel, polished
-    g.beginPath(); g.rect(6.2, 12.92, 0.54, 0.13); paint(g, MAT.silver, { lw: 0.028 });
+    g.beginPath(); g.rect(6.2, 12.92, 0.54, 0.13); paint(g, MAT.silver, L(0.028));
     // lock plate, the cock, the trigger guard
-    g.beginPath(); g.rect(6.02, 12.94, 0.2, 0.09); paint(g, MAT.silver, { lw: 0.022 });
-    g.beginPath(); g.moveTo(6.06, 12.94); g.lineTo(6.02, 12.82); g.lineTo(6.12, 12.8); g.lineTo(6.14, 12.94); paint(g, MAT.silver, { lw: 0.022 });
-    g.beginPath(); g.arc(6.04, 13.1, 0.07, 0, Math.PI); g.strokeStyle = GOLD; g.lineWidth = 0.03; g.stroke();
+    g.beginPath(); g.rect(6.02, 12.94, 0.2, 0.09); paint(g, MAT.silver, L(0.022));
+    g.beginPath(); g.moveTo(6.06, 12.94); g.lineTo(6.02, 12.82); g.lineTo(6.12, 12.8); g.lineTo(6.14, 12.94); paint(g, MAT.silver, L(0.022));
+    g.beginPath(); g.arc(6.04, 13.1, 0.07, 0, Math.PI); g.strokeStyle = GOLD; g.lineWidth = 0.03 / s; g.stroke();
     // brass fittings
-    g.beginPath(); g.rect(6.66, 12.91, 0.07, 0.15); paint(g, GOLD, { lw: 0.022 });
-    g.beginPath(); g.rect(5.72, 13.17, 0.1, 0.13); paint(g, GOLD, { lw: 0.022 });
-    // the cork, dusty, sticking out of the muzzle
-    g.beginPath(); g.roundRect(6.73, 12.925, 0.17, 0.12, 0.04); paint(g, MAT.oakLight, { lw: 0.03 });
+    g.beginPath(); g.rect(6.66, 12.91, 0.07, 0.15); paint(g, GOLD, L(0.022));
+    g.beginPath(); g.rect(5.72, 13.17, 0.1, 0.13); paint(g, GOLD, L(0.022));
+    // the cork, dusty, in the muzzle (a touch big, so it reads close up)
+    g.beginPath(); g.roundRect(6.73, 12.905, 0.23, 0.16, 0.05); paint(g, MAT.oakLight, L(0.03));
     if (Q.detail) {
-      dot(g, 6.8, 12.96, 0.014, shade(MAT.oakLight, 0.45));
-      dot(g, 6.85, 13.0, 0.012, shade(MAT.oakLight, 0.45));
-      dot(g, 6.78, 13.01, 0.01, shade(MAT.oakLight, 0.45));
-      g.beginPath(); g.moveTo(6.26, 12.945); g.lineTo(6.6, 12.945); g.strokeStyle = C.white; g.lineWidth = 0.02; g.stroke();
+      dot(g, 6.8, 12.95, 0.018, shade(MAT.oakLight, 0.45));
+      dot(g, 6.89, 13.0, 0.016, shade(MAT.oakLight, 0.45));
+      dot(g, 6.79, 13.02, 0.014, shade(MAT.oakLight, 0.45));
+      g.beginPath(); g.moveTo(6.26, 12.945); g.lineTo(6.6, 12.945); g.strokeStyle = C.white; g.lineWidth = 0.02 / s; g.stroke();
     }
+    g.restore();
   });
 }
 
@@ -673,38 +690,65 @@ function desk(ctx) {
   for (const [x, y] of [[x0 + 0.08, y0 + d - 0.08], [x0 + w - 0.08, y0 + d - 0.08], [x0 + w - 0.08, y0 + 0.08]]) box(ctx, x - 0.05, y - 0.05, 0, 0.1, 0.1, h - 0.12, MAT.mahogany, { flat: true, lw: 0.03 });
   box(ctx, x0, y0, h - 0.34, w, d, 0.22, MAT.mahogany, { lw: 0.035, dotsL: MAT.mahoganyDark });
   box(ctx, x0 - 0.03, y0 - 0.03, h - 0.12, w + 0.06, d + 0.06, 0.1, MAT.mahogany, { lw: 0.035 });
-  // the campaign map, and toy soldiers still fighting 1974
-  rect(ctx, x0 + 0.2, y0 + 0.12, 1.25, 0.72, h - 0.015, KHAKI, { lw: 0.025 });
+  // The whole regiment's worth of kit, laid out to be polished on Sunday.
+  // The campaign map, and toy soldiers still fighting 1974.
+  rect(ctx, 5.12, 6.98, 0.95, 0.5, h - 0.015, KHAKI, { lw: 0.025 });
   if (Q.detail) {
     flat(ctx, 'z', h - 0.01, (g) => {
       g.beginPath();
-      g.moveTo(5.3, 7.5); g.quadraticCurveTo(5.7, 7.1, 6.3, 7.3);
+      g.moveTo(5.2, 7.4); g.quadraticCurveTo(5.5, 7.08, 6.0, 7.2);
       g.strokeStyle = INK.stormNavy; g.lineWidth = 0.025; g.stroke();
-      g.beginPath(); g.moveTo(5.5, 7.62); g.lineTo(6.2, 7.0); g.lineTo(6.12, 7.13); g.moveTo(6.2, 7.0); g.lineTo(6.06, 7.03);
+      g.beginPath(); g.moveTo(5.3, 7.44); g.lineTo(5.9, 7.06); g.lineTo(5.83, 7.16); g.moveTo(5.9, 7.06); g.lineTo(5.78, 7.07);
       g.strokeStyle = INK.oxblood; g.lineWidth = 0.035; g.stroke();
-      words(g, '1974', 5.95, 7.62, 0.12, INK.oxblood);
     });
-    for (let i = 0; i < 5; i++) {
-      const [X, Y] = P(5.35 + i * 0.2, 7.28 + (i % 2) * 0.12, h);
+    for (let i = 0; i < 4; i++) {
+      const [X, Y] = P(5.3 + i * 0.2, 7.2 + (i % 2) * 0.1, h);
       ctx.fillStyle = INK.oxblood; ctx.fillRect(X - 0.03, Y - 0.14, 0.06, 0.12);
       dot(ctx, X, Y - 0.17, 0.035, KHAKI);
     }
   }
-  // his trophy
-  const [X, Y] = P(6.85, 7.25, h);
-  ctx.beginPath();
-  ctx.moveTo(X - 0.1, Y); ctx.lineTo(X + 0.1, Y); ctx.lineTo(X + 0.05, Y - 0.1); ctx.lineTo(X + 0.03, Y - 0.22);
-  ctx.quadraticCurveTo(X + 0.18, Y - 0.3, X + 0.16, Y - 0.5); ctx.lineTo(X - 0.16, Y - 0.5);
-  ctx.quadraticCurveTo(X - 0.18, Y - 0.3, X - 0.03, Y - 0.22); ctx.lineTo(X - 0.05, Y - 0.1);
-  ctx.closePath();
-  paint(ctx, GOLD, { lw: 0.03, dots: MAT.brassDark, density: 0.15 });
-  ctx.beginPath(); ctx.arc(X - 0.17, Y - 0.4, 0.06, Math.PI * 0.4, Math.PI * 1.6); ctx.arc(X + 0.17, Y - 0.4, 0.06, -Math.PI * 0.6, Math.PI * 0.6);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
-  // an inkwell and a quill
-  const [IX, IY] = P(6.55, 7.6, h);
+  // an inkwell and a quill, on the corner of the map
+  const [IX, IY] = P(5.22, 7.02, h);
   ctx.beginPath(); ctx.rect(IX - 0.06, IY - 0.1, 0.12, 0.1); paint(ctx, IRON, { lw: 0.02 });
   ctx.beginPath(); ctx.moveTo(IX, IY - 0.08); ctx.quadraticCurveTo(IX + 0.1, IY - 0.3, IX + 0.2, IY - 0.42);
   ctx.strokeStyle = INK.bone; ctx.lineWidth = 0.04; ctx.stroke();
+  // his sabre, in its scabbard, along the back
+  const sz = h + 0.04;
+  rod(ctx, [[5.5, 6.93, sz], [6.72, 6.93, sz]], mix(C.black, WALNUT, 0.35), 0.08);
+  rod(ctx, [[5.5, 6.93, sz], [5.62, 6.93, sz]], MAT.silver, 0.07);
+  rod(ctx, [[6.6, 6.93, sz], [6.72, 6.93, sz]], MAT.silver, 0.075);
+  rod(ctx, [[6.75, 6.93, sz], [6.97, 6.93, sz]], WALNUT, 0.055);
+  line3(ctx, [[6.74, 6.87, sz], [6.74, 7.03, sz], [6.86, 7.07, sz], [6.99, 6.97, sz]], GOLD, 0.03);
+  { const [X, Y] = P(7.0, 6.93, sz); dot(ctx, X, Y, 0.045, GOLD); }
+  // a telescope, lying across the middle
+  rod(ctx, [[6.15, 7.26, h + 0.06], [6.48, 7.24, h + 0.06]], GOLD, 0.11);
+  rod(ctx, [[6.48, 7.24, h + 0.05], [6.72, 7.22, h + 0.05]], MAT.brassDark, 0.085);
+  rod(ctx, [[6.72, 7.22, h + 0.045], [6.9, 7.21, h + 0.045]], GOLD, 0.065);
+  if (Q.detail) {
+    for (const x of [6.25, 6.4]) { const [a, b] = [P(x, 7.25, h + 0.02), P(x, 7.25, h + 0.1)]; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.strokeStyle = MAT.brassDark; ctx.lineWidth = 0.025; ctx.stroke(); }
+    const [X, Y] = P(6.14, 7.26, h + 0.06); dot(ctx, X, Y, 0.045, mix(MAT.glass, INK.stormNavy, 0.4));
+  }
+  // a hip flask, standing at the back
+  { const [X, Y] = P(7.13, 7.14, h);
+    ctx.beginPath(); ctx.roundRect(X - 0.07, Y - 0.24, 0.14, 0.24, 0.04); paint(ctx, MAT.silver, { lw: 0.025, dots: shade(MAT.silver, 0.35), density: 0.12 });
+    ctx.beginPath(); ctx.rect(X - 0.03, Y - 0.3, 0.06, 0.06); paint(ctx, GOLD, { lw: 0.02 }); }
+  // the bugle, lying at the front, and his medals in their case
+  flat(ctx, 'z', h + 0.01, (g) => {
+    g.beginPath(); g.ellipse(5.4, 7.66, 0.2, 0.09, 0, 0, Math.PI * 2);
+    g.strokeStyle = C.ink; g.lineWidth = 0.075; g.stroke(); g.strokeStyle = GOLD; g.lineWidth = 0.04; g.stroke();
+    g.beginPath(); g.moveTo(5.55, 7.6); g.lineTo(5.78, 7.5); g.lineTo(5.8, 7.78); g.lineTo(5.55, 7.68); g.closePath();
+    paint(g, GOLD, { lw: 0.025, dots: MAT.brassDark, density: 0.15 });
+    g.beginPath(); g.moveTo(5.2, 7.62); g.lineTo(5.12, 7.6); g.strokeStyle = GOLD; g.lineWidth = 0.035; g.stroke();
+  });
+  rect(ctx, 5.86, 7.5, 0.48, 0.3, h, MAT.mahoganyDark, { lw: 0.025 });
+  rect(ctx, 5.9, 7.54, 0.4, 0.22, h + 0.002, MAT.velvetDark, { stroke: false });
+  for (let i = 0; i < 3; i++) {
+    const x = 5.98 + i * 0.12;
+    rect(ctx, x - 0.035, 7.56, 0.07, 0.08, h + 0.004, [INK.verdigris, INK.bone, INK.deepPlum][i], { stroke: false });
+    disc(ctx, x, 7.69, h + 0.005, 0.04, GOLD, { lw: 0.015 });
+  }
+  // and the duelling pistol, freshly cleaned, at the front corner
+  pistol(ctx, 6.85, 7.5, h + 0.005);
 }
 function brigChair(ctx) {
   const x0 = 5.85, y0 = 8.0, s = 0.72;
@@ -840,37 +884,117 @@ function craneBedFoot(ctx) {
   }
 }
 
-// The black bag: open, and an empty bottle of heart pills poking out of it.
-function doctorsBag(ctx) {
-  const x0 = 10.05, x1 = 10.95, y0 = 12.78, y1 = 13.22, h = 0.46;
-  face(ctx, [[x0, y1, 0], [x1, y1, 0], [x1 + 0.06, y1 + 0.06, h], [x0 - 0.06, y1 + 0.06, h]], C.black, { lw: 0.04, dots: C.ink, density: 0.2 });
-  face(ctx, [[x1, y0, 0], [x1, y1, 0], [x1 + 0.06, y1 + 0.06, h], [x1 + 0.06, y0 - 0.06, h]], mix(C.black, C.ink, 0.5), { lw: 0.04 });
-  // the open mouth: two brass-edged jaws pulled apart
-  face(ctx, [[x0 - 0.06, y0 - 0.06, h], [x1 + 0.06, y0 - 0.06, h], [x1 + 0.06, y1 + 0.06, h], [x0 - 0.06, y1 + 0.06, h]], mix(INK.deepPlum, C.black, 0.4), { lw: 0.035 });
-  line3(ctx, [[x0 - 0.06, y1 + 0.06, h], [x1 + 0.06, y1 + 0.06, h]], GOLD, 0.05);
-  line3(ctx, [[x0 - 0.06, y0 - 0.06, h], [x1 + 0.06, y0 - 0.06, h]], GOLD, 0.05);
-  face(ctx, [[x0 - 0.06, y0 - 0.06, h], [x1 + 0.06, y0 - 0.06, h], [x1 + 0.04, y0 - 0.22, h + 0.2], [x0 - 0.04, y0 - 0.22, h + 0.2]], C.black, { lw: 0.035 });
-  // the handle
-  const [HX, HY] = P((x0 + x1) / 2, y0 - 0.2, h + 0.2);
-  ctx.beginPath(); ctx.ellipse(HX, HY - 0.05, 0.2, 0.12, 0, Math.PI, 0);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke(); ctx.strokeStyle = C.black; ctx.lineWidth = 0.045; ctx.stroke();
-  const [LX, LY] = P((x0 + x1) / 2, y1 + 0.06, h - 0.06); dot(ctx, LX, LY, 0.05, GOLD);
-  // the bottle, tipped out of the mouth, label facing us
-  const [BX, BY] = P(10.62, 13.0, h - 0.05);
-  ctx.save();
-  ctx.translate(BX, BY);
-  ctx.rotate(0.35);
-  ctx.beginPath(); ctx.roundRect(-0.13, -0.5, 0.26, 0.5, 0.05); paint(ctx, AMBER, { lw: 0.035 });
-  ctx.beginPath(); ctx.rect(-0.07, -0.6, 0.14, 0.1); paint(ctx, INK.bone, { lw: 0.025 });
-  ctx.beginPath(); ctx.rect(-0.11, -0.4, 0.22, 0.24); paint(ctx, INK.bone, { lw: 0.02 });
+// ---------- Dr. Crane's luggage ----------
+// A heap by his travelling chest: a carpet bag on the chest, a valise with a
+// hatbox on it, his gladstone (pyjamas), and the medical bag, which is the
+// same shape as the gladstone but black, with a little red cross on its side
+// and the empty heart-pill bottle poking out of its mouth.
+
+// A gladstone-shaped bag standing on the floor: a box body, and a roof that
+// closes to a brass-framed ridge along x (or gapes open, o.open).
+function gladstone(ctx, x0, y0, w, d, h, color, o = {}) {
+  const x1 = x0 + w, y1 = y0 + d, yc = (y0 + y1) / 2, hb = h * 0.62, gap = o.open ? 0.07 : 0;
+  box(ctx, x0, y0, 0, w, d, hb, color, { lw: 0.03, dotsL: shade(color, 0.5), dens: 0.18 });
+  // the roof: the back slope, the mouth (if open), then the front slope
+  face(ctx, [[x0, y0, hb], [x1, y0, hb], [x1, yc - gap, h], [x0, yc - gap, h]], shade(color, 0.05), { lw: 0.03 });
+  if (o.open) face(ctx, [[x0 + 0.04, yc - gap, h], [x1 - 0.04, yc - gap, h], [x1 - 0.04, yc + gap, h], [x0 + 0.04, yc + gap, h]], mix(INK.deepPlum, C.black, 0.5), { stroke: false });
+  if (o.inside) o.inside(yc);
+  face(ctx, [[x0, y1, hb], [x1, y1, hb], [x1, yc + gap, h], [x0, yc + gap, h]], shade(color, 0.14), { lw: 0.03 });
+  face(ctx, [[x1, y0, hb], [x1, y1, hb], [x1, yc + gap, h], [x1, yc - gap, h]], shade(color, 0.08), { lw: 0.03 });
+  for (const s of o.open ? [-gap, gap] : [0]) line3(ctx, [[x0, yc + s, h], [x1, yc + s, h]], GOLD, 0.035);
+  // the handle, and the clasp
+  const [HX, HY] = P(x0 + w / 2, yc - gap, h);
+  ctx.beginPath(); ctx.ellipse(HX, HY, 0.13, 0.1, 0, Math.PI, 0);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.065; ctx.stroke(); ctx.strokeStyle = shade(color, 0.2); ctx.lineWidth = 0.035; ctx.stroke();
+  const [LX, LY] = P(x0 + w / 2, yc + gap + 0.02, h - 0.03); dot(ctx, LX, LY, 0.035, GOLD);
+}
+
+function carpetBag(ctx) {
+  const x0 = 8.75, y0 = 14.85, w = 0.72, d = 0.34, z = 0.62, h = 0.4;
+  box(ctx, x0, y0, z, w, d, h, MAT.velvet, { lw: 0.03, dotsL: shade(MAT.velvet, 0.5) });
   if (Q.detail) {
-    words(ctx, 'HEART', 0, -0.32, 0.075, INK.oxblood, true);
-    words(ctx, 'PILLS', 0, -0.23, 0.075, INK.oxblood, true);
-    ctx.beginPath(); ctx.moveTo(-0.08, -0.1); ctx.lineTo(-0.08, -0.03); ctx.strokeStyle = alpha(INK.bone, 0.7); ctx.lineWidth = 0.03; ctx.stroke();
+    flat(ctx, 'y', y0 + d + 0.004, (g) => {
+      g.fillStyle = alpha(INK.candleGold, 0.7);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+        const a = x0 + 0.12 + i * 0.16 + (j % 2) * 0.08, b = -(z + 0.12 + j * 0.16);
+        g.beginPath(); g.moveTo(a, b - 0.05); g.lineTo(a + 0.04, b); g.lineTo(a, b + 0.05); g.lineTo(a - 0.04, b); g.fill();
+      }
+    });
   }
-  ctx.restore();
-  // a thermometer poking out too
-  if (Q.detail) line3(ctx, [[10.3, 13.0, h - 0.05], [10.2, 12.95, h + 0.35]], INK.bone, 0.04);
+  line3(ctx, [[x0, y0 + d / 2, z + h], [x0 + w, y0 + d / 2, z + h]], GOLD, 0.05);
+  for (const x of [x0 + 0.22, x0 + 0.5]) {
+    const [X, Y] = P(x, y0 + d / 2, z + h);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.09, 0.14, 0, Math.PI, 0);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.stroke(); ctx.strokeStyle = WALNUT; ctx.lineWidth = 0.03; ctx.stroke();
+  }
+}
+
+// A band round an upright cylinder (a hatbox's ribbon).
+function band(ctx, cx, cy, z, r, h, color) {
+  const X = cx - cy, Yb = (cx + cy) / 2 - z * ZK, Yt = Yb - h * ZK, rx = r * Math.SQRT2, ry = rx / 2;
+  ctx.beginPath();
+  ctx.ellipse(X, Yb, rx, ry, 0, Math.PI, 0, true);
+  ctx.lineTo(X + rx, Yt);
+  ctx.ellipse(X, Yt, rx, ry, 0, 0, Math.PI);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function valise(ctx) {
+  const x0 = 9.95, y0 = 14.95, w = 1.05, d = 0.68, h = 0.3;
+  box(ctx, x0, y0, 0, w, d, h, WALNUT, { lw: 0.035, dotsL: shade(WALNUT, 0.5) });
+  line3(ctx, [[x0, y0 + d, h - 0.1], [x0 + w, y0 + d, h - 0.1], [x0 + w, y0, h - 0.1]], shade(WALNUT, 0.45), 0.025);
+  for (const x of [x0 + 0.22, x0 + w - 0.3]) face(ctx, [[x, y0 + d + 0.004, 0], [x + 0.08, y0 + d + 0.004, 0], [x + 0.08, y0 + d + 0.004, h], [x, y0 + d + 0.004, h]], shade(WALNUT, 0.4), { stroke: false });
+  // a hatbox on top: ribboned, and empty (his top hat is on the skeleton)
+  const hx = 10.42, hy = 15.28;
+  cylinder(ctx, hx, hy, h, 0.27, 0.3, INK.deepPlum, { lw: 0.03 });
+  band(ctx, hx, hy, h + 0.12, 0.271, 0.05, INK.bone);
+  cylinder(ctx, hx, hy, h + 0.27, 0.285, 0.06, shade(INK.deepPlum, 0.1), { lw: 0.03 });
+}
+
+// His gladstone: his pyjamas are in this one (a leg hangs out of the end).
+function craneGladstone(ctx) {
+  const x0 = 10.62, y0 = 13.86, w = 0.66, d = 0.4, h = 0.42;
+  gladstone(ctx, x0, y0, w, d, h, MAT.furDark);
+  const stripes = mix(MINT, INK.bone, 0.4);
+  face(ctx, [[x0 + w + 0.004, y0 + 0.1, 0.24], [x0 + w + 0.004, y0 + 0.28, 0.24], [x0 + w + 0.004, y0 + 0.3, 0.02], [x0 + w + 0.004, y0 + 0.12, 0.02]], stripes, { lw: 0.02 });
+  if (Q.detail) for (const u of [0.15, 0.22]) line3(ctx, [[x0 + w + 0.006, y0 + u, 0.23], [x0 + w + 0.006, y0 + u + 0.02, 0.03]], MINT, 0.025);
+}
+
+// The medical bag: black, open, with a red cross on a little enamel badge at
+// the end, and the empty bottle of heart pills poking out of its mouth.
+function doctorsBag(ctx) {
+  const x0 = 10.25, y0 = 14.36, w = 0.66, d = 0.38, h = 0.4;
+  gladstone(ctx, x0, y0, w, d, h, C.black, {
+    open: true,
+    inside: (yc) => {
+      // the bottle, tipped in the mouth, cap up
+      const [BX, BY] = P(x0 + 0.42, yc, h - 0.06);
+      ctx.save();
+      ctx.translate(BX, BY);
+      ctx.rotate(0.4);
+      ctx.beginPath(); ctx.roundRect(-0.065, -0.3, 0.13, 0.3, 0.03); paint(ctx, AMBER, { lw: 0.025 });
+      ctx.beginPath(); ctx.rect(-0.045, -0.36, 0.09, 0.06); paint(ctx, INK.bone, { lw: 0.02 });
+      ctx.beginPath(); ctx.rect(-0.055, -0.24, 0.11, 0.12); paint(ctx, INK.bone, { stroke: false });
+      if (Q.detail) {
+        words(ctx, 'HEART', 0, -0.2, 0.035, INK.oxblood, true);
+        words(ctx, 'PILLS', 0, -0.155, 0.035, INK.oxblood, true);
+      }
+      ctx.restore();
+      // and a thermometer
+      if (Q.detail) line3(ctx, [[x0 + 0.18, yc, h - 0.04], [x0 + 0.12, yc - 0.03, h + 0.2]], INK.bone, 0.03);
+    },
+  });
+  // the red cross, on the end facing us
+  const [CX, CY] = P(x0 + w + 0.005, y0 + d / 2, 0.14);
+  ctx.beginPath(); ctx.ellipse(CX, CY - 0.04, 0.07, 0.085, -0.45, 0, Math.PI * 2); paint(ctx, INK.bone, { lw: 0.02 });
+  flat(ctx, 'x', x0 + w + 0.006, (g) => {
+    const a = -(y0 + d / 2), b = -0.18;
+    g.fillStyle = INK.oxblood;
+    g.fillRect(a - 0.045, b - 0.015, 0.09, 0.03);
+    g.fillRect(a - 0.015, b - 0.045, 0.03, 0.09);
+  });
 }
 
 function craneNightstand(ctx, t) {
@@ -885,6 +1009,48 @@ function craneNightstand(ctx, t) {
   const [KX, KY] = P(12.5, 11.15 + out, 0.64); dot(ctx, KX, KY, 0.04, GOLD);
   candlestick(ctx, 12.75, 10.55, 0.88, 0.3);
 }
+// What's on his bedside table, at its own small size: a snuff box, a pill
+// box, a tin of boot polish and his pocket watch, all shut, and one tin that
+// is open and empty with its plain lid off beside it (his mints).
+// A small round tin, with a fine outline (cylinder() draws a thick one).
+function tin(ctx, cx, cy, z, r, h, side, top) {
+  const X = cx - cy, Yb = (cx + cy) / 2 - z * ZK, Yt = Yb - h * ZK, rx = r * Math.SQRT2, ry = rx / 2;
+  ctx.beginPath();
+  ctx.moveTo(X - rx, Yt); ctx.lineTo(X - rx, Yb);
+  ctx.ellipse(X, Yb, rx, ry, 0, Math.PI, 0, true);
+  ctx.lineTo(X + rx, Yt);
+  ctx.closePath();
+  paint(ctx, side, { lw: 0.015 });
+  ctx.beginPath(); ctx.ellipse(X, Yt, rx, ry, 0, 0, Math.PI * 2);
+  paint(ctx, top, { lw: 0.015 });
+}
+function craneTins(ctx) {
+  const z = 0.88;
+  // the snuff box
+  box(ctx, 12.14, 10.9, z, 0.17, 0.13, 0.05, MAT.silver, { lw: 0.02, flat: true });
+  if (Q.detail) { const [X, Y] = P(12.225, 10.965, z + 0.05); dot(ctx, X, Y, 0.022, MAT.brassDark); }
+  // the pill box, at the back
+  tin(ctx, 12.2, 10.52, z, 0.055, 0.04, shade(MAT.silver, 0.12), MAT.silver);
+  { const [X, Y] = P(12.2, 10.52, z + 0.04); dot(ctx, X, Y, 0.02, GOLD); }
+  // the empty tin (you can see its bottom), and its lid
+  disc(ctx, 12.53, 10.79, z + 0.005, 0.09, MAT.silver, { lw: 0.015 });
+  if (Q.detail) disc(ctx, 12.53, 10.79, z + 0.006, 0.065, shade(MAT.silver, 0.1), { stroke: false });
+  tin(ctx, 12.43, 11.0, z, 0.09, 0.05, shade(MAT.silver, 0.12), MAT.silver);
+  disc(ctx, 12.43, 11.0, z + 0.05, 0.074, shade(MAT.silver, 0.5), { stroke: false });
+  disc(ctx, 12.443, 11.013, z + 0.05, 0.06, shade(MAT.silver, 0.18), { stroke: false });
+  // the boot polish: a dark lid with a brass rim
+  tin(ctx, 12.65, 10.97, z, 0.09, 0.045, mix(C.black, INK.stormNavy, 0.45), mix(C.black, INK.stormNavy, 0.3));
+  if (Q.detail) disc(ctx, 12.65, 10.97, z + 0.046, 0.062, null, { lw: 0.012, stroke: GOLD });
+  // the pocket watch, and its chain
+  disc(ctx, 12.84, 11.02, z + 0.01, 0.07, GOLD, { lw: 0.02 });
+  disc(ctx, 12.84, 11.02, z + 0.012, 0.05, INK.bone, { stroke: false });
+  if (Q.detail) {
+    line3(ctx, [[12.79, 10.96, z + 0.01], [12.72, 10.84, z], [12.82, 10.76, z]], GOLD, 0.018);
+    // and three collar studs
+    for (const [x, y] of [[12.24, 10.83], [12.31, 10.85], [12.28, 10.79]]) { const [X, Y] = P(x, y, z); dot(ctx, X, Y, 0.018, INK.bone); }
+  }
+}
+
 // His bedside lamp, electric. The Brigadier's sock ends up on it.
 function craneLamp(ctx, t) {
   const x = 12.35, y = 10.62, z = 0.88;
@@ -1389,24 +1555,12 @@ export default {
       });
     });
 
-    // ---------- Rugs, and the mint tin ----------
+    // ---------- Rugs ----------
     R.rug((ctx) => {
       runner(ctx, 0.35, 1.5, 1.42, 3.85);
       runner(ctx, 0.55, 3.85, 15.2, 5.15);
       brigRug(ctx);
       craneRug(ctx);
-      // The tin of mints: empty, lid off. (A white feather beside it.)
-      disc(ctx, 6.0, 4.2, 0.02, 0.2, MAT.silver, { lw: 0.03 });
-      disc(ctx, 6.0, 4.2, 0.075, 0.2, MAT.silver, { lw: 0.03 });
-      disc(ctx, 6.0, 4.2, 0.076, 0.15, shade(MAT.silver, 0.25), { stroke: false });
-      disc(ctx, 6.38, 4.43, 0.03, 0.2, INK.verdigris, { lw: 0.03 });
-      disc(ctx, 6.38, 4.43, 0.031, 0.15, INK.bone, { stroke: false });
-      if (Q.detail) {
-        flat(ctx, 'z', 0.02, (g) => {
-          g.beginPath(); g.moveTo(6.55, 3.95); g.quadraticCurveTo(6.8, 3.8, 6.95, 3.95); g.quadraticCurveTo(6.75, 4.02, 6.55, 3.95);
-          paint(g, C.white, { lw: 0.015 });
-        });
-      }
     });
 
     // ---------- The low walls ----------
@@ -1430,11 +1584,13 @@ export default {
     flame(R, 0.36, 0.34, 1.36, 61);
     // A warm light coming up the stairwell from the hall below.
     R.light({ at: [6.2, 1.6, -0.6], r: 3.4, color: INK.candleGold, k: (t) => 0.5 * house.lamp(t) });
-    R.thing(13.7, 4.5, silverCase, { depth: 18.2 });
+    R.thing(14.5, 2.4, golfBag, { depth: 16.9 });
+    R.thing(15.35, 2.75, silverCase, { depth: 18.1 });
+    R.thing(15.65, 3.65, cornerHatbox, { depth: 19.3 });
     R.thing(15.3, 1.55, deadPalm, { depth: 16.85 });
     R.rug((ctx) => {
       flat(ctx, 'z', 0.02, (g) => {
-        for (const [x, y, r] of [[14.7, 2.2, 0.6], [15.6, 2.45, -0.4]]) {
+        for (const [x, y, r] of [[14.2, 1.85, 0.6], [15.75, 2.1, -0.4]]) {
           g.save(); g.translate(x, y); g.rotate(r);
           g.beginPath(); g.ellipse(0, 0, 0.26, 0.08, 0, 0, Math.PI * 2);
           paint(g, mix(MAT.leaf, MAT.fur, 0.6), { lw: 0.02 });
@@ -1445,7 +1601,7 @@ export default {
 
     // The mouse: out of its hole, over to Rupert's case, back with a spoon.
     const RUNS = [9, 24, 37, 111, 125, 139, 158];
-    const LEG = [[15.45, 0.1], [14.5, 0.95], [14.72, 3.9], [14.68, 4.45]];
+    const LEG = [[15.45, 0.1], [14.1, 0.95], [14.1, 3.3], [14.72, 3.32]];
     R.mover((t) => {
       const tt = lt(t);
       const r = RUNS.find((s) => tt >= s && tt < s + 8);
@@ -1563,6 +1719,7 @@ export default {
     }, { anim: true, depth: 23.95 });
     R.thing(12.5, 10.75, craneNightstand, { anim: true, depth: 23.25 });
     flame(R, 12.75, 10.55, 1.18, 63);
+    R.thing(12.5, 10.95, craneTins, { depth: 23.27 });
     R.thing(12.35, 10.62, craneLamp, { anim: true, depth: 23.3 });
     R.light({ at: [12.35, 10.62, 1.4], r: 2.6, color: INK.candleGold, k: (t) => house.lamp(t) * (lt(t) >= 90.6 ? 0.45 : 1) });
     R.thing(14.25, 11.02, craneBedHead, { depth: 25.3 });
@@ -1572,8 +1729,11 @@ export default {
       cat(ctx, t, inCraneRoom(b) ? 'hiss' : inCraneRoom(c) ? 'purr' : 'sleep');
     }, { anim: true, depth: 28.3 });
     R.thing(14.25, 15, craneBedFoot, { depth: 29.25 });
-    R.thing(10.5, 13, doctorsBag, { depth: 23.3 });
     R.thing(9.1, 15.05, craneChest, { depth: 24.15 });
+    R.thing(9.1, 15.0, carpetBag, { depth: 24.2 });
+    R.thing(10.58, 14.55, doctorsBag, { depth: 25.1 });
+    R.thing(10.48, 15.3, valise, { depth: 25.8 });
+    R.thing(10.95, 14.06, craneGladstone, { depth: 24.95 });
 
     // ---------- The search: what flies out of the luggage, and when ----------
     // Dr. Crane in the Brigadier's room (from 81.5 s), at the kitbag on the bed,
@@ -1681,10 +1841,10 @@ export default {
       fly: (ctx, X, Y, a) => spun(ctx, X, Y, a, (g) => sockShape(g, CRANE_SOCK, INK.bone)),
     });
     toss(R, {
-      t0: 90.9, from: DRAWER, to: [11.8, 14.5, 0.02], hop: 1.0, spin: 3, floor: true,
+      t0: 90.9, from: DRAWER, to: [11.2, 13.3, 0.02], hop: 1.0, spin: 3, floor: true,
       fly: (ctx, X, Y, a) => { spun(ctx, X - 0.2, Y, a, paperShape); spun(ctx, X + 0.2, Y + 0.1, -a, paperShape); },
       rest: (ctx) => {
-        for (const [x, y, r] of [[11.6, 14.0, 0.4], [12.3, 15.2, -0.3], [11.1, 15.3, 0.9]]) {
+        for (const [x, y, r] of [[11.0, 12.8, 0.4], [11.85, 13.55, -0.3], [10.35, 13.4, 0.9]]) {
           flat(ctx, 'z', 0.02, (g) => {
             g.save(); g.translate(x, y); g.rotate(r);
             g.beginPath(); g.rect(-0.2, -0.28, 0.4, 0.56); paint(g, INK.bone, { lw: 0.02 });
@@ -1712,39 +1872,39 @@ export default {
       floor: true,
     });
     toss(R, {
-      t0: 92.9, from: DRAWER, to: [11.1, 14.2, 0.08], hop: 1.0,
+      t0: 92.9, from: DRAWER, to: [11.3, 12.6, 0.08], hop: 1.0,
       fly: (ctx, X, Y, a) => spun(ctx, X, Y, a, (g) => { for (const dx of [-0.12, 0.12]) { g.beginPath(); g.roundRect(dx - 0.06, -0.1, 0.12, 0.2, 0.03); paint(g, AMBER, { lw: 0.02 }); } }),
       rest: (ctx) => {
-        for (const [x, y, r] of [[11.1, 14.2, 0.9], [10.7, 14.55, -0.4], [11.55, 14.75, 1.8]]) {
+        for (const [x, y, r] of [[11.3, 12.6, 0.9], [10.8, 12.95, -0.4], [11.75, 13.1, 1.8]]) {
           const [X, Y] = P(x, y, 0.08);
           spun(ctx, X, Y, r, (g) => { g.beginPath(); g.roundRect(-0.07, -0.13, 0.14, 0.26, 0.04); paint(g, AMBER, { lw: 0.02 }); g.fillStyle = INK.bone; g.fillRect(-0.07, -0.13, 0.14, 0.05); });
         }
       },
-      depth: 26,
+      depth: 24,
     });
     toss(R, {
-      t0: 94.0, from: [14.25, 11.6, 0.9], to: [12.3, 15.35, 0.1], hop: 1.2, spin: 5,
+      t0: 94.0, from: [14.25, 11.6, 0.9], to: [12.6, 15.3, 0.1], hop: 1.2, spin: 5,
       fly: (ctx, X, Y, a) => spun(ctx, X, Y, a, (g) => { g.beginPath(); g.roundRect(-0.3, -0.14, 0.6, 0.28, 0.12); paint(g, INK.bone, { lw: 0.03 }); }),
-      rest: (ctx) => { box(ctx, 11.95, 15.05, 0, 0.75, 0.55, 0.14, INK.bone, { lw: 0.03, top: tint(INK.bone, 0.3) }); },
+      rest: (ctx) => { box(ctx, 12.25, 15.0, 0, 0.75, 0.55, 0.14, INK.bone, { lw: 0.03, top: tint(INK.bone, 0.3) }); },
       depth: 27.4,
     });
     // a jar of leeches, which lands on its side and lets them out
     toss(R, {
-      t0: 95.0, from: DRAWER, to: [10.2, 15.2, 0.12], hop: 1.2, spin: 6,
+      t0: 95.0, from: DRAWER, to: [9.75, 13.7, 0.12], hop: 1.2, spin: 6,
       fly: (ctx, X, Y, a) => spun(ctx, X, Y, a, (g) => { g.beginPath(); g.roundRect(-0.12, -0.16, 0.24, 0.32, 0.05); paint(g, alpha(MAT.glass, 0.8), { lw: 0.025 }); }),
       rest: (ctx, t, age) => {
-        const [X, Y] = P(10.2, 15.2, 0.12);
+        const [X, Y] = P(9.75, 13.7, 0.12);
         spun(ctx, X, Y, 1.4, (g) => { g.beginPath(); g.roundRect(-0.12, -0.17, 0.24, 0.34, 0.05); paint(g, alpha(MAT.glass, 0.8), { lw: 0.025 }); g.fillStyle = GOLD; g.fillRect(-0.1, -0.23, 0.2, 0.06); });
         for (let i = 0; i < 3; i++) {
           const d = Math.min(1.6, age * 0.05) * (0.6 + i * 0.25);
           const a = -0.9 + i * 0.7;
-          const [LX, LY] = P(10.2 + Math.cos(a) * d * 0.7, 15.2 + Math.sin(a) * d, 0.02);
+          const [LX, LY] = P(9.75 + Math.cos(a) * d * 0.7, 13.7 + Math.sin(a) * d, 0.02);
           const s = 1 + Math.sin(t * 5 + i * 2) * 0.25;
           ctx.beginPath(); ctx.ellipse(LX, LY, 0.1 * s, 0.035 / s, a * 0.5, 0, Math.PI * 2);
           ctx.fillStyle = mix(INK.stormNavy, INK.verdigris, 0.3); ctx.fill();
         }
       },
-      depth: 25.6,
+      depth: 23.45,
     });
 
     // ---------- Lights, sounds and speech ----------
@@ -1811,13 +1971,15 @@ export default {
         ctx.fill();
       }
     });
-    // Freshly polished: the pistol glints now and then.
+    // Everything on the Brigadier's desk is freshly polished: a glint now and
+    // then, on a different piece each time (so it doesn't point at any one).
+    const GLINTS = [[6.3, 7.24, 1.14], [7.0, 6.93, 1.12], [5.7, 7.6, 1.07], [7.13, 7.14, 1.25], [7.02, 7.52, 1.07], [6.66, 6.93, 1.12]];
     R.air((ctx, t) => {
       if (!Q.detail || lightsOut(t) > 0) return;
       const k = (t % 3.2) / 3.2;
       if (k > 0.18) return;
-      const s = Math.sin((k / 0.18) * Math.PI) * 0.16;
-      const [X, Y] = P(6.3 + Math.floor(t / 3.2) % 2 * 0.2, 12.98, 0.83);
+      const s = Math.sin((k / 0.18) * Math.PI) * 0.12;
+      const [X, Y] = P(...GLINTS[Math.floor(t / 3.2) % GLINTS.length]);
       ctx.beginPath();
       ctx.moveTo(X - s, Y); ctx.lineTo(X, Y - s * 0.25); ctx.lineTo(X + s, Y); ctx.lineTo(X, Y + s * 0.25); ctx.closePath();
       ctx.moveTo(X, Y - s); ctx.lineTo(X + s * 0.25, Y); ctx.lineTo(X, Y + s); ctx.lineTo(X - s * 0.25, Y); ctx.closePath();
@@ -1828,9 +1990,9 @@ export default {
     R.dark(house.dark);
 
     // ---------- The finds ----------
-    R.find({ id: 'doctors-bag', label: "Dr. Crane's medical bag", at: [10.5, 13, 0.3], r: 1.0 });
-    R.find({ id: 'mint-tin', label: 'An empty tin of mints', at: [6.2, 4.3, 0.05], r: 0.9 });
-    R.find({ id: 'silver', label: 'The family silver, half packed', at: [13.7, 4.5, 0.45], r: 1.15 });
-    R.find({ id: 'pistol', label: 'A duelling pistol', at: [6.2, 13, 0.55], r: 0.95 });
+    R.find({ id: 'doctors-bag', label: "Dr. Crane's medical bag", at: [10.58, 14.55, 0.28], r: 0.6 });
+    R.find({ id: 'mint-tin', label: 'An empty tin of mints', at: [12.45, 10.95, 0.93], r: 0.6 });
+    R.find({ id: 'silver', label: 'The family silver, half packed', at: [15.3, 2.9, 0.35], r: 0.7 });
+    R.find({ id: 'pistol', label: 'A duelling pistol', at: [6.85, 7.58, 1.08], r: 0.6 });
   },
 };

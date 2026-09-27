@@ -27,6 +27,7 @@ const place = (zone, tag, o = {}) => ({ zone, at: AT[zone.id], tag, ...o });
 export default {
   id: 'manor',
   name: 'Gooseworth Manor',
+  short: 'The Manor', // the back button in a room
   tagline: 'A stormy night, a body in the trifle, six suspects and a goose.',
   zones: [
     place(library, 'Ground floor', { h: STOREY + WALL }), // two storeys tall
@@ -59,7 +60,7 @@ export default {
   // the lawn's far corners running off the sides; on a phone held sideways,
   // the rooms filling the height. The night runs on past all of it.
   overview: (portrait, storey, short) => {
-    if (portrait) return [-35, 50, PLATE[1] + 4, PLATE[3] + 4];
+    if (portrait) return [-31, 46, PLATE[1] + 4, PLATE[3] + 4];
     if (short) return [-40, 54, -24, 46];
     return [PLATE[0] - 2, PLATE[2] + 2, PLATE[1] - 2, PLATE[3] + 2];
   },

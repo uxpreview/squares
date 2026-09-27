@@ -330,7 +330,7 @@ try {
         const s = window.__squares, cam = s.cam, w = s.world;
         const z = w.zones.find((x) => x.id === id);
         const vw = innerWidth, vh = innerHeight;
-        const chrome = ['tray', 'roombar', 'to-places', 'storeys'].map((i) => document.getElementById(i))
+        const chrome = ['tray', 'roombar', 'to-places', 'floors'].map((i) => document.getElementById(i))
           .concat([document.querySelector('.tally')])
           .filter((el) => el && !el.hidden && el.getClientRects().length)
           .map((el) => { const r = el.getBoundingClientRect(); return { name: el.id || el.className, l: r.left, t: r.top, r: r.right, b: r.bottom }; });

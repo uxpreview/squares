@@ -48,7 +48,7 @@ One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the
 - No errors loading the level, or drawing any area (walls up and down) at 48 moments across its loop.
 - People on the level's clock go through doors, never walls, never faster than a run.
 - Performance: every view holds its frame budget with the CPU slowed 4x (a mid-range phone). The budget is set by The Block.
-- Every find is on screen when its area is framed on a phone and a desktop, clear of the find list and buttons, not crowding another find, and a real tap finds it. (Whether it's hidden behind something is for eyes: the contact sheet rings every find.)
+- Every find is on screen when its area is framed on a phone and a desktop, clear of the find list and buttons, not crowding another find, and a real tap finds it. (Whether it's hidden behind something, or its tap area has drifted off its art, is for eyes: the contact sheet rings every find, and the playtest scores taps against the art.)
 - Find labels are unique across the level and follow the style (sentence case, "A lost mitten").
 - Copy rules: no em dashes, names 1 to 3 words, blurbs one or two sentences, no placeholders left. Colors come from `C` or the style sheet.
 - A contact sheet for eyeballing, and a report, in `qa-out/<id>/`.

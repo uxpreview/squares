@@ -1,5 +1,5 @@
 // Playing a map: moving between the whole map and one zone, tapping to find
-// things, hints, the tallies, the room bar, the story, the floor switch, and
+// things, hints, the tallies, the room bar, the story, the floor tags, and
 // what happens when you find everything. One play controller serves every map;
 // load() swaps maps.
 //
@@ -7,8 +7,8 @@
 //   overview - the whole map, with its name and a hint line
 //   zone     - one zone framed, with the room bar and the find list (tray)
 //
-// Maps with named storeys (map.storeys) get a floor switch: the overview shows
-// one storey at a time, with the ones above lifted away.
+// Maps with named storeys (map.storeys) show one storey at a time in the
+// overview, with the ones above lifted away; tags on the house go up and down.
 //
 // A whodunit (a map with a case file, see src/game/case.js) swaps the things
 // tally for a Case button, calls its finds evidence or curiosities, and ends
@@ -34,9 +34,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const ui = {
     hud: $('hud'), place: $('place'), placeName: $('place-name'), placeTag: $('place-tagline'),
     hint: $('hint'), toast: $('toast'), geese: $('tally-geese'), things: $('tally-things'),
-    roombar: $('roombar'), all: $('all'), prev: $('prev'), next: $('next'),
+    roombar: $('roombar'), prev: $('prev'), next: $('next'),
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
-    places: $('to-places'), storeys: $('storeys'),
+    places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
     thingsPill: $('tally-things-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
   };
 
@@ -85,19 +85,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         right = vw - r.left + 16;
         bottom = vh - bar.offsetTop + 10;
       } else {
-        top = bar.offsetTop + bar.offsetHeight + 10;
-        bottom = vh - r.top + 12;
+        // Phones: the top row above; below, the room bar sitting on the list.
+        top = ui.places.getBoundingClientRect().bottom + 12;
+        bottom = vh - r.top + 10 + (bar.offsetHeight || 44) + 10;
       }
-    }
-    // Keep the map clear of the floor switch: it's on the left on wide screens,
-    // on the right on short ones (landscape phones), and along the bottom on
-    // upright phones.
-    if (hasStoreys() && !ui.storeys.hidden) {
-      const el = ui.storeys, r = el.getBoundingClientRect();
-      if (!r.width) { /* hidden by the layout (a phone, in a room) */ }
-      else if (r.right < vw / 2 && (wide || vh < 500)) left = Math.max(left, r.right + 12);
-      else if (r.left > vw / 2 && vh < 500) right = Math.max(right, vw - r.left + 12);
-      else if (el.offsetTop > vh / 2 && !wide) bottom = Math.max(bottom, vh - el.offsetTop + 10);
     }
     return { top, bottom, left, right };
   }
@@ -119,7 +110,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // changes: the edges ask on every frame of a drag, and measuring isn't free.
   let insetsKey = '', insetsNow = null;
   function edgeInsets() {
-    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.hint.hidden, ui.storeys.hidden, ui.roombar.hidden].join();
+    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.hint.hidden, ui.roombar.hidden].join();
     if (key !== insetsKey) { insetsKey = key; insetsNow = insets(); }
     return insetsNow;
   }
@@ -148,8 +139,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     mode = 'zone';
     // Stepping into a room takes you to its floor (outdoors keeps the one you had).
     if (!world.zones[i].fixed) storey = world.zones[i].storey;
-    renderStoreys();
     document.body.dataset.mode = 'zone';
+    renderFloors();
+    renderBack();
     ui.hint.hidden = true;
     ui.roombar.hidden = false;
     tray.show(true);
@@ -170,9 +162,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     mode = 'overview';
     current = -1;
     document.body.dataset.mode = 'overview';
-    ui.hint.hidden = false;
+    ui.hint.hidden = !hintNow();
     ui.roombar.hidden = true;
     tray.show(false);
+    renderFloors();
+    renderBack();
     showStory(false);
     layoutVars();
     if (changed && active) on.place(world.id, null);
@@ -188,37 +182,89 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     camera.flyTo(overviewView(), o.dur ?? 1.5);
   }
 
-  // ---------- Floor switch ----------
-  // One button per storey, top floor first. Pressing one shows that storey:
-  // the ones above lift away. From inside a room it goes back out to the overview.
-  function buildStoreys() {
-    ui.storeys.replaceChildren();
-    if (!hasStoreys()) return;
-    const list = world.storeys.map((s, i) => ({ s, i })).reverse();
-    for (const { s, i } of list) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'storey-btn';
-      b.dataset.i = String(i);
-      b.textContent = s.short || s.name;
-      b.setAttribute('aria-label', s.name);
-      b.addEventListener('click', () => { userAct(); setStorey(i); });
-      ui.storeys.append(b);
-    }
+  // ---------- Floors ----------
+  // Two tags pinned to the house: the floor above the one you're looking at and
+  // the floor below it ("Upstairs", "Cellar"). They ride along with the
+  // picture (placeFloors, every frame), so changing floors is something you do
+  // to the house rather than to a menu. The floor you're on is the solid one.
+  const ARROW = { up: 'M12 19V6M6.5 11.5L12 6l5.5 5.5', down: 'M12 5v13M6.5 12.5L12 18l5.5-5.5' };
+  const floorTags = {};
+  for (const dir of ['up', 'down']) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `floor-tag floor-${dir}`;
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ARROW[dir]}" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span></span>`;
+    b.addEventListener('click', () => { userAct(); setStorey(storey + (dir === 'up' ? 1 : -1)); });
+    ui.floors.append(b);
+    floorTags[dir] = b;
   }
 
-  function renderStoreys() {
-    const show = active && hasStoreys();
-    ui.storeys.hidden = !show;
+  function renderFloors() {
+    const show = active && hasStoreys() && mode !== 'zone';
+    ui.floors.hidden = !show;
     if (!show) return;
-    for (const b of ui.storeys.children) b.setAttribute('aria-pressed', String(Number(b.dataset.i) === storey));
+    for (const [dir, d] of [['up', 1], ['down', -1]]) {
+      const s = world.storeys[storey + d], b = floorTags[dir];
+      b.hidden = !s;
+      if (!s) continue;
+      b.lastChild.textContent = s.name;
+      b.setAttribute('aria-label', `${s.name}: the floor ${dir === 'up' ? 'above' : 'below'}`);
+    }
+    placeFloors();
+  }
+
+  // Where a storey's rooms are on screen, as drawn (lifted floors included).
+  function storeyRect(k) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const z of world.zones) {
+      if (z.fixed || z.storey !== k) continue;
+      const [X0, X1, Y0, Y1] = world.zoneBox(z), l = z.lift || 0;
+      const [ax, ay] = camera.toScreen(X0, Y0 - l), [bx, by] = camera.toScreen(X1, Y1 - l);
+      x0 = Math.min(x0, ax); x1 = Math.max(x1, bx); y0 = Math.min(y0, ay); y1 = Math.max(y1, by);
+    }
+    return x0 < x1 ? { x0, x1, y0, y1 } : null;
+  }
+
+  // Up sits on the top edge of the floor you're on, down on the bottom edge of
+  // the one below (the cellar, in the cut): each by the floor it leads to, and
+  // kept inside the part of the screen the map gets.
+  function placeFloors() {
+    if (ui.floors.hidden) return;
+    const s = edgeInsets(), { vw, vh } = view;
+    const put = (b, r, above) => {
+      if (b.hidden) return;
+      if (!r) { b.style.visibility = 'hidden'; return; }
+      const w = b.offsetWidth, h = b.offsetHeight;
+      const x = Math.max(s.left, Math.min(vw - s.right - w, (r.x0 + r.x1) / 2 - w / 2));
+      const y = Math.max(s.top, Math.min(vh - s.bottom - h, above ? r.y0 - h - 6 : r.y1 + 6));
+      b.style.visibility = '';
+      // (translate, not transform: a pressed button nudges its transform)
+      b.style.translate = `${Math.round(x)}px ${Math.round(y)}px`;
+    };
+    put(floorTags.up, storeyRect(storey), true);
+    put(floorTags.down, storeyRect(storey - 1), false);
+  }
+
+  // Back goes up one level: from a room out to the whole place, from there to
+  // the places.
+  function renderBack() {
+    const inRoom = mode === 'zone';
+    ui.placesLabel.textContent = inRoom ? world.map.short || world.map.name : 'Places';
+    ui.places.setAttribute('aria-label', inRoom ? `Back to ${words().whole.toLowerCase()}` : 'Back to the places');
+  }
+
+  // The hint line says how to play until your first find in a place.
+  function hintNow() {
+    if (!words().hint) return false;
+    const p = store.progress(world);
+    return p.geese + p.things === 0;
   }
 
   function setStorey(i) {
     if (!hasStoreys() || i < 0 || i >= world.storeys.length) return;
     const same = i === storey;
     storey = i;
-    renderStoreys();
+    renderFloors();
     if (mode === 'zone') toOverview({ dur: 1.2 });
     else if (!same) camera.flyTo(overviewView(), 0.9);
   }
@@ -275,6 +321,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function layoutVars() {
     const w = mode === 'zone' && tray.dock() === 'right' ? tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').width : 0;
     document.body.style.setProperty('--tray-w', Math.round(w) + 'px');
+    // On a phone the room bar sits on the list as it rests (peek or tucked
+    // away), and steps out of the way while the whole list is open.
+    const rest = mode === 'zone' && tray.dock() === 'bottom' ? view.vh - tray.rectFor(tray.state === 'hidden' ? 'hidden' : 'peek').top : 0;
+    document.body.style.setProperty('--tray-rest', Math.round(rest) + 'px');
+    document.body.dataset.tray = tray.state;
   }
 
   function renderTally() {
@@ -448,6 +499,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // frame and the next. A jump in the clock (a tool, the reveal) plays nothing.
   let lastTick = null;
   function tick(t) {
+    placeFloors();
     const cues = active && world && world.map.sound && world.map.sound.cues;
     if (!cues) { lastTick = null; return; }
     const loop = world.map.loop || 180;
@@ -580,7 +632,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const lifted = (z) => z.veil > 0.5;
 
   // For taps, a faded floor above is fair game (tap it to go up). In a house
-  // with a floor switch the lifted floors hover right over the one you're
+  // with named storeys the lifted floors hover right over the one you're
   // looking at, so there what's really there wins first. For settling after a
   // pan, only zones that are really there count.
   function zoneAtScreen(sx, sy, skipLifted = false) {
@@ -655,8 +707,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   };
   ui.prev.addEventListener('click', () => step(-1));
   ui.next.addEventListener('click', () => step(1));
-  ui.all.addEventListener('click', () => { userAct(); toOverview(); });
-  ui.places.addEventListener('click', () => on.exit());
+  ui.places.addEventListener('click', () => {
+    if (mode === 'zone') { userAct(); toOverview(); } else on.exit();
+  });
   window.addEventListener('keydown', (e) => {
     if (!active || (e.target.closest && e.target.closest('input, textarea'))) return;
     if (casefile.isOpen && e.key !== 'Escape') return; // the case file has the keys while it's open
@@ -713,7 +766,6 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pops.length = 0;
     seenStory.clear();
     storey = world.defaultStorey;
-    buildStoreys();
     // A place printed on a dark plate (a night) needs its loose text on chips.
     document.body.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
     // The page and the browser's bars take the place's paper, so a night has
@@ -725,7 +777,6 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     tray.use({ rooms: world.zones, order: world.order });
     setPlaceTitle(world.map.name, world.map.tagline);
     ui.hint.textContent = words().hint;
-    ui.all.setAttribute('aria-label', words().whole);
     ui.geese.dataset.set = '';
     ui.things.dataset.set = '';
     ui.caseCount.dataset.set = '';
@@ -747,7 +798,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ui.hud.hidden = false;
     bed(world.map.sound && world.map.sound.bed);
     const i = zoneId ? world.indexOf(zoneId) : -1;
-    renderStoreys();
+    renderFloors();
     showOverviewUI();
     if (o.fresh) camera.jumpTo(overviewView());
     if (i >= 0) {
@@ -769,7 +820,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     casefile.close();
     showStory(false);
     tray.show(false);
-    renderStoreys();
+    renderFloors();
     mode = 'overview';
     current = -1;
     document.body.dataset.mode = 'overview';
@@ -823,7 +874,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     markFound,
     enterZone: (i, o) => enterZone(typeof i === 'string' ? world.indexOf(i) : i, o),
     toOverview,
-    // Show a storey by id or index (the floor switch does this).
+    // Show a storey by id or index (the floor tags do this).
     setStorey: (s) => setStorey(typeof s === 'string' ? world.storeys.findIndex((x) => x.id === s) : s),
     drawMarks,
     drawPops,
