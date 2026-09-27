@@ -97,7 +97,12 @@ export function buildWorld(map) {
     return [ax - z.d, ax + z.w, ay - z.h * ZK, ay + (z.w + z.d) / 2 + SLAB * ZK];
   };
 
-  // short: a landscape phone, where height is scarce.
+  // What the overview frames. portrait: taller than wide; short: a landscape
+  // phone, where height is scarce. A map can frame itself (map.overview).
+  // On a phone the map fills the screen rather than floating in paper: held
+  // upright, the box is the map's full height and a wide map runs off the
+  // sides, a swipe away; on its side, the full width. (Narrowing the box the
+  // other way is what makes the framing fill that way.)
   function overviewBox(portrait, storeyId, short = false) {
     if (map.overview) return map.overview(portrait, storeyId, short);
     let X0 = Infinity, X1 = -Infinity, Y0 = Infinity, Y1 = -Infinity;
@@ -105,8 +110,10 @@ export function buildWorld(map) {
       const [a, b, c, d] = body(z);
       X0 = Math.min(X0, a); X1 = Math.max(X1, b); Y0 = Math.min(Y0, c); Y1 = Math.max(Y1, d);
     }
-    const px = portrait ? 1.5 : 6;
-    return [X0 - px, X1 + px, Y0 - 5, Y1 + 4];
+    const cx = (X0 + X1) / 2, cy = (Y0 + Y1) / 2;
+    if (portrait) return [cx - 1, cx + 1, Y0 - 5, Y1 + 4];
+    if (short) return [X0 - 2, X1 + 2, cy - 1, cy + 1];
+    return [X0 - 6, X1 + 6, Y0 - 5, Y1 + 4];
   }
 
   function zoneBox(z) {

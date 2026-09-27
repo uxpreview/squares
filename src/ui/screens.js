@@ -15,7 +15,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     playBtn: $('title-play'), playLabel: $('title-play-label'), playSub: $('title-play-sub'),
     placesBtn: $('title-places'), progress: $('title-progress'), back: $('back-link'),
     places: $('places'), placesBack: $('places-back'), list: $('places-list'), total: $('places-total'),
-    complete: $('complete'), completeTitle: $('complete-title'), completeText: $('complete-text'),
+    complete: $('complete'), completeKicker: document.querySelector('.complete-kicker'), completeTitle: $('complete-title'), completeText: $('complete-text'),
     completeNext: $('complete-next'), completeStay: $('complete-stay'),
   };
   const soundBtns = [...document.querySelectorAll('.sound-btn')];
@@ -109,9 +109,12 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
       // Load the map to draw its picture and exact counts.
       getWorld(m.id).then((w) => {
         const p = store.progress(w);
-        stat.textContent = `${p.geese}/${w.totalGeese} geese · ${p.things}/${w.totalThings} things`;
-        if (p.done) { badge.textContent = 'Complete'; badge.dataset.kind = 'done'; }
-        b.setAttribute('aria-label', `${m.name}. ${m.tagline} ${badge.textContent}, ${p.geese} of ${w.totalGeese} geese found.`);
+        // A whodunit shows its case; everywhere else counts geese and things.
+        stat.textContent = w.goal === 'case'
+          ? (p.done ? `Case closed · ${p.curios}/${w.totals.curiosity} curiosities` : `Case open · ${p.evidence}/${w.totals.evidence} evidence`)
+          : `${p.geese}/${w.totalGeese} geese · ${p.things}/${w.totalThings} things`;
+        if (p.done) { badge.textContent = w.goal === 'case' ? 'Solved' : 'Complete'; badge.dataset.kind = 'done'; }
+        b.setAttribute('aria-label', `${m.name}. ${m.tagline} ${badge.textContent}, ${stat.textContent}.`);
         drawThumb(pic, m.id, w);
       }).catch(() => {});
     }
@@ -156,10 +159,18 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   function showComplete(world) {
     const p = store.progress(world);
     el.completeTitle.textContent = world.map.name;
-    const left = world.totalThings - p.things;
-    el.completeText.textContent = left > 0
-      ? `Every goose, found. ${left} hidden ${left === 1 ? 'thing is' : 'things are'} still out there if you want the full set.`
-      : 'Every goose and every hidden thing. Nothing left but the view.';
+    el.completeKicker.textContent = world.goal === 'case' ? 'Case closed' : 'Place complete';
+    const left = world.totalThings - p.things + (world.totalGeese - p.geese);
+    if (world.goal === 'case') {
+      const all = world.totalThings + world.totalGeese;
+      el.completeText.textContent = `${world.map.case.reveal.text} ${left > 0
+        ? `You found ${all - left} of the ${all} things in the house.`
+        : 'You found everything, too.'}`;
+    } else {
+      el.completeText.textContent = left > 0
+        ? `Every goose, found. ${left} hidden ${left === 1 ? 'thing is' : 'things are'} still out there if you want the full set.`
+        : 'Every goose and every hidden thing. Nothing left but the view.';
+    }
     el.complete.hidden = false;
     if (!reduceMotion) el.complete.animate([{ opacity: 0, transform: 'translate(-50%, 16px) scale(0.96)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: 420, easing: 'cubic-bezier(.2, 1.3, .4, 1)' });
     el.completeNext.focus({ preventScroll: true });

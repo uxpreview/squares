@@ -68,10 +68,16 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17c0-4 3-6 7-6h2c0-3 1-6 4-6 1.6 0 2.5 1 2.5 2l2 .8-2 .8c0 2-1 3-2 4 1 2 .5 5-2 6.5-3 1.6-9 1.2-11.5-2.1z" fill="currentColor"/></svg>
       <span class="sr-only">Geese found: </span><span id="tally-geese">0/0</span>
     </span>
-    <span class="tally-item" title="Hidden things circled">
+    <span class="tally-item" id="tally-things-pill" title="Hidden things circled">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12c0-4.5 3.8-7.5 8.5-7.5S21 7.3 21 11.5 17 19 12 19s-8-2.5-8-6.5c0-2 1-3.6 2.4-4.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       <span class="sr-only">Things found: </span><span id="tally-things">0/0</span>
     </span>
+    <!-- Whodunits: the case file, with how much evidence you've found. -->
+    <button id="tally-case" class="tally-item tally-case" type="button" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M14.7 14.7l5 5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>
+      <span class="tally-case-label">Case</span>
+      <span id="tally-case-count">0/0</span>
+    </button>
     <button class="icon-btn sound-btn tally-sound" type="button" aria-pressed="true" aria-label="Sound on">
       <svg class="i-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       <svg class="i-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -140,6 +146,17 @@
     <button id="complete-stay" class="soft-btn" type="button">Keep looking around</button>
   </div>
 </div>
+
+<!-- ============ A whodunit's case file ============ -->
+<section id="case" class="case" role="dialog" aria-modal="true" aria-labelledby="case-title" hidden>
+  <div class="case-sheet">
+    <button class="icon-btn case-x" type="button" aria-label="Close the case file"></button>
+    <div class="case-body"></div>
+  </div>
+</section>
+
+<!-- A flash of lightning, for the moment the case closes. -->
+<div id="flash" class="flash" aria-hidden="true" hidden></div>
 
 <div id="toast" class="toast" role="status" hidden></div>
 

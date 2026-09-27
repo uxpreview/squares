@@ -11,12 +11,18 @@
 //    95  the maid screams in the library; the lights come back; everyone runs there
 //   148  everyone drifts back to the dining room for the second trifle
 //
+// And the level's mechanic: every lightning flash shows, for a moment, where
+// everyone was at midnight (MIDNIGHT in style.js), as dark shapes in the rooms
+// they were in. Watch enough flashes and there's a goose-shaped one in the
+// library. Those are the echoes at the bottom.
+//
 // npm run qa checks every walk: through doors, never through walls.
 import { schedule } from '../../engine/actors.js';
-import { Q, person, speech } from '../../engine/art.js';
+import { Q, speech } from '../../engine/art.js';
 import { tag } from '../greybox.js';
-import { DOOR, STAIRS, LOOP } from './plan.js';
-import { CAST } from './style.js';
+import { S } from '../../engine/iso.js';
+import { DOOR, STAIRS, LOOP, AT } from './plan.js';
+import { CAST, MIDNIGHT, drawCast, echoPerson, echoGoose, pastK, glassFlashes } from './style.js';
 
 const WALK = 1.3, RUN = 3;
 
@@ -46,6 +52,12 @@ function from(x, y, z = 0) {
       steps.push({ until: t, ...extra });
       return b;
     },
+    // Stand from t0 to t1, switching between the ways in `faces` every few seconds.
+    turns(t0, t1, every, faces) {
+      for (let t = t0 + every, i = 0; t < t1 + 1e-6; t += every, i++) steps.push({ until: Math.min(t, t1), ...faces[i % faces.length] });
+      if ((t1 - t0) % every > 1e-6) steps.push({ until: t1, ...faces[Math.floor((t1 - t0) / every) % faces.length] });
+      return b;
+    },
     speed(v) {
       steps.push({ speed: v });
       return b;
@@ -60,6 +72,7 @@ const SEAT = {
   brigadier: [20.5, 10.2], crane: [23, 10.2],
 };
 const backRow = { pose: 'sit', dir: 'l' };
+const AWAY = { dir: 'r', back: true }, WATCH = { dir: 'l', back: false };
 const frontRow = { pose: 'sit', dir: 'r', back: true };
 
 const DAYS = {
@@ -100,7 +113,9 @@ const DAYS = {
     .until(161).speed(WALK)
     .door('dining-library').to(18.5, 11.8).to(31, 11.8).to(31, 11.5).until(LOOP, { dir: 'l' }),
 
-  hatchett: from(40, 10.3).until(40, { dir: 'r', back: true }).until(48, { dir: 'r', back: true, say: 'Out of respect' }).until(97, { dir: 'r', back: true })
+  // At the range with her back to the room, then turned round to watch it,
+  // every 6 seconds. The dog in the kitchen steals whenever her back is turned.
+  hatchett: from(40, 10.3).turns(0, 40, 6, [AWAY, WATCH]).until(48, { ...WATCH, say: 'Out of respect' }).turns(48, 97, 6, [AWAY, WATCH])
     .speed(RUN).door('conservatory-kitchen').door('conservatory-hall').to(17.3, 24).door('hall-billiard').door('billiard-library').to(13.5, 14)
     .until(148).speed(WALK)
     .door('dining-library').door('kitchen-dining').to(40, 10.3).until(LOOP, { dir: 'r', back: true }),
@@ -126,6 +141,19 @@ const DAYS = {
     .door('conservatory-hall').door('front-door').to(23, 36).to(21.5, 40.5).to(19.5, 43).until(LOOP, { dir: 'l' }),
 };
 
+// In the conservatory, every lightning flash (the storm's, and the far-off
+// sheet lightning only its glass catches) finds Lady Philippa and the gardener
+// in a new pose, which they hold until the next one.
+const CAUGHT = {
+  philippa: ['read', 'wave', 'dance', 'point', 'cheer', 'carry'],
+  gardener: ['point', 'read', 'cheer', 'wave', 'dance', 'jump'],
+};
+const inConservatory = (p) => p.x >= AT.conservatory[0] && p.x < AT.conservatory[0] + S && p.y >= AT.conservatory[1] && p.y < AT.conservatory[1] + S && p.z < 1;
+function caught(id, p, t) {
+  if (!CAUGHT[id] || p.moving || !inConservatory(p)) return p.pose;
+  return CAUGHT[id][glassFlashes(t) % CAUGHT[id].length];
+}
+
 // Names and speech only show once you're close enough to read them.
 const readable = () => Q.detail && Q.pxPerUnit >= 14;
 
@@ -147,7 +175,8 @@ export const walkers = Object.entries(DAYS).map(([id, b]) => {
     loop: LOOP,
     at,
     draw(ctx, t, p) {
-      person(ctx, p.x, p.y, p.z, { ...c.look, pose: p.pose, dir: p.dir, back: p.back }, t);
+      // (p is in the room's own units; the conservatory check wants the world's.)
+      drawCast(ctx, id, CAUGHT[id] ? { ...p, pose: caught(id, at(t), t) } : p, t);
       if (!readable()) return;
       const top = p.z + (p.pose === 'sit' ? 2.3 : 2.9);
       if (p.say) speech(ctx, p.x, p.y, top + 0.1, p.say, { size: 0.5 });
@@ -156,3 +185,32 @@ export const walkers = Object.entries(DAYS).map(([id, b]) => {
   };
 }).filter(Boolean);
 if (problems.length) throw new Error('The evening does not fit:\n' + problems.join('\n'));
+
+// ---------- Echoes: lightning shows the past ----------
+// Everyone where they stood at midnight, drawn only while lightning shows them.
+// They ride along as walkers who never move (ghost: true keeps them out of
+// head counts), so each is drawn in the room it was in, behind and in front of
+// the right things.
+const echoes = walkers.map((w) => {
+  const at = w.at(MIDNIGHT);
+  const still = { ...at, moving: false, pose: at.pose === 'walk' || at.pose === 'run' ? 'stand' : at.pose };
+  return {
+    id: w.id + '-at-midnight',
+    name: w.name + ' at midnight',
+    ghost: true,
+    loop: LOOP,
+    at: () => still,
+    draw(ctx, t, p) { echoPerson(ctx, CAST[w.id].look, p, t, pastK(t)); },
+  };
+});
+// The goose was in the library, by the Lord's chair, at midnight.
+const GOOSE_AT_MIDNIGHT = { x: 10.3, y: 10.2, z: 0, dir: 'l', moving: false };
+echoes.push({
+  id: 'goose-at-midnight',
+  name: 'Someone small at midnight',
+  ghost: true,
+  loop: LOOP,
+  at: () => GOOSE_AT_MIDNIGHT,
+  draw(ctx, t, p) { echoGoose(ctx, p.x, p.y, p.z, p.dir, pastK(t)); },
+});
+walkers.push(...echoes);

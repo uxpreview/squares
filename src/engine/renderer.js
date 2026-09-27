@@ -37,7 +37,9 @@ export function createRenderer(canvas, camera) {
   const { cam, view } = camera;
   // Frame costs in ms (smoothed): the whole render, refreshing neighbor pictures,
   // the zone you're in, the other zones, the backdrop and sky, and the frame gap.
-  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16 };
+  // n and worst count frames and keep the slowest since a tool last reset them
+  // (QA times each view on its own frames that way).
+  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0 };
   let snapCredit = 0;
   let lastT = 0;
   let slowFrames = 0;
@@ -82,26 +84,30 @@ export function createRenderer(canvas, camera) {
     }
   }
 
-  // Opening: zones drop onto the plate back to front, bottom to top.
+  // Opening: zones ink in back to front, settling the last hair into place.
+  // Calm on purpose: nothing drops or bounces, and floors that are lifted out
+  // of the way start there (settle) rather than floating off as you arrive.
+  const INTRO_MS = 420;
+  let settle = false;
   function startIntro(world) {
     const delays = new Map();
     let end = 0;
     for (const z of world.zones) {
-      const d = ((z.ox + z.oy) / 21 + z.oz / 10) * 95 + ((z.index * 53) % 60);
+      const d = ((z.ox + z.oy) / 21 + z.oz / 10) * 40 + ((z.index * 53) % 30);
       delays.set(z, Math.max(0, d));
-      end = Math.max(end, d + 800);
+      end = Math.max(end, d + INTRO_MS);
     }
-    intro = { t0: performance.now() + 150, delays, end };
+    intro = { t0: performance.now() + 60, delays, end };
+    settle = true;
   }
   function introDrop(z, now) {
     if (!intro) return null;
     if (now - intro.t0 > intro.end) { intro = null; return null; }
-    const k = (now - intro.t0 - intro.delays.get(z)) / 780;
+    const k = (now - intro.t0 - intro.delays.get(z)) / INTRO_MS;
     if (k >= 1) return null;
-    if (k <= 0) return { dy: -12, a: 0 };
-    const c = 1.9; // ease-out-back: overshoot a touch, then settle
-    const e = 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2);
-    return { dy: -12 * (1 - e), a: Math.min(1, k * 2.5) };
+    if (k <= 0) return { dy: -1.2, a: 0 };
+    const e = 1 - Math.pow(1 - k, 3); // ease out
+    return { dy: -1.2 * (1 - e), a: e };
   }
 
   // The focus zone's outline, as a hole in a screen-sized rect: clipping to it
@@ -163,19 +169,21 @@ export function createRenderer(canvas, camera) {
     for (const z of world.zones) {
       const up = world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
       const down = focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
-      z.veil += (up - z.veil) * Math.min(1, dt * 7);
-      z.dim = (z.dim || 0) + (down - (z.dim || 0)) * Math.min(1, dt * 7);
+      const ease = settle ? 1 : Math.min(1, dt * 7);
+      z.veil += (up - z.veil) * ease;
+      z.dim = (z.dim || 0) + (down - (z.dim || 0)) * ease;
       if (Math.abs(z.veil - up) < 0.002) z.veil = up;
       z.lift = z.veil * lift; // hit testing reads this, so taps land where the zone is drawn
       // Walls down: only the room you're in has its inside walls up.
       if (z.low != null) {
         const want = z === focus ? 1 : 0;
         const was = z.wallK;
-        z.wallK += (want - z.wallK) * Math.min(1, dt * 6);
+        z.wallK += (want - z.wallK) * (settle ? 1 : Math.min(1, dt * 6));
         if (Math.abs(z.wallK - want) < 0.004) z.wallK = want;
         if (z.wallK !== was) z.stale = true;
       }
     }
+    settle = false;
 
     const visible = world.drawOrder.filter((z) => {
       const [ax, ay] = z.anchor;
@@ -238,7 +246,11 @@ export function createRenderer(canvas, camera) {
     perf.sky = perf.sky * 0.9 + (performance.now() - s0) * 0.1;
     Q.detail = true;
     if (o.top) o.top(ctx, t, now);
-    perf.ms = perf.ms * 0.9 + (performance.now() - f0) * 0.1;
+    const took = performance.now() - f0;
+    perf.ms = perf.ms * 0.9 + took * 0.1;
+    perf.n++;
+    perf.total += took;
+    perf.worst = Math.max(perf.worst, took);
   }
 
   // A small still picture of a whole map, for the level picker. A place printed

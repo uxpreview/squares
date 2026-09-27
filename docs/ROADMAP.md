@@ -20,12 +20,13 @@ And for a game that adds levels often: **each level should be cheaper to make th
 
 ## Where we are
 
-- **Engine:** places made of zones; camera, renderer with cutaways (front, above), snapshots for speed, input. Houses: storeys with a floor switch, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain.
+- **Engine:** places made of zones; camera (with soft edges), renderer with cutaways (front, above), snapshots for speed, input. Houses: storeys with a floor switch, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain.
 - **Game:** find the goose and hidden things per zone, hints, tallies, saves (v2), sound, completion. A scene clock tools can set, so any moment of a loop can be shown and tested.
 - **Screens:** title with a drifting map, place picker, completion card, a floor switch for houses.
 - **Places:** The Block. The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
-- **Next level:** Gooseworth Manor is greyboxed and waiting on the owner's gate 2 ([levels/manor.md](levels/manor.md)). Next up: session 3.
+- **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
+- **Next level:** Gooseworth Manor is drawn, QA'd and playtested, waiting on the owner's gate 3 ([levels/manor.md](levels/manor.md)).
 
 ## Engine work
 
@@ -34,7 +35,7 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 - [x] **E0. Pipeline tools.** Scaffold a new level in one step; a style sheet per level; a QA command (errors, performance, finds on screen and tappable, label and copy rules, contact sheet); prompt templates for area artists, the art director and the playtester. *Session 2.*
 - [x] **E1. Night and weather.** A palette per place, lights that glow (windows, lamps, candles), lightning, rain. *Session 2.*
 - [x] **E2. Houses.** Inside walls cut low in the overview and full height inside a room; one storey at a time with a floor switch; people passing between rooms through doors on a shared timeline. *Session 2. Next used by the Catminium and the cruise ship.*
-- **E3. Level formats.** Finds in groups (evidence, curiosities); a place's goal can be something other than "every goose" (solve the case); an accusation screen and a reveal. *The Manor (whodunit), reused by later mysteries.*
+- [x] **E3. Level formats.** Finds in groups (evidence, curiosities); a place's goal can be something other than "every goose" (solve the case); an accusation screen and a reveal. *Session 3: `game/case.js`, `ui/casefile.js`, a map's `case`. Reused by later mysteries.*
 - **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *La Dolce Riviera, Split, Boston, the siege, the zoo, Egypt.*
 - **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Every big outdoor level.*
 - **E6. Casts and scale.** Animals and other species alongside people; a character scale per place. *The Catminium, the zoo, Egypt.*
@@ -47,7 +48,7 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 
 - **G1. The campaign.** You're tracking the goose around the world: each place ends with a clue to where it went next, which opens the next place. Uses the unlock switch that already exists.
 - **G2. Progression.** Medals per place: all geese, all things, no hints.
-- **G3. Modes.** Explore (today). Possibly a daily goose and timed challenges (see Decisions).
+- **G3. Modes.** Explore (today), and later an optional daily goose to find. No timers or scores on the main places (see Decisions).
 - **G4. Onboarding.** First visit: the game shows you one goose, you tap it, you're playing. No text walls.
 - **G5. Accessibility.** Find list usable by keyboard and screen reader, a "describe this room" text for each area, reduced motion everywhere.
 
@@ -66,7 +67,8 @@ Each is one PR. Order can change; dependencies can't.
 - [x] **1. Game foundation.** Places and zones, title, picker, completion, saves, Vite, smoke test. *(PR #4)*
 - [x] **Planning.** Inspiration, level backlog, process, roadmap, the Manor brief; the Walk-Up retired from the picker. *(PR #5)*
 - [x] **2. Pipeline and the Manor's engine (E0, E1, E2), and the Manor greybox.** The level tools, night lighting and weather, houses (walls down, storeys, door handoffs). Ends with the Manor greyboxed for the owner's gate 2. *Done: `npm run qa -- manor` passes and makes a contact sheet; the greybox shows the whole house at night, every room blocked out, nine people walking the evening.* *(PR #6)*
-- [ ] **3. The Manor.** The whodunit format (E3), area art by parallel agents, art direction, QA and a blind playtest, preview for gate 3, ship. *Done when: a fresh player can solve the case, every find is fair, and it passes QA.*
+- [ ] **3. The Manor.** The whodunit format (E3), area art by parallel agents, art direction, QA and a blind playtest, preview for gate 3, ship. *Done when: a fresh player can solve the case, every find is fair, and it passes QA.* **Built and at gate 3 (PR #7):** E3, all eleven rooms and the exterior, the art direction pass, QA clean, the blind playtest. The owner's first review is in (manor.md, decisions 22 to 26: a mystery card that gives nothing away, no giveaway captions, the night to every edge, soft edges, a calm start, phone framing). **Next session: the difficulty pass** (manor.md 28: the clues are too easy to find), then the owner's approval; then take `hidden` off in `src/maps/index.js`.
+- [ ] **3b. Faster rooms (from E9).** Cache the still furniture of the room you're in, as floors and walls are cached today, so the Manor's rooms (39 to 59 ms a frame on a slowed-down phone) get well under the 60 ms budget and denser levels have room. Its own small PR, before the next level. *Done when: QA's slowest Manor room is under 40 ms and nothing looks different.*
 - [ ] **4. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
 - [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
 - [ ] **6. La Dolce Riviera.** The first outdoor showpiece.
@@ -79,11 +81,9 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
-- **The Manor's greybox (gate 2):** the layout, the plate and the evening, with ten choices to confirm or change, are in [levels/manor.md](levels/manor.md) ("Decisions"). After this gate the layout is fixed.
+- **The Manor's preview (gate 3):** the first review's changes are made ([levels/manor.md](levels/manor.md), decisions 22 to 27). Before it ships: the difficulty pass (28), and a look at Safari's bottom bar on a real iPhone (29).
 
 - **Casts beyond people:** the Catminium and the zoo need animals as characters. Assumed yes.
-- **Calm or game-y:** a calm picture book, or timers, daily challenges and scores too? This decides G3.
-- **Sound:** synthesized (tiny, fits the drawn-in-code idea) or recorded ambience (richer)?
 - **Delete the Walk-Up?** It's hidden now. Delete it once the Catminium ships, or keep it hidden as a test bed.
 
 Made:
@@ -91,6 +91,14 @@ Made:
 - **Levels in progress are hidden from the picker** and open from a link (`#/manor`) until they ship. *(Session 2)*
 - **QA's speed budget is set by The Block:** every view of a new level must render within 60 ms a frame (warn at 40) with the CPU slowed 4x on a GPU canvas; the Block's slowest rooms take about 50. Headless Chrome without a GPU exaggerates big pictures, so QA measures with one. *(Session 2)*
 - **QA output (`qa-out/`) isn't committed.** The contact sheet goes to the owner at each gate. *(Session 2)*
+- **Gate 2 approved** (the Manor's greybox). *(Session 3)*
+- **Area artists work in their own git worktrees**, and the lead decides each room's colors in the style sheet before they start. Ten ran at once without trouble; a session limit cut them all off mid-polish, and the art director finished the loose ends. Next time: have artists save a short report early. *(Session 3)*
+- **Saves are v3** (they remember accusations and solved cases); v2 and v1 carry over. *(Session 3)*
+- **Gate 3, first review:** session 3's choices stand (manor.md 11 to 21). *(Session 3)*
+- **The map is the screen.** The camera has soft edges (it stretches past an edge and springs back, so the map can't be lost); a place opens with its floors in place and fades in, with nothing dropping or bouncing; on a phone the overview fills the screen (The Block fills an upright phone's height and you swipe to its side rooms); a night runs to every edge instead of sitting on paper. *(Session 3)*
+- **Calm, with a daily extra (G3):** looking closely stays the core; later, an optional daily goose. No timers or scores on the main places. *(Session 3)*
+- **Sound stays synthesized.** *(Session 3)*
+- **Cache still furniture next** (3b), as its own PR before the next level, rather than raising the speed budget. *(Session 3)*
 
 - **Next level: Gooseworth Manor**, the murder mystery. Brief approved; the goose did it; you can accuse any time. *(planning)*
 - **The Walk-Up is retired from the picker:** too similar to the Block. Still opens from a direct link (`#/tower`) and stays as the test bed for stacked floors. *(planning)*

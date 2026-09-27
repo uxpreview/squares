@@ -38,6 +38,14 @@ node tools/playtest.mjs {{LEVEL_ID}} check guesses.json
 
 It tells you which you found. Don't change your answers after seeing the score; report them as they were.
 
+## Part two, for a whodunit: the case
+
+If the playtest folder has a `case/` folder, the level is a mystery: you find evidence, then accuse a suspect. After the hunt (and after scoring it), look at the shots in `case/`, in order. They're the case file as a player meets it: the suspects, one suspect up close, accusing them, the mystery suspect with half its clues found, the file with every clue found, naming the culprit, and the reveal. Then answer:
+- Before the last shots: from the case file alone, **who do you think did it, and why?** When did you guess?
+- Would a player know **what to do** to solve it, without being told? What would they try first?
+- Did the **accusation scene** make you laugh? Which line landed, which didn't?
+- Does the **story hold together** once you've seen the reveal? Anything that doesn't add up?
+
 ## Report
 
 For each area, a line per find:
@@ -48,3 +56,4 @@ Then, overall:
 - The **three finds most in need of moving or relabeling**, and what you'd change.
 - Anything that was **confusing about the scene itself** (what's going on, where one area ends).
 - The **funniest thing** you noticed, and anything that fell flat.
+- For a whodunit, your answers to part two.

@@ -13,13 +13,16 @@
 //            and down) at 48 moments across its loop
 //   walkers  people on the map's timeline go through doors, never walls, and
 //            never faster than a run
+//   case     (whodunits) every clue in the case file is a find in the place,
+//            every suspect has an accusation scene, the lines are short
 //   screen   on a phone and a desktop, each area framed as a player sees it:
 //            every find on screen, clear of the find list and buttons, big
 //            enough to tap and not crowding another; then actually tapped
 //   speed    each area's frame time with the CPU slowed 4x (a mid-range phone),
 //            against a budget set by The Block
-//   sheet    a contact sheet: the whole place (every floor, key moments) and
-//            every area on desktop and phone, with every find ringed
+//   sheet    a contact sheet: the whole place (every floor, key moments),
+//            every area on desktop and phone with every find ringed, and for a
+//            whodunit its case file, an accusation and the reveal
 //
 // Everything lands in qa-out/<level>/: contact.jpg, report.md and every shot.
 // Exits with an error if anything failed. Warnings are worth a look but pass.
@@ -124,15 +127,27 @@ try {
       storeys: m.storeys ? w.storeys.map((s) => ({ id: s.id, name: s.name })).reverse() : [], // top floor first
       defaultStorey: w.storeys[w.defaultStorey] ? w.storeys[w.defaultStorey].id : null,
       order: w.order.map((i) => w.zones[i].id),
-      walkers: w.walkers.map((k) => k.name || k.id),
+      walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
       zones: w.zones.map((z) => ({
         id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '',
         finds: z.finds.map((f) => {
           // Moving: its spot changes over the loop (a goose's spot is always a function).
           const spots = [0, 7.3, 19.1, 41.7].map((t) => String(typeof f.at === 'function' ? f.at(t) : f.at));
-          return { id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1 };
+          return { id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null };
         }),
       })),
+      // A whodunit's case file (src/game/case.js): its suspects and their lines.
+      case: m.case ? {
+        culprit: m.case.culprit,
+        totals: w.totals,
+        suspects: m.case.suspects.map((c) => ({
+          id: c.id, name: c.name, hidden: !!c.hidden,
+          clues: [...(c.against || []), ...(c.alibi || [])].map((x) => x.find).filter(Boolean),
+          lines: (c.scene || []).map(([who, text]) => [who, text]),
+        })),
+        reveal: m.case.reveal.lines.map(([who, text]) => [who, text]),
+        names: m.case.names || {},
+      } : null,
     };
   });
   if (info.id !== level) throw new Error(`#/${level} didn't open. Either it failed to build (the page error below says why) or it isn't listed in src/maps/index.js.`);
@@ -193,6 +208,39 @@ try {
   }
   const things = info.zones.reduce((n, z) => n + z.finds.filter((f) => !f.goose).length, 0);
   if (findsOk) pass('finds', `${things} things and ${geese} ${geese === 1 ? 'goose' : 'geese'} across ${info.zones.length} areas.`);
+
+  // ---------- The case (whodunits) ----------
+  if (info.case) {
+    let caseOk = true;
+    const c = info.case;
+    const zoneOf = new Map(info.zones.flatMap((z) => z.finds.map((f) => [`${z.id}:${f.id}`, z.name])));
+    for (const sus of c.suspects) {
+      for (const key of sus.clues) if (!zoneOf.has(key)) { caseOk = false; fail('case', `${sus.name}: the clue "${key}" isn't a find in this place.`); }
+      if (sus.id !== c.culprit && !sus.lines.length) { caseOk = false; fail('case', `${sus.name} has no accusation scene (what they say when accused).`); }
+    }
+    for (const [who, text] of [...c.suspects.flatMap((x) => x.lines), ...c.reveal]) {
+      if (!c.names[who]) { caseOk = false; fail('case', `A line is said by "${who}", who has no name in the case file.`); }
+      if (text.length > 110) warn('case', `"${text.slice(0, 40)}..." is ${text.length} characters; a line reads best under 110.`);
+    }
+    const culprit = c.suspects.find((x) => x.id === c.culprit);
+    const rooms = new Set(culprit.clues.map((k) => zoneOf.get(k)));
+    if (caseOk) pass('case', `The case: ${c.suspects.length} suspects, ${c.totals.evidence} pieces of evidence and ${c.totals.curiosity} curiosities. Naming the culprit takes ${culprit.clues.length} clues across ${rooms.size} areas (${[...rooms].join(', ')}).`);
+  }
+
+  // ---------- Sound: every cue and the bed exist and build ----------
+  const sound = await page.evaluate(async () => {
+    const m = window.__squares.world.map;
+    if (!m.sound) return null;
+    const { check } = await import('/src/game/audio.js');
+    const names = [...new Set([...(m.sound.cues || []).map((q) => q.name), ...(m.sound.bed ? [m.sound.bed] : [])])];
+    const out = [];
+    for (const n of names) { const err = await check(n, { big: true }); if (err) out.push(`${n}: ${err}`); }
+    return { names, problems: out, cues: (m.sound.cues || []).length };
+  });
+  if (sound) {
+    for (const p of sound.problems) fail('sound', p);
+    if (!sound.problems.length) pass('sound', `${sound.cues} cues on the clock and the bed (${sound.names.join(', ')}) all play.`);
+  }
 
   // ---------- Errors: draw everything at every moment ----------
   step('Drawing every area across the loop');
@@ -343,9 +391,13 @@ try {
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     const times = [];
+    // Each view on its own frames: let it settle, reset the counters, then wait
+    // for a dozen frames (or 20 seconds) and take their average.
     const measure = async (label) => {
-      await p.waitForTimeout(2600);
-      times.push([label, await p.evaluate(() => window.__squares.perf.ms)]);
+      await p.waitForTimeout(1500);
+      await p.evaluate(() => { const f = window.__squares.perf; f.n = 0; f.total = 0; f.worst = 0; });
+      await p.waitForFunction(() => window.__squares.perf.n >= 12, null, { timeout: 20000 }).catch(() => {});
+      times.push([label, await p.evaluate(() => { const f = window.__squares.perf; return f.n ? f.total / f.n : f.ms; })]);
     };
     for (const s of info.storeys.length ? info.storeys : [{ id: null, name: 'The whole place' }]) {
       if (s.id) await p.evaluate((i) => window.__squares.play.setStorey(i), s.id);
@@ -419,6 +471,49 @@ try {
         await p.waitForTimeout(1600);
       };
       shots.areas.set(id, { t, desktop: await shot('desktop', id, prep), phone: await shot('phone', id, prep) });
+    }
+    if (info.case) {
+      step('Opening the case file');
+      const casePrep = (fn) => async (p) => { await p.evaluate(() => { const q = window.__squares; q.play.debug.finds = false; q.play.toOverview({ dur: 0.01 }); }); await fn(p); };
+      shots.case = [];
+      const open = async (p) => { await p.click('#tally-case'); await p.waitForTimeout(900); };
+      const speak = async (p) => {
+        for (let i = 0; i < 14 && !(await p.isVisible('.scene-end')); i++) { await p.click('.lines'); await p.waitForTimeout(140); }
+        await p.waitForTimeout(500);
+      };
+      const board = { desktop: await shot('desktop', 'case-board', casePrep(open)), phone: await shot('phone', 'case-board', casePrep(open)) };
+      shots.case.push({ label: 'The case file', ...board });
+      const wrong = c0 => async (p) => {
+        await p.click(`.suspect >> text=${c0}`);
+        await p.waitForTimeout(500);
+        await p.click('.case-accuse');
+        await speak(p);
+      };
+      const someone = info.case.suspects.find((x) => x.id !== info.case.culprit);
+      shots.case.push({ label: `Accusing ${someone.name}`, desktop: await shot('desktop', 'case-wrong', wrong(someone.name)), phone: await shot('phone', 'case-wrong', wrong(someone.name)) });
+      // Find every clue against the culprit, name them, and watch the reveal.
+      const solve = async (p) => {
+        await p.evaluate((keys) => {
+          const s = window.__squares, w = s.world;
+          for (const key of keys) {
+            const [zid, fid] = key.split(':');
+            const z = w.zones.find((x) => x.id === zid);
+            s.play.markFound(z, z.finds.find((f) => f.id === fid));
+          }
+        }, info.case.suspects.find((x) => x.id === info.case.culprit).clues);
+        await p.evaluate(() => window.__squares.play.casefile.close());
+        await open(p);
+        const culprit = info.case.suspects.find((x) => x.id === info.case.culprit);
+        await p.click(`.suspect >> text=${culprit.name}`);
+        await p.waitForTimeout(500);
+        await p.click('.case-accuse');
+        await speak(p);
+      };
+      shots.case.push({ label: 'Naming the culprit', desktop: await shot('desktop', 'case-right', solve), phone: await shot('phone', 'case-right', solve) });
+      const reveal = async (p) => { await p.click('.scene-end .big-btn'); await p.waitForTimeout(4200); };
+      shots.case.push({ label: 'The reveal', desktop: await shot('desktop', 'case-reveal', reveal), phone: await shot('phone', 'case-reveal', reveal) });
+      const after = async (p) => { await p.click('#complete-stay'); await p.waitForTimeout(1200); };
+      shots.case.push({ label: 'Case closed', desktop: await shot('desktop', 'case-closed', after), phone: await shot('phone', 'case-closed', after) });
     }
     await phone.ctx.close();
     await desk.ctx.close();
@@ -537,6 +632,11 @@ async function contactSheet(info, shots, thumb, file) {
     </div>
     <h2>Every area, desktop and phone</h2>
     <div class="areas">${areas}</div>
+    ${shots.case ? `<h2>The case</h2><div class="row">${shots.case.map((s) => `
+    <figure class="whole">
+      <div class="pair"><img class="d" src="${s.desktop}"><img class="p" src="${s.phone}"></div>
+      <figcaption>${esc(s.label)}</figcaption>
+    </figure>`).join('')}</div>` : ''}
     ${issues ? `<h2>For a look</h2><ul class="issues">${issues}</ul>` : ''}
   </body></html>`;
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1200 }, deviceScaleFactor: 1 });
@@ -548,7 +648,7 @@ async function contactSheet(info, shots, thumb, file) {
 
 function report(info, sheetFile) {
   const icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' };
-  const order = ['copy', 'colors', 'finds', 'errors', 'walkers', 'screen', 'speed'];
+  const order = ['copy', 'colors', 'finds', 'case', 'sound', 'errors', 'walkers', 'screen', 'speed'];
   const sorted = results.slice().sort((a, b) => order.indexOf(a.check) - order.indexOf(b.check) || ['fail', 'warn', 'pass'].indexOf(a.status) - ['fail', 'warn', 'pass'].indexOf(b.status));
   console.log('');
   for (const r of sorted) console.log(`${icon[r.status]}  ${r.check.padEnd(8)} ${r.text}`);

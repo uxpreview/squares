@@ -7,6 +7,8 @@
   --coral: #E3603F;
   --mustard: #EDB53B;
   --teal: #2E8B84;
+  --case-ink: #8E2F3A; /* a whodunit's accent; its case file sets its own */
+  --flash: #F4F6FF; /* lightning */
   --display: "Bagel Fat One", "Arial Black", system-ui, sans-serif;
   --body: "Rethink Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --gutter: 16px;
@@ -35,8 +37,9 @@ html, body {
   margin: 0;
   overflow: hidden;
   /* The paper as it looks with the grain printed over it. If Safari paints its
-     bars as a flat color, this is the color it picks, so they melt into the sheet. */
-  background: #ECE2CF;
+     bars as a flat color, this is the color it picks, so they melt into the sheet.
+     A place printed on something else (the Manor's night) sets --plate. */
+  background: var(--plate, #ECE2CF);
   color: var(--ink);
   font-family: var(--body);
   -webkit-font-smoothing: antialiased;
@@ -371,6 +374,7 @@ body[data-screen="places"] .places-list > li { animation: fade-up 0.5s cubic-bez
 .place-name { margin-top: 16px; font-size: clamp(30px, 4.4vw, 48px); }
 .place-tagline {
   margin: 8px 0 0;
+  max-width: calc(100vw - 2 * var(--gutter));
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -410,6 +414,27 @@ body[data-mode="zone"] .place-tagline { display: none; }
   100% { transform: scale(1); }
 }
 .icon-btn.tally-sound { width: 36px; height: 36px; }
+/* A whodunit's case file: the one tally you can press. */
+button.tally-case {
+  min-height: 40px;
+  padding: 0 12px 0 9px;
+  gap: 6px;
+  background: var(--ink);
+  color: var(--card);
+  box-shadow: 2px 2px 0 var(--case-ink);
+}
+button.tally-case:hover { background: var(--navy, #2C3A6B); }
+button.tally-case:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--case-ink); }
+.tally-case svg { color: var(--mustard); }
+.tally-case-label { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: 0.01em; }
+.tally-case.is-solved { background: var(--case-ink); box-shadow: 2px 2px 0 var(--ink); }
+.tally-case.nudge { animation: nudge 1.1s cubic-bezier(.3, 1.6, .5, 1) 2; }
+@keyframes nudge {
+  0%, 100% { transform: none; }
+  15% { transform: scale(1.14) rotate(-4deg); box-shadow: 0 0 0 6px rgba(237, 181, 59, 0.55); }
+  30% { transform: scale(1.08) rotate(3deg); }
+  45% { transform: none; }
+}
 .tally-sound svg { width: 18px; height: 18px; }
 #hud:not([hidden]) .tally { animation: fade-up 0.6s 0.2s cubic-bezier(.2, .8, .2, 1) both; }
 #hud:not([hidden]) .hint { animation: fade-up 0.6s 0.9s cubic-bezier(.2, .8, .2, 1) both; }
@@ -460,18 +485,24 @@ button.storey-btn:hover { background: var(--paper); }
 button.storey-btn:active { transform: none; }
 button.storey-btn[aria-pressed="true"] { background: var(--ink); color: var(--card); }
 #hud:not([hidden]) .storeys { animation: fade-up 0.6s 0.5s cubic-bezier(.2, .8, .2, 1) both; }
-/* Landscape phones: on the right, clear of the place name (and left of the
-   find list inside a room). */
+/* Landscape phones: on the right, clear of the place name. In a room the
+   list and room bar need the space, and the whole-map button gets you back. */
 @media (max-height: 500px) {
   .storeys { gap: 2px; padding: 3px; left: auto; right: calc(var(--gutter) + var(--tray-w, 0px)); }
   button.storey-btn { min-height: 40px; }
-}
-/* Phones: bottom right, clear of the house. In a room the list and room bar
-   need the space, and the whole-map button gets you back. */
-@media (max-width: 520px) {
-  .storeys { top: auto; left: auto; right: var(--gutter); bottom: calc(var(--safe-bottom) + 60px); margin: 0; }
   body[data-mode="zone"] .storeys { display: none; }
-  button.storey-btn { min-height: 40px; padding: 0 10px; font-size: 12.5px; }
+}
+/* Upright phones: a row along the bottom, left on the gutter like the hint
+   under it and the name up top, so it never sits on the house (the map is
+   framed above it). In a room the list and room bar need the space, and the
+   whole-map button gets you back. */
+@media (max-width: 520px) {
+  .storeys {
+    top: auto; left: var(--gutter); right: auto; bottom: calc(var(--safe-bottom) + 56px);
+    margin: 0; flex-direction: row;
+  }
+  body[data-mode="zone"] .storeys { display: none; }
+  button.storey-btn { min-height: 40px; padding: 0 14px; font-size: 12.5px; }
 }
 
 /* A place printed on a dark plate (a night): loose text sits on paper chips. */
@@ -480,7 +511,7 @@ body[data-plate="night"] .hint {
   padding: 4px 10px;
   background: var(--card);
   border: 2px solid var(--ink);
-  border-radius: 999px;
+  border-radius: 14px;
   color: var(--ink);
 }
 body[data-plate="night"] .hint { max-width: calc(100% - 2 * var(--gutter)); }
@@ -701,7 +732,32 @@ button.tray-grip:active { transform: none; }
   background: var(--card);
 }
 .find-mark.is-goose { border-radius: 4px; background: var(--mustard); }
+/* Evidence (a whodunit's clues): a magnifying glass. */
+.find-mark.is-evidence { position: relative; width: 14px; height: 14px; margin: 0 2px 2px 0; }
+.find-mark.is-evidence::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  width: 7px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
 .find-mark.is-found { background: var(--coral); border-color: var(--coral); }
+.find-mark.is-evidence.is-found::after { background: var(--coral); }
+.chip.is-selected .find-mark.is-evidence::after { background: var(--card); }
+.tray-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 8px 0 2px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.tray-legend span { display: inline-flex; align-items: center; gap: 8px; }
 .just-found .find-mark { animation: stamp 0.5s cubic-bezier(.2, 1.8, .4, 1); }
 @keyframes stamp {
   0% { transform: scale(0.3) rotate(-30deg); }
@@ -912,6 +968,213 @@ body[data-dock="right"] .story {
 .complete-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
 .complete .big-btn { font-size: 22px; min-height: 56px; }
 
+/* ---------- The case file (whodunits) ---------- */
+/* A sheet over the map: full screen on a phone, a panel on wide screens. */
+.case {
+  position: fixed;
+  z-index: 25;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(31, 39, 73, 0.55);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+body[data-case] .storeys,
+body[data-case] .tray { visibility: hidden; }
+.case-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--card);
+}
+@media (min-width: 700px) and (min-height: 560px) {
+  .case-sheet {
+    width: min(780px, calc(100% - 48px));
+    height: auto;
+    max-height: calc(100% - 48px);
+    margin: 24px 0;
+    border: 2px solid var(--ink);
+    border-radius: 22px;
+    box-shadow: 6px 6px 0 var(--case-ink);
+    overflow: hidden;
+  }
+}
+.case-x {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--safe-top) + 12px);
+  right: 12px;
+}
+@media (min-width: 700px) and (min-height: 560px) { .case-x { top: 14px; right: 14px; } }
+.case-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(var(--safe-top) + 20px) 18px calc(var(--safe-bottom) + 28px);
+}
+@media (min-width: 700px) and (min-height: 560px) { .case-body { padding: 26px 30px 30px; } }
+.case-head { padding-right: 52px; }
+.case-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+.case-title {
+  margin: 6px 0 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(26px, 6.4vw, 36px);
+  line-height: 1.02;
+  text-wrap: balance;
+}
+.case-title:focus { outline: none; }
+.case-intro { margin: 10px 0 0; max-width: 34em; font-size: 14.5px; font-weight: 600; line-height: 1.45; color: var(--ink-soft); text-wrap: pretty; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.case-chip {
+  padding: 4px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.case-chip.is-evidence { background: var(--mustard); }
+
+.suspects {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 620px) { .suspects { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+button.suspect {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 12px 8px 14px;
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--ink);
+  text-align: center;
+}
+button.suspect:hover { background: #F6EDD6; }
+.suspect .portrait { width: 100%; aspect-ratio: 5 / 6; display: block; }
+.suspect-name { margin-top: 8px; font-family: var(--display); font-size: 17px; line-height: 1.05; }
+.suspect-role { margin-top: 4px; font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--ink-soft); }
+.suspect-clues { margin-top: 8px; padding: 2px 8px; border-radius: 999px; background: var(--ink); color: var(--card); font-size: 12px; font-weight: 700; }
+button.suspect.is-hidden { border-style: dashed; background: #EFE6D2; }
+button.suspect.is-cleared .portrait { filter: saturate(0.55) opacity(0.85); }
+button.suspect.is-ready { box-shadow: 3px 3px 0 var(--case-ink), 0 0 0 4px var(--mustard); }
+button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
+
+.stamp {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 2.5px solid currentColor;
+  border-radius: 6px;
+  background: rgba(251, 246, 234, 0.9);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+}
+.stamp.is-cleared { color: var(--teal); }
+.stamp.is-guilty { color: var(--case-ink); }
+.stamp.is-big { padding: 4px 16px; border-width: 4px; font-size: 26px; letter-spacing: 0.14em; }
+.case-foot { margin: 18px 0 0; font-size: 13.5px; font-weight: 600; color: var(--ink-soft); text-align: center; text-wrap: balance; }
+
+.case-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 0 14px 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.case-back svg { width: 18px; height: 18px; }
+.suspect-top { display: flex; align-items: center; gap: 18px; margin-top: 16px; }
+.suspect-top .portrait.is-big { flex: none; width: min(150px, 38vw); aspect-ratio: 5 / 6; }
+.suspect-who .stamp { margin-top: 12px; }
+.clues { margin: 18px 0 0; }
+.clues dt {
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+.clues dd { margin: 5px 0 0; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.clues ul { margin: 0; padding: 0; list-style: none; }
+.clues li { position: relative; padding: 3px 0 3px 22px; }
+.clues li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.clues li.is-found::before { background: var(--coral); border-color: var(--coral); }
+.clues li.is-missing { color: var(--ink-soft); font-style: italic; font-weight: 500; }
+.case-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 24px; }
+.case-accuse { min-width: min(100%, 300px); box-shadow: 4px 4px 0 var(--case-ink); }
+.case-accuse:active { box-shadow: 0 0 0 var(--case-ink); }
+.case-note { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-soft); text-align: center; }
+
+/* The accusation, as a conversation: the inspector on the left, the accused on the right. */
+.lines { display: flex; flex-direction: column; gap: 12px; margin: 20px 0 0; padding: 0; list-style: none; cursor: pointer; }
+.line { display: flex; flex-direction: row-reverse; align-items: flex-end; gap: 10px; }
+.line.is-pidge { flex-direction: row; }
+.portrait.is-face { flex: none; width: 54px; height: 64px; }
+.bubble {
+  max-width: 34em;
+  margin: 0;
+  padding: 9px 14px 11px;
+  border: 2px solid var(--ink);
+  border-radius: 16px 16px 4px 16px;
+  background: var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.line.is-pidge .bubble { border-radius: 16px 16px 16px 4px; background: var(--card); }
+.bubble-who {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--case-ink);
+}
+.bubble-text { display: block; margin-top: 2px; font-size: 15.5px; font-weight: 600; line-height: 1.38; text-wrap: pretty; }
+.scene-end { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 24px; }
+.scene-skip { margin-top: 14px; opacity: 0.8; }
+
+/* The flash of lightning when the case closes. */
+.flash {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  background: var(--flash);
+  pointer-events: none;
+  opacity: 0;
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;
@@ -955,10 +1218,24 @@ body[data-dock="right"] .story {
   .room-name { font-size: 15.5px; }
 }
 
-/* Portrait phones: the overview has room for a proper poster title. */
+/* Portrait phones: the name on one line, so the map gets the screen. */
 @media (max-width: 520px) and (orientation: portrait) {
-  .place-name { margin-top: 20px; font-size: clamp(40px, 12vw, 58px); }
-  body[data-mode="overview"] .place-tagline { font-size: 14px; margin-top: 10px; }
+  .place-name { margin-top: 14px; font-size: clamp(26px, 8vw, 34px); }
+}
+
+/* Phones on their side: the name joins the top row and the tagline steps
+   out, so the map gets the height. */
+@media (max-height: 500px) {
+  .place { flex-direction: row; align-items: center; gap: 14px; }
+  .place-name {
+    margin-top: 0; font-size: 22px;
+    text-shadow:
+      0 1.5px 0 var(--card), 1.5px 0 0 var(--card), 0 -1.5px 0 var(--card), -1.5px 0 0 var(--card),
+      1.1px 1.1px 0 var(--card), -1.1px 1.1px 0 var(--card), 1.1px -1.1px 0 var(--card), -1.1px -1.1px 0 var(--card),
+      2.5px 2.5px 0 var(--coral);
+  }
+  .place-tagline { display: none; }
+  .hint { bottom: calc(var(--safe-bottom) + 12px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -51,11 +51,16 @@ export default {
   zones,
   order,
   cutaway: { front: true },
-  // Portrait phones are width-bound: let the print marks fall off the sides so
-  // the rooms themselves get the extra size.
-  overview: (portrait) => {
-    const pad = portrait ? 1.5 : 8;
-    return [-EXTENT - pad, EXTENT + pad, -WALL * ZK - 9, EXTENT + SLAB * ZK + 7];
+  // On a phone the block fills the screen instead of floating in paper: held
+  // upright, the print fills the height (its marks just inside the top and
+  // bottom, clear of the text) and the side rooms run off the edges, a swipe
+  // away; on its side, the rooms fill the width. (A box narrowed the other way
+  // is what makes the framing fill.) On a big screen, the whole print.
+  overview: (portrait, storey, short) => {
+    const Y0 = -WALL * ZK - 9, Y1 = EXTENT + SLAB * ZK + 7, cy = (Y0 + Y1) / 2;
+    if (portrait) return [-1, 1, Y0, Y1];
+    if (short) return [-EXTENT - 2, EXTENT + 2, cy - 1, cy + 1];
+    return [-EXTENT - 8, EXTENT + 8, Y0, Y1];
   },
   backdrop,
   sky,

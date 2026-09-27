@@ -1,7 +1,7 @@
 # Gooseworth Manor
 
-> Status: **Greybox, at gate 2** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] · greybox [ ] · preview [ ]
+> Status: **Preview, at gate 3** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] · greybox [x] · preview [ ]
 
 ## In one line
 Lord Gooseworth's 80th birthday dinner, a stormy night, a body in the library, and six guests who each had a very good reason.
@@ -92,7 +92,7 @@ Dark comedy: a body in a trifle, taxidermy, a ghost, poison. No gore; death is p
 - [x] **Walls down:** inside walls cut low in the overview, full height inside a room. *(Session 2: `R.walls`, `cutaway.walls`.)*
 - [x] **Storeys:** show one floor at a time with a floor switch; the others fade. *(Session 2: `storeys` in the map, and a floor switch.)*
 - [x] **Door handoffs:** a shared timeline for the evening, so a guest leaving one room appears in the next. *(Session 2: `walkers`, `schedule()`, doors in `plan.js`.)*
-- [ ] **Evidence and accusation:** finds can be grouped (evidence, curiosities); a place's goal can be "solve the case"; an accusation screen with suspect portraits; the reveal. *(Session 3.)*
+- [x] **Evidence and accusation:** finds can be grouped (evidence, curiosities); a place's goal can be "solve the case"; an accusation screen with suspect portraits; the reveal. *(Session 3: `game/case.js`, `ui/casefile.js`, this level's `case.js`.)*
 - [x] **Weather:** rain and lightning as a place-level effect. *(Session 2: `engine/weather.js`.)*
 - [x] **Level pipeline tools:** scaffold, style sheet, QA script, contact sheet, prompt templates (see PROCESS.md). *(Session 2.)*
 
@@ -130,10 +130,10 @@ Doors: hall to billiard room, dining room, conservatory and the front door; libr
 | Area | Finds |
 | --- | --- |
 | Library | Goose feathers on the rug, A pill bottle with beak marks, A wine glass with lipstick |
-| Kitchen | Webbed footprints in flour, A kitchen timer, A sausage on the run (it moves, with the dog) |
-| Taxidermy Room | An order form for a goose, An empty stand marked GOOSE, The owl that turns its head |
+| Kitchen | Webbed footprints in flour, A kitchen timer, A stolen sausage (it moves, with the dog) |
+| Taxidermy Room | An order form for a goose, An empty display stand, The owl that turns its head |
 | Master Bedroom | The Lord's diary, The new will |
-| Guest Rooms | Dr. Crane's bag, An empty tin of mints, The family silver, half packed, A duelling pistol |
+| Guest Rooms | Dr. Crane's medical bag, An empty tin of mints, The family silver, half packed, A duelling pistol |
 | Grand Hall | Mrs. Hatchett's rolling pin, and the goose (by the coats, looking innocent) |
 | Billiard Room | A pawn ticket, Rupert's shoes |
 | Dining Room | A false tooth in the soup, A place set for the goose |
@@ -141,7 +141,17 @@ Doors: hall to billiard room, dining room, conservatory and the front door; libr
 | Cellar | Jenkins's resignation letter, A poster about a missing goose |
 | The Grounds | A soaked parcel for G. Goose, The gardener's compass |
 
-Not in the greybox yet (session 3): the art, the evidence and curiosities groups, the accusation and reveal, lightning showing the past, the Lord's ghost, thunder and the sound bed.
+All of that shipped in session 3 (below).
+
+## Session 3: the art and the case
+
+**How it plays.** Every find the case file names is **evidence** (17, marked with a magnifying glass); the rest are **curiosities** (9), plus the goose by the coats in the hall. The **Case** button counts evidence and opens the case file: seven portrait cards (the six suspects and "Someone else?"). Tap one for their motive, what points at them and their alibi, and Accuse. A wrong accusation plays as a conversation with Inspector Pidge (the alibi, and a joke) and stamps them Cleared; finding their alibi clears them too. "Someone else?" is a plain shadow with a question mark ("Not on the guest list") until all six clues against the goose are found (Library 2, Kitchen 1, Taxidermy Room 2, Master Bedroom 1); naming it before then gets "I can't arrest a question mark." Naming the goose: Pidge's summing up, GUILTY, a flash of lightning, and the camera cuts to dinner, where the goose sits in the Lord's chair wearing the monocle from the Courier's parcel. Then "Case closed".
+
+**The mechanic.** Every lightning flash shows dark shapes of where everyone stood at midnight (88 s), each in the room they were in, and a goose-shaped one by the body in the library.
+
+**Sound.** Rain all night; thunder after each strike (sooner and louder for the big ones); a distant organ at 57 s; the lights' clunk at 82; the grandfather clock striking midnight; a stamp and a sting for the verdict.
+
+**The art.** Eleven rooms and the outside, drawn by parallel agents, then one art direction pass (see "Decisions" 11 to 20). Everything draws from `ROOM` and `MAT` in the style sheet.
 
 ## Decisions
 Brief approved by the owner. The three open questions were settled with the lead's recommendations as defaults (the owner can still change them at the greybox gate):
@@ -156,4 +166,31 @@ Greybox choices (session 2), for the owner to confirm or change at gate 2:
 7. **The cellar is always visible** in the cut through the ground, as well as from the floor switch.
 8. **Guest Rooms** holds the Brigadier's and Dr. Crane's rooms and the corridor; Rupert's half-packed silver is in the corridor, not in a room of his own.
 9. **Outdoors, the house stays whole:** stepping into the grounds lifts nothing, so the upstairs shows over the front wall.
-10. **Tagline:** "A stormy night, a body in the trifle, six suspects and a goose." 
+10. **Tagline:** "A stormy night, a body in the trifle, six suspects and a goose."
+
+Owner approved the greybox (gate 2) at the start of session 3.
+
+Session 3 choices, for the owner to confirm or change at gate 3:
+11. **Accuse any time, but the culprit needs the evidence.** Wrong accusations are free and play the alibi; the goose stays "Someone else?" until all six clues against it are found. That keeps "accuse any time" and "evidence needed" both true.
+12. **Evidence is whatever the case file names**; everything else is a curiosity. The goose find is separate and doesn't count toward solving.
+13. **The reveal happens at dinner**: the clock jumps back to 9 s under a flash of lightning so the whole table is there to see the goose in the Lord's chair.
+14. **A closed circle:** no extra people in the house beyond the brief's cast. Rooms get their life from creatures, stuffed animals, portraits, weather and light.
+15. **Name tags over the cast** stay (small, only when zoomed in): in a whodunit, knowing who's who matters. Easy to turn off (`readable` in `evening.js`).
+16. **The conservatory catches sheet lightning** the rest of the house doesn't, so Philippa and the gardener change pose every 5 to 8 seconds, not just on the big strikes.
+17. **Mrs. Hatchett turns round every 6 seconds**, and the dog only steals when her back is turned.
+18. **Repeats cut by the art director:** one stag head, four cats (none alike), one tiger rug (the taxidermy room's), one set of moving portrait eyes (the hall's). The house still has three portraits of the Lord (hall, bedroom, library), each with a different joke, and party hats and "80" everywhere, since it's his birthday.
+19. **The goose's trail** of floury webbed prints runs from the kitchen flour, through the dining room, to where it stood by the body.
+20. **Playtest fixes:** "Dr. Crane's bag" is now "Dr. Crane's medical bag" (his trunk is labelled too), "A sausage on the run" is now "A stolen sausage" (the dog is often mid-leap, not running), bigger tap areas where the drawn object outgrew its circle (the silver, the bag, the pistol, the mints, the will), and a monocle on the end of the chain poking out of the parcel so the ending has a setup.
+21. **The goose stays in the Grand Hall** (by the coats) rather than roaming the house; a find still belongs to one area (ROADMAP E10). 
+
+Gate 3, first review (the owner): decisions 11 to 21 stand. Changes asked for, and made on the same PR:
+22. **The mystery card gives nothing away.** "Someone else?" is a plain head-and-shoulders shadow with a question mark, and its line is "Not on the guest list" (it was goose-shaped, "Small, feathered, looks innocent", and the playtester named the goose from the first screen). The goose-shaped echo by the body at each flash stays: the clue is in the house, not the menu.
+23. **No captions that repeat a find's name.** Gone: "NEW WILL" (the will is a handwritten page now; the crossed-out "OLD WILL" in the bin stays as a decoy), "I RESIGN." (Jenkins's letter keeps its date and signature), "ORDER FORM" (the form keeps "1 x GOOSE, STUFFED, BY TUESDAY"), "MINTS" (a plain lid). "An empty stand marked GOOSE" is now "An empty display stand": every stand in the room has a plaque, so its GOOSE plaque is a clue rather than a caption (and the room's story no longer mentions it).
+24. **The night is the whole screen.** No paper around the plate, no registration marks, caption or ink swatches: the storm, the haze and the night run to every edge, and the page and the browser's bars take the night's ink (`plate.paper`).
+25. **Framed to fill a phone.** Upright, the house edge to edge; on its side, the rooms fill the height (the tower runs off the top); on a desk, the whole picture. The floor switch is a row along the bottom on an upright phone, and steps out of the way inside a room on a phone on its side.
+26. **The camera has soft edges and a calm start** (for every place): drag past the edge and it gives, let go and it springs back; the rooms fade in with the floors already in place, with no drop or bounce.
+
+Gate 3, second look (the owner, on an iPhone):
+27. **Text on a phone lines up on the left.** The floor switch sat centered between a left-aligned name and hint; it's on the gutter now, like everything else.
+28. **Next session, before the Manor ships: a difficulty pass.** The owner: "The clues are very easy to find." Most evidence is drawn big, alone on open floor and in strong contrast, so it's spotted at a glance, and the find list already says which room. The pass: hide each piece of evidence properly (among look-alikes, like several glasses and only one with lipstick, or several papers and only one will; in clutter at its own scale; partly behind things; in the room's own inks), keep each tap area on the object, and aim for the 20 to 90 seconds a find that PROCESS.md asks for. A few curiosities can stay easy. Prove it with a fresh blind playtest that reports how hard each find was to spot, and QA.
+29. **To check on a real iPhone:** in Safari, the strip behind the bottom toolbar showed paper, not night (the top was right). The guess: Safari picks that color from the page before the Manor's night is set and doesn't update it. Needs a device to confirm.

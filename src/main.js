@@ -20,6 +20,7 @@ import { attachInput } from './engine/input.js';
 import { buildWorld } from './engine/world.js';
 import { createStore } from './game/store.js';
 import { createPlay } from './game/play.js';
+import { setUp } from './game/case.js';
 import { setMuted } from './game/audio.js';
 import { createScreens } from './ui/screens.js';
 
@@ -32,11 +33,15 @@ setMuted(!store.settings.sound);
 
 // The scene's clock, in seconds. Everything drawn is a pure function of it, and
 // taps are checked against the same time. set(t) jumps to any moment (the
-// screenshot and QA tools use it to see a place at, say, 90 seconds in).
+// screenshot and QA tools use it to see a place at, say, 90 seconds in);
+// freeze(t) stops it there (for catching a flash of lightning), and set()
+// starts it again.
 const clock = {
   shift: 0,
-  now: () => performance.now() / 1000 + clock.shift,
-  set: (t) => { clock.shift = t - performance.now() / 1000; },
+  frozen: null,
+  now: () => clock.frozen ?? performance.now() / 1000 + clock.shift,
+  set: (t) => { clock.frozen = null; clock.shift = t - performance.now() / 1000; },
+  freeze: (t = clock.now()) => { clock.frozen = t; },
 };
 
 // ---------- Maps ----------
@@ -46,7 +51,8 @@ function getWorld(id) {
   if (!worlds.has(id)) {
     const meta = MAPS.find((m) => m.id === id);
     if (!meta) return Promise.reject(new Error('No map ' + id));
-    worlds.set(id, meta.load().then((mod) => buildWorld(mod.default)));
+    // Build it, then work out its format (its goal, how its finds group).
+    worlds.set(id, meta.load().then((mod) => setUp(buildWorld(mod.default))));
   }
   return worlds.get(id);
 }
@@ -66,6 +72,7 @@ const play = createPlay({
   store,
   reduceMotion,
   clock: clock.now,
+  setClock: clock.set,
   on: {
     exit: () => go('#/maps'),
     complete: (world) => screens.showComplete(world),
@@ -151,11 +158,12 @@ window.addEventListener('hashchange', route);
 // ---------- Frame loop ----------
 let lastT = 0;
 function frame(now) {
-  const t = now / 1000 + clock.shift;
+  const t = clock.frozen ?? now / 1000 + clock.shift;
   const dt = Math.min(0.05, now / 1000 - lastT || 0);
   lastT = now / 1000;
   camera.step(now);
   input.step(dt);
+  play.tick(t);
   renderer.render(play.world, {
     t,
     now,
@@ -178,9 +186,13 @@ window.addEventListener('resize', () => {
 async function boot() {
   try {
     await Promise.race([
+      // Every weight the HUD uses: the map is framed around the text, so it
+      // shouldn't change size after the camera has settled.
       Promise.all([
         document.fonts.load('20px "Bagel Fat One"'),
         document.fonts.load('20px "Rethink Sans"'),
+        document.fonts.load('600 20px "Rethink Sans"'),
+        document.fonts.load('700 20px "Rethink Sans"'),
       ]),
       new Promise((r) => setTimeout(r, 1500)),
     ]);
