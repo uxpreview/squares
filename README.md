@@ -37,9 +37,9 @@ src/
     weather.js       A storm (lightning on a schedule), bolts, rain
     zone.js          Turns a zone file into layers; walls that drop down; lights and dark
     world.js         Places a map's zones in space: storeys, doors, "which zone did I tap"
-    camera.js        Framing, flights between views, the title-screen drift
-    renderer.js      Draws a world every frame; cutaways and floors lifting; the intro
-    input.js         Touch, mouse and wheel
+    camera.js        Framing, flights between views, the title-screen drift, the map's soft edges
+    renderer.js      Draws a world every frame; cutaways and floors lifting; the fade-in
+    input.js         Touch, mouse and wheel; stretching past an edge and springing back
   game/            The rules
     play.js          Playing a map: tapping, finding, hints, tallies, the floor switch, the reveal
     case.js          Level formats: a place's goal, evidence and curiosities, accusations
@@ -92,6 +92,10 @@ docs/
 | Change a sound, or add one | `src/game/audio.js` |
 | Change what finishing a place says | `words.complete` in that place's `map.js`; the card itself is in `src/ui/screens.js` |
 | Change the title screen's drift | `startDrift` in `src/engine/camera.js` |
+| How far the map stretches past its edge | `stretch` at the top of `src/engine/camera.js`; how it springs back and brakes is `step` in `src/engine/input.js` |
+| How far you can pan and zoom out | The map's box (`mapBox` in `src/game/play.js`: every zone plus the overview) and `clampZoom` next to it |
+| What a place's overview frames (on a phone, a desk, a phone on its side) | `overview` in its `map.js`; places without one use `overviewBox` in `src/engine/world.js`, which fills a phone |
+| How a place fades in when it opens | `startIntro` and `INTRO_MS` in `src/engine/renderer.js` |
 | Change how floors lift away (and dim below) in a building | `LIFT`, `GHOST` and `BELOW` at the top of `src/engine/renderer.js` |
 | Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |

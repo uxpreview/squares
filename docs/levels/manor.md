@@ -131,7 +131,7 @@ Doors: hall to billiard room, dining room, conservatory and the front door; libr
 | --- | --- |
 | Library | Goose feathers on the rug, A pill bottle with beak marks, A wine glass with lipstick |
 | Kitchen | Webbed footprints in flour, A kitchen timer, A stolen sausage (it moves, with the dog) |
-| Taxidermy Room | An order form for a goose, An empty stand marked GOOSE, The owl that turns its head |
+| Taxidermy Room | An order form for a goose, An empty display stand, The owl that turns its head |
 | Master Bedroom | The Lord's diary, The new will |
 | Guest Rooms | Dr. Crane's medical bag, An empty tin of mints, The family silver, half packed, A duelling pistol |
 | Grand Hall | Mrs. Hatchett's rolling pin, and the goose (by the coats, looking innocent) |
@@ -145,7 +145,7 @@ All of that shipped in session 3 (below).
 
 ## Session 3: the art and the case
 
-**How it plays.** Every find the case file names is **evidence** (17, marked with a magnifying glass); the rest are **curiosities** (9), plus the goose by the coats in the hall. The **Case** button counts evidence and opens the case file: seven portrait cards (the six suspects and "Someone else?"). Tap one for their motive, what points at them and their alibi, and Accuse. A wrong accusation plays as a conversation with Inspector Pidge (the alibi, and a joke) and stamps them Cleared; finding their alibi clears them too. "Someone else?" is a goose-shaped shadow until all six clues against the goose are found (Library 2, Kitchen 1, Taxidermy Room 2, Master Bedroom 1); naming it before then gets "I can't arrest a question mark." Naming the goose: Pidge's summing up, GUILTY, a flash of lightning, and the camera cuts to dinner, where the goose sits in the Lord's chair wearing the monocle from the Courier's parcel. Then "Case closed".
+**How it plays.** Every find the case file names is **evidence** (17, marked with a magnifying glass); the rest are **curiosities** (9), plus the goose by the coats in the hall. The **Case** button counts evidence and opens the case file: seven portrait cards (the six suspects and "Someone else?"). Tap one for their motive, what points at them and their alibi, and Accuse. A wrong accusation plays as a conversation with Inspector Pidge (the alibi, and a joke) and stamps them Cleared; finding their alibi clears them too. "Someone else?" is a plain shadow with a question mark ("Not on the guest list") until all six clues against the goose are found (Library 2, Kitchen 1, Taxidermy Room 2, Master Bedroom 1); naming it before then gets "I can't arrest a question mark." Naming the goose: Pidge's summing up, GUILTY, a flash of lightning, and the camera cuts to dinner, where the goose sits in the Lord's chair wearing the monocle from the Courier's parcel. Then "Case closed".
 
 **The mechanic.** Every lightning flash shows dark shapes of where everyone stood at midnight (88 s), each in the room they were in, and a goose-shaped one by the body in the library.
 
@@ -182,3 +182,10 @@ Session 3 choices, for the owner to confirm or change at gate 3:
 19. **The goose's trail** of floury webbed prints runs from the kitchen flour, through the dining room, to where it stood by the body.
 20. **Playtest fixes:** "Dr. Crane's bag" is now "Dr. Crane's medical bag" (his trunk is labelled too), "A sausage on the run" is now "A stolen sausage" (the dog is often mid-leap, not running), bigger tap areas where the drawn object outgrew its circle (the silver, the bag, the pistol, the mints, the will), and a monocle on the end of the chain poking out of the parcel so the ending has a setup.
 21. **The goose stays in the Grand Hall** (by the coats) rather than roaming the house; a find still belongs to one area (ROADMAP E10). 
+
+Gate 3, first review (the owner): decisions 11 to 21 stand. Changes asked for, and made on the same PR:
+22. **The mystery card gives nothing away.** "Someone else?" is a plain head-and-shoulders shadow with a question mark, and its line is "Not on the guest list" (it was goose-shaped, "Small, feathered, looks innocent", and the playtester named the goose from the first screen). The goose-shaped echo by the body at each flash stays: the clue is in the house, not the menu.
+23. **No captions that repeat a find's name.** Gone: "NEW WILL" (the will is a handwritten page now; the crossed-out "OLD WILL" in the bin stays as a decoy), "I RESIGN." (Jenkins's letter keeps its date and signature), "ORDER FORM" (the form keeps "1 x GOOSE, STUFFED, BY TUESDAY"), "MINTS" (a plain lid). "An empty stand marked GOOSE" is now "An empty display stand": every stand in the room has a plaque, so its GOOSE plaque is a clue rather than a caption.
+24. **The night is the whole screen.** No paper around the plate, no registration marks, caption or ink swatches: the storm, the haze and the night run to every edge, and the page and the browser's bars take the night's ink (`plate.paper`).
+25. **Framed to fill a phone.** Upright, the house edge to edge; on its side, the rooms fill the height (the tower runs off the top); on a desk, the whole picture. The floor switch is a row along the bottom on an upright phone, and steps out of the way inside a room on a phone on its side.
+26. **The camera has soft edges and a calm start** (for every place): drag past the edge and it gives, let go and it springs back; the rooms fade in with the floors already in place, with no drop or bounce.

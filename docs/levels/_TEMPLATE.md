@@ -22,7 +22,7 @@ One row per area (a room, a stretch, a floor). Each needs its own running gag.
 Who lives here. Named characters (with a line each), and the crowd.
 
 ## Palette and plate
-Paper color and six inks (hex), and any special treatment (night, weather, vignette edge).
+Paper color and six inks (hex), and any special treatment (night, weather). The picture runs to every edge of the screen (a night is the whole screen, not a panel on paper), and on a phone the overview fills it.
 
 ## Alive
 Everything that moves: people's routines, machines, weather, light, particles, sound bed.
