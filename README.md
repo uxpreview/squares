@@ -41,7 +41,7 @@ src/
     renderer.js      Draws a world every frame; cutaways and floors lifting; the fade-in
     input.js         Touch, mouse and wheel; stretching past an edge and springing back
   game/            The rules
-    play.js          Playing a map: tapping, finding, hints, tallies, the floor switch, the reveal
+    play.js          Playing a map: tapping, finding, hints, tallies, the floor tags, the reveal
     case.js          Level formats: a place's goal, evidence and curiosities, accusations
     store.js         Saved progress and settings (and upgrading old saves)
     audio.js         Every sound, synthesized (honk, pen, thunder, rain...)
@@ -101,7 +101,7 @@ docs/
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |
 | A house's floors, and which one it opens on | `storeys` and `storey` in its `map.js` (the Manor: `src/maps/manor/map.js`) |
 | How low inside walls drop, how far floors lift | `cutaway.walls`, `cutaway.lift`, `cutaway.ghost` in the map's `map.js` |
-| Where the floor switch sits | "Floor switch" in `styles.css` |
+| How the floor tags look | "Floors" in `styles.css` (where they sit: `placeFloors` in `play.js`) |
 | Who's where at the Manor, and when | `src/maps/manor/evening.js` (doors and stairs are in `plan.js`) |
 | When the Manor's lights go out, how often lightning strikes | `lightsOut` and `storm` in `src/maps/manor/style.js` |
 | What QA expects of a place (finds per area, key moments) | `qa` in its `map.js`; the checks and budgets are at the top of `tools/qa.mjs` |
@@ -126,7 +126,7 @@ What a map file holds (`src/maps/beach/map.js`; see `tower/map.js` or `manor/map
    - `cutaway`: `{ front: true }` cuts away zones in front of the one you're in (the block). `{ above: true }` lifts zones above it out of the way (a building). `walls: 1.2` drops inside walls to waist height except in the room you're in (a house). Use `{}` for an open place where nothing is in the way.
    - `words`: what the hint line and messages say ("Tap a stretch of beach...").
    - `backdrop` and `sky` (optional): art drawn under and over the whole place. See `tower/ambient.js`.
-   - `storeys` (optional): named floors, for a floor switch (see the Manor).
+   - `storeys` (optional): named floors, with tags on the house to change them (see the Manor).
    - `walkers` (optional): people who walk from area to area on one clock (see `manor/evening.js`).
    - `case` (optional): makes the place a whodunit (see `manor/case.js` and the top of `src/game/case.js`).
    - `sound` (optional): a bed that loops while you're there, and cues on the place's clock.

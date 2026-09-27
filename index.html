@@ -72,7 +72,7 @@
   <header id="place" class="place">
     <button id="to-places" class="back-btn" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Places</span>
+      <span id="to-places-label">Places</span>
     </button>
     <h1 id="place-name" class="place-name"></h1>
     <p id="place-tagline" class="place-tagline"></p>
@@ -101,14 +101,12 @@
 
   <p id="hint" class="hint"></p>
 
-  <!-- Places with floors: one button per storey, top floor first. -->
-  <nav id="storeys" class="storeys" aria-label="Floors" hidden></nav>
+  <!-- Places with floors: tags pinned to the house, to the floor above and the
+       floor below the one you're looking at. They ride along with the picture. -->
+  <nav id="floors" class="floors" aria-label="Floors" hidden></nav>
 
   <!-- Inside a zone: where you are, its story, and getting around. -->
   <nav id="roombar" class="roombar" aria-label="Where you are" hidden>
-    <button id="all" class="icon-btn" type="button" aria-label="The whole map">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
-    </button>
     <button id="prev" class="icon-btn" type="button" aria-label="Previous">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>

@@ -174,7 +174,8 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     check('faded floor above is on screen to tap', false, 'y=' + Math.round(up[1]));
   }
 
-  await page.click('#all');
+  check('in a room, back says where it goes', (await page.textContent('#to-places-label')) === 'The Walk-Up');
+  await page.click('#to-places');
   await wait(page, 1700);
   const back = await S(page, () => window.__squares.world.zones.map((z) => z.veil));
   check('floors settle back in the overview', back.every((v) => v < 0.05), back.join(','));
@@ -237,8 +238,10 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return [m && m[1], window.__squares.world.map.plate.paper];
   });
   check("index.html paints the page in the Manor's plate before it draws", early[0] === early[1], JSON.stringify(early));
-  const floors = await page.$$eval('#storeys button', (bs) => bs.map((b) => [b.textContent, b.getAttribute('aria-pressed')]));
-  check('a house shows a floor switch, top floor first', floors.length === 3 && floors[0][0] === 'Upstairs' && floors[1][1] === 'true', JSON.stringify(floors));
+  const tags = () => page.$$eval('#floors .floor-tag', (bs) => bs.filter((b) => !b.hidden).map((b) => b.textContent));
+  const floors = await tags();
+  check('a house has tags on it to the floor above and the floor below', floors.join() === 'Upstairs,Cellar', JSON.stringify(floors));
+  check('the hint says how to play before your first find', await page.isVisible('#hint'));
   const lifted = () => S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.veil * 100) / 100])));
   let v = await lifted();
   check('on the ground floor, the floor above is lifted away', v['guest-rooms'] > 0.9 && v['grand-hall'] === 0 && v.grounds === 0, JSON.stringify(v));
@@ -254,11 +257,17 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const walls = await S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.wallK * 100) / 100])));
   check('its walls rise; the rooms around keep theirs down', walls['dining-room'] === 1 && walls['grand-hall'] === 0 && walls.kitchen === 0, JSON.stringify(walls));
 
-  await page.click('#storeys button >> text=Upstairs');
+  check('in a room, the floor tags step out', !(await page.isVisible('#floors')));
+  await page.click('#to-places');
+  await wait(page, 1800);
+  check('back from a room goes out to the whole house', (await S(page, () => location.hash)) === '#/manor');
+  await page.click('.floor-up');
   await wait(page, 1800);
   v = await lifted();
-  check('the floor switch goes up a floor', (await S(page, () => location.hash)) === '#/manor' && v['guest-rooms'] < 0.05, JSON.stringify(v));
-  await page.click('#storeys button >> text=Cellar');
+  check('the Upstairs tag goes up a floor', v['guest-rooms'] < 0.05 && (await tags()).join() === 'Ground floor', JSON.stringify(v));
+  await page.click('.floor-down');
+  await wait(page, 1800);
+  await page.click('.floor-down');
   await wait(page, 1800);
   v = await lifted();
   check('and down to the cellar, lifting everything above', v['grand-hall'] > 0.9 && v['guest-rooms'] > 0.9 && v.cellar === 0 && v.grounds === 0, JSON.stringify(v));
@@ -278,7 +287,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('people walk the house, each in one room at a time', people.n > 0 && people.twice === 0, JSON.stringify(people));
 
   // ---------- 4. A whodunit: evidence, the case file, accusing, the reveal ----------
-  await page.click('#storeys button >> text=Ground');
+  await page.click('.floor-up');
   await wait(page, 1200);
   check('a whodunit shows a Case button instead of the things tally',
     await page.isVisible('#tally-case') && !(await page.isVisible('#tally-things-pill')) && (await page.textContent('#tally-case-count')) === '0/17');
@@ -290,6 +299,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.mouse.click(ex, ey);
   await wait(page, 400);
   check('tapping evidence counts it on the Case button', (await page.textContent('#tally-case-count')) === '1/17');
+  await page.click('#to-places');
+  await wait(page, 1600);
+  check('after your first find, the hint steps out', (await S(page, () => document.body.dataset.mode)) === 'overview' && !(await page.isVisible('#hint')));
 
   await page.click('#tally-case');
   await wait(page, 700);
