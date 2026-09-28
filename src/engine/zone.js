@@ -141,7 +141,9 @@ export function buildZone(def, place = {}) {
         return lastP;
       };
       const it = add('thing', (ctx, t) => draw(ctx, t, at(t)), { anim: true, ...o });
-      it.depth = o.depth ?? ((t) => { const p = at(t); return p.x + p.y + (o.bias || 0); });
+      // (p.ahead: someone standing up on something sorts as far forward as
+      // its front, not as their feet; a band on a stage.)
+      it.depth = o.depth ?? ((t) => { const p = at(t); return p.x + p.y + (o.bias || 0) + (p.ahead || 0); });
       it.pos = at;
       return at;
     },
