@@ -7,6 +7,7 @@
 //     id: 'pool', name: 'Rooftop Pool', blurb: 'One line of story.',
 //     size: [w, d],      // optional: its floor along x and y (default S x S)
 //     shape: [[x0, y0, x1, y1], ...],  // or, optional: a floor that isn't one box
+//     home: [x, y],      // optional, a long area: where to frame it by default
 //     build(R) { ... }   // R is the builder below
 //   }
 //
@@ -60,6 +61,8 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //   place.size:   [w, d], if the map sizes it rather than the zone (default def.size, or S x S)
 //   place.shape:  a list of [x0, y0, x1, y1] boxes, in its own units, for a
 //                 zone that isn't one box (an L of street); default def.shape
+//   place.doors:  doors the map cuts in the zone's walls, as in R.walls (so a
+//                 room can sit on two maps, with a door only on one of them)
 //   place.walkers: people on the map's timeline (added by buildWorld)
 export function buildZone(def, place = {}) {
   const [ox, oy, oz] = [place.at?.[0] ?? 0, place.at?.[1] ?? 0, place.at?.[2] ?? 0];
@@ -75,6 +78,7 @@ export function buildZone(def, place = {}) {
     tag: place.tag || '',
     ox, oy, oz, w, d, h,
     rects, // its floor, as boxes in its own units (one, unless it has a shape)
+    home: def.home || null, // a long area: where it's framed when you haven't tapped a spot (its own units)
     span: place.span ?? h + SLAB,
     fixed: !!place.fixed,
     anchor: [isoX(ox, oy), isoY(ox, oy, oz)],
@@ -157,7 +161,7 @@ export function buildZone(def, place = {}) {
         cut: o.cut || C.ink,
         dotsL: o.dotsL, dotsR: o.dotsR, densL: o.densL, densR: o.densR,
       };
-      zone.doors = (o.doors || []).map((dd) => ({ side: dd.side, at: dd.at, w: dd.w ?? 2.2, h: dd.h ?? 3.6, id: dd.id }));
+      zone.doors = [...(o.doors || []), ...(place.doors || [])].map((dd) => ({ side: dd.side, at: dd.at, w: dd.w ?? 2.2, h: dd.h ?? 3.6, id: dd.id }));
       add('wall', (ctx) => drawWalls(ctx, zone)).walls = true;
     },
     // A light that glows, even through the dark. o: { at: [x, y, z] or (t) => [x, y, z],
@@ -350,7 +354,9 @@ export function wallHeight(zone, side) {
   const o = zone.walls;
   if (!o || o[side] === false) return 0;
   if (zone.low == null || !zone.inner[side]) return o.h;
-  return zone.low + (o.h - zone.low) * zone.wallK;
+  // (A wall lower than waist height, a fence, stays as it is.)
+  const low = Math.min(zone.low, o.h);
+  return low + (o.h - low) * zone.wallK;
 }
 
 function drawWalls(ctx, zone) {

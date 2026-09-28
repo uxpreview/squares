@@ -1,7 +1,9 @@
 # The Block (connected)
 
-> Status: **Brief** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [ ] · greybox [ ] · preview [ ]
+> Status: **Greybox** (at gate 2) · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] · greybox [ ] · preview [ ]
+>
+> The greybox opens from `#/blockparty` (hidden from the picker). When it ships it takes over The Block's id, `block`, so saves carry over.
 
 The Block as it is today, sixteen rooms on a plate with paper between them, becomes one city block: the same sixteen rooms, facing real streets, with the neighbors walking between them all day. It replaces today's Block in the picker (same id, `block`, so saves carry over).
 
@@ -101,15 +103,16 @@ The Block's: warm, silly, all ages, with the odd adult joke in the margins (the 
 - [x] **Areas of any shape** (E5): a street is one area, drawn in chunks sorted in with the rooms, so it runs behind rooms at the back and in front of rooms at the front. Taps, framing, finds and people all work across it. *(Session 4: `shape` and `size` on a zone, "Chunks" in `src/engine/zone.js`, proved on the hidden test map `#/crossroads`.)*
 - [x] **People walking between rooms and outdoors** on one clock: the Manor's `walkers` and `schedule()`, now with streets covering the gaps (so nobody vanishes between areas). *(Session 2, and session 4's test map.)*
 - [x] **Walls down on the overview**, full height inside a room. *(Session 2: `cutaway.walls`.)*
-- [ ] **The day** (if chosen): a loop clock for the whole block; the paper, the sky and the backdrop tinted by the hour; room lights on at dusk (`R.light` and `R.dark` exist; they need a shared schedule, like the Manor's storm).
-- [ ] **The new plan:** `src/maps/block/plan.js` with the streets, the doors and where every room sits; each room file gets its door (the greybox gives it) and moves its signs off the shopfront walls onto hanging signs and awnings (walls down would cut them off).
-- [ ] **The day's timeline:** `src/maps/block/day.js` (like the Manor's `evening.js`).
+- [x] **The day:** a loop clock for the whole block (six minutes, dawn to dawn); the paper changes with the hour, and the page and the browser's bars follow it (`plate.at(t)` on a map); rooms darken and glow at night, streets darken and their lamps light. *(Session 4b: `src/maps/blockparty/day.js`, the paper's hours in `style.js`.)*
+- [x] **The new plan:** `src/maps/blockparty/plan.js` with the streets, the doors, the lanes people walk and where every room sits. The map cuts each room's door (`doors` on a zone's place, so a room can sit on two maps). *(Session 4b.)* Still to do in the art: signs off the shopfront walls onto hanging signs and awnings.
+- [x] **The day's timeline:** `src/maps/blockparty/day.js` (like the Manor's `evening.js`). *(Session 4b.)*
+- [x] **Framing a long area on a phone:** a street is framed a room's worth at a time, around where you tap it (or around a find, for QA); panning along it moves that spot. *(Session 4b: `zoneBox` in `src/engine/world.js`.)*
 - [ ] **A moving find** that circles the block (the van): a find already can move, within its own area; the van needs its own area, or a find that belongs to the street and follows the road.
 - [ ] **The victory lap along Main Street** instead of round the plate.
 - [ ] **QA:** the Block's speed with walls down, the streets and the walkers, against the budget the Block itself set.
 
 ## Open questions
-For the owner. Each has a recommendation; the greybox will use it unless you say otherwise.
+**Answered at gate 1 (session 4b): every recommendation, as written.** A day on a loop; the party and the Courier; the Main Street cross; walls down, all sixteen rooms kept, old saves as they are. Kept below for the record.
 
 1. **What time is it?** A whole day on a loop, each room busiest at its hour (recommended: it's the mechanic only this place has, and it fixes the rooms' clashing hours). Or one moment, a Saturday afternoon, with the bakery's, the laundromat's and the observatory's stories reworded (much cheaper).
 2. **The light story:** the party and the Courier's parcel, as above (recommended). Alternatives: the party only, no Courier; or a lost-and-found where each room has lost something another room found.
@@ -117,3 +120,35 @@ For the owner. Each has a recommendation; the greybox will use it unless you say
 4. **The layout:** a cross of Main Street through the middle, alleys between the rest, and the pavement along the front (recommended). Or all sixteen rooms round a central square.
 5. **Keep all sixteen rooms?** Some are odd on a street: a rooftop pool on the ground, a rocket launch pad in a city block. Recommended: keep them all (the jokes survive: the pool becomes the Lido, and the launch pad is a vacant lot where the mechanic has built a rocket), rather than swapping any out.
 6. **Old saves:** every find keeps its name, so a player's geese and things carry over. A player who had finished the Block will find it open again (the streets add new things, but no new geese). Recommended: fine as it is.
+
+## Decisions
+
+Gate 1 (the brief), from the owner at the start of session 4b:
+
+1. **A day on a loop**, each room busiest at its hour.
+2. **The party and the Courier's parcel** for the light story.
+3. **The Main Street cross**, alleys between the rest, the pavement along the front.
+4. **Walls down on the overview**, all sixteen rooms kept (the pool as the Lido, the launch pad as a vacant lot), old saves as they are.
+
+The greybox (session 4b), for the owner's gate 2:
+
+5. **Where it lives until it ships:** a hidden place, `blockparty` (`#/blockparty`), built from The Block's own room files, so the Block in the picker keeps working. At ship it takes over the `block` id.
+6. **Sizes:** rooms 16, alleys 4, Main Street 9, the pavement 4: 85 units corner to corner (the Block was 79). The phone framing is the Block's: fill the height, swipe to the sides.
+7. **Walls:** the rooms now draw their back walls with the engine (`R.walls`), so walls facing a street drop to waist height (1.2) on the overview; the walls on the outside of the block stay full height, so the back of the block still frames the picture. Fences (the pool, the launch pad, the ice rink) stay fences. The Block in the picker looks the same (checked pixel by pixel: under half a percent of each room differs, along the wall edges).
+8. **Doors:** one per room, in the back wall onto the street behind it. Where a room already paints a door on that wall, the opening goes through it (the bakery's street door, the ball pit's fire exit, the band's side door, the noodle bar's kitchen door, onto Main Street); the rest sit 12.5 along the wall, for the art pass to dress. **The Observatory, in the back corner, has no street behind it:** you go in from the alley along its front, and it's the Courier's "Is this even a door?" stop.
+9. **The day:** six minutes, dawn at 5am, an hour every 15 seconds. The paper: night navy to 4am, warm at dawn, paper all day, amber at the party (7pm), a purple dusk, navy from 10pm. At night the page's loose text goes to the light ink, as at the Manor.
+10. **People:** 21 on the clock. The Courier knocks on all sixteen doors by the party; the baker, the laundromat's regulars (the sheet), the band (the amps), the snowman judge and a crowd all come out to the stage at sunset; the librarian shushes the sound check three times; Inspector Pidge arrests a pigeon; the octopus makes three runs for the noodle bar and the keeper carries it back each time; Gary looks up at night; the bin lorry tries to get down Main Street all morning. People who live in a room vanish just inside their door while they're home, so they never stand in the furniture.
+11. **People walk lanes:** the middle of each alley, both kerbs of Main Street, the middle of the pavement. Any two points on lanes join up (`route()` in `plan.js`), so a walk is written as "go to this door".
+12. **The streets' finds** are pins for now: four on Main Street (the Courier's map, a signed delivery slip, a roll of bunting, the Courier's lunch), three in the alleys (a tentacle print, the noodle bar's back door key, a cat in a bin), three on the pavement (a "Sorry we missed you" card, tomorrow's newspaper, a queue ticket). 58 things and 16 geese in all.
+13. **The first screen** points at the stage: "The Block Party is today. A goose in every room. Step inside."
+
+Left for the art (4c):
+
+- Signs off the shopfront walls (walls down cuts them to waist height): hanging signs and awnings.
+- Each room busiest at its hour (the rooms don't know the day's clock yet), and its windows showing the hour.
+- The night printed in night inks rather than darkened (a flat navy over the rooms for now).
+- The victory lap along Main Street, the Honks playing, the parcel handed over (a single sock).
+- The rocket launching at the party's climax; the ice rink's snowman scoring; the librarian's shush reaching into the library.
+- The queue, the hot dog cart, the newsstand and the busker drawn; the bouncy castle and the lorry drawn.
+- A sound bed: street noise, the sound check, the crowd.
+- The rooms' doors dressed (a frame, a step, a mat) where there's no painted door.

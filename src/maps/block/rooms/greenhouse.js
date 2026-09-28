@@ -1,7 +1,7 @@
 // Greenhouse: glass walls, a flytrap with a grudge, a snail derby, a prize
 // pumpkin, a gardener on a ladder and a sprinkler that runs on its own schedule.
 import {
-  C, box, rect, disc, cylinder, face, paint, person, folk, plant, walls, slab, floor,
+  C, box, rect, disc, cylinder, face, paint, person, folk, plant, slab, floor,
   onLeft, onRight, speech, paintText, shade, tint, mix, alpha, dots, Q, P, rng, pick,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -324,8 +324,8 @@ export default {
     });
 
     // ---------- glass walls ----------
+    R.walls({ h: H, left: C.mint, right: tint(C.mint, 0.3), cap: C.white });
     R.wall((ctx) => {
-      walls(ctx, { h: H, left: C.mint, right: tint(C.mint, 0.3), cap: C.white });
       // the garden outside, seen through the glass
       const hedge = (plane) => {
         const pts = [];

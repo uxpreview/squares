@@ -20,13 +20,13 @@ And for a game that adds levels often: **each level should be cheaper to make th
 
 ## Where we are
 
-- **Engine:** places made of zones, of any size or shape (a street is one area, drawn in chunks sorted in with the rooms); camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with tags on the house to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain.
+- **Engine:** places made of zones, of any size or shape (a street is one area, drawn in chunks sorted in with the rooms, framed a room's worth at a time around where you tap); camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with tags on the house to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain. A paper that changes with the clock (a day). A map can cut doors in a zone's walls.
 - **Game:** find the goose and hidden things per zone, hints, tallies, saves (v2), sound, completion. A scene clock tools can set, so any moment of a loop can be shown and tested.
 - **Screens:** title with a drifting map, place picker, completion card, a lift for houses (every floor, yours lit), an invitation on a place's first visit (a card pinned to a room), geese honking from rooms on the overview, a back button that goes up one level.
-- **Places:** The Block, and Gooseworth Manor (a whodunit at night, three floors). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
+- **Places:** The Block, and Gooseworth Manor (a whodunit at night, three floors). The Block Party, the Block connected, at its greybox (hidden, `#/blockparty`). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** the Block as one connected city block ([levels/block.md](levels/block.md), at gate 1: the brief), then a beach, then the zoo.
+- **Next level:** the Block as one connected city block ([levels/block.md](levels/block.md), at gate 2: the greybox), then a beach, then the zoo.
 
 ## Engine work
 
@@ -39,7 +39,7 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 - **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *La Dolce Riviera, Split, Boston, the siege, the zoo, Egypt.*
 - [x] **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Session 4: a zone can be any size (`size`) or shape (`shape`, a list of boxes); it's drawn in 16 x 16 chunks, each sorted into the map's draw order on its own (anything in front of another comes after it), with flat layers cut to each chunk's patch of the screen so the seams don't show. Taps, the front cutaway, framing and walkers all work chunk by chunk. Proved on `#/crossroads`. Still to do: framing a long area on a phone frames all of it, so its finds are tiny (the Crossroads' pavement); a long street wants framing near where you are (E7).*
 - **E6. Casts and scale.** Animals and other species alongside people; a character scale per place. *The Catminium, the zoo, Egypt.*
-- **E7. Camera shapes.** Tall and wide places that scroll; framing for areas of any shape.
+- **E7. Camera shapes.** Tall and wide places that scroll; framing for areas of any shape. *Started in 4b: a long area is framed a room's worth at a time, around where you tap it (`zoneBox(zone, near)` in `world.js`; QA frames it around each find).*
 - **E8. Mechanic hooks.** A place can add its own rules: run every frame, draw over the scene, decide whether a find is visible right now, take input.
 - **E9. Crowds and performance.** Hundreds of people at 60 fps on a mid-range phone: bake the still ones, animate a few, less detail far away.
 - **E10. Small fixes.** `route()` ignores a pause on the last waypoint of a there-and-back route (fixing it shifts timing in some Block rooms). `paintText` only paints on the two back walls. The goose can't wear hats or carry things. People on a map's clock are only drawn inside an area (someone walking up a drive beyond the last area would vanish; since E5, cover the ground with areas of any shape). A find can only belong to one area, so the goose can't roam the house (the Manor wants that; E3). QA can't tell whether a find is hidden behind something: the contact sheet rings every find for eyes. Fix whenever a session touches that code.
@@ -88,7 +88,13 @@ Each is one PR. Order can change; dependencies can't.
   - **The engine (E5):** zones of any size or shape, drawn in chunks. Nothing already built looks different: every map drawn at three moments and two zoom levels matches the old code to the pixel, and the Block's and the Manor's QA pass as before.
   - **The test bed:** the Crossroads (`#/crossroads`, hidden), four greybox rooms round a cross of street and an L of pavement; three people walking between them (one out of a shop, down the street and in through the launderette's door), a goose walking the street over the seams. The smoke test checks it: the street in six pieces, sorted in behind the back rooms and before the front one, taps landing where the street runs, the walk, every piece cached, the walking goose found.
   - **Learned:** streets narrower than a wall is tall can't be seen behind the rooms in front of them, so the connected Block needs walls down on the overview. And stepping onto a street, the rooms around it were cut down past their slabs, like stepping into a room; outdoors, the cut now stops at the ground where the street meets something.
-- [ ] **4b. The Block, connected: greybox (gate 2).** Once the brief is approved: `plan.js` with the streets and doors, the day's timeline, the outdoor areas greyboxed, the rooms moved onto the new plan (with their doors, and signs off the shopfront walls), framing for long areas on a phone.
+- [x] **4b. The Block, connected: greybox (gate 2).** The owner approved the brief with every recommendation (a day on a loop, the party and the Courier, the Main Street cross, walls down, all sixteen rooms). *(PR #12)*
+  - **The place:** `src/maps/blockparty/`, hidden at `#/blockparty` until it ships (then it takes the `block` id). The sixteen rooms are the Block's own files, on the new plan (`plan.js`): Main Street 9 wide crossing the middle, alleys 4 wide, the pavement 4 wide along the front; 85 units corner to corner. The streets are greyboxed with their finds as pins.
+  - **Walls down:** the rooms now draw their back walls with the engine (`R.walls`), so the ones facing a street drop to waist height; the outside of the block stays full height. The Block in the picker looks the same (pixel-checked). Engine: a zone of any shape counts as "behind" a wall along any of its boxes, and a fence lower than waist height stays as it is.
+  - **Doors:** one per room onto the street behind it, cut by the map (`doors` on a zone's place), through the room's own painted door where it has one. The Observatory has none (no street behind it).
+  - **The day:** six minutes, dawn to dawn. The paper changes with the hour and the page and the browser's bars follow (`plate.at(t)`); rooms darken and glow at night, street lamps light.
+  - **People:** 21 on the day's clock, walking lanes (`route()` finds the way). The Courier knocks on every door by the party; the baker, the laundromat regulars, the band, the snowman judge and a crowd come out to the stage at sunset; the octopus, Pidge, Gary, the librarian and the bin lorry have their gags. People at home vanish just inside their door.
+  - **Framing long areas:** a street is framed a room's worth at a time, round where you tap (E7, started). QA frames long areas round each find; its stills check now starts every draw from the same canvas settings (it was flagging a still sign in the Umbrella Shop because of the drawing before it).
 - [ ] **4c. The Block, connected: art, QA, ship.**
 - [ ] **4d. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
 - [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
@@ -102,7 +108,7 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
-- **The connected Block's brief** (gate 1): [levels/block.md](levels/block.md), its six open questions. After it: a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
+- **The connected Block's greybox** (gate 2): `#/blockparty` on the preview, and the decisions in [levels/block.md](levels/block.md) (5 to 13). After it: a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
 - **The review's leftovers** (3d found these and left them for the owner's call):
   - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
   - The things counter ("0/48", a circle) means nothing until your first find; there isn't room on a 390px phone to add the words "geese" and "things". It teaches itself once you find something ("Found: a lucky coin (1/48)").
@@ -114,6 +120,9 @@ Open, for the owner:
 - **Delete the Walk-Up?** It's hidden now. Delete it once the Catminium ships, or keep it hidden as a test bed.
 
 Made:
+
+- **The connected Block's brief (gate 1) is approved** with every recommendation: a day on a loop, the party and the Courier, the Main Street cross, walls down, all sixteen rooms, old saves as they are. *(4b, the owner)*
+- **A level being rebuilt is a new hidden place until it ships** (`blockparty` beside `block`), reusing the old one's files, so the live one keeps working. *(4b)*
 
 - **The connected Block is a city block,** the same sixteen rooms facing streets, with a goose per room still the goal and a light story across the streets; it replaces today's Block (same id, so saves carry over). The session did the brief and the engine groundwork (E5) first. *(Session 4, the owner)*
 - **A zone can be any size or shape**, and the engine draws it in chunks (16 x 16 at most) sorted in with everything else. Zones up to 16 x 16 are one chunk, drawn exactly as before. Keep wide, tall things a unit clear of seams, and flat things on the zone's floor. *(Session 4)*

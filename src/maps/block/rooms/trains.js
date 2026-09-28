@@ -2,7 +2,7 @@
 // a papier-mache mountain, a cat lies in wait, and a real goose has wandered
 // into town like a monster movie.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, planks,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, planks,
   speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, rng, pick, shelfR, clockL, windowL, mix, dots,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp, wave } from '../../../engine/actors.js';
@@ -249,7 +249,7 @@ export default {
       rect(ctx, 13.9, 1.5, 1.7, 14.1, 0.01, C.red, { dots: shade(C.red, 0.35), density: 0.2, lw: 0.04 });
       rect(ctx, 1.5, 13.9, 12.4, 1.7, 0.01, C.red, { dots: shade(C.red, 0.35), density: 0.2, lw: 0.04 });
     });
-    R.wall((ctx) => walls(ctx, { left: tint(C.sky, 0.45), right: tint(C.sky, 0.3), cap: C.paper, dotsL: C.sky, dotsR: C.sky, densL: 0.15, densR: 0.15 }));
+    R.walls({ left: tint(C.sky, 0.45), right: tint(C.sky, 0.3), cap: C.paper, dotsL: C.sky, dotsR: C.sky, densL: 0.15, densR: 0.15 });
 
     R.decor((ctx) => {
       // wood wainscot on both walls

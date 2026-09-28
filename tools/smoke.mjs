@@ -442,7 +442,11 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return seen.join(' > ');
   });
   check('someone walks out of one room, down the street and into another', walk.startsWith('north > street > south > street > north'), walk);
-  await S(page, () => window.__squares.play.enterZone('street', { dur: 0.01 }));
+  // (A long area is framed around a spot: here, where the goose is walking.)
+  await S(page, () => {
+    const s = window.__squares, z = s.world.zones.find((x) => x.id === 'street'), g = z.finds.find((f) => f.goose).at(s.clock.now() + 1.5);
+    s.play.enterZone('street', { dur: 0.01, near: [g[0], g[1]] });
+  });
   await wait(page, 1500);
   const cached = await S(page, () => window.__squares.play.focus.chunks.map((c) => !!(c.bd && c.stills)));
   check('on the street, every piece of it is cached', cached.length === 6 && cached.every(Boolean), JSON.stringify(cached));
@@ -451,6 +455,50 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.mouse.click(gx, gy);
   await wait(page, 400);
   check('the goose walking the street can be found wherever it is', await S(page, () => window.__squares.store.isFound('crossroads', 'street:goose')));
+  await page.close();
+}
+
+// ---------- 6. The Block Party (the Block, connected: streets, walls down, a day) ----------
+{
+  const page = await fresh({ width: 390, height: 844 }, () => localStorage.clear());
+  await page.goto(base + '#/blockparty');
+  await ready(page);
+  await wait(page, 1200);
+  const walls = await S(page, () => {
+    const w = window.__squares.world, h = (id, side) => Math.round(w.wallHeight(w.zones.find((z) => z.id === id), side) * 10) / 10;
+    return { laundromat: h('laundromat', 'left'), observatory: [h('observatory', 'left'), h('observatory', 'right')], pool: h('pool', 'left') };
+  });
+  check('on the connected block, walls facing a street drop; the outside ones and fences stay',
+    walls.laundromat === 1.2 && walls.observatory[0] === 6 && walls.observatory[1] === 6 && walls.pool === 1, JSON.stringify(walls));
+  // Tap Main Street far from the stage: it's framed around the tap, about as close as a room.
+  const spot = [40.5, 70];
+  const [sx, sy] = await S(page, ([x, y]) => window.__squares.camera.toScreen(x - y, (x + y) / 2), spot);
+  await page.mouse.click(sx, sy);
+  await wait(page, 1900);
+  const framed = await S(page, ([x, y]) => {
+    const s = window.__squares, [cx, cy] = s.camera.toScreen(x - y, (x + y) / 2);
+    const room = s.camera.fit(s.world.zoneBox(s.world.zones.find((z) => z.id === 'bakery')), { top: 72, bottom: 190, left: 16, right: 16 }, 0.5).z;
+    return { hash: location.hash, z: s.cam.z / room, cx: Math.round(cx), cy: Math.round(cy) };
+  }, spot);
+  check('a long street is framed around where you tapped it, about as close as a room',
+    framed.hash === '#/blockparty/main-street' && framed.z > 0.6 && framed.z < 1.6 && framed.cx > 0 && framed.cx < 390 && framed.cy > 60 && framed.cy < 700, JSON.stringify(framed));
+  // The day: noon on paper, night on navy, and the page follows.
+  const plate = async (h) => {
+    await S(page, (t) => window.__squares.clock.set(t), (h - 5) * 15);
+    await wait(page, 700);
+    return S(page, () => ({ kind: document.documentElement.dataset.plate, paper: getComputedStyle(document.documentElement).getPropertyValue('--plate').trim() }));
+  };
+  const noon = await plate(12), night = await plate(23);
+  check('the day changes the plate: paper at noon, night after dark', noon.kind === '' && night.kind === 'night' && noon.paper !== night.paper, JSON.stringify({ noon, night }));
+  const people = await S(page, () => {
+    const w = window.__squares.world, c = w.walkers.find((k) => k.id === 'courier'), doors = new Set();
+    for (let t = 0; t < 360; t += 0.5) {
+      const p = c.at(t);
+      if (!p.moving) for (const d of w.doors) if (Math.hypot(p.x - (d.axis === 'x' ? d.plane : d.x), p.y - (d.axis === 'x' ? d.y : d.plane)) < 2.7) doors.add(d.zone);
+    }
+    return doors.size;
+  });
+  check('the Courier knocks on every door on the block', people === 15, people + ' doors');
   await page.close();
 }
 

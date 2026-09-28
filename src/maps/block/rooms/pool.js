@@ -1,7 +1,7 @@
 // Rooftop Pool: a water tower, a diving board with a committed diver,
 // a flamingo float, and a lifeguard who has seen enough running today.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, plant, walls, slab, planks,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, plant, slab, planks,
   speech, shade, tint, alpha, dots, Q, label, P,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
@@ -82,7 +82,7 @@ export default {
         for (let x = PX0 - 0.45; x < PX1 + 0.4; x += 0.9) face(ctx, [[x, PY0 - 0.45, 0.01], [x, PY0, 0.01]], null, { lw: 0.02, stroke: C.grey });
       }
     });
-    R.wall((ctx) => walls(ctx, { h: 1.0, left: C.greyLight, right: C.greyLight, cap: C.white }));
+    R.walls({ h: 1.0, left: C.greyLight, right: C.greyLight, cap: C.white });
 
     // Pool: inner walls, then animated water.
     R.rug((ctx) => {

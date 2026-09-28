@@ -45,4 +45,14 @@ export default [
     hidden: true,
     load: () => import('./crossroads/map.js'),
   },
+  {
+    id: 'blockparty',
+    name: 'The Block Party',
+    tagline: 'Sixteen rooms, one street party, a goose in every room.',
+    ink: '#E3603F',
+    // The Block, connected (docs/levels/block.md), at its greybox. Opens from
+    // #/blockparty; when it ships it takes over The Block's id.
+    hidden: true,
+    load: () => import('./blockparty/map.js'),
+  },
 ];

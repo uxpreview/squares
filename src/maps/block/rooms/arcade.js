@@ -2,7 +2,7 @@
 // a dance machine, air hockey, a prize counter, and a ticket machine that
 // will not stop paying out.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab,
   shelfR, onLeft, onRight, paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash, rng,
 } from '../../../engine/art.js';
 import { route, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -177,7 +177,7 @@ export default {
         } else rect(ctx, x, y, 0.16, 0.16, 0.005, c, { stroke: false });
       }
     });
-    R.wall((ctx) => walls(ctx, { h: 6, left: C.navy, right: C.purple, cap: C.paper, dotsL: C.night, densL: 0.2, dotsR: shade(C.purple, 0.4), densR: 0.15 }));
+    R.walls({ h: 6, left: C.navy, right: C.purple, cap: C.paper, dotsL: C.night, densL: 0.2, dotsR: shade(C.purple, 0.4), densR: 0.15 });
 
     // Neon: the big sign flickers, stripes glow along the walls.
     R.decor((ctx, t) => {

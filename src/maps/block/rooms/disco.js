@@ -1,7 +1,7 @@
 // Roller Disco: a mirror ball, a DJ who calls "REVERSE!" at the worst moment,
 // a rink full of skaters and one skate that left without its owner.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, floor,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor,
   onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, hash,
 } from '../../../engine/art.js';
 import { particles, pulse, clamp, route } from '../../../engine/actors.js';
@@ -171,8 +171,8 @@ export default {
       }
     });
 
+    R.walls({ left: WALLC, right: shade(WALLC, 0.1), cap: C.navy, dotsL: C.night, dotsR: C.night, densL: 0.35, densR: 0.35 });
     R.wall((ctx) => {
-      walls(ctx, { left: WALLC, right: shade(WALLC, 0.1), cap: C.navy, dotsL: C.night, dotsR: C.night, densL: 0.35, densR: 0.35 });
       // checker dado along the bottom of both walls
       for (let u = 0; u < 16; u += 0.5) {
         const c = (u * 2) % 2 ? C.pink : C.night;

@@ -1,7 +1,7 @@
 // Bakery at 5am: a roaring brick oven, a wedding cake that wobbles at every
 // sneeze, a queue that never ends and one goose with a ticket.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, checker,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng,
 } from '../../../engine/art.js';
 import { particles, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -155,7 +155,7 @@ export default {
         ctx.fillRect(X, Y, 0.06, 0.05);
       }
     });
-    R.wall((ctx) => walls(ctx, { left: C.blush, right: C.butter, cap: C.paper, dotsL: shade(C.blush, 0.25), dotsR: shade(C.butter, 0.2), densL: 0.1, densR: 0.1 }));
+    R.walls({ left: C.blush, right: C.butter, cap: C.paper, dotsL: shade(C.blush, 0.25), dotsR: shade(C.butter, 0.2), densL: 0.1, densR: 0.1 });
 
     R.decor((ctx) => {
       // tiled dado along the right wall
