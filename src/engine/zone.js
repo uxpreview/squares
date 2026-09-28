@@ -31,7 +31,9 @@
 //
 // Every draw function receives (ctx, t) with ctx already positioned at the
 // zone's back corner, in zone units. Items marked { anim: true } are redrawn
-// each frame. The rest must look the same at every t: in the zone you're in,
+// each frame. An item can also fade: { fade: (t) => 0..1 } draws a still
+// picture (cached like any other) at that opacity, and skips it at 0, so a
+// street can print its night over its day for the cost of a stamp. The rest must look the same at every t: in the zone you're in,
 // they're drawn once into cached pictures (the floor and walls in one, each
 // standing thing in its own, see "Still things" below) and stamped back.
 //
@@ -100,6 +102,8 @@ export function buildZone(def, place = {}) {
   let order = 0;
   const add = (layer, draw, o = {}) => {
     const it = { layer: LAYERS.indexOf(layer), draw, depth: o.depth ?? 0, anim: !!o.anim, order: order++ };
+    if (o.fade) it.fade = o.fade;
+    if (o.on) it.on = o.on;
     items.push(it);
     return it;
   };
@@ -171,9 +175,9 @@ export function buildZone(def, place = {}) {
       const k = o.k ? o.k(t) : 1;
       glow(ctx, x, y, z, o.r ?? 2.5, o.color || C.butter, k);
       if (o.draw) o.draw(ctx, t, k);
-    }, { anim: true }),
+    }, { anim: true, on: o.k && !o.draw ? (t) => o.k(t) > 0.002 : null }),
     // How dark the room is: fn(t) returns 0 (lit) to 1 (pitch black).
-    dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true }),
+    dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true, on: (t) => fn(t) > 0.002 }),
   };
 
   def.build(R);
@@ -194,7 +198,7 @@ export function buildZone(def, place = {}) {
   // moving one (a curtain over a rainy window), so it's stamped in its turn.
   let moving = false;
   for (const it of items) {
-    if (it.layer < THING && it.anim) moving = true;
+    if (it.layer < THING && (it.anim || it.fade)) moving = true;
     it.backdrop = it.layer < THING && !it.anim && !moving;
   }
   zone.chunks = chunksOf(zone);
@@ -486,6 +490,14 @@ function stamp(ctx, st, it, m) {
   return m;
 }
 
+// How much of an item shows at t: 0 (skip it), up to 1.
+function shown(it, t) {
+  if (it.on && !it.on(t)) return 0;
+  if (!it.fade) return 1;
+  const a = it.fade(t);
+  return a > 0.002 ? Math.min(1, a) : 0;
+}
+
 // st: the zone's still things, cached (or null to draw everything live).
 function drawThings(ctx, list, t, st) {
   const keyed = list.map((it) => [depthOf(it, t), it.order, it]);
@@ -493,11 +505,18 @@ function drawThings(ctx, list, t, st) {
   let m = null; // the zone's transform, while stamping
   for (const k of keyed) {
     const it = k[2];
+    const a = shown(it, t);
+    if (!a) continue;
+    const a0 = ctx.globalAlpha;
+    if (a < 1) ctx.globalAlpha = a0 * a;
     const was = stamp(ctx, st, it, m);
-    if (was) { m = was; continue; }
-    if (m) { ctx.setTransform(m); m = null; }
-    fresh(ctx);
-    it.draw(ctx, t);
+    if (was) m = was;
+    else {
+      if (m) { ctx.setTransform(m); m = null; }
+      fresh(ctx);
+      it.draw(ctx, t);
+    }
+    ctx.globalAlpha = a0;
   }
   if (m) ctx.setTransform(m);
 }
@@ -519,6 +538,8 @@ function drawItems(ctx, piece, t, pick, st = null) {
     const it = piece.items[i];
     if (!pick(it)) continue;
     if (it.layer === THING) { things.push(it); continue; }
+    const a = shown(it, t);
+    if (!a) continue;
     if (it.layer > THING && things) {
       if (clipping) { ctx.restore(); clipping = false; }
       toCell(false);
@@ -531,10 +552,15 @@ function drawItems(ctx, piece, t, pick, st = null) {
       if (cut) { ctx.save(); ctx.clip(clip); } else ctx.restore();
       clipping = cut;
     }
+    const a0 = ctx.globalAlpha;
+    if (a < 1) ctx.globalAlpha = a0 * a;
     const m = !clip && stamp(ctx, st, it, null);
-    if (m) { ctx.setTransform(m); continue; }
-    fresh(ctx);
-    it.draw(ctx, t);
+    if (m) ctx.setTransform(m);
+    else {
+      fresh(ctx);
+      it.draw(ctx, t);
+    }
+    ctx.globalAlpha = a0;
   }
   if (clipping) ctx.restore();
   toCell(false);

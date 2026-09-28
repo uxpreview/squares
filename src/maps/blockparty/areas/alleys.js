@@ -5,12 +5,12 @@
 import { C, rect, alpha } from '../../../engine/art.js';
 import { ground, block, pin } from '../../greybox.js';
 import { ALLEYS, ALLEY } from '../plan.js';
-import { STREET, BLOCK, dusk } from '../style.js';
+import { STREET, BLOCK } from '../style.js';
 import { nightK } from '../day.js';
 
 // Bins against the alley walls, clear of the lanes down the middle and a unit
 // clear of the seams (every 16).
-const BINS = [[16.2, 27], [16.2, 70], [61.2, 9], [63.6, 52], [8, 16.2], [26, 16.2], [53, 16.2], [72, 63.6], [28, 63.6]];
+const BINS = [[16.2, 27], [16.2, 57], [61.2, 9], [63.6, 52], [8, 16.2], [26, 16.2], [53, 16.2], [72, 63.6], [28, 63.6]];
 // Washing lines strung across the alleys, high up: [x0, y0, x1, y1].
 const LINES = [[6, 16, 6, 20], [30, 16, 30, 20], [55, 61, 55, 65], [16, 42, 20, 42], [61, 25, 65, 25]];
 const CLOTHES = [C.white, C.coral, C.sky, C.butter, C.pink];
@@ -53,11 +53,14 @@ export default {
     block(R, 26.3, 16.5, 0.6, 0.6, 0.6, C.mustard, 'Cat', { z: 1.3 });
     // A raccoon, in the bins behind the arcade.
     block(R, 61.9, 11, 0.8, 0.8, 0.6, C.grey, 'Raccoon');
-    dusk(R, nightK, 0.62);
+    R.dark((t) => nightK(t) * 0.5); // greybox night
 
-    pin(R, { id: 'tentacle-print', label: 'A tentacle print', at: [18.8, 60, 0.05], r: 0.8 }, 1);
-    pin(R, { id: 'noodle-key', label: 'The noodle bar\'s back door key', at: [17, 49, 0.05], r: 0.8 }, 2);
-    pin(R, { id: 'cat-in-a-bin', label: 'A cat in a bin', at: [16.8, 70.6, 1.35], r: 0.8 }, 3);
+    // The hot spot (HOTSPOT in plan.js): behind the bakery's door, across
+    // from the noodle bar, where the octopus is always headed.
+    block(R, 18.6, 54.6, 0.9, 0.9, 1, BLOCK.street, 'Bin');
+    pin(R, { id: 'tentacle-print', label: 'A tentacle print', at: [18.2, 59.8, 0.05], r: 0.8 }, 1);
+    pin(R, { id: 'noodle-key', label: 'The noodle bar\'s back door key', at: [16.8, 51.6, 0.05], r: 0.8 }, 2);
+    pin(R, { id: 'cat-in-a-bin', label: 'A cat in a bin', at: [19.05, 55.05, 1.25], r: 0.8 }, 3);
   },
 };
 

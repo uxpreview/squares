@@ -5,7 +5,7 @@
 import { C, folk, person } from '../../../engine/art.js';
 import { ground, block, pin } from '../../greybox.js';
 import { PAVEMENT, EDGE, SIZE, LANES } from '../plan.js';
-import { STREET, BLOCK, dusk, lampPost } from '../style.js';
+import { STREET, BLOCK, lampPost } from '../style.js';
 import { hour, nightK } from '../day.js';
 
 const LANE = LANES[4]; // the middle of the pavement, 83
@@ -46,7 +46,7 @@ export default {
       R.thing(x, y, (ctx) => lampPost(ctx, x, y));
       R.light({ at: [x, y, 4.6], r: 3, color: C.butter, k: (t) => nightK(t) });
     }
-    dusk(R, nightK, 0.5);
+    R.dark((t) => nightK(t) * 0.5); // greybox night
 
     pin(R, { id: 'sorry-card', label: 'A "Sorry we missed you" card', at: [EDGE + 0.7, 40, 0.05], r: 0.8 }, 1);
     pin(R, { id: 'newspaper', label: 'Tomorrow\'s newspaper', at: [61.2, EDGE + 1.1, 2.3], r: 0.8 }, 2);

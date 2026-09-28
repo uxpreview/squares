@@ -84,6 +84,102 @@ const SOUNDS = {
       }
     }
   },
+  // A lorry's horn, two low blasts, down the street.
+  horn(a, t0) {
+    for (const [at, len] of [[0, 0.22], [0.32, 0.5]]) {
+      const t = t0 + at;
+      const f = a.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 900;
+      const g = envelope(a, t, 0.07, 0.02, len);
+      f.connect(g);
+      g.connect(a.destination);
+      for (const hz of [196, 247]) {
+        const o = a.createOscillator();
+        o.type = 'square';
+        o.frequency.value = hz;
+        o.connect(f);
+        o.start(t);
+        o.stop(t + len + 0.05);
+      }
+    }
+  },
+  // Shh! A librarian: soft hiss, high and breathy.
+  shush(a, t0) {
+    const src = a.createBufferSource();
+    src.buffer = noise(a);
+    src.loop = true;
+    const f = a.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 3400;
+    f.Q.value = 1.1;
+    const g = envelope(a, t0, 0.06, 0.08, 0.7);
+    src.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    src.start(t0);
+    src.stop(t0 + 0.9);
+  },
+  // The sound check: a kick drum, one, two, and a bass note.
+  thump(a, t0) {
+    for (const at of [0, 0.45]) {
+      const o = a.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(120, t0 + at);
+      o.frequency.exponentialRampToValueAtTime(42, t0 + at + 0.18);
+      const g = envelope(a, t0 + at, 0.18, 0.005, 0.25);
+      o.connect(g);
+      g.connect(a.destination);
+      o.start(t0 + at);
+      o.stop(t0 + at + 0.3);
+    }
+    tone(a, t0 + 0.9, 55, 'triangle', 0.08, 0.01, 0.6);
+  },
+  // A crowd cheering, some way off: a swell of voices, and a whistle.
+  cheer(a, t0) {
+    const src = a.createBufferSource();
+    src.buffer = rumble(a);
+    const f = a.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 1100;
+    f.Q.value = 0.8;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.08, t0 + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.2);
+    src.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    src.start(t0);
+    src.stop(t0 + 2.3);
+    const w = a.createOscillator();
+    w.type = 'sine';
+    w.frequency.setValueAtTime(1800, t0 + 0.3);
+    w.frequency.exponentialRampToValueAtTime(2600, t0 + 0.6);
+    const wg = envelope(a, t0 + 0.3, 0.03, 0.02, 0.35);
+    w.connect(wg);
+    wg.connect(a.destination);
+    w.start(t0 + 0.3);
+    w.stop(t0 + 0.7);
+  },
+  // A rocket going up: a roar that rises and fades.
+  launch(a, t0) {
+    const src = a.createBufferSource();
+    src.buffer = rumble(a);
+    const f = a.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(300, t0);
+    f.frequency.exponentialRampToValueAtTime(2400, t0 + 2.5);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.6);
+    src.connect(f);
+    f.connect(g);
+    g.connect(a.destination);
+    src.start(t0);
+    src.stop(t0 + 3.7);
+  },
   // A felt-tip loop: a short burst of filtered noise that sweeps up.
   pen(a, t0) {
     const src = a.createBufferSource();
@@ -262,6 +358,55 @@ const BEDS = {
       for (const s of srcs) s.stop(t + 0.7);
     };
   },
+};
+
+// Street noise: traffic far off (a low rumble) and people about (a murmur that
+// comes and goes), soft, under everything.
+BEDS.street = (a) => {
+  const out = a.createGain();
+  out.gain.setValueAtTime(0.0001, a.currentTime);
+  out.gain.exponentialRampToValueAtTime(0.04, a.currentTime + 2);
+  out.connect(a.destination);
+  const srcs = [];
+  // Traffic: brown noise, low.
+  const road = a.createBufferSource();
+  road.buffer = rumble(a);
+  road.loop = true;
+  const lp = a.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 260;
+  road.connect(lp);
+  lp.connect(out);
+  srcs.push(road);
+  // People: a band of voice-ish noise, swelling slowly.
+  const talk = a.createBufferSource();
+  talk.buffer = rumble(a);
+  talk.loop = true;
+  talk.playbackRate.value = 1.7;
+  const bp = a.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 850;
+  bp.Q.value = 1.3;
+  const tg = a.createGain();
+  tg.gain.value = 0.35;
+  const lfo = a.createOscillator();
+  lfo.frequency.value = 0.13;
+  const lg = a.createGain();
+  lg.gain.value = 0.2;
+  lfo.connect(lg);
+  lg.connect(tg.gain);
+  talk.connect(bp);
+  bp.connect(tg);
+  tg.connect(out);
+  srcs.push(talk, lfo);
+  for (const s of srcs) s.start();
+  return () => {
+    const t = a.currentTime;
+    out.gain.cancelScheduledValues(t);
+    out.gain.setValueAtTime(out.gain.value, t);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    for (const s of srcs) s.stop(t + 0.7);
+  };
 };
 let bedName = null, bedStop = null;
 

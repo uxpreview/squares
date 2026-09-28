@@ -21,24 +21,14 @@
 import { C, Q, folk, person, speech, box, alpha, mix } from '../../engine/art.js';
 import { schedule } from '../../engine/actors.js';
 import { tag } from '../greybox.js';
-import { LOOP, DOOR, LANES, MID, route } from './plan.js';
+import { LOOP, DOOR, LANES, MID, STAGE, STAGE_Z, route } from './plan.js';
+import { hour, at, nightK } from './clock.js';
+import { finale } from './finale.js';
 import { PAPER } from './style.js';
 
 // ---------- The clock ----------
-export const HOUR = LOOP / 24; // seconds in an hour: 15
-const DAWN = 5; // the loop starts at 5am
-export const hour = (t) => (DAWN + ((((t % LOOP) + LOOP) % LOOP) / HOUR)) % 24;
-// The loop time at a given hour (the first one after dawn).
-export const at = (h) => ((((h - DAWN) % 24) + 24) % 24) * HOUR;
-
-// How dark it is outside: 0 by day, 1 at night.
-export function nightK(t) {
-  const h = hour(t);
-  if (h >= 22 || h < 4) return 1;
-  if (h >= 19.5) return (h - 19.5) / 2.5;
-  if (h < 5.5) return 1 - (h - 4) / 1.5;
-  return 0;
-}
+// (clock.js: the hour, each room's hours.)
+export { HOUR, hour, at, nightK } from './clock.js';
 
 // The paper, blended between the hours in the style sheet.
 export function paperAt(t) {
@@ -56,14 +46,12 @@ export const plate = {
   at: (t) => ({ paper: paperAt(t), kind: nightK(t) > 0.5 ? 'night' : '' }),
 };
 
-// Night on an area: the area darkens, its lights come on. Rooms glow warm
-// from inside (their windows); streets get their lamp posts (the areas draw
-// those). Added to every room by map.js.
-export function nightfall(R, o = {}) {
-  R.dark((t) => nightK(t) * (o.dark ?? 0.6), { color: C.night });
-  if (o.glow !== false) {
-    R.light({ at: [R.W * 0.45, R.D * 0.45, 3], r: 7, color: C.butter, k: (t) => nightK(t) * 0.8 });
-  }
+// Night on a room: the streets and the sky take the dark, the rooms stay lit
+// (block.md, decision 14). A room only dims a touch after dark, and its lamps
+// glow warm, so every find reads at any hour. Added to every room by map.js.
+export function nightfall(R) {
+  R.dark((t) => nightK(t) * 0.1, { color: C.night });
+  R.light({ at: [R.W * 0.45, R.D * 0.45, 3], r: 7, color: C.butter, k: (t) => nightK(t) * 0.35 });
 }
 
 // ---------- Walking ----------
@@ -115,7 +103,7 @@ function from(x, y) {
 }
 
 // Round the stage: spots at the party, on the lanes that pass it.
-const S0 = LANES[1], S1 = LANES[2]; // 37.6 and 43.4, either side of the stage
+const S0 = LANES[1], S1 = LANES[2]; // 36.9 and 44.1, either side of the stage
 const PARTY = [
   [S0, 34], [S1, 34], [S0, 47], [S1, 47], [34, S0], [34, S1], [47, S0], [47, S1],
   [S0, 31], [S1, 31], [31, S0], [31, S1], [S0, 50], [50, S1],
@@ -149,11 +137,25 @@ add('dot', 'Dot', 33, from(...DOOR.laundromat.in).home(at(12)).leave('laundromat
 add('mo', 'Mo', 41, from(...DOOR.laundromat.in).home(at(12.1)).leave('laundromat').go([50, S0])
   .until(at(22.5), { pose: 'cheer' }).enter('laundromat').home(LOOP));
 
-// The band (the Honks) and their amps: the sound check from 3pm, the party at 7.
-add('drums', 'The drummer', 7, from(...DOOR.band.in).home(at(14.2)).leave('band').go([S1, 34])
-  .until(at(19), { pose: 'drum' }).until(at(22), { pose: 'drum', say: 'One, two, HONK' }).enter('band').home(LOOP), { hold: 'amp' });
-add('bass', 'The bassist', 13, from(...DOOR.band.in).home(at(14.3)).leave('band').go([S0, 34])
-  .until(at(22), { pose: 'dance' }).enter('band').home(LOOP), { hold: 'amp' });
+// The band (the Honks) and their amps: out at 2pm, the sound check on the
+// stage from 3, the party at 7. They hop up onto the deck from the lane on its
+// right and play in front of the backdrop.
+const DECK = (u, v) => [STAGE[0] + u, STAGE[1] + v, STAGE_Z]; // a spot on the stage, from its back corner
+const upOn = (w, spot) => w.go([S1, STAGE[1] + 1.4]).to(S1 - 0.6, STAGE[1] + 1.4, STAGE_Z).to(...spot);
+{
+  const d = from(...DOOR.band.in).home(at(14.2)).leave('band');
+  upOn(d, DECK(1.6, 1.8)).until(at(19), { pose: 'drum', dir: 'r' }).until(at(22), { pose: 'drum', dir: 'r', say: 'One, two, HONK' })
+    .to(S1 - 0.6, STAGE[1] + 1.4, STAGE_Z).to(S1, STAGE[1] + 1.4, 0).enter('band').home(LOOP);
+  add('drums', 'The drummer', 7, d, { hold: 'amp' });
+  const b = from(...DOOR.band.in).home(at(14.3)).leave('band');
+  upOn(b, DECK(4.4, 1.5)).until(at(22), { pose: 'dance', dir: 'l' })
+    .to(S1 - 0.6, STAGE[1] + 1.4, STAGE_Z).to(S1, STAGE[1] + 1.4, 0).enter('band').home(LOOP);
+  add('bass', 'The bassist', 13, b, { hold: 'amp' });
+  const v = from(...DOOR.band.in).home(at(18.2)).leave('band');
+  upOn(v, DECK(3.6, 4.2)).until(at(22), { pose: 'cheer', dir: 'r' })
+    .to(S1 - 0.6, STAGE[1] + 1.4, STAGE_Z).to(S1, STAGE[1] + 1.4, 0).enter('band').home(LOOP);
+  add('singer', 'The singer', 17, v);
+}
 
 // The librarian comes out to shush the sound check. Three times.
 {
@@ -280,6 +282,7 @@ export const walkers = Object.entries(PEOPLE).map(([id, c], i) => {
     bias: c.draw === lorry ? 2 : 0,
     draw(ctx, t, p) {
       if (p.hide) return;
+      if (id === 'courier' && finale.since) return; // he's on the stage, with the parcel (finale.js)
       if (c.draw) c.draw(ctx, t, p);
       else {
         const pose = c.hold && p.pose !== 'drum' && p.pose !== 'cheer' && p.pose !== 'dance' ? 'carry' : p.pose;

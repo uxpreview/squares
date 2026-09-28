@@ -5,8 +5,9 @@
 // (numbered pins) and where people stand.
 import { C, rect, box, alpha } from '../../../engine/art.js';
 import { ground, block, pin } from '../../greybox.js';
-import { MAIN_STREET, MAIN, MAIN0, MAIN1, MID, EDGE, STAGE } from '../plan.js';
-import { STREET, BLOCK, lampPost, poster, bunting, dusk } from '../style.js';
+import { MAIN_STREET, MAIN, MAIN0, MAIN1, MID, EDGE, STAGE, STAGE_Z, CASTLE } from '../plan.js';
+import { conga } from '../finale.js';
+import { STREET, BLOCK, lampPost, poster, bunting } from '../style.js';
 import { hour, nightK } from '../day.js';
 
 // Lamp posts along both kerbs, a unit clear of the seams (every 16).
@@ -21,7 +22,6 @@ function puff(t) {
   const k = (t % 23) / 23;
   return k < 0.8 ? Math.min(1, k / 0.75) * 0.95 : 0.95 * (1 - (k - 0.8) / 0.2);
 }
-const CASTLE = [MID - 2.1, 54, 4.2, 5];
 
 export default {
   id: 'main-street',
@@ -49,7 +49,10 @@ export default {
       rect(ctx, MAIN0 + 0.8, MAIN0 + 0.8, MAIN - 1.6, MAIN - 1.6, 0.01, alpha(C.mustard, 0.25), { stroke: false });
     });
     // The stage, at the crossroads.
-    block(R, ...STAGE, 1.2, BLOCK.party, 'Stage');
+    block(R, ...STAGE, STAGE_Z, BLOCK.party, 'Stage');
+    // Its backdrop, along the stage's two back edges.
+    block(R, STAGE[0], STAGE[1], 0.4, STAGE[3], 7, C.purple, null);
+    block(R, STAGE[0] + 0.4, STAGE[1], STAGE[2] - 0.4, 0.4, 7, C.purple, 'Backdrop');
     // Bunting, strung across the crossroads from the corners of the rooms,
     // going up as the day goes on (none at dawn, all of it by noon).
     R.thing(MID, MID + 3.5, (ctx, t) => {
@@ -70,16 +73,17 @@ export default {
       box(ctx, CASTLE[0], CASTLE[1], 0, CASTLE[2], CASTLE[3], 0.3 + k * 2.2, C.pink, { flat: true, top: C.butter });
       if (k > 0.5) box(ctx, CASTLE[0] - 0.3, CASTLE[1] - 0.3, 0.3 + k * 2.2, 0.8, 0.8, (k - 0.5) * 3, C.blush, { flat: true });
     }, { anim: true });
-    block(R, CASTLE[0] + CASTLE[2] + 0.3, CASTLE[1] + 3.8, 0.8, 0.8, 0.7, BLOCK.party, 'Pump');
+    block(R, CASTLE[0] + 1, CASTLE[1] + CASTLE[3] + 0.3, 0.8, 0.8, 0.7, BLOCK.party, 'Pump');
     // Lamp posts, each with a "Have you seen this goose?" poster; lit at night.
     for (const [x, y] of POSTS) {
       R.thing(x, y, (ctx) => { lampPost(ctx, x, y); poster(ctx, x, y, 2.4); });
       R.light({ at: [x, y, 4.6], r: 3, color: C.butter, k: (t) => nightK(t) });
     }
     // A road sign, a crate of party stuff and a speaker stack by the stage.
-    block(R, MAIN0 + 0.4, MID + 3.2, 1.2, 1.2, 1.6, BLOCK.party, 'Speakers');
+    block(R, STAGE[0] + 0.5, STAGE[1] + STAGE[3] - 1.4, 1.2, 1.2, 1.6, BLOCK.party, 'Speakers', { z: STAGE_Z });
+    conga(R);
     block(R, MAIN1 - 1.6, 26, 1.2, 1.8, 0.8, BLOCK.stall, 'Crates');
-    dusk(R, nightK);
+    R.dark((t) => nightK(t) * 0.5); // greybox night
 
     pin(R, { id: 'courier-map', label: 'The Courier\'s map', at: [MID - 1.5, 21, 0.05], r: 0.8 }, 1);
     pin(R, { id: 'delivery-slip', label: 'A signed delivery slip', at: [27, MID + 2.8, 0.05], r: 0.8 }, 2);

@@ -7,9 +7,9 @@ import { C, alpha, paint } from '../engine/art.js';
 export const P3 = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
 
 // A registration mark, like the ones in the margins of a printed sheet.
-export function reg(ctx, X, Y) {
+export function reg(ctx, X, Y, ink = null) {
   ctx.save();
-  ctx.strokeStyle = alpha(C.ink, 0.5);
+  ctx.strokeStyle = alpha(ink || C.ink, 0.5);
   ctx.lineWidth = 0.12;
   ctx.beginPath();
   ctx.arc(X, Y, 1, 0, Math.PI * 2);
