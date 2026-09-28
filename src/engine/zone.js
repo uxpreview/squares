@@ -273,6 +273,10 @@ function chunksOf(zone) {
     return best;
   };
   zone.chunkAt = owner;
+  const ownerOf = (it, t) => {
+    if (it.ownT !== t) { const p = it.pos(t); it.ownT = t; it.own = owner(p.x, p.y); }
+    return it.own;
+  };
   return parts.map((rect, i) => {
     const items = [];
     for (const it of zone.items) {
@@ -281,9 +285,11 @@ function chunksOf(zone) {
         if (!a || (a[0] < rect[2] && a[2] > rect[0] && a[1] < rect[3] && a[3] > rect[1])) items.push(it);
       }
       else if (it.pos) {
-        // Something that moves is drawn by the chunk it's in right now.
-        const draw = it.draw, pos = it.pos;
-        items.push({ ...it, draw: (ctx, t) => { const p = pos(t); if (owner(p.x, p.y) === i) draw(ctx, t); } });
+        // Something that moves is drawn by the chunk it's in right now (asked
+        // once a frame, whichever chunk asks first; the others skip it
+        // before sorting).
+        const mine = (t) => ownerOf(it, t) === i;
+        items.push({ ...it, mine, draw: (ctx, t) => { if (mine(t)) it.draw(ctx, t); } });
       } else if (owner(...(it.at || [0, 0])) === i) items.push(it);
     }
     return chunk(zone, i, rect, items, true);
@@ -308,12 +314,16 @@ function chunk(zone, index, rect, items, cut) {
       y0: (x0 + y0) / 2 - zone.h * ZK - 9,
       y1: (x1 + y1) / 2 + SLAB * ZK + 1.5,
     } : zone.bounds,
+    // What its floor-and-walls cache needs to cover: all of it, or for a piece
+    // of street (no walls) just its ground, which is all its patch lets through.
+    flat: null,
     snap: null,
     snapScale: 0,
     snapT: -1,
     stale: false,
     cell: null,
   };
+  if (cut && !zone.walls) c.flat = { ...c.bounds, y0: (x0 + y0) / 2 - 1.5 * ZK - 1 };
   // Its patch of the screen, remade when the picture's scale moves the seam's
   // tuck (about a pixel and a half) past a thousandth of a unit.
   // top: the patch for the layers over the things (the dark, glows, the
@@ -542,7 +552,8 @@ function shown(it, t) {
 
 // st: the zone's still things, cached (or null to draw everything live).
 function drawThings(ctx, list, t, st) {
-  const keyed = list.map((it) => [depthOf(it, t), it.order, it]);
+  const keyed = [];
+  for (const it of list) if (!it.mine || it.mine(t)) keyed.push([depthOf(it, t), it.order, it]);
   keyed.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   let m = null; // the zone's transform, while stamping
   for (const k of keyed) {
@@ -667,7 +678,7 @@ export function drawSnapshot(ctx, zone) {
 // order; animated items in the same layers are drawn on top of the cache. Like
 // still things (below), it's drawn at the fraction of a pixel it's stamped at.
 function bakeBackdrop(zone, k, fx, fy, dpr) {
-  const b = zone.bounds;
+  const b = zone.flat || zone.bounds;
   const sx = Math.floor(b.x0 * k + fx), sy = Math.floor(b.y0 * k + fy);
   const w = Math.ceil(b.x1 * k + fx) - sx, h = Math.ceil(b.y1 * k + fy) - sy;
   let cv = zone.backdrop;
