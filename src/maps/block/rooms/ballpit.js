@@ -2,7 +2,7 @@
 // kids pop up like periscopes, a castle wobbles, and one parent is fast asleep
 // while a small child builds a tower of balls on his tummy.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, checker, tiles,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker, tiles,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, frame, clockL, shelfL,
   hash, rng, pick, note,
 } from '../../../engine/art.js';
@@ -223,7 +223,7 @@ export default {
       checker(ctx, tint(C.sky, 0.5), tint(C.mint, 0.35), 2);
       tiles(ctx, 2, alpha(C.navy, 0.18), 0.03);
     });
-    R.wall((ctx) => walls(ctx, { h: 6, left: C.butter, right: C.blush, dotsL: shade(C.butter, 0.25), dotsR: shade(C.blush, 0.25), densL: 0.12, densR: 0.12, cap: C.white }));
+    R.walls({ h: 6, left: C.butter, right: C.blush, dotsL: shade(C.butter, 0.25), dotsR: shade(C.blush, 0.25), densL: 0.12, densR: 0.12, cap: C.white });
 
     // Wall art
     R.decor((ctx) => {

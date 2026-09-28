@@ -2,7 +2,7 @@
 // sharing one very long noodle, a bottomless challenge bowl and a goose who
 // ordered the large.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, checker,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -209,7 +209,7 @@ export default {
       // kitchen floor: plain rubber mat
       rect(ctx, 0.3, 0.3, 15.4, 4.7, 0.005, shade(C.greyLight, 0.1), { stroke: false, dots: C.grey, density: 0.2 });
     });
-    R.wall((ctx) => walls(ctx, { left: C.coral, right: tint(C.red, 0.1), cap: C.paper, dotsL: shade(C.coral, 0.3), dotsR: shade(C.red, 0.35), densL: 0.12, densR: 0.12 }));
+    R.walls({ left: C.coral, right: tint(C.red, 0.1), cap: C.paper, dotsL: shade(C.coral, 0.3), dotsR: shade(C.red, 0.35), densL: 0.12, densR: 0.12 });
 
     R.decor((ctx, t) => {
       // tiled splashback behind the kitchen

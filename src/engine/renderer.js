@@ -150,7 +150,8 @@ export function createRenderer(canvas, camera) {
     lastT = t;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = (world && world.map.plate && world.map.plate.paper) || C.paper;
+    const plate = world && world.map.plate;
+    ctx.fillStyle = (plate && (plate.at ? plate.at(t).paper : plate.paper)) || C.paper;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (!world) return;
     const { dpr, box } = view;

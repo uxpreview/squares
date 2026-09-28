@@ -135,7 +135,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
 
   // Framings land inside the map's edges, so the camera never has to spring back.
   const overviewView = () => camera.clamp(camera.fit(world.overviewBox(view.vw < view.vh, world.storeys[storey]?.id, view.vh < 500), insets()));
-  const zoneView = (i) => camera.clamp(camera.fit(world.zoneBox(world.zones[i]), insets(), 0.5));
+  // A long area is framed around a spot (see zoneBox in world.js): the one
+  // you tapped, kept while you're there so a resize frames the same spot.
+  let near = null;
+  const zoneView = (i, at = i === current ? near : null) => camera.clamp(camera.fit(world.zoneBox(world.zones[i], at), insets(), 0.5));
   // Zoomed in this far, a tap looks for finds (and panning lands you in a
   // room). A phone's overview fills the screen, so it sits above that; a
   // room's own framing is always past it.
@@ -208,8 +211,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (changed && active) on.place(world.id, null);
   }
 
+  // o.near: a world point [x, y] to frame a long area around.
   function enterZone(i, o = {}) {
     showZoneUI(i);
+    near = o.near || null;
     camera.flyTo(zoneView(i), o.dur ?? 1.5); // zoneView measures the tray and room bar, which are laid out now
   }
 
@@ -636,6 +641,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let lastTick = null;
   function tick(t) {
     placeInvite();
+    if (world && world.map.plate && world.map.plate.at && Math.abs(t - plateAtT) > 0.4) printPlate(t);
     // (The open list is measured as it would rest; that's a style change, so
     // it's left to layoutVars rather than done every frame.)
     if (active && mode === 'zone' && tray.state !== 'open') keepRoombar();
@@ -792,6 +798,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     return world.zoneAt(X, Y);
   }
 
+  // The world point on a zone's floor under a screen point.
+  function floorAt(zone, sx, sy) {
+    const [X, Y] = camera.toWorld(sx, sy);
+    const lx = Y - zone.anchor[1] + (X - zone.anchor[0]) / 2, ly = Y - zone.anchor[1] - (X - zone.anchor[0]) / 2;
+    return [zone.ox + lx, zone.oy + ly];
+  }
+
   function findAtScreen(sx, sy, t) {
     let best = null, bestD = Infinity;
     for (const zone of world.zones) {
@@ -817,13 +830,16 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const hit = findAtScreen(sx, sy, t);
       if (hit) {
         markFound(hit.zone, hit.f);
-        if (hit.zone.index !== current || mode !== 'zone') showZoneUI(hit.zone.index);
+        if (hit.zone.index !== current || mode !== 'zone') {
+          showZoneUI(hit.zone.index);
+          near = world.long(hit.zone) ? floorAt(hit.zone, sx, sy) : null;
+        }
         return;
       }
     }
     const i = zoneAtScreen(sx, sy);
     if (i >= 0 && (!zoomedIn || i !== current)) {
-      enterZone(i);
+      enterZone(i, { near: world.long(world.zones[i]) ? floorAt(world.zones[i], sx, sy) : null });
       return;
     }
     pops.push({ kind: 'ripple', t0: performance.now(), at: camera.toWorld(sx, sy) });
@@ -838,6 +854,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     }
     const i = zoneAtScreen(view.vw / 2, view.vh / 2, true);
     if (i >= 0 && i !== current) showZoneUI(i);
+    // Panned along a long area: that's the spot it's framed around now.
+    if (i >= 0 && i === current && world.long(world.zones[i])) near = floorAt(world.zones[i], view.vw / 2, view.vh / 2);
   }
 
   function userAct() {
@@ -904,6 +922,25 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ui.placeTag.textContent = tagline;
   }
 
+  // A place printed on a dark plate (a night) prints its loose text, and the
+  // title's, in the light ink. (On <html>, so index.html can set it first.)
+  // The page and the browser's bars take the place's paper, so a night has
+  // no strip of daylight at the top of a phone. A plate that changes with the
+  // clock (a day: plate.at(t)) is followed a couple of times a second.
+  let platePrinted = null, plateAtT = -1;
+  function printPlate(t) {
+    const plate = world.map.plate;
+    const now = plate && plate.at ? plate.at(t) : plate || {};
+    const key = (now.paper || '') + '|' + (now.kind || '');
+    plateAtT = t;
+    if (key === platePrinted) return;
+    platePrinted = key;
+    document.documentElement.dataset.plate = now.kind || '';
+    if (now.paper) document.documentElement.style.setProperty('--plate', now.paper);
+    else document.documentElement.style.removeProperty('--plate');
+    if (themeColor) themeColor.content = now.paper || themeDefault;
+  }
+
   function load(w) {
     if (world === w) return;
     world = w;
@@ -916,15 +953,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     storey = world.defaultStorey;
     nextCall = 0;
     lastCaller = null;
-    // A place printed on a dark plate (a night) prints its loose text, and the
-    // title's, in the light ink. (On <html>, so index.html can set it first.)
-    document.documentElement.dataset.plate = (world.map.plate && world.map.plate.kind) || '';
-    // The page and the browser's bars take the place's paper, so a night has
-    // no strip of daylight at the top of a phone.
-    const paper = world.map.plate && world.map.plate.paper;
-    if (paper) document.documentElement.style.setProperty('--plate', paper);
-    else document.documentElement.style.removeProperty('--plate');
-    if (themeColor) themeColor.content = paper || themeDefault;
+    platePrinted = null;
+    printPlate(clock());
     // The lift can be the place's own (brass, at the Manor): map.lift.
     const lift = world.map.lift || {};
     for (const k of ['plate', 'ink', 'lamp']) {

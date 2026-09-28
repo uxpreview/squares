@@ -3,7 +3,7 @@
 // waiting behind a goose that will not give up the little telescope, and
 // someone who keeps spotting shooting stars one second too late.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, planks,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, planks,
   frame, chair, onLeft, onRight, windowR, paintText, label, speech, shade, tint, mix, alpha, Q, P, hash, rng,
 } from '../../../engine/art.js';
 import { route, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -298,8 +298,8 @@ export default {
     });
 
     // Night walls, speckled with painted stars.
+    R.walls({ h: 6, left: C.navy, right: C.night, cap: C.paper, dotsL: C.night, densL: 0.12 });
     R.wall((ctx) => {
-      walls(ctx, { h: 6, left: C.navy, right: C.night, cap: C.paper, dotsL: C.night, densL: 0.12 });
       const r = rng(77);
       for (let i = 0; i < 170; i++) {
         const left = i % 2 === 0;

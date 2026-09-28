@@ -2,7 +2,7 @@
 // lift and climb aboard, the board counts 3-2-1, the smoke rolls, and up it
 // goes. Then it floats home under a parachute and the crew slide out.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, tiles, onLeft,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, tiles, onLeft,
   paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash,
 } from '../../../engine/art.js';
 import { route, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -297,7 +297,7 @@ export default {
       face(ctx, [[4.2, 2.2, 0.03], [5.4, 3.8, 0.03]], null, { lw: 0.12, stroke: C.coral });
       paintText(ctx, 'floor', 3.6, 9.9, 'KEEP BACK', 0.5, alpha(C.coral, 0.85));
     });
-    R.wall((ctx) => walls(ctx, { h: 1.0, left: C.greyLight, right: C.greyLight, cap: C.white }));
+    R.walls({ h: 1.0, left: C.greyLight, right: C.greyLight, cap: C.white });
     R.decor((ctx) => {
       if (!Q.detail) return;
       for (let i = 0; i < 32; i++) {

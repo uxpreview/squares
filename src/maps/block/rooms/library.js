@@ -1,7 +1,7 @@
 // Library: a rolling ladder with a thrill-seeker on it, a librarian who shushes
 // everything (including the weather), story time, and a goose doing its homework.
 import {
-  C, box, rect, disc, cylinder, face, paint, person, folk, walls, slab, planks,
+  C, box, rect, disc, cylinder, face, paint, person, folk, slab, planks,
   onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, rng, pick, CLOTH, lamp,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
@@ -158,9 +158,7 @@ export default {
       rect(ctx, 2.6, 4.3, 10, 1.6, 0.01, C.red, { dots: shade(C.red, 0.4), density: 0.15, stroke: false });
       rect(ctx, 2.8, 4.5, 9.6, 1.2, 0.012, null, { lw: 0.05, stroke: C.mustard });
     });
-    R.wall((ctx) => {
-      walls(ctx, { h: H, left: WALLC, right: shade(WALLC, 0.06), cap: C.paper, dotsL: shade(WALLC, 0.25), dotsR: shade(WALLC, 0.3), densL: 0.12, densR: 0.12 });
-    });
+    R.walls({ h: H, left: WALLC, right: shade(WALLC, 0.06), cap: C.paper, dotsL: shade(WALLC, 0.25), dotsR: shade(WALLC, 0.3), densL: 0.12, densR: 0.12 });
     R.decor((ctx) => {
       // frieze above the shelves
       onLeft(ctx, 0, SH + 0.3, 16, 0.9, C.navy, { stroke: false });

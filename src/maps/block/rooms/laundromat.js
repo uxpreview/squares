@@ -1,7 +1,7 @@
 // Laundromat, 2am: a washer foaming over, a ceiling fan wearing a sock,
 // a vending machine that needs a kick, and people folding a sheet the size of a sail.
 import {
-  C, box, rect, disc, face, poly, paint, person, folk, walls, slab, checker, chair,
+  C, box, rect, disc, face, poly, paint, person, folk, slab, checker, chair,
   speech, shade, tint, alpha, dots, Q, label, P, paintText, onLeft, onRight, plant, goose,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp } from '../../../engine/actors.js';
@@ -75,7 +75,7 @@ export default {
       slab(ctx, C.greyLight);
       checker(ctx, C.white, C.grey, 1.6);
     });
-    R.wall((ctx) => walls(ctx, { left: C.mint, right: C.mint, cap: C.paper, dotsL: C.tealLight, densL: 0.12, dotsR: C.tealLight, densR: 0.12 }));
+    R.walls({ left: C.mint, right: C.mint, cap: C.paper, dotsL: C.tealLight, densL: 0.12, dotsR: C.tealLight, densR: 0.12 });
 
     // Left wall: big night window with a neon sign, and a notice board
     R.decor((ctx, t) => {

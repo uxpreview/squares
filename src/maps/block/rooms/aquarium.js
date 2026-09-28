@@ -1,7 +1,7 @@
 // Aquarium: a dark blue hall of glass. The walls are tanks full of fish, a
 // shark does laps, the jellyfish pulse, and the octopus has somewhere to be.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, floor, tiles,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
   speech, shade, tint, alpha, dots, Q, label, P, paintText, onLeft, onRight, frame,
   hash, rng, pick,
 } from '../../../engine/art.js';
@@ -238,7 +238,7 @@ export default {
       floor(ctx, shade(C.navy, 0.25), { dots: C.night, density: 0.25, stroke: false });
       tiles(ctx, 2, alpha(C.sky, 0.12), 0.03);
     });
-    R.wall((ctx) => walls(ctx, { h: 7, left: C.night, right: C.night, cap: C.navy, dotsL: C.navy, dotsR: C.navy, densL: 0.3, densR: 0.3 }));
+    R.walls({ h: 7, left: C.night, right: C.night, cap: C.navy, dotsL: C.navy, dotsR: C.navy, densL: 0.3, densR: 0.3 });
 
     // Tanks: backgrounds, frames and signs
     R.decor((ctx) => {

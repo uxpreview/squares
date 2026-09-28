@@ -2,7 +2,7 @@
 // skater chasing a perfect score, a cocoa line that never ends and a snowman
 // judge who is still missing his nose.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, floor,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor,
   speech, shade, tint, alpha, Q, label, P, paintText, rng, hash,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
@@ -289,8 +289,8 @@ export default {
     });
 
     // Low plank fence with snow on top.
+    R.walls({ h: 1.0, left: C.wood, right: C.wood, cap: C.white });
     R.wall((ctx) => {
-      walls(ctx, { h: 1.0, left: C.wood, right: C.wood, cap: C.white });
       if (!Q.detail) return;
       for (let i = 0.8; i < 16; i += 0.8) {
         face(ctx, [[i, 0, 0], [i, 0, 1.0]], null, { lw: 0.025, stroke: shade(C.wood, 0.35) });

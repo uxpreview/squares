@@ -13,7 +13,8 @@
 //     storey: 'ground',                         // which floor the overview starts on
 //     overview(portrait, storeyId, short) => [X0, X1, Y0, Y1],  // the framing for the whole map (optional)
 //     backdrop(ctx, t, world, fx), sky(ctx, t, world, fx),  // drawn under / over the zones (optional)
-//     plate: { paper },                         // the sheet this place is printed on (optional)
+//     plate: { paper, kind },                   // the sheet this place is printed on (optional);
+//                                               // or { at(t) => { paper, kind } }: one that changes with the clock (a day)
 //     walkers: [{ id, at(t), draw(ctx, t, p) }], // people on a shared timeline (optional)
 //     words: { ... },                           // map-specific copy (see src/game/play.js)
 //   }
@@ -32,7 +33,7 @@
 // zone's own units. See schedule() in src/engine/actors.js.
 
 import { buildZone, inside, wallHeight, WALL_T } from './zone.js';
-import { ZK, SLAB, unproject } from './iso.js';
+import { S, ZK, SLAB, unproject } from './iso.js';
 
 const overlap = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
 
@@ -98,15 +99,16 @@ export function buildWorld(map) {
   const named = map.storey ? storeys.findIndex((s) => s.id === map.storey) : -1;
   const defaultStorey = named >= 0 ? named : top;
 
-  // Walls down: an inside wall is one with another zone right behind it.
+  // Walls down: an inside wall is one with another zone right behind it (a
+  // room, or a street running past: any box of a zone of any shape).
   if (cutaway.walls != null) {
+    const boxes = (a) => a.rects.map((r) => [a.ox + r[0], a.oy + r[1], a.ox + r[2], a.oy + r[3]]);
     for (const z of zones) {
       z.low = cutaway.walls;
       z.wallK = 0;
-      z.inner.left = zones.some((a) => a !== z && Math.abs(a.ox + a.w - z.ox) < 0.01 &&
-        overlap(a.oy, a.oy + a.d, z.oy, z.oy + z.d) && overlap(a.oz, a.oz + a.span, z.oz, z.oz + z.h));
-      z.inner.right = zones.some((a) => a !== z && Math.abs(a.oy + a.d - z.oy) < 0.01 &&
-        overlap(a.ox, a.ox + a.w, z.ox, z.ox + z.w) && overlap(a.oz, a.oz + a.span, z.oz, z.oz + z.h));
+      const near = zones.filter((a) => a !== z && overlap(a.oz, a.oz + a.span, z.oz, z.oz + z.h));
+      z.inner.left = near.some((a) => boxes(a).some((b) => Math.abs(b[2] - z.ox) < 0.01 && overlap(b[1], b[3], z.oy, z.oy + z.d)));
+      z.inner.right = near.some((a) => boxes(a).some((b) => Math.abs(b[3] - z.oy) < 0.01 && overlap(b[0], b[2], z.ox, z.ox + z.w)));
     }
   }
 
@@ -162,9 +164,23 @@ export function buildWorld(map) {
     return [X0 - 6, X1 + 6, Y0 - 5, Y1 + 4];
   }
 
-  function zoneBox(z) {
-    const [X0, X1, Y0, Y1] = body(z);
-    return [X0 - 0.5, X1 + 0.5, Y0 - 1.5, Y1 + 0.5];
+  // What framing a zone looks at. A room: all of it. A long area (a street
+  // running the length of the map) framed whole would make its finds tiny, so
+  // it's framed a room's worth at a time, around near (a world point: where
+  // you tapped, or a find), or else its home (zone.home, or its first piece).
+  const long = (z) => z.w > S + 1 || z.d > S + 1;
+  function zoneBox(z, near) {
+    if (!long(z)) {
+      const [X0, X1, Y0, Y1] = body(z);
+      return [X0 - 0.5, X1 + 0.5, Y0 - 1.5, Y1 + 0.5];
+    }
+    let [cx, cy] = near ? [near[0] - z.ox, near[1] - z.oy] : z.home || [(z.rects[0][0] + z.rects[0][2]) / 2, (z.rects[0][1] + z.rects[0][3]) / 2];
+    const R = S / 2 + 2;
+    cx = Math.max(Math.min(R, z.w / 2), Math.min(z.w - Math.min(R, z.w / 2), cx));
+    cy = Math.max(Math.min(R, z.d / 2), Math.min(z.d - Math.min(R, z.d / 2), cy));
+    const [x0, y0, x1, y1] = [cx - R, cy - R, cx + R, cy + R];
+    const [ax, ay] = z.anchor;
+    return [ax + x0 - y1 - 0.5, ax + x1 - y0 + 0.5, ay + (x0 + y0) / 2 - z.h * ZK - 1.5, ay + (x1 + y1) / 2 + SLAB * ZK + 0.5];
   }
 
   // Which zone is at world iso point (X, Y)? Front-most wins (chunk by chunk,
@@ -178,7 +194,10 @@ export function buildWorld(map) {
       if (skip && skip(z)) continue;
       const [ax, ay] = [z.anchor[0], z.anchor[1] - (z.lift || 0)];
       const [x0, y0, x1, y1] = c.rect;
-      for (let h = 0; h <= Math.max(6, z.h); h += 2) {
+      // Walls down, a room only reaches as high as its walls stand now, so a
+      // tap on the street behind a lowered wall lands on the street.
+      const top = z.low != null && z.walls ? Math.max(1.5, wallHeight(z, 'left'), wallHeight(z, 'right')) : Math.max(6, z.h);
+      for (let h = 0; h <= top; h += top < 2 ? top : 2) {
         const [lx, ly] = unproject(X - ax, Y - ay + h * ZK);
         if (lx < x0 - (x0 ? 0 : 0.5) || ly < y0 - (y0 ? 0 : 0.5) || lx > x1 || ly > y1) continue;
         if (h > 0 && lx > 1.2 && ly > 1.2) continue; // above the floor only near the back walls
@@ -234,6 +253,7 @@ export function buildWorld(map) {
     cutaway,
     overviewBox,
     zoneBox,
+    long,
     zoneAt,
     zoneAtPoint,
     blocked,

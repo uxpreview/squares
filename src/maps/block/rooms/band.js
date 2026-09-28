@@ -1,7 +1,7 @@
 // Band Practice: a garage rock band fronted by a goose, a drummer with no
 // volume knob, a dog on backing vocals and a neighbor who has had enough.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, floor, tiles,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
   speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, wave } from '../../../engine/actors.js';
@@ -147,7 +147,7 @@ export default {
       // painted parking line
       face(ctx, [[15.2, 3, 0.01], [15.2, 13.5, 0.01]], null, { lw: 0.22, stroke: alpha(C.mustard, 0.7) });
     });
-    R.wall((ctx) => walls(ctx, { left: tint(C.mint, 0.2), right: tint(C.butter, 0.25), cap: C.paper, dotsL: shade(C.mint, 0.25), dotsR: shade(C.butter, 0.25), densL: 0.12, densR: 0.12 }));
+    R.walls({ left: tint(C.mint, 0.2), right: tint(C.butter, 0.25), cap: C.paper, dotsL: shade(C.mint, 0.25), dotsR: shade(C.butter, 0.25), densL: 0.12, densR: 0.12 });
 
     // ---------- Wall decor ----------
     R.decor((ctx) => {

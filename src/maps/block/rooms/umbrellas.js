@@ -2,7 +2,7 @@
 // Two little clouds drift under the ceiling, the shopkeeper mops forever,
 // and a line of ducklings has picked up one extra, much larger duckling.
 import {
-  C, box, rect, disc, cylinder, face, poly, paint, person, folk, walls, slab, checker, tiles,
+  C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker, tiles,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, windowR, frame, clockL, shelfR,
   hash, rng, pick,
 } from '../../../engine/art.js';
@@ -175,7 +175,7 @@ export default {
       rect(ctx, 0.4, 12.6, 1.6, 2.6, 0.01, C.coral, { dots: shade(C.coral, 0.4), density: 0.25 });
       paintText(ctx, 'floor', 1.2, 13.9, 'DRIP', 0.4, C.white);
     });
-    R.wall((ctx) => walls(ctx, { h: 7, left: C.mint, right: C.lilac, dotsL: shade(C.mint, 0.25), dotsR: shade(C.lilac, 0.25), densL: 0.14, densR: 0.14, cap: C.white }));
+    R.walls({ h: 7, left: C.mint, right: C.lilac, dotsL: shade(C.mint, 0.25), dotsR: shade(C.lilac, 0.25), densL: 0.14, densR: 0.14, cap: C.white });
 
     R.decor((ctx) => {
       // a sunny window: it is lovely out

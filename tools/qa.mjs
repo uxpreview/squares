@@ -130,7 +130,7 @@ try {
       order: w.order.map((i) => w.zones[i].id),
       walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
       zones: w.zones.map((z) => ({
-        id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '',
+        id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '', long: w.long(z),
         finds: z.finds.map((f) => {
           // Moving: its spot changes over the loop (a goose's spot is always a function).
           const spots = [0, 7.3, 19.1, 41.7].map((t) => String(typeof f.at === 'function' ? f.at(t) : f.at));
@@ -309,8 +309,11 @@ try {
           g.setTransform(9, 0, 0, 9, 160, 190);
           setScreen(9, 1);
           Q.detail = true; Q.lines = true; Q.pxPerUnit = 40;
+          // (Each draw starts from the same canvas settings, so only time can change it.)
+          g.save();
           g.lineCap = 'round'; g.lineJoin = 'round';
           it.draw(g, t);
+          g.restore();
           const d = g.getImageData(0, 0, 320, 360).data;
           let h = 0;
           for (let j = 0; j < d.length; j++) h = (h * 31 + d[j]) | 0;
@@ -373,8 +376,12 @@ try {
     const geeseLeft = [];
     for (const id of order) {
       const zone = byId.get(id);
-      await frameZone(p, id);
-      const seen = await p.evaluate(({ id, loop }) => {
+      // A long area (a street) is framed around where you tap, so each of its
+      // finds is checked framed around itself; a room, framed whole, once.
+      const spots = zone.long ? zone.finds.map((f) => [f.id]) : [null];
+      for (const only of spots) {
+      await frameZone(p, id, only && only[0]);
+      const seen = (await p.evaluate(({ id, loop }) => {
         const s = window.__squares, cam = s.cam, w = s.world;
         const z = w.zones.find((x) => x.id === id);
         const vw = innerWidth, vh = innerHeight;
@@ -399,7 +406,7 @@ try {
           const [sx, sy] = at(f, now);
           return { id: f.id, label: f.goose ? 'The goose' : f.label, goose: !!f.goose, moving: moments.length > 1, share: off / moments.length, under, px: f.r * cam.z, sx, sy };
         });
-      }, { id, loop: info.loop });
+      }, { id, loop: info.loop })).filter((f) => !only || only.includes(f.id));
       for (const f of seen) {
         const where = `${zone.name} (${kind})`;
         if (f.share > 0) {
@@ -416,14 +423,16 @@ try {
       }
       // Tap every thing here (geese at the very end: the last one finishes the place).
       for (const f of zone.finds) {
+        if (only && !only.includes(f.id)) continue;
         if (f.goose) { geeseLeft.push([id, f]); continue; }
         const r = await tapFind(p, id, f.id);
         if (!r.ok) { screenOk = false; fail('screen', `${zone.name} (${kind}): tapping "${f.label}" didn't find it${r.other ? ` (it found "${r.other}" instead)` : ''}.`); }
       }
       await p.evaluate(() => { const s = window.__squares; s.store.resetMap(s.world.id); });
+      }
     }
     for (const [id, f] of geeseLeft) {
-      await frameZone(p, id);
+      await frameZone(p, id, byId.get(id).long ? f.id : null);
       const r = await tapFind(p, id, f.id);
       if (!r.ok) { screenOk = false; fail('screen', `${byId.get(id).name} (${kind}): tapping the goose didn't find it.`); }
     }
@@ -595,8 +604,15 @@ function checkPageErrors() {
 }
 
 // Fly into an area as a player would, and let it settle: walls up, story away.
-async function frameZone(p, id) {
-  await p.evaluate((i) => { window.__squares.play.debug.finds = false; window.__squares.play.enterZone(i, { dur: 0.01 }); }, id);
+// near: a find's id, to frame a long area around it (as tapping there would).
+async function frameZone(p, id, near = null) {
+  await p.evaluate(({ id, near }) => {
+    const s = window.__squares, z = s.world.zones.find((x) => x.id === id);
+    const f = near && z.finds.find((x) => x.id === near);
+    const at = f && (typeof f.at === 'function' ? f.at(s.clock.now()) : f.at);
+    s.play.debug.finds = false;
+    s.play.enterZone(id, { dur: 0.01, near: at ? [z.ox + at[0], z.oy + at[1]] : null });
+  }, { id, near });
   await p.waitForTimeout(900);
   await p.evaluate(() => { const st = document.getElementById('story'); if (st) st.hidden = true; });
 }

@@ -68,6 +68,12 @@ src/
       areas/           One file per area
     crossroads/      A hidden test bed (#/crossroads): a street and a pavement of any shape
                      between four rooms, with people walking between them
+    blockparty/      The Block, connected (#/blockparty, hidden until it ships): the Block's
+                     sixteen rooms on streets, on the day of the Block Party
+      plan.js          Where every room, street and door sits, and the lanes people walk
+      style.js         The streets' inks, the paper through the day, lamp posts and bunting
+      day.js           The day's clock and light, and everyone's day on the streets
+      areas/           Main Street, the alleys, the pavement
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/
@@ -117,6 +123,10 @@ docs/
 | The lift's ding | `ding` in `src/game/audio.js` |
 | Make an area that isn't a 16 x 16 room (a street, a square) | `size: [w, d]` or `shape: [[x0, y0, x1, y1], ...]` in its zone file (see `src/maps/crossroads/areas/street.js`, and "Chunks" in `src/engine/zone.js`) |
 | Who's where at the Manor, and when | `src/maps/manor/evening.js` (doors and stairs are in `plan.js`) |
+| Who's where at the Block Party, and when | `src/maps/blockparty/day.js` (doors, streets and lanes are in `plan.js`) |
+| The Block Party's colors through the day | `PAPER` in `src/maps/blockparty/style.js` (the hours); how dark night gets is `nightK` and `nightfall` in `day.js` |
+| Where a room's door onto the street goes | `DOORS` in `src/maps/blockparty/plan.js` (a map can cut doors in any zone's walls: `doors` on its place) |
+| How much of a long area (a street) a tap frames | `zoneBox` in `src/engine/world.js` (a room's worth round the spot you tapped); where it frames by default is `home` in the area's file |
 | When the Manor's lights go out, how often lightning strikes | `lightsOut` and `storm` in `src/maps/manor/style.js` |
 | What QA expects of a place (finds per area, key moments) | `qa` in its `map.js`; the checks and budgets are at the top of `tools/qa.mjs` |
 | The Manor's suspects, clues, alibis and what they say | `src/maps/manor/case.js` |
