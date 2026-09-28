@@ -14,7 +14,8 @@ import { C, alpha } from '../../engine/art.js';
 import { reg, birds } from '../shared.js';
 import { blimp, plane } from '../block/ambient.js';
 import { AT, DOORS, GRID, SIZE, MID, LOOP } from './plan.js';
-import { walkers, nightfall, plate, at, nightK } from './day.js';
+import { walkers, nightfall, plate } from './day.js';
+import { hour, at, nightK, open, rush, LAUNCH } from './clock.js';
 import { follow } from './finale.js';
 import { sound } from './sound.js';
 import * as FRONTS from './fronts/index.js';
@@ -49,11 +50,18 @@ const ROOMS = {
 // night on it (it stays lit: day.js).
 const onTheStreet = (room) => ({ ...room, build(R) { room.build(R); FRONTS[room.id](R); nightfall(R); } });
 
+// What a room can ask about the day: the hour (0 to 24), how dark it is
+// outside, whether it's open and how busy (0 to 1), and when the rocket goes.
+const dayFor = (id) => ({ hour, nightK, open: (t) => open(id, t), rush: (t) => rush(id, t), launch: at(LAUNCH) });
+
 const rooms = GRID.flatMap((row, r) => row.map((id, c) => ({
   zone: onTheStreet(ROOMS[id]),
   at: AT[id],
   tag: `Unit ${c + 1}${'ABCD'[r]}`,
   doors: DOORS[id] ? [DOORS[id]] : [],
+  // The day, for a room file that wants it (R.opts.day): on The Block it's
+  // absent, so the room draws as it always has.
+  opts: { day: dayFor(id) },
 })));
 
 // Prev / next and the list: the streets first, then the rooms snaking through
