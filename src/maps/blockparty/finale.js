@@ -20,9 +20,11 @@ export function follow(fx) {
 // The conga: round the stage and out along every arm of Main Street and back,
 // on both sides of the road, a goose every 1.6 units.
 const S0 = LANES[1], S1 = LANES[2], NEAR = 8, FAR = 73;
+// It starts at the stage's back right corner, so the geese come off the
+// stage one by one and head out along the right-hand arm.
 const LAP = [
-  [S1, NEAR], [S1, S0], [FAR, S0], [FAR, S1], [S1, S1], [S1, FAR],
-  [S0, FAR], [S0, S1], [NEAR, S1], [NEAR, S0], [S0, S0], [S0, NEAR],
+  [S1, S0], [FAR, S0], [FAR, S1], [S1, S1], [S1, FAR], [S0, FAR],
+  [S0, S1], [NEAR, S1], [NEAR, S0], [S0, S0], [S0, NEAR], [S1, NEAR],
 ];
 const lap = route(LAP, { speed: 2.2 });
 const GAP = 1.6 / 2.2; // seconds between geese

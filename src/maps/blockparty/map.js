@@ -128,8 +128,9 @@ export default {
   // stage is in the thick of it, it pins by the back corner instead, on the
   // Observatory (block.md, decision 18).
   invite: { zone: 'main-street', at: [MID, MID, 1.4], pin: [STAGE[0] + 0.3, STAGE[1] + 0.3, STAGE_Z + 7.6], phone: { zone: 'observatory', pin: [0, 0, WALL - 2] } },
-  // The ending: the clock jumps to the party and the geese conga (finale.js).
-  finale: { at: at(19.8) },
+  // The ending: the clock jumps to the party, the camera goes to the stage,
+  // and the geese conga off it (finale.js); the card comes after a while.
+  finale: { at: at(19.8), zone: 'main-street', near: [MID + 5, MID + 2], hold: 9 },
   sound,
   // As the Block: on a phone held upright the block fills the height and the
   // side rooms are a swipe away; on its side, the width; on a big screen, all of it.

@@ -484,10 +484,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
           if (!still()) return;
           sound('fanfare');
           // A place with a finale jumps its clock there (the Block Party's
-          // party), so the ending plays at the right moment.
-          if (w.map.finale && w.map.finale.at != null) setClock(w.map.finale.at);
-          toOverview({ dur: 2.5 });
-          setTimeout(() => { if (still()) on.complete(w); }, 2600);
+          // party) and frames where it plays for a while before the card.
+          const fin = w.map.finale;
+          if (fin && fin.at != null) setClock(fin.at);
+          const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
+          if (fz >= 0) {
+            showOverviewUI();
+            camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), insets(), 0.5)), 2.5);
+          } else toOverview({ dur: 2.5 });
+          setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
         }, 1800);
       }
       toast(allGeese ? words().complete : `HONK. Goose ${p.geese} of ${world.totalGeese}.${zoneDone ? ` ${zone.name}, all found.` : ''}`);
