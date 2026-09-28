@@ -44,7 +44,7 @@ export function createRenderer(canvas, camera, o = {}) {
   // the zone you're in, the other zones, the backdrop and sky, and the frame gap.
   // n and worst count frames and keep the slowest since a tool last reset them
   // (QA times each view on its own frames that way).
-  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0 };
+  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0, get snapQ() { return snapQ; } };
   let snapCredit = 0;
   let lastT = 0;
   let slowFrames = 0;
@@ -53,11 +53,18 @@ export function createRenderer(canvas, camera, o = {}) {
 
   // Each frame earns SNAP_BUDGET_MS of credit; a snapshot spends what it actually
   // took. Expensive snapshots (big, zoomed in) therefore happen less often.
+  // When there isn't time to spare (frames slower than about 40 a second),
+  // the credit shrinks: the time a picture takes to draw here is only part of
+  // what it costs, since the graphics chip then has to put it on screen. On
+  // an older laptop the other rooms move in small steps instead of the whole
+  // picture lagging; on a quick one nothing changes.
+  let snapQ = 1;
   function refreshSnapshots(list, t, k) {
     const want = snapScaleFor(k);
+    snapQ = perf.gap > 25 ? Math.max(0.1, snapQ * 0.97) : Math.min(1, snapQ + 0.01);
     // Catch up faster when neighbors are still at a much lower resolution than the view.
     const blurry = list.some((z) => z.snapScale && z.snapScale < want * 0.5);
-    const budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS;
+    const budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS * snapQ;
     snapCredit = Math.min(snapCredit + budget, budget * 3);
     // No picture yet first, then pictures that are out of date (walls moving),
     // then the wrong size, then the oldest.
@@ -123,23 +130,45 @@ export function createRenderer(canvas, camera, o = {}) {
   // focus away around it.
   // drop: how far below its front edges it reaches (along x = its far x,
   // and y = its far y): down past the slab, or not at all.
-  function cutPath(focus, rect = [0, 0, focus.w, focus.d], drop = [1.1, 1.1]) {
+  // hole: just the outline, to erase with (see "The cut layer" below).
+  function cutPath(focus, rect = [0, 0, focus.w, focus.d], drop = [1.1, 1.1], hole = false) {
     const [fx, fy] = focus.anchor;
     const H = focus.h + 0.3;
     const t = -0.45; // wall thickness
     const [x0, y0, w, d] = [rect[0] ? rect[0] : t, rect[1] ? rect[1] : t, rect[2], rect[3]];
     const sil = [[x0, d, H], [x0, y0, H], [w, y0, H], [w, y0, -drop[0]], [w, d, -drop[0]], [w, d, -drop[1]], [x0, d, -drop[1]]];
-    const { box } = view;
-    const [w0x, w0y] = camera.toWorld(box.x - 10, box.y - 10);
-    const [w1x, w1y] = camera.toWorld(box.x + box.w + 10, box.y + box.h + 10);
     const cut = new Path2D();
-    cut.rect(w0x, w0y, w1x - w0x, w1y - w0y);
+    if (!hole) {
+      const { box } = view;
+      const [w0x, w0y] = camera.toWorld(box.x - 10, box.y - 10);
+      const [w1x, w1y] = camera.toWorld(box.x + box.w + 10, box.y + box.h + 10);
+      cut.rect(w0x, w0y, w1x - w0x, w1y - w0y);
+    }
     sil.forEach(([x, y, z], i) => {
       const X = fx + isoX(x, y), Y = fy + isoY(x, y, z);
       i ? cut.lineTo(X, Y) : cut.moveTo(X, Y);
     });
     cut.closePath();
     return cut;
+  }
+
+  // The cut layer. Chunks in front of the room you're in are cut away around
+  // it. Clipping each one to the cut makes the browser build a full-screen
+  // mask per chunk, every frame, which an older laptop's graphics can't keep
+  // up with (a room at 5 to 15 fps, a street at 3). Instead they're drawn onto
+  // a see-through sheet, the room's outline is erased from the sheet with
+  // plain fills, and the sheet is laid on the picture: the same result.
+  // The sheet holds chunks cut by the same outlines; a chunk that isn't cut
+  // but overlaps what's on the sheet lays the sheet down first, so everything
+  // still goes on in depth order.
+  let sheet = null;
+  function sheetCtx() {
+    if (!sheet) sheet = document.createElement('canvas').getContext('2d', { alpha: true });
+    if (sheet.canvas.width !== canvas.width || sheet.canvas.height !== canvas.height) {
+      sheet.canvas.width = canvas.width;
+      sheet.canvas.height = canvas.height;
+    }
+    return sheet;
   }
 
   // o: { t, now, focus, level, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
@@ -175,12 +204,12 @@ export function createRenderer(canvas, camera, o = {}) {
     // into whatever it touches, so the cut stops at the ground there instead
     // of showing the slab under it.
     const cuts = cut ? focus.chunks.map((c) => {
-      if (focus.walls) return [c, focus.chunks.length > 1 ? cutPath(focus, c.rect) : cut];
+      if (focus.walls) return [c, cutPath(focus, focus.chunks.length > 1 ? c.rect : undefined, undefined, true)];
       const [x0, y0, x1, y1] = [c.ox, c.oy, c.ox + c.rect[2] - c.rect[0], c.oy + c.rect[3] - c.rect[1]];
       const touch = (fn) => world.drawOrder.some((o) => o !== c && Math.abs(o.oz - c.oz) < 0.05 && fn(o.ox, o.oy, o.ox + o.rect[2] - o.rect[0], o.oy + o.rect[3] - o.rect[1]));
       const tx = touch((a0, b0, a1, b1) => Math.abs(a0 - x1) < 0.01 && Math.min(b1, y1) - Math.max(b0, y0) > 0.01);
       const ty = touch((a0, b0, a1, b1) => Math.abs(b0 - y1) < 0.01 && Math.min(a1, x1) - Math.max(a0, x0) > 0.01);
-      return [c, cutPath(focus, c.rect, [tx ? 0 : 1.1, ty ? 0 : 1.1])];
+      return [c, cutPath(focus, c.rect, [tx ? 0 : 1.1, ty ? 0 : 1.1], true)];
     }) : null;
     const fx = { ...(o.fx || {}), view: [vx0, vy0, vx1, vy1], cut, level, focus };
     const b0 = performance.now();
@@ -210,11 +239,15 @@ export function createRenderer(canvas, camera, o = {}) {
     }
     settle = false;
 
-    const visible = world.drawOrder.filter((c) => {
+    const onScreen = (c) => {
       const [ax, ay] = c.zone.anchor;
       const b = c.bounds, lift = c.zone.lift;
       const [sx0, sy0] = camera.toScreen(ax + b.x0, ay + b.y0 - lift);
       const [sx1, sy1] = camera.toScreen(ax + b.x1, ay + b.y1 - lift);
+      return [sx0, sy0, sx1, sy1];
+    };
+    const visible = world.drawOrder.filter((c) => {
+      const [sx0, sy0, sx1, sy1] = onScreen(c);
       return !(sx1 < box.x || sx0 > box.x + box.w || sy1 < box.y || sy0 > box.y + box.h);
     });
     // Let go of big pictures of chunks that have been off screen for a while.
@@ -229,13 +262,61 @@ export function createRenderer(canvas, camera, o = {}) {
 
     const zs0 = performance.now();
     let focusMs = 0;
+    // What's on the cut sheet: which outlines cut it, and where it reaches on screen.
+    const world0 = ctx.getTransform();
+    let on = null;
+    // Only the part of the sheet that's been drawn on is laid down (and
+    // cleared next time), in whole device pixels.
+    // (With room round it for pen circles by an edge and the opening fade-in.)
+    const m = 24 + 1.5 * cam.z;
+    const devRect = (r) => {
+      const x0 = Math.max(0, Math.floor((r[0] - m - box.x) * dpr)), y0 = Math.max(0, Math.floor((r[1] - m - box.y) * dpr));
+      const x1 = Math.min(canvas.width, Math.ceil((r[2] + m - box.x) * dpr)), y1 = Math.min(canvas.height, Math.ceil((r[3] + m - box.y) * dpr));
+      return x1 > x0 && y1 > y0 ? [x0, y0, x1 - x0, y1 - y0] : null;
+    };
+    const layDown = () => {
+      if (!on) return;
+      sheet.save();
+      sheet.globalCompositeOperation = 'destination-out';
+      for (const hole of on.holes) sheet.fill(hole);
+      sheet.restore();
+      const r = devRect(on.reach);
+      if (r) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(sheet.canvas, r[0], r[1], r[2], r[3], r[0], r[1], r[2], r[3]);
+        ctx.restore();
+        sheet.setTransform(1, 0, 0, 1, 0, 0);
+        sheet.clearRect(r[0], r[1], r[2], r[3]);
+      }
+      on = null;
+    };
     for (const c of visible) {
       const z = c.zone;
       const [ax, ay] = z.anchor;
       const drop = introDrop(z, now);
       if (drop && drop.a <= 0) continue;
+      const by = cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h ? cuts.filter(([f]) => inFront(f, c)) : null;
+      const reach = onScreen(c);
+      let g = ctx;
+      if (by && by.length) {
+        const key = by.map(([f]) => f.rect.join()).join('|');
+        if (on && on.key !== key) layDown();
+        if (!on) {
+          sheetCtx().setTransform(world0);
+          on = { key, holes: by.map(([, hole]) => hole), reach: reach.slice() };
+        }
+        on.reach = [Math.min(on.reach[0], reach[0]), Math.min(on.reach[1], reach[1]), Math.max(on.reach[2], reach[2]), Math.max(on.reach[3], reach[3])];
+        g = sheet;
+      } else if (on && !(reach[2] < on.reach[0] - 2 || reach[0] > on.reach[2] + 2 || reach[3] < on.reach[1] - 2 || reach[1] > on.reach[3] + 2)) {
+        layDown();
+      }
+      drawChunk(g, c, z, ax, ay, drop);
+    }
+    layDown();
+
+    function drawChunk(ctx, c, z, ax, ay, drop) {
       ctx.save();
-      if (cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h) for (const [f, path] of cuts) if (inFront(f, c)) ctx.clip(path, 'evenodd');
       ctx.translate(ax, ay - z.lift);
       let a = (1 - (1 - ghost) * z.veil) * (1 - (1 - BELOW) * z.dim);
       if (drop) { ctx.translate(0, drop.dy); a *= drop.a; }
