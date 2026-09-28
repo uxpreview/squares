@@ -44,7 +44,7 @@ export function createRenderer(canvas, camera, o = {}) {
   // the zone you're in, the other zones, the backdrop and sky, and the frame gap.
   // n and worst count frames and keep the slowest since a tool last reset them
   // (QA times each view on its own frames that way).
-  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0, get snapQ() { return snapQ; } };
+  const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0, lays: 0, get snapQ() { return snapQ; } };
   let snapCredit = 0;
   let lastT = 0;
   let slowFrames = 0;
@@ -281,9 +281,10 @@ export function createRenderer(canvas, camera, o = {}) {
     };
     const layDown = () => {
       if (!on) return;
+      perf.lays++; // (tools: how many sheets a frame takes)
       sheet.save();
       sheet.globalCompositeOperation = 'destination-out';
-      for (const hole of on.holes) sheet.fill(hole);
+      for (const h of on.holes) sheet.fill(h[1]);
       sheet.restore();
       const r = devRect(on.reach);
       if (r) {
@@ -308,15 +309,25 @@ export function createRenderer(canvas, camera, o = {}) {
       const by = cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
       let g = ctx;
       if (by && by.length) {
-        const key = by.map(([f]) => f.rect.join()).join('|');
-        if (on && on.key !== key) layDown();
+        // It can go on the sheet that's out if the outlines that sheet will
+        // erase and this chunk's own differ only where neither can touch:
+        // none of the sheet's other outlines reach this chunk, and none of
+        // this chunk's new ones reach what's already on the sheet. Otherwise
+        // the sheet is laid down and a new one started.
+        const fits = on && on.holes.every((h) => by.includes(h) || !overlap(h[2], reach))
+          && by.every((h) => on.holes.includes(h) || !on.parts.some((r) => overlap(h[2], r)));
+        if (on && !fits) layDown();
         if (!on) {
           sheetCtx().setTransform(world0);
-          on = { key, holes: by.map(([, hole]) => hole), reach: reach.slice() };
+          on = { holes: [], parts: [], reach: reach.slice() };
         }
+        for (const h of by) if (!on.holes.includes(h)) on.holes.push(h);
+        on.parts.push(reach);
         on.reach = [Math.min(on.reach[0], reach[0]), Math.min(on.reach[1], reach[1]), Math.max(on.reach[2], reach[2]), Math.max(on.reach[3], reach[3])];
         g = sheet;
-      } else if (on && !(reach[2] < on.reach[0] - 2 || reach[0] > on.reach[2] + 2 || reach[3] < on.reach[1] - 2 || reach[1] > on.reach[3] + 2)) {
+      } else if (on && on.parts.some((r) => !(reach[2] < r[0] - 2 || reach[0] > r[2] + 2 || reach[3] < r[1] - 2 || reach[1] > r[3] + 2))) {
+        // Something that isn't cut, overlapping what's on the sheet: the
+        // sheet goes down first, so everything stays in depth order.
         layDown();
       }
       drawChunk(g, c, z, ax, ay, drop);

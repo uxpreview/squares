@@ -572,8 +572,8 @@ export default {
   home: [EDGE + 2, EDGE - 8], // the front corner
   build(R) {
     // The ground, printed by day and again in night inks.
-    printed(R, paving, 'floor');
-    printed(R, (ctx, ink) => {
+    // (One call: the day everywhere first, then the night over it.)
+    printed(R, [paving, (ctx, ink) => {
       const night = ink === STREET_NIGHT;
       for (const [x, y] of DRAINS) drain(ctx, x, y, ink);
       hopscotch(ctx, night);
@@ -582,7 +582,7 @@ export default {
       for (const [x, y, r] of GUM) disc(ctx, x, y, 0.004, r, gum, { stroke: false });
       // Chalk, by the start of the queue: someone has a theory.
       paintText(ctx, 'floor', 41.6, 83.6, 'QUEUE STARTS HERE', 0.26, night ? alpha(C.lilac, 0.8) : alpha(C.white, 0.95));
-    });
+    }]);
 
     // ---------- Lamp posts ----------
     for (const [x, y] of LAMPS) streetLamp(R, x, y, POSTERS.some(([px, py]) => px === x && py === y));

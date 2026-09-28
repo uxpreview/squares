@@ -42,13 +42,45 @@ export const STREET_NIGHT = {
   drain: C.night,
 };
 
-// Print something flat on a street twice: in the day inks (a still layer,
-// drawn once), and in the night inks over it, fading in with the dark (cached
-// too, and only stamped while it shows). draw(ctx, inks) gets STREET or
-// STREET_NIGHT. layer: 'floor' or 'rug'.
-export function printed(R, draw, layer = 'rug') {
-  R[layer]((ctx) => draw(ctx, STREET));
-  R[layer]((ctx) => draw(ctx, STREET_NIGHT), { fade: nightK });
+// Print a street's flat things twice: in the day inks (a still layer, drawn
+// once), and in the night inks over it, fading in with the dark (cached too,
+// and only stamped while it shows). draws: one draw(ctx, inks, cell) or a
+// list of them, in order; inks is STREET or STREET_NIGHT.
+//
+// A street is drawn in 16 x 16 chunks, and every flat layer by every chunk,
+// so it's printed in pieces, one per chunk's patch: each piece is cut to its
+// patch and only the chunks it touches draw it, and each is small enough to
+// cache. cell: the piece's [x0, y0, x1, y1], for a draw that wants to skip
+// what's elsewhere (it's cut to it anyway). Print all of a street in one call:
+// the day first everywhere, then the night over it.
+export function printed(R, draws, layer = 'floor') {
+  const list = Array.isArray(draws) ? draws : [draws];
+  const cells = [];
+  for (const [x0, y0, x1, y1] of R.shape) {
+    for (let x = Math.floor(x0 / 16) * 16; x < x1 - 1e-6; x += 16) {
+      for (let y = Math.floor(y0 / 16) * 16; y < y1 - 1e-6; y += 16) {
+        const c = [Math.max(x0, x), Math.max(y0, y), Math.min(x1, x + 16), Math.min(y1, y + 16)];
+        if (c[2] - c[0] > 1e-6 && c[3] - c[1] > 1e-6) cells.push(c);
+      }
+    }
+  }
+  const P = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
+  for (const [ink, o] of [[STREET, {}], [STREET_NIGHT, { fade: nightK }]]) {
+    for (const cell of cells) {
+      const [x0, y0, x1, y1] = cell, e = 0.02;
+      R[layer]((ctx) => {
+        // The cell's floor, and its slab below the edges that face you.
+        ctx.save();
+        ctx.beginPath();
+        [[x0 - e, y0 - e, 0], [x1 + e, y0 - e, 0], [x1 + e, y0 - e, -2], [x1 + e, y1 + e, -2], [x0 - e, y1 + e, -2], [x0 - e, y1 + e, 0]]
+          .forEach((p, i) => (i ? ctx.lineTo(...P(...p)) : ctx.moveTo(...P(...p))));
+        ctx.closePath();
+        ctx.clip();
+        for (const d of list) d(ctx, ink, cell);
+        ctx.restore();
+      }, o).area = [x0 - 1, y0 - 1, x1 + 1, y1 + 1];
+    }
+  }
 }
 
 // The streets take no R.dark on top of their night inks: the engine only

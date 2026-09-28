@@ -26,8 +26,10 @@ const readable = () => Q.detail && Q.pxPerUnit >= 12;
 
 // ---------- The ground ----------
 // Flat slabs along the walls, a cobbled lane down the middle with a gutter.
-function paving(ctx, ink) {
+function paving(ctx, ink, cell) {
   for (const [x0, y0, x1, y1] of ALLEYS) {
+    if (cell && (x1 <= cell[0] || x0 >= cell[2] || y1 <= cell[1] || y0 >= cell[3])) continue; // another piece's
+
     const w = x1 - x0, d = y1 - y0, alongY = w < d;
     rect(ctx, x0, y0, w, d, 0, ink.alley, { stroke: false });
     if (!Q.detail) continue;
@@ -391,14 +393,14 @@ export default {
   home: [18, 56], // the hot spot, where the octopus gets to
   build(R) {
     // The ground, printed by day and again in night inks.
-    printed(R, paving, 'floor');
-    printed(R, (ctx, ink) => {
+    // (One call: the day everywhere first, then the night over it.)
+    printed(R, [paving, (ctx, ink) => {
       const night = ink === STREET_NIGHT;
       for (const [x, y, s] of PUDDLES) puddle(ctx, x, y, s, night);
       for (const [x, y] of DRAINS) drain(ctx, x, y, ink);
       chalkSquid(ctx, night);
       tentaclePrint(ctx, night);
-    });
+    }]);
     R.find({ id: 'tentacle-print', label: 'A tentacle print', at: [18.2, 59.8, 0.05], r: 0.8 });
 
     // ---------- Quiet alleys ----------
