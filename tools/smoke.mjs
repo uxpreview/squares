@@ -462,6 +462,15 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     const w = window.__squares.world, h = (id, side) => Math.round(w.wallHeight(w.zones.find((z) => z.id === id), side) * 10) / 10;
     return { laundromat: h('laundromat', 'left'), observatory: [h('observatory', 'left'), h('observatory', 'right')], pool: h('pool', 'left') };
   });
+  // On a phone the invitation pins by the back corner (on the Observatory),
+  // clear of the stage, and under the place's name.
+  const inv = await S(page, () => {
+    const s = window.__squares, r = document.getElementById('invite-ring').getBoundingClientRect();
+    const card = document.getElementById('invite').getBoundingClientRect(), name = document.getElementById('place').getBoundingClientRect();
+    const [X, Y] = s.camera.toWorld(r.x + r.width / 2, r.y + r.height / 2);
+    return { zone: s.world.zones[s.world.zoneAt(X, Y)]?.id, cardTop: Math.round(card.top), nameBottom: Math.round(name.bottom), ringY: Math.round(r.y) };
+  });
+  check('on a phone, the invitation pins by the back corner, clear of the name', inv.zone === 'observatory' && inv.cardTop >= inv.nameBottom && inv.ringY < 844, JSON.stringify(inv));
   check('on the connected block, walls facing a street drop; the outside ones and fences stay',
     walls.laundromat === 1.2 && walls.observatory[0] === 6 && walls.observatory[1] === 6 && walls.pool === 1, JSON.stringify(walls));
   // Tap Main Street far from the stage: it's framed around the tap, about as close as a room.
@@ -493,6 +502,12 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return doors.size;
   });
   check('the Courier knocks on every door on the block', people === 15, people + ' doors');
+  // The ending: the last goose starts the party (the clock jumps to it) and
+  // the geese conga down Main Street.
+  await S(page, () => { const s = window.__squares; s.clock.set(30); for (const z of s.world.zones) { const g = z.finds.find((f) => f.goose); if (g) s.play.markFound(z, g); } });
+  await wait(page, 2600);
+  const party = await S(page, () => { const s = window.__squares, h = (5 + (s.clock.now() % 360) / 15) % 24; return { h: Math.round(h * 10) / 10, parade: s.play.fx(performance.now()).parade > 0 }; });
+  check('finding every goose starts the party: the clock jumps to it and the geese conga', party.h >= 19.5 && party.h < 21 && party.parade, JSON.stringify(party));
   await page.close();
 }
 
