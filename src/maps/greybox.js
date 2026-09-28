@@ -9,25 +9,52 @@
 // zone's own units: x, y from its back corner, z up.
 
 import {
-  C, Q, box, rect, paint, paintText, person, slab, tiles, onLeft, onRight, alpha, tint,
+  C, Q, box, rect, face, paint, paintText, person, slab, tiles, onLeft, onRight, alpha, tint, shade,
 } from '../engine/art.js';
-import { ZK } from '../engine/iso.js';
+import { ZK, SLAB } from '../engine/iso.js';
 
 // A room's shell: the slab, a flat floor, the engine's walls (with doors, cut
 // down in the overview on maps with walls down) and the room's name painted on
-// the floor, so the plan reads from far out.
+// the floor, so the plan reads from far out. For a zone of any size; for one
+// of any shape (a street), see ground() below.
 // o: { floor, slab (a color, or false outdoors), grid, name, nameAt: [x, y],
 //      walls: { left, right, h, doors, ... } | false }
 export function shell(R, o = {}) {
   const floor = o.floor || C.greyLight;
   R.floor((ctx) => {
-    if (o.slab !== false) slab(ctx, o.slab || floor);
-    rect(ctx, 0, 0, R.S, R.S, 0, floor, { stroke: false });
-    if (o.grid !== false) tiles(ctx, o.grid || 2, alpha(C.ink, 0.1), 0.03);
+    if (o.slab !== false) slab(ctx, o.slab || floor, R.W, R.D);
+    rect(ctx, 0, 0, R.W, R.D, 0, floor, { stroke: false });
+    if (o.grid !== false) tiles(ctx, o.grid || 2, alpha(C.ink, 0.1), 0.03, 0, 0, R.W, R.D);
   });
   if (o.walls !== false) R.walls(o.walls || {});
   if (o.name) {
     const [nx, ny] = o.nameAt || [8, 14.6];
+    R.rug((ctx) => paintText(ctx, 'floor', nx, ny, o.name, o.nameSize || 1.1, alpha(C.ink, 0.28)));
+  }
+}
+
+// The floor of a zone of any shape (a street, a square): each of its boxes
+// in one color, with a slab under the edges that face you and the grid, and
+// its name painted on the floor. o: { floor, slab (a color, or false), grid,
+// name, nameAt: [x, y], nameSize }
+export function ground(R, o = {}) {
+  const floor = o.floor || C.greyLight;
+  const shape = R.shape;
+  const has = (x, y) => shape.some((r) => x >= r[0] && x < r[2] && y >= r[1] && y < r[3]);
+  R.floor((ctx) => {
+    for (const [x0, y0, x1, y1] of shape) {
+      if (o.slab !== false) {
+        // The slab only shows where nothing of the zone carries on in front.
+        const side = o.slab || floor;
+        if (!has(x1 + 0.01, (y0 + y1) / 2)) face(ctx, [[x1, y0, 0], [x1, y1, 0], [x1, y1, -SLAB], [x1, y0, -SLAB]], shade(side, 0.12));
+        if (!has((x0 + x1) / 2, y1 + 0.01)) face(ctx, [[x0, y1, 0], [x1, y1, 0], [x1, y1, -SLAB], [x0, y1, -SLAB]], shade(side, 0.3), { dots: shade(side, 0.6), density: 0.25 });
+      }
+      rect(ctx, x0, y0, x1 - x0, y1 - y0, 0, floor, { stroke: false });
+      if (o.grid !== false) tiles(ctx, o.grid || 2, alpha(C.ink, 0.1), 0.03, x0, y0, x1 - x0, y1 - y0);
+    }
+  });
+  if (o.name) {
+    const [nx, ny] = o.nameAt || [R.W / 2, R.D / 2];
     R.rug((ctx) => paintText(ctx, 'floor', nx, ny, o.name, o.nameSize || 1.1, alpha(C.ink, 0.28)));
   }
 }

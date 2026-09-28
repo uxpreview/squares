@@ -36,9 +36,11 @@ src/
     actors.js        Motion helpers: walking routes, orbits, particles, people on a clock
     weather.js       A storm (lightning on a schedule), bolts, rain
     zone.js          Turns a zone file into layers; walls that drop down; lights and dark;
-                     caching the still parts of the room you're in
+                     zones of any size or shape, drawn in chunks; caching the still parts
+                     of the room you're in
     footprint.js     A stand-in canvas that measures how far a drawing reaches
-    world.js         Places a map's zones in space: storeys, doors, "which zone did I tap"
+    world.js         Places a map's zones in space, and sorts their chunks for drawing:
+                     storeys, doors, "which zone did I tap"
     camera.js        Framing, flights between views, the title-screen drift, the map's soft edges
     renderer.js      Draws a world every frame; cutaways and floors lifting; the fade-in
     input.js         Touch, mouse and wheel; stretching past an edge and springing back
@@ -64,6 +66,8 @@ src/
       case.js          The case file: suspects, clues, alibis, what they say, the reveal
       ambient.js       The night, the lawn, the tower, rain and lightning
       areas/           One file per area
+    crossroads/      A hidden test bed (#/crossroads): a street and a pavement of any shape
+                     between four rooms, with people walking between them
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/
@@ -111,6 +115,7 @@ docs/
 | How often rooms honk on the overview | `CALL_EVERY` in `src/game/play.js` (the bubble is `callBubble` next to it) |
 | How big the pen circles around found things are | `drawMarks` in `src/game/play.js`: 16px in a room, shrinking with the picture when you zoom out, never under 5px |
 | The lift's ding | `ding` in `src/game/audio.js` |
+| Make an area that isn't a 16 x 16 room (a street, a square) | `size: [w, d]` or `shape: [[x0, y0, x1, y1], ...]` in its zone file (see `src/maps/crossroads/areas/street.js`, and "Chunks" in `src/engine/zone.js`) |
 | Who's where at the Manor, and when | `src/maps/manor/evening.js` (doors and stairs are in `plan.js`) |
 | When the Manor's lights go out, how often lightning strikes | `lightsOut` and `storm` in `src/maps/manor/style.js` |
 | What QA expects of a place (finds per area, key moments) | `qa` in its `map.js`; the checks and budgets are at the top of `tools/qa.mjs` |

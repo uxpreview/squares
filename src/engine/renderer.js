@@ -3,8 +3,13 @@
 // Only the zone you're in is drawn live. Every other visible zone is a snapshot
 // bitmap, and snapshots are re-rendered a few per frame (oldest first) within a
 // small time budget, so the whole map keeps moving without the cost.
+//
+// What's drawn is chunks (world.drawOrder): a zone up to 16 x 16 is one chunk,
+// a bigger one several (see "Chunks" in zone.js). Pictures and caches belong
+// to chunks; lifting, dimming and walls going up or down belong to zones.
 
 import { isoX, isoY } from './iso.js';
+import { inFront } from './world.js';
 import { C, Q, setScreen } from './art.js';
 import {
   drawZoneVector, snapshotZone, drawSnapshot, backdropFor, drawBackdrop, dropBackdrop, dropSnapshot, stillsFor, dropStills,
@@ -81,7 +86,7 @@ export function createRenderer(canvas, camera) {
       view.dprCap = 2;
       slowFrames = 0;
       camera.measure();
-      if (world) for (const z of world.zones) { dropBackdrop(z); dropStills(z); }
+      if (world) for (const c of world.drawOrder) { dropBackdrop(c); dropStills(c); }
     }
   }
 
@@ -111,14 +116,17 @@ export function createRenderer(canvas, camera) {
     return { dy: -1.2 * (1 - e), a: e };
   }
 
-  // The focus zone's outline, as a hole in a screen-sized rect: clipping to it
-  // with evenodd cuts zones in front of the focus away around it.
-  function cutPath(focus) {
+  // The outline of the focus zone (or one of its chunks), as a hole in a
+  // screen-sized rect: clipping to it with evenodd cuts what's in front of the
+  // focus away around it.
+  // drop: how far below its front edges it reaches (along x = its far x,
+  // and y = its far y): down past the slab, or not at all.
+  function cutPath(focus, rect = [0, 0, focus.w, focus.d], drop = [1.1, 1.1]) {
     const [fx, fy] = focus.anchor;
     const H = focus.h + 0.3;
-    const t0 = -0.45; // wall thickness
-    const { w, d } = focus;
-    const sil = [[t0, d, H], [t0, t0, H], [w, t0, H], [w, t0, -1.1], [w, d, -1.1], [t0, d, -1.1]];
+    const t = -0.45; // wall thickness
+    const [x0, y0, w, d] = [rect[0] ? rect[0] : t, rect[1] ? rect[1] : t, rect[2], rect[3]];
+    const sil = [[x0, d, H], [x0, y0, H], [w, y0, H], [w, y0, -drop[0]], [w, d, -drop[0]], [w, d, -drop[1]], [x0, d, -drop[1]]];
     const { box } = view;
     const [w0x, w0y] = camera.toWorld(box.x - 10, box.y - 10);
     const [w1x, w1y] = camera.toWorld(box.x + box.w + 10, box.y + box.h + 10);
@@ -158,6 +166,19 @@ export function createRenderer(canvas, camera) {
     const [vx1, vy1] = camera.toWorld(box.x + box.w, box.y + box.h);
     const level = o.level ?? world.top;
     const cut = focus && world.cutaway.front ? cutPath(focus) : null;
+    // A chunk in front of any of the focus zone's chunks is cut away around
+    // those (one chunk for a room, so its whole outline).
+    // Outdoors (a zone without walls, like a street), the ground carries on
+    // into whatever it touches, so the cut stops at the ground there instead
+    // of showing the slab under it.
+    const cuts = cut ? focus.chunks.map((c) => {
+      if (focus.walls) return [c, focus.chunks.length > 1 ? cutPath(focus, c.rect) : cut];
+      const [x0, y0, x1, y1] = [c.ox, c.oy, c.ox + c.rect[2] - c.rect[0], c.oy + c.rect[3] - c.rect[1]];
+      const touch = (fn) => world.drawOrder.some((o) => o !== c && Math.abs(o.oz - c.oz) < 0.05 && fn(o.ox, o.oy, o.ox + o.rect[2] - o.rect[0], o.oy + o.rect[3] - o.rect[1]));
+      const tx = touch((a0, b0, a1, b1) => Math.abs(a0 - x1) < 0.01 && Math.min(b1, y1) - Math.max(b0, y0) > 0.01);
+      const ty = touch((a0, b0, a1, b1) => Math.abs(b0 - y1) < 0.01 && Math.min(a1, x1) - Math.max(a0, x0) > 0.01);
+      return [c, cutPath(focus, c.rect, [tx ? 0 : 1.1, ty ? 0 : 1.1])];
+    }) : null;
     const fx = { ...(o.fx || {}), view: [vx0, vy0, vx1, vy1], cut, level, focus };
     const b0 = performance.now();
     if (world.map.backdrop) world.map.backdrop(ctx, t, world, fx);
@@ -166,7 +187,7 @@ export function createRenderer(canvas, camera) {
     // Cutaways
     const lift = world.cutaway.lift ?? LIFT;
     const ghost = world.cutaway.ghost ?? GHOST;
-    for (const z of world.zones) if (z !== focus) { if (z.backdrop) dropBackdrop(z); if (z.stills) dropStills(z); }
+    for (const c of world.drawOrder) if (c.zone !== focus) { if (c.backdrop) dropBackdrop(c); if (c.stills) dropStills(c); }
     for (const z of world.zones) {
       const up = world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
       const down = focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
@@ -181,33 +202,37 @@ export function createRenderer(canvas, camera) {
         const was = z.wallK;
         z.wallK += (want - z.wallK) * (settle ? 1 : Math.min(1, dt * 6));
         if (Math.abs(z.wallK - want) < 0.004) z.wallK = want;
-        if (z.wallK !== was) z.stale = true;
+        if (z.wallK !== was) for (const c of z.chunks) c.stale = true;
       }
     }
     settle = false;
 
-    const visible = world.drawOrder.filter((z) => {
-      const [ax, ay] = z.anchor;
-      const b = z.bounds;
-      const [sx0, sy0] = camera.toScreen(ax + b.x0, ay + b.y0 - z.lift);
-      const [sx1, sy1] = camera.toScreen(ax + b.x1, ay + b.y1 - z.lift);
+    const visible = world.drawOrder.filter((c) => {
+      const [ax, ay] = c.zone.anchor;
+      const b = c.bounds, lift = c.zone.lift;
+      const [sx0, sy0] = camera.toScreen(ax + b.x0, ay + b.y0 - lift);
+      const [sx1, sy1] = camera.toScreen(ax + b.x1, ay + b.y1 - lift);
       return !(sx1 < box.x || sx0 > box.x + box.w || sy1 < box.y || sy0 > box.y + box.h);
     });
-    // Let go of big pictures of zones that have been off screen for a while.
-    for (const z of world.zones) if (z.snap && z.snapScale >= 17 && t - z.snapT > 6 && !visible.includes(z)) dropSnapshot(z);
+    // Let go of big pictures of chunks that have been off screen for a while.
+    for (const c of world.drawOrder) if (c.snap && c.snapScale >= 17 && t - c.snapT > 6 && !visible.includes(c)) dropSnapshot(c);
+    // A zone's pen marks go on after the last of its chunks.
+    const lastOf = new Map();
+    for (const c of visible) lastOf.set(c.zone, c);
     const p0 = performance.now();
-    refreshSnapshots(visible.filter((z) => z !== focus), t, k);
+    refreshSnapshots(visible.filter((c) => c.zone !== focus), t, k);
     perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
     setScreen(k, dpr);
 
     const zs0 = performance.now();
     let focusMs = 0;
-    for (const z of visible) {
+    for (const c of visible) {
+      const z = c.zone;
       const [ax, ay] = z.anchor;
       const drop = introDrop(z, now);
       if (drop && drop.a <= 0) continue;
       ctx.save();
-      if (cut && z !== focus && z.ox + z.oy > focus.ox + focus.oy + 0.01 && Math.abs(z.oz - focus.oz) < focus.h) ctx.clip(cut, 'evenodd');
+      if (cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h) for (const [f, path] of cuts) if (inFront(f, c)) ctx.clip(path, 'evenodd');
       ctx.translate(ax, ay - z.lift);
       let a = (1 - (1 - ghost) * z.veil) * (1 - (1 - BELOW) * z.dim);
       if (drop) { ctx.translate(0, drop.dy); a *= drop.a; }
@@ -220,27 +245,27 @@ export function createRenderer(canvas, camera) {
         // the floor and walls, and every standing thing that doesn't move;
         // draw them live until then.
         const cache = o.still && !drop && caching;
-        const st = cache ? stillsFor(ctx, z, k, dpr) : null;
-        if (cache && backdropFor(ctx, z, k, dpr)) {
-          drawBackdrop(ctx, z);
-          drawZoneVector(ctx, z, t, true, st);
+        const st = cache ? stillsFor(ctx, c, k, dpr) : null;
+        if (cache && backdropFor(ctx, c, k, dpr)) {
+          drawBackdrop(ctx, c);
+          drawZoneVector(ctx, c, t, true, st);
         } else {
-          drawZoneVector(ctx, z, t, false, st);
+          drawZoneVector(ctx, c, t, false, st);
         }
-        focusMs = performance.now() - q0;
-        perf.focus = perf.focus * 0.9 + focusMs * 0.1;
-      } else if (!z.snap) {
+        focusMs += performance.now() - q0;
+      } else if (!c.snap) {
         Q.lines = k > 6;
         Q.detail = k > 4.5;
-        drawZoneVector(ctx, z, t);
+        drawZoneVector(ctx, c, t);
       } else {
-        drawSnapshot(ctx, z);
+        drawSnapshot(ctx, c);
       }
       Q.lines = true;
       Q.detail = true;
-      if (o.marks && z.veil < 0.5) o.marks(ctx, z, t, now);
+      if (o.marks && z.veil < 0.5 && lastOf.get(z) === c) o.marks(ctx, z, t, now);
       ctx.restore();
     }
+    if (focus) perf.focus = perf.focus * 0.9 + focusMs * 0.1;
     perf.zones = perf.zones * 0.9 + (performance.now() - zs0 - focusMs) * 0.1;
     Q.detail = k > 4.5;
     const s0 = performance.now();
@@ -274,10 +299,10 @@ export function createRenderer(canvas, camera) {
     const plate = world.map.plate;
     const fx = { view: [cx - w / 2 / z, cy - h / 2 / z, cx + w / 2 / z, cy + h / 2 / z], level: world.top, thumb: true };
     if (plate && world.map.backdrop) world.map.backdrop(g, t, world, fx);
-    for (const zone of world.drawOrder) {
+    for (const c of world.drawOrder) {
       g.save();
-      g.translate(zone.anchor[0], zone.anchor[1]);
-      drawZoneVector(g, zone, t);
+      g.translate(c.zone.anchor[0], c.zone.anchor[1]);
+      drawZoneVector(g, c, t);
       g.restore();
     }
     if (plate && world.map.sky) world.map.sky(g, t, world, fx);
@@ -289,11 +314,14 @@ export function createRenderer(canvas, camera) {
   // Free every bitmap a world holds (when switching maps).
   function dispose(world) {
     if (!world) return;
+    for (const c of world.drawOrder) {
+      dropSnapshot(c);
+      dropBackdrop(c);
+      dropStills(c);
+      c.stale = false;
+    }
     for (const z of world.zones) {
-      dropSnapshot(z);
-      dropBackdrop(z);
-      dropStills(z);
-      z.veil = 0; z.lift = 0; z.dim = 0; z.stale = false;
+      z.veil = 0; z.lift = 0; z.dim = 0;
       if (z.low != null) z.wallK = 0;
     }
   }

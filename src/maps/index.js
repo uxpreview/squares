@@ -35,4 +35,14 @@ export default [
     ink: '#8E2F3A',
     load: () => import('./manor/map.js'),
   },
+  {
+    id: 'crossroads',
+    name: 'The Crossroads',
+    tagline: 'A test bed: areas of any shape, and people walking between them.',
+    ink: '#6A5A9C',
+    // Not a level: the test bed for areas of any shape (ROADMAP E5), kept for
+    // checking engine changes. Opens from #/crossroads.
+    hidden: true,
+    load: () => import('./crossroads/map.js'),
+  },
 ];

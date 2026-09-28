@@ -32,6 +32,7 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 - A person is about 2.3 units tall. The goose is about 1 unit tall. Keep scale consistent: a table top is at z 1.2, a chair seat at 0.8, a door is about 3.2 tall.
 - Tall things may rise up to about 9 units above the floor on The Block. On The Walk-Up keep everything under about 8 (the floor above hangs over you in the overview).
 - Zones in front of (or above) the one being viewed get cut away automatically, so the whole zone is visible when zoomed in.
+- **A zone of another size or shape** (a street, a square): give the zone module `size: [w, d]`, or `shape: [[x0, y0, x1, y1], ...]` for one that isn't one box (an L, a cross). `R.W` and `R.D` are its size, `R.shape` its boxes; `slab(ctx, color, R.W, R.D)`, or `ground(R, ...)` from the greybox kit for a shape. The engine draws it in 16 x 16 chunks, each sorted in with the zones around it, and hides the seams (every 16 units from its back corner). Two rules: keep anything wide and tall about a unit clear of a seam (its sides could be clipped by the chunk beside it), and keep flat things (floor, rug and wall layers) on the zone's own floor, since past its edges they're cut off. `#/crossroads` is the test map.
 
 ## Layers and depth
 

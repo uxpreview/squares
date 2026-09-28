@@ -1,0 +1,119 @@
+# The Block (connected)
+
+> Status: **Brief** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [ ] · greybox [ ] · preview [ ]
+
+The Block as it is today, sixteen rooms on a plate with paper between them, becomes one city block: the same sixteen rooms, facing real streets, with the neighbors walking between them all day. It replaces today's Block in the picker (same id, `block`, so saves carry over).
+
+The owner's calls (start of session 4): **a city block** (the rooms become shops and venues on streets, not one big building and not a new neighborhood); **geese plus a light story** (a goose per room stays the goal, with one block-wide story tying the rooms together); this session writes the brief and builds the engine it needs.
+
+## In one line
+It's the day of the Block's annual party, the Courier has a parcel for "G. Goose, The Block", and there's a goose in every one of the sixteen rooms.
+
+## The story
+A light one. It runs on the streets and never gets in the way of the geese.
+
+**The setup.** Today is the Block Party. All day, everyone is carrying things into the street for it: bunting, a stage at the crossroads, the bakery's wedding cake, the laundromat's giant sheet (it becomes the banner), the band's amps. Meanwhile **the Courier** (first appearance as a character; so far he's only been a parcel) has one parcel, addressed to "G. Goose, The Block", and no door number. He tries every door on the block, one after another, all day. Every door has a goose behind it.
+
+**What the player does.** Find the goose in each room, as now. The street finds are the Courier's trail: the "Sorry we missed you" cards he leaves at every door, his dropped map with sixteen circles on it, his lunch, and so on (see Finds). The story tells itself through him: he gets more lost and more desperate as the day goes on.
+
+**The ending.** Find all sixteen geese and the party starts: the geese come out of their rooms and conga down Main Street (the victory lap, rerouted along the street), the Honks play the stage, and the Courier finally hands the parcel over. All sixteen geese sign for it. It's a single sock (the laundromat's lost one; see the running gags).
+
+## Shape
+- **One city block, still a square**, so the Block stays recognizable (and The Block, But Wrong can still reuse it). The rooms keep their places on the 4 x 4 grid, but the gaps between them open up into streets:
+  - **Main Street** runs through the middle both ways (a cross), wide enough for a road and kerbs. The crossing in the middle is the hero: the party stage.
+  - **Back alleys** run between the other rows and columns, narrow, with bins, cats and washing lines.
+  - **The pavement** runs along the two front edges (the ones facing you), where the queue for the party forms.
+- **Walls down on the overview**, as at the Manor: the back walls that face a street are the shopfronts, and they drop to waist height when you're not in that room, so you can see the streets and into every room at once. Step into a room and its walls rise. (Streets are narrower than a wall is tall, so with walls up you can't see them at all; the test map proved it.)
+- **Doors onto the street.** Every room gets a door in a back wall onto the street or alley behind it. People come and go through them.
+- **Silhouette:** the square, but broken: a water tower and the rocket poking up, the observatory dome, bunting strung across the streets, the stage at the center.
+- **Size:** about the same as today's plate (roughly 85 units corner to corner instead of 79), so the phone framing (fill the height, swipe to the sides) still works.
+
+Draft plan (units; rooms are 16 x 16):
+
+| | Col 1 | | Col 2 | | Col 3 | | Col 4 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Row A | Observatory | alley | Launch Pad | **Main St** | Rooftop Pool | alley | Arcade |
+| | *alley* | | *alley* | **Main St** | *alley* | | *alley* |
+| Row B | Greenhouse | alley | Roller Disco | **Main St** | Library | alley | Ice Rink |
+| | **Main St** | **Main St** | **Main St** | **the stage** | **Main St** | **Main St** | **Main St** |
+| Row C | Noodle Bar | alley | Bakery | **Main St** | Laundromat | alley | Ball Pit |
+| | *alley* | | *alley* | **Main St** | *alley* | | *alley* |
+| Row D | Umbrella Shop | alley | Aquarium | **Main St** | Band Practice | alley | Model Railway |
+
+Main Street 9 wide, alleys 4, the pavement 4, along the front edges.
+
+## Areas
+
+Nineteen: the sixteen rooms (they keep their art, their finds and their jokes, with a door added and signs moved off the shopfront walls, below) and three outdoor areas, each one area of any shape (new this session: see Engine).
+
+| Area | What's happening | Running gag (plays out over time) | Finds |
+| --- | --- | --- | --- |
+| **Main Street** (the cross) | The party being built all day at the crossroads: bunting, the stage, a bouncy castle that won't inflate, a bin lorry trying to get through | The bouncy castle inflates, sags, inflates, sags; every time it's nearly up someone sits on the pump | The Courier's trail, the party's |
+| **The Alleys** (the lanes between) | Bins, cats, washing lines between windows, a raccoon, the kitchen doors of the noodle bar and the bakery | The octopus, escaped from the aquarium again, heads down the alley toward the noodle bar. Someone carries it back. It tries again | Curiosities |
+| **The Pavement** (the front L) | The queue for the party, a hot dog cart, a newsstand, a busker | The queue for the party starts at the stage and by evening reaches right round the corner, and nobody knows what it's for | Curiosities, one Courier card |
+| The sixteen rooms | As today | As today | As today: a goose and three things each |
+
+What each room keeps and gains is for the greybox; the idea is that every room lends the street one thing: the bakery's cake, the laundromat's sheet, the band's amps, the library's shush (the librarian keeps coming out to shush the sound check), the ice rink's snowman judge (scoring the party), the rocket (it launches at the party's climax; the mechanic is still on it).
+
+## Cast
+- **The Courier**, in his brown uniform with the parcel, all day, door to door. Recurring from now on.
+- **Inspector Pidge**, arriving from the Manor case, still one place behind the goose; he arrests a pigeon.
+- **The neighbors**, about sixteen named people on one clock (like the Manor's evening): the baker carrying the cake, two laundromat regulars carrying the sheet, the librarian, Gary the astronomer (still missing every shooting star), the lifeguard, the launch pad's mechanic, the noodle chef, the DJ, the snowman judge (wheeled out on a trolley), the band.
+- **The crowd**: people who aren't named, crossing the street, queueing, dancing at the party.
+- **The octopus.** On the run.
+
+## Palette and plate
+The Block's own plate, unchanged: the cream paper and the six inks in `C` (`src/engine/art.js`), halftone dots, the registration marks. Streets in a grey-lilac road ink with cream kerb lines; the bunting in the six inks.
+
+**If the day loops (open question 1):** the plate itself changes through the day: paper warm at dawn, full at noon, amber at the party, navy at night with the windows lit (the Manor's night lighting, `R.light` and `R.dark`, on a schedule), and back.
+
+## Alive
+- **People on one clock:** every named neighbor has a day, room to room through the doors (the Manor's `schedule()`), as the Manor has an evening. The Courier visits every door once per loop.
+- **Traffic:** a moving connector that circles the block, the Courier's van (or an ice cream van), stopping, blocking the street, honking back at the geese.
+- **The party builds** over the loop: bunting up by midday, the stage by afternoon, everyone in the street at the party, then everyone drifts home.
+- **Sound bed:** street noise under the honks: traffic, the sound check, the crowd at the party.
+
+## Mechanic
+**A day on the Block, in a loop** (open question 1). The rooms already have their own hours in their stories: the bakery at 5am, the pool at noon, the observatory and the disco at night, the laundromat at 2am. On one connected block they can't all be the same moment, so the whole block runs through a day in about six minutes, and each room is busiest at its hour: the bakery's queue at dawn, the pool at noon, the party at sunset, the stars at night. Finds stay visible all day (fairness); what changes is the life and the light.
+
+## Finds
+- **The sixteen geese**, one per room, as now. Finding every goose is still what finishes the place.
+- **The room things**, three per room (48), as now, so nothing a player has already found is lost.
+- **On the streets**, about 8 to 10 more (draft labels, each unique):
+  - Main Street: *The Courier's map* (sixteen circles, all crossed out), *A signed delivery slip* (signed with a webbed foot), *A roll of bunting*, *The Courier's lunch*.
+  - The Alleys: *A tentacle print* (the octopus's trail), *The noodle bar's back door key*, *A cat in a bin*.
+  - The Pavement: *A "Sorry we missed you" card*, *Tomorrow's newspaper* ("GOOSE HELD IN MANOR CASE").
+
+The story finds are the Courier's; they're for fun and story, not needed to finish.
+
+## Shared universe
+- **The goose**, sixteen times, and its party.
+- **The Courier**, as a character for the first time, with the parcel for G. Goose (at the Manor it was a soaked parcel on the doorstep).
+- **Inspector Pidge**, straight from the Manor.
+- **"Have you seen this goose?"** posters on every lamp post, and the blimp overhead, as now.
+- **The Manor**, in the newspaper headline, and the monocle: the goose at the Manor's reveal wore one; one of the sixteen geese here does too.
+
+## Tone
+The Block's: warm, silly, all ages, with the odd adult joke in the margins (the queue nobody knows the reason for, the lifeguard's opinions). No mystery pressure: it's a party.
+
+## Engine and kit needs
+- [x] **Areas of any shape** (E5): a street is one area, drawn in chunks sorted in with the rooms, so it runs behind rooms at the back and in front of rooms at the front. Taps, framing, finds and people all work across it. *(Session 4: `shape` and `size` on a zone, "Chunks" in `src/engine/zone.js`, proved on the hidden test map `#/crossroads`.)*
+- [x] **People walking between rooms and outdoors** on one clock: the Manor's `walkers` and `schedule()`, now with streets covering the gaps (so nobody vanishes between areas). *(Session 2, and session 4's test map.)*
+- [x] **Walls down on the overview**, full height inside a room. *(Session 2: `cutaway.walls`.)*
+- [ ] **The day** (if chosen): a loop clock for the whole block; the paper, the sky and the backdrop tinted by the hour; room lights on at dusk (`R.light` and `R.dark` exist; they need a shared schedule, like the Manor's storm).
+- [ ] **The new plan:** `src/maps/block/plan.js` with the streets, the doors and where every room sits; each room file gets its door (the greybox gives it) and moves its signs off the shopfront walls onto hanging signs and awnings (walls down would cut them off).
+- [ ] **The day's timeline:** `src/maps/block/day.js` (like the Manor's `evening.js`).
+- [ ] **A moving find** that circles the block (the van): a find already can move, within its own area; the van needs its own area, or a find that belongs to the street and follows the road.
+- [ ] **The victory lap along Main Street** instead of round the plate.
+- [ ] **QA:** the Block's speed with walls down, the streets and the walkers, against the budget the Block itself set.
+
+## Open questions
+For the owner. Each has a recommendation; the greybox will use it unless you say otherwise.
+
+1. **What time is it?** A whole day on a loop, each room busiest at its hour (recommended: it's the mechanic only this place has, and it fixes the rooms' clashing hours). Or one moment, a Saturday afternoon, with the bakery's, the laundromat's and the observatory's stories reworded (much cheaper).
+2. **The light story:** the party and the Courier's parcel, as above (recommended). Alternatives: the party only, no Courier; or a lost-and-found where each room has lost something another room found.
+3. **Walls down on the overview**, with signs moved off the shopfront walls (recommended; streets can't be seen otherwise). The alternative is rooms with low shopfront walls all the time, which loses the dollhouse look inside a room.
+4. **The layout:** a cross of Main Street through the middle, alleys between the rest, and the pavement along the front (recommended). Or all sixteen rooms round a central square.
+5. **Keep all sixteen rooms?** Some are odd on a street: a rooftop pool on the ground, a rocket launch pad in a city block. Recommended: keep them all (the jokes survive: the pool becomes the Lido, and the launch pad is a vacant lot where the mechanic has built a rocket), rather than swapping any out.
+6. **Old saves:** every find keeps its name, so a player's geese and things carry over. A player who had finished the Block will find it open again (the streets add new things, but no new geese). Recommended: fine as it is.
