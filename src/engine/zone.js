@@ -20,7 +20,9 @@
 //
 // Every draw function receives (ctx, t) with ctx already positioned at the
 // zone's back corner, in zone units. Items marked { anim: true } are redrawn
-// each frame; the rest are baked into a cached picture when zoomed out.
+// each frame. The rest must look the same at every t: in the zone you're in,
+// they're drawn once into cached pictures (the floor and walls in one, each
+// standing thing in its own, see "Still things" below) and stamped back.
 //
 // Walls the engine can cut down: R.walls({...}) draws the two back walls, with
 // doors. On a map with walls down (cutaway.walls in its map.js), a wall with
@@ -32,6 +34,7 @@
 // into the next one. See src/engine/world.js.
 
 import { S, WALL, SLAB, ZK, isoX, isoY, zoneBounds } from './iso.js';
+import { footprint } from './footprint.js';
 import { C, Q, setScreen, goose as drawGoose, box, onLeft, onRight, shade, alpha, glow } from './art.js';
 
 const LAYERS = ['floor', 'wall', 'decor', 'rug', 'thing', 'dark', 'light', 'air'];
@@ -160,6 +163,14 @@ export function buildZone(def, place = {}) {
 
   items.sort((a, b) => a.layer - b.layer || a.order - b.order);
   zone.anim = items.filter((it) => it.anim);
+  // The backdrop cache (the zone you're in) takes the flat things that don't
+  // move, up to the first one that does: past it, a still one may sit over a
+  // moving one (a curtain over a rainy window), so it's stamped in its turn.
+  let moving = false;
+  for (const it of items) {
+    if (it.layer < THING && it.anim) moving = true;
+    it.backdrop = it.layer < THING && !it.anim && !moving;
+  }
   return zone;
 }
 
@@ -282,15 +293,44 @@ function darken(ctx, zone, k, color) {
 // ---------- Drawing ----------
 const depthOf = (it, t) => (typeof it.depth === 'function' ? it.depth(t) : it.depth);
 
-function drawThings(ctx, list, t) {
+// Every item starts from the same line ends and corners, whatever the one
+// before it left behind, so it looks the same drawn live or from a cache.
+function fresh(ctx) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+
+// Stamp an item from the still-things sheet, if it has a patch there. The
+// stamp goes on in device pixels: m keeps the zone's transform meanwhile
+// (null while it's in place). Returns the transform to put back, or false if
+// the item has no patch and should be drawn.
+function stamp(ctx, st, it, m) {
+  const spot = st && st.spots[it.order];
+  if (!spot) return false;
+  if (!m) { m = ctx.getTransform(); ctx.setTransform(1, 0, 0, 1, 0, 0); }
+  ctx.drawImage(st.sheet, spot[0], spot[1], spot[4], spot[5], st.X + spot[2], st.Y + spot[3], spot[4], spot[5]);
+  return m;
+}
+
+// st: the zone's still things, cached (or null to draw everything live).
+function drawThings(ctx, list, t, st) {
   const keyed = list.map((it) => [depthOf(it, t), it.order, it]);
   keyed.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  for (const k of keyed) k[2].draw(ctx, t);
+  let m = null; // the zone's transform, while stamping
+  for (const k of keyed) {
+    const it = k[2];
+    const was = stamp(ctx, st, it, m);
+    if (was) { m = was; continue; }
+    if (m) { ctx.setTransform(m); m = null; }
+    fresh(ctx);
+    it.draw(ctx, t);
+  }
+  if (m) ctx.setTransform(m);
 }
 
 // Draw the items pick(it) says yes to, in layer order, with things depth
 // sorted and anything painted on cut-down walls cut off with them.
-function drawItems(ctx, zone, t, pick) {
+function drawItems(ctx, zone, t, pick, st = null) {
   const clip = wallClip(zone);
   let things = [];
   let clipping = false;
@@ -300,7 +340,7 @@ function drawItems(ctx, zone, t, pick) {
     if (it.layer === THING) { things.push(it); continue; }
     if (it.layer > THING && things) {
       if (clipping) { ctx.restore(); clipping = false; }
-      drawThings(ctx, things, t);
+      drawThings(ctx, things, t, st);
       things = null;
     }
     const cut = !!clip && (it.layer === WALL_L || it.layer === DECOR_L) && !it.walls;
@@ -308,10 +348,13 @@ function drawItems(ctx, zone, t, pick) {
       if (cut) { ctx.save(); ctx.clip(clip); } else ctx.restore();
       clipping = cut;
     }
+    const m = !clip && stamp(ctx, st, it, null);
+    if (m) { ctx.setTransform(m); continue; }
+    fresh(ctx);
     it.draw(ctx, t);
   }
   if (clipping) ctx.restore();
-  if (things) drawThings(ctx, things, t);
+  if (things) drawThings(ctx, things, t, st);
 }
 
 const all = () => true;
@@ -319,9 +362,10 @@ const notBaked = (it) => !it.backdrop;
 const baked = (it) => it.backdrop;
 
 // Full-quality vector draw (used when zoomed in). `skipBackdrop` skips items
-// already drawn into a cached backdrop.
-export function drawZoneVector(ctx, zone, t, skipBackdrop = false) {
-  drawItems(ctx, zone, t, skipBackdrop ? notBaked : all);
+// already drawn into a cached backdrop; `st` stamps still things from their
+// cache (stillsFor) instead of drawing them.
+export function drawZoneVector(ctx, zone, t, skipBackdrop = false, st = null) {
+  drawItems(ctx, zone, t, skipBackdrop ? notBaked : all, st);
 }
 
 // Draw into an offscreen canvas covering the zone's bounds at `scale` device px per unit.
@@ -368,24 +412,68 @@ export function drawSnapshot(ctx, zone) {
 
 // Backdrop for the zone you're in: every static floor, wall, decor and rug item.
 // Those layers sit behind everything that stands up, so caching them keeps depth
-// order; animated items in the same layers are drawn on top of the cache.
-export function bakeBackdrop(zone, scale, dpr) {
-  for (const it of zone.items) it.backdrop = it.layer < THING && !it.anim;
-  paintInto(zone, 'backdrop', scale, dpr, (g) => drawItems(g, zone, 0, baked));
-  zone.backdropScale = scale;
-  zone.backdropWallK = zone.wallK;
+// order; animated items in the same layers are drawn on top of the cache. Like
+// still things (below), it's drawn at the fraction of a pixel it's stamped at.
+function bakeBackdrop(zone, k, fx, fy, dpr) {
+  const b = zone.bounds;
+  const sx = Math.floor(b.x0 * k + fx), sy = Math.floor(b.y0 * k + fy);
+  const w = Math.ceil(b.x1 * k + fx) - sx, h = Math.ceil(b.y1 * k + fy) - sy;
+  let cv = zone.backdrop;
+  if (!cv) cv = zone.backdrop = document.createElement('canvas');
+  if (cv.width !== w || cv.height !== h) {
+    cv.width = w;
+    cv.height = h;
+  }
+  const g = cv.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.setTransform(k, 0, 0, k, fx - sx, fy - sy);
+  setScreen(k, dpr);
+  drawItems(g, zone, 0, baked);
+  zone.bd = { k, fx, fy, sx, sy, wallK: zone.wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0 };
+}
+
+// Where ctx (positioned at the zone's corner, k device px per unit) puts the
+// zone on whole device pixels, and the fraction of a pixel left over; null if
+// it's turned or faded, which a stamp can't match.
+function pixelSpot(ctx, k) {
+  const m = ctx.getTransform();
+  // (The canvas keeps its transform in single precision.)
+  if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || Math.abs(m.a - k) > k * 1e-5 || Math.abs(m.d - k) > k * 1e-5 || ctx.globalAlpha < 1) return null;
+  const X = Math.floor(m.e), Y = Math.floor(m.f);
+  return { X, Y, fx: m.e - X, fy: m.f - Y };
+}
+const moved = (c, k, p) => !c || c.k !== k || Math.abs(c.fx - p.fx) > 1e-3 || Math.abs(c.fy - p.fy) > 1e-3 || c.lines !== Q.lines || c.detail !== Q.detail;
+
+// Whether the backdrop can be stamped this frame (baking it if the scale, the
+// fraction of a pixel or the walls have changed). Only while the camera is
+// still, and not while inside walls are on their way up or down.
+export function backdropFor(ctx, zone, k, dpr) {
+  if (zone.wallK !== 0 && zone.wallK !== 1) return false;
+  const p = pixelSpot(ctx, k);
+  if (!p) return false;
+  if (moved(zone.bd, k, p) || zone.bd.wallK !== zone.wallK) {
+    bakeBackdrop(zone, k, p.fx, p.fy, dpr);
+    setScreen(k, dpr);
+  }
+  zone.bd.X = p.X;
+  zone.bd.Y = p.Y;
+  return true;
 }
 
 export function drawBackdrop(ctx, zone) {
-  const b = zone.bounds;
-  ctx.drawImage(zone.backdrop, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+  const { X, Y, sx, sy } = zone.bd;
+  const m = ctx.getTransform();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(zone.backdrop, X + sx, Y + sy);
+  ctx.setTransform(m);
 }
 
 export function dropBackdrop(zone) {
   if (zone.backdrop) {
     zone.backdrop.width = zone.backdrop.height = 0;
     zone.backdrop = null;
-    zone.backdropScale = 0;
+    zone.bd = null;
   }
 }
 
@@ -395,6 +483,131 @@ export function dropSnapshot(zone) {
     zone.snap.width = zone.snap.height = 0;
     zone.snap = null;
     zone.snapScale = 0;
+  }
+}
+
+// ---------- Still things ----------
+// In the zone you're in, every standing thing that doesn't move (no anim) is
+// drawn once into a sheet, each in its own patch, and stamped back every frame
+// in its place in the depth order, between the people walking around it (and
+// so is any still flat thing the backdrop can't take). So the room only draws
+// what moves. Stamps land on whole device pixels, at the
+// same fraction of a pixel they were drawn at, so they match drawing live.
+//
+// First each thing's footprint is measured (once per zone, a few things a
+// frame, with a stand-in canvas: see footprint.js). Things it can't measure,
+// like glows screened over what's under them, stay live.
+const FIND_MS = 3; // time per frame for measuring
+const SHEET_W = 2048; // px, the sheet's width
+const SHEET_MAX = 6e6; // px, its most area (anything past it stays live)
+
+function measureStills(zone, budget) {
+  const ms = zone.stillsMeasure || (zone.stillsMeasure = { next: 0, boxes: [] });
+  const list = zone.items;
+  if (ms.next >= list.length) return true;
+  const q = { lines: Q.lines, detail: Q.detail, px: Q.pxPerUnit };
+  const end = performance.now() + budget;
+  while (ms.next < list.length && performance.now() < end) {
+    const it = list[ms.next++];
+    if (it.layer > THING || it.anim || it.backdrop || it.walls) continue;
+    // In full detail and at low detail (some things draw differently far
+    // out), with words showing: the footprint covers every way it draws.
+    let box = null;
+    try {
+      for (const detail of [true, false]) {
+        const g = footprint();
+        Q.detail = Q.lines = detail;
+        Q.pxPerUnit = 64;
+        fresh(g);
+        it.draw(g, 0);
+        const r = g.box;
+        if (r) box = box ? [Math.min(box[0], r[0]), Math.min(box[1], r[1]), Math.max(box[2], r[2]), Math.max(box[3], r[3])] : r;
+      }
+    } catch { box = null; }
+    if (box) ms.boxes[it.order] = box;
+  }
+  Q.lines = q.lines;
+  Q.detail = q.detail;
+  Q.pxPerUnit = q.px;
+  return ms.next >= list.length;
+}
+
+// Draw every still thing into the sheet, at k device px per unit, with the
+// zone's corner at the fraction (fx, fy) of a device pixel.
+function bakeStills(zone, k, fx, fy, dpr) {
+  const boxes = zone.stillsMeasure.boxes;
+  // Each thing's patch in device pixels, from the zone's corner (rounded down).
+  const want = [];
+  for (const it of zone.items) {
+    const bx = boxes[it.order];
+    if (!bx) continue;
+    // (A pixel to spare all round, for the soft edges.)
+    const sx = Math.floor(bx[0] * k + fx) - 1, sy = Math.floor(bx[1] * k + fy) - 1;
+    want.push({ it, sx, sy, w: Math.ceil(bx[2] * k + fx) + 1 - sx, h: Math.ceil(bx[3] * k + fy) + 1 - sy });
+  }
+  // Shelves, tallest first.
+  want.sort((a, b) => b.h - a.h);
+  const spots = [];
+  let x = 0, y = 0, shelf = 0, area = 0;
+  const placed = [];
+  for (const p of want) {
+    if (p.w > SHEET_W) continue;
+    if (x + p.w > SHEET_W) { x = 0; y += shelf; shelf = 0; }
+    if ((y + p.h) * SHEET_W > SHEET_MAX) break;
+    placed.push([p, x, y]);
+    spots[p.it.order] = [x, y, p.sx, p.sy, p.w, p.h];
+    x += p.w;
+    shelf = Math.max(shelf, p.h);
+    area += p.w * p.h;
+  }
+  const H = y + shelf;
+  let cv = zone.stills && zone.stills.sheet;
+  if (!cv) cv = document.createElement('canvas');
+  if (cv.width !== SHEET_W || cv.height !== H) {
+    cv.width = SHEET_W;
+    cv.height = H;
+  }
+  const g = cv.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, cv.width, cv.height);
+  setScreen(k, dpr);
+  for (const [p, ax, ay] of placed) {
+    g.save();
+    g.beginPath();
+    g.rect(ax, ay, p.w, p.h);
+    g.clip();
+    g.setTransform(k, 0, 0, k, ax - p.sx + fx, ay - p.sy + fy);
+    fresh(g);
+    p.it.draw(g, 0);
+    g.restore();
+  }
+  zone.stills = { sheet: cv, spots, k, fx, fy, lines: Q.lines, detail: Q.detail, X: 0, Y: 0, area };
+}
+
+// The zone's still things, ready to stamp with ctx as it stands (positioned at
+// the zone's corner, k device px per unit), or null to draw them live this
+// frame (still finding footprints, or ctx turned or faded). Bakes the sheet
+// when the scale or the fraction of a pixel has changed: call it only while
+// the camera is still.
+export function stillsFor(ctx, zone, k, dpr) {
+  const p = pixelSpot(ctx, k);
+  if (!p) return null;
+  const ready = measureStills(zone, FIND_MS);
+  setScreen(k, dpr);
+  if (!ready) return null;
+  if (moved(zone.stills, k, p)) {
+    bakeStills(zone, k, p.fx, p.fy, dpr);
+    setScreen(k, dpr);
+  }
+  zone.stills.X = p.X;
+  zone.stills.Y = p.Y;
+  return zone.stills;
+}
+
+export function dropStills(zone) {
+  if (zone.stills) {
+    zone.stills.sheet.width = zone.stills.sheet.height = 0;
+    zone.stills = null;
   }
 }
 

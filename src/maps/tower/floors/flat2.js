@@ -956,7 +956,7 @@ export default {
       });
     }, { bias: 2.2 });
     // Floor lamp and a plant in the corner
-    R.thing(1.0, 15.2, (ctx, t) => lamp(ctx, 0.9, 15.0, t, C.butter));
+    R.thing(1.0, 15.2, (ctx, t) => lamp(ctx, 0.9, 15.0, t, C.butter), { anim: true }); // it flickers
     R.thing(1.0, 5.7, (ctx, t) => plant(ctx, 0.9, 5.6, 0, t, { kind: 'fern', scale: 1.3, potColor: C.white, leaf: C.green }), { anim: true });
 
     // Uncle blowing up balloons that keep popping

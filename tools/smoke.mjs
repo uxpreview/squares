@@ -290,6 +290,10 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('tapping a room under a lifted floor goes into that room', (await S(page, () => location.hash)) === '#/manor/dining-room');
   const walls = await S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.wallK * 100) / 100])));
   check('its walls rise; the rooms around keep theirs down', walls['dining-room'] === 1 && walls['grand-hall'] === 0 && walls.kitchen === 0, JSON.stringify(walls));
+  // Settled in a room, its floor and walls, and its still furniture, draw from caches.
+  await page.waitForFunction(() => { const z = window.__squares.play.focus; return z && z.bd && z.stills; }, null, { timeout: 15000 }).catch(() => {});
+  const cached = await S(page, () => { const z = window.__squares.play.focus; return { bd: !!(z && z.bd), stills: z && z.stills ? z.stills.spots.filter(Boolean).length : 0 }; });
+  check('settled in a room, its floor, walls and still furniture are cached', cached.bd && cached.stills > 5, JSON.stringify(cached));
 
   check('in a room, the lift steps out', !(await page.isVisible('#floors')));
   await page.click('#to-places');

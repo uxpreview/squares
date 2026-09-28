@@ -35,7 +35,9 @@ src/
     art.js           The ink box: palette, halftone dots, glows, people, the goose, furniture
     actors.js        Motion helpers: walking routes, orbits, particles, people on a clock
     weather.js       A storm (lightning on a schedule), bolts, rain
-    zone.js          Turns a zone file into layers; walls that drop down; lights and dark
+    zone.js          Turns a zone file into layers; walls that drop down; lights and dark;
+                     caching the still parts of the room you're in
+    footprint.js     A stand-in canvas that measures how far a drawing reaches
     world.js         Places a map's zones in space: storeys, doors, "which zone did I tap"
     camera.js        Framing, flights between views, the title-screen drift, the map's soft edges
     renderer.js      Draws a world every frame; cutaways and floors lifting; the fade-in
@@ -70,6 +72,7 @@ tools/
   new-level.mjs    Scaffold a new place from its brief
   qa.mjs           Check a place and make its contact sheet
   playtest.mjs     A blind playtest from screenshots, scored
+  speed.mjs        How fast each area draws on a slowed-down phone, and where the time goes
   ROOM_BRIEF.md    The brief for drawing a new zone
 docs/
   ROADMAP.md, PROCESS.md, LEVELS.md, INSPIRATION.md   The plans
@@ -98,6 +101,8 @@ docs/
 | How a place fades in when it opens | `startIntro` and `INTRO_MS` in `src/engine/renderer.js` |
 | Change how floors lift away (and dim below) in a building | `LIFT`, `GHOST` and `BELOW` at the top of `src/engine/renderer.js` |
 | Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
+| How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
+| See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |
 | A house's floors, and which one it opens on | `storeys` and `storey` in its `map.js` (the Manor: `src/maps/manor/map.js`) |
 | How low inside walls drop, how far floors lift | `cutaway.walls`, `cutaway.lift`, `cutaway.ghost` in the map's `map.js` |

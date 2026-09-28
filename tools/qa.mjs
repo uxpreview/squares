@@ -11,6 +11,7 @@
 //   finds    how many per area and how many geese (the map's qa rules)
 //   errors   nothing breaks loading the level, or drawing any area (walls up
 //            and down) at 48 moments across its loop
+//   stills   things not marked anim look the same all loop long (they're cached)
 //   walkers  people on the map's timeline go through doors, never walls, and
 //            never faster than a run
 //   case     (whodunits) every clue in the case file is a find in the place,
@@ -286,6 +287,50 @@ try {
   for (const p of sweep.problems) fail('errors', p);
   if (!sweep.problems.length) pass('errors', `Every area, walls up and down, and the backdrop and sky drew without an error at 48 moments across the ${info.loop}s loop.`);
 
+  // ---------- Stills: things not marked anim don't change ----------
+  // They're drawn once and cached, so one that changes would freeze.
+  step('Checking still things stay still');
+  const stills = await page.evaluate(async ({ n, loop }) => {
+    const { setScreen, Q } = await import('/src/engine/art.js');
+    const w = window.__squares.world;
+    const cv = document.createElement('canvas');
+    cv.width = 320; cv.height = 360;
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    const out = [];
+    let count = 0;
+    const layers = ['floor', 'wall', 'decor', 'rug', 'thing'];
+    for (const z of w.zones) {
+      z.items.forEach((it) => {
+        if (it.anim || it.layer > 4 || it.walls) return;
+        count++;
+        const hash = (t) => {
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.clearRect(0, 0, 320, 360);
+          g.setTransform(9, 0, 0, 9, 160, 190);
+          setScreen(9, 1);
+          Q.detail = true; Q.lines = true; Q.pxPerUnit = 40;
+          g.lineCap = 'round'; g.lineJoin = 'round';
+          it.draw(g, t);
+          const d = g.getImageData(0, 0, 320, 360).data;
+          let h = 0;
+          for (let j = 0; j < d.length; j++) h = (h * 31 + d[j]) | 0;
+          return h;
+        };
+        const h0 = hash(0);
+        for (let i = 1; i <= n; i++) {
+          const t = (i / n) * loop + 0.37;
+          if (hash(t) !== h0) {
+            out.push(`${z.name}: a ${layers[it.layer]} item changes over time (${t.toFixed(1)}s in) but isn't marked { anim: true }, so it would freeze: ${it.draw.toString().replace(/\s+/g, ' ').slice(0, 80)}`);
+            break;
+          }
+        }
+      });
+    }
+    return { out, count };
+  }, { n: 24, loop: info.loop });
+  for (const p of stills.out) fail('stills', p);
+  if (!stills.out.length) pass('stills', `All ${stills.count} still items look the same all loop long (they're cached, so anything that moves is marked anim).`);
+
   // ---------- Walkers ----------
   if (info.walkers.length) {
     step('Walking everyone through the evening');
@@ -396,7 +441,13 @@ try {
     const times = [];
     // Each view on its own frames: let it settle, reset the counters, then wait
     // for a dozen frames (or 20 seconds) and take their average.
+    // Settled: floors and walls where they're heading (a headless browser
+    // paints so slowly that walls rising would take the whole measurement),
+    // and the room's caches made.
     const measure = async (label) => {
+      await p.waitForFunction(() => !window.__squares.camera.flying, null, { timeout: 20000 }).catch(() => {});
+      await p.evaluate(() => window.__squares.renderer.settleNow());
+      await p.waitForFunction(() => { const z = window.__squares.play.focus; return !z || (z.stills && z.bd); }, null, { timeout: 20000 }).catch(() => {});
       await p.waitForTimeout(1500);
       await p.evaluate(() => { const f = window.__squares.perf; f.n = 0; f.total = 0; f.worst = 0; });
       await p.waitForFunction(() => window.__squares.perf.n >= 12, null, { timeout: 20000 }).catch(() => {});
@@ -416,7 +467,7 @@ try {
       else if (ms > BUDGET.warn) warn('speed', `${label}: ${ms.toFixed(0)} ms a frame, close to the budget.`);
     }
     const worst = times.slice().sort((a, b) => b[1] - a[1])[0];
-    if (speedOk) pass('speed', `Every view renders within budget (slowest: ${worst[0]}, ${worst[1].toFixed(0)} ms at 4x slowdown; The Block's slowest is about 50).`);
+    if (speedOk) pass('speed', `Every view renders within budget (slowest: ${worst[0]}, ${worst[1].toFixed(0)} ms at 4x slowdown; The Block's slowest is about 30).`);
     fs.writeFileSync(path.join(out, 'speed.txt'), times.map(([l, ms]) => `${ms.toFixed(1).padStart(6)} ms  ${l}`).join('\n') + '\n');
     await gpu.close();
   }
@@ -651,7 +702,7 @@ async function contactSheet(info, shots, thumb, file) {
 
 function report(info, sheetFile) {
   const icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' };
-  const order = ['copy', 'colors', 'finds', 'case', 'sound', 'errors', 'walkers', 'screen', 'speed'];
+  const order = ['copy', 'colors', 'finds', 'case', 'sound', 'errors', 'stills', 'walkers', 'screen', 'speed'];
   const sorted = results.slice().sort((a, b) => order.indexOf(a.check) - order.indexOf(b.check) || ['fail', 'warn', 'pass'].indexOf(a.status) - ['fail', 'warn', 'pass'].indexOf(b.status));
   console.log('');
   for (const r of sorted) console.log(`${icon[r.status]}  ${r.check.padEnd(8)} ${r.text}`);

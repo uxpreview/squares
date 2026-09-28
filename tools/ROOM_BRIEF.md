@@ -38,7 +38,8 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 - `R.floor` then `R.wall` then `R.decor` (on the walls) then `R.rug` (flat on the floor, water, shadows) then `R.thing` (standing things, depth sorted by x + y) then `R.air` (over everything: rain, snow, beams).
 - `R.thing(x, y, draw)`: pass the footprint center (or front-most point) as x, y. Large objects that people walk around may need splitting into separate things so sorting works.
 - `R.mover(posFn, draw, { bias })` for anything that moves. `posFn(t)` returns `{ x, y, ... }`. Use `route`/`orbit`/custom math. Everything must be a pure function of time `t` in seconds (no per-frame state).
-- Mark static-looking items that still animate with `{ anim: true }` (e.g. swaying plants, blinking lights). Items without `anim` are baked into a bitmap for the zoomed-out view and drawn at `t = 0`, so anything that moves MUST be `anim: true` (movers and air are always animated).
+- Mark static-looking items that still animate with `{ anim: true }` (e.g. swaying plants, blinking lights, a lamp that flickers). Items without `anim` are drawn once at `t = 0` and cached (in the room you're in, each standing thing gets its own little picture, stamped back between the people walking around it), so anything that changes at all over time MUST be `anim: true` (movers and air are always animated). QA fails a still item that changes.
+- Still things are cheap, moving ones cost every frame: split a big piece of furniture from the small thing on it that moves, rather than marking the whole lot `anim`.
 - Respect `Q.detail`: skip tiny details and particles when `!Q.detail` (zoomed far out).
 
 ## Houses: walls, lights and people passing through
