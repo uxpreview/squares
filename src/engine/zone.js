@@ -174,15 +174,26 @@ export function buildZone(def, place = {}) {
     },
     // A light that glows, even through the dark. o: { at: [x, y, z] or (t) => [x, y, z],
     // r: reach in units, color, k: (t) => strength 0..1, draw(ctx, t, k): the flame or bulb }
-    light: (o) => add('light', (ctx, t) => {
+    light: (o) => lit(o, add('light', (ctx, t) => {
       const [x, y, z] = typeof o.at === 'function' ? o.at(t) : o.at;
       const k = o.k ? o.k(t) : 1;
       glow(ctx, x, y, z, o.r ?? 2.5, o.color || C.butter, k);
       if (o.draw) o.draw(ctx, t, k);
-    }, { anim: true, on: o.k && !o.draw ? (t) => o.k(t) > 0.002 : null }),
+    }, { anim: true, on: o.k && !o.draw ? (t) => o.k(t) > 0.002 : null })),
     // How dark the room is: fn(t) returns 0 (lit) to 1 (pitch black).
     dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true, on: (t) => fn(t) > 0.002 }),
   };
+
+  // A glow that stays put only needs drawing by the chunks it can reach: its
+  // floor spot, out to its reach, and back as far as its height lifts it up
+  // the screen (a street has many lamps and many chunks).
+  function lit(o, it) {
+    if (Array.isArray(o.at) && !o.draw) {
+      const [x, y, z] = o.at, r = (o.r ?? 2.5) + 1, up = 2 * Math.max(0, z) * ZK;
+      it.area = [x - r - up, y - r - up, x + r, y + r];
+    }
+    return it;
+  }
 
   def.build(R);
 
@@ -253,7 +264,10 @@ function chunksOf(zone) {
   return parts.map((rect, i) => {
     const items = [];
     for (const it of zone.items) {
-      if (it.layer !== THING) items.push(it);
+      if (it.layer !== THING) {
+        const a = it.area;
+        if (!a || (a[0] < rect[2] && a[2] > rect[0] && a[1] < rect[3] && a[3] > rect[1])) items.push(it);
+      }
       else if (it.pos) {
         // Something that moves is drawn by the chunk it's in right now.
         const draw = it.draw, pos = it.pos;

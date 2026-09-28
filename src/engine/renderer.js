@@ -246,6 +246,9 @@ export function createRenderer(canvas, camera, o = {}) {
       const [sx1, sy1] = camera.toScreen(ax + b.x1, ay + b.y1 - lift);
       return [sx0, sy0, sx1, sy1];
     };
+    const overlap = (a, b) => !(a[2] < b[0] || a[0] > b[2] || a[3] < b[1] || a[1] > b[3]);
+    // Each cutting outline's reach on screen (null when it's off screen).
+    if (cuts) for (const cu of cuts) { const r = onScreen(cu[0]); cu[2] = overlap(r, [box.x, box.y, box.x + box.w, box.y + box.h]) ? r : null; }
     const visible = world.drawOrder.filter((c) => {
       const [sx0, sy0, sx1, sy1] = onScreen(c);
       return !(sx1 < box.x || sx0 > box.x + box.w || sy1 < box.y || sy0 > box.y + box.h);
@@ -296,8 +299,11 @@ export function createRenderer(canvas, camera, o = {}) {
       const [ax, ay] = z.anchor;
       const drop = introDrop(z, now);
       if (drop && drop.a <= 0) continue;
-      const by = cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h ? cuts.filter(([f]) => inFront(f, c)) : null;
       const reach = onScreen(c);
+      // Only the outlines that are on screen and overlap this chunk cut it:
+      // on a street, most of its pieces are elsewhere, and every different
+      // set of outlines is another sheet to lay down.
+      const by = cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
       let g = ctx;
       if (by && by.length) {
         const key = by.map(([f]) => f.rect.join()).join('|');
