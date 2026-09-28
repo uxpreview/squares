@@ -159,6 +159,14 @@ Also seen at the health pass, on the owner's Mac (desktop and phone, dawn, the p
 - **The blimp crosses the title** on desktop (by day under its first letters, by night over "Party"). Keeping its path clear of the top left would stop it.
 - **QA's close-finds warning** carries over from the Block: in the Roller Disco the goose and the slice of pizza are within 12px on a phone.
 
+The health pass's open calls, answered by the owner at the start of 4c (every recommendation):
+
+19. **It ships as The Block Party.** The title, the picker and the back button all say it; it still takes the `block` id, so saves carry over.
+20. **The party queue stands in loose clumps,** thickest at the Main Street end, thinning round the corner, instead of one tidy row.
+21. **HONK bubbles keep clear of the invitation card,** wherever it's pinned.
+22. **At night the print marks and the caption print in the light ink,** as the Manor's words do.
+23. **The blimp flies clear of the title:** across the block the other way, top right to bottom left.
+
 Left for the art (4c):
 
 - Signs off the shopfront walls (walls down cuts them to waist height): hanging signs and awnings.
