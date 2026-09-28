@@ -7,7 +7,7 @@
 import { isoX, isoY } from './iso.js';
 import { C, Q, setScreen } from './art.js';
 import {
-  drawZoneVector, snapshotZone, drawSnapshot, bakeBackdrop, drawBackdrop, dropBackdrop, dropSnapshot,
+  drawZoneVector, snapshotZone, drawSnapshot, backdropFor, drawBackdrop, dropBackdrop, dropSnapshot, stillsFor, dropStills,
 } from './zone.js';
 
 // Neighbor picture sizes, in device px per unit. Pick the smallest step at or
@@ -44,6 +44,7 @@ export function createRenderer(canvas, camera) {
   let lastT = 0;
   let slowFrames = 0;
   let intro = null;
+  let caching = true; // tools can turn the room's caches off, to compare
 
   // Each frame earns SNAP_BUDGET_MS of credit; a snapshot spends what it actually
   // took. Expensive snapshots (big, zoomed in) therefore happen less often.
@@ -80,7 +81,7 @@ export function createRenderer(canvas, camera) {
       view.dprCap = 2;
       slowFrames = 0;
       camera.measure();
-      if (world) for (const z of world.zones) dropBackdrop(z);
+      if (world) for (const z of world.zones) { dropBackdrop(z); dropStills(z); }
     }
   }
 
@@ -165,7 +166,7 @@ export function createRenderer(canvas, camera) {
     // Cutaways
     const lift = world.cutaway.lift ?? LIFT;
     const ghost = world.cutaway.ghost ?? GHOST;
-    for (const z of world.zones) if (z !== focus && z.backdrop) dropBackdrop(z);
+    for (const z of world.zones) if (z !== focus) { if (z.backdrop) dropBackdrop(z); if (z.stills) dropStills(z); }
     for (const z of world.zones) {
       const up = world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
       const down = focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
@@ -215,15 +216,16 @@ export function createRenderer(canvas, camera) {
         const q0 = performance.now();
         Q.lines = k > 6;
         Q.detail = k > 4.5;
-        // Cache the backdrop once the camera settles (and the walls have stopped
-        // moving); redraw it live until then.
-        const settled = z.wallK === 0 || z.wallK === 1;
-        if (o.still && settled && (z.backdropScale !== k || z.backdropWallK !== z.wallK)) { bakeBackdrop(z, k, dpr); setScreen(k, dpr); }
-        if (o.still && z.backdrop && z.backdropWallK === z.wallK) {
+        // Once the camera settles (and the walls have stopped moving), cache
+        // the floor and walls, and every standing thing that doesn't move;
+        // draw them live until then.
+        const cache = o.still && !drop && caching;
+        const st = cache ? stillsFor(ctx, z, k, dpr) : null;
+        if (cache && backdropFor(ctx, z, k, dpr)) {
           drawBackdrop(ctx, z);
-          drawZoneVector(ctx, z, t, true);
+          drawZoneVector(ctx, z, t, true, st);
         } else {
-          drawZoneVector(ctx, z, t);
+          drawZoneVector(ctx, z, t, false, st);
         }
         focusMs = performance.now() - q0;
         perf.focus = perf.focus * 0.9 + focusMs * 0.1;
@@ -290,10 +292,19 @@ export function createRenderer(canvas, camera) {
     for (const z of world.zones) {
       dropSnapshot(z);
       dropBackdrop(z);
+      dropStills(z);
       z.veil = 0; z.lift = 0; z.dim = 0; z.stale = false;
       if (z.low != null) z.wallK = 0;
     }
   }
 
-  return { render, startIntro, thumbnail, dispose, perf, ctx };
+  // Tools: jump every floor and wall to where it's heading on the next frame,
+  // as if it had finished moving (QA times a room settled, not on its way in).
+  const settleNow = () => { settle = true; };
+
+  return {
+    render, startIntro, thumbnail, dispose, settleNow, perf, ctx,
+    get caching() { return caching; },
+    set caching(v) { caching = !!v; },
+  };
 }

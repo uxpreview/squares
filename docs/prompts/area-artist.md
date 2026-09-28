@@ -60,7 +60,7 @@ The other areas in your copy are still greyboxes; other artists are drawing them
 1. **Only edit your own area file.** Not the engine, the game, the UI, the map, the plan, the style sheet or anyone else's area. If you need a helper, write it inside your file; if it would help other areas, say so in your report (the art director may promote it into the style sheet).
 2. Don't run any git commands. Don't create files except scratch screenshots outside the repo.
 3. Colors come from `C` (`src/engine/art.js`) or the level's style sheet, never a raw hex code. `npm run qa` fails on raw hex in area files.
-4. Everything is a pure function of time `t`. Anything that moves is `{ anim: true }` or a `R.mover`.
+4. Everything is a pure function of time `t`. Anything that moves, even a flicker, is `{ anim: true }` or a `R.mover`; the rest is drawn once and cached, so keep what moves in its own small item.
 5. Copy: the `name` is 1 to 3 words; the `blurb` is one or two short, funny, plain sentences. **No em dashes** anywhere, in copy or comments.
 6. Aim for the ROOM_BRIEF density: 10 to 18 people or creatures doing specific, legible, funny things; at least 8 distinct moving things; signs that are jokes; one little story that plays out over time.
 7. Stay light: under about 80 particles, no gradients created in loops, heavy static drawing kept out of animated items. QA's speed check will tell you.

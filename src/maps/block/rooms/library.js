@@ -542,7 +542,7 @@ export default {
     // ---------- reading nook: armchairs and lamps ----------
     R.thing(4.1, 13.2, (ctx) => armchair(ctx, 2.9, 12.0, C.red));
     R.thing(4.1, 15.4, (ctx) => armchair(ctx, 2.9, 14.2, C.teal));
-    R.thing(3.3, 13.8, (ctx, t) => lamp(ctx, 3.3, 13.7, t, C.butter));
+    R.thing(3.3, 13.8, (ctx, t) => lamp(ctx, 3.3, 13.7, t, C.butter), { anim: true }); // it flickers
     R.mover(() => ({ x: 3.7, y: 12.6 }), (ctx, t) => {
       const turn = pulse(t, 5) > 0.85;
       person(ctx, 3.7, 12.6, 0.15, folk(251, {

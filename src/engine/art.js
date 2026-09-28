@@ -97,13 +97,17 @@ export const alpha = (c, a) => {
 const TILE = 12;
 const pats = new Map();
 let patMatrix = new DOMMatrix();
+let patScale = 0;
 
+// Called for every picture drawn, often several times a frame, so it only
+// works out the dot size here; each screen picks it up when it's next used.
 export function setScreen(pxPerUnit, dpr = 1) {
   Q.pxPerUnit = pxPerUnit;
   const spacingUnits = Math.max((3.2 * dpr) / pxPerUnit, 0.34);
   const s = spacingUnits / TILE;
+  if (s === patScale) return;
+  patScale = s;
   patMatrix = new DOMMatrix().scaleSelf(s, s);
-  for (const p of pats.values()) p.setTransform(patMatrix);
 }
 
 export function dots(color, density = 0.3) {
@@ -120,11 +124,14 @@ export function dots(color, density = 0.3) {
       g.arc(x, y, r, 0, Math.PI * 2);
       g.fill();
     }
-    p = g.createPattern(cv, 'repeat');
-    p.setTransform(patMatrix);
+    p = { pattern: g.createPattern(cv, 'repeat'), s: 0 };
     pats.set(key, p);
   }
-  return p;
+  if (p.s !== patScale) {
+    p.pattern.setTransform(patMatrix);
+    p.s = patScale;
+  }
+  return p.pattern;
 }
 
 // ---------- Paths ----------
