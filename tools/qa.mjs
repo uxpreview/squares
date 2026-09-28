@@ -30,14 +30,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { createServer } from 'vite';
-
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
-const exe = fs.existsSync('/opt/pw-browsers/chromium') ? { executablePath: '/opt/pw-browsers/chromium' } : {};
+import { chromium } from 'playwright';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);
@@ -100,7 +94,7 @@ if (!hexes) pass('colors', `All ${areaFiles.length} area files take their colors
 const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
 await server.listen();
 const base = `http://localhost:${server.httpServer.address().port}/`;
-const browser = await chromium.launch(exe);
+const browser = await chromium.launch();
 const pageErrors = [];
 
 async function open(viewport, o = {}) {
@@ -364,7 +358,7 @@ try {
         if (r.outside > 0.2) warn('walkers', `${r.who} spends ${r.outside.toFixed(1)}s outside every area, where nobody draws them.`);
       }
     }
-    if (walkOk) pass('walkers', `${info.walkers.length} people walk the ${info.loop}s evening through doors, never walls, never faster than a run.`);
+    if (walkOk) pass('walkers', `${info.walkers.length} people walk the ${info.loop}s loop through doors, never walls, never faster than a run.`);
   }
 
   // ---------- On screen and tappable ----------
@@ -443,7 +437,7 @@ try {
   // ---------- Speed ----------
   if (!quick) {
     step('Timing every area with the CPU slowed 4x');
-    const gpu = await chromium.launch({ ...exe, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] });
+    const gpu = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] });
     const { ctx, page: p } = await open(PHONE, { browser: gpu, dsf: 3 });
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });

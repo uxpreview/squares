@@ -5,21 +5,15 @@
 //   npm run smoke
 //
 // Prints PASS / FAIL per step and exits non-zero if anything failed.
-import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { createServer } from 'vite';
-
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
+import { chromium } from 'playwright';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
 await server.listen();
 const base = `http://localhost:${server.httpServer.address().port}/`;
-const browser = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium') ? { executablePath: '/opt/pw-browsers/chromium' } : {});
+const browser = await chromium.launch();
 
 let failed = 0;
 const errors = [];

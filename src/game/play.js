@@ -1061,7 +1061,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     markFound,
     enterZone: (i, o) => enterZone(typeof i === 'string' ? world.indexOf(i) : i, o),
     toOverview,
-    // Show a storey by id or index (the floor tags do this).
+    // Show a storey by id or index (the lift does this).
     setStorey: (s) => setStorey(typeof s === 'string' ? world.storeys.findIndex((x) => x.id === s) : s),
     drawMarks,
     drawPops,

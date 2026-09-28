@@ -1,7 +1,7 @@
 # The Block (connected)
 
-> Status: **Greybox** (at gate 2) · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] · greybox [ ] · preview [ ]
+> Status: **Art** (gate 2 approved with changes; 4c next) · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] · greybox [x] (with changes, decisions 14 to 18) · preview [ ]
 >
 > The greybox opens from `#/blockparty` (hidden from the picker). When it ships it takes over The Block's id, `block`, so saves carry over.
 
@@ -141,6 +141,23 @@ The greybox (session 4b), for the owner's gate 2:
 11. **People walk lanes:** the middle of each alley, both kerbs of Main Street, the middle of the pavement. Any two points on lanes join up (`route()` in `plan.js`), so a walk is written as "go to this door".
 12. **The streets' finds** are pins for now: four on Main Street (the Courier's map, a signed delivery slip, a roll of bunting, the Courier's lunch), three in the alleys (a tentacle print, the noodle bar's back door key, a cat in a bin), three on the pavement (a "Sorry we missed you" card, tomorrow's newspaper, a queue ticket). 58 things and 16 geese in all.
 13. **The first screen** points at the stage: "The Block Party is today. A goose in every room. Step inside."
+
+Gate 2 (the greybox), from the owner after the health pass (September 2026): **approved with changes.** 4c builds these in, on top of what's left for the art below:
+
+14. **Night darkens the streets and the sky, not the rooms.** The rooms stay near full brightness after dark (lit windows, lamps on), so every find reads at any hour; the flat navy over the rooms goes. The streets, the pavement and the backdrop take the night.
+15. **The stage is the hero:** bigger and taller, with a backdrop behind it, so it reads from the whole overview. The bouncy castle moves off the crossing (somewhere on Main Street where it doesn't crowd the stage).
+16. **The party's light is a pink sunset,** not amber: lighten the 7pm paper toward pink.
+17. **The alleys get one hot spot,** on the octopus's route to the noodle bar, and all three alley finds (the tentacle print, the noodle bar's back door key, the cat in a bin) sit there, so the alleys have a place worth looking rather than three finds spread thin.
+18. **On a phone, the invitation card pins by the back corner,** not over the stage.
+
+Also seen at the health pass, on the owner's Mac (desktop and phone, dawn, the party and night), for the owner's call in 4c:
+
+- **The shipped name.** On a street the back button reads "‹ The Block", while the title says "The Block Party". When it takes over the `block` id, is it still called The Block Party, or back to The Block with the party as its story?
+- **The party queue** stands in one tidy row along the whole front edge of the pavement, so from the overview it reads as a fence. Looser clumps, thickest by the stage end, would read as a queue.
+- **HONK bubbles and the invitation** both sit near the middle on a phone and can touch (seen at the party and at night). Moving the card (decision 18) may settle it; otherwise keep honks away from the card.
+- **At night the print marks and the "GREYBOX" caption vanish** (they're printed in the day's ink on the navy). The Manor prints its words in the light ink at night; the marks here could do the same.
+- **The blimp crosses the title** on desktop (by day under its first letters, by night over "Party"). Keeping its path clear of the top left would stop it.
+- **QA's close-finds warning** carries over from the Block: in the Roller Disco the goose and the slice of pizza are within 12px on a phone.
 
 Left for the art (4c):
 

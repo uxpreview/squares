@@ -20,13 +20,13 @@ And for a game that adds levels often: **each level should be cheaper to make th
 
 ## Where we are
 
-- **Engine:** places made of zones, of any size or shape (a street is one area, drawn in chunks sorted in with the rooms, framed a room's worth at a time around where you tap); camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with tags on the house to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain. A paper that changes with the clock (a day). A map can cut doors in a zone's walls.
-- **Game:** find the goose and hidden things per zone, hints, tallies, saves (v2), sound, completion. A scene clock tools can set, so any moment of a loop can be shown and tested.
+- **Engine:** places made of zones, of any size or shape (a street is one area, drawn in chunks sorted in with the rooms, framed a room's worth at a time around where you tap); camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with a lift to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain. A paper that changes with the clock (a day). A map can cut doors in a zone's walls.
+- **Game:** find the goose and hidden things per zone, hints, tallies, saves (v3), sound, completion. A scene clock tools can set, so any moment of a loop can be shown and tested.
 - **Screens:** title with a drifting map, place picker, completion card, a lift for houses (every floor, yours lit), an invitation on a place's first visit (a card pinned to a room), geese honking from rooms on the overview, a back button that goes up one level.
 - **Places:** The Block, and Gooseworth Manor (a whodunit at night, three floors). The Block Party, the Block connected, at its greybox (hidden, `#/blockparty`). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** the Block as one connected city block ([levels/block.md](levels/block.md), at gate 2: the greybox), then a beach, then the zoo.
+- **Next level:** the Block as one connected city block ([levels/block.md](levels/block.md); gate 2 approved with changes, art next in 4c), then a beach, then the zoo.
 
 ## Engine work
 
@@ -34,7 +34,7 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 
 - [x] **E0. Pipeline tools.** Scaffold a new level in one step; a style sheet per level; a QA command (errors, performance, finds on screen and tappable, label and copy rules, contact sheet); prompt templates for area artists, the art director and the playtester. *Session 2.*
 - [x] **E1. Night and weather.** A palette per place, lights that glow (windows, lamps, candles), lightning, rain. *Session 2.*
-- [x] **E2. Houses.** Inside walls cut low in the overview and full height inside a room; one storey at a time, changed from tags on the house; people passing between rooms through doors on a shared timeline. *Session 2. Next used by the Catminium and the cruise ship.*
+- [x] **E2. Houses.** Inside walls cut low in the overview and full height inside a room; one storey at a time, changed from tags on the house (a lift since 3d); people passing between rooms through doors on a shared timeline. *Session 2. Next used by the Catminium and the cruise ship.*
 - [x] **E3. Level formats.** Finds in groups (evidence, curiosities); a place's goal can be something other than "every goose" (solve the case); an accusation screen and a reveal. *Session 3: `game/case.js`, `ui/casefile.js`, a map's `case`. Reused by later mysteries.*
 - **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *La Dolce Riviera, Split, Boston, the siege, the zoo, Egypt.*
 - [x] **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Session 4: a zone can be any size (`size`) or shape (`shape`, a list of boxes); it's drawn in 16 x 16 chunks, each sorted into the map's draw order on its own (anything in front of another comes after it), with flat layers cut to each chunk's patch of the screen so the seams don't show. Taps, the front cutaway, framing and walkers all work chunk by chunk. Proved on `#/crossroads`. Still to do: framing a long area on a phone frames all of it, so its finds are tiny (the Crossroads' pavement); a long street wants framing near where you are (E7).*
@@ -95,7 +95,12 @@ Each is one PR. Order can change; dependencies can't.
   - **The day:** six minutes, dawn to dawn. The paper changes with the hour and the page and the browser's bars follow (`plate.at(t)`); rooms darken and glow at night, street lamps light.
   - **People:** 21 on the day's clock, walking lanes (`route()` finds the way). The Courier knocks on every door by the party; the baker, the laundromat regulars, the band, the snowman judge and a crowd come out to the stage at sunset; the octopus, Pidge, Gary, the librarian and the bin lorry have their gags. People at home vanish just inside their door.
   - **Framing long areas:** a street is framed a room's worth at a time, round where you tap (E7, started). QA frames long areas round each find; its stills check now starts every draw from the same canvas settings (it was flagging a still sign in the Umbrella Shop because of the drawing before it).
-- [ ] **4c. The Block, connected: art, QA, ship.**
+- [x] **Health pass: the first session on the owner's own computer.** *(PR #13)*
+  - **The tools run locally.** Playwright was loaded from a path that only existed in the cloud sessions; it's now a dev dependency, pinned to 1.61 (the last version whose browser runs on macOS 13), and the README has a "New computer setup" section. Dev, build, smoke, QA and shoot all run on the owner's Mac.
+  - **QA and a look** at the Block, the Manor and the Block Party, desktop and phone. See the PR for what was found.
+  - **A bug review** of the engine and the game since session 3. Fixed: the opening fade-in rose into place even with reduced motion on (now the place is simply there). Found for later: a place that fails to load (a dropped connection) can't be retried without a reload; the browser remembers the failed download, so the fix is to offer one. Stale comments about the floor tags (the lift replaced them) updated.
+  - **Gate 2 for the Block Party:** approved with changes (block.md, 14 to 18).
+- [ ] **4c. The Block, connected: art, QA, ship.** With gate 2's changes (block.md 14 to 18): rooms stay bright at night, a bigger stage with a backdrop, the bouncy castle off the crossing, a pink sunset, one alley hot spot on the octopus's route, the invitation by the back corner on phones.
 - [ ] **4d. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
 - [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
 - [ ] **6. La Dolce Riviera.** The first outdoor showpiece.
@@ -108,7 +113,7 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
-- **The connected Block's greybox** (gate 2): `#/blockparty` on the preview, and the decisions in [levels/block.md](levels/block.md) (5 to 13). After it: a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
+- **After the connected Block:** a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
 - **The review's leftovers** (3d found these and left them for the owner's call):
   - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
   - The things counter ("0/48", a circle) means nothing until your first find; there isn't room on a 390px phone to add the words "geese" and "things". It teaches itself once you find something ("Found: a lucky coin (1/48)").
@@ -121,6 +126,8 @@ Open, for the owner:
 
 Made:
 
+- **The connected Block's greybox (gate 2) is approved with changes:** rooms stay near full brightness at night (only the streets and sky darken), a bigger, taller stage with a backdrop and the bouncy castle off the crossing, a pink sunset instead of amber, one alley hot spot on the octopus's route holding all three alley finds, and the invitation pinned by the back corner on phones (block.md 14 to 18). *(Health pass, the owner)*
+- **The tools run on the owner's Mac:** Playwright is a dev dependency, pinned to 1.61 for macOS 13. *(Health pass)*
 - **The connected Block's brief (gate 1) is approved** with every recommendation: a day on a loop, the party and the Courier, the Main Street cross, walls down, all sixteen rooms, old saves as they are. *(4b, the owner)*
 - **A level being rebuilt is a new hidden place until it ships** (`blockparty` beside `block`), reusing the old one's files, so the live one keeps working. *(4b)*
 

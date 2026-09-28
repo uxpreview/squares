@@ -27,7 +27,7 @@ import { createScreens } from './ui/screens.js';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const canvas = document.getElementById('map');
 const camera = createCamera(canvas, { reduceMotion });
-const renderer = createRenderer(canvas, camera);
+const renderer = createRenderer(canvas, camera, { reduceMotion });
 const store = createStore();
 setMuted(!store.settings.sound);
 
