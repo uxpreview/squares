@@ -14,6 +14,7 @@ The owner is a designer who vibe codes. Explain changes in plain language, say w
 
 ## Commands
 
+- First time on a computer: `npm install`, then `npx playwright install chromium` (the tools' browser). See "New computer setup" in the README. Playwright is pinned to 1.61 for macOS 13; don't raise it without checking the owner's Mac.
 - `npm run dev` to play locally.
 - `npm run build` must pass before you push.
 - `npm run smoke` clicks through title, picker, play, finding, finishing, old save migration and deep links. Run it after touching `src/engine/`, `src/game/`, `src/ui/`, `src/main.js`, `index.html` or `styles.css`. Add a check when you add a flow.

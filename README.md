@@ -22,6 +22,34 @@ npm run qa -- manor           # check a place and make its contact sheet (qa-out
 
 Vercel builds it on its own (`vercel.json` tells it how: `npm run build`, output `dist`).
 
+## New computer setup
+
+The game itself only needs Node. The checking tools (smoke, QA, screenshots, the playtest, speed) drive a real browser with Playwright, which is a dev dependency, so it comes with `npm install`. The browser it drives is a separate download, once per computer.
+
+1. Install Node 20 or newer (`node -v` to check). The installer from nodejs.org is fine.
+2. Get the code and install:
+   ```
+   git clone https://github.com/uxpreview/squares.git
+   cd squares
+   npm install
+   ```
+3. Download Playwright's browser (about 150 MB, kept outside the project, shared by every project on the computer):
+   ```
+   npx playwright install chromium
+   ```
+4. Check everything works:
+   ```
+   npm run build                                 # should end with "built in ..."
+   npm run smoke                                 # should end with "All good"
+   node tools/shoot.mjs block out.png --mobile   # a picture of the Block, as a phone sees it
+   npm run qa -- block                           # passes, and makes qa-out/block/contact.jpg
+   ```
+5. `npm run dev` and open the address it prints. It also prints a Network address: open that on a phone on the same wifi to play on the phone.
+
+Playwright is pinned to 1.61 in `package.json` on purpose: it's the last version whose browser runs on macOS 13 (Ventura). On macOS 14 or newer it can be raised (`npm install -D playwright@latest`, then step 3 again). If a tool says it can't find the browser ("Executable doesn't exist"), run step 3.
+
+QA's speed check times a slowed-down phone on this computer's processor, so its numbers vary a little from one computer to another (the budget has room for it).
+
 ## How it's put together
 
 The game is made of **places** (maps). A place is made of **zones**: a room on The Block, a floor of The Walk-Up. The engine doesn't care what a zone is; the map decides where each one sits.

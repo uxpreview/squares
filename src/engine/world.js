@@ -9,7 +9,7 @@
 //                                              // (size, shape: for one that isn't 16 x 16; see zone.js)
 //     order: ['zoneId', ...],                   // prev/next and list order (optional)
 //     cutaway: { front, above, walls, lift, ghost },  // how zones get out of the way (below)
-//     storeys: [{ id, name, short, z }],        // named floors, with tags on the house to change them (optional)
+//     storeys: [{ id, name, short, z }],        // named floors, changed from the lift (optional)
 //     storey: 'ground',                         // which floor the overview starts on
 //     overview(portrait, storeyId, short) => [X0, X1, Y0, Y1],  // the framing for the whole map (optional)
 //     backdrop(ctx, t, world, fx), sky(ctx, t, world, fx),  // drawn under / over the zones (optional)
@@ -22,7 +22,7 @@
 // Cutaways, for when you're looking at one zone:
 //   front: zones in front of it are cut away around its outline (the block)
 //   above: zones on floors above it lift up and fade out (a building's floors).
-//          With named storeys, the floor tags do the same in the overview.
+//          With named storeys, the lift does the same in the overview.
 //   walls: waist height for inside walls (a number turns "walls down" on): a wall
 //          with a room right behind it drops to this height unless you're in its room
 //   lift, ghost: how far lifted floors rise (iso units) and how faint they get
@@ -239,8 +239,8 @@ export function buildWorld(map) {
   return {
     map,
     id: map.id,
-    // Chunks, not zones: what the renderer draws, in order. Each has .zone.
     zones,
+    // Chunks, not zones: what the renderer draws, in order. Each has .zone.
     drawOrder,
     order,
     storeys,

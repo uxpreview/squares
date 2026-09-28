@@ -34,7 +34,7 @@ const LIFT = 9;
 const GHOST = 0.1;
 const BELOW = 0.55;
 
-export function createRenderer(canvas, camera) {
+export function createRenderer(canvas, camera, o = {}) {
   // alpha: true on purpose. iOS 26 Safari clips an opaque full-screen layer at its
   // status bar and toolbar and paints a flat color there instead; a non-opaque
   // layer is composited normally, so the plate shows through behind the glass.
@@ -96,6 +96,8 @@ export function createRenderer(canvas, camera) {
   const INTRO_MS = 420;
   let settle = false;
   function startIntro(world) {
+    // With reduced motion, the place is simply there.
+    if (o.reduceMotion) { intro = null; settle = true; return; }
     const delays = new Map();
     let end = 0;
     for (const z of world.zones) {

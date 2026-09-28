@@ -8,7 +8,7 @@
 // in seconds (the evening at the manor is a 180-second loop; 88 is lights out).
 // --freeze: stop the scene's clock at --at, to catch an exact moment (a flash
 // of lightning lasts a fraction of a second).
-// --storey: which floor to show, for places with a floor switch. --finds: ring
+// --storey: which floor to show, for places with floors. --finds: ring
 // every hidden find. --landscape: a phone on its side (844 x 390). --eval: run
 // some JavaScript in the page before the shot, to set up a state (it can use
 // await and import(), and window.__squares). For example, the Manor with its
@@ -25,15 +25,9 @@
 // Starts the Vite dev server, opens the page in headless Chromium, goes to the
 // target, waits, and saves a PNG. Console errors are printed so broken zones
 // are obvious. (A Google Fonts error is expected in sandboxes with no internet.)
-import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { createServer } from 'vite';
-
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
+import { chromium } from 'playwright';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);
@@ -58,7 +52,7 @@ const server = await createServer({ root, logLevel: 'error', server: { port: 0, 
 await server.listen();
 const port = server.httpServer.address().port;
 
-const browser = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium') ? { executablePath: '/opt/pw-browsers/chromium' } : {});
+const browser = await chromium.launch();
 const page = await browser.newPage({
   viewport: landscape ? { width: 844, height: 390 } : mobile ? { width: 390, height: 844 } : { width: 1400, height: 1000 },
   deviceScaleFactor: 2,

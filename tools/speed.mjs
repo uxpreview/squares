@@ -9,16 +9,9 @@
 //
 // Prints each view's average frame (ms) and its parts: the room you're in,
 // the other rooms, refreshing their pictures, the backdrop and the sky.
-import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { createServer } from 'vite';
-
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
-const exe = fs.existsSync('/opt/pw-browsers/chromium') ? { executablePath: '/opt/pw-browsers/chromium' } : {};
+import { chromium } from 'playwright';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);
@@ -32,7 +25,7 @@ if (!level) { console.log('Usage: node tools/speed.mjs <level> [--fresh | --walk
 const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
 await server.listen();
 const base = `http://localhost:${server.httpServer.address().port}/`;
-const gpu = await chromium.launch({ ...exe, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] });
+const gpu = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] });
 
 async function open(hash) {
   const ctx = await gpu.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
