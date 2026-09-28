@@ -77,6 +77,7 @@ if (mode === 'prepare') {
         return { label: f.goose ? 'The goose' : f.label, sx, sy, r: Math.max(f.r * s.cam.z, 22) };
       });
     }, z.id);
+    await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
     await page.screenshot({ path: path.join(dir, `${z.id}.png`) });
     labels[z.id] = { name: z.name, shot: `${z.id}.png`, find: found.map((f) => f.label) };
     answers[z.id] = found;

@@ -58,13 +58,15 @@ export function createRenderer(canvas, camera, o = {}) {
   // what it costs, since the graphics chip then has to put it on screen. On
   // an older laptop the other rooms move in small steps instead of the whole
   // picture lagging; on a quick one nothing changes.
-  let snapQ = 1;
+  let snapQ = 1, everything = false;
   function refreshSnapshots(list, t, k) {
     const want = snapScaleFor(k);
     snapQ = perf.gap > 25 ? Math.max(0.1, snapQ * 0.97) : Math.min(1, snapQ + 0.01);
     // Catch up faster when neighbors are still at a much lower resolution than the view.
     const blurry = list.some((z) => z.snapScale && z.snapScale < want * 0.5);
-    const budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS * snapQ;
+    let budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS * snapQ;
+    // A tool taking a picture wants every neighbor at this moment, sharp.
+    if (everything) { budget = Infinity; snapCredit = 0; everything = false; }
     snapCredit = Math.min(snapCredit + budget, budget * 3);
     // No picture yet first, then pictures that are out of date (walls moving),
     // then the wrong size, then the oldest.
@@ -419,9 +421,12 @@ export function createRenderer(canvas, camera, o = {}) {
   // Tools: jump every floor and wall to where it's heading on the next frame,
   // as if it had finished moving (QA times a room settled, not on its way in).
   const settleNow = () => { settle = true; };
+  // Tools: redraw every other room's picture on the next frame, whatever it
+  // costs (a headless browser paints so rarely they'd lag the clock).
+  const refreshAll = () => { everything = true; };
 
   return {
-    render, startIntro, thumbnail, dispose, settleNow, perf, ctx,
+    render, startIntro, thumbnail, dispose, settleNow, refreshAll, perf, ctx,
     get caching() { return caching; },
     set caching(v) { caching = !!v; },
   };

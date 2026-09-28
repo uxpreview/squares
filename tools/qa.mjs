@@ -489,6 +489,7 @@ try {
       const p = pages[kind];
       await prep(p);
       await p.evaluate(() => { const st = document.getElementById('story'); if (st) st.hidden = true; });
+      await p.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
       const buf = await p.screenshot({ type: 'jpeg', quality: 82 });
       fs.writeFileSync(path.join(out, 'shots', `${name}-${kind}.jpg`), buf);
       return 'data:image/jpeg;base64,' + buf.toString('base64');
