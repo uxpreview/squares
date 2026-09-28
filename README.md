@@ -111,6 +111,7 @@ tools/
   qa.mjs           Check a place and make its contact sheet
   playtest.mjs     A blind playtest from screenshots, scored
   speed.mjs        How fast each area draws on a slowed-down phone, and where the time goes
+  fps.mjs          Frames per second on this computer's own graphics, in a real window
   ROOM_BRIEF.md    The brief for drawing a new zone
 docs/
   ROADMAP.md, PROCESS.md, LEVELS.md, INSPIRATION.md   The plans
@@ -141,6 +142,9 @@ docs/
 | Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
 | How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
 | See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
+| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop |
+| How the map in front of the room you're in is cut away | "The cut layer" in `src/engine/renderer.js` (drawn on a see-through sheet, the room's outline erased, laid on the picture) |
+| How often the other rooms' pictures refresh | `SNAP_BUDGET_MS` in `src/engine/renderer.js`; it shrinks by itself (`snapQ`) when frames are slow |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |
 | A house's floors, and which one it opens on | `storeys` and `storey` in its `map.js` (the Manor: `src/maps/manor/map.js`) |
 | How low inside walls drop, how far floors lift | `cutaway.walls`, `cutaway.lift`, `cutaway.ghost` in the map's `map.js` |
