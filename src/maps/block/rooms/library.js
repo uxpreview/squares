@@ -144,12 +144,40 @@ function plane(ctx, X, Y, dx, dy, s = 1) {
   ctx.restore();
 }
 
+// On a day (the Block Party): the sky by the hour, and the clock's hands on it.
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+function clockHands(ctx, h) {
+  const [X, Y] = P(10, 0, 6.15);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.transform(1, 0.5, 0, 1, 0, 0);
+  ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
+  const hand = (turns, len, lw) => {
+    const a = turns * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(a) * len, -Math.cos(a) * len);
+    ctx.lineWidth = lw; ctx.stroke();
+  };
+  hand((h % 12) / 12, 0.18, 0.06);
+  hand(h % 1, 0.27, 0.04);
+  ctx.restore();
+}
+
 export default {
   id: 'library',
   name: 'Library',
   blurb: 'The librarian has shushed three children, one ladder and a thunderstorm. The goose is studying swans, for reasons.',
 
   build(R) {
+    // On a day (the Block Party): the door onto Main Street, the sky in the
+    // window, and the librarian away shushing the sound check.
+    const day = R.opts.day;
     // ---------- floor ----------
     R.floor((ctx) => {
       slab(ctx, C.greyLight);
@@ -172,7 +200,7 @@ export default {
       ctx.translate(X, Y);
       ctx.transform(1, 0.5, 0, 1, 0, 0);
       ctx.beginPath(); ctx.arc(0, 0, 0.36, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.05 });
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -0.26); ctx.moveTo(0, 0); ctx.lineTo(0.18, 0.06); ctx.stroke();
+      if (!day) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -0.26); ctx.moveTo(0, 0); ctx.lineTo(0.18, 0.06); ctx.stroke(); }
       ctx.restore();
     });
 
@@ -182,7 +210,8 @@ export default {
     R.decor((ctx, t) => {
       onRight(ctx, WX0 - 0.2, WZ0 - 0.2, WX1 - WX0 + 0.4, WZ1 - WZ0 + 0.4, C.white, { lw: 0.05 });
       const flash = flashAt(t);
-      onRight(ctx, WX0, WZ0, WX1 - WX0, WZ1 - WZ0, flash ? C.white : mix(C.navy, C.grey, 0.35), { dots: flash ? null : C.navy, density: 0.25, lw: 0.04 });
+      const sky = day ? mix(skyAt(day.hour(t)), C.grey, 0.3) : mix(C.navy, C.grey, 0.35);
+      onRight(ctx, WX0, WZ0, WX1 - WX0, WZ1 - WZ0, flash ? C.white : sky, { dots: flash ? null : C.navy, density: 0.25, lw: 0.04 });
       if (Q.detail) {
         // rooftops outside
         face(ctx, [[WX0, 0, WZ0], [WX0, 0, 2.6], [8.9, 0, 2.6], [8.9, 0, 3.1], [9.6, 0, 3.1], [9.6, 0, 2.3], [10.6, 0, 2.3], [10.9, 0, 2.9], [11.2, 0, 2.3], [WX1, 0, 2.3], [WX1, 0, WZ0]], flash ? C.greyLight : mix(C.navy, C.ink, 0.3), { stroke: false });
@@ -219,6 +248,7 @@ export default {
       // mullions
       face(ctx, [[(WX0 + WX1) / 2, 0, WZ0], [(WX0 + WX1) / 2, 0, WZ1]], null, { lw: 0.12, stroke: C.white });
       face(ctx, [[WX0, 0, (WZ0 + WZ1) / 2 + 0.4], [WX1, 0, (WZ0 + WZ1) / 2 + 0.4]], null, { lw: 0.12, stroke: C.white });
+      if (day) clockHands(ctx, day.hour(t));
     }, { anim: true });
     // thunder word, outside the room's back
     R.air((ctx, t) => {
@@ -251,7 +281,10 @@ export default {
     // ---------- bookcases ----------
     for (let i = 0; i < 8; i++) {
       const y = 0.4 + i * 1.95;
-      R.thing(1.1, y + 1.95, (ctx) => bookcaseL(ctx, y, 1.95, 300 + i, [i === 0, i === 7]));
+      // (on a day, two cases make way for the door onto Main Street, y 11.4 to 13.6)
+      if (day && i === 6) continue;
+      const w = day && i === 5 ? 0.95 : 1.95;
+      R.thing(1.1, y + w, (ctx) => bookcaseL(ctx, y, w, 300 + i, [i === 0 || (day && i === 7), i === 7 || (day && i === 5)]));
     }
     for (const [x, w, seed, e0, e1] of [[1.2, 2.2, 401, true, false], [3.4, 2.2, 402, false, false], [5.6, 2.2, 403, false, true], [12.3, 1.85, 404, true, false], [14.15, 1.85, 405, false, true]]) {
       R.thing(x + w, 1.1, (ctx) => bookcaseR(ctx, x, w, seed, [e0, e1]));
@@ -259,12 +292,13 @@ export default {
 
     // ---------- the rolling ladder, and the person riding it ----------
     // 0-7 browsing near the back, 7.4-9.4 WHEEE to the front, 9.4-14 browsing, 14-16 a sheepish roll back.
+    const run = day ? 6.4 : 9.6; // (on a day it stops short of the door)
     const ladderY = (t) => {
       const s = pulse(t, LOOP) * LOOP;
       if (s < 7.4) return 3.2;
-      if (s < 9.4) return 3.2 + ease((s - 7.4) / 2) * 9.6;
-      if (s < 14) return 12.8;
-      return 12.8 - ease((s - 14) / 2) * 9.6;
+      if (s < 9.4) return 3.2 + ease((s - 7.4) / 2) * run;
+      if (s < 14) return 3.2 + run;
+      return 3.2 + run - ease((s - 14) / 2) * run;
     };
     R.air((ctx) => {
       // brass rail across the shelf tops
@@ -321,7 +355,9 @@ export default {
       if (s > 13.8 && s < 15.4) return { dir: 'r', target: 'sky' };
       return null;
     };
+    const her = day && R.walkers.find((w) => w.id === 'librarian');
     R.mover(() => ({ x: 13.6, y: 2.8 }), (ctx, t) => {
+      if (her && !her.at(t).hide) return; // out shushing the sound check
       const sh = shush(t);
       person(ctx, 13.6, 2.8, 0, {
         skin: '#F7DCC4', hair: C.greyLight, style: 'bun', top: C.purple, bottom: C.ink, dress: true,

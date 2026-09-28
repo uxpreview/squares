@@ -290,6 +290,34 @@ function monstera(ctx, t, front) {
   });
 }
 
+// On a day (the Block Party): the sky through the glass, by the hour, in the
+// top row of panes on the right wall. A blush at dawn, blue all day, the pink
+// sunset, navy with the moon at night.
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+function skyPanes(ctx, h) {
+  const sky = alpha(skyAt(h), 0.8), z0 = 5.26, z1 = H - 0.08;
+  for (let x = 0; x < 8; x += 2) onRight(ctx, x + 0.08, z0, 1.84, z1 - z0, sky, { stroke: false });
+  const dark = h < 5.5 || h > 20.5;
+  // the sun crosses the panes through the day; the moon sits in one at night
+  const u = dark ? 5.2 : 0.9 + clamp((h - 6) / 13) * 6.2;
+  const [X, Y] = P(u, 0.01, dark ? 5.85 : 5.7 + Math.sin(clamp((h - 6) / 13) * Math.PI) * 0.2);
+  ctx.beginPath(); ctx.arc(X, Y, 0.26, 0, Math.PI * 2);
+  paint(ctx, dark ? C.butter : C.mustard, { lw: 0.03 });
+  if (dark && Q.detail) {
+    for (const [a, b] of [[1.2, 5.6], [3.1, 6.05], [6.6, 5.5]]) {
+      const [sx, sy] = P(a, 0.01, b);
+      ctx.beginPath(); ctx.arc(sx, sy, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+    }
+  }
+}
+
 export default {
   id: 'greenhouse',
   name: 'Greenhouse',
@@ -963,6 +991,10 @@ export default {
         hold: (c) => plant(c, 0.05, 0, 0, t, { kind: 'palm', scale: 0.95, potColor: C.white, leaf: C.green }),
       }), t);
     });
+
+    // On a day (the Block Party), the top panes show the hour's sky.
+    const day = R.opts.day;
+    if (day) R.decor((ctx, t) => skyPanes(ctx, day.hour(t)), { anim: true });
   },
 };
 
