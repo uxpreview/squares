@@ -474,7 +474,15 @@ function darken(ctx, zone, k, color) {
   if (!(k > 0.002)) return;
   ctx.save();
   ctx.fillStyle = alpha(color, Math.min(0.92, k * 0.85));
-  if (Q.own) {
+  if (!zone.walls) {
+    // Outdoors (a street), only the ground darkens: anything over it would
+    // reach up over the rooms behind it too.
+    if (!zone.groundPath) {
+      zone.groundPath = new Path2D();
+      for (const [x0, y0, x1, y1] of zone.rects) quad(zone.groundPath, [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]]);
+    }
+    ctx.fill(zone.groundPath);
+  } else if (Q.own) {
     // In the zone's own picture, darken only what the zone drew.
     ctx.globalCompositeOperation = 'source-atop';
     const b = zone.bounds;

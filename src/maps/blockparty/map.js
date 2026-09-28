@@ -13,7 +13,7 @@ import { WALL, ZK, SLAB } from '../../engine/iso.js';
 import { C, alpha } from '../../engine/art.js';
 import { reg, birds } from '../shared.js';
 import { blimp, plane } from '../block/ambient.js';
-import { AT, DOORS, GRID, SIZE, MID, LOOP } from './plan.js';
+import { AT, DOORS, GRID, SIZE, MID, LOOP, STAGE, STAGE_Z } from './plan.js';
 import { walkers, nightfall, plate } from './day.js';
 import { hour, at, nightK, open, rush, LAUNCH } from './clock.js';
 import { follow } from './finale.js';
@@ -123,10 +123,11 @@ export default {
   loop: LOOP,
   // The paper changes with the hour: warm at dawn, amber at the party, navy at night.
   plate,
-  // A first visit: the invitation points at the stage; on a phone, where the
+  // A first visit: the invitation points at the stage, pinned over its
+  // backdrop so the stage still shows; on a phone, where the
   // stage is in the thick of it, it pins by the back corner instead, on the
   // Observatory (block.md, decision 18).
-  invite: { zone: 'main-street', at: [MID, MID, 1.4], phone: { zone: 'observatory', pin: [0, 0, WALL - 2] } },
+  invite: { zone: 'main-street', at: [MID, MID, 1.4], pin: [STAGE[0] + 0.3, STAGE[1] + 0.3, STAGE_Z + 7.6], phone: { zone: 'observatory', pin: [0, 0, WALL - 2] } },
   // The ending: the clock jumps to the party and the geese conga (finale.js).
   finale: { at: at(19.8) },
   sound,

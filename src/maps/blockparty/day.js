@@ -64,8 +64,8 @@ function from(x, y) {
   let pos = [x, y];
   const b = {
     steps,
-    to(nx, ny) {
-      steps.push([nx, ny]);
+    to(nx, ny, nz = 0) {
+      steps.push([nx, ny, nz]);
       pos = [nx, ny];
       return b;
     },
