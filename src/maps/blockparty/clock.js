@@ -37,7 +37,7 @@ export const HOURS = {
   ballpit: { open: [9, 18], rush: [9.5, 12] }, // the toddlers' morning
   umbrellas: { open: [9, 18], rush: [15, 17] }, // the afternoon downpour, indoors
   aquarium: { open: [9, 18], rush: [10.5, 13] }, // feeding time
-  band: { open: [13, 23], rush: [15, 18] }, // the sound check
+  band: { open: [11, 23], rush: [12, 14] }, // practice, before they take the amps out
   trains: { open: [10, 20], rush: [17, 19] }, // the evening timetable
 };
 
