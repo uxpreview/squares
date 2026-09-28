@@ -20,13 +20,13 @@ And for a game that adds levels often: **each level should be cheaper to make th
 
 ## Where we are
 
-- **Engine:** places made of zones; camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with tags on the house to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain.
+- **Engine:** places made of zones, of any size or shape (a street is one area, drawn in chunks sorted in with the rooms); camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with tags on the house to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain.
 - **Game:** find the goose and hidden things per zone, hints, tallies, saves (v2), sound, completion. A scene clock tools can set, so any moment of a loop can be shown and tested.
 - **Screens:** title with a drifting map, place picker, completion card, a lift for houses (every floor, yours lit), an invitation on a place's first visit (a card pinned to a room), geese honking from rooms on the overview, a back button that goes up one level.
-- **Places:** The Block, and Gooseworth Manor (a whodunit at night, three floors). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors.
+- **Places:** The Block, and Gooseworth Manor (a whodunit at night, three floors). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** the owner's list, below under Decisions: the Block as one connected place, then a beach, then the zoo.
+- **Next level:** the Block as one connected city block ([levels/block.md](levels/block.md), at gate 1: the brief), then a beach, then the zoo.
 
 ## Engine work
 
@@ -37,12 +37,12 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 - [x] **E2. Houses.** Inside walls cut low in the overview and full height inside a room; one storey at a time, changed from tags on the house; people passing between rooms through doors on a shared timeline. *Session 2. Next used by the Catminium and the cruise ship.*
 - [x] **E3. Level formats.** Finds in groups (evidence, curiosities); a place's goal can be something other than "every goose" (solve the case); an accusation screen and a reveal. *Session 3: `game/case.js`, `ui/casefile.js`, a map's `case`. Reused by later mysteries.*
 - **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *La Dolce Riviera, Split, Boston, the siege, the zoo, Egypt.*
-- **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Every big outdoor level.*
+- [x] **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Session 4: a zone can be any size (`size`) or shape (`shape`, a list of boxes); it's drawn in 16 x 16 chunks, each sorted into the map's draw order on its own (anything in front of another comes after it), with flat layers cut to each chunk's patch of the screen so the seams don't show. Taps, the front cutaway, framing and walkers all work chunk by chunk. Proved on `#/crossroads`. Still to do: framing a long area on a phone frames all of it, so its finds are tiny (the Crossroads' pavement); a long street wants framing near where you are (E7).*
 - **E6. Casts and scale.** Animals and other species alongside people; a character scale per place. *The Catminium, the zoo, Egypt.*
 - **E7. Camera shapes.** Tall and wide places that scroll; framing for areas of any shape.
 - **E8. Mechanic hooks.** A place can add its own rules: run every frame, draw over the scene, decide whether a find is visible right now, take input.
 - **E9. Crowds and performance.** Hundreds of people at 60 fps on a mid-range phone: bake the still ones, animate a few, less detail far away.
-- **E10. Small fixes.** `route()` ignores a pause on the last waypoint of a there-and-back route (fixing it shifts timing in some Block rooms). `paintText` only paints on the two back walls. The goose can't wear hats or carry things. People on a map's clock are only drawn inside an area (someone walking up a drive beyond the last area would vanish). A find can only belong to one area, so the goose can't roam the house (the Manor wants that; E3). QA can't tell whether a find is hidden behind something: the contact sheet rings every find for eyes. Fix whenever a session touches that code.
+- **E10. Small fixes.** `route()` ignores a pause on the last waypoint of a there-and-back route (fixing it shifts timing in some Block rooms). `paintText` only paints on the two back walls. The goose can't wear hats or carry things. People on a map's clock are only drawn inside an area (someone walking up a drive beyond the last area would vanish; since E5, cover the ground with areas of any shape). A find can only belong to one area, so the goose can't roam the house (the Manor wants that; E3). QA can't tell whether a find is hidden behind something: the contact sheet rings every find for eyes. Fix whenever a session touches that code.
 
 ## Game work
 
@@ -83,7 +83,14 @@ Each is one PR. Order can change; dependencies can't.
   - **Results** (QA, CPU slowed 4x): the Manor's slowest view is The Grounds at 38 ms (the Library 20); the Block's slowest is the Observatory at 32 (it was about 50). A cheap fix to the halftone screens (they were rescaled on every picture, several times a frame) helps every place.
   - **New tool:** `node tools/speed.mjs <place>` times every area and says where the time goes (`--live` turns the caches off to compare).
   - **Left for later (E9):** what's left in a Manor room is mostly things that genuinely move, and a few big animated items that carry still parts with them (the Dining Room's table is one animated item: cloth, plates, wine levels and steam together). Splitting those is room-by-room art work. The Manor's night backdrop costs 5 to 8 ms a frame in a room; neighbors' pictures refresh within a fixed 6 ms budget and could use the same cache to refresh more often.
-- [ ] **4. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
+- [x] **4. Areas of any shape (E5), and the connected Block's brief.** The owner's picks: a city block (the rooms become shops and venues on streets), geese plus a light story, and this session to do the brief and the engine groundwork. *(PR #11)*
+  - **The brief** ([levels/block.md](levels/block.md)): the day of the Block Party, and the Courier door to door with a parcel for "G. Goose, The Block". The same sixteen rooms on the same grid, with Main Street crossing the middle (the party stage at the crossing), back alleys between the rest, the pavement along the front, walls down on the overview, a door from every room onto a street. Six open questions for the owner, each with a recommendation (the big one: a whole day on a loop, each room busiest at its hour).
+  - **The engine (E5):** zones of any size or shape, drawn in chunks. Nothing already built looks different: every map drawn at three moments and two zoom levels matches the old code to the pixel, and the Block's and the Manor's QA pass as before.
+  - **The test bed:** the Crossroads (`#/crossroads`, hidden), four greybox rooms round a cross of street and an L of pavement; three people walking between them (one out of a shop, down the street and in through the launderette's door), a goose walking the street over the seams. The smoke test checks it: the street in six pieces, sorted in behind the back rooms and before the front one, taps landing where the street runs, the walk, every piece cached, the walking goose found.
+  - **Learned:** streets narrower than a wall is tall can't be seen behind the rooms in front of them, so the connected Block needs walls down on the overview. And stepping onto a street, the rooms around it were cut down past their slabs, like stepping into a room; outdoors, the cut now stops at the ground where the street meets something.
+- [ ] **4b. The Block, connected: greybox (gate 2).** Once the brief is approved: `plan.js` with the streets and doors, the day's timeline, the outdoor areas greyboxed, the rooms moved onto the new plan (with their doors, and signs off the shopfront walls), framing for long areas on a phone.
+- [ ] **4c. The Block, connected: art, QA, ship.**
+- [ ] **4d. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
 - [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
 - [ ] **6. La Dolce Riviera.** The first outdoor showpiece.
 - [ ] **7. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
@@ -95,7 +102,7 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
-- **The owner's next sessions** (said at the start of 3d): The Block becomes a real place like the Manor, one connected map rather than sixteen separate rooms; then a beach; then the zoo (The Great Escape in LEVELS.md). What they need: one connected Block most likely wants E5 (areas, not boxes) and people walking between places (walkers, as at the Manor); a beach wants E4 (terrain and water), which La Dolce Riviera also needs; the zoo wants terrain too, and animals as a cast (E6). 3b (faster rooms) shipped first.
+- **The connected Block's brief** (gate 1): [levels/block.md](levels/block.md), its six open questions. After it: a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
 - **The review's leftovers** (3d found these and left them for the owner's call):
   - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
   - The things counter ("0/48", a circle) means nothing until your first find; there isn't room on a 390px phone to add the words "geese" and "things". It teaches itself once you find something ("Found: a lucky coin (1/48)").
@@ -108,6 +115,8 @@ Open, for the owner:
 
 Made:
 
+- **The connected Block is a city block,** the same sixteen rooms facing streets, with a goose per room still the goal and a light story across the streets; it replaces today's Block (same id, so saves carry over). The session did the brief and the engine groundwork (E5) first. *(Session 4, the owner)*
+- **A zone can be any size or shape**, and the engine draws it in chunks (16 x 16 at most) sorted in with everything else. Zones up to 16 x 16 are one chunk, drawn exactly as before. Keep wide, tall things a unit clear of seams, and flat things on the zone's floor. *(Session 4)*
 - **Levels in progress are hidden from the picker** and open from a link (`#/manor`) until they ship. *(Session 2)*
 - **QA's speed budget is set by The Block:** every view of a new level must render within 60 ms a frame (warn at 40) with the CPU slowed 4x on a GPU canvas; the Block's slowest rooms took about 50 (about 30 since 3b). Headless Chrome without a GPU exaggerates big pictures, so QA measures with one, and it times each room settled (walls up, caches made). *(Session 2, 3b)*
 - **QA output (`qa-out/`) isn't committed.** The contact sheet goes to the owner at each gate. *(Session 2)*

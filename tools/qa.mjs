@@ -447,7 +447,7 @@ try {
     const measure = async (label) => {
       await p.waitForFunction(() => !window.__squares.camera.flying, null, { timeout: 20000 }).catch(() => {});
       await p.evaluate(() => window.__squares.renderer.settleNow());
-      await p.waitForFunction(() => { const z = window.__squares.play.focus; return !z || (z.stills && z.bd); }, null, { timeout: 20000 }).catch(() => {});
+      await p.waitForFunction(() => { const z = window.__squares.play.focus; return !z || z.chunks.every((c) => c.stills && c.bd); }, null, { timeout: 20000 }).catch(() => {});
       await p.waitForTimeout(1500);
       await p.evaluate(() => { const f = window.__squares.perf; f.n = 0; f.total = 0; f.worst = 0; });
       await p.waitForFunction(() => window.__squares.perf.n >= 12, null, { timeout: 20000 }).catch(() => {});

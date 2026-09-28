@@ -5,7 +5,8 @@
 // A map module (see src/maps/*/map.js) exports:
 //   {
 //     id, name, tagline, short,               // short: the back button's label in a room (optional)
-//     zones: [{ zone, at: [x, y, z], tag, h, span, fixed }],  // zone modules and where they go
+//     zones: [{ zone, at: [x, y, z], tag, h, span, fixed, size, shape }],  // zone modules and where they go
+//                                              // (size, shape: for one that isn't 16 x 16; see zone.js)
 //     order: ['zoneId', ...],                   // prev/next and list order (optional)
 //     cutaway: { front, above, walls, lift, ghost },  // how zones get out of the way (below)
 //     storeys: [{ id, name, short, z }],        // named floors, with tags on the house to change them (optional)
@@ -35,15 +36,54 @@ import { ZK, SLAB, unproject } from './iso.js';
 
 const overlap = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0.5;
 
+// Is chunk (or zone) b in front of a, on the same floor? Both are boxes on the
+// floor that don't overlap: b is in front if it's past a along x or y and
+// beside it (or past it both ways).
+export function inFront(a, b) {
+  const A = rectOf(a), B = rectOf(b);
+  return (B[0] >= A[2] - 0.01 && B[3] > A[1] + 0.01) || (B[1] >= A[3] - 0.01 && B[2] > A[0] + 0.01);
+}
+const rectOf = (c) => (c.rect
+  ? [c.zone.ox + c.rect[0], c.zone.oy + c.rect[1], c.zone.ox + c.rect[2], c.zone.oy + c.rect[3]]
+  : [c.ox, c.oy, c.ox + c.w, c.oy + c.d]);
+
+// Back to front: by how far along the floor each chunk's back corner is, then
+// upward, except that anything in front of another on the same floor always
+// comes after it (a small chunk of street beside a big room can be further
+// back by its corner and still be in front).
+function sortChunks(list) {
+  const order = list.slice().sort((a, b) => a.ox + a.oy - (b.ox + b.oy) || a.oz - b.oz || a.ox - b.ox);
+  const n = order.length;
+  const after = order.map(() => []), need = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i === j || Math.abs(order[i].oz - order[j].oz) > 0.5) continue;
+      if (inFront(order[i], order[j])) { after[i].push(j); need[j]++; }
+    }
+  }
+  // Take the first one in the plain order that has nothing left to wait for
+  // (or, if some are waiting on each other, the first one left).
+  const out = [], done = new Array(n).fill(false);
+  for (let k = 0; k < n; k++) {
+    let pick = -1;
+    for (let i = 0; i < n; i++) if (!done[i] && need[i] === 0) { pick = i; break; }
+    if (pick < 0) pick = done.indexOf(false);
+    done[pick] = true;
+    out.push(order[pick]);
+    for (const j of after[pick]) need[j]--;
+  }
+  return out;
+}
+
 export function buildWorld(map) {
   const cutaway = { front: false, above: false, walls: null, ...(map.cutaway || { front: true }) };
   const walkers = map.walkers || [];
   const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers }), { index }));
-  // Back to front: along the floor first, then upward.
-  const drawOrder = zones.slice().sort((a, b) => a.ox + a.oy - (b.ox + b.oy) || a.oz - b.oz || a.ox - b.ox);
+  // What's drawn, back to front: every zone's chunks (see zone.js).
+  const drawOrder = sortChunks(zones.flatMap((z) => z.chunks));
   const order = map.order
     ? map.order.map((id) => zones.findIndex((z) => z.id === id)).filter((i) => i >= 0)
-    : drawOrder.map((z) => z.index);
+    : [...new Set(drawOrder.map((c) => c.zone.index))];
 
   // Storeys, bottom to top: the map's named floors, or one per floor height.
   const storeys = (map.storeys
@@ -91,10 +131,16 @@ export function buildWorld(map) {
   const totalGeese = zones.filter((z) => z.finds.some((f) => f.goose)).length;
   const totalThings = zones.reduce((n, z) => n + z.finds.filter((f) => !f.goose).length, 0);
 
-  // The zone's body (floor, walls, slab) in world iso space.
+  // The zone's body (floor, walls, slab) in world iso space: around every
+  // box of its floor, for a zone of any shape.
   const body = (z) => {
     const [ax, ay] = z.anchor;
-    return [ax - z.d, ax + z.w, ay - z.h * ZK, ay + (z.w + z.d) / 2 + SLAB * ZK];
+    let X0 = Infinity, X1 = -Infinity, Y0 = Infinity, Y1 = -Infinity;
+    for (const [x0, y0, x1, y1] of z.rects) {
+      X0 = Math.min(X0, x0 - y1); X1 = Math.max(X1, x1 - y0);
+      Y0 = Math.min(Y0, (x0 + y0) / 2); Y1 = Math.max(Y1, (x1 + y1) / 2);
+    }
+    return [ax + X0, ax + X1, ay + Y0 - z.h * ZK, ay + Y1 + SLAB * ZK];
   };
 
   // What the overview frames. portrait: taller than wide; short: a landscape
@@ -121,17 +167,20 @@ export function buildWorld(map) {
     return [X0 - 0.5, X1 + 0.5, Y0 - 1.5, Y1 + 0.5];
   }
 
-  // Which zone is at world iso point (X, Y)? Front-most wins. Tests the floor,
-  // then a few heights so taps on walls and tall things count too. Zones lifted
-  // by a cutaway are tested where they're drawn. skip(zone) leaves zones out.
+  // Which zone is at world iso point (X, Y)? Front-most wins (chunk by chunk,
+  // so a street that runs in front of a room wins there, and not behind it).
+  // Tests the floor, then a few heights so taps on walls and tall things count
+  // too. Zones lifted by a cutaway are tested where they're drawn. skip(zone)
+  // leaves zones out.
   function zoneAt(X, Y, skip) {
     for (let i = drawOrder.length - 1; i >= 0; i--) {
-      const z = drawOrder[i];
+      const c = drawOrder[i], z = c.zone;
       if (skip && skip(z)) continue;
       const [ax, ay] = [z.anchor[0], z.anchor[1] - (z.lift || 0)];
+      const [x0, y0, x1, y1] = c.rect;
       for (let h = 0; h <= Math.max(6, z.h); h += 2) {
         const [lx, ly] = unproject(X - ax, Y - ay + h * ZK);
-        if (lx < -0.5 || ly < -0.5 || lx > z.w || ly > z.d) continue;
+        if (lx < x0 - (x0 ? 0 : 0.5) || ly < y0 - (y0 ? 0 : 0.5) || lx > x1 || ly > y1) continue;
         if (h > 0 && lx > 1.2 && ly > 1.2) continue; // above the floor only near the back walls
         return z.index;
       }
@@ -171,6 +220,7 @@ export function buildWorld(map) {
   return {
     map,
     id: map.id,
+    // Chunks, not zones: what the renderer draws, in order. Each has .zone.
     zones,
     drawOrder,
     order,

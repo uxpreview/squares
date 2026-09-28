@@ -20,6 +20,13 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Shape:** a sprawling house cut open along a curved line, grounds and a hedge maze outside.
 - **Needs:** Today + Night. A "whodunit" ending (evidence leads to an accusation) is a new game format worth building once and reusing.
 
+### The Block, connected (a city block)
+**Status: brief, at gate 1. Full brief in [levels/block.md](levels/block.md).**
+- **Spin:** the Block's sixteen rooms, opened onto real streets, on the day of the Block Party. The Courier goes door to door all day with a parcel for "G. Goose, The Block", and every door has a goose behind it.
+- **Alive:** the neighbors carry the party into the street (the cake, the banner, the amps), the octopus escapes down the alley, a queue forms that nobody can explain; maybe a whole day on a loop.
+- **Shape:** the Block's square, with Main Street crossing the middle and alleys between the rest.
+- **Needs:** Today, plus areas of any shape (E5, built in session 4). Replaces today's Block.
+
 ### The Emperor's Basement (Split, Croatia)
 - **Spin:** Split's old town really is built inside a Roman emperor's palace. Show both at once: modern life on top (cafés, laundry strung between 1,700-year-old walls, cruise crowds following tour umbrellas, a costume fan tour) and the Roman cellars below, where Emperor Diocletian's ghost is still furious about the tourists.
 - **Alive:** tour groups snake through in lines, laundry flaps, cats everywhere, boats along the harbor promenade.

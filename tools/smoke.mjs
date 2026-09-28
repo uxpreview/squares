@@ -291,8 +291,8 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const walls = await S(page, () => Object.fromEntries(window.__squares.world.zones.map((z) => [z.id, Math.round(z.wallK * 100) / 100])));
   check('its walls rise; the rooms around keep theirs down', walls['dining-room'] === 1 && walls['grand-hall'] === 0 && walls.kitchen === 0, JSON.stringify(walls));
   // Settled in a room, its floor and walls, and its still furniture, draw from caches.
-  await page.waitForFunction(() => { const z = window.__squares.play.focus; return z && z.bd && z.stills; }, null, { timeout: 15000 }).catch(() => {});
-  const cached = await S(page, () => { const z = window.__squares.play.focus; return { bd: !!(z && z.bd), stills: z && z.stills ? z.stills.spots.filter(Boolean).length : 0 }; });
+  await page.waitForFunction(() => { const z = window.__squares.play.focus; return z && z.chunks[0].bd && z.chunks[0].stills; }, null, { timeout: 15000 }).catch(() => {});
+  const cached = await S(page, () => { const c = window.__squares.play.focus?.chunks[0]; return { bd: !!(c && c.bd), stills: c && c.stills ? c.stills.spots.filter(Boolean).length : 0 }; });
   check('settled in a room, its floor, walls and still furniture are cached', cached.bd && cached.stills > 5, JSON.stringify(cached));
 
   check('in a room, the lift steps out', !(await page.isVisible('#floors')));
@@ -399,6 +399,58 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const title = await S(page, () => ({ map: window.__squares.world.id, ink: getComputedStyle(document.getElementById('title-tagline')).color }));
   check('after the Manor, the title is printed on its night, in the light ink', firstPlate === 'night' && title.map === 'manor' && title.ink === 'rgb(251, 246, 234)',
     JSON.stringify({ firstPlate, ...title }));
+  await page.close();
+}
+
+// ---------- 5. Areas of any shape (the Crossroads, a hidden test bed) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
+  await page.goto(base + '#/crossroads');
+  await ready(page);
+  await wait(page, 1200);
+  const plan = await S(page, async () => {
+    const { inFront } = await import('/src/engine/world.js');
+    const w = window.__squares.world;
+    const at = (id) => w.drawOrder.map((c, i) => (c.zone.id === id ? i : -1)).filter((i) => i >= 0);
+    const street = at('street');
+    return {
+      pieces: street.length,
+      rooms: ['north', 'east', 'west', 'south'].map((id) => at(id).length),
+      behind: Math.max(...at('north')) < Math.min(...street),
+      front: Math.min(...at('south')) > Math.max(...street),
+      // (pieces of pavement beside the rooms can come before them; the ones in front can't)
+      pave: w.drawOrder.every((c, i) => c.zone.id !== 'pavement' || !inFront(w.zones.find((z) => z.id === 'south'), c) || i > Math.max(...at('south'))),
+    };
+  });
+  check('a street of any shape is drawn in pieces, a room in one', plan.pieces === 6 && plan.rooms.every((n) => n === 1), JSON.stringify(plan));
+  check('its pieces sort in behind the rooms at the back and before the room in front', plan.behind && plan.front && plan.pave, JSON.stringify(plan));
+  // A tap on the street between the rooms lands on the street, and one in a room on the room.
+  const tapAt = (x, y) => S(page, ([x, y]) => {
+    const s = window.__squares, [X, Y] = [x - y, (x + y) / 2];
+    return s.world.zones[s.world.zoneAt(X, Y)]?.id;
+  }, [x, y]);
+  check('taps find the street where it runs, and the rooms beside it', (await tapAt(19, 30)) === 'street' && (await tapAt(8, 19)) === 'street' &&
+    (await tapAt(27, 27)) === 'south' && (await tapAt(8, 8)) === 'north' && (await tapAt(40, 20)) === 'pavement');
+  const walk = await S(page, () => {
+    const w = window.__squares.world, pat = w.walkers.find((k) => k.id === 'pat');
+    const seen = [];
+    for (let t = 0; t < 120; t += 0.5) {
+      const p = pat.at(t), zs = w.zones.filter((z) => w.zoneAtPoint(p.x, p.y, p.z) === z);
+      const id = zs[0]?.id || 'nowhere';
+      if (seen[seen.length - 1] !== id) seen.push(id);
+    }
+    return seen.join(' > ');
+  });
+  check('someone walks out of one room, down the street and into another', walk.startsWith('north > street > south > street > north'), walk);
+  await S(page, () => window.__squares.play.enterZone('street', { dur: 0.01 }));
+  await wait(page, 1500);
+  const cached = await S(page, () => window.__squares.play.focus.chunks.map((c) => !!(c.bd && c.stills)));
+  check('on the street, every piece of it is cached', cached.length === 6 && cached.every(Boolean), JSON.stringify(cached));
+  await S(page, () => { document.getElementById('story').hidden = true; });
+  const [gx, gy] = await findOnScreen(page, 'street', 'goose');
+  await page.mouse.click(gx, gy);
+  await wait(page, 400);
+  check('the goose walking the street can be found wherever it is', await S(page, () => window.__squares.store.isFound('crossroads', 'street:goose')));
   await page.close();
 }
 

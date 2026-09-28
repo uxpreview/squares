@@ -1,12 +1,22 @@
 // Turns a zone definition into a list of drawable items, and renders it.
-// A zone is one S x S patch of a map: a room on the block, a floor of a
-// building, a stretch of beach.
+// A zone is one patch of a map, S x S unless it says otherwise: a room on the
+// block, a floor of a building, a stretch of street.
 //
 // A zone module exports:
 //   export default {
 //     id: 'pool', name: 'Rooftop Pool', blurb: 'One line of story.',
+//     size: [w, d],      // optional: its floor along x and y (default S x S)
+//     shape: [[x0, y0, x1, y1], ...],  // or, optional: a floor that isn't one box
 //     build(R) { ... }   // R is the builder below
 //   }
+//
+// Areas, not boxes: a zone can be any size (a long street, a wide square),
+// and it's drawn in chunks, S x S at most, each one sorted into the map's draw
+// order on its own. So a street that wraps round a room is drawn behind the
+// room where it runs behind it and in front where it runs in front, and people
+// can walk the length of it. You draw the zone in its own units as one piece;
+// the engine does the splitting (see "Chunks" below). Keep anything wide and
+// tall a unit or so clear of the seams (every S units along x and y).
 //
 // Layers, drawn in this order:
 //   floor  - slab, floor, floor patterns
@@ -47,16 +57,24 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //   place.h:      wall height, for framing and cutaways (default WALL)
 //   place.span:   how much height counts as inside it, for walkers (default h + SLAB)
 //   place.fixed:  outdoors; storeys never lift or dim it
+//   place.size:   [w, d], if the map sizes it rather than the zone (default def.size, or S x S)
+//   place.shape:  a list of [x0, y0, x1, y1] boxes, in its own units, for a
+//                 zone that isn't one box (an L of street); default def.shape
 //   place.walkers: people on the map's timeline (added by buildWorld)
 export function buildZone(def, place = {}) {
   const [ox, oy, oz] = [place.at?.[0] ?? 0, place.at?.[1] ?? 0, place.at?.[2] ?? 0];
-  const w = S, d = S, h = place.h ?? WALL;
+  const shape = place.shape || def.shape;
+  const rects = shape ? shape.map((r) => [...r]) : [[0, 0, ...(place.size || def.size || [S, S])]];
+  // Its size is the box around it all (a shape starts at its own 0, 0).
+  const w = Math.max(...rects.map((r) => r[2])), d = Math.max(...rects.map((r) => r[3]));
+  const h = place.h ?? WALL;
   const zone = {
     def,
     id: def.id,
     name: def.name,
     tag: place.tag || '',
     ox, oy, oz, w, d, h,
+    rects, // its floor, as boxes in its own units (one, unless it has a shape)
     span: place.span ?? h + SLAB,
     fixed: !!place.fixed,
     anchor: [isoX(ox, oy), isoY(ox, oy, oz)],
@@ -69,9 +87,7 @@ export function buildZone(def, place = {}) {
     inner: { left: false, right: false }, // walls with a room right behind them (set by the world)
     low: null, // waist height for inner walls on maps with walls down (set by the world)
     wallK: 1, // 0 = inner walls down, 1 = up; the renderer animates it
-    snap: null,
-    snapScale: 0,
-    snapT: -1,
+    chunks: [], // what's drawn: one, or several for a zone bigger than S x S (see "Chunks")
     veil: 0, // 0 = fully shown, 1 = lifted out of the way (see cutaway in the renderer)
     lift: 0, // how far up it's drawn right now because of that, in world iso units
     dim: 0, // 0..1, faded back because it's below the zone you're in
@@ -86,6 +102,11 @@ export function buildZone(def, place = {}) {
 
   const R = {
     S,
+    // This zone's floor, along x and y (S and S unless it's sized otherwise).
+    W: w,
+    D: d,
+    // Its floor as boxes [x0, y0, x1, y1] (one, unless it has a shape).
+    shape: rects,
     // Where this zone sits in the world (x, y, z of its back corner), and
     // whether a world point is inside it. Most zones never need these.
     origin: [ox, oy, oz],
@@ -99,7 +120,7 @@ export function buildZone(def, place = {}) {
     rug: (draw, o) => add('rug', draw, o),
     air: (draw, o) => add('air', draw, { anim: true, ...o }),
     // A standing thing whose front-most floor point is near (x, y).
-    thing: (x, y, draw, o = {}) => add('thing', draw, { depth: x + y, ...o }),
+    thing: (x, y, draw, o = {}) => { const it = add('thing', draw, { depth: x + y, ...o }); it.at = [x, y]; return it; },
     // Something that moves. pos(t) returns at least { x, y }. draw(ctx, t, p).
     mover: (pos, draw, o = {}) => {
       let lastT = -1, lastP = null;
@@ -109,6 +130,7 @@ export function buildZone(def, place = {}) {
       };
       const it = add('thing', (ctx, t) => draw(ctx, t, at(t)), { anim: true, ...o });
       it.depth = o.depth ?? ((t) => { const p = at(t); return p.x + p.y + (o.bias || 0); });
+      it.pos = at;
       return at;
     },
     // A hidden object to find. at: [x, y, z] or (t) => [x, y, z]. r: tap radius in units.
@@ -171,7 +193,143 @@ export function buildZone(def, place = {}) {
     if (it.layer < THING && it.anim) moving = true;
     it.backdrop = it.layer < THING && !it.anim && !moving;
   }
+  zone.chunks = chunksOf(zone);
   return zone;
+}
+
+// ---------- Chunks ----------
+// What gets drawn, split from what you visit. A zone up to S x S is one chunk,
+// drawn as it always was. A bigger one, or one of any other shape, is cut
+// into chunks of S x S at most, each with its own picture, caches and place
+// in the draw order. A chunk draws the standing things whose spot is in it
+// (and people and movers while they're in it); everything flat (the floor,
+// walls, what's on them, rugs) and everything over the top (the dark, glows,
+// the air) is drawn by every chunk, cut to the chunk's own patch of the
+// screen. The patches fit together without gaps (each tucks about a pixel
+// under the one behind it, which hides the seam), so the zone looks drawn in
+// one piece. Flat things stay on the zone's floor (and its walls): past its
+// edges they're cut off.
+export const CHUNK = S;
+
+function chunksOf(zone) {
+  const rects = zone.rects;
+  const single = rects.length === 1 && rects[0][0] === 0 && rects[0][1] === 0 && zone.w <= CHUNK + 1e-6 && zone.d <= CHUNK + 1e-6;
+  if (single) return [chunk(zone, 0, rects[0], zone.items, false)];
+  // Every rect, cut on the zone's own S x S grid (so seams line up).
+  const parts = [];
+  for (const [x0, y0, x1, y1] of rects) {
+    for (let x = Math.floor(x0 / CHUNK) * CHUNK; x < x1 - 1e-6; x += CHUNK) {
+      for (let y = Math.floor(y0 / CHUNK) * CHUNK; y < y1 - 1e-6; y += CHUNK) {
+        const r = [Math.max(x0, x), Math.max(y0, y), Math.min(x1, x + CHUNK), Math.min(y1, y + CHUNK)];
+        if (r[2] - r[0] > 1e-6 && r[3] - r[1] > 1e-6) parts.push(r);
+      }
+    }
+  }
+  // Which chunk a point belongs to: the one it's in, or the nearest.
+  const owner = (x, y) => {
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < parts.length; i++) {
+      const [x0, y0, x1, y1] = parts[i];
+      const dx = x < x0 ? x0 - x : x >= x1 ? x - x1 + 1e-9 : 0;
+      const dy = y < y0 ? y0 - y : y >= y1 ? y - y1 + 1e-9 : 0;
+      const dd = dx * dx + dy * dy;
+      if (dd < bd) { bd = dd; best = i; if (!dd) break; }
+    }
+    return best;
+  };
+  zone.chunkAt = owner;
+  return parts.map((rect, i) => {
+    const items = [];
+    for (const it of zone.items) {
+      if (it.layer !== THING) items.push(it);
+      else if (it.pos) {
+        // Something that moves is drawn by the chunk it's in right now.
+        const draw = it.draw, pos = it.pos;
+        items.push({ ...it, draw: (ctx, t) => { const p = pos(t); if (owner(p.x, p.y) === i) draw(ctx, t); } });
+      } else if (owner(...(it.at || [0, 0])) === i) items.push(it);
+    }
+    return chunk(zone, i, rect, items, true);
+  });
+}
+
+function chunk(zone, index, rect, items, cut) {
+  const [x0, y0, x1, y1] = rect;
+  const c = {
+    zone,
+    index,
+    rect,
+    // Its back corner in world units, for sorting the map's chunks.
+    ox: zone.ox + x0,
+    oy: zone.oy + y0,
+    oz: zone.oz,
+    items,
+    anim: items.filter((it) => it.anim),
+    bounds: cut ? {
+      x0: x0 - y1 - 1.5,
+      x1: x1 - y0 + 1.5,
+      y0: (x0 + y0) / 2 - zone.h * ZK - 9,
+      y1: (x1 + y1) / 2 + SLAB * ZK + 1.5,
+    } : zone.bounds,
+    snap: null,
+    snapScale: 0,
+    snapT: -1,
+    stale: false,
+    cell: null,
+  };
+  // Its patch of the screen, remade when the picture's scale moves the seam's
+  // tuck (about a pixel and a half) past a thousandth of a unit.
+  // top: the patch for the layers over the things (the dark, glows, the
+  // air), which reaches as high as anything in the zone can stand.
+  if (cut) {
+    const keys = [-1, -1], paths = [null, null];
+    c.cell = (top = false) => {
+      const over = Math.min(0.2, 1.5 / (Q.pxPerUnit || 8));
+      const k = Math.round(over * 1000), i = top ? 1 : 0;
+      if (k !== keys[i]) { keys[i] = k; paths[i] = cellPath(zone, rect, over, top ? zone.h + 9 : null); }
+      return paths[i];
+    };
+  }
+  return c;
+}
+
+// A chunk's patch of the screen: its floor; a sliver tucked under whatever
+// part of the zone is right behind it; above its back edges, where the zone
+// ends there, a strip for the walls and everything on them (a zone without
+// walls gets a low one); below its front edges, where the zone ends, a strip
+// for the slab. Edges are taken in pieces, since a zone of any shape can end
+// along part of an edge and carry on along the rest. rise: how high the strip
+// above reaches (default: the walls, and a little more).
+function cellPath(zone, rect, over, rise = null) {
+  const [x0, y0, x1, y1] = rect;
+  const e = 1e-3;
+  const has = (x, y) => zone.rects.some((r) => x >= r[0] && x < r[2] && y >= r[1] && y < r[3]);
+  const up = rise ?? (zone.walls ? zone.walls.h + 9 : 1.5), down = -(SLAB + 1.5);
+  // The pieces of [a, b] split wherever a rect of the zone starts or ends.
+  const cuts = (a, b, axis) => {
+    const at = [a, b];
+    for (const r of zone.rects) for (const v of axis ? [r[1], r[3]] : [r[0], r[2]]) if (v > a + e && v < b - e) at.push(v);
+    at.sort((p, q) => p - q);
+    return at.slice(1).map((v, i) => [at[i], v]);
+  };
+  const p = new Path2D();
+  quad(p, [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]]);
+  // Along the back right edge (y = y0) and the front left (y = y1), in x.
+  for (const [a, b] of cuts(x0, x1, 0)) {
+    const m = (a + b) / 2;
+    const a2 = has(a - e, y0 + e) ? a - over : a; // tuck under the piece before it
+    if (has(m, y0 - e)) quad(p, [[a, y0 - over, 0], [b, y0 - over, 0], [b, y0, 0], [a, y0, 0]]);
+    else quad(p, [[a2, y0, 0], [b, y0, 0], [b, y0, up], [a2, y0, up]]);
+    if (!has(m, y1 + e)) quad(p, [[has(a - e, y1 - e) ? a - over : a, y1, 0], [b, y1, 0], [b, y1, down], [has(a - e, y1 - e) ? a - over : a, y1, down]]);
+  }
+  // Along the back left edge (x = x0) and the front right (x = x1), in y.
+  for (const [a, b] of cuts(y0, y1, 1)) {
+    const m = (a + b) / 2;
+    const a2 = has(x0 + e, a - e) ? a - over : a;
+    if (has(x0 - e, m)) quad(p, [[x0 - over, a, 0], [x0 - over, b, 0], [x0, b, 0], [x0, a, 0]]);
+    else quad(p, [[x0, a2, 0], [x0, b, 0], [x0, b, up], [x0, a2, up]]);
+    if (!has(x1 + e, m)) quad(p, [[x1, has(x1 - e, a - e) ? a - over : a, 0], [x1, b, 0], [x1, b, down], [x1, has(x1 - e, a - e) ? a - over : a, down]]);
+  }
+  return p;
 }
 
 const OUT = { x: -1e4, y: -1e4, out: true };
@@ -179,8 +337,11 @@ const OUT = { x: -1e4, y: -1e4, out: true };
 // Is the world point (x, y, z) inside the zone? Floors count from their own
 // height up to the next floor (span), so each point is in one zone at most.
 export function inside(zone, x, y, z) {
-  return x >= zone.ox && x < zone.ox + zone.w && y >= zone.oy && y < zone.oy + zone.d &&
-    z >= zone.oz - 0.01 && z < zone.oz + zone.span - 0.01;
+  if (!(x >= zone.ox && x < zone.ox + zone.w && y >= zone.oy && y < zone.oy + zone.d &&
+    z >= zone.oz - 0.01 && z < zone.oz + zone.span - 0.01)) return false;
+  if (zone.rects.length === 1) return true;
+  const lx = x - zone.ox, ly = y - zone.oy;
+  return zone.rects.some((r) => lx >= r[0] && lx < r[2] && ly >= r[1] && ly < r[3]);
 }
 
 // ---------- Walls ----------
@@ -202,12 +363,12 @@ function drawWalls(ctx, zone) {
     const faceR = o.right === false ? shade(o.left, 0.3) : o.right;
     box(ctx, -WALL_T, -WALL_T, 0, WALL_T, WALL_T, H, faceL, { left: faceR, right: faceL, top: H < o.h - 0.01 ? o.cut : o.cap, flat: true });
   }
-  if (hr > 0) wallRun(ctx, 'right', o, hr, zone.doors);
-  if (hl > 0) wallRun(ctx, 'left', o, hl, zone.doors);
+  if (hr > 0) wallRun(ctx, 'right', o, hr, zone.doors, zone.w);
+  if (hl > 0) wallRun(ctx, 'left', o, hl, zone.doors, zone.d);
 }
 
-// One wall, H tall, in pieces around its doors (with a lintel over each).
-function wallRun(ctx, side, o, H, doors) {
+// One wall, H tall and L long, in pieces around its doors (with a lintel over each).
+function wallRun(ctx, side, o, H, doors, L) {
   const face = o[side];
   const top = H < o.h - 0.01 ? o.cut : o.cap;
   const dotsC = side === 'left' ? o.dotsL : o.dotsR;
@@ -229,7 +390,7 @@ function wallRun(ctx, side, o, H, doors) {
     piece(a, b, Math.min(dh, H), H); // lintel
     u = b;
   }
-  piece(u, S, 0, H);
+  piece(u, L, 0, H);
 }
 
 // The shape of the walls as they stand now, for cutting off what's painted on
@@ -242,8 +403,8 @@ function wallClip(zone) {
   const key = hl.toFixed(3) + '|' + hr.toFixed(3);
   if (zone.clipKey === key) return zone.clipPath;
   const p = new Path2D();
-  if (hl > 0) quad(p, [[0, -0.6, -0.3], [0, S + 0.6, -0.3], [0, S + 0.6, hl], [0, -0.6, hl]]);
-  if (hr > 0) quad(p, [[-0.6, 0, -0.3], [S + 0.6, 0, -0.3], [S + 0.6, 0, hr], [-0.6, 0, hr]]);
+  if (hl > 0) quad(p, [[0, -0.6, -0.3], [0, zone.d + 0.6, -0.3], [0, zone.d + 0.6, hl], [0, -0.6, hl]]);
+  if (hr > 0) quad(p, [[-0.6, 0, -0.3], [zone.w + 0.6, 0, -0.3], [zone.w + 0.6, 0, hr], [-0.6, 0, hr]]);
   zone.clipKey = key;
   zone.clipPath = p;
   return p;
@@ -252,7 +413,11 @@ function wallClip(zone) {
 // Add a 3D quad to a path, always wound the same way on screen, so several
 // quads in one path add up (nonzero) instead of cancelling where they overlap.
 function quad(path, pts) {
-  const s = pts.map(([x, y, z]) => [x - y, (x + y) / 2 - z * ZK]);
+  poly(path, pts.map(([x, y, z]) => [x - y, (x + y) / 2 - z * ZK]));
+}
+
+// The same, for a shape already on screen (iso units).
+function poly(path, s) {
   let area = 0;
   for (let i = 0; i < s.length; i++) {
     const [ax, ay] = s[i], [bx, by] = s[(i + 1) % s.length];
@@ -291,6 +456,9 @@ function darken(ctx, zone, k, color) {
 }
 
 // ---------- Drawing ----------
+// The functions below take a piece: one of a zone's chunks (the renderer
+// draws those) or a whole zone (tools, to check it draws). Pictures and caches
+// belong to the chunk.
 const depthOf = (it, t) => (typeof it.depth === 'function' ? it.depth(t) : it.depth);
 
 // Every item starts from the same line ends and corners, whatever the one
@@ -329,20 +497,29 @@ function drawThings(ctx, list, t, st) {
 }
 
 // Draw the items pick(it) says yes to, in layer order, with things depth
-// sorted and anything painted on cut-down walls cut off with them.
-function drawItems(ctx, zone, t, pick, st = null) {
+// sorted and anything painted on cut-down walls cut off with them. piece: a
+// zone, or one of its chunks (whose flat and top layers are cut to its patch).
+function drawItems(ctx, piece, t, pick, st = null) {
+  const zone = piece.zone || piece;
   const clip = wallClip(zone);
   let things = [];
-  let clipping = false;
-  for (let i = 0; i < zone.items.length; i++) {
-    const it = zone.items[i];
+  let clipping = false, celled = false;
+  const toCell = (on) => {
+    if (!piece.cell || on === celled) return;
+    if (on) { ctx.save(); ctx.clip(piece.cell(!things)); } else ctx.restore();
+    celled = on;
+  };
+  for (let i = 0; i < piece.items.length; i++) {
+    const it = piece.items[i];
     if (!pick(it)) continue;
     if (it.layer === THING) { things.push(it); continue; }
     if (it.layer > THING && things) {
       if (clipping) { ctx.restore(); clipping = false; }
+      toCell(false);
       drawThings(ctx, things, t, st);
       things = null;
     }
+    toCell(true);
     const cut = !!clip && (it.layer === WALL_L || it.layer === DECOR_L) && !it.walls;
     if (cut !== clipping) {
       if (cut) { ctx.save(); ctx.clip(clip); } else ctx.restore();
@@ -354,6 +531,7 @@ function drawItems(ctx, zone, t, pick, st = null) {
     it.draw(ctx, t);
   }
   if (clipping) ctx.restore();
+  toCell(false);
   if (things) drawThings(ctx, things, t, st);
 }
 
@@ -430,7 +608,7 @@ function bakeBackdrop(zone, k, fx, fy, dpr) {
   g.setTransform(k, 0, 0, k, fx - sx, fy - sy);
   setScreen(k, dpr);
   drawItems(g, zone, 0, baked);
-  zone.bd = { k, fx, fy, sx, sy, wallK: zone.wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0 };
+  zone.bd = { k, fx, fy, sx, sy, wallK: (zone.zone || zone).wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0 };
 }
 
 // Where ctx (positioned at the zone's corner, k device px per unit) puts the
@@ -449,10 +627,11 @@ const moved = (c, k, p) => !c || c.k !== k || Math.abs(c.fx - p.fx) > 1e-3 || Ma
 // fraction of a pixel or the walls have changed). Only while the camera is
 // still, and not while inside walls are on their way up or down.
 export function backdropFor(ctx, zone, k, dpr) {
-  if (zone.wallK !== 0 && zone.wallK !== 1) return false;
+  const wallK = (zone.zone || zone).wallK;
+  if (wallK !== 0 && wallK !== 1) return false;
   const p = pixelSpot(ctx, k);
   if (!p) return false;
-  if (moved(zone.bd, k, p) || zone.bd.wallK !== zone.wallK) {
+  if (moved(zone.bd, k, p) || zone.bd.wallK !== wallK) {
     bakeBackdrop(zone, k, p.fx, p.fy, dpr);
     setScreen(k, dpr);
   }

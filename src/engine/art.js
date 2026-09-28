@@ -319,9 +319,10 @@ export function speech(ctx, x, y, z, text, o = {}) {
 
 // ---------- Standard room shell ----------
 // Draws the slab, floor and (optionally) the two back walls.
-export function slab(ctx, color = C.greyLight) {
-  face(ctx, [[S, 0, 0], [S, S, 0], [S, S, -SLAB], [S, 0, -SLAB]], shade(color, 0.12));
-  face(ctx, [[0, S, 0], [S, S, 0], [S, S, -SLAB], [0, S, -SLAB]], shade(color, 0.3), { dots: shade(color, 0.6), density: 0.25 });
+// w, d: the zone's size, for one that isn't S x S (R.W, R.D).
+export function slab(ctx, color = C.greyLight, w = S, d = S) {
+  face(ctx, [[w, 0, 0], [w, d, 0], [w, d, -SLAB], [w, 0, -SLAB]], shade(color, 0.12));
+  face(ctx, [[0, d, 0], [w, d, 0], [w, d, -SLAB], [0, d, -SLAB]], shade(color, 0.3), { dots: shade(color, 0.6), density: 0.25 });
 }
 
 export function floor(ctx, color, o = {}) {
