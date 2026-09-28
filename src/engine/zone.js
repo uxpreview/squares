@@ -208,6 +208,16 @@ export function buildZone(def, place = {}) {
     }, (ctx, t, p) => { if (p !== OUT) wk.draw(ctx, t, p, wk); }, { bias: wk.bias || 0 });
   }
 
+  // A standing thing out behind a back wall (a sign on the street outside a
+  // door) is drawn with the room's things, so it would stand over that wall
+  // from inside. It shows while the wall is down (on the overview) and hides
+  // while it's up.
+  for (const it of items) {
+    if (it.layer !== THING || it.pos || !it.at) continue;
+    const side = it.at[0] < -0.01 ? 'left' : it.at[1] < -0.01 ? 'right' : null;
+    if (side) { it.behind = side; it.zone = zone; }
+  }
+
   items.sort((a, b) => a.layer - b.layer || a.order - b.order);
   zone.anim = items.filter((it) => it.anim);
   // The backdrop cache (the zone you're in) takes the flat things that don't
@@ -521,6 +531,10 @@ function stamp(ctx, st, it, m) {
 // How much of an item shows at t: 0 (skip it), up to 1.
 function shown(it, t) {
   if (it.on && !it.on(t)) return 0;
+  if (it.behind) {
+    const z = it.zone;
+    if (z.low != null && z.inner[it.behind] && wallHeight(z, it.behind) > 2.4) return 0;
+  }
   if (!it.fade) return 1;
   const a = it.fade(t);
   return a > 0.002 ? Math.min(1, a) : 0;
