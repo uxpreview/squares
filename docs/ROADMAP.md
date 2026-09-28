@@ -100,6 +100,13 @@ Each is one PR. Order can change; dependencies can't.
   - **QA and a look** at the Block, the Manor and the Block Party, desktop and phone. See the PR for what was found.
   - **A bug review** of the engine and the game since session 3. Fixed: the opening fade-in rose into place even with reduced motion on (now the place is simply there). Found for later: a place that fails to load (a dropped connection) can't be retried without a reload; the browser remembers the failed download, so the fix is to offer one. Stale comments about the floor tags (the lift replaced them) updated.
   - **Gate 2 for the Block Party:** approved with changes (block.md, 14 to 18).
+- [x] **Faster frames on an older laptop (from E9).** The owner found the game laggy on their 2017 MacBook Pro (Intel HD 630 graphics, Retina). *(PR #14)*
+  - **Why QA missed it:** the drawing code took 8 to 17 ms a frame, inside the budget, but the screen showed 3 to 20 frames a second in a room. The time went to the graphics chip putting the picture on screen, which QA's speed check (a simulated phone, timing the code) can't see. New tool: `node tools/fps.mjs <place>` counts real frames per second in a visible window.
+  - **What cost it,** found by switching parts off: clipping the map in front of the room you're in (the browser built a full-screen mask per piece, every frame; a street is many pieces), redrawing the other rooms' pictures every frame, and at the Manor its night backdrop.
+  - **The cut layer:** pieces in front of your room are drawn on a see-through sheet, the room's outline is erased with plain fills, and the sheet is laid on the picture, only where it's been drawn on. Pixel-checked against the old code: rooms match (under 0.2% of pixels, along the cut's edge); streets match within the run-to-run noise of the neighbors' pictures.
+  - **Neighbors refresh when there's time:** when frames run slower than about 40 a second, the time given to redrawing the other rooms shrinks (to a tenth at most), so on a slow computer the people in them move in small steps instead of the picture lagging. On a quick one nothing changes. The owner asked about pausing the other rooms while you're in one; not done, since people walk room to room and would freeze on the doorstep.
+  - **Results** on the owner's laptop (1440 x 800 window at 2x), frames a second, before and after: the Block's whole map 31 to 41, its rooms 10-20 to 22-31; the Block Party's whole map 28 to 38, its rooms 5-12 to 18-25, Main Street 3 to 9, the Alleys 6 to 12; the Manor's whole house 17 to 20, its rooms 4-8 to 6-9.
+  - **Still short of 30 everywhere:** the Manor's rooms and the Block Party's streets. The Manor's night backdrop is the next cost (skipping it took the house from 14 to 36 in a test); a street is drawn live and cut in several pieces. See Decisions.
 - [ ] **4c. The Block, connected: art, QA, ship.** With gate 2's changes (block.md 14 to 18): rooms stay bright at night, a bigger stage with a backdrop, the bouncy castle off the crossing, a pink sunset, one alley hot spot on the octopus's route, the invitation by the back corner on phones.
 - [ ] **4d. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
 - [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
@@ -113,6 +120,7 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
+- **Lag on older laptops, what's next** (the owner's call): cache the Manor's night backdrop (drawn once, only the rain and lightning live); step sharpness down from 2x to 1.5x when frames stay slow, and back up when they're quick (it only ever steps 3x to 2x now, once, and never back); make a street cheaper to draw when you're on it. Measured on the owner's laptop, drawing at 1x roughly doubles a room's frames.
 - **After the connected Block:** a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
 - **The review's leftovers** (3d found these and left them for the owner's call):
   - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
@@ -127,6 +135,7 @@ Open, for the owner:
 Made:
 
 - **The connected Block's greybox (gate 2) is approved with changes:** rooms stay near full brightness at night (only the streets and sky darken), a bigger, taller stage with a backdrop and the bouncy castle off the crossing, a pink sunset instead of amber, one alley hot spot on the octopus's route holding all three alley finds, and the invitation pinned by the back corner on phones (block.md 14 to 18). *(Health pass, the owner)*
+- **Smoothness is checked on real graphics too:** QA's speed budget times the drawing code; `node tools/fps.mjs` counts real frames on the owner's 2017 laptop, the slowest machine we know plays it. *(Faster frames)*
 - **The tools run on the owner's Mac:** Playwright is a dev dependency, pinned to 1.61 for macOS 13. *(Health pass)*
 - **The connected Block's brief (gate 1) is approved** with every recommendation: a day on a loop, the party and the Courier, the Main Street cross, walls down, all sixteen rooms, old saves as they are. *(4b, the owner)*
 - **A level being rebuilt is a new hidden place until it ships** (`blockparty` beside `block`), reusing the old one's files, so the live one keeps working. *(4b)*
