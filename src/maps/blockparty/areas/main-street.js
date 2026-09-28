@@ -11,15 +11,14 @@
 // the chunks it reaches), and everything that changes with the hour is a
 // still picture shown only in its hours (on), not an animated one.
 import {
-  C, Q, P, box, rect, disc, cylinder, face, poly, paint, paintText, person, folk, speech, label, note,
-  tint, shade, alpha,
+  C, Q, P, box, rect, disc, cylinder, face, poly, paint, paintText, person, folk, speech, label, note, tint, shade, alpha,
 } from '../../../engine/art.js';
 import { SLAB } from '../../../engine/iso.js';
 import { particles, ease } from '../../../engine/actors.js';
 import { MAIN_STREET, MAIN0, MAIN1, MID, STAGE, STAGE_Z, CASTLE } from '../plan.js';
 import { conga } from '../finale.js';
-import { STREET, STREET_NIGHT, NIGHT_DIM, STAGE_INK, PARTY_LIGHT, BUNTING, lampPost, poster, bunting, board } from '../style.js';
-import { hour, nightK, within } from '../clock.js';
+import { STREET, STREET_NIGHT, STAGE_INK, PARTY_LIGHT, BUNTING, bunting, board, cone, streetLamp } from '../style.js';
+import { hour, nightK, within, LAUNCH } from '../clock.js';
 
 // ---------- The day ----------
 // Shown from hour a to hour b (b < a runs past midnight).
@@ -212,23 +211,6 @@ function words(ctx, plane, c, u, v, text, size, color, font) {
   ctx.restore();
 }
 const line = (ctx, a, b, color = C.ink, lw = 0.06) => face(ctx, [a, b], null, { stroke: color, lw });
-
-// A traffic cone.
-function cone(ctx, x, y, h = 0.75) {
-  const [X, Y] = P(x, y, 0), [, Yt] = P(x, y, h);
-  box(ctx, x - 0.28, y - 0.28, 0, 0.56, 0.56, 0.08, C.coral, { flat: true, lw: 0.03 });
-  ctx.beginPath();
-  ctx.moveTo(X - 0.28, Y - 0.1);
-  ctx.lineTo(X - 0.05, Yt);
-  ctx.lineTo(X + 0.05, Yt);
-  ctx.lineTo(X + 0.28, Y - 0.1);
-  ctx.closePath();
-  paint(ctx, C.coral, { lw: 0.03 });
-  ctx.beginPath();
-  ctx.rect(X - 0.17, (Y + Yt) / 2 - 0.08, 0.34, 0.14);
-  ctx.fillStyle = C.white;
-  ctx.fill();
-}
 
 // A balloon on a string, from (X, Y) on screen, bobbing at t.
 function balloon(ctx, X, Y, color, t, k = 0) {
@@ -659,9 +641,13 @@ const CROWD = [
   from: PARTY[0] + (i % 5) * 0.12, to: PARTY[1] - (i % 4) * 0.12,
 }));
 const BALLOONS = [C.coral, C.teal, C.mustard, C.pink, C.purple];
+// When the rocket goes up behind the launch pad's fence (8:48pm: clock.js),
+// half the party turns round to point at it (it's up and right from here).
+const liftoff = (t) => { const h = hour(t); return h >= LAUNCH && h < LAUNCH + 0.3; };
 function partyGoer(ctx, t, g) {
-  const f = g.dir === 'l' ? -1 : 1;
-  const look = { ...folk(g.seed), pose: g.pose, dir: g.dir, back: g.back, scale: g.scale };
+  const up = g.seed % 2 === 0 && g.extra !== 'shoulders' && liftoff(t);
+  const f = (up ? 'r' : g.dir) === 'l' ? -1 : 1;
+  const look = { ...folk(g.seed), pose: up ? 'point' : g.pose, dir: up ? 'r' : g.dir, back: up || g.back, scale: g.scale };
   if (g.extra === 'hat' || g.seed % 3 === 0) look.hat = 'party';
   if (g.extra === 'shoulders') look.arms = [2.7, -2.7];
   person(ctx, g.x, g.y, 0, look, t);
@@ -1071,11 +1057,10 @@ export default {
       for (const z of [0.7, 1.4, 2.1]) line(ctx, [x - 0.25, y - 0.1, z], [x + 0.05, y + 0.25, z], C.greyLight, 0.05);
       person(ctx, x, y, 2.3, { ...folk(161), top: C.teal, pose: 'wave', dir: alongX ? 'r' : 'l' }, t);
     }, { anim: true, on: during(7, 11.8) });
-    // Lamp posts, each with a "Have you seen this goose?" poster; lit at night,
-    // the street's only lights. The ones nearest the stage get balloons at noon.
+    // Lamp posts, each with a "Have you seen this goose?" poster; lit at night
+    // (the same lamps as the pavement's). The ones nearest the stage get balloons at noon.
     for (const [x, y] of POSTS) {
-      R.thing(x, y, (ctx) => { lampPost(ctx, x, y); poster(ctx, x, y, 2.4); });
-      R.light({ at: [x, y, 4.6], r: 3, color: C.butter, k: (t) => nightK(t) });
+      streetLamp(R, x, y, true);
       const near = [x, y].some((v) => v === 24 || v === 56);
       if (near) {
         R.thing(x + 0.01, y + 0.01, (ctx) => {
@@ -1124,8 +1109,6 @@ export default {
 
     // The ending: the geese conga round Main Street (finale.js).
     conga(R);
-    // Night: the street takes the dark; the lamps and the stage glow.
-    R.dark((t) => nightK(t) * NIGHT_DIM);
 
     R.find({ id: 'courier-map', label: 'The Courier\'s map', at: [mx, my, 0.05], r: 0.8 });
     R.find({ id: 'delivery-slip', label: 'A signed delivery slip', at: [sx, sy, 0.05], r: 0.8 });

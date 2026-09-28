@@ -8,7 +8,7 @@
 import { C, Q, P, box, cylinder, face, paint, person, folk, plant, speech, shade, alpha, mix } from '../../../engine/art.js';
 import { FRONT, board, doorstep, LIT } from '../style.js';
 import { open, nightK } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'greenhouse';
 const INK = FRONT[ID];
@@ -83,10 +83,7 @@ export default function (R) {
     });
   });
   // OPEN or CLOSED, hung on the far post.
-  R.thing(A + 0.01, -V + 0.01, (ctx, t) => {
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'x', A, -V - 0.1, 1.7, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
-  }, { anim: true });
+  openCard(R, ID, 'x', A, -V - 0.1, 1.7, [A + 0.01, -V + 0.01]);
 
   // A pot either side of the door: a bush past it (under the seed packet),
   // and a sunflower before it that has grown as tall as the door.
@@ -156,7 +153,7 @@ export default function (R) {
         arms: w ? undefined : pouring ? [1.9, 1.2] : [1.2, 0.9],
         hold: (c) => can(c, t, pouring, color),
       }), t);
-      if (!w && say && Q.detail) { const s = say(t); if (s) speech(ctx, p.x, p.y, 2.7, s, { size: 0.38 }); }
+      if (!w && say && Q.detail) { const s = say(t); if (s) speech(ctx, p.x, p.y, 2.7, s, { size: 0.4 }); }
     },
   });
   extras(R, ID, [

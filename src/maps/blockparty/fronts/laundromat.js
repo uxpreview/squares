@@ -10,10 +10,9 @@
 // noon (day.js). After that the line is empty but for a note.
 import { C, Q, P, box, face, paint, paintText, label, alpha, shade } from '../../../engine/art.js';
 import { pulse } from '../../../engine/actors.js';
-import { FRONT, board, LIT } from '../style.js';
+import { FRONT, board, LIT, words, lostSock } from '../style.js';
 import { nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
-import { skyPane, words } from './noodles.js';
+import { extras, skyPane } from './kit.js';
 
 const ID = 'laundromat';
 const INK = FRONT[ID];
@@ -112,7 +111,7 @@ export default function (R) {
       face(ctx, [pt(u0, 0, CZ + 0.55), pt(u1, 0, CZ + 0.55), pt(u1, OUT, CZ), pt(u0, OUT, CZ)], INK.stripes[i % 2], { lw: 0.03 });
     }
     board(ctx, 'y', PX - OUT, (A + B) / 2, CZ - 0.18, w, 0.36, 'SOCKS NOT GUARANTEED', { board: C.white, ink: C.teal, size: 0.19, edge: 0.03 });
-    board(ctx, 'y', PX + 0.05, (A + B) / 2, CZ + 1.2, w - 0.2, 1.1, 'LAUNDRY', { board: INK.board, ink: INK.ink, size: 0.78 });
+    board(ctx, 'y', PX + 0.05, (A + B) / 2, CZ + 1.2, w - 0.2, 1.1, 'LAUNDRY', { board: INK.board, ink: INK.ink, size: 0.64 });
     // bubbles along the board's top
     if (Q.detail) {
       for (const [y, z, r] of [[10.9, 4.85, 0.14], [11.3, 4.95, 0.1], [13.8, 4.9, 0.12], [14.1, 4.8, 0.08]]) {
@@ -122,7 +121,9 @@ export default function (R) {
     }
     // the lost sock poster, at eye height on the post
     board(ctx, 'y', PX - 0.12, B, 1.8, 0.95, 1.05, null, { board: C.white, edge: 0.03 });
-    words(ctx, 'y', PX - 0.12, B, 2.1, 'LOST', 0.26, C.red);
+    words(ctx, 'y', PX - 0.12, B + 0.15, 2.1, 'LOST', 0.24, C.red);
+    // the sock itself, the one in the Courier's parcel (finale.js)
+    if (Q.detail) { const [SX, SY] = P(PX - 0.12, B - 0.25, 2.12); lostSock(ctx, SX - 0.06, SY, 0.28); }
     words(ctx, 'y', PX - 0.12, B, 1.82, 'ONE SOCK', 0.15, C.ink);
     words(ctx, 'y', PX - 0.12, B, 1.58, 'ANSWERS TO', 0.1, C.navy, 'Rethink Sans');
     words(ctx, 'y', PX - 0.12, B, 1.44, 'NOTHING', 0.1, C.navy, 'Rethink Sans');

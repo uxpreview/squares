@@ -6,10 +6,10 @@
 // The neighbor's tenth note is taped to a pole. Open 11am to 11pm; from noon
 // to 2pm the fans turn up for practice. At 2pm the band carries its amps out
 // of this door to the stage (day.js; the room's amps go with them).
-import { C, Q, P, box, face, paint, paintText, shade } from '../../../engine/art.js';
-import { FRONT, board, LIT } from '../style.js';
+import { C, Q, P, box, face, paint, shade } from '../../../engine/art.js';
+import { FRONT, board, LIT, words } from '../style.js';
 import { open, nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'band';
 const INK = FRONT[ID];
@@ -17,23 +17,13 @@ const A = 10.75, B = 13.45; // the poles, either side of the door (y 11.05 to 13
 const MY = (A + B) / 2, MW = 3.3; // the marquee, over the door
 const PX = -0.15;
 
-// Lettering on an upright board along y (it faces the viewer's lower right).
-function words(ctx, x, y, z, text, size, ink, font) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'left', y, z, text, size, ink, font);
-  ctx.restore();
-}
-
 // The marquee's line, by the hour.
 function line(h) {
   if (h >= 11 && h < 14.2) return 'PRACTICE IN PROGRESS';
   if (h >= 14.2 && h < 19) return 'TONIGHT: MAIN STAGE, 7PM';
   if (h >= 19 && h < 22) return 'LIVE NOW, ON MAIN ST';
   if (h >= 22 && h < 23) return 'THANK YOU, BLOCK!';
-  return 'BACK AT 11 (LOUDLY)';
+  return 'PRACTICE AT 11 (SORRY)';
 }
 
 export default function (R) {
@@ -42,7 +32,7 @@ export default function (R) {
   R.thing(PX, B, (ctx) => {
     box(ctx, PX - 0.08, B - 0.08, 0, 0.16, 0.16, 5.25, C.ink, { flat: true, stroke: false });
     board(ctx, 'y', PX - 0.1, MY, 4.55, MW, 1.35, null, { board: INK.board });
-    words(ctx, PX - 0.1, MY, 4.78, 'THE HONKS', 0.62, INK.ink);
+    words(ctx, 'y', PX - 0.1, MY, 4.78, 'THE HONKS', 0.62, INK.ink);
     // a lightning bolt either side
     if (Q.detail) {
       for (const y of [MY - 1.35, MY + 1.35]) {
@@ -51,9 +41,9 @@ export default function (R) {
     }
     // the neighbor's note, taped on at head height
     face(ctx, [[PX - 0.1, B + 0.1, 1.55], [PX - 0.1, B + 0.62, 1.58], [PX - 0.1, B + 0.6, 2.22], [PX - 0.1, B + 0.08, 2.2]], C.white, { lw: 0.025 });
-    words(ctx, PX - 0.1, B + 0.35, 2.05, 'KEEP IT', 0.1, C.coral);
-    words(ctx, PX - 0.1, B + 0.35, 1.9, 'DOWN!!', 0.1, C.coral);
-    words(ctx, PX - 0.1, B + 0.35, 1.7, 'ask no.10', 0.07, C.navy, 'Rethink Sans');
+    words(ctx, 'y', PX - 0.1, B + 0.35, 2.05, 'KEEP IT', 0.1, C.coral);
+    words(ctx, 'y', PX - 0.1, B + 0.35, 1.9, 'DOWN!!', 0.1, C.coral);
+    words(ctx, 'y', PX - 0.1, B + 0.35, 1.7, 'ask no.10', 0.07, C.navy, 'Rethink Sans');
   });
   // The marquee's line and its bulbs (chasing while it's open, bright at
   // night), and OPEN or CLOSED on the far pole.
@@ -72,8 +62,9 @@ export default function (R) {
         }
       }
     }
-    board(ctx, 'y', PX - 0.11, A - 0.5, 1.6, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
+
+  openCard(R, ID, 'y', PX - 0.11, A - 0.5, 1.6, [PX + 0.02, A - 0.48]);
 
   // A mat at the door, tucked in against the kerb.
   R.thing(-0.05, 11.2, (ctx) => {

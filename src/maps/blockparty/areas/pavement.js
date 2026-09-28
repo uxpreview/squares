@@ -19,20 +19,12 @@ import {
 import { particles } from '../../../engine/actors.js';
 import { SLAB } from '../../../engine/iso.js';
 import { PAVEMENT, EDGE, SIZE } from '../plan.js';
-import { STREET, STREET_NIGHT, NIGHT_DIM, LIT, printed, board, lampPost, poster } from '../style.js';
-import { hour, nightK } from '../clock.js';
+import { STREET_NIGHT, printed, board, words, onFloor, cone, streetLamp } from '../style.js';
+import { hour } from '../clock.js';
 
 const readable = () => Q.detail && Q.pxPerUnit >= 12;
 const KERB = SIZE - 0.6; // where the kerb stones start, 84.4
 
-// Draw in the floor's plane, in world units, from (x, y), turned by a.
-function onFloor(ctx, x, y, a, draw) {
-  ctx.save();
-  ctx.transform(1, 0.5, -1, 0.5, x - y, (x + y) / 2);
-  ctx.rotate(a);
-  draw();
-  ctx.restore();
-}
 // Text in the floor's plane (inside onFloor), centred at (u, v).
 function floorText(ctx, u, v, text, size, color) {
   const k = 40;
@@ -44,24 +36,6 @@ function floorText(ctx, u, v, text, size, color) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
   ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
-// Text on a face that runs along x at y (it faces the viewer's lower left),
-// and on one along y at x (it faces the lower right).
-function sayOnX(ctx, x, y, z, text, size, color) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(0, y, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'right', x, z, text, size, color);
-  ctx.restore();
-}
-function sayOnY(ctx, x, y, z, text, size, color) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'left', y, z, text, size, color);
   ctx.restore();
 }
 const pole = (ctx, x, y, h, color = C.ink) => box(ctx, x - 0.05, y - 0.05, 0, 0.1, 0.1, h, color, { flat: true, stroke: false });
@@ -239,17 +213,10 @@ function campStool(ctx, x, y, h = 0.5) {
   face(ctx, [[x - 0.22, y - 0.2, h], [x + 0.22, y - 0.2, h], [x + 0.22, y + 0.2, h], [x - 0.22, y + 0.2, h]], C.green, { lw: 0.035 });
 }
 
-// A traffic cone with a note taped on it: SAVED.
-function cone(ctx, x, y) {
-  box(ctx, x - 0.3, y - 0.3, 0, 0.6, 0.6, 0.08, C.coral, { flat: true, lw: 0.03 });
-  const [X, Y] = P(x, y, 0.08), [, T] = P(x, y, 0.95);
-  ctx.beginPath();
-  ctx.moveTo(X - 0.3, Y); ctx.lineTo(X - 0.05, T); ctx.lineTo(X + 0.05, T); ctx.lineTo(X + 0.3, Y);
-  ctx.closePath();
-  paint(ctx, C.coral, { lw: 0.03 });
-  ctx.fillStyle = C.white;
-  ctx.fillRect(X - 0.2, (Y + T) / 2 + 0.06, 0.4, 0.1);
-  // The note.
+// A traffic cone (the streets' own) with a note taped on it: SAVED.
+function savedCone(ctx, x, y) {
+  cone(ctx, x, y, 0.95);
+  const [X, T] = P(x, y, 0.95);
   ctx.save();
   ctx.translate(X + 0.02, T + 0.28);
   ctx.rotate(-0.12);
@@ -326,7 +293,7 @@ function queuer(ctx, t, q) {
   const walk = Math.min(1, (h - q.join) * 15 / 1.6); // 1.6 seconds walking in
   const s = q.s + (1 - walk) * 2.6;
   const [x, y] = spot(s, q.n);
-  if (q.kind === 'cone') { cone(ctx, x, y); return; }
+  if (q.kind === 'cone') { savedCone(ctx, x, y); return; }
   const arriving = walk < 1;
   const face = facing(q.s, arriving ? 'f' : q.w);
   const look = { ...q.look, ...face, phase: q.seed * 1.7 };
@@ -476,9 +443,9 @@ function kiosk(ctx) {
     ctx.fillStyle = alpha(C.ink, 0.45);
     for (let i = 0; i < 3; i++) ctx.fillRect(X - 0.2, Y - 0.12 + i * 0.09, 0.4 - i * 0.08, 0.04);
   }
-  // A card: BACK IN 5.
+  // A card: DO NOT WAKE. (He isn't going to.)
   face(ctx, [[x + 1.4, y + 0.6, h], [x + 1.4 + 0.02, y + 0.6, h + 0.3], [x + 1.4 + 0.42, y + 0.6, h + 0.3], [x + 1.4 + 0.4, y + 0.6, h]], C.white, { lw: 0.025 });
-  sayOnX(ctx, x + 1.61, y + 0.6, h + 0.15, 'BACK IN 5', 0.07, C.ink);
+  words(ctx, 'x', x + 1.61, y + 0.6, h + 0.15, 'DO NOT WAKE', 0.06, C.ink);
 }
 function rack(ctx) {
   const { x, y, w, d, z, h } = RACK;
@@ -499,9 +466,9 @@ function tomorrow(ctx) {
   face(ctx, [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]], C.white, { lw: 0.04 });
   // The masthead, the date band (tomorrow's), the headline, a photo.
   face(ctx, [[x0 + 0.04, y, z1 - 0.2], [x1 - 0.04, y, z1 - 0.2], [x1 - 0.04, y, z1 - 0.06], [x0 + 0.04, y, z1 - 0.06]], C.red, { stroke: false });
-  sayOnX(ctx, cx, y, z1 - 0.13, 'SUNDAY. TOMORROW', 0.075, C.white);
-  sayOnX(ctx, cx, y, z1 - 0.3, 'GOOSE HELD', 0.15, C.ink);
-  sayOnX(ctx, cx, y, z1 - 0.45, 'IN MANOR CASE', 0.12, C.ink);
+  words(ctx, 'x', cx, y, z1 - 0.13, 'SUNDAY. TOMORROW', 0.075, C.white);
+  words(ctx, 'x', cx, y, z1 - 0.3, 'GOOSE HELD', 0.15, C.ink);
+  words(ctx, 'x', cx, y, z1 - 0.45, 'IN MANOR CASE', 0.12, C.ink);
   face(ctx, [[x0 + 0.08, y, z0 + 0.06], [x0 + 0.38, y, z0 + 0.06], [x0 + 0.38, y, z0 + 0.25], [x0 + 0.08, y, z0 + 0.25]], C.greyLight, { lw: 0.02 });
   if (Q.detail) {
     // A goose in the photo, in a monocle.
@@ -527,8 +494,8 @@ function aboard(ctx) {
   face(ctx, [[x0, y - 0.3, 0], [x1, y - 0.3, 0], [x1, y, 1.0], [x0, y, 1.0]], C.ink, { lw: 0.03 });
   face(ctx, [[x0, y + 0.3, 0], [x1, y + 0.3, 0], [x1, y, 1.0], [x0, y, 1.0]], C.white, { lw: 0.035 });
   if (!Q.detail) return;
-  sayOnX(ctx, (x0 + x1) / 2, y + 0.12, 0.62, 'PARTY', 0.15, C.navy);
-  sayOnX(ctx, (x0 + x1) / 2, y + 0.2, 0.4, 'TODAY!', 0.13, C.coral);
+  words(ctx, 'x', (x0 + x1) / 2, y + 0.12, 0.62, 'PARTY', 0.15, C.navy);
+  words(ctx, 'x', (x0 + x1) / 2, y + 0.2, 0.4, 'TODAY!', 0.13, C.coral);
 }
 const SNOOZER = { x: 58.4, y: 81.95, look: { ...folk(47), top: C.green, bottom: C.brown, hat: 'cap' } };
 
@@ -581,8 +548,8 @@ function guitarCase(ctx) {
   // The sign, propped in the neck end.
   const x0 = CASE.x - 0.38, x1 = CASE.x + 0.38, y = CASE.y - 0.6;
   face(ctx, [[x0, y + 0.1, 0.02], [x1, y + 0.1, 0.02], [x1, y, 0.5], [x0, y, 0.5]], C.woodLight, { lw: 0.03 });
-  sayOnX(ctx, CASE.x, y + 0.03, 0.37, 'WILL STOP', 0.1, C.ink);
-  sayOnX(ctx, CASE.x, y + 0.07, 0.2, 'FOR COINS', 0.1, C.ink);
+  words(ctx, 'x', CASE.x, y + 0.03, 0.37, 'WILL STOP', 0.1, C.ink);
+  words(ctx, 'x', CASE.x, y + 0.07, 0.2, 'FOR COINS', 0.1, C.ink);
 }
 // Is the busker stopped (paid) at t? For three seconds after a coin lands.
 function paid(t) {
@@ -617,35 +584,21 @@ export default {
       paintText(ctx, 'floor', 41.6, 83.6, 'QUEUE STARTS HERE', 0.26, night ? alpha(C.lilac, 0.8) : alpha(C.white, 0.95));
     });
 
-    // Everything standing dims a touch after dark; the lamps don't.
-    R.dark((t) => nightK(t) * NIGHT_DIM);
-
     // ---------- Lamp posts ----------
-    for (const [x, y] of LAMPS) {
-      const post = POSTERS.some(([px, py]) => px === x && py === y);
-      R.thing(x, y, (ctx) => {
-        lampPost(ctx, x, y);
-        if (post) poster(ctx, x + 0.16, y + 0.16, 2.3);
-      });
-      R.thing(x + 0.01, y + 0.01, (ctx, t) => {
-        if (nightK(t) < 0.3) return;
-        box(ctx, x - 0.4, y - 0.4, 4.4, 0.8, 0.8, 0.45, LIT, { flat: true });
-      }, { anim: true });
-      R.light({ at: [x, y, 4.6], r: 3, color: LIT, k: nightK });
-    }
+    for (const [x, y] of LAMPS) streetLamp(R, x, y, POSTERS.some(([px, py]) => px === x && py === y));
 
     // ---------- The queue ----------
     // A sign where it starts, with a ticket machine (empty) on the pole.
     R.thing(45.5, 84.35, (ctx) => {
       pole(ctx, 45.4, 84.25, 2.2);
       box(ctx, 45.2, 84.3, 0.95, 0.4, 0.25, 0.4, C.red, { flat: true, lw: 0.03 });
-      sayOnX(ctx, 45.4, 84.56, 1.15, 'TAKE A', 0.07, C.white);
-      sayOnX(ctx, 45.4, 84.56, 1.05, 'NUMBER', 0.07, C.white);
+      words(ctx, 'x', 45.4, 84.56, 1.15, 'TAKE A', 0.07, C.white);
+      words(ctx, 'x', 45.4, 84.56, 1.05, 'NUMBER', 0.07, C.white);
       board(ctx, 'x', 45.4, 84.33, 1.9, 1.15, 0.45, 'QUEUE HERE', { board: C.white, ink: C.coral, size: 0.2 });
     });
     for (const q of QUEUE) {
       const [x, y] = spot(q.s, q.n);
-      R.thing(x, y, (ctx, t) => queuer(ctx, t, q), { anim: true });
+      R.thing(x, y, (ctx, t) => queuer(ctx, t, q), { anim: true, on: (t) => inQueue(q, hour(t)) });
     }
     // The back asks; the one in front answers.
     R.mover((t) => {
@@ -833,8 +786,8 @@ export default {
       pole(ctx, 12.2, 81.5, 2.4);
       board(ctx, 'x', 12.2, 81.56, 2.15, 0.9, 0.4, 'BUS STOP', { board: C.white, ink: C.navy, size: 0.16 });
       face(ctx, [[11.95, 81.56, 1.2], [12.45, 81.56, 1.2], [12.45, 81.56, 1.6], [11.95, 81.56, 1.6]], C.butter, { lw: 0.025 });
-      sayOnX(ctx, 12.2, 81.56, 1.47, 'NO BUSES', 0.08, C.red);
-      sayOnX(ctx, 12.2, 81.56, 1.33, 'TODAY', 0.08, C.red);
+      words(ctx, 'x', 12.2, 81.56, 1.47, 'NO BUSES', 0.08, C.red);
+      words(ctx, 'x', 12.2, 81.56, 1.33, 'TODAY', 0.08, C.red);
     });
 
     // ---------- Street furniture ----------
@@ -846,7 +799,7 @@ export default {
       ctx.ellipse(X, Y, 0.47, 0.3, 0, Math.PI, 0);
       paint(ctx, C.red, { lw: 0.04 });
       face(ctx, [[82.1, 34.4, 1.12], [82.1, 34.8, 1.12]], null, { lw: 0.07 });
-      sayOnY(ctx, 82.14, 34.6, 0.8, 'POST', 0.13, C.butter);
+      words(ctx, 'y', 82.14, 34.6, 0.8, 'POST', 0.13, C.butter);
     });
     R.thing(35.1, 82.05, (ctx) => {
       cylinder(ctx, 34.8, 81.75, 0, 0.3, 0.9, C.green);

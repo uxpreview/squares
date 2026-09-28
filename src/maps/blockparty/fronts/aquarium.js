@@ -6,10 +6,10 @@
 // escapes, because the octopus goes out of this door for the noodle bar at
 // 6am, 1pm and 8pm. Open 9am to 6pm; from 10:30 to 1pm it's feeding time and
 // everyone comes to watch.
-import { C, Q, P, box, face, paint, paintText, alpha, shade } from '../../../engine/art.js';
-import { FRONT, board, doorstep, LIT } from '../style.js';
+import { C, Q, P, box, face, paint, alpha, shade } from '../../../engine/art.js';
+import { FRONT, board, doorstep, LIT, words } from '../style.js';
 import { open, nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'aquarium';
 const INK = FRONT[ID];
@@ -17,16 +17,6 @@ const D0 = 11.05, D1 = 13.95, DY = (D0 + D1) / 2; // the frame's posts, either s
 const HX = -0.3, HZ = 4.55; // the header board, out from the wall, and its middle
 const FZ = 5.55; // the fish on top
 const ESCAPES = [6, 13, 20]; // when the octopus gets out (day.js)
-
-// Lettering on an upright board along y (it faces the lower right).
-function words(ctx, x, y, z, text, size, ink, font) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'left', y, z, text, size, ink, font);
-  ctx.restore();
-}
 
 // The fish on the header, facing along the wall toward the front, bobbing.
 function fish(ctx, y, z) {
@@ -50,11 +40,11 @@ export default function (R) {
   R.thing(-0.15, D1, (ctx) => {
     for (const y of [D0, D1]) box(ctx, -0.35, y - 0.1, 0, 0.2, 0.2, HZ + 0.6, INK.board, { flat: true, lw: 0.03 });
     board(ctx, 'y', HX, DY, HZ, D1 - D0 + 0.4, 1.1, null, { board: INK.board });
-    words(ctx, HX, DY, HZ + 0.15, 'AQUARIUM', 0.5, INK.ink);
-    words(ctx, HX, DY, HZ - 0.33, 'NOW SHOWING: FISH', 0.14, C.white, 'Rethink Sans');
+    words(ctx, 'y', HX, DY, HZ + 0.15, 'AQUARIUM', 0.5, INK.ink);
+    words(ctx, 'y', HX, DY, HZ - 0.33, 'NOW SHOWING: FISH', 0.14, C.white, 'Rethink Sans');
     // the plate under it
     board(ctx, 'y', HX, DY, 3.8, D1 - D0 - 0.2, 0.36, null, { board: C.white, edge: 0.03 });
-    words(ctx, HX, DY, 3.8, 'PLEASE CLOSE THE DOOR, THE OCTOPUS', 0.13, C.navy, 'Rethink Sans');
+    words(ctx, 'y', HX, DY, 3.8, 'PLEASE CLOSE THE DOOR, THE OCTOPUS', 0.13, C.navy, 'Rethink Sans');
     if (Q.detail) {
       // rivets round the header
       for (let i = 0; i <= 8; i++) {
@@ -78,15 +68,16 @@ export default function (R) {
         ctx.beginPath(); ctx.arc(X, Y, 0.06 + k * 0.08, 0, Math.PI * 2); ctx.stroke();
       }
     }
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'y', -0.4, D0 - 0.6, 1.6, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
+  openCard(R, ID, 'y', -0.4, D0 - 0.6, 1.6, [-0.14, D0 - 0.58]);
   // The day's escapes, chalked up on the near post: a stroke each time.
   R.thing(-0.13, D1 + 0.02, (ctx, t) => {
     board(ctx, 'y', -0.47, D1 + 0.55, 2.35, 0.95, 0.7, null, { board: C.night, edge: 0.03 });
-    words(ctx, -0.47, D1 + 0.55, 2.55, 'ESCAPES TODAY', 0.1, C.white, 'Rethink Sans');
+    words(ctx, 'y', -0.47, D1 + 0.55, 2.55, 'ESCAPES TODAY', 0.1, C.white, 'Rethink Sans');
+    // One before dawn (it's loose in the room: rooms/aquarium.js), then one
+    // a run up the alley: four by the evening, as the room's blurb says.
     const since = (((hour(t) - 5) % 24) + 24) % 24; // the day starts at 5am
-    const n = ESCAPES.filter((h) => since >= h - 5).length;
+    const n = 1 + ESCAPES.filter((h) => since >= h - 5).length;
     ctx.strokeStyle = C.white; ctx.lineWidth = 0.04; ctx.lineCap = 'round';
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
@@ -94,7 +85,6 @@ export default function (R) {
       ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
     }
     ctx.stroke();
-    if (!n) words(ctx, -0.47, D1 + 0.55, 2.25, 'NONE (YET)', 0.1, C.mint, 'Rethink Sans');
   }, { anim: true });
 
   // A step and a mat.

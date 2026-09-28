@@ -6,24 +6,15 @@
 // it's shut, its lamp green or red after dark. Open 10am to 8pm; from 5pm to
 // 7pm the evening timetable brings the enthusiasts, notebooks out.
 import { C, Q, P, box, face, paint, paintText } from '../../../engine/art.js';
-import { FRONT, board, doorstep, LIT } from '../style.js';
+import { FRONT, board, doorstep, LIT, words } from '../style.js';
 import { open, nightK } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'trains';
 const INK = FRONT[ID];
 const G0 = 11.0, G1 = 14.0, GM = (G0 + G1) / 2; // the gantry's legs, either side of the door (y 11.4 to 13.6)
 const GX = -0.3, BZ = 5.8; // out from the wall; the beam's height
 const SZ = 7.2; // the semaphore's pivot, up on the near leg
-
-function words(ctx, x, y, z, text, size, ink, font) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'left', y, z, text, size, ink, font);
-  ctx.restore();
-}
 
 export default function (R) {
   // The gantry: two lattice legs, the beam, and the nameboard hung from it.
@@ -37,8 +28,8 @@ export default function (R) {
     // a station nameboard: white edge, green board
     board(ctx, 'y', GX - 0.02, GM, 5.0, G1 - G0 - 0.1, 1.0, null, { board: C.white });
     board(ctx, 'y', GX - 0.03, GM, 5.0, G1 - G0 - 0.3, 0.8, null, { board: INK.board, edge: 0.02 });
-    words(ctx, GX - 0.04, GM, 5.15, 'MODEL RAILWAY', 0.36, INK.ink);
-    words(ctx, GX - 0.04, GM, 4.78, 'NEXT TRAIN: 18 SECONDS. ALWAYS.', 0.11, C.white, 'Rethink Sans');
+    words(ctx, 'y', GX - 0.04, GM, 5.15, 'MODEL RAILWAY', 0.36, INK.ink);
+    words(ctx, 'y', GX - 0.04, GM, 4.78, 'NEXT TRAIN: 18 SECONDS. ALWAYS.', 0.11, C.white, 'Rethink Sans');
     // a ladder up the near leg to the signal
     if (Q.detail) for (let z = BZ + 0.3; z < SZ - 0.2; z += 0.3) face(ctx, [[GX - 0.12, G1 - 0.18, z], [GX - 0.12, G1 + 0.18, z]], null, { lw: 0.03, stroke: C.ink });
   });
@@ -55,8 +46,9 @@ export default function (R) {
     paint(ctx, o > 0.5 ? C.leaf : C.red, { lw: 0.03 });
     const [px, py] = P(GX - 0.12, G1, SZ);
     ctx.beginPath(); ctx.arc(px, py, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
-    board(ctx, 'y', GX - 0.1, G0 - 0.55, 1.6, 0.95, 0.4, o > 0.5 ? 'OPEN' : 'CLOSED', { board: o > 0.5 ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
+
+  openCard(R, ID, 'y', GX - 0.1, G0 - 0.55, 1.6, [GX + 0.02, G0 - 0.53]);
 
   // A step, and a mat that says it.
   R.thing(-0.05, 11.3, (ctx) => {

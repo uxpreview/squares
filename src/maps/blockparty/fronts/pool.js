@@ -8,7 +8,7 @@
 import { C, Q, P, box, face, paint, person, folk, plant, shade } from '../../../engine/art.js';
 import { FRONT, board, LIT } from '../style.js';
 import { open, nightK } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'pool';
 const INK = FRONT[ID];
@@ -22,10 +22,7 @@ export default function (R) {
 
   // The far post, with OPEN or CLOSED hung on it.
   R.thing(PX, A, (ctx) => box(ctx, PX - 0.09, A - 0.09, 0, 0.18, 0.18, 5.2, C.white, { flat: true, lw: 0.03 }));
-  R.thing(PX + 0.01, A + 0.01, (ctx, t) => {
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'y', PX - 0.12, A, 1.9, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
-  }, { anim: true });
+  openCard(R, ID, 'y', PX - 0.12, A, 1.9, [PX + 0.01, A + 0.01]);
 
   // The near post, the canopy, the valance and the LIDO board on top.
   R.thing(PX, B, (ctx) => {
@@ -40,7 +37,7 @@ export default function (R) {
     // the valance: one white band that says it
     board(ctx, 'y', PX - OUT, (A + B) / 2, CZ - 0.18, w, 0.36, 'NOW ON THE GROUND FLOOR', { board: C.white, ink: C.teal, size: 0.19, edge: 0.03 });
     // LIDO, standing on the canopy between the posts
-    board(ctx, 'y', PX - 0.05, (A + B) / 2, 4.5, w - 0.1, 1.2, 'LIDO', { board: INK.board, ink: INK.ink, size: 0.95 });
+    board(ctx, 'y', PX - 0.05, (A + B) / 2, 4.5, w - 0.1, 1.2, 'LIDO', { board: INK.board, ink: INK.ink, size: 0.72 });
     if (Q.detail) {
       // a wave along the bottom of the board
       ctx.beginPath();

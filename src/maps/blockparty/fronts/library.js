@@ -13,7 +13,7 @@
 import { C, Q, P, box, face, paint, label, speech, alpha, mix } from '../../../engine/art.js';
 import { FRONT, board, LIT } from '../style.js';
 import { open, nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'library';
 const INK = FRONT[ID];
@@ -83,10 +83,9 @@ export default function (R) {
     label(ctx, xm, PY, z - 0.05, 'LIBRARY', 0.36, INK.ink);
     label(ctx, xm, PY, z - 0.38, 'SHUSHING SINCE 1904', 0.12, C.white, 'Rethink Sans');
     ctx.restore();
-    // OPEN or CLOSED, low on the post
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'y', -0.24, PY - 0.1, 1.5, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
+  // OPEN or CLOSED, low on the post.
+  openCard(R, ID, 'y', -0.24, PY - 0.1, 1.5, [-0.1, PY + 0.02]);
 
   // A step and a mat, kept to the kerb's edge (people walk 0.9 out).
   R.thing(-0.05, 11.3, (ctx) => {

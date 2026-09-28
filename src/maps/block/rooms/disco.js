@@ -408,7 +408,7 @@ export default {
         face(ctx, [[x, 2.5, 0.25], [x + 0.2, 2.5, 0.25], [x + 0.2, 2.5, 1.05], [x, 2.5, 1.05]], on ? GLOWS[i % GLOWS.length] : shade(C.purple, 0.4), { stroke: false });
       }
       // decks
-      for (const [dx, isPizza] of [[6.5, false], [8.9, true]]) {
+      for (const [dx, isPizza] of [[6.5, true], [8.9, false]]) {
         box(ctx, dx - 0.6, 1.5, 1.3, 1.2, 0.9, 0.08, C.grey, { lw: 0.03 });
         disc(ctx, dx, 1.95, 1.39, 0.42, C.black, { lw: 0.03 });
         const a = t * 3.5;
@@ -437,7 +437,7 @@ export default {
       // laptop with a sticker
       box(ctx, 5.6, 1.5, 1.3, 0.5, 0.5, 0.05, C.greyLight, { lw: 0.03 });
     }, { anim: true });
-    R.find({ id: 'pizza', label: 'A slice of pizza', at: [8.9, 1.95, 1.45], r: 0.7 });
+    R.find({ id: 'pizza', label: 'A slice of pizza', at: [6.5, 1.95, 1.45], r: 0.7 }); // on the left deck, clear of the goose
 
     // The DJ, bobbing, calling out the reverse
     R.mover(() => ({ x: 7.2, y: 0.8 }), (ctx, t) => {

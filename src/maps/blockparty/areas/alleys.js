@@ -1,5 +1,5 @@
 // The back alleys: the narrow lanes between the rooms, off Main Street. Mostly
-// quiet: cobbles, bins, washing on lines, a cat on a bin, a raccoon behind the
+// quiet: cobbles, bins, washing on lines, a raccoon behind the
 // arcade. One hot spot (HOTSPOT in plan.js) gets the detail: out the back of
 // the noodle bar, across from the bakery's street door, where the octopus
 // (a walker, in day.js) comes three times a day to stare at the noodle bar.
@@ -14,25 +14,15 @@
 // hand alleys (x 64) and the front cross alleys (y 64), so props there hug the
 // near side.
 import {
-  C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, speech, paintText, shade, tint, mix, alpha,
+  C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha,
 } from '../../../engine/art.js';
 import { particles } from '../../../engine/actors.js';
-import { ZK } from '../../../engine/iso.js';
 import { ALLEYS, ALLEY, LOOP } from '../plan.js';
-import { STREET, STREET_NIGHT, NIGHT_DIM, LIT, printed, board } from '../style.js';
+import { STREET, STREET_NIGHT, LIT, printed, board, words, onFloor, cone } from '../style.js';
 import { nightK, at } from '../clock.js';
 
 const loopT = (t) => ((t % LOOP) + LOOP) % LOOP;
 const readable = () => Q.detail && Q.pxPerUnit >= 12;
-
-// Draw in the floor's plane, in world units, from (x, y), turned by a.
-function onFloor(ctx, x, y, a, draw) {
-  ctx.save();
-  ctx.transform(1, 0.5, -1, 0.5, x - y, (x + y) / 2);
-  ctx.rotate(a);
-  draw();
-  ctx.restore();
-}
 
 // ---------- The ground ----------
 // Flat slabs along the walls, a cobbled lane down the middle with a gutter.
@@ -288,26 +278,6 @@ function bulb(ctx, t, x, y, h = 3.0) {
   paint(ctx, nightK(t) > 0.3 ? LIT : C.white, { lw: 0.025 });
 }
 
-// A cat: sitting, facing the viewer, tail swishing. (x, y, z) its feet.
-function sittingCat(ctx, t, x, y, z, fur, chest) {
-  const [X, Y] = P(x, y, z);
-  const sw = Math.sin(t * 1.3) * 0.25;
-  ctx.beginPath();
-  ctx.moveTo(X + 0.2, Y - 0.05);
-  ctx.quadraticCurveTo(X + 0.5, Y + 0.05, X + 0.45 + sw * 0.3, Y + 0.45 + sw * 0.1);
-  ctx.strokeStyle = fur;
-  ctx.lineWidth = 0.1;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(X, Y - 0.25, 0.24, 0.28, 0, 0, Math.PI * 2);
-  paint(ctx, fur, { lw: 0.03 });
-  ctx.beginPath();
-  ctx.ellipse(X, Y - 0.2, 0.1, 0.16, 0, 0, Math.PI * 2);
-  ctx.fillStyle = chest;
-  ctx.fill();
-  catHead(ctx, t, X, Y - 0.62, 0.2, fur, Math.sin(t * 0.5) * 0.6);
-}
-
 // A cat's head at screen (X, Y), r across. look: -1 left to 1 right.
 function catHead(ctx, t, X, Y, r, fur, look, wide = false) {
   const dx = look * r * 0.3;
@@ -404,16 +374,6 @@ function pigeon(ctx, t, x, y, z) {
   ctx.fill();
 }
 
-// Text on a face that runs along x at y (it faces the viewer's lower left).
-function sayOnX(ctx, x, y, z, text, size, color) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(0, y, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'right', x, z, text, size, color);
-  ctx.restore();
-}
-
 // ---------- Where things go ----------
 // Bins round the alleys, on the near side of each lane (see the top), a unit
 // clear of the seams and a step clear of the rooms' doors: [x, y, color].
@@ -441,9 +401,6 @@ export default {
     });
     R.find({ id: 'tentacle-print', label: 'A tentacle print', at: [18.2, 59.8, 0.05], r: 0.8 });
 
-    // Everything standing dims a touch after dark; the bulbs don't.
-    R.dark((t) => nightK(t) * NIGHT_DIM);
-
     // ---------- Quiet alleys ----------
     for (const [x, y, color] of BINS) R.thing(x + 0.9, y + 0.9, (ctx) => wheelie(ctx, x, y, color));
     for (const [a, b] of LINES) {
@@ -451,9 +408,9 @@ export default {
       R.thing(Math.max(a[0], b[0]), Math.max(a[1], b[1]) + 0.1, (ctx, t) => washing(ctx, t, a, b, Math.round(a[0] + a[1])), { anim: true });
     }
 
-    // A black cat on a bin, between the disco and the launch pad's fronts.
+    // A dustbin between the disco and the launch pad's fronts. (It had a cat
+    // on it: now the hot spot's cat in a bin is the only cat in the alleys.)
     R.thing(26.6, 16.9, (ctx) => dustbin(ctx, 26.3, 16.6, 0.4, 1.0));
-    R.thing(26.65, 16.95, (ctx, t) => sittingCat(ctx, t, 26.3, 16.6, 1.08, C.ink, C.white), { anim: true });
 
     // The raccoon behind the arcade, in the bins, under a lamp.
     R.thing(61.2, 7.9, (ctx) => bracketLamp(ctx, 61.15, 7.85, 61.8, 8.9, 2.8));
@@ -509,10 +466,12 @@ export default {
       board(ctx, 'y', 16.26, 27.8, 2.05, 2.2, 0.6, 'NO BALL GAMES', { board: C.white, ink: C.red, size: 0.24 });
     });
 
-    // The octopus's route from the aquarium, signposted by someone who's had enough.
-    R.thing(16.35, 72.0, (ctx) => {
-      pole(ctx, 16.3, 71.9, 2.6);
-      board(ctx, 'y', 16.31, 71.9, 2.2, 1.9, 0.6, 'MIND THE OCTOPUS', { board: C.butter, ink: C.navy, size: 0.19 });
+    // The octopus's route from the aquarium, signposted by someone who's had
+    // enough: up the alley, past the cross alley, clear of the aquarium's own
+    // front (which has octopus signs of its own).
+    R.thing(16.35, 67.5, (ctx) => {
+      pole(ctx, 16.3, 66.6, 2.6);
+      board(ctx, 'y', 16.31, 66.6, 2.2, 1.9, 0.6, 'MIND THE OCTOPUS', { board: C.butter, ink: C.navy, size: 0.19 });
     });
     // A lost shoe, behind the arcade's front.
     R.thing(70.6, 17.2, (ctx) => {
@@ -521,16 +480,7 @@ export default {
       rect(ctx, 70.25, 16.8, 0.3, 0.18, 0.165, C.white, { lw: 0.02 });
     });
     // A traffic cone, from who knows where.
-    R.thing(61.8, 69.8, (ctx) => {
-      box(ctx, 61.2, 69.2, 0, 0.6, 0.6, 0.08, C.coral, { flat: true, lw: 0.03 });
-      const [X, Y] = P(61.5, 69.5, 0.08), [, T] = P(61.5, 69.5, 0.9);
-      ctx.beginPath();
-      ctx.moveTo(X - 0.3, Y); ctx.lineTo(X - 0.05, T); ctx.lineTo(X + 0.05, T); ctx.lineTo(X + 0.3, Y);
-      ctx.closePath();
-      paint(ctx, C.coral, { lw: 0.03 });
-      ctx.fillStyle = C.white;
-      ctx.fillRect(X - 0.18, (Y + T) / 2 - 0.06, 0.36, 0.12);
-    });
+    R.thing(61.8, 69.8, (ctx) => cone(ctx, 61.5, 69.5));
 
     // ---------- The hot spot ----------
     // Out the back of the noodle bar (its open front runs along x = 16),
@@ -625,10 +575,10 @@ export default {
         ctx.fillStyle = C.ink;
         ctx.fill();
       }
-      sayOnX(ctx, x + w / 2, y + d, 0.45, 'SQUID', 0.2, C.navy);
+      words(ctx, 'x', x + w / 2, y + d, 0.45, 'SQUID', 0.2, C.navy);
       // The label: AQUARIUM, crossed out, and NOODLES? under it.
       face(ctx, [[x + 0.15, y + d, 0.08], [x + 0.8, y + d, 0.08], [x + 0.8, y + d, 0.3], [x + 0.15, y + d, 0.3]], C.white, { lw: 0.02 });
-      sayOnX(ctx, x + 0.47, y + d, 0.2, 'AQUARIUM', 0.1, C.ink);
+      words(ctx, 'x', x + 0.47, y + d, 0.2, 'AQUARIUM', 0.1, C.ink);
       face(ctx, [[x + 0.2, y + d, 0.14], [x + 0.75, y + d, 0.25]], null, { lw: 0.03, stroke: C.red });
     });
 
@@ -645,7 +595,7 @@ export default {
       if (!p.on) return;
       const staring = octoHere(t);
       person(ctx, p.x, p.y, 0.7 - 0.73, { ...CHEF, pose: 'sit', dir: 'r' }, t);
-      if (staring && readable()) speech(ctx, p.x, p.y, 2.6, 'You\'re not on the menu.', { size: 0.45 });
+      if (staring && readable()) speech(ctx, p.x, p.y, 2.6, 'You\'re not on the menu.', { size: 0.42 });
     }, { bias: 0.1 });
 
     // The kitchen's extractor, puffing noodle steam over the lane.
@@ -680,7 +630,7 @@ export default {
         paint(ctx, C.wood, { lw: 0.03 });
       }
       face(ctx, [[18.8, y + d, 0.72], [19.35, y + d, 0.72], [19.35, y + d, 1.02], [18.8, y + d, 1.02]], C.white, { lw: 0.025 });
-      sayOnX(ctx, 19.07, y + d, 0.87, 'DAY OLD', 0.11, C.coral);
+      words(ctx, 'x', 19.07, y + d, 0.87, 'DAY OLD', 0.11, C.coral);
     });
     R.thing(19.55, 50.35, (ctx, t) => pigeon(ctx, t, 19.25, 49.85, 1.3), { anim: true });
 

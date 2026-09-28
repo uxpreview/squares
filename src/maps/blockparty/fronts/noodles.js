@@ -11,61 +11,17 @@
 // so The Block's own noodle bar keeps its rainy night), and the octopus's
 // runs up the alley: a NO OCTOPUSES sign on the open front, and the chef
 // sees it coming.
-import { C, Q, P, box, face, paint, onLeft, paintText, speech, shade, mix } from '../../../engine/art.js';
-import { pulse, clamp } from '../../../engine/actors.js';
-import { FRONT, board, LIT } from '../style.js';
+import { C, Q, P, box, face, paint, paintText, speech, shade } from '../../../engine/art.js';
+import { pulse } from '../../../engine/actors.js';
+import { FRONT, board, LIT, words } from '../style.js';
 import { open, nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard, skyPane } from './kit.js';
 
 const ID = 'noodles';
 const INK = FRONT[ID];
 const PY = -0.14; // the pole, at the wall
 const PX = 11.9; // along it, left of the door (x 13.4 to 15.4)
 const A = 13.1, B = 15.7, OUT = 1.3, CZ = 3.0; // the canopy over the kitchen door
-
-// ---------- Helpers the rest of row C uses ----------
-// The sky by the hour, for a window: navy night, a blush dawn, day blue, the
-// party's pink sunset, a purple dusk (as the Observatory's). Steps of a
-// twentieth keep the color mixes few.
-const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
-export function skyAt(h) {
-  for (let i = 1; i < SKY.length; i++) {
-    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
-    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
-  }
-  return C.night;
-}
-// A window pane on the left wall (y0 along it, z0 up, w by hh) painted with
-// the hour's sky: the sun crossing it by day, the moon and three stars by
-// night, and the rooftops across the street along the bottom.
-export function skyPane(ctx, y0, z0, w, hh, h) {
-  onLeft(ctx, y0, z0, w, hh, skyAt(h), { stroke: false });
-  const dark = h < 5.5 || h > 20.5;
-  const k = clamp((h - 6) / 14);
-  const sy = dark ? y0 + w * 0.72 : y0 + w * (0.85 - 0.7 * k);
-  const sz = dark ? z0 + hh * 0.72 : z0 + hh * (0.35 + 0.4 * Math.sin(k * Math.PI));
-  const [X, Y] = P(0, sy, sz);
-  ctx.beginPath(); ctx.arc(X, Y, Math.min(0.34, w * 0.08), 0, Math.PI * 2);
-  paint(ctx, dark ? C.butter : h > 17.5 ? C.coral : C.mustard, { lw: 0.03 });
-  if (dark && Q.detail) {
-    ctx.fillStyle = C.white;
-    for (const [u, v] of [[0.15, 0.8], [0.35, 0.55], [0.5, 0.85]]) {
-      const [sx, sy2] = P(0, y0 + w * u, z0 + hh * v);
-      ctx.fillRect(sx - 0.05, sy2 - 0.05, 0.1, 0.1);
-    }
-  }
-  const roof = dark ? C.ink : mix(C.navy, C.lilac, 0.5);
-  for (let i = 0; i * 0.9 < w - 0.3; i++) onLeft(ctx, y0 + 0.1 + i * 0.9, z0, 0.75, 0.3 + ((i * 37) % 5) * 0.12, roof, { stroke: false });
-}
-// Lettering on an upright board: along 'x' (faces lower left) or 'y' (lower right).
-export function words(ctx, along, x, y, z, text, size, ink, font) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = along === 'x' ? P(0, y, 0) : P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, size, ink, font);
-  ctx.restore();
-}
 
 // The octopus waits up the alley for the noodle bar (day.js: it leaves the
 // aquarium at 6am, 1pm and 8pm and is carried back two hours later).
@@ -123,10 +79,7 @@ export default function (R) {
     bowlSign(ctx);
   });
   // OPEN or CLOSED, on the pole at eye height.
-  R.thing(PX + 0.01, PY + 0.01, (ctx, t) => {
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'x', PX, PY - 0.1, 1.9, 1.0, 0.42, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
-  }, { anim: true });
+  openCard(R, ID, 'x', PX, PY - 0.1, 1.9, [PX + 0.01, PY + 0.01]);
 
   // Two crates of cabbages against the wall, waiting to go in.
   R.thing(12.8, -0.05, (ctx) => {
@@ -177,7 +130,7 @@ export default function (R) {
     if (!Q.detail || !octopusNear(t)) return;
     const s = pulse(t, 24);
     if (s > 0.1 && s < 0.3) speech(ctx, 6.4, 4.3, 3.3, "IT'S BACK", { size: 0.42 });
-    else if (s > 0.62 && s < 0.8) speech(ctx, 6.4, 4.3, 3.3, 'HIDE THE PRAWNS', { size: 0.38 });
+    else if (s > 0.62 && s < 0.8) speech(ctx, 6.4, 4.3, 3.3, 'HIDE THE PRAWNS', { size: 0.4 });
   }, { bias: 0.2 });
 
   // ---------- The lunch rush, noon to 2pm ----------

@@ -33,8 +33,9 @@ export const STREET_NIGHT = {
   roadDots: mix(C.night, C.purple, 0.2),
   line: mix(C.butter, C.lilac, 0.45),
   kerb: mix(C.lilac, C.navy, 0.35),
-  alley: mix(C.night, C.brown, 0.28),
-  cobble: mix(C.night, C.purple, 0.25),
+  // a step darker than the road, a step lighter than the night paper
+  alley: mix(mix(C.navy, C.brown, 0.2), C.lilac, 0.14),
+  cobble: mix(C.night, C.purple, 0.3),
   pavement: mix(C.navy, C.lilac, 0.38),
   paving: mix(C.navy, C.lilac, 0.22),
   slab: mix(C.night, C.purple, 0.35),
@@ -50,9 +51,9 @@ export function printed(R, draw, layer = 'rug') {
   R[layer]((ctx) => draw(ctx, STREET_NIGHT), { fade: nightK });
 }
 
-// How much the lamps and the things standing on a street dim at night: a
-// little (they're lit by the lamps and the rooms), never to black.
-export const NIGHT_DIM = 0.28;
+// The streets take no R.dark on top of their night inks: the engine only
+// darkens a street's ground, which the night inks already print, and doing it
+// twice sank the alleys into the night paper. The night is printed, not dimmed.
 
 // ---------- The party ----------
 // The stage at the crossing: the hero, seen from the whole block.
@@ -70,15 +71,6 @@ export const STAGE_INK = {
 // The party's own light at sunset: pink, not amber (block.md, decision 16).
 export const PARTY_LIGHT = C.pink;
 
-// Greybox blocks on the streets: one color per kind of thing. (For anything
-// still being laid out.)
-export const BLOCK = {
-  party: C.coral, // the stage and everything for the party
-  street: C.navy, // lamp posts, bins, signs
-  stall: C.mustard, // carts and stands
-  green: C.green,
-};
-
 // The six inks, for bunting.
 export const BUNTING = [C.coral, C.mustard, C.teal, C.navy, C.blush, C.purple];
 
@@ -91,7 +83,8 @@ export const PAPER = [
   [8, C.paper],
   [17, C.paper],
   [19, mix(C.paper, C.pink, 0.38)], // the party, a pink sunset
-  [20.5, mix(C.pink, C.purple, 0.62)], // dusk
+  [20, mix(C.paper, C.pink, 0.5)], // still pink for the party's first hour
+  [21, mix(C.pink, C.purple, 0.62)], // dusk
   [22, C.night],
   [24, C.night],
 ];
@@ -119,18 +112,31 @@ export const FRONT = {
   band: { stripes: [C.mustard, C.ink], board: C.ink, ink: C.mustard },
   trains: { stripes: [C.red, C.green], board: C.green, ink: C.butter },
 };
-// A lit window or doorway at night, and a closed one.
+// A lit window, doorway or lamp at night.
 export const LIT = C.butter;
-export const DIM = mix(C.navy, C.lilac, 0.25);
 
 // ---------- Shared props ----------
 const P = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
 
 // A lamp post: a pole and a lamp, lit at night. (x, y) in the area's own units.
 // Draw it with lit = 0 as a still thing, and its glow with R.light.
+// (As slim as the fronts' sign posts, so the streets and the fronts are one hand.)
 export function lampPost(ctx, x, y, lit = 0) {
-  box(ctx, x - 0.15, y - 0.15, 0, 0.3, 0.3, 4.4, C.navy, { flat: true });
-  box(ctx, x - 0.4, y - 0.4, 4.4, 0.8, 0.8, 0.45, lit > 0.5 ? C.butter : C.white, { flat: true });
+  box(ctx, x - 0.11, y - 0.11, 0, 0.22, 0.22, 4.4, C.navy, { flat: true });
+  lampHead(ctx, x, y, lit > 0.5 ? LIT : C.white);
+}
+function lampHead(ctx, x, y, color) {
+  box(ctx, x - 0.32, y - 0.32, 4.4, 0.64, 0.64, 0.4, color, { flat: true });
+  box(ctx, x - 0.38, y - 0.38, 4.8, 0.76, 0.76, 0.08, C.navy, { flat: true });
+}
+// A whole street lamp on an area: the post (with a goose poster on it, if
+// asked), its lamp lit from dusk, and its glow. Every street's lamps are
+// these, so they all light up together. All still: only the glow is drawn
+// each frame, and only at night.
+export function streetLamp(R, x, y, withPoster = false) {
+  R.thing(x, y, (ctx) => { lampPost(ctx, x, y); if (withPoster) poster(ctx, x + 0.16, y + 0.16, 2.35); });
+  R.thing(x + 0.01, y + 0.01, (ctx) => lampHead(ctx, x, y, LIT), { on: (t) => nightK(t) >= 0.3 });
+  R.light({ at: [x, y, 4.6], r: 3, color: LIT, k: nightK });
 }
 
 // A "Have you seen this goose?" poster, facing the viewer, on a post at height z.
@@ -144,6 +150,37 @@ export function poster(ctx, x, y, z) {
   ctx.ellipse(X, Y - 0.05, 0.22, 0.16, 0, 0, Math.PI * 2);
   ctx.fillStyle = C.ink;
   ctx.fill();
+}
+
+// The laundromat's lost sock, flat to the viewer at screen (X, Y), s across:
+// white, two coral stripes, a teal toe. The same sock the Courier hands over
+// at the end (finale.js draws its own copy; it could use this one).
+export function lostSock(ctx, X, Y, s = 1) {
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(-0.15, -0.7);
+  ctx.lineTo(0.15, -0.7);
+  ctx.lineTo(0.15, -0.05);
+  ctx.quadraticCurveTo(0.2, 0.18, 0.5, 0.15);
+  ctx.quadraticCurveTo(0.62, 0.3, 0.45, 0.35);
+  ctx.lineTo(-0.05, 0.35);
+  ctx.quadraticCurveTo(-0.2, 0.3, -0.15, 0.05);
+  ctx.closePath();
+  ctx.fillStyle = C.white;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = C.coral;
+  for (const v of [-0.55, -0.3]) ctx.fillRect(-0.3, v, 0.6, 0.1);
+  ctx.fillStyle = C.teal;
+  ctx.fillRect(0.1, 0.05, 0.6, 0.4);
+  ctx.restore();
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.05 / s;
+  ctx.stroke();
+  ctx.restore();
 }
 
 // A string of bunting from a to b (world or area units, [x, y, z]), sagging.
@@ -172,6 +209,40 @@ export function bunting(ctx, a, b, t = 0, n = 14) {
   }
 }
 
+// Lettering painted on an upright face: along 'x' (the face runs along x at
+// y, looking to the viewer's lower left) or 'y' (along y at x, looking to the
+// lower right), centred on the spot along it, z up. Only close enough to read.
+export function words(ctx, along, x, y, z, text, size, ink, font) {
+  if (!Q.detail) return;
+  ctx.save();
+  const [dx, dy] = along === 'x' ? P(0, y, 0) : P(x, 0, 0);
+  ctx.translate(dx, dy);
+  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, size, ink, font);
+  ctx.restore();
+}
+
+// Draw flat in the floor's plane, in world units, from (x, y), turned by a
+// (a card dropped on the pavement, a print in the alley).
+export function onFloor(ctx, x, y, a, draw) {
+  ctx.save();
+  ctx.transform(1, 0.5, -1, 0.5, x - y, (x + y) / 2);
+  ctx.rotate(a);
+  draw();
+  ctx.restore();
+}
+
+// A traffic cone, h tall, standing at (x, y). The same cone on every street.
+export function cone(ctx, x, y, h = 0.85) {
+  box(ctx, x - 0.3, y - 0.3, 0, 0.6, 0.6, 0.08, C.coral, { flat: true, lw: 0.03 });
+  const [X, Y] = P(x, y, 0.08), [, T] = P(x, y, h);
+  ctx.beginPath();
+  ctx.moveTo(X - 0.3, Y); ctx.lineTo(X - 0.05, T); ctx.lineTo(X + 0.05, T); ctx.lineTo(X + 0.3, Y);
+  ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.fillStyle = C.white;
+  ctx.fillRect(X - 0.18, (Y + T) / 2 - 0.06, 0.36, 0.12);
+}
+
 // A board with lettering on it, upright, in the plane along x ('x': it faces
 // the viewer's lower left) or along y ('y': the lower right), centred on
 // (x, y, z), w wide and h tall. o: { board, ink, size, font, edge }
@@ -187,31 +258,6 @@ export function board(ctx, along, x, y, z, w, h, text, o = {}) {
   ctx.translate(dx, dy);
   paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, o.size || h * 0.55, o.ink || C.ink, o.font);
   ctx.restore();
-}
-
-// A canopy over a door on a back wall, on four thin poles, striped in the
-// room's two colors, standing on the street outside (so it still shows when
-// the wall drops to waist height). side: 'left' (the wall at x = 0, so the
-// street is at x < 0) or 'right' (y = 0). at: the middle of the door along
-// the wall; w: how wide; out: how far it reaches into the street.
-export function canopy(ctx, side, at, w, out, stripes, z = 3.4) {
-  const L = side === 'left';
-  const pt = (u, v, zz) => (L ? [-v, u, zz] : [u, -v, zz]); // u along the wall, v out from it
-  const a = at - w / 2, b = at + w / 2;
-  for (const [u, v] of [[a, out], [b, out]]) {
-    const [x, y] = pt(u, v, 0);
-    box(ctx, x - 0.06, y - 0.06, 0, 0.12, 0.12, z, C.ink, { flat: true, stroke: false });
-  }
-  const n = Math.max(3, Math.round(w / 0.5));
-  for (let i = 0; i < n; i++) {
-    const u0 = a + (i / n) * w, u1 = a + ((i + 1) / n) * w;
-    face(ctx, [pt(u0, 0, z + 0.6), pt(u1, 0, z + 0.6), pt(u1, out, z), pt(u0, out, z)], stripes[i % 2], { lw: 0.03 });
-  }
-  // The valance: a scalloped front edge.
-  for (let i = 0; i < n; i++) {
-    const u0 = a + (i / n) * w, u1 = a + ((i + 1) / n) * w;
-    face(ctx, [pt(u0, out, z), pt(u1, out, z), pt(u1, out, z - 0.35), pt(u0, out, z - 0.35)], stripes[i % 2], { lw: 0.03 });
-  }
 }
 
 // A step and a mat outside a door, on the street side. side, at, w: as canopy.

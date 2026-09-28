@@ -10,15 +10,16 @@ import { C, Q, P, box, face, paint, person, folk, label, speech, shade, tint } f
 import { pulse, clamp } from '../../../engine/actors.js';
 import { FRONT, board, doorstep, LIT } from '../style.js';
 import { open, rush, nightK, hour } from '../clock.js';
+import { openCard } from './kit.js';
 
 const ID = 'disco';
 const INK = FRONT[ID];
 const PY = 15.25; // the pole, near the wall's front end (the blade has to stay inside the room's picture)
 const BX0 = -1.9, BX1 = -0.3, BZ0 = 3.1, BZ1 = 5.9; // the blade, out over the alley (overhead)
 
-// Neon: a glow round a bright tube, or dark glass when it's off.
+// Neon: a bright tube, or dark glass when it's off. (Its glow is the R.light
+// by the blade, at night: a canvas shadow blur every frame cost too much.)
 function tube(ctx, lit, color) {
-  if (lit && Q.detail) { ctx.shadowColor = color; ctx.shadowBlur = 12; }
   return lit ? tint(color, 0.35) : shade(color, 0.55);
 }
 
@@ -76,9 +77,9 @@ export default function (R) {
       ctx.restore();
       if (warming && stutter) label(ctx, x - 0.2, PY, BZ1 + 0.5, 'bzzt', 0.34, C.white, 'Rethink Sans');
     }
-    board(ctx, 'y', -0.42, PY - 0.1, 1.45, 0.95, 0.4, on ? 'OPEN' : 'CLOSED', { board: on ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
   R.light({ at: [(BX0 + BX1) / 2, PY, (BZ0 + BZ1) / 2], r: 3.4, color: C.pink, k: (t) => nightK(t) * open(ID, t) * 0.8 });
+  openCard(R, ID, 'y', -0.42, PY - 0.1, 1.45, [-0.18, PY + 0.02]);
 
   // A step and a mat.
   R.thing(-0.05, 11.4, (ctx) => doorstep(ctx, 'left', 12.5, 2.2, C.pink));
@@ -113,7 +114,7 @@ export default function (R) {
       face: Q.detail ? (c, hy) => { c.beginPath(); c.roundRect(-0.2, hy - 0.08, 0.36, 0.1, 0.03); c.fillStyle = C.ink; c.fill(); } : undefined,
     }), t);
     ctx.restore();
-    if (Q.detail && o > 0.9 && pulse(t, 9) > 0.82) speech(ctx, -0.9, 14.4, 2.9, "YOU'RE ON THE LIST", { size: 0.36 });
+    if (Q.detail && o > 0.9 && pulse(t, 9) > 0.82) speech(ctx, -0.9, 14.4, 2.9, "YOU'RE ON THE LIST", { size: 0.4 });
   });
 
   // The doorway glows at night while it's open.
@@ -159,7 +160,7 @@ export default function (R) {
       ctx.restore();
       if (m.say && Q.detail && p.k > 0.9) {
         const s = reversing(t) ? 'REVERSE!!' : pulse(t, 6, i) > 0.8 ? m.say : null;
-        if (s) speech(ctx, p.x, p.y, 2.8, s, { size: 0.38 });
+        if (s) speech(ctx, p.x, p.y, 2.8, s, { size: 0.4 });
       }
     });
   });

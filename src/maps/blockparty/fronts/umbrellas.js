@@ -5,10 +5,10 @@
 // the name hung under it. It rains indoors, so a puddle leaks out under the
 // wall. Open 9am to 6pm; from 3pm to 5pm the downpour (indoors) brings
 // everyone in, brollies up.
-import { C, Q, P, box, face, paint, poly, alpha, paintText } from '../../../engine/art.js';
-import { FRONT, board, doorstep, LIT } from '../style.js';
+import { C, Q, P, box, face, paint, poly, alpha } from '../../../engine/art.js';
+import { FRONT, board, doorstep, LIT, words } from '../style.js';
 import { open, nightK } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'umbrellas';
 const INK = FRONT[ID];
@@ -55,16 +55,16 @@ export default function (R) {
       }
       ctx.strokeStyle = INK.stripes[1]; ctx.lineWidth = 0.08; ctx.stroke();
     }
-    words(ctx, PX, BY, 4.7, 'UMBRELLAS', 0.33, INK.ink);
-    words(ctx, PX, BY, 4.32, 'COME IN OUT OF THE SUN', 0.12, C.navy, 'Rethink Sans');
+    words(ctx, 'y', PX, BY, 4.7, 'UMBRELLAS', 0.33, INK.ink);
+    words(ctx, 'y', PX, BY, 4.32, 'COME IN OUT OF THE SUN', 0.12, C.navy, 'Rethink Sans');
   });
   // The umbrella on top: open while the shop is, furled when it's shut; and
   // OPEN or CLOSED on the pole.
   R.thing(PX + 0.01, PY + 0.01, (ctx, t) => {
     const o = open(ID, t);
     brolly(ctx, PX, PY, TOP + 1.3, 1.3, INK.stripes, o);
-    board(ctx, 'y', PX + 0.11, PY, 1.6, 0.95, 0.4, o > 0.5 ? 'OPEN' : 'CLOSED', { board: o > 0.5 ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
+  openCard(R, ID, 'y', PX + 0.11, PY, 1.6, [PX + 0.02, PY + 0.02]);
 
   // A step and a mat, and the rain inside leaking out under the wall.
   R.thing(12.5, -0.05, (ctx) => {
@@ -126,12 +126,3 @@ export default function (R) {
   ]);
 }
 
-// Lettering on an upright board along y (it faces the viewer's lower right).
-function words(ctx, x, y, z, text, size, ink, font) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'left', y, z, text, size, ink, font);
-  ctx.restore();
-}

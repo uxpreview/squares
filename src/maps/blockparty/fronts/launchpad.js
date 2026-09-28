@@ -6,24 +6,15 @@
 // on the ground stay within 1.2 of the wall). Open 8am to 10pm. From 7:30pm
 // the countdown: a crowd comes out through the crew hut to stand behind the
 // rope, and at 8:48pm the rocket goes (the room file does the rocket).
-import { C, Q, P, box, face, paint, person, folk, paintText, cylinder } from '../../../engine/art.js';
-import { FRONT, board, doorstep, LIT } from '../style.js';
+import { C, P, box, face, paint, cylinder } from '../../../engine/art.js';
+import { FRONT, board, doorstep, LIT, words } from '../style.js';
 import { open, nightK, hour, within, HOURS, HOUR, LAUNCH } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'launchpad';
 const INK = FRONT[ID];
 const SX = -0.7; // the sign's posts, out from the wall
 const B = [-0.45, 11.0]; // the barrier's post, just before the door
-
-function words(ctx, x, y, z, text, size, ink, font) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'left', y, z, text, size, ink, font);
-  ctx.restore();
-}
 
 // Hours since liftoff, from minus twelve to plus twelve.
 const sinceLaunch = (t) => ((hour(t) - LAUNCH + 36) % 24) - 12;
@@ -41,8 +32,8 @@ export default function (R) {
       const y0 = SY - 1.7 + i * 0.425;
       face(ctx, [[SX, y0, SZ - 0.65], [SX, y0 + 0.21, SZ - 0.65], [SX, y0 + 0.21, SZ - 0.48], [SX, y0, SZ - 0.48]], i % 2 ? C.ink : C.mustard, { stroke: false });
     }
-    words(ctx, SX, SY, SZ + 0.3, 'LAUNCH PAD', 0.56, INK.ink);
-    words(ctx, SX, SY, SZ - 0.22, 'VACANT LOT (ISH)', 0.24, C.navy, 'Rethink Sans');
+    words(ctx, 'y', SX, SY, SZ + 0.3, 'LAUNCH PAD', 0.56, INK.ink);
+    words(ctx, 'y', SX, SY, SZ - 0.22, 'VACANT LOT (ISH)', 0.24, C.navy, 'Rethink Sans');
     // the little rocket on top
     const [X, Y] = P(SX, SY, SZ + 1.35);
     ctx.beginPath();
@@ -54,10 +45,7 @@ export default function (R) {
     ctx.beginPath(); ctx.arc(X, Y - 0.05, 0.09, 0, Math.PI * 2); paint(ctx, C.sky, { lw: 0.025 });
   });
   // OPEN or CLOSED, hung on the post by the door.
-  R.thing(SX + 0.02, S0 + 0.02, (ctx, t) => {
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'y', SX + 0.1, S0 + 0.1, 1.7, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
-  }, { anim: true });
+  openCard(R, ID, 'y', SX + 0.1, S0 + 0.1, 1.7, [SX + 0.02, S0 + 0.02]);
 
   // The boom barrier: up while it's open, down across the door when it's shut.
   R.thing(B[0], B[1], (ctx, t) => {

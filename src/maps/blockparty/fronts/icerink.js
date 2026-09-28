@@ -13,7 +13,7 @@ import { C, Q, P, box, face, paint, person, folk, label, speech, shade, tint, al
 import { clamp } from '../../../engine/actors.js';
 import { FRONT, board, LIT } from '../style.js';
 import { open, rush, nightK } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'icerink';
 const INK = FRONT[ID];
@@ -41,10 +41,7 @@ export default function (R) {
       ctx.beginPath(); ctx.moveTo(X - 0.2, Y + 0.28); ctx.lineTo(X + 0.42, Y + 0.28); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.04; ctx.stroke();
     }
   });
-  R.thing(GX + 0.01, A + 0.01, (ctx, t) => {
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'y', GX - 0.12, A, 1.05, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
-  }, { anim: true });
+  openCard(R, ID, 'y', GX - 0.12, A, 1.05, [GX + 0.01, A + 0.01]);
 
   // The near post and the sign across the top: ICE RINK, the small print,
   // snow on top, icicles under.
@@ -133,7 +130,7 @@ export default function (R) {
         ctx.strokeStyle = C.grey; ctx.lineWidth = 0.05; ctx.stroke();
       }
       ctx.restore();
-      if (i === 0 && Q.detail && p.k > 0.9 && Math.sin(t * 0.9) > 0.85) speech(ctx, p.x, p.y, 2.8, 'ON YOUR LEFT', { size: 0.36 });
+      if (i === 0 && Q.detail && p.k > 0.9 && Math.sin(t * 0.9) > 0.85) speech(ctx, p.x, p.y, 2.8, 'ON YOUR LEFT', { size: 0.4 });
     });
   });
 }

@@ -8,10 +8,9 @@
 // The window shows the day's sky.
 import { C, Q, P, box, face, paint, shade } from '../../../engine/art.js';
 import { pulse } from '../../../engine/actors.js';
-import { FRONT, board, LIT } from '../style.js';
+import { FRONT, board, LIT, words } from '../style.js';
 import { open, nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
-import { skyPane, words } from './noodles.js';
+import { extras, openCard, skyPane } from './kit.js';
 
 const ID = 'bakery';
 const INK = FRONT[ID];
@@ -49,11 +48,10 @@ export default function (R) {
     croissant(ctx, X, Y, 1.9);
   });
   // OPEN or CLOSED, hung under the valance on two strings.
-  R.thing(-OUT + 0.01, 12.6, (ctx, t) => {
-    const o = open(ID, t) > 0.5, y = 12.55;
-    for (const dy of [-0.3, 0.3]) face(ctx, [pt(y + dy, OUT - 0.05, CZ - 0.4), pt(y + dy, OUT - 0.05, 2.75)], null, { lw: 0.025 });
-    board(ctx, 'y', -OUT + 0.05, y, 2.55, 0.95, 0.4, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.2, edge: 0.03 });
-  }, { anim: true });
+  R.thing(-OUT + 0.01, 12.6, (ctx) => {
+    for (const dy of [-0.3, 0.3]) face(ctx, [pt(12.55 + dy, OUT - 0.05, CZ - 0.4), pt(12.55 + dy, OUT - 0.05, 2.75)], null, { lw: 0.025 });
+  });
+  openCard(R, ID, 'y', -OUT + 0.05, 12.55, 2.55, [-OUT + 0.02, 12.61]);
   // The milk, just delivered, against the wall by the door.
   R.thing(-0.1, 12.05, (ctx) => {
     box(ctx, -0.45, 11.82, 0, 0.36, 0.26, 0.22, C.teal, { lw: 0.03 });
@@ -91,6 +89,6 @@ export default function (R) {
     { path: [[-2, 13.0], [-0.45, 13.0]], seed: 513, dir: 'r', top: C.coral, hat: 'cap', delay: 0.24, pose: 'run',
       say: (t) => (pulse(t, 13, 6) < 0.2 ? 'STILL JOGGING' : null) },
     { path: [[-2, 14.2], [-0.5, 14.2]], seed: 514, dir: 'r', top: C.purple, delay: 0.36, arms: [0.3, 0.2],
-      say: (t) => (pulse(t, 9, 4) < 0.25 ? 'WHAT IS THE QUEUE FOR?' : null) },
+      say: (t) => (pulse(t, 9, 4) < 0.25 ? 'I ONLY WANT BREAD' : null) },
   ]);
 }

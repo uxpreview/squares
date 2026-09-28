@@ -21,7 +21,6 @@
 import { C, Q, SKIN, folk, person, speech, label, note, paint, box, alpha, mix, shade, tint } from '../../engine/art.js';
 import { ZK } from '../../engine/iso.js';
 import { schedule } from '../../engine/actors.js';
-import { tag } from '../greybox.js';
 import { LOOP, DOOR, LANES, MID, STAGE, STAGE_Z, route } from './plan.js';
 import { hour, at, nightK } from './clock.js';
 import { finale } from './finale.js';
@@ -110,8 +109,7 @@ const PARTY = [
   [S0, 31], [S1, 31], [31, S0], [31, S1], [S0, 50], [50, S1],
 ];
 
-// Everyone, by id: their look, name and day. (Greybox: plain folk with name
-// tags; the area art dresses them.)
+// Everyone, by id: their look, name and day.
 const PEOPLE = {};
 const add = (id, name, seed, walk, o = {}) => { PEOPLE[id] = { name, look: folk(seed), walk, ...o }; };
 
@@ -1350,8 +1348,9 @@ export const walkers = Object.entries(PEOPLE).map(([id, c], i) => {
       else dress(ctx, t, p, id, look);
       if (!readable()) return;
       const top = p.z + (c.draw === lorry ? 3.4 : c.draw === snowman ? 3.3 : 2.9);
+      // What they say. (No name tags: the greybox's labels came off once
+      // everyone was dressed; a costume says who they are.)
       if (p.say) speech(ctx, p.x, p.y, top + 0.1, p.say, { size: 0.5 });
-      else if (c.name) tag(ctx, p.x, p.y, top, c.name, { size: 0.34, fill: alpha(C.white, 0.9) });
     },
   };
 }).filter(Boolean);

@@ -6,10 +6,9 @@
 // rope and waits its turn by the pit. The wall clock tells the day's time.
 import { C, Q, P, box, face, paint, shade, alpha } from '../../../engine/art.js';
 import { pulse, clamp } from '../../../engine/actors.js';
-import { FRONT, board, LIT } from '../style.js';
+import { FRONT, board, LIT, words } from '../style.js';
 import { open, rush, nightK, hour } from '../clock.js';
-import { extras } from './observatory.js';
-import { words } from './noodles.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'ballpit';
 const INK = FRONT[ID];
@@ -59,10 +58,7 @@ export default function (R) {
     bigBall(ctx, X, Y, 0.85);
   });
   // OPEN or CLOSED, on the post.
-  R.thing(SX + 0.01, SY + 0.01, (ctx, t) => {
-    const o = open(ID, t) > 0.5;
-    board(ctx, 'y', SX - 0.05, SY, 1.6, 1.0, 0.42, o ? 'OPEN' : 'CLOSED', { board: o ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
-  }, { anim: true });
+  openCard(R, ID, 'y', SX - 0.05, SY, 1.6, [SX + 0.01, SY + 0.01]);
   // The mat outside the fire exit (flat: people walk over it).
   R.thing(-0.1, 13.5, (ctx) => {
     face(ctx, [[-1.05, 13.55, 0.02], [-0.1, 13.55, 0.02], [-0.1, 15.05, 0.02], [-1.05, 15.05, 0.02]], C.coral, { lw: 0.03, dots: shade(C.coral, 0.3), density: 0.2 });

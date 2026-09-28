@@ -10,16 +10,17 @@ import { C, Q, P, box, face, paint, label, shade, tint } from '../../../engine/a
 import { pulse } from '../../../engine/actors.js';
 import { FRONT, board, doorstep, LIT } from '../style.js';
 import { open, rush, nightK } from '../clock.js';
-import { extras } from './observatory.js';
+import { extras, openCard } from './kit.js';
 
 const ID = 'arcade';
 const INK = FRONT[ID];
 const PY = 15.75; // the pole, at the wall's front end (clear of the wall's own art inside)
 const BX0 = -1.45, BX1 = -0.3, BZ0 = 2.6, BZ1 = 6.2; // the blade, sticking out over the alley
 
-// Neon: a soft glow round a bright tube, or dark glass when it's shut.
+// Neon: a bright tube, or dark glass when it's shut. (Its glow is the
+// R.light by the blade, at night: a canvas shadow blur every frame cost too
+// much for a sign.)
 function tube(ctx, lit, color) {
-  if (lit && Q.detail) { ctx.shadowColor = color; ctx.shadowBlur = 12; }
   return lit ? tint(color, 0.35) : shade(color, 0.55);
 }
 
@@ -48,9 +49,9 @@ export default function (R) {
       label(ctx, x, PY + 0.01, BZ0 - 0.58, 'LOW PRICES', 0.17, small, 'Rethink Sans');
       ctx.restore();
     }
-    board(ctx, 'y', -0.42, PY - 0.1, 1.45, 0.95, 0.4, on ? 'OPEN' : 'CLOSED', { board: on ? C.butter : C.greyLight, ink: C.ink, size: 0.22, edge: 0.03 });
   }, { anim: true });
   R.light({ at: [(BX0 + BX1) / 2, PY, (BZ0 + BZ1) / 2], r: 3.2, color: C.pink, k: (t) => nightK(t) * open(ID, t) * 0.7 });
+  openCard(R, ID, 'y', -0.42, PY - 0.1, 1.45, [-0.18, PY + 0.02]);
 
   // A step and a mat.
   R.thing(-0.05, 11.4, (ctx) => doorstep(ctx, 'left', 12.5, 2.2, C.purple));

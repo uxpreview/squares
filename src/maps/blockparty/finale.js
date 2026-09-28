@@ -10,6 +10,7 @@
 import { C, Q, goose, person, folk, speech, box } from '../../engine/art.js';
 import { route } from '../../engine/actors.js';
 import { LANES, STAGE, STAGE_Z } from './plan.js';
+import { lostSock } from './style.js';
 
 export const finale = { since: 0 };
 // The sky calls this every frame with the game's fx.
@@ -63,39 +64,10 @@ export function conga(R) {
     if (k < 5) box(ctx, x - 0.55, y - 0.35, z + 1.05, 0.7, 0.5, 0.45, C.woodLight, { flat: true });
     else {
       box(ctx, px - 0.35, py - 0.25, z, 0.7, 0.5, 0.45, C.woodLight, { flat: true });
-      if (k > 7) sock(ctx, px, py, z + 0.45 + Math.min(1, (k - 7) / 1.5) * 0.7);
+      if (k > 7) { const sz = z + 0.45 + Math.min(1, (k - 7) / 1.5) * 0.7; lostSock(ctx, px - py, (px + py) / 2 - sz * 1.12); }
     }
     if (!Q.detail) return;
     const say = k < 5 ? 'G. Goose?' : k < 8 ? 'Sign here.' : k < 12 ? 'It\'s a sock.' : 'Happy Block Party!';
     speech(ctx, x, y, z + 3, say, { size: 0.5 });
   }, { bias: 0.5 });
-}
-
-// The laundromat's lost sock: stripy, one of a pair, now none of a pair.
-function sock(ctx, x, y, z) {
-  const X = x - y, Y = (x + y) / 2 - z * 1.12;
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.beginPath();
-  ctx.moveTo(-0.15, -0.7);
-  ctx.lineTo(0.15, -0.7);
-  ctx.lineTo(0.15, -0.05);
-  ctx.quadraticCurveTo(0.2, 0.18, 0.5, 0.15);
-  ctx.quadraticCurveTo(0.62, 0.3, 0.45, 0.35);
-  ctx.lineTo(-0.05, 0.35);
-  ctx.quadraticCurveTo(-0.2, 0.3, -0.15, 0.05);
-  ctx.closePath();
-  ctx.fillStyle = C.white;
-  ctx.fill();
-  ctx.save();
-  ctx.clip();
-  ctx.fillStyle = C.coral;
-  for (const v of [-0.55, -0.3]) ctx.fillRect(-0.3, v, 0.6, 0.1);
-  ctx.fillStyle = C.teal;
-  ctx.fillRect(0.1, 0.05, 0.6, 0.4);
-  ctx.restore();
-  ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.05;
-  ctx.stroke();
-  ctx.restore();
 }
