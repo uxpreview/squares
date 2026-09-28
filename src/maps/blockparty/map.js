@@ -48,7 +48,12 @@ const ROOMS = {
 
 // Each room as the Block draws it, with its street front (fronts/) and the
 // night on it (it stays lit: day.js).
-const onTheStreet = (room) => ({ ...room, build(R) { room.build(R); FRONTS[room.id](R); nightfall(R); } });
+const onTheStreet = (room) => ({ ...room, ...RENAMED[room.id], build(R) { room.build(R); FRONTS[room.id](R); nightfall(R); } });
+// On the ground, the pool is the Lido, and the rocket only goes up once a day.
+const RENAMED = {
+  pool: { name: 'The Lido' },
+  launchpad: { blurb: 'Rocket SQ-1 goes up once a day, at the height of the party. The mechanic has a new one built by dawn.' },
+};
 
 // What a room can ask about the day: the hour (0 to 24), how dark it is
 // outside, whether it's open and how busy (0 to 1), and when the rocket goes.

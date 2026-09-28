@@ -198,6 +198,24 @@ export default {
       }
     }, { anim: true });
 
+    // On a day (the Block Party): a clock on the right wall with the day's
+    // real time on it, in an arcade, where nobody ever looks at it.
+    const day = R.opts.day;
+    if (day) {
+      R.decor((ctx) => {
+        onRight(ctx, 4.1, 4.15, 2.5, 1.0, C.ink, { lw: 0.05 });
+        onRight(ctx, 4.2, 4.25, 2.3, 0.8, C.night, { stroke: false });
+        paintText(ctx, 'right', 5.35, 3.85, 'HOME BY 6PM. LOVE, MUM', 0.2, C.white, 'Rethink Sans');
+      });
+      R.decor((ctx, t) => {
+        const h = day.hour(t);
+        const m = Math.floor(((h % 1) * 60) / 5) * 5;
+        const colon = Math.floor(t * 2) % 2 ? ':' : ' ';
+        const text = `${Math.floor(h) % 12 || 12}${colon}${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+        paintText(ctx, 'right', 5.35, 4.64, text, 0.5, h >= 17.5 && h < 19 ? C.coral : C.mint, 'Rethink Sans');
+      }, { anim: true });
+    }
+
     // High score board on the left wall.
     R.decor((ctx) => {
       onLeft(ctx, 1.2, 4.0, 3.6, 1.9, C.ink, { lw: 0.05 });

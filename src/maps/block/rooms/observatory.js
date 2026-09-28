@@ -273,6 +273,38 @@ function sparkle(ctx, X, Y, s, color) {
 
 const PROJ = [4.4, 12.2, 1.55];
 
+// The sky by the hour, for a room on a day: navy night, a blush dawn, day
+// blue, the party's pink sunset, a purple dusk. Steps of a twentieth keep
+// the color mixes few.
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+// The window on the right wall, repainted with that sky: the sun by day, the
+// moon and a star by night.
+function skyWindow(ctx, h) {
+  const x = 10.2, z = 2.0, w = 2.8, hh = 2.6;
+  const sky = skyAt(h);
+  onRight(ctx, x, z, w, hh, sky, { lw: 0.03 });
+  const dark = h < 5.5 || h > 20.5;
+  const [X, Y] = P(dark ? 12.1 : 11.0, 0.01, dark ? 4.1 : 3.2 + Math.sin(((h - 6) / 14) * Math.PI) * 1.1);
+  ctx.beginPath(); ctx.arc(X, Y, dark ? 0.38 : 0.34, 0, Math.PI * 2);
+  paint(ctx, dark ? C.butter : C.mustard, { lw: 0.04 });
+  if (dark) {
+    ctx.beginPath(); ctx.arc(X - 0.1, Y + 0.05, 0.08, 0, Math.PI * 2); ctx.fillStyle = C.mustard; ctx.fill();
+    for (const [u, v] of [[10.7, 4.3], [11.3, 2.6], [12.7, 2.9]]) {
+      const [sx, sy] = P(u, 0.01, v);
+      ctx.beginPath(); ctx.arc(sx, sy, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+    }
+  }
+  face(ctx, [[x + w / 2, 0, z], [x + w / 2, 0, z + hh]], null, { lw: 0.1, stroke: C.greyLight });
+  face(ctx, [[x, 0, z + hh / 2], [x + w, 0, z + hh / 2]], null, { lw: 0.1, stroke: C.greyLight });
+}
+
 export default {
   id: 'observatory',
   name: 'Observatory',
@@ -334,6 +366,9 @@ export default {
       ctx.beginPath(); ctx.arc(X, Y, 0.38, 0, Math.PI * 2); paint(ctx, C.butter, { lw: 0.04 });
       ctx.beginPath(); ctx.arc(X - 0.1, Y + 0.05, 0.08, 0, Math.PI * 2); ctx.fillStyle = C.mustard; ctx.fill();
     });
+    // On a day (the Block Party), the window shows the real sky outside.
+    const day = R.opts.day;
+    if (day) R.decor((ctx, t) => skyWindow(ctx, day.hour(t)), { anim: true });
 
     // Twinkling stars on the walls.
     R.decor((ctx, t) => {
