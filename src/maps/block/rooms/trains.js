@@ -233,6 +233,46 @@ function tinyCow(ctx, x, y, z) {
   ctx.restore();
 }
 
+// On a day (the Block Party): the sky by the hour (as the Lido's), for the
+// window, and the clock on the day's time.
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+function dayWindow(ctx, h) {
+  onLeft(ctx, 8.8, 2.5, 2.6, 2.2, skyAt(h), { lw: 0.03 });
+  const dark = h < 5.5 || h > 20.5;
+  if (dark && Q.detail) {
+    for (const [yy, zz] of [[9.2, 4.2], [10.1, 3.4], [10.9, 4.4], [9.6, 2.9], [11.1, 3.0]]) {
+      const [X, Y] = P(0, yy, zz);
+      ctx.fillStyle = C.butter; ctx.fillRect(X - 0.04, Y - 0.04, 0.08, 0.08);
+    }
+  }
+  const k = clamp((h - 6) / 14);
+  const [X, Y] = P(0, dark ? 10.4 : 9.3 + k * 1.8, dark ? 4.0 : 3.0 + Math.sin(k * Math.PI) * 1.2);
+  ctx.beginPath(); ctx.arc(X, Y, 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? C.butter : C.mustard; ctx.fill();
+  face(ctx, [[0, 10.1, 2.5], [0, 10.1, 4.7]], null, { lw: 0.1, stroke: C.white });
+  face(ctx, [[0, 8.8, 3.6], [0, 11.4, 3.6]], null, { lw: 0.1, stroke: C.white });
+}
+function dayClockL(ctx, y, z, r, h) {
+  const [X, Y] = P(0, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.transform(1, -0.5, 0, 1, 0, 0);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+  paint(ctx, C.white);
+  const hA = ((h % 12) / 12) * Math.PI * 2, mA = (h % 1) * Math.PI * 2;
+  ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
+  ctx.lineWidth = 0.09; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(hA) * r * 0.5, -Math.cos(hA) * r * 0.5); ctx.stroke();
+  ctx.lineWidth = 0.06; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(mA) * r * 0.8, -Math.cos(mA) * r * 0.8); ctx.stroke();
+  ctx.restore();
+}
+
 export default {
   id: 'trains',
   name: 'Model Railway',
@@ -309,6 +349,10 @@ export default {
       onRight(ctx, 13.7, 2.4, 2.1, 1.9, C.black, { lw: 0.06 });
       paintText(ctx, 'right', 14.75, 4.05, 'DEPARTURES', 0.2, C.butter);
     });
+    // On a day, the window shows the hour and the clock tells the day's time.
+    const day = R.opts.day;
+    if (day) R.decor((ctx, t) => { const h = day.hour(t); dayWindow(ctx, h); dayClockL(ctx, 14.6, 4.2, 0.55, h); }, { anim: true });
+
     // split-flap rows, one always flipping
     R.decor((ctx, t) => {
       if (!Q.detail) return;
