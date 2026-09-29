@@ -1,12 +1,12 @@
 # Squares: brief for drawing a zone
 
-Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on The Block, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three objects the player taps to circle with a pen.
+Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on the Block Party, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three objects the player taps to circle with a pen.
 
 Everything is drawn in code on a canvas. Nothing is static: every zone should be crawling with life.
 
 ## Where things live
 
-- A zone is one file: `src/maps/<map>/areas/<id>.js` for levels made with `npm run new-level` (the Manor), `src/maps/<map>/rooms/<id>.js` (The Block) or `src/maps/<map>/floors/<id>.js` (The Walk-Up).
+- A zone is one file: `src/maps/<map>/areas/<id>.js` for levels made with `npm run new-level` (the Manor), `src/maps/<map>/rooms/<id>.js` (the Block Party) or `src/maps/<map>/floors/<id>.js` (The Walk-Up).
 - A level made with the pipeline has a style sheet, `src/maps/<map>/style.js`: its inks and shared props. Use it.
 - Imports from a zone file: `'../../../engine/art.js'`, `'../../../engine/actors.js'`, `'../../../engine/iso.js'`.
 - Which zones a map has, and where they sit, is in that map's `map.js`.
@@ -30,7 +30,7 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 - Zone floor is 16 x 16 units: x runs to the screen's lower-right, y to the lower-left, z is up. The back walls are the planes x = 0 (left wall, draw on it with `onLeft(ctx, y, z, w, h, ...)`) and y = 0 (right wall, `onRight(ctx, x, z, w, h, ...)`). The open front corner is (16, 16).
 - Default wall height is 6 (`walls(ctx, { h, left, right, cap, dotsL, dotsR, leftWall, rightWall })`). Outdoor zones can use low walls, fences, or no walls. Always draw `slab(ctx, color)` first.
 - A person is about 2.3 units tall. The goose is about 1 unit tall. Keep scale consistent: a table top is at z 1.2, a chair seat at 0.8, a door is about 3.2 tall.
-- Tall things may rise up to about 9 units above the floor on The Block. On The Walk-Up keep everything under about 8 (the floor above hangs over you in the overview).
+- Tall things may rise up to about 9 units above the floor on the Block Party. On The Walk-Up keep everything under about 8 (the floor above hangs over you in the overview).
 - Zones in front of (or above) the one being viewed get cut away automatically, so the whole zone is visible when zoomed in.
 - **A zone of another size or shape** (a street, a square): give the zone module `size: [w, d]`, or `shape: [[x0, y0, x1, y1], ...]` for one that isn't one box (an L, a cross). `R.W` and `R.D` are its size, `R.shape` its boxes; `slab(ctx, color, R.W, R.D)`, or `ground(R, ...)` from the greybox kit for a shape. The engine draws it in 16 x 16 chunks, each sorted in with the zones around it, and hides the seams (every 16 units from its back corner). Two rules: keep anything wide and tall about a unit clear of a seam (its sides could be clipped by the chunk beside it), and keep flat things (floor, rug and wall layers) on the zone's own floor, since past its edges they're cut off. `#/crossroads` is the test map.
 

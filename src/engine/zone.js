@@ -66,6 +66,8 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //   place.doors:  doors the map cuts in the zone's walls, as in R.walls (so a
 //                 room can sit on two maps, with a door only on one of them)
 //   place.walkers: people on the map's timeline (added by buildWorld)
+//   place.reach:  how far past its corners its picture goes (default 1.5): more
+//                 for a room with things standing outside it (a street front)
 //   place.opts:   anything the map wants to tell the zone (R.opts), so a
 //                 zone file shared by two maps can draw differently on one
 export function buildZone(def, place = {}) {
@@ -86,7 +88,7 @@ export function buildZone(def, place = {}) {
     span: place.span ?? h + SLAB,
     fixed: !!place.fixed,
     anchor: [isoX(ox, oy), isoY(ox, oy, oz)],
-    bounds: zoneBounds(w, d, h),
+    bounds: zoneBounds(w, d, h, place.reach),
     items: [],
     anim: [],
     finds: [],

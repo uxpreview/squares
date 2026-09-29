@@ -3,9 +3,10 @@
 // Addresses (the part after #):
 //   #/                   title screen
 //   #/maps               pick a place
-//   #/block              play The Block, whole map
-//   #/block/laundromat   play The Block, inside the laundromat
+//   #/block              play The Block Party, whole map
+//   #/block/laundromat   play The Block Party, inside the laundromat
 //   #laundromat          old links from before there were maps still work
+//   #/blockparty         the Block Party's address before it shipped: goes to #/block
 
 // Fonts ship with the game (no Google Fonts call), Latin letters only.
 import '@fontsource/bagel-fat-one/latin-400.css';
@@ -111,11 +112,15 @@ function go(hash) {
   else location.hash = hash;
 }
 
+// Places that moved to another id: the old address goes to the new one.
+const MOVED = { blockparty: 'block' };
+
 function parse(hash) {
   const h = hash.replace(/^#\/?/, '');
   if (!h) return { screen: 'title' };
   if (h === 'maps') return { screen: 'places' };
   const [map, zone] = h.split('/');
+  if (MOVED[map]) return { screen: 'moved', hash: `#/${MOVED[map]}${zone ? '/' + zone : ''}` };
   if (MAPS.some((m) => m.id === map)) return { screen: 'play', map, zone };
   // An old link straight to a room on the block.
   return { screen: 'play', map: 'block', zone: map };
@@ -125,6 +130,8 @@ let first = true;
 let routing = 0;
 async function route() {
   const r = parse(location.hash);
+  // (Swapped in place, so back doesn't return to the old address.)
+  if (r.screen === 'moved') { history.replaceState(null, '', r.hash); route(); return; }
   const n = ++routing;
   const was = first;
   first = false;

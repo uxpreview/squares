@@ -3,7 +3,7 @@
 // judge who is still missing his nose.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor,
-  speech, shade, tint, alpha, Q, label, P, paintText, rng, hash,
+  speech, shade, tint, alpha, Q, label, P, paintText, rng, hash, SKIN,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
 
@@ -401,9 +401,9 @@ export default {
     // Light poles at the rink corners with bulbs strung between them.
     const poles = [[3.7, 4.2], [15.3, 4.2], [15.3, 13.3], [3.7, 13.3]];
     const PZ = 4.3;
-    // On a day (the Block Party), the pole lamps light up after dark.
+    // The pole lamps light up after dark.
     const day = R.opts.day;
-    if (day) poles.forEach(([x, y]) => R.light({ at: [x, y, PZ], r: 3.4, color: C.butter, k: (t) => day.nightK(t) * 0.6 }));
+    poles.forEach(([x, y]) => R.light({ at: [x, y, PZ], r: 3.4, color: C.butter, k: (t) => day.nightK(t) * 0.6 }));
     poles.forEach(([x, y], i) => {
       R.thing(x, y, (ctx) => {
         box(ctx, x - 0.08, y - 0.08, 0, 0.16, 0.16, PZ, C.navy, { flat: true });
@@ -484,7 +484,7 @@ export default {
       const f = pulse(t, Tq);
       const hand = f > 0.45 && f < 0.75;
       person(ctx, HX + 2.1, HY + 1.1, 0, {
-        skin: '#95603F', hair: C.ink, style: 'bun', top: C.coral, bottom: C.navy, hat: 'beanie',
+        skin: SKIN[3], hair: C.ink, style: 'bun', top: C.coral, bottom: C.navy, hat: 'beanie',
         pose: hand ? 'carry' : 'drum', dir: 'r', speed: 5,
         hold: hand ? (c) => mug(c, t) : null,
       }, t);
@@ -642,7 +642,7 @@ export default {
       // a flask and a clipboard
       cylinder(ctx, 1.5, 10.95, 0.82, 0.08, 0.3, C.teal, { flat: true });
     });
-    const judges = [[1.95, 9.2, folk(71, { hat: 'none', style: 'bald', top: C.navy, bottom: C.ink, skin: '#F4CDAA' })], [1.95, 10.4, folk(72, { style: 'bun', hair: C.grey, top: C.purple, dress: false })]];
+    const judges = [[1.95, 9.2, folk(71, { hat: 'none', style: 'bald', top: C.navy, bottom: C.ink, skin: SKIN[0] })], [1.95, 10.4, folk(72, { style: 'bun', hair: C.grey, top: C.purple, dress: false })]];
     const scores = [['5.9', '6.0', '5.8', '6.0', '5.7'], ['5.8', '5.9', '6.0', '5.9', '6.0']];
     judges.forEach(([x, y, st], j) => {
       R.mover(() => ({ x, y }), (ctx, t) => {
@@ -652,9 +652,9 @@ export default {
         if (show) scoreCard(ctx, x + 0.45, y - 0.45, 3.05, scores[j][((cyc % 5) + 5) % 5]);
       }, { bias: 2.2 });
     });
-    // The snowman is the third judge. (On a day, the Block Party, he's wheeled
-    // out to judge the party at 5pm: he's the walker then, not this.)
-    const out = R.opts.day && R.walkers.find((w) => w.id === 'snowman');
+    // The snowman is the third judge. (He's wheeled out to judge the party
+    // at 5pm: he's the walker then, not this.)
+    const out = R.walkers.find((w) => w.id === 'snowman');
     R.mover(() => ({ x: 1.7, y: 12.9 }), (ctx, t) => {
       if (out && !out.at(t).hide) return;
       const s = pulse(t, FIG) * FIG;
@@ -692,7 +692,7 @@ export default {
     };
     R.mover(fig, (ctx, t, p) => {
       person(ctx, p.x, p.y, p.z, {
-        skin: '#F7DCC4', hair: C.mustard, style: 'bun', top: C.pink, dress: true, shoes: C.white,
+        skin: SKIN[5], hair: C.mustard, style: 'bun', top: C.pink, dress: true, shoes: C.white,
         pose: p.pose, dir: p.dir, back: p.back, arms: p.arms, speed: 6,
       }, t);
       if (!Q.detail) return;
@@ -821,7 +821,7 @@ export default {
       return { x, y, dir: vx - vy >= 0 ? 'r' : 'l', back: vx + vy < -0.05 };
     };
     R.mover(oldie, (ctx, t, p) => {
-      person(ctx, p.x, p.y, 0, { skin: '#F4CDAA', hair: C.white, style: 'bald', top: C.brown, bottom: C.ink, hat: 'beanie', pose: 'stand', dir: p.dir, back: p.back, arms: [-0.6, -0.5] }, t);
+      person(ctx, p.x, p.y, 0, { skin: SKIN[0], hair: C.white, style: 'bald', top: C.brown, bottom: C.ink, hat: 'beanie', pose: 'stand', dir: p.dir, back: p.back, arms: [-0.6, -0.5] }, t);
       if (Q.detail && pulse(t, 17) < 0.14) speech(ctx, p.x, p.y, 2.9, 'SINCE 1961', { size: 0.38 });
     });
 
@@ -867,7 +867,7 @@ export default {
       // driver in the front seat
       const sx = p.x + hx * 0.7, sy = p.y + hy * 0.7;
       const dir = hx - hy >= 0 ? 'r' : 'l', back = hx + hy < 0;
-      person(ctx, sx, sy, 0.4, { skin: '#C3835B', hair: C.ink, top: C.mustard, bottom: C.navy, hat: 'cap', pose: 'sit', dir, back, arms: [1.3, 1.2] }, t);
+      person(ctx, sx, sy, 0.4, { skin: SKIN[2], hair: C.ink, top: C.mustard, bottom: C.navy, hat: 'cap', pose: 'sit', dir, back, arms: [1.3, 1.2] }, t);
       // blinking beacon
       const [BX, BY] = P(tx + tw / 2, ty + td / 2, 1.85);
       ctx.beginPath();

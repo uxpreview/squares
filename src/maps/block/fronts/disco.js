@@ -14,7 +14,7 @@ import { openCard } from './kit.js';
 
 const ID = 'disco';
 const INK = FRONT[ID];
-const PY = 15.25; // the pole, near the wall's front end (the blade has to stay inside the room's picture)
+const PY = 15.75; // the pole, at the wall's front end
 const BX0 = -1.9, BX1 = -0.3, BZ0 = 3.1, BZ1 = 5.9; // the blade, out over the alley (overhead)
 
 // Neon: a bright tube, or dark glass when it's off. (Its glow is the R.light

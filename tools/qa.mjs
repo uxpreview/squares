@@ -12,6 +12,8 @@
 //   errors   nothing breaks loading the level, or drawing any area (walls up
 //            and down) at 48 moments across its loop
 //   stills   things not marked anim look the same all loop long (they're cached)
+//   pictures nothing a room draws is cut off at the edge of its picture (how
+//            it's shown while you're in another room)
 //   walkers  people on the map's timeline go through doors, never walls, and
 //            never faster than a run
 //   case     (whodunits) every clue in the case file is a find in the place,
@@ -327,6 +329,44 @@ try {
   }, { n: 24, loop: info.loop });
   for (const p of stills.out) fail('stills', p);
   if (!stills.out.length) pass('stills', `All ${stills.count} still items look the same all loop long (they're cached, so anything that moves is marked anim).`);
+
+  // ---------- Pictures: nothing a room draws is cut off at its picture's edge ----------
+  // A room you're not in is shown as a picture of itself, which reaches a set
+  // way past its corners (1.5 units, or its reach on the map). Anything drawn
+  // further out (a sign over the street) is cut off in that picture.
+  step('Checking nothing is cut off in the room pictures');
+  const pics = await page.evaluate(async ({ loop }) => {
+    const Z = await import('/src/engine/zone.js');
+    const I = await import('/src/engine/iso.js');
+    const w = window.__squares.world, out = [], k = 6;
+    for (const z of w.zones) {
+      if (z.chunks.length !== 1) continue; // long areas are drawn live, in pieces
+      const c = z.chunks[0], keep = c.bounds, keepZ = z.bounds, wk = z.wallK;
+      const big = I.zoneBounds(z.w, z.d, z.h, 12);
+      const over = { left: 0, right: 0, bottom: 0, top: 0 };
+      for (const t of [0.37, 0.2, 0.4, 0.55, 0.65, 0.75, 0.9].map((f) => f * loop)) {
+        c.bounds = z.bounds = big;
+        z.wallK = 0;
+        Z.snapshotZone(c, k, t, 1);
+        const cv = c.snap, d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+        let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+        for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+          if (d[(y * cv.width + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        Z.dropSnapshot(c);
+        c.bounds = keep; z.bounds = keepZ; z.wallK = wk;
+        if (x1 < 0) continue;
+        over.left = Math.max(over.left, keep.x0 - (big.x0 + x0 / k));
+        over.right = Math.max(over.right, big.x0 + (x1 + 1) / k - keep.x1);
+        over.top = Math.max(over.top, keep.y0 - (big.y0 + y0 / k));
+        over.bottom = Math.max(over.bottom, big.y0 + (y1 + 1) / k - keep.y1);
+      }
+      for (const [side, u] of Object.entries(over)) if (u > 0.25) out.push(`${z.name}: something is drawn ${u.toFixed(1)} units past the ${side} of its picture, so it's cut off when you're in another room. Move it in, or give the room more reach (reach on its place in the map).`);
+    }
+    return out;
+  }, { loop: info.loop });
+  for (const p of pics) fail('pictures', p);
+  if (!pics.length) pass('pictures', 'Nothing any room draws is cut off at the edge of its picture.');
 
   // ---------- Walkers ----------
   if (info.walkers.length) {

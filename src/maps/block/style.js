@@ -263,6 +263,64 @@ export function onFloor(ctx, x, y, a, draw) {
   ctx.restore();
 }
 
+// Litter, flat on the ground at (x, y), turned by a: what a street drops
+// round a find so it takes a look (the find stays the only one of its kind).
+// kind: 'flyer' (a party flyer), 'box' (a flattened box), 'wrapper' (a crisp
+// packet), 'chips' (a spilt cone of chips), 'glove', 'receipt', 'cap' (a
+// bottle cap), 'napkin', 'gum'.
+export function litter(ctx, kind, x, y, a = 0) {
+  onFloor(ctx, x, y, a, () => {
+    const lw = { lw: 0.03 };
+    if (kind === 'flyer') {
+      ctx.beginPath(); ctx.rect(-0.3, -0.21, 0.6, 0.42); paint(ctx, C.butter, lw);
+      ctx.fillStyle = C.coral; ctx.fillRect(-0.3, -0.21, 0.6, 0.1);
+      if (!Q.detail) return;
+      ctx.fillStyle = C.ink;
+      for (const v of [-0.02, 0.06, 0.14]) ctx.fillRect(-0.22, v, 0.34 + v, 0.03);
+    } else if (kind === 'box') {
+      ctx.beginPath(); ctx.rect(-0.55, -0.38, 1.1, 0.76); paint(ctx, C.woodLight, lw);
+      if (!Q.detail) return;
+      ctx.strokeStyle = C.wood; ctx.lineWidth = 0.025;
+      ctx.beginPath(); ctx.moveTo(-0.18, -0.38); ctx.lineTo(-0.18, 0.38); ctx.moveTo(0.2, -0.38); ctx.lineTo(0.2, 0.38); ctx.stroke();
+      ctx.fillStyle = tint(C.sky, 0.3); ctx.fillRect(-0.55, -0.05, 1.1, 0.1); // the tape
+      ctx.fillStyle = C.brown; ctx.fillRect(0.28, -0.26, 0.16, 0.12); // a THIS WAY UP arrow, near enough
+    } else if (kind === 'wrapper') {
+      ctx.beginPath();
+      ctx.moveTo(-0.2, -0.14); ctx.lineTo(0.18, -0.17); ctx.lineTo(0.22, 0.12); ctx.lineTo(0.02, 0.16); ctx.lineTo(-0.21, 0.13);
+      ctx.closePath(); paint(ctx, C.red, lw);
+      if (!Q.detail) return;
+      ctx.fillStyle = C.butter; ctx.beginPath(); ctx.arc(0, 0, 0.07, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'chips') {
+      ctx.beginPath(); ctx.moveTo(-0.34, -0.14); ctx.lineTo(0.2, 0); ctx.lineTo(-0.34, 0.14); ctx.closePath(); paint(ctx, C.white, lw);
+      ctx.fillStyle = C.red; ctx.fillRect(-0.34, -0.13, 0.12, 0.26);
+      ctx.fillStyle = C.butter; ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
+      for (const [u, v, r] of [[0.26, 0.02, 0.4], [0.36, -0.1, -0.3], [0.33, 0.12, 1.1], [0.48, 0.03, 0.2]]) {
+        ctx.save(); ctx.translate(u, v); ctx.rotate(r); ctx.beginPath(); ctx.rect(-0.08, -0.025, 0.16, 0.05); ctx.fill(); ctx.stroke(); ctx.restore();
+      }
+    } else if (kind === 'glove') {
+      ctx.beginPath();
+      ctx.moveTo(-0.22, 0.14); ctx.lineTo(-0.22, -0.04);
+      for (const [u, h] of [[-0.18, 0.22], [-0.08, 0.27], [0.02, 0.26], [0.12, 0.2]]) { ctx.lineTo(u, -h); ctx.lineTo(u + 0.08, -h); ctx.lineTo(u + 0.08, -0.05); }
+      ctx.lineTo(0.28, -0.02); ctx.lineTo(0.2, 0.14); ctx.closePath();
+      paint(ctx, C.teal, lw);
+      ctx.fillStyle = C.mint; ctx.fillRect(-0.22, 0.08, 0.42, 0.06);
+    } else if (kind === 'receipt') {
+      ctx.beginPath(); ctx.rect(-0.1, -0.34, 0.2, 0.68); paint(ctx, C.white, lw);
+      if (!Q.detail) return;
+      ctx.fillStyle = C.grey;
+      for (let v = -0.26; v < 0.3; v += 0.09) ctx.fillRect(-0.06, v, 0.12, 0.025);
+    } else if (kind === 'cap') {
+      ctx.beginPath(); ctx.arc(0, 0, 0.09, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
+    } else if (kind === 'napkin') {
+      ctx.beginPath(); ctx.moveTo(-0.2, -0.16); ctx.lineTo(0.2, -0.2); ctx.lineTo(0.17, 0.18); ctx.lineTo(-0.18, 0.15); ctx.closePath(); paint(ctx, C.white, lw);
+      if (Q.detail) { ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.02; ctx.beginPath(); ctx.moveTo(-0.2, -0.16); ctx.lineTo(0.17, 0.18); ctx.stroke(); }
+    } else if (kind === 'gum') {
+      ctx.fillStyle = shade(C.greyLight, 0.25);
+      for (const [u, v, r] of [[0, 0, 0.07], [0.3, 0.12, 0.05], [-0.22, 0.2, 0.06]]) { ctx.beginPath(); ctx.arc(u, v, r, 0, Math.PI * 2); ctx.fill(); }
+    }
+  });
+}
+
 // A traffic cone, h tall, standing at (x, y). The same cone on every street.
 export function cone(ctx, x, y, h = 0.85) {
   box(ctx, x - 0.3, y - 0.3, 0, 0.6, 0.6, 0.08, C.coral, { flat: true, lw: 0.03 });

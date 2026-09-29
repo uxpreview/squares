@@ -19,11 +19,12 @@ export const unproject = (X, Y) => [Y + X / 2, Y - X / 2];
 
 // A zone's picture in its own iso space (anchored at its back corner), with
 // headroom above the walls for tall props like the rocket and the water tower.
-export function zoneBounds(w = S, d = S, h = WALL) {
+// reach: how far past its corners it goes, for whatever stands outside it.
+export function zoneBounds(w = S, d = S, h = WALL, reach = 1.5) {
   return {
-    x0: -d - 1.5,
-    x1: w + 1.5,
+    x0: -d - reach,
+    x1: w + reach,
     y0: -h * ZK - 9,
-    y1: (w + d) / 2 + SLAB * ZK + 1.5,
+    y1: (w + d) / 2 + SLAB * ZK + reach,
   };
 }

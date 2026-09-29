@@ -55,8 +55,9 @@ function porthole(ctx, plane, x, y, z, r, t, speed, colors, o = {}) {
 }
 
 const WASHERS = [0, 1, 2, 3, 4].map((i) => ({ x: 1.0 + i * 2.2, w: 2.0 }));
+// Two stacks: the street door is in this wall at y 11.4 to 13.6.
 const DRYERS = [];
-for (const y of [7.0, 9.4, 11.8]) for (const z of [0, 2.2]) DRYERS.push({ y, z });
+for (const y of [7.0, 9.4]) for (const z of [0, 2.2]) DRYERS.push({ y, z });
 const LOADS = [
   [C.coral, C.mustard, C.teal],
   [C.pink, C.white, C.navy],
@@ -200,11 +201,8 @@ export default {
       if (Q.detail && k > 0.7 && k < 0.95) speech(ctx, 13.4, 2.9, 3.0, 'YES!', { size: 0.5, fill: C.butter });
     });
 
-    // Dryers stacked along the left wall. On a day (the Block Party) the room
-    // has a street door in this wall at y 11.4 to 13.6, so the last stack goes.
-    const day = R.opts.day;
+    // Dryers stacked along the left wall.
     DRYERS.forEach(({ y, z }, i) => {
-      if (day && y > 11) return;
       R.thing(0.9, y + 1.15 + z * 0.01, (ctx, t) => {
         box(ctx, 0, y, z, 1.8, 2.3, 2.1, C.greyLight, { top: C.white, right: tint(C.greyLight, 0.4) });
         const open = i === 2;

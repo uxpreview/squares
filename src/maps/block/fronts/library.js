@@ -17,7 +17,7 @@ import { extras, openCard } from './kit.js';
 
 const ID = 'library';
 const INK = FRONT[ID];
-const PY = 15.3; // the post, near the wall's front end (the sign has to stay inside the room's picture)
+const PY = 15.75; // the post, at the wall's front end
 const AX = -1.9; // how far the bracket reaches out, overhead
 const AZ = 5.2; // the bracket's height
 const BZ = 3.95; // the hanging board's middle (its bottom is well over heads)

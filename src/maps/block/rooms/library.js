@@ -2,7 +2,7 @@
 // everything (including the weather), story time, and a goose doing its homework.
 import {
   C, box, rect, disc, cylinder, face, paint, person, folk, slab, planks,
-  onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, rng, pick, CLOTH, lamp,
+  onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, rng, pick, CLOTH, lamp, SKIN,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -144,7 +144,7 @@ function plane(ctx, X, Y, dx, dy, s = 1) {
   ctx.restore();
 }
 
-// On a day (the Block Party): the sky by the hour, and the clock's hands on it.
+// The sky by the hour, and the clock's hands on it.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -175,8 +175,8 @@ export default {
   blurb: 'The librarian has shushed three children, one ladder and a thunderstorm. The goose is studying swans, for reasons.',
 
   build(R) {
-    // On a day (the Block Party): the door onto Main Street, the sky in the
-    // window, and the librarian away shushing the sound check.
+    // The door onto Main Street, the sky in the window, and the librarian
+    // away shushing the sound check.
     const day = R.opts.day;
     // ---------- floor ----------
     R.floor((ctx) => {
@@ -200,7 +200,6 @@ export default {
       ctx.translate(X, Y);
       ctx.transform(1, 0.5, 0, 1, 0, 0);
       ctx.beginPath(); ctx.arc(0, 0, 0.36, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.05 });
-      if (!day) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -0.26); ctx.moveTo(0, 0); ctx.lineTo(0.18, 0.06); ctx.stroke(); }
       ctx.restore();
     });
 
@@ -210,7 +209,7 @@ export default {
     R.decor((ctx, t) => {
       onRight(ctx, WX0 - 0.2, WZ0 - 0.2, WX1 - WX0 + 0.4, WZ1 - WZ0 + 0.4, C.white, { lw: 0.05 });
       const flash = flashAt(t);
-      const sky = day ? mix(skyAt(day.hour(t)), C.grey, 0.3) : mix(C.navy, C.grey, 0.35);
+      const sky = mix(skyAt(day.hour(t)), C.grey, 0.3);
       onRight(ctx, WX0, WZ0, WX1 - WX0, WZ1 - WZ0, flash ? C.white : sky, { dots: flash ? null : C.navy, density: 0.25, lw: 0.04 });
       if (Q.detail) {
         // rooftops outside
@@ -248,7 +247,7 @@ export default {
       // mullions
       face(ctx, [[(WX0 + WX1) / 2, 0, WZ0], [(WX0 + WX1) / 2, 0, WZ1]], null, { lw: 0.12, stroke: C.white });
       face(ctx, [[WX0, 0, (WZ0 + WZ1) / 2 + 0.4], [WX1, 0, (WZ0 + WZ1) / 2 + 0.4]], null, { lw: 0.12, stroke: C.white });
-      if (day) clockHands(ctx, day.hour(t));
+      clockHands(ctx, day.hour(t));
     }, { anim: true });
     // thunder word, outside the room's back
     R.air((ctx, t) => {
@@ -281,10 +280,10 @@ export default {
     // ---------- bookcases ----------
     for (let i = 0; i < 8; i++) {
       const y = 0.4 + i * 1.95;
-      // (on a day, two cases make way for the door onto Main Street, y 11.4 to 13.6)
-      if (day && i === 6) continue;
-      const w = day && i === 5 ? 0.95 : 1.95;
-      R.thing(1.1, y + w, (ctx) => bookcaseL(ctx, y, w, 300 + i, [i === 0 || (day && i === 7), i === 7 || (day && i === 5)]));
+      // (two cases make way for the door onto Main Street, y 11.4 to 13.6)
+      if (i === 6) continue;
+      const w = i === 5 ? 0.95 : 1.95;
+      R.thing(1.1, y + w, (ctx) => bookcaseL(ctx, y, w, 300 + i, [i === 0 || i === 7, i === 5 || i === 7]));
     }
     for (const [x, w, seed, e0, e1] of [[1.2, 2.2, 401, true, false], [3.4, 2.2, 402, false, false], [5.6, 2.2, 403, false, true], [12.3, 1.85, 404, true, false], [14.15, 1.85, 405, false, true]]) {
       R.thing(x + w, 1.1, (ctx) => bookcaseR(ctx, x, w, seed, [e0, e1]));
@@ -292,7 +291,7 @@ export default {
 
     // ---------- the rolling ladder, and the person riding it ----------
     // 0-7 browsing near the back, 7.4-9.4 WHEEE to the front, 9.4-14 browsing, 14-16 a sheepish roll back.
-    const run = day ? 6.4 : 9.6; // (on a day it stops short of the door)
+    const run = 6.4; // (it stops short of the door)
     const ladderY = (t) => {
       const s = pulse(t, LOOP) * LOOP;
       if (s < 7.4) return 3.2;
@@ -320,7 +319,7 @@ export default {
       const s = pulse(t, LOOP) * LOOP;
       const zoom = s > 7.4 && s < 9.8;
       person(ctx, 2.0, y, 2.0, {
-        skin: '#E3A97F', hair: C.red, style: 'pony', top: C.mustard, bottom: C.navy, dir: 'l', back: !zoom,
+        skin: SKIN[1], hair: C.red, style: 'pony', top: C.mustard, bottom: C.navy, dir: 'l', back: !zoom,
         pose: zoom ? 'cheer' : 'point', arms: zoom ? undefined : [2.4 + Math.sin(t * 2) * 0.2, 0.2], speed: 10,
       }, t);
       if (zoom && Q.detail) {
@@ -355,12 +354,12 @@ export default {
       if (s > 13.8 && s < 15.4) return { dir: 'r', target: 'sky' };
       return null;
     };
-    const her = day && R.walkers.find((w) => w.id === 'librarian');
+    const her = R.walkers.find((w) => w.id === 'librarian');
     R.mover(() => ({ x: 13.6, y: 2.8 }), (ctx, t) => {
       if (her && !her.at(t).hide) return; // out shushing the sound check
       const sh = shush(t);
       person(ctx, 13.6, 2.8, 0, {
-        skin: '#F7DCC4', hair: C.greyLight, style: 'bun', top: C.purple, bottom: C.ink, dress: true,
+        skin: SKIN[5], hair: C.greyLight, style: 'bun', top: C.purple, bottom: C.ink, dress: true,
         dir: sh ? sh.dir : 'l', pose: sh ? 'point' : 'stand', arms: sh ? [1.9, 2.9] : [1.0, 0.9],
         hold: sh ? undefined : (c) => { c.beginPath(); c.rect(0.0, -0.1, 0.45, 0.3); paint(c, C.teal, { lw: 0.03 }); },
       }, t);
@@ -391,7 +390,7 @@ export default {
     R.mover(() => ({ x: 10.9, y: 8.6 }), (ctx, t) => {
       const r = roar(t);
       person(ctx, 10.9, 8.6, 0.1, {
-        skin: '#95603F', hair: C.ink, style: 'curly', top: C.coral, bottom: C.navy, dir: 'l',
+        skin: SKIN[3], hair: C.ink, style: 'curly', top: C.coral, bottom: C.navy, dir: 'l',
         pose: r ? 'cheer' : 'sit', arms: r ? [2.9, -2.6] : [1.3, 1.1], speed: 8,
         hold: r ? undefined : (c) => {
           c.beginPath(); c.moveTo(-0.3, -0.25); c.lineTo(0.2, -0.05); c.lineTo(0.7, -0.25); c.lineTo(0.7, 0.2); c.lineTo(0.2, 0.4); c.lineTo(-0.3, 0.2); c.closePath();
@@ -504,9 +503,38 @@ export default {
         box(ctx, x0, y0, 0.95, 1.2, 0.7, 0.08, C.teal, { lw: 0.03 });
         for (let i = 0; i < 4; i++) box(ctx, x0 + 0.1 + i * 0.24, y0 + 0.1, 1.03, 0.2, 0.5, 0.42, CLOTH[(i * 3 + 2) % CLOTH.length], { flat: true, lw: 0.02 });
         for (const [lx, ly] of [[x0, y0 + 0.62], [x0 + 1.12, y0 + 0.62], [x0 + 1.12, y0]]) box(ctx, lx, ly, 0.1, 0.08, 0.08, 1.0, C.ink, { flat: true, stroke: false });
-        // the overdue book, lying on top with its red tag
-        flatBook(ctx, p.cx - 0.3, p.cy - 0.2, 1.46, 0.55, 0.4, C.butter, 0.1);
-        const [TX, TY] = P(p.cx + 0.25, p.cy + 0.2, 1.5);
+        // the overdue book, lying on top with its red tag: a bit bigger than
+        // the rest, OVERDUE stamped across it in red, its date card sticking
+        // out, and a cobweb in the corner (it's been gone a while)
+        const bx = p.cx - 0.36, by = p.cy - 0.26, bz = 1.56;
+        flatBook(ctx, bx, by, bz - 0.12, 0.7, 0.52, C.butter, 0.12);
+        box(ctx, bx + 0.5, by + 0.1, bz - 0.02, 0.36, 0.26, 0.015, C.white, { flat: true, lw: 0.02 }); // the date card
+        if (Q.detail) {
+          const [OX, OY] = P(bx, by, bz);
+          ctx.save();
+          ctx.transform(1, 0.5, -1, 0.5, OX, OY); // the cover's plane, in units
+          ctx.fillStyle = C.red;
+          for (const [u, v] of [[0.62, 0.15], [0.75, 0.15], [0.62, 0.24]]) ctx.fillRect(u, v, 0.08, 0.04); // the card's stamps
+          ctx.translate(0.3, 0.26);
+          ctx.rotate(-0.35);
+          ctx.strokeStyle = C.red; ctx.lineWidth = 0.025;
+          ctx.strokeRect(-0.3, -0.08, 0.6, 0.16);
+          const k = 40;
+          ctx.scale(1 / k, 1 / k);
+          ctx.font = `${0.13 * k}px "Bagel Fat One", "Arial Black", sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = C.red;
+          ctx.fillText('OVERDUE', 0, 0.3);
+          ctx.restore();
+          // the cobweb, in its back corner
+          const [WX, WY] = P(bx + 0.02, by + 0.02, bz);
+          ctx.strokeStyle = alpha(C.white, 0.9); ctx.lineWidth = 0.015;
+          ctx.beginPath();
+          for (const a of [0.2, 0.75, 1.3]) { ctx.moveTo(WX, WY); ctx.lineTo(WX + Math.cos(a) * 0.3, WY + Math.sin(a) * 0.18 - 0.06); }
+          for (const r of [0.12, 0.22]) { ctx.moveTo(WX + Math.cos(0.2) * r, WY + Math.sin(0.2) * r * 0.6 - 0.02); ctx.quadraticCurveTo(WX + r * 0.5, WY + r * 0.2, WX + Math.cos(1.3) * r, WY + Math.sin(1.3) * r * 0.6 - 0.02); }
+          ctx.stroke();
+        }
+        const [TX, TY] = P(p.cx + 0.3, p.cy + 0.24, 1.56);
         ctx.beginPath(); ctx.moveTo(TX, TY); ctx.lineTo(TX + 0.12, TY + 0.25);
         ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
         const sw = Math.sin(t * 3) * 0.1;
@@ -524,7 +552,7 @@ export default {
     const gramps = route([[5.2, 10.3, 1.6], [7.8, 10.2], [8.0, 11.9, 1.4], [5.0, 12.0]], { speed: 0.55 });
     R.mover(gramps, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, {
-        skin: '#F4CDAA', hair: C.white, style: 'bald', top: C.brown, bottom: C.grey, dir: p.dir, back: p.back,
+        skin: SKIN[0], hair: C.white, style: 'bald', top: C.brown, bottom: C.grey, dir: p.dir, back: p.back,
         pose: p.moving ? 'walk' : 'point', speed: 4, arms: p.moving ? [0.3, -0.2] : [1.6, 0.3],
       }, t);
       // the glasses, pushed up on his head

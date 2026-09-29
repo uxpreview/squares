@@ -1,8 +1,8 @@
-// Rooftop Pool: a water tower, a diving board with a committed diver,
+// The Lido: a water tower, a diving board with a committed diver,
 // a flamingo float, and a lifeguard who has seen enough running today.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, plant, slab, planks,
-  speech, shade, tint, mix, alpha, dots, Q, label, P,
+  speech, shade, tint, mix, alpha, dots, Q, label, P, SKIN,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -67,9 +67,8 @@ function waterTower(ctx, t) {
   label(ctx, cx + 1.2, cy + 1.2, 6.1, 'SQ', 0.7, C.coral);
 }
 
-// The sky by the hour, for a pool on a day: navy night, a blush dawn, day
-// blue, the party's pink sunset, a purple dusk (steps of a twentieth keep
-// the color mixes few).
+// The sky by the hour: navy night, a blush dawn, day blue, the party's pink
+// sunset, a purple dusk (steps of a twentieth keep the color mixes few).
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -100,7 +99,7 @@ function skyInWater(ctx, t, h) {
 
 export default {
   id: 'pool',
-  name: 'Rooftop Pool',
+  name: 'The Lido',
   blurb: 'The diver has been "about to jump" since noon. The lifeguard has a whistle and opinions.',
 
   build(R) {
@@ -147,14 +146,11 @@ export default {
       }
       ctx.restore();
     }, { anim: true });
-    // On a day (the Block Party), the water mirrors the sky: blush at dawn,
-    // pink at the party, navy with the moon in it at night, and the pool
-    // lights come on after dark.
+    // The water mirrors the sky: blush at dawn, pink at the party, navy with
+    // the moon in it at night, and the pool lights come on after dark.
     const day = R.opts.day;
-    if (day) {
-      R.rug((ctx, t) => skyInWater(ctx, t, day.hour(t)), { anim: true });
-      R.light({ at: [(PX0 + PX1) / 2, (PY0 + PY1) / 2, WATER_Z], r: 6, color: C.tealLight, k: (t) => day.nightK(t) * 0.5 });
-    }
+    R.rug((ctx, t) => skyInWater(ctx, t, day.hour(t)), { anim: true });
+    R.light({ at: [(PX0 + PX1) / 2, (PY0 + PY1) / 2, WATER_Z], r: 6, color: C.tealLight, k: (t) => day.nightK(t) * 0.5 });
 
     // Water tower and bunting to the corners
     R.thing(4.2, 4.2, (ctx, t) => waterTower(ctx, t));
@@ -212,7 +208,7 @@ export default {
       if (p.hidden) return;
       ctx.save();
       if (p.a !== undefined) ctx.globalAlpha = p.a;
-      person(ctx, p.x, p.y, p.z, { skin: '#C3835B', hair: C.ink, style: 'short', top: C.coral, bottom: C.coral, pose: p.pose, dir: p.dir, speed: 9 }, t);
+      person(ctx, p.x, p.y, p.z, { skin: SKIN[2], hair: C.ink, style: 'short', top: C.coral, bottom: C.coral, pose: p.pose, dir: p.dir, speed: 9 }, t);
       ctx.restore();
     }, { bias: 0.5 });
 
@@ -325,19 +321,29 @@ export default {
     });
     R.find({ id: 'flipflop', label: 'One lost flip-flop', at: [3.2, 9.2, 0], r: 0.7 });
 
-    // Sunglasses on the parapet (a find)
-    R.decor((ctx) => {
-      const [X, Y] = P(11, -0.25, 1.0);
+    // Sunglasses left on a towel on the front deck (a find), in the open,
+    // where no parasol or shouting can hide them.
+    R.rug((ctx) => {
+      const [X, Y] = P(7.9, 14.5, 0.12);
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 0.05;
+      ctx.beginPath(); // the arms, folded back along the parapet
+      ctx.moveTo(X - 0.46, Y - 0.1); ctx.lineTo(X - 0.3, Y - 0.26);
+      ctx.moveTo(X + 0.46, Y - 0.1); ctx.lineTo(X + 0.3, Y - 0.26);
+      ctx.moveTo(X - 0.06, Y - 0.1); ctx.quadraticCurveTo(X, Y - 0.17, X + 0.06, Y - 0.1);
+      ctx.stroke();
       ctx.beginPath();
-      ctx.ellipse(X - 0.2, Y - 0.06, 0.16, 0.1, 0, 0, Math.PI * 2);
-      ctx.ellipse(X + 0.2, Y - 0.06, 0.16, 0.1, 0, 0, Math.PI * 2);
+      ctx.ellipse(X - 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
+      ctx.ellipse(X + 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
       ctx.fillStyle = C.ink;
       ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(X - 0.05, Y - 0.08); ctx.lineTo(X + 0.05, Y - 0.08);
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+      ctx.strokeStyle = C.coral;
+      ctx.lineWidth = 0.04;
+      ctx.stroke();
+      ctx.fillStyle = C.white; // the glint
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.26 - 0.08, Y - 0.12, 0.06, 0.03, -0.5, 0, Math.PI * 2); ctx.fill(); }
     });
-    R.find({ id: 'shades', label: 'A pair of sunglasses', at: [11, -0.25, 1.0], r: 0.7 });
+    R.find({ id: 'shades', label: 'A pair of sunglasses', at: [7.9, 14.5, 0.1], r: 0.7 });
 
     // Lifeguard tower
     R.thing(14.6, 5.4, (ctx, t) => {
@@ -405,4 +411,4 @@ export default {
   },
 };
 
-const SKIN_LG = '#E3A97F';
+const SKIN_LG = SKIN[1];

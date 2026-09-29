@@ -17,7 +17,7 @@ import { SLAB } from '../../../engine/iso.js';
 import { particles, ease } from '../../../engine/actors.js';
 import { MAIN_STREET, MAIN0, MAIN1, MID, STAGE, STAGE_Z, CASTLE } from '../plan.js';
 import { conga } from '../finale.js';
-import { STREET, STREET_NIGHT, STAGE_INK, PARTY_LIGHT, BUNTING, bunting, board, cone, streetLamp } from '../style.js';
+import { STREET, STREET_NIGHT, STAGE_INK, PARTY_LIGHT, BUNTING, bunting, board, cone, streetLamp, litter } from '../style.js';
 import { hour, nightK, within, LAUNCH } from '../clock.js';
 
 // ---------- The day ----------
@@ -537,11 +537,11 @@ function flatCastle(ctx) {
 
 // The blower, and whoever sits on it this time (someone new every go).
 const SITTERS = [
-  { seed: 101, dress: true, hair: C.greyLight, say: 'Ooh, a seat.' },
-  { seed: 102, hat: 'cap', say: 'Just a minute.' },
-  { seed: 103, hat: 'sun', say: 'Lovely and warm.' },
-  { seed: 104, say: 'Is this free?' },
-  { seed: 105, hat: 'beanie', say: 'My feet!' },
+  { seed: 101, dress: true, hair: C.greyLight, say: 'OOH, A SEAT.' },
+  { seed: 102, hat: 'cap', say: 'JUST A MINUTE.' },
+  { seed: 103, hat: 'sun', say: 'LOVELY AND WARM.' },
+  { seed: 104, say: 'IS THIS FREE?' },
+  { seed: 105, hat: 'beanie', say: 'MY FEET!' },
 ];
 function pump(ctx, t) {
   const [px, py] = PUMP;
@@ -709,7 +709,7 @@ export default {
     // The foreman, with the instructions: step one of four hundred.
     R.thing(42.8, 46.8, (ctx, t) => {
       person(ctx, 42.8, 46.8, 0, { ...folk(89), top: C.coral, hat: 'helmet', pose: 'read', dir: 'r', hold: (c) => { c.fillStyle = C.white; c.strokeStyle = C.ink; c.lineWidth = 0.03; c.fillRect(-0.05, -0.45, 0.6, 0.45); c.strokeRect(-0.05, -0.45, 0.6, 0.45); } }, t);
-      if (Q.detail && Q.pxPerUnit >= 12 && Math.sin(t * 0.7) > 0.3) speech(ctx, 42.8, 46.8, 3.0, 'Step 1 of 400.', { size: 0.42 });
+      if (Q.detail && Q.pxPerUnit >= 12 && Math.sin(t * 0.7) > 0.3) speech(ctx, 42.8, 46.8, 3.0, 'STEP 1 OF 400.', { size: 0.42 });
     }, { anim: true, on: BUILDING });
 
     // The deck, in thirds so the band sorts in on it.
@@ -1027,7 +1027,7 @@ export default {
       ctx.strokeStyle = C.coral;
       ctx.lineWidth = 0.08;
       ctx.stroke();
-      if (Q.detail && Q.pxPerUnit >= 12 && hour(t) < 19 && Math.sin(t * 0.9) > 0.4) speech(ctx, 40.5, 49.5, 3.0, 'Check. Check.', { size: 0.42 });
+      if (Q.detail && Q.pxPerUnit >= 12 && hour(t) < 19 && Math.sin(t * 0.9) > 0.4) speech(ctx, 40.5, 49.5, 3.0, 'CHECK. CHECK.', { size: 0.42 });
     }, { anim: true, depth: 89.9, on: MIXING });
 
     // ---------- The party ----------
@@ -1111,6 +1111,32 @@ export default {
       face(ctx, [[lx - 0.3, ly - 0.14, 0.31], [lx + 0.14, ly - 0.14, 0.31], [lx - 0.3, ly + 0.2, 0.31]], C.butter, { lw: 0.025 });
       disc(ctx, lx + 0.2, ly + 0.08, 0.31, 0.12, C.red, { lw: 0.02 });
       if (Q.detail) words(ctx, 'y', ly + 0.26, lx, 0.15, 'LUNCH', 0.15, C.butter);
+    });
+    // He put it down with the party's supplies, waiting by the kerb to be set
+    // out: a stack of folding chairs, a cool box, a crate of paper cups, and
+    // what's blown off the top of them.
+    R.thing(57.1, 38.5, (ctx) => {
+      for (let i = 0; i < 5; i++) {
+        const z = 0.05 + i * 0.2;
+        box(ctx, 56.35, 37.8, z, 0.72, 0.68, 0.07, i % 2 ? C.coral : tint(C.coral, 0.2), { flat: true, lw: 0.03 });
+      }
+      for (const [x, y] of [[56.4, 37.85], [56.97, 37.85], [56.4, 38.38], [56.97, 38.38]]) box(ctx, x, y, 0, 0.1, 0.1, 1.05, C.ink, { flat: true, stroke: false });
+      box(ctx, 56.35, 38.43, 1.05, 0.72, 0.05, 0.55, C.coral, { flat: true, lw: 0.03 }); // the top chair's back
+    });
+    R.thing(60.05, 38.55, (ctx) => {
+      box(ctx, 59.15, 37.85, 0, 0.9, 0.7, 0.5, C.white, { top: C.teal, lw: 0.035 });
+      box(ctx, 59.12, 37.82, 0.5, 0.96, 0.76, 0.1, C.teal, { lw: 0.03 });
+      words(ctx, 'y', 38.55, 59.6, 0.27, 'ICE', 0.2, C.teal);
+    });
+    R.thing(59.1, 39.75, (ctx) => {
+      box(ctx, 58.4, 39.05, 0, 0.7, 0.7, 0.35, C.wood, { lw: 0.035 });
+      if (!Q.detail) return;
+      for (const [x, y] of [[58.6, 39.25], [58.9, 39.25], [58.6, 39.55], [58.9, 39.55]]) cylinder(ctx, x, y, 0.35, 0.1, 0.22, C.white, { flat: true });
+    });
+    R.thing(58.6, 39.6, (ctx) => {
+      litter(ctx, 'napkin', 57.3, 39.3, 0.4);
+      litter(ctx, 'wrapper', 59.9, 39.4, -0.5);
+      litter(ctx, 'napkin', 58.9, 37.75, 1.2);
     });
 
     // The ending: the geese conga round Main Street (finale.js).

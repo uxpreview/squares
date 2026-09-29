@@ -19,6 +19,7 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Dark humor:** the body keeps getting moved by guests who each think they did it. The butler is already packing.
 - **Shape:** a sprawling house cut open along a curved line, grounds and a hedge maze outside.
 - **Needs:** Today + Night. A "whodunit" ending (evidence leads to an accusation) is a new game format worth building once and reusing.
+- **Status:** shipped (session 3; brief in [levels/manor.md](levels/manor.md)).
 
 ### The Block Party (the Block, connected: a city block)
 **Status: built, at gate 3 (the preview), `#/blockparty`. Full brief in [levels/block.md](levels/block.md).**
@@ -26,6 +27,13 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Alive:** the neighbors carry the party into the street (the cake, the banner, the amps), the octopus escapes down the alley, a queue forms that nobody can explain; a whole day on a loop, each room busiest at its hour.
 - **Shape:** the Block's square, with Main Street crossing the middle and alleys between the rest.
 - **Needs:** Today, plus areas of any shape (E5, built in session 4). Replaces today's Block.
+- **Status:** shipped (session 4e). It took over The Block's id, `block`, so saves carried over; brief in [levels/block.md](levels/block.md).
+
+### Low Tide (Cape Cod) *(working title)*
+- **Spin:** a Cape Cod beach through a summer day on a loop. The tide runs on the day's clock: as it goes out, the flats uncover what the sea was hiding (finds you can only reach at low water), and as it comes back in, it covers them again. The owner brings their own ideas to the brief session.
+- **Alive:** the tide itself, moving the shoreline all day; the beach filling up by noon and emptying at sunset; boats, gulls, a lifeguard.
+- **Shape:** a stretch of beach, from the dunes down to the water, with the flats in between.
+- **Needs:** Terrain and water (E4), built and proven on this level: ground with height, water with a shoreline that moves. The day's loop from the Block Party. **Next up** (after the Block Party).
 
 ### The Emperor's Basement (Split, Croatia)
 - **Spin:** Split's old town really is built inside a Roman emperor's palace. Show both at once: modern life on top (cafés, laundry strung between 1,700-year-old walls, cruise crowds following tour umbrellas, a costume fan tour) and the Roman cellars below, where Emperor Diocletian's ghost is still furious about the tourists.
@@ -51,7 +59,7 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Spin:** a snapshot of Boston the morning after a blizzard. Parking-space savers (lawn chairs, traffic cones, a whole couch) guarding shoveled spots, and a feud over one of them. Brownstones, a Dunkin' line out the door, duck boats, the Public Garden (the duckling statues have one extra member: a goose), the Green Monster in the distance.
 - **Alive:** snowplows, the T rattling past, snowball ambushes, someone digging out a car that isn't theirs.
 - **Shape:** a wide panorama slice.
-- **Needs:** Terrain (the river and the snow), Today for brownstones.
+- **Needs:** Terrain (the river and the snow), Today for brownstones. Reuses the water from Cape Cod (E4) and the Block Party's streets (areas of any shape). **After Cape Cod.**
 
 ### The Siege of Mudbury (medieval battle)
 - **Spin:** a siege that's a farce. Catapults launching cows, a knight stuck upside down in his armor, the castle's toilet chute emptying onto the attackers, a peasant selling snacks to both armies. Nobody remembers why they're fighting. Find the letter that started it.
@@ -63,7 +71,7 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Spin:** the Block's 16 rooms in a parallel universe. Same layout, everything inverted: the laundromat washes people, the aquarium's fish watch humans in tanks, the library shushes you, the pool is full of jelly. Tap a button to flip between the two Blocks and spot what changed.
 - **Alive:** everything the Block has, wrong.
 - **Shape:** the Block's plate, reused.
-- **Needs:** Today. A flip mechanic. The cheapest level on the list, and a big shared-universe payoff.
+- **Needs:** Today. A flip mechanic. The cheapest level on the list, and a big shared-universe payoff. Now builds on the Block Party (the connected Block) rather than the flat plate; after Cape Cod and Boston.
 
 ### The Great Escape (zoo)
 - **Spin:** someone left every gate open. The animals are loose and hiding all over the zoo (the lion in the ice cream van, the flamingos in the gift shop, the penguins riding the train) while keepers chase them with nets. Who opened the gates? (Spoiler: the goose.)

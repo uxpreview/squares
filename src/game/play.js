@@ -106,6 +106,25 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     return { top, bottom, left, right };
   }
 
+  // The screen area left clear of the completion card, for a finale that
+  // plays on behind it: above the card where there's room (a phone held
+  // upright, a big screen), beside it where there isn't (a phone on its side,
+  // where the card steps to the right).
+  function clearOfCard() {
+    const base = insets(), { vw, vh } = view;
+    const card = document.getElementById('complete');
+    if (!card) return base;
+    const was = card.hidden;
+    card.style.visibility = 'hidden';
+    card.hidden = false;
+    const r = card.getBoundingClientRect();
+    card.hidden = was;
+    card.style.visibility = '';
+    const above = r.top - base.top - 12, left = r.left - base.left - 12, right = vw - r.right - base.right - 12;
+    if (above >= 160 || above >= Math.max(left, right)) return { ...base, bottom: Math.max(base.bottom, vh - r.top + 12) };
+    return left >= right ? { ...base, right: Math.max(base.right, vw - r.left + 12) } : { ...base, left: Math.max(base.left, r.right + 12) };
+  }
+
   // The whole map: every zone, and what the overview frames on any screen.
   // The camera keeps it on screen (soft edges), so panning can't lose it.
   let boxFor = null, box = null;
@@ -490,7 +509,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
           const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
           if (fz >= 0) {
             showOverviewUI();
-            camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), insets(), 0.5)), 2.5);
+            camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), clearOfCard(), 0.5)), 2.5);
           } else toOverview({ dur: 2.5 });
           setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
         }, 1800);

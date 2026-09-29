@@ -23,10 +23,10 @@ And for a game that adds levels often: **each level should be cheaper to make th
 - **Engine:** places made of zones, of any size or shape (a street is one area, drawn in chunks sorted in with the rooms, framed a room's worth at a time around where you tap); camera (with soft edges), renderer with cutaways (front, above), snapshots for speed (and in the room you're in, still furniture drawn once and stamped), input. Houses: storeys with a lift to change floors, walls that drop to waist height, people walking room to room on one clock. Night: a place's own paper, lights that glow, rooms that go dark, lightning and rain. A paper that changes with the clock (a day). A map can cut doors in a zone's walls, and tell a zone about itself (`R.opts`), so one room file can draw differently on two maps. A still layer can fade with the clock (`fade`). A map can have a finale (the clock jumps, the camera flies to it, the card waits).
 - **Game:** find the goose and hidden things per zone, hints, tallies, saves (v3), sound, completion. A scene clock tools can set, so any moment of a loop can be shown and tested.
 - **Screens:** title with a drifting map, place picker, completion card, a lift for houses (every floor, yours lit), an invitation on a place's first visit (a card pinned to a room), geese honking from rooms on the overview, a back button that goes up one level.
-- **Places:** The Block, and Gooseworth Manor (a whodunit at night, three floors). The Block Party, the Block connected, built and at gate 3 (hidden, `#/blockparty`). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
+- **Places:** The Block Party (the Block, connected: sixteen rooms on streets through a day; it replaced the flat Block under its id, `block`), and Gooseworth Manor (a whodunit at night, three floors). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** the Block Party ships once the owner approves gate 3 ([levels/block.md](levels/block.md)), then a beach, then the zoo.
+- **Next level:** a Cape Cod beach on a day's loop, with the terrain and water engine (E4) built and proven on it; then Boston, reusing the water and the Block Party's streets; then The Block, But Wrong ([LEVELS.md](LEVELS.md)).
 
 ## Engine work
 
@@ -36,7 +36,7 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 - [x] **E1. Night and weather.** A palette per place, lights that glow (windows, lamps, candles), lightning, rain. *Session 2.*
 - [x] **E2. Houses.** Inside walls cut low in the overview and full height inside a room; one storey at a time, changed from tags on the house (a lift since 3d); people passing between rooms through doors on a shared timeline. *Session 2. Next used by the Catminium and the cruise ship.*
 - [x] **E3. Level formats.** Finds in groups (evidence, curiosities); a place's goal can be something other than "every goose" (solve the case); an accusation screen and a reveal. *Session 3: `game/case.js`, `ui/casefile.js`, a map's `case`. Reused by later mysteries.*
-- **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *La Dolce Riviera, Split, Boston, the siege, the zoo, Egypt.*
+- **E4. Terrain and water.** Ground with height, cliffs, stairs, coastlines, water with moving shorelines, instead of square slabs. *Built and proven on the Cape Cod beach (the tide), next; then Boston, La Dolce Riviera, Split, the siege, the zoo, Egypt.*
 - [x] **E5. Areas, not boxes.** Split what gets drawn (chunks with invisible seams) from what players visit (areas of any shape), so one continuous map can be as big as it likes and people can walk across it. *Session 4: a zone can be any size (`size`) or shape (`shape`, a list of boxes); it's drawn in 16 x 16 chunks, each sorted into the map's draw order on its own (anything in front of another comes after it), with flat layers cut to each chunk's patch of the screen so the seams don't show. Taps, the front cutaway, framing and walkers all work chunk by chunk. Proved on `#/crossroads`. Still to do: framing a long area on a phone frames all of it, so its finds are tiny (the Crossroads' pavement); a long street wants framing near where you are (E7).*
 - **E6. Casts and scale.** Animals and other species alongside people; a character scale per place. *The Catminium, the zoo, Egypt.*
 - **E7. Camera shapes.** Tall and wide places that scroll; framing for areas of any shape. *Started in 4b: a long area is framed a room's worth at a time, around where you tap it (`zoneBox(zone, near)` in `world.js`; QA frames it around each find).*
@@ -117,12 +117,19 @@ Each is one PR. Order can change; dependencies can't.
   - **Faster streets.** On the owner's 2017 laptop, frames a second, greybox before and art after: Main Street 9 to 20, the Alleys 12 to 24, the Pavement 39 to 42, the rooms 21-28 to 24-34, the whole block 39 to 41. What did it: only the cut outlines on screen and overlapping a chunk cut it, and chunks share one cut sheet whenever the extra outlines can't touch them (Main Street laid a sheet down 39 times a frame; now about 11); a street's ground printed in chunk-sized cached pieces, day and night; lamps drawn only by the chunks they reach; a piece of street caches only its ground. QA's speed check passes again without touching the budget: slowest the Aquarium at 49 ms (was 2 or 3 rooms over 60), the Alleys 60 to 24.
   - **Checks:** `npm run qa -- blockparty` passes (0 failed); the smoke test adds the phone invitation by the back corner and the finale starting the party.
   - **Blind playtest:** the first round's street shots framed each street at one spot, so 6 of 7 street finds were never in the picture; the playtest tool now frames a street round each of its finds, and a second fresh tester found all 10 street finds (the Courier's map got a real street map, the noodle key a tag saying whose it is). The aquarium's octopus find is "A little octopus" on this map (a big one escapes up the alley). The rooms' own finds scored as on The Block; the few it found hardest (the snail's number, the overdue book, the rain boot, the Lido's sunglasses) are The Block's, left for a later pass on both.
-- [ ] **4d. The Block, But Wrong.** The cheapest level on the list (it reuses the Block's layout); proves the pipeline can turn a level around fast. Also a flip mechanic.
-- [ ] **5. Terrain and areas (E4, E5).** Ground, water, coastlines and continuous maps, proven on a small hidden test cove.
-- [ ] **6. La Dolce Riviera.** The first outdoor showpiece.
-- [ ] **7. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
-- [ ] **8. The campaign and onboarding (G1, G2, G4).**
-- [ ] **9. Polish and performance (P1 to P4, E9).**
+- [x] **4e. Gate 3 fixes on the Block Party, and it ships.** The owner approved gate 3 with ten notes (block.md 34 to 45). *(PR, this session.)*
+  - **The notes:** the finale framed clear of the completion card (above it on an upright phone, beside it on a phone held sideways, where the card now steps to the right), the conga waiting for the camera and the card for the sock; the invitation beside the stage on a big screen; the blimp off the crossing; the mission clock reading "LAUNCH 8:48 PM"; clutter round the three easy street finds and the tentacle print off the octopus's lane; the cat in its bin; the Block's four hard finds redrawn (the snail's number, the overdue book, the rain boot, the sunglasses); the street bed and cues under the honks; the speech mix kept.
+  - **Room pictures reach further where they need to:** a zone's place can say how far its picture reaches past its corners (`reach`, default 1.5). Only three fronts hang further out (the disco 3.8, the arcade 3.3, the library 1.8), so only they are widened (a wider picture for all sixteen cost about a frame a second on Main Street). A new QA check (**pictures**) fails anything a room draws past its picture's edge.
+  - **Sound, measured:** `loudness()` in `game/audio.js` renders a sound offline and reports its level, and its level in a honk's range. The street bed was only about 4 dB under a honk, and three cues peaked louder than one; now the bed is about 12 dB under (25 in the honk's range) and dips under every honk, and every cue peaks at least 4 dB under.
+  - **It ships:** The Block Party takes the `block` id and is first in the picker; its files moved into `src/maps/block/` beside the rooms; the flat Block's map is gone and the rooms' `R.opts.day` checks are plain code. `#/block`, `#/block/<room>` and `#room` land on it; `#/blockparty` redirects. Saves: finds keep their names, so v1, v2 and v3 saves carry over; preview finds (`blockparty`) merge into `block` on load. The smoke test checks all of it.
+  - **Checks:** see the PR for QA, the frame rates and the blind playtest of the changed finds.
+- [ ] **5. Cape Cod, and terrain and water (E4).** A beach on a day's loop; as the tide goes out it uncovers finds. E4 (ground with height, water with a moving shoreline) is built and proven on it, rather than on a hidden test cove. The owner brings their ideas to the brief session. *(LEVELS.md, Low Tide.)*
+- [ ] **6. Boston ("Wicked Pissah").** Reuses the water (E4) and the Block Party's streets (areas of any shape).
+- [ ] **7. The Block, But Wrong.** The Block Party's layout, flipped; proves the pipeline can turn a level around fast. Also a flip mechanic.
+- [ ] **8. La Dolce Riviera.** The first outdoor showpiece.
+- [ ] **9. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
+- [ ] **10. The campaign and onboarding (G1, G2, G4).**
+- [ ] **11. Polish and performance (P1 to P4, E9).**
 - Then a level every one or two sessions from [LEVELS.md](LEVELS.md), and the case study (P5) once there are five or six.
 
 ## Decisions
@@ -130,8 +137,6 @@ Each is one PR. Order can change; dependencies can't.
 Open, for the owner:
 
 - **Lag on older laptops, what's next** (the owner's call; the streets are done in 4c): step sharpness down from 2x to 1.5x when frames stay slow, and back up when they're quick (it only ever steps 3x to 2x now, once, and never back), recommended first since it helps every place and every view (drawing at 1x roughly doubles a room's frames); then cache the Manor's night backdrop (drawn once, only the rain and lightning live), which only helps the Manor. What's left on the Block Party is mostly the graphics chip laying the cut sheet down and stamping the other rooms' pictures at 2x.
-- **The Block Party at gate 3:** `#/blockparty` on the preview; the checklist is in the PR. Two small calls in block.md (shouting in capitals or not; neon only at night).
-- **After the connected Block:** a beach (wants E4, terrain and water, which La Dolce Riviera also needs), then the zoo (terrain, and animals as a cast, E6).
 - **The review's leftovers** (3d found these and left them for the owner's call):
   - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
   - The things counter ("0/48", a circle) means nothing until your first find; there isn't room on a 390px phone to add the words "geese" and "things". It teaches itself once you find something ("Found: a lucky coin (1/48)").
@@ -143,6 +148,11 @@ Open, for the owner:
 - **Delete the Walk-Up?** It's hidden now. Delete it once the Catminium ships, or keep it hidden as a test bed.
 
 Made:
+
+- **The Block Party ships** (gate 3, with ten changes: block.md 34 to 45) under the `block` id, first in the picker, replacing the flat Block. Speech stays mixed (capitals for signs and crowds, sentence case for the named cast); neon glows at night only. *(4e, the owner)*
+- **The order after it:** a Cape Cod beach next, with E4 built and proven on it; then Boston, reusing the water and the Block Party's streets; then The Block, But Wrong. The owner brings ideas for both to the brief session. *(4e, the owner)*
+- **A room's picture reaches as far as it needs to** (`reach` on its place), set per room and checked by QA, rather than wider for every room (it costs frames). *(4e)*
+- **Sound beds sit well under the honk,** measured (`loudness()`), and duck under every honk. *(4e)*
 
 - **The connected Block ships as The Block Party** (still taking the `block` id at ship); the queue in clumps, honks clear of the invitation card, print marks in the light ink at night, the blimp clear of the title. *(4c, the owner, block.md 19 to 23)*
 - **A level that rebuilds another reuses its room files,** with its own additions in separate files and anything different in a room behind an option only its map passes (`R.opts`), so the live level can't change by accident; checked picture by picture. *(4c)*

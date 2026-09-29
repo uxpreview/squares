@@ -1,35 +1,19 @@
-// Launch Pad: a rocket that really goes. The crew walk out, ride the gantry
-// lift and climb aboard, the board counts 3-2-1, the smoke rolls, and up it
-// goes. Then it floats home under a parachute and the crew slide out.
+// Launch Pad: a rocket that really goes, once a day. The crew walk out, ride
+// the gantry lift and climb aboard, the board counts down, the smoke rolls,
+// and up it goes. By dawn the mechanic has wheeled out a new one.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, tiles, onLeft,
-  paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash,
+  paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash, SKIN,
 } from '../../../engine/art.js';
 import { route, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 
-const T = 30; // one full mission
 const RX = 6.2, RY = 6.2; // rocket spot
 const PADZ = 0.45;
 const BODY_R = 0.72, BODY_H = 4.6, NOSE_H = 1.7;
 const GX0 = 2.6, GX1 = 4.0, GY0 = 5.5, GY1 = 6.9, GH = 8.8; // gantry footprint
 const ARM_Z = 5.2;
 const DOOR = [3.7, 13.7]; // crew hut door
-
-const phase = (t) => pulse(t, T) * T;
-
-// Rocket altitude over the mission.
-function rocketState(t, s = phase(t)) {
-  if (s < 11) return { alt: 0, fire: s > 10.2 ? (s - 10.2) / 0.8 : 0, sway: 0 };
-  if (s < 15.5) { const k = (s - 11) / 4.5; return { alt: 46 * k * k, fire: 1, sway: 0 }; }
-  if (s < 17) return { alt: 60, fire: 0, sway: 0, gone: true };
-  if (s < 23) {
-    const q = (s - 17) / 6;
-    const alt = 15 * (1 - q) * (1 - q);
-    return { alt: Math.max(0, alt), chute: 1, sway: Math.sin(s * 1.6) * 0.25 * (1 - q), retro: q > 0.86 ? 1 : 0 };
-  }
-  return { alt: 0, chute: clamp(1 - (s - 23) / 1.4), landed: true, sway: 0 };
-}
 
 const cylP = (cx, cy, a, r, z) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r, z];
 function band(ctx, cx, cy, r, z1, z2, fill, a1 = -Math.PI / 4, a2 = (3 * Math.PI) / 4) {
@@ -47,9 +31,9 @@ function fin(ctx, x, y, z, a, color) {
 
 function drawRocket(ctx, x, y, z, t, st) {
   // flame
-  if (st.fire || st.retro) {
+  if (st.fire) {
     const [X, Y] = P(x, y, z - 0.3);
-    const L = (st.fire ? 1.2 + st.fire * 2.2 : 1.1) + Math.sin(t * 40) * 0.25 + Math.sin(t * 23) * 0.2;
+    const L = 1.2 + st.fire * 2.2 + Math.sin(t * 40) * 0.25 + Math.sin(t * 23) * 0.2;
     const cols = [C.coral, C.mustard, C.butter];
     cols.forEach((c, i) => {
       const w = 0.55 - i * 0.15, l = L * (1 - i * 0.25);
@@ -93,50 +77,9 @@ function drawRocket(ctx, x, y, z, t, st) {
   // name, painted down the side
   label(ctx, ...cylP(x, y, Math.PI / 4, BODY_R + 0.02, z + 1.95), 'SQ', 0.42, C.navy);
   label(ctx, ...cylP(x, y, Math.PI / 4, BODY_R + 0.02, z + 1.5), '1', 0.42, C.navy);
-  // hatch (open after landing)
-  if (st.landed && phase(t) > 23.6) {
-    const pts = [];
-    for (let i = 0; i <= 4; i++) pts.push(cylP(x, y, Math.PI / 4 - 0.35 + i * 0.175, BODY_R + 0.01, z + 2.85));
-    for (let i = 4; i >= 0; i--) pts.push(cylP(x, y, Math.PI / 4 - 0.35 + i * 0.175, BODY_R + 0.01, z + 3.7));
-    face(ctx, pts, C.night, { lw: 0.04 });
-  }
 }
 
-function drawChute(ctx, x, y, top, k, t) {
-  if (k <= 0) return;
-  const cz = top + 1.7 * k + 0.2;
-  const [X, Y] = P(x, y, cz);
-  const [nx, ny] = P(x, y, top);
-  const W = 2.0 * (0.4 + 0.6 * k), H = 1.1 * k;
-  const puff = 1 + Math.sin(t * 3) * 0.03;
-  ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.03;
-  ctx.beginPath();
-  for (let i = 0; i <= 6; i++) {
-    const ex = X - W * puff + (i / 6) * 2 * W * puff;
-    ctx.moveTo(nx, ny); ctx.lineTo(ex, Y + 0.25);
-  }
-  ctx.stroke();
-  const n = 8;
-  for (let i = 0; i < n; i++) {
-    const a0 = Math.PI + (i / n) * Math.PI, a1 = Math.PI + ((i + 1) / n) * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(X, Y + 0.25);
-    ctx.ellipse(X, Y + 0.25, W * puff, H + 0.25, 0, a0, a1);
-    ctx.closePath();
-    paint(ctx, i % 2 ? C.coral : C.white, { lw: 0.04 });
-  }
-  // scalloped hem
-  ctx.beginPath();
-  for (let i = 0; i < n; i++) {
-    const x0 = X - W * puff + (i / n) * 2 * W * puff, x1 = X - W * puff + ((i + 1) / n) * 2 * W * puff;
-    ctx.moveTo(x0, Y + 0.25);
-    ctx.quadraticCurveTo((x0 + x1) / 2, Y + 0.5, x1, Y + 0.25);
-  }
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
-}
-
-function gantry(ctx, t, s = phase(t)) {
+function gantry(ctx, t, s) {
   const col = C.red;
   const posts = [[GX0, GY0], [GX1, GY0], [GX0, GY1], [GX1, GY1]];
   for (const [x, y] of posts) box(ctx, x - 0.08, y - 0.08, 0, 0.16, 0.16, GH, col, { flat: true, lw: 0.04 });
@@ -175,9 +118,8 @@ function gantry(ctx, t, s = phase(t)) {
   if (on && Q.detail) { ctx.beginPath(); ctx.arc(bx, by, 0.4, 0, Math.PI * 2); ctx.fillStyle = alpha(C.coral, 0.25); ctx.fill(); }
 }
 
-// Crew member i: out of the hut, up the lift, across the arm, into the rocket;
-// later out of the hatch, down the slide and home.
-function crewPos(i, t, s0 = phase(t)) {
+// Crew member i: out of the hut, up the lift, across the arm, into the rocket.
+function crewPos(i, t, s0) {
   const s = s0 - i * 0.45;
   const lx = (GX0 + GX1) / 2 + (i ? 0.3 : -0.3), ly = GY1 + 0.45;
   if (s < 0) return { x: DOOR[0], y: DOOR[1], z: 0, a: 0 };
@@ -190,27 +132,7 @@ function crewPos(i, t, s0 = phase(t)) {
     const k = clamp((s - 6) / 1.3);
     return { x: lx + (RX - BODY_R - lx) * k, y: ly + ((GY0 + GY1) / 2 + (i ? 0.2 : -0.2) - ly) * k, z: ARM_Z, pose: 'walk', dir: 'r', a: 1 - clamp((k - 0.7) / 0.3), lift: true };
   }
-  if (s < 24.4) return { hidden: true, x: RX, y: RY };
-  const top = slidePt(SL0 + 0.2, SLZ + 0.35), bot = slidePt(SL1, 0);
-  if (s < 25.6) {
-    const k = (s - 24.4) / 1.2;
-    return { x: top[0] + (bot[0] - top[0]) * k, y: top[1] + (bot[1] - top[1]) * k, z: top[2] + (bot[2] - top[2]) * k, pose: 'sit', dir: 'r', a: clamp(k * 5), slide: true };
-  }
-  if (s < 26.2) return { x: bot[0], y: bot[1], z: 0, pose: 'cheer', dir: 'l', a: 1 };
-  const k = clamp((s - 26.2) / 3.6);
-  return { x: bot[0] + (DOOR[0] - bot[0]) * k, y: bot[1] + (DOOR[1] - bot[1]) * k, z: 0, pose: k < 1 ? 'walk' : 'stand', dir: 'l', a: 1 - clamp((k - 0.85) / 0.15) };
-}
-
-const SL0 = BODY_R + 0.05, SL1 = 3.7, SLZ = PADZ + 0.5 + 2.9;
-const slidePt = (d, z, w = 0) => [RX + (d - w) * Math.SQRT1_2, RY + (d + w) * Math.SQRT1_2, z];
-function slideShape(ctx, k) {
-  if (k <= 0) return;
-  const d1 = SL0 + (SL1 - SL0) * k, z1 = SLZ + (0.05 - SLZ) * k;
-  const w = 0.45, h = 0.3;
-  face(ctx, [slidePt(SL0, SLZ, w), slidePt(d1, z1, w), slidePt(d1, z1 + h, w), slidePt(SL0, SLZ + h, w)], shade(C.mustard, 0.2));
-  face(ctx, [slidePt(SL0, SLZ + h, -w), slidePt(SL0, SLZ + h, w), slidePt(d1, z1 + h, w), slidePt(d1, z1 + h, -w)], C.mustard, { dots: C.coral, density: 0.15 });
-  face(ctx, [slidePt(SL0, SLZ, -w), slidePt(d1, z1, -w), slidePt(d1, z1 + h, -w), slidePt(SL0, SLZ + h, -w)], shade(C.mustard, 0.1));
-  face(ctx, [slidePt(SL0, SLZ + h + 0.15, w * 0.8), slidePt(d1, z1 + h + 0.15, w * 0.8)], null, { lw: 0.08, stroke: C.coral });
+  return { hidden: true, x: RX, y: RY };
 }
 
 // Little dog in a bubble helmet.
@@ -263,12 +185,13 @@ function checkFlag(c, t, up) {
   c.restore();
 }
 
-// ---------- On a day (the Block Party) ----------
+// ---------- The day ----------
 // The rocket goes up once, at day.launch (8:48pm): the crew board ten seconds
 // before, the board counts down from 7:30pm, liftoff, and it's gone. The pad
 // smokes all night, and a new rocket is wheeled out between 3am and 4am.
 // d(t): seconds since liftoff, from minus half a day to plus half a day.
-// s(t): the 30 second mission's own clock, run once round the launch.
+// s(t): the mission's script clock (0 to 30 seconds, liftoff at 11), run
+// once round the launch; everyone on the lot takes their cue from it.
 function dayClock(day) {
   const HR = 1 / ((((day.hour(1) - day.hour(0)) % 24) + 24) % 24); // seconds in an hour
   const LOOP = HR * 24;
@@ -282,16 +205,16 @@ function dayClock(day) {
     s: (t) => { const x = d(t); return x < -11 ? 0 : x < 11 ? 11 + x : x < 16.9 ? 24.1 + (x - 11) : 0; },
     rocket: (t) => {
       const x = d(t);
-      if (x < 0) return { x: RX, y: RY, alt: 0, fire: x > -0.8 ? (x + 0.8) / 0.8 : 0, sway: 0 };
-      if (x < 4.5) { const k = x / 4.5; return { x: RX, y: RY, alt: 46 * k * k, fire: 1, sway: 0 }; }
+      if (x < 0) return { x: RX, y: RY, alt: 0, fire: x > -0.8 ? (x + 0.8) / 0.8 : 0 };
+      if (x < 4.5) { const k = x / 4.5; return { x: RX, y: RY, alt: 46 * k * k, fire: 1 }; }
       const w = wheel(t);
       if (w >= 0) {
         // along the ground on its trolley, then up the ramp onto the plinth
         const y = rocketY(w);
-        return { x: RX, y, alt: -PADZ * clamp((y - RY) / 2.2), sway: 0, wheel: true };
+        return { x: RX, y, alt: -PADZ * clamp((y - RY) / 2.2), wheel: true };
       }
       if (x < W1) return { x: RX, y: RY, gone: true };
-      return { x: RX, y: RY, alt: 0, sway: 0 };
+      return { x: RX, y: RY, alt: 0 };
     },
     // The mechanic pushes the new one out.
     pusher: (t) => {
@@ -300,8 +223,9 @@ function dayClock(day) {
       const y = rocketY(w) + 1.9;
       return { x: RX + 0.35, y, z: 0, pose: w < 0.98 ? 'carry' : 'cheer', dir: 'r', back: w < 0.98, say: w > 0.97 ? 'TA-DA' : null };
     },
-    // The mission clock: the time of the launch all day, the countdown from
-    // 7:30pm, and then the board is very optimistic.
+    // The mission clock: when the launch is, all day (so it doesn't read as
+    // the time), the countdown from 7:30pm, and then the board is very
+    // optimistic. [text, color, size, the small line over it]
     board: (t) => {
       const x = d(t);
       if (x >= -1.3 * HR && x < 0) {
@@ -312,7 +236,7 @@ function dayClock(day) {
       if (x >= 4.5 && x < 14) return ['BYE!', C.butter, 1.3];
       if (x >= 14 && x < W0) return ['BACK SOON', C.sky, 0.62];
       if (x >= W0 && x < W1) return ['NEW ONE!', C.butter, 0.72];
-      return ['8:48 PM', C.mint, 0.9];
+      return ['8:48 PM', C.mint, 0.8, 'LAUNCH'];
     },
   };
 }
@@ -377,14 +301,13 @@ function afterSmoke(ctx, d) {
 export default {
   id: 'launchpad',
   name: 'Launch Pad',
-  blurb: 'Rocket SQ-1 goes up, comes down, and goes up again. The mechanic keeps forgetting to leave before the countdown.',
+  blurb: 'Rocket SQ-1 goes up once a day, at the height of the party. The mechanic has a new one built by dawn.',
 
   build(R) {
-    // On a day (the Block Party) the rocket goes up once, at the party's height
-    // (dayClock below); on The Block it flies every 30 seconds, as ever.
+    // The rocket goes up once, at the party's height (dayClock above).
     const day = R.opts.day;
-    const dc = day ? dayClock(day) : null;
-    const ph = day ? dc.s : phase;
+    const dc = dayClock(day);
+    const ph = dc.s;
     R.floor((ctx) => {
       slab(ctx, C.greyLight);
       rect(ctx, 0, 0, 16, 16, 0, C.greyLight, { stroke: false, dots: C.grey, density: 0.08 });
@@ -454,60 +377,51 @@ export default {
     // The crew
     [0, 1].forEach((i) => {
       R.mover((t) => crewPos(i, t, ph(t)), (ctx, t, p) => {
-        if (p.hidden || !p.a || (day && dc.d(t) > 0)) return;
+        if (p.hidden || !p.a || dc.d(t) > 0) return;
         ctx.save();
         ctx.globalAlpha = p.a;
         person(ctx, p.x, p.y, p.z, {
-          skin: i ? '#C3835B' : '#F4CDAA', hair: i ? C.ink : C.mustard, style: i ? 'bun' : 'short',
+          skin: i ? SKIN[2] : SKIN[0], hair: i ? C.ink : C.mustard, style: i ? 'bun' : 'short',
           top: C.white, bottom: C.white, shoes: C.grey, hat: 'helmet', pose: p.pose || 'stand', dir: p.dir, back: p.back, speed: 6,
           hold: (c) => { c.beginPath(); c.rect(-0.62, -0.25, 0.3, 0.45); paint(c, C.coral, { lw: 0.03 }); },
         }, t);
         ctx.restore();
-      }, { depth: (t) => { const p = crewPos(i, t, ph(t)); return p.x + p.y + (p.lift ? 0.9 : p.slide ? 1 : 0); } });
+      }, { depth: (t) => { const p = crewPos(i, t, ph(t)); return p.x + p.y + (p.lift ? 0.9 : 0); } });
     });
 
-    // The rocket, its flame, and its parachute.
-    R.mover(day ? dc.rocket : (t) => ({ x: RX, y: RY, ...rocketState(t) }), (ctx, t, p) => {
+    // The rocket and its flame; once it's gone, the scorched plinth.
+    R.mover(dc.rocket, (ctx, t, p) => {
       if (p.gone) {
-        if (day) scorch(ctx, t);
+        scorch(ctx, t);
         return;
       }
-      const x = RX + p.sway, y = (day ? p.y : RY) - p.sway * 0.3;
       const z = PADZ + 0.5 + p.alt;
-      if (p.wheel) dolly(ctx, x, y, z - 0.5, t);
-      if (p.chute) drawChute(ctx, x, y, z + BODY_H + NOSE_H, p.chute, t);
+      if (p.wheel) dolly(ctx, p.x, p.y, z - 0.5, t);
       ctx.save();
-      if (p.sway) {
-        const [X, Y] = P(x, y, z + 3);
-        ctx.translate(X, Y); ctx.rotate(p.sway * 0.3); ctx.translate(-X, -Y);
-      }
-      drawRocket(ctx, x, y, z, t, p);
+      drawRocket(ctx, p.x, p.y, z, t, p);
       ctx.restore();
-      const s = ph(t);
-      if (!day && s > 23.6 && s < 28) slideShape(ctx, clamp((s - 23.6) / 0.5) * (1 - clamp((s - 27.5) / 0.5)));
     }, { bias: 0.3 });
 
-    // Launch smoke and landing puffs.
+    // Launch smoke.
     R.air((ctx, t) => {
       const s = ph(t);
-      if (s < 10.3 || s > 24) return;
+      if (s < 10.3 || s > 20) return;
       const puffs = [];
-      const add = (b, i, big) => {
+      const add = (b, i) => {
         const age = s - b;
-        const life = big ? 4.8 : 1.6;
+        const life = 4.8;
         if (age < 0 || age > life) return;
         const k = age / life;
         const a = hash(i, 3) * Math.PI * 2;
-        const d = (1 - Math.exp(-age * 1.4)) * (big ? 2.4 + hash(i, 4) * 3.4 : 1.8);
+        const d = (1 - Math.exp(-age * 1.4)) * (2.4 + hash(i, 4) * 3.4);
         const x = RX + Math.cos(a) * d, y = RY + Math.sin(a) * d;
-        const z = 0.5 + age * (big ? 0.3 : 0.5) + hash(i, 5) * 0.5;
-        const r = ((big ? 0.55 : 0.35) + age * (big ? 0.33 : 0.4)) * (1 - clamp((k - 0.75) / 0.25));
+        const z = 0.5 + age * 0.3 + hash(i, 5) * 0.5;
+        const r = (0.55 + age * 0.33) * (1 - clamp((k - 0.75) / 0.25));
         if (r <= 0.02) return;
         const [X, Y] = P(x, y, z);
         puffs.push([X, Y, r, i]);
       };
-      for (let i = 0; i < 34; i++) add(10.4 + (i / 34) * 4.4, i, true);
-      for (let i = 0; i < 10; i++) add(22.2 + (i / 10) * 0.9, i + 50, false);
+      for (let i = 0; i < 34; i++) add(10.4 + (i / 34) * 4.4, i);
       if (!puffs.length) return;
       // one soft cloud: outlines first, then fills, so the outline hugs the whole billow
       ctx.beginPath();
@@ -526,18 +440,12 @@ export default {
     R.thing(0.9, 10.6, (ctx, t) => {
       for (const y of [7.9, 10.5]) box(ctx, 0.45, y, 0, 0.14, 0.14, 2.2, C.ink, { flat: true });
       box(ctx, 0.3, 7.2, 2.1, 0.3, 4.0, 2.7, C.navy, { right: C.night });
-      const s = ph(t);
-      let text = 'READY', col = C.mint, size = 1.0;
-      if (s >= 8 && s < 11) { text = String(3 - Math.floor(s - 8)); col = C.mustard; size = 2.1; }
-      else if (s >= 11 && s < 15.5) { text = 'LIFTOFF!'; col = C.coral; size = 0.7; }
-      else if (s >= 15.5 && s < 17) { text = 'BYE!'; col = C.butter; size = 1.3; }
-      else if (s >= 17 && s < 23) { text = 'LANDING'; col = C.sky; size = 0.7; }
-      else if (s >= 23 && s < 28) { text = 'NICE'; col = C.mint; size = 1.3; }
-      if (day) [text, col, size] = dc.board(t);
+      let [text, col, size, over] = dc.board(t);
       if (text.length === 1 && pulse(t, 1) > 0.8) col = C.white;
       ctx.save();
       ctx.translate(0.6, 0.3);
-      paintText(ctx, 'left', 9.2, 3.4, text, size, col);
+      if (over) paintText(ctx, 'left', 9.2, 3.85, over, 0.42, C.white, 'Rethink Sans');
+      paintText(ctx, 'left', 9.2, over ? 3.1 : 3.4, text, size, col);
       paintText(ctx, 'left', 9.2, 4.5, 'MISSION CLOCK', 0.34, C.white, 'Rethink Sans');
       ctx.restore();
     }, { anim: true });
@@ -575,8 +483,8 @@ export default {
       scr(10.1, 12.1, 1.3, 3.1);
       scr(12.4, 15.0, 1.3, 3.1);
       // trajectory plot with a live dot
-      const st = rocketState(t, ph(t));
       const s = ph(t);
+      const fire = s > 10.2 && s < 15.5; // the engine's lit
       ctx.beginPath();
       for (let i = 0; i <= 20; i++) {
         const q = i / 20;
@@ -589,7 +497,7 @@ export default {
       ctx.beginPath(); ctx.arc(dx, dy, 0.1, 0, Math.PI * 2); ctx.fillStyle = C.coral; ctx.fill();
       // bar meters
       for (let i = 0; i < 6; i++) {
-        const h = 0.3 + (0.5 + 0.5 * Math.sin(t * (2 + i) + i)) * (st.fire ? 1.3 : 0.6);
+        const h = 0.3 + (0.5 + 0.5 * Math.sin(t * (2 + i) + i)) * (fire ? 1.3 : 0.6);
         face(ctx, [[10.3 + i * 0.3, 0.42, 1.45], [10.5 + i * 0.3, 0.42, 1.45], [10.5 + i * 0.3, 0.42, 1.45 + h], [10.3 + i * 0.3, 0.42, 1.45 + h]], [C.mint, C.mustard, C.coral][i % 3], { stroke: false });
       }
       // radar dish on the roof
@@ -650,7 +558,7 @@ export default {
       if (s < 26) { const k = (s - 23.5) / 2.5; return { x: H[0] + (W[0] - H[0]) * k, y: H[1] + (W[1] - H[1]) * k, z: k > 0.6 ? PADZ : 0, pose: 'walk', dir: 'r', back: true }; }
       return { x: W[0], y: W[1], z: PADZ, pose: 'drum', dir: 'l', back: true };
     };
-    R.mover(day ? (t) => dc.pusher(t) || mech(t) : mech, (ctx, t, p) => {
+    R.mover((t) => dc.pusher(t) || mech(t), (ctx, t, p) => {
       person(ctx, p.x, p.y, p.z, folk(220, { pose: p.pose, dir: p.dir, back: p.back, top: C.coral, bottom: C.navy, hat: 'cap', speed: p.pose === 'drum' ? 12 : 11 }), t);
       if (p.say && Q.detail) speech(ctx, p.x, p.y, p.z + 2.6, p.say, { size: 0.45 });
     });
@@ -855,17 +763,15 @@ export default {
       return { x: (GX0 + GX1) / 2, y: (GY0 + GY1) / 2 + 0.2, z: GH + 0.15, dir: 'r', pose: honk ? 'honk' : 'stand' };
     }, { bias: 1.5 });
 
-    if (day) {
-      // After the launch the smoke hangs over the lot, then the pad smoulders
-      // all night.
-      R.air((ctx, t) => afterSmoke(ctx, dc.d(t)));
-      // Floodlights on the rocket after dark, and the crew hut's window lit.
-      R.light({ at: [RX, RY, 3.2], r: 4, color: C.butter, k: (t) => day.nightK(t) * (dc.d(t) < 0 || dc.d(t) > dc.back ? 0.45 : 0.15) });
-      R.thing(3.21, 15.61, (ctx, t) => {
-        const k = Math.round(day.nightK(t) * 10) / 10;
-        if (k < 0.1) return;
-        face(ctx, [[1.9, 15.6, 0.7], [0.7, 15.6, 0.7], [0.7, 15.6, 1.8], [1.9, 15.6, 1.8]], mix(C.sky, C.butter, k), { lw: 0.04 });
-      }, { anim: true });
-    }
+    // After the launch the smoke hangs over the lot, then the pad smoulders
+    // all night.
+    R.air((ctx, t) => afterSmoke(ctx, dc.d(t)));
+    // Floodlights on the rocket after dark, and the crew hut's window lit.
+    R.light({ at: [RX, RY, 3.2], r: 4, color: C.butter, k: (t) => day.nightK(t) * (dc.d(t) < 0 || dc.d(t) > dc.back ? 0.45 : 0.15) });
+    R.thing(3.21, 15.61, (ctx, t) => {
+      const k = Math.round(day.nightK(t) * 10) / 10;
+      if (k < 0.1) return;
+      face(ctx, [[1.9, 15.6, 0.7], [0.7, 15.6, 0.7], [0.7, 15.6, 1.8], [1.9, 15.6, 1.8]], mix(C.sky, C.butter, k), { lw: 0.04 });
+    }, { anim: true });
   },
 };

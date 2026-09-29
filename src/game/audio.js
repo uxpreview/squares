@@ -84,14 +84,15 @@ const SOUNDS = {
       }
     }
   },
-  // A lorry's horn, two low blasts, down the street.
+  // A lorry's horn, two low blasts, down the street: muffled and well under
+  // a goose's honk, so nobody mistakes one for the other.
   horn(a, t0) {
     for (const [at, len] of [[0, 0.22], [0.32, 0.5]]) {
       const t = t0 + at;
       const f = a.createBiquadFilter();
       f.type = 'lowpass';
-      f.frequency.value = 900;
-      const g = envelope(a, t, 0.07, 0.02, len);
+      f.frequency.value = 600;
+      const g = envelope(a, t, 0.03, 0.02, len);
       f.connect(g);
       g.connect(a.destination);
       for (const hz of [196, 247]) {
@@ -127,13 +128,13 @@ const SOUNDS = {
       o.type = 'sine';
       o.frequency.setValueAtTime(120, t0 + at);
       o.frequency.exponentialRampToValueAtTime(42, t0 + at + 0.18);
-      const g = envelope(a, t0 + at, 0.18, 0.005, 0.25);
+      const g = envelope(a, t0 + at, 0.07, 0.005, 0.25);
       o.connect(g);
       g.connect(a.destination);
       o.start(t0 + at);
       o.stop(t0 + at + 0.3);
     }
-    tone(a, t0 + 0.9, 55, 'triangle', 0.08, 0.01, 0.6);
+    tone(a, t0 + 0.9, 55, 'triangle', 0.04, 0.01, 0.6);
   },
   // A crowd cheering, some way off: a swell of voices, and a whistle.
   cheer(a, t0) {
@@ -172,7 +173,7 @@ const SOUNDS = {
     f.frequency.exponentialRampToValueAtTime(2400, t0 + 2.5);
     const g = a.createGain();
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.5);
+    g.gain.exponentialRampToValueAtTime(0.08, t0 + 0.5);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.6);
     src.connect(f);
     f.connect(g);
@@ -333,7 +334,7 @@ const BEDS = {
     const out = a.createGain();
     out.gain.setValueAtTime(0.0001, a.currentTime);
     out.gain.exponentialRampToValueAtTime(0.05, a.currentTime + 2);
-    out.connect(a.destination);
+    out.connect(bus(a));
     const srcs = [[700, 0.8, 1], [2600, 1.2, 0.35]].map(([hz, q, v], i) => {
       const src = a.createBufferSource();
       src.buffer = i ? noise(a) : rumble(a);
@@ -361,12 +362,13 @@ const BEDS = {
 };
 
 // Street noise: traffic far off (a low rumble) and people about (a murmur that
-// comes and goes), soft, under everything.
+// comes and goes), soft, under everything. The murmur sits well below a
+// honk's pitch, and the whole bed about 12 dB under a honk (loudness(), below).
 BEDS.street = (a) => {
   const out = a.createGain();
   out.gain.setValueAtTime(0.0001, a.currentTime);
-  out.gain.exponentialRampToValueAtTime(0.04, a.currentTime + 2);
-  out.connect(a.destination);
+  out.gain.exponentialRampToValueAtTime(0.018, a.currentTime + 2);
+  out.connect(bus(a));
   const srcs = [];
   // Traffic: brown noise, low.
   const road = a.createBufferSource();
@@ -385,7 +387,7 @@ BEDS.street = (a) => {
   talk.playbackRate.value = 1.7;
   const bp = a.createBiquadFilter();
   bp.type = 'bandpass';
-  bp.frequency.value = 850;
+  bp.frequency.value = 480;
   bp.Q.value = 1.3;
   const tg = a.createGain();
   tg.gain.value = 0.35;
@@ -410,10 +412,29 @@ BEDS.street = (a) => {
 };
 let bedName = null, bedStop = null;
 
+// Beds play through one gain, so a honk can duck them: the bed dips for about
+// a second under every honk, then comes back.
+const buses = new WeakMap();
+function bus(a) {
+  let g = buses.get(a);
+  if (!g) { g = a.createGain(); g.connect(a.destination); buses.set(a, g); }
+  return g;
+}
+function duck(a, t) {
+  const g = bus(a).gain;
+  g.cancelScheduledValues(t);
+  g.setValueAtTime(g.value, t);
+  g.setTargetAtTime(0.35, t, 0.03);
+  g.setTargetAtTime(1, t + 0.7, 0.25);
+}
+
 export function play(name, o) {
   const a = context();
   if (!a || !SOUNDS[name]) return;
-  try { SOUNDS[name](a, a.currentTime + 0.01, o); } catch {}
+  try {
+    if (name === 'honk') duck(a, a.currentTime);
+    SOUNDS[name](a, a.currentTime + 0.01, o);
+  } catch {}
 }
 
 // The bed to loop now (a key of BEDS), or null for quiet. Keeps it going
@@ -455,4 +476,25 @@ export async function check(name, o) {
   } catch (e) {
     return String(e && e.message ? e.message : e);
   }
+}
+
+// For QA: how loud a sound (or bed) is between from and to seconds: its RMS
+// and peak, and its RMS in the honk's range (a band round 1150 Hz), which is
+// what a bed must stay well under so the geese stand out.
+export async function loudness(name, o, from = 0, to = 2) {
+  const fn = SOUNDS[name] || BEDS[name];
+  if (!fn) return null;
+  const rate = 44100, a = new OfflineAudioContext(1, Math.ceil(rate * to), rate);
+  fn(a, 0.01, o);
+  const d = (await a.startRendering()).getChannelData(0);
+  const w = 2 * Math.PI * 1150 / rate, al = Math.sin(w) / (2 * 1.2), c = Math.cos(w), a0 = 1 + al;
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0, sum = 0, band = 0, peak = 0, n = 0;
+  for (let i = 0; i < d.length; i++) {
+    const x = d[i], y = (al * x - al * x2 + 2 * c * y1 - (1 - al) * y2) / a0;
+    x2 = x1; x1 = x; y2 = y1; y1 = y;
+    if (i < from * rate) continue;
+    sum += x * x; band += y * y; peak = Math.max(peak, Math.abs(x)); n++;
+  }
+  const db = (v) => Math.round(20 * Math.log10(Math.sqrt(v / n) + 1e-9) * 10) / 10;
+  return { rms: db(sum), band: db(band), peak: Math.round(20 * Math.log10(peak + 1e-9) * 10) / 10 };
 }

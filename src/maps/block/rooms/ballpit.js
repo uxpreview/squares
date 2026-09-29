@@ -4,7 +4,7 @@
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker, tiles,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, frame, clockL, shelfL,
-  hash, rng, pick, note,
+  hash, rng, pick, note, SKIN,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -523,7 +523,7 @@ export default {
       ctx.translate(X, Y);
       ctx.rotate(0.46);
       ctx.translate(-X, -Y);
-      person(ctx, BX + 0.6, BY + 0.45, 0.75, folk(140, { pose: 'sleep', dir: 'l', top: C.green, bottom: C.navy, style: 'bald', skin: '#E3A97F' }), t);
+      person(ctx, BX + 0.6, BY + 0.45, 0.75, folk(140, { pose: 'sleep', dir: 'l', top: C.green, bottom: C.navy, style: 'bald', skin: SKIN[1] }), t);
       ctx.restore();
       // the tower of balls on his tummy
       const tt = pulse(t, BIG) * BIG;

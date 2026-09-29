@@ -12,9 +12,11 @@
 export default [
   {
     id: 'block',
-    name: 'The Block',
-    tagline: 'Sixteen rooms. One loose goose in each.',
+    name: 'The Block Party',
+    tagline: 'Sixteen rooms, one street party, a goose in every room.',
     ink: '#E3603F',
+    // The Block, connected (docs/levels/block.md). It took over the flat
+    // Block's id, so saves carried over; #/blockparty redirects here.
     load: () => import('./block/map.js'),
   },
   {
@@ -44,15 +46,5 @@ export default [
     // checking engine changes. Opens from #/crossroads.
     hidden: true,
     load: () => import('./crossroads/map.js'),
-  },
-  {
-    id: 'blockparty',
-    name: 'The Block Party',
-    tagline: 'Sixteen rooms, one street party, a goose in every room.',
-    ink: '#E3603F',
-    // The Block, connected (docs/levels/block.md), at its greybox. Opens from
-    // #/blockparty; when it ships it takes over The Block's id.
-    hidden: true,
-    load: () => import('./blockparty/map.js'),
   },
 ];

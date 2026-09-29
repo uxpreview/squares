@@ -40,15 +40,30 @@ function migrate() {
   return data;
 }
 
+// Places that moved to another id (the Block Party was at blockparty until it
+// took over the Block's id): what was found there joins what's found at the
+// new id. The shape doesn't change, so the version doesn't either.
+const MOVED = { blockparty: 'block' };
+function moved(data) {
+  for (const [from, to] of Object.entries(MOVED)) {
+    if (data.found[from]) {
+      data.found[to] = [...new Set([...(data.found[to] || []), ...data.found[from]])];
+      delete data.found[from];
+    }
+    if (data.last && data.last.map === from) data.last = { ...data.last, map: to };
+  }
+  return data;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const d = JSON.parse(raw);
-      if (d && d.v === V) return { ...blank(), ...d, settings: { ...blank().settings, ...d.settings } };
+      if (d && d.v === V) return moved({ ...blank(), ...d, settings: { ...blank().settings, ...d.settings } });
     }
   } catch {}
-  return migrate();
+  return moved(migrate());
 }
 
 export function createStore() {

@@ -41,7 +41,7 @@ The game itself only needs Node. The checking tools (smoke, QA, screenshots, the
    ```
    npm run build                                 # should end with "built in ..."
    npm run smoke                                 # should end with "All good"
-   node tools/shoot.mjs block out.png --mobile   # a picture of the Block, as a phone sees it
+   node tools/shoot.mjs block out.png --mobile   # a picture of the Block Party, as a phone sees it
    npm run qa -- block                           # passes, and makes qa-out/block/contact.jpg
    ```
 5. `npm run dev` and open the address it prints. It also prints a Network address: open that on a phone on the same wifi to play on the phone.
@@ -52,7 +52,7 @@ QA's speed check times a slowed-down phone on this computer's processor, so its 
 
 ## How it's put together
 
-The game is made of **places** (maps). A place is made of **zones**: a room on The Block, a floor of The Walk-Up. The engine doesn't care what a zone is; the map decides where each one sits.
+The game is made of **places** (maps). A place is made of **zones**: a room on the Block Party, a floor of The Walk-Up. The engine doesn't care what a zone is; the map decides where each one sits.
 
 ```
 src/
@@ -85,7 +85,17 @@ src/
     index.js         The list of places, in picker order
     shared.js        Print marks, birds and the goose victory lap, for any map
     greybox.js       The greybox kit: blocks, labels and pins for laying out a new place
-    block/           The Block: 16 rooms on a 4x4 plate
+    block/           The Block Party: 16 rooms on a city block, on the day of the party
+      rooms/           One file per room
+      fronts/          Each room's street front: its sign, its door, its busy hour
+      areas/           Main Street, the alleys, the pavement
+      plan.js          Where every room, street and door sits, and the lanes people walk
+      style.js         The streets' inks, the paper through the day, lamp posts, bunting, litter
+      clock.js         The day's hours, and each room's opening hours and rush
+      day.js           The day's light, and everyone's day on the streets
+      finale.js        The ending: the conga round Main Street and the sock
+      sound.js         The street bed and the day's sound cues
+      ambient.js       The blimp and the paper plane
     tower/           The Walk-Up: 4 floors, pulled apart like an exploded diagram
     manor/           Gooseworth Manor: a murder mystery in a house at night, 3 floors, 11 areas
       plan.js          Where every area sits, the doors and the stairs
@@ -96,12 +106,6 @@ src/
       areas/           One file per area
     crossroads/      A hidden test bed (#/crossroads): a street and a pavement of any shape
                      between four rooms, with people walking between them
-    blockparty/      The Block, connected (#/blockparty, hidden until it ships): the Block's
-                     sixteen rooms on streets, on the day of the Block Party
-      plan.js          Where every room, street and door sits, and the lanes people walk
-      style.js         The streets' inks, the paper through the day, lamp posts and bunting
-      day.js           The day's clock and light, and everyone's day on the streets
-      areas/           Main Street, the alleys, the pavement
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/
@@ -129,7 +133,7 @@ docs/
 | Rename a place or change its picker blurb | `src/maps/index.js` (picker) and that place's `map.js` (in-game) |
 | Change the palette | `C` at the top of `src/engine/art.js`. Every zone pulls from it. |
 | Change a zone's name, story or finds | The top of its file (`id`, `name`, `blurb`) and its `R.find(...)` calls |
-| Swap or reorder rooms on The Block | The `ROOMS` list in `src/maps/block/map.js` |
+| Swap or reorder rooms on the Block Party | `GRID` and `AT` in `src/maps/block/plan.js` (the streets are laid out round them) |
 | Hide the "more places on the way" card | `teaseMore: false` in `src/config.js` |
 | Change a sound, or add one | `src/game/audio.js` |
 | Change what finishing a place says | `words.complete` in that place's `map.js`; the card itself is in `src/ui/screens.js` |
@@ -155,9 +159,11 @@ docs/
 | The lift's ding | `ding` in `src/game/audio.js` |
 | Make an area that isn't a 16 x 16 room (a street, a square) | `size: [w, d]` or `shape: [[x0, y0, x1, y1], ...]` in its zone file (see `src/maps/crossroads/areas/street.js`, and "Chunks" in `src/engine/zone.js`) |
 | Who's where at the Manor, and when | `src/maps/manor/evening.js` (doors and stairs are in `plan.js`) |
-| Who's where at the Block Party, and when | `src/maps/blockparty/day.js` (doors, streets and lanes are in `plan.js`) |
-| The Block Party's colors through the day | `PAPER` in `src/maps/blockparty/style.js` (the hours); how dark night gets is `nightK` and `nightfall` in `day.js` |
-| Where a room's door onto the street goes | `DOORS` in `src/maps/blockparty/plan.js` (a map can cut doors in any zone's walls: `doors` on its place) |
+| Who's where at the Block Party, and when | `src/maps/block/day.js` (doors, streets and lanes are in `plan.js`) |
+| The Block Party's colors through the day | `PAPER` in `src/maps/block/style.js` (the hours); how dark night gets is `nightK` and `nightfall` in `day.js` |
+| How far a room's picture reaches past its corners (for a sign hanging over the street) | `REACH` in `src/maps/block/map.js` (`reach` on any zone's place; QA's pictures check says when one's cut off) |
+| How loud the street is against the honks | `BEDS.street` and the cues in `src/game/audio.js`; `loudness()` there measures them |
+| Where a room's door onto the street goes | `DOORS` in `src/maps/block/plan.js` (a map can cut doors in any zone's walls: `doors` on its place) |
 | How much of a long area (a street) a tap frames | `zoneBox` in `src/engine/world.js` (a room's worth round the spot you tapped); where it frames by default is `home` in the area's file |
 | When the Manor's lights go out, how often lightning strikes | `lightsOut` and `storm` in `src/maps/manor/style.js` |
 | What QA expects of a place (finds per area, key moments) | `qa` in its `map.js`; the checks and budgets are at the top of `tools/qa.mjs` |

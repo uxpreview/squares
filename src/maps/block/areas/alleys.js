@@ -60,7 +60,7 @@ function paving(ctx, ink, cell) {
 }
 
 // Puddles [x, y, size], drains [x, y].
-const PUDDLES = [[17.35, 58.5, 0.62], [18.3, 21.5, 0.5], [17.2, 67.6, 0.45], [62.1, 56.2, 0.55], [55.5, 17.1, 0.5], [8.8, 62.2, 0.5], [30.2, 62.3, 0.4], [17.1, 5.8, 0.4]];
+const PUDDLES = [[18.4, 60.2, 0.62], [18.3, 21.5, 0.5], [17.2, 67.6, 0.45], [62.1, 56.2, 0.55], [55.5, 17.1, 0.5], [8.8, 62.2, 0.5], [30.2, 62.3, 0.4], [17.1, 5.8, 0.4]];
 const DRAINS = [[18.9, 51.9], [18, 30], [18, 71], [63, 40.5], [63, 26], [40.5, 18], [24, 18], [70, 63]];
 
 function puddle(ctx, x, y, s, night) {
@@ -118,11 +118,14 @@ function chalkSquid(ctx, night) {
 }
 
 // The find: one tentacle print, big and wet, suckers and all. Printed in the
-// night inks too (a lilac sheen), so it still shows after dark.
+// night inks too (a lilac sheen), so it still shows after dark. It's a step up
+// the alley from the lane the octopus walks, off to the side, so the octopus
+// never sits on it and doesn't point straight at it.
+const PRINT = [16.95, 58.3];
 function tentaclePrint(ctx, night) {
   const wet = night ? mix(C.lilac, C.navy, 0.3) : mix(C.navy, STREET.alley, 0.35);
   const ring = night ? tint(C.lilac, 0.35) : mix(C.sky, C.navy, 0.35);
-  onFloor(ctx, 18.2, 59.8, 0.5, () => {
+  onFloor(ctx, PRINT[0], PRINT[1], 0.5, () => {
     // A curl: a spine spiralling in, tapering as it goes.
     const N = 24, sp = [];
     for (let i = 0; i <= N; i++) {
@@ -401,7 +404,7 @@ export default {
       chalkSquid(ctx, night);
       tentaclePrint(ctx, night);
     }]);
-    R.find({ id: 'tentacle-print', label: 'A tentacle print', at: [18.2, 59.8, 0.05], r: 0.8 });
+    R.find({ id: 'tentacle-print', label: 'A tentacle print', at: [...PRINT, 0.05], r: 0.8 });
 
     // ---------- Quiet alleys ----------
     for (const [x, y, color] of BINS) R.thing(x + 0.9, y + 0.9, (ctx) => wheelie(ctx, x, y, color));
@@ -661,18 +664,21 @@ export default {
       for (const z of [1.2, 2.3]) box(ctx, 19.32, 51.82, z, 0.2, 0.16, 0.06, C.ink, { flat: true, stroke: false });
     });
 
-    // The find: a cat in a bin, lid up on its head, watching the lane (and
-    // staring, when the octopus turns up).
+    // The find: a cat in a bin, sitting down inside it with its head over
+    // the rim and its paws hooked on the front, the lid pushed up behind it,
+    // watching the lane (and staring, when the octopus turns up).
     R.thing(19.35, 55.35, (ctx) => dustbin(ctx, 19.05, 55.05, 0.42, 1.0, false));
     R.thing(19.4, 55.4, (ctx, t) => {
-      const [X, Y] = P(19.05, 55.05, 1.25);
+      const [X, Y] = P(19.05, 55.05, 1.0); // the middle of the bin's mouth
+      const RX = 0.42 * Math.SQRT2, RY = RX / 2; // the rim, on screen
       const wide = octoHere(t);
       const look = wide ? 1 : Math.sin(t * 0.6) * 0.8;
-      const lift = Math.max(0, Math.sin(t * 0.9)) * 0.08;
-      // The lid, pushed up and back off the bin by its head.
+      const lift = Math.max(0, Math.sin(t * 0.9)) * 0.06;
+      const hy = Y + 0.02 - lift; // the head's middle: its chin sinks behind the rim
+      // The lid, pushed up against the back of the rim.
       ctx.save();
-      ctx.translate(X + 0.22, Y - lift - 0.42);
-      ctx.rotate(0.55);
+      ctx.translate(X + 0.3, Y - 0.42);
+      ctx.rotate(0.7);
       ctx.beginPath();
       ctx.ellipse(0, 0, 0.5, 0.17, 0, 0, Math.PI * 2);
       paint(ctx, tint(C.grey, 0.2), { lw: 0.035 });
@@ -680,20 +686,31 @@ export default {
       ctx.ellipse(0, -0.06, 0.12, 0.05, 0, 0, Math.PI * 2);
       paint(ctx, C.greyLight, { lw: 0.03 });
       ctx.restore();
-      // Paws on the rim.
-      ctx.fillStyle = C.mustard;
-      ctx.strokeStyle = C.ink;
-      ctx.lineWidth = 0.025;
-      for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.22, Y + 0.2, 0.09, 0.055, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-      catHead(ctx, t, X, Y - lift, 0.31, C.mustard, look, wide);
+      catHead(ctx, t, X, hy, 0.31, C.mustard, look, wide);
       if (Q.detail) {
         ctx.strokeStyle = shade(C.mustard, 0.35);
         ctx.lineWidth = 0.03;
         ctx.beginPath();
-        for (const dx of [-0.08, 0, 0.08]) { ctx.moveTo(X + dx, Y - lift - 0.26); ctx.lineTo(X + dx, Y - lift - 0.15); }
+        for (const dx of [-0.08, 0, 0.08]) { ctx.moveTo(X + dx, hy - 0.26); ctx.lineTo(X + dx, hy - 0.15); }
         ctx.stroke();
       }
+      // The front of the rim, over its chin: the cat is in the bin, not on it.
+      ctx.beginPath();
+      ctx.ellipse(X, Y, RX, RY, 0, 0, Math.PI);
+      ctx.ellipse(X, Y + 0.16, RX, RY, 0, Math.PI, 0, true);
+      ctx.closePath();
+      ctx.fillStyle = C.grey;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(X, Y, RX, RY, 0, 0, Math.PI);
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 0.035;
+      ctx.stroke();
+      // Paws hooked over the front of the rim.
+      ctx.fillStyle = C.mustard;
+      ctx.lineWidth = 0.025;
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.17, Y + RY * 0.92, 0.09, 0.06, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
     }, { anim: true });
-    R.find({ id: 'cat-in-a-bin', label: 'A cat in a bin', at: [19.05, 55.05, 1.25], r: 0.8 });
+    R.find({ id: 'cat-in-a-bin', label: 'A cat in a bin', at: [19.05, 55.05, 1.1], r: 0.8 });
   },
 };

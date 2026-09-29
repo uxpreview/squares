@@ -2,7 +2,7 @@
 // a rink full of skaters and one skate that left without its owner.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor,
-  onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, hash,
+  onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, hash, SKIN,
 } from '../../../engine/art.js';
 import { particles, pulse, clamp, route } from '../../../engine/actors.js';
 
@@ -234,15 +234,15 @@ export default {
       paintText(ctx, 'right', 15.1, 4.82, 'EXIT', 0.3, C.white);
     });
 
-    // The ALL SKATE / REVERSE lightbox, and a string of blinking bulbs. On a
-    // day (the Block Party), a neon clock by the exit with the real time on it.
+    // The ALL SKATE / REVERSE lightbox, a string of blinking bulbs, and a
+    // neon clock by the exit with the real time on it.
     const day = R.opts.day;
     R.decor((ctx, t) => {
       const rev = reversing(t);
       const blink = rev && Math.sin(t * 12) > 0;
       onRight(ctx, 12.0, 2.3, 2.6, 0.9, rev ? (blink ? C.coral : C.red) : C.ink, { lw: 0.05 });
       paintText(ctx, 'right', 13.3, 2.75, rev ? 'REVERSE!' : 'ALL SKATE', 0.42, rev ? C.white : C.butter);
-      if (day) neonClock(ctx, day.hour(t));
+      neonClock(ctx, day.hour(t));
       if (!Q.detail) return;
       for (const plane of ['L', 'R']) {
         for (let i = 0; i < 20; i++) {
@@ -446,7 +446,7 @@ export default {
       const shout = s > FWD - 1.2 && s < FWD + 1.2;
       const z = beat * 0.12;
       person(ctx, 7.2, 0.8, z, {
-        skin: '#633F2A', hair: C.ink, style: 'curly', top: C.purple, bottom: C.ink, dir: 'r',
+        skin: SKIN[4], hair: C.ink, style: 'curly', top: C.purple, bottom: C.ink, dir: 'r',
         pose: shout ? 'cheer' : 'stand', arms: shout ? undefined : [1.35 + Math.sin(t * 9) * 0.15, 1.6],
       }, t);
       headphones(ctx, 7.2, 0.8, z, 1, 1, C.mustard);
