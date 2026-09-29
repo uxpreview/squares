@@ -327,6 +327,50 @@ const SOUNDS = {
   },
 };
 
+// The tide rushing in or out (skipping ahead on the dial): a long, soft wash
+// of noise that swells and falls away, sweeping down.
+SOUNDS.tide = (a, t0) => {
+  const src = a.createBufferSource();
+  src.buffer = rumble(a);
+  src.playbackRate.value = 1.6;
+  const f = a.createBiquadFilter();
+  f.type = 'bandpass';
+  f.Q.value = 0.9;
+  f.frequency.setValueAtTime(900, t0);
+  f.frequency.exponentialRampToValueAtTime(260, t0 + 1.8);
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.09, t0 + 0.5);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2);
+  src.connect(f);
+  f.connect(g);
+  g.connect(a.destination);
+  src.start(t0);
+  src.stop(t0 + 2.1);
+};
+
+// A gull, far off: two or three falling cries.
+SOUNDS.gull = (a, t0, o = {}) => {
+  const n = o.n || 3;
+  for (let i = 0; i < n; i++) {
+    const t = t0 + i * 0.26;
+    const osc = a.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1500 - i * 60, t);
+    osc.frequency.exponentialRampToValueAtTime(900, t + 0.2);
+    const f = a.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 1800;
+    f.Q.value = 3;
+    const g = envelope(a, t, 0.02, 0.02, 0.18);
+    osc.connect(f);
+    f.connect(g);
+    g.connect(bus(a));
+    osc.start(t);
+    osc.stop(t + 0.25);
+  }
+};
+
 // Beds: sounds that loop under a place while you're in it. Each returns a stop().
 const BEDS = {
   // Rain on the windows: two bands of soft noise, drifting a little.
@@ -410,6 +454,54 @@ BEDS.street = (a) => {
     for (const s of srcs) s.stop(t + 0.7);
   };
 };
+// The sea: waves breaking and drawing back (low noise that swells every few
+// seconds), and a hiss of spray over it. Well under a honk, like the street.
+BEDS.surf = (a) => {
+  const out = a.createGain();
+  out.gain.setValueAtTime(0.0001, a.currentTime);
+  out.gain.exponentialRampToValueAtTime(0.02, a.currentTime + 2);
+  out.connect(bus(a));
+  const srcs = [];
+  const wash = a.createBufferSource();
+  wash.buffer = rumble(a);
+  wash.loop = true;
+  const lp = a.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 520;
+  const swell = a.createGain();
+  swell.gain.value = 0.6;
+  const lfo = a.createOscillator();
+  lfo.frequency.value = 0.16; // a wave every six seconds or so
+  const lg = a.createGain();
+  lg.gain.value = 0.45;
+  lfo.connect(lg);
+  lg.connect(swell.gain);
+  wash.connect(lp);
+  lp.connect(swell);
+  swell.connect(out);
+  srcs.push(wash, lfo);
+  const spray = a.createBufferSource();
+  spray.buffer = noise(a);
+  spray.loop = true;
+  const hp = a.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 3800;
+  const sg = a.createGain();
+  sg.gain.value = 0.05;
+  spray.connect(hp);
+  hp.connect(sg);
+  sg.connect(out);
+  srcs.push(spray);
+  for (const s of srcs) s.start();
+  return () => {
+    const t = a.currentTime;
+    out.gain.cancelScheduledValues(t);
+    out.gain.setValueAtTime(out.gain.value, t);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    for (const s of srcs) s.stop(t + 0.7);
+  };
+};
+
 let bedName = null, bedStop = null;
 
 // Beds play through one gain, so a honk can duck them: the bed dips for about

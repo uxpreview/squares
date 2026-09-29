@@ -52,7 +52,15 @@ export function createTray(o) {
     return m;
   }
   const grouped = () => o.rooms.some((r) => r.finds.some((f) => f.group));
-  const said = (f) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : '');
+  const said = (f) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : '') + (f.note ? ` (at ${f.note})` : '');
+  // A find that only shows some of the time (at low tide) says when, small, after its name.
+  function noteOf(f) {
+    const n = document.createElement('span');
+    n.className = 'find-note';
+    n.textContent = f.note;
+    n.setAttribute('aria-hidden', 'true');
+    return n;
+  }
 
   function chip(room, f) {
     const found = o.isFound(room, f);
@@ -67,7 +75,8 @@ export function createTray(o) {
     t.className = 'chip-label';
     t.textContent = o.label(room, f);
     b.append(mark(f, found), t);
-    if (f.group === 'evidence') b.setAttribute('aria-label', said(f));
+    if (f.note && !found) b.append(noteOf(f));
+    if (f.group === 'evidence' || f.note) b.setAttribute('aria-label', said(f));
     if (found) {
       b.disabled = true;
       b.setAttribute('aria-label', said(f) + ', found');
@@ -86,6 +95,13 @@ export function createTray(o) {
     t.className = 'row-label';
     t.textContent = o.label(room, f);
     li.append(mark(f, found), t);
+    if (f.note && !found) {
+      li.append(noteOf(f));
+      const e = document.createElement('span');
+      e.className = 'sr-only';
+      e.textContent = ` (at ${f.note})`;
+      li.append(e);
+    }
     if (f.group === 'evidence') {
       const e = document.createElement('span');
       e.className = 'sr-only';

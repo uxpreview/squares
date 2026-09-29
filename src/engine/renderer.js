@@ -138,7 +138,18 @@ export function createRenderer(canvas, camera, o = {}) {
     const H = focus.h + 0.3;
     const t = -0.45; // wall thickness
     const [x0, y0, w, d] = [rect[0] ? rect[0] : t, rect[1] ? rect[1] : t, rect[2], rect[3]];
-    const sil = [[x0, d, H], [x0, y0, H], [w, y0, H], [w, y0, -drop[0]], [w, d, -drop[0]], [w, d, -drop[1]], [x0, d, -drop[1]]];
+    let sil = [[x0, d, H], [x0, y0, H], [w, y0, H], [w, y0, -drop[0]], [w, d, -drop[0]], [w, d, -drop[1]], [x0, d, -drop[1]]];
+    if (focus.ground) {
+      // On ground with height, the outline's foot follows the ground along
+      // its front edges (every half unit), and its top clears anything
+      // standing on the highest of it. drop here: true to go down to the
+      // plate's cut side, where nothing carries on in front.
+      const g = focus.ground, top = focus.hi + H, n = (a, b) => Math.max(1, Math.ceil((b - a) / 0.5));
+      const foot = (x, y, open) => (open ? focus.base - 0.3 : g(x, y));
+      sil = [[x0, d, top], [x0, y0, top], [w, y0, top]];
+      for (let k = 0, m = n(y0, d); k <= m; k++) { const y = y0 + ((d - y0) * k) / m; sil.push([w, y, foot(w, y, drop[0])]); }
+      for (let k = 0, m = n(x0, w); k <= m; k++) { const x = w - ((w - x0) * k) / m; sil.push([x, d, foot(x, d, drop[1])]); }
+    }
     const cut = new Path2D();
     if (!hole) {
       const { box } = view;
@@ -211,6 +222,7 @@ export function createRenderer(canvas, camera, o = {}) {
       const touch = (fn) => world.drawOrder.some((o) => o !== c && Math.abs(o.oz - c.oz) < 0.05 && fn(o.ox, o.oy, o.ox + o.rect[2] - o.rect[0], o.oy + o.rect[3] - o.rect[1]));
       const tx = touch((a0, b0, a1, b1) => Math.abs(a0 - x1) < 0.01 && Math.min(b1, y1) - Math.max(b0, y0) > 0.01);
       const ty = touch((a0, b0, a1, b1) => Math.abs(b0 - y1) < 0.01 && Math.min(a1, x1) - Math.max(a0, x0) > 0.01);
+      if (focus.ground) return [c, cutPath(focus, c.rect, [!tx, !ty], true)];
       return [c, cutPath(focus, c.rect, [tx ? 0 : 1.1, ty ? 0 : 1.1], true)];
     }) : null;
     const fx = { ...(o.fx || {}), view: [vx0, vy0, vx1, vy1], cut, level, focus };

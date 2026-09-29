@@ -34,6 +34,7 @@ Anything the level needs that the engine can't do yet gets built first, in its o
 ### 4. Scaffold and greybox (gate 2: the owner approves)
 - `npm run new-level -- <id>` makes the level's folder, map file, style sheet (the brief's inks), backdrop and sky, and a placeholder file per area (from the brief's Areas table), all in one step, and lists the level (hidden until it ships).
 - The greybox: every area blocked out in plain shapes with the greybox kit (`src/maps/greybox.js`): floors, walls and doors, the hero, furniture, paths, where people stand, the finds as numbered pins, the camera framing tuned. If people move between areas, their evening goes in the level's timeline (see `src/maps/manor/evening.js`).
+- A place with ground and water (a coast, a hill, a river) starts from its land instead of floors: one `land.js` with its heights, the layers printed on them and the water's level through the loop (see `src/maps/plum/land.js` and `src/engine/terrain.js`). Its areas print their part of it. QA fails ground too steep to draw ground-first.
 - `npm run qa -- <id>` must pass. Its contact sheet (every floor, key moments, every area on desktop and phone) and a preview link go to the owner.
 - This is the moment to change the layout, the composition or the shape. After this gate, the layout is fixed.
 

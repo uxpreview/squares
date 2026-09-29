@@ -34,6 +34,17 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 - Zones in front of (or above) the one being viewed get cut away automatically, so the whole zone is visible when zoomed in.
 - **A zone of another size or shape** (a street, a square): give the zone module `size: [w, d]`, or `shape: [[x0, y0, x1, y1], ...]` for one that isn't one box (an L, a cross). `R.W` and `R.D` are its size, `R.shape` its boxes; `slab(ctx, color, R.W, R.D)`, or `ground(R, ...)` from the greybox kit for a shape. The engine draws it in 16 x 16 chunks, each sorted in with the zones around it, and hides the seams (every 16 units from its back corner). Two rules: keep anything wide and tall about a unit clear of a seam (its sides could be clipped by the chunk beside it), and keep flat things (floor, rug and wall layers) on the zone's own floor, since past its edges they're cut off. `#/crossroads` is the test map.
 
+## Ground and water (places with a land)
+
+Some places have ground with height and water whose level moves with the clock (Plum Island's tide; `src/engine/terrain.js`). There:
+
+- The map's land prints each area's ground and water: keep the area's `drawLand(R, land, ...)` call. Don't draw a slab or a floor.
+- Stand things on the ground: `R.ground(x, y)` is its height (the greybox's `block` and `figure` do it for you). Put a floating thing (a boat, a buoy, a find that bobs) at `float(x, y, t)` from the level's `land.js`, and draw someone in water with `wade(ctx, x, y, z, level, draw)` so only what's above the water line shows.
+- Water is printed before anything stands in it, so anything standing in water must only draw what's above it (a jetty's rocks start at the water line: see the North Point).
+- The ground never climbs toward the viewer (down the screen) steeper than 0.8 a unit, so it never hides what's behind it. Don't make ground steeper; make a thing (a sea wall, a bank of rocks, a bridge).
+- A find that's only there some of the time (under the tide) takes `when: (t) => true or false` and `note: 'low tide'`. Everything else on a tidal beach floats, flies or gets carried, so it's never under water.
+- An area of a place with a land often sits at the map's corner with its box as its shape (`R.shape`), so you work in the same units as its `land.js`.
+
 ## Layers and depth
 
 - `R.floor` then `R.wall` then `R.decor` (on the walls) then `R.rug` (flat on the floor, water, shadows) then `R.thing` (standing things, depth sorted by x + y) then `R.air` (over everything: rain, snow, beams).

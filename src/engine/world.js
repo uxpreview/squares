@@ -16,6 +16,7 @@
 //     plate: { paper, kind },                   // the sheet this place is printed on (optional);
 //                                               // or { at(t) => { paper, kind } }: one that changes with the clock (a day)
 //     walkers: [{ id, at(t), draw(ctx, t, p) }], // people on a shared timeline (optional)
+//     land,                                     // ground with height and water (engine/terrain.js, optional)
 //     words: { ... },                           // map-specific copy (see src/game/play.js)
 //   }
 //
@@ -76,10 +77,33 @@ function sortChunks(list) {
   return out;
 }
 
+// Where a line of sight meets a zone's ground with height: (X, Y) in the
+// zone's own iso units, from its back corner. Walks down from over the
+// highest the land goes (its line of sight can cross another area's hills on
+// the way) to the zone's lowest, nearest the viewer first, and returns the
+// first point on or under the ground, as [x, y] in the zone's units, or null.
+function groundUnder(z, X, Y) {
+  const top = Math.max(z.hi, z.land ? z.land.peak - z.oz : -Infinity) + 0.5, bottom = z.lo - 0.5, stepZ = 0.1;
+  let prev = null;
+  for (let h = top; h >= bottom; h -= stepZ) {
+    const [x, y] = unproject(X, Y + h * ZK);
+    const g = z.ground(x, y);
+    if (h <= g) {
+      if (!prev) return [x, y];
+      // Between this step and the last: where the two cross.
+      const u = (prev.h - prev.g) / (prev.h - prev.g - (h - g));
+      return [prev.x + (x - prev.x) * u, prev.y + (y - prev.y) * u];
+    }
+    prev = { h, g, x, y };
+  }
+  return null;
+}
+
 export function buildWorld(map) {
   const cutaway = { front: false, above: false, walls: null, ...(map.cutaway || { front: true }) };
   const walkers = map.walkers || [];
-  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers }), { index }));
+  const land = map.land || null;
+  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers, land }), { index }));
   // What's drawn, back to front: every zone's chunks (see zone.js).
   const drawOrder = sortChunks(zones.flatMap((z) => z.chunks));
   const order = map.order
@@ -142,7 +166,7 @@ export function buildWorld(map) {
       X0 = Math.min(X0, x0 - y1); X1 = Math.max(X1, x1 - y0);
       Y0 = Math.min(Y0, (x0 + y0) / 2); Y1 = Math.max(Y1, (x1 + y1) / 2);
     }
-    return [ax + X0, ax + X1, ay + Y0 - z.h * ZK, ay + Y1 + SLAB * ZK];
+    return [ax + X0, ax + X1, ay + Y0 - (z.h + z.hi) * ZK, ay + Y1 + Math.max(SLAB, -z.base) * ZK];
   };
 
   // What the overview frames. portrait: taller than wide; short: a landscape
@@ -180,7 +204,9 @@ export function buildWorld(map) {
     cy = Math.max(Math.min(R, z.d / 2), Math.min(z.d - Math.min(R, z.d / 2), cy));
     const [x0, y0, x1, y1] = [cx - R, cy - R, cx + R, cy + R];
     const [ax, ay] = z.anchor;
-    return [ax + x0 - y1 - 0.5, ax + x1 - y0 + 0.5, ay + (x0 + y0) / 2 - z.h * ZK - 1.5, ay + (x1 + y1) / 2 + SLAB * ZK + 0.5];
+    // (On ground with height, framed at the ground's height there.)
+    const g = z.ground ? z.ground(cx, cy) : 0;
+    return [ax + x0 - y1 - 0.5, ax + x1 - y0 + 0.5, ay + (x0 + y0) / 2 - (z.h + g) * ZK - 1.5, ay + (x1 + y1) / 2 - g * ZK + SLAB * ZK + 0.5];
   }
 
   // Which zone is at world iso point (X, Y)? Front-most wins (chunk by chunk,
@@ -189,11 +215,19 @@ export function buildWorld(map) {
   // too. Zones lifted by a cutaway are tested where they're drawn. skip(zone)
   // leaves zones out.
   function zoneAt(X, Y, skip) {
+    const under = new Map(); // where the tap meets each zone's ground (asked once a zone)
     for (let i = drawOrder.length - 1; i >= 0; i--) {
       const c = drawOrder[i], z = c.zone;
       if (skip && skip(z)) continue;
       const [ax, ay] = [z.anchor[0], z.anchor[1] - (z.lift || 0)];
       const [x0, y0, x1, y1] = c.rect;
+      // Ground with height: where the tap meets the ground.
+      if (z.ground) {
+        if (!under.has(z)) under.set(z, groundUnder(z, X - ax, Y - ay));
+        const p = under.get(z);
+        if (p && p[0] >= x0 - (x0 ? 0 : 0.5) && p[1] >= y0 - (y0 ? 0 : 0.5) && p[0] <= x1 && p[1] <= y1) return z.index;
+        continue;
+      }
       // Walls down, a room only reaches as high as its walls stand now, so a
       // tap on the street behind a lowered wall lands on the street.
       const top = z.low != null && z.walls ? Math.max(1.5, wallHeight(z, 'left'), wallHeight(z, 'right')) : Math.max(6, z.h);
@@ -209,6 +243,15 @@ export function buildWorld(map) {
 
   // The zone a world point is standing in, if any.
   const zoneAtPoint = (x, y, z = 0) => zones.find((zn) => inside(zn, x, y, z)) || null;
+
+  // The point on a zone's floor (its own units) under a world iso point:
+  // on a flat floor, straight down; on ground with height, where the line of
+  // sight first meets the ground.
+  function floorUnder(z, X, Y) {
+    const lx = X - z.anchor[0], ly = Y - z.anchor[1] + (z.lift || 0);
+    if (z.ground) return groundUnder(z, lx, ly) || unproject(lx, ly + z.lo * ZK);
+    return unproject(lx, ly);
+  }
 
   // Does walking in a straight line from p to q (world { x, y, z }) go through
   // a wall rather than a door? Returns null, or { zone, side, x, y } where it
@@ -256,6 +299,7 @@ export function buildWorld(map) {
     long,
     zoneAt,
     zoneAtPoint,
+    floorUnder,
     blocked,
     wallHeight,
     indexOf: (id) => zones.findIndex((z) => z.id === id),

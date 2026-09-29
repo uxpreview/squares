@@ -39,7 +39,7 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Status:** shipped (session 4e). It took over The Block's id, `block`, so saves carried over; brief in [levels/block.md](levels/block.md).
 
 ### Plum Island (Newbury, Massachusetts)
-**Next up. Replaces Low Tide (Cape Cod):** same beach and tide, moved to a real place. **Brief (draft): [levels/plum.md](levels/plum.md).**
+**Greyboxed, at gate 2 (session 5), `#/plum`. Replaces Low Tide (Cape Cod):** same beach and tide, moved to a real place. **Brief: [levels/plum.md](levels/plum.md).**
 - **Spin:** a barrier island through a summer day on a loop, the Great Marsh behind it and the Atlantic in front, joined to the mainland by one low road. The tide runs on the day's clock: going out, it drains the marsh creeks and the flats and uncovers finds you can only reach at low water; coming back, it floods them again. At a king tide it takes the road too (it really does).
 - **Heroes and jokes:** the Pink House's memorial sign in the marsh (the house was demolished in 2025; see the brief); the turnpike flooding while someone tries it anyway; beach houses that met the ocean; the plover closure (miles of beach for six birds); greenhead fly traps (the flies are winning); the lighthouse at the north end, seals on the jetty; the refuge boardwalk and its observation tower full of birders; the little airfield on the marsh.
 - **Alive:** the tide itself, all day; the beach filling by noon and emptying at sunset; boats in the river mouth, kayaks on the Sound.

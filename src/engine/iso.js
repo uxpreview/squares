@@ -20,11 +20,14 @@ export const unproject = (X, Y) => [Y + X / 2, Y - X / 2];
 // A zone's picture in its own iso space (anchored at its back corner), with
 // headroom above the walls for tall props like the rocket and the water tower.
 // reach: how far past its corners it goes, for whatever stands outside it.
-export function zoneBounds(w = S, d = S, h = WALL, reach = 1.5) {
+// ground: for a zone with ground (terrain.js), { hi, base }: how high its
+// ground (or water) stands, and how deep the plate's cut sides go.
+export function zoneBounds(w = S, d = S, h = WALL, reach = 1.5, ground = null) {
+  const hi = ground ? Math.max(0, ground.hi) : 0, below = ground ? Math.max(SLAB, -ground.base) : SLAB;
   return {
     x0: -d - reach,
     x1: w + reach,
-    y0: -h * ZK - 9,
-    y1: (w + d) / 2 + SLAB * ZK + reach,
+    y0: -(h + hi) * ZK - 9,
+    y1: (w + d) / 2 + below * ZK + reach,
   };
 }
