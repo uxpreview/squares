@@ -48,11 +48,18 @@ if (mode === 'prepare') {
   await page.waitForTimeout(800);
   const zones = await page.evaluate(() => {
     const w = window.__squares.world;
-    return w.order.map((i) => ({ id: w.zones[i].id, name: w.zones[i].name }));
+    return w.order.map((i) => ({ id: w.zones[i].id, name: w.zones[i].name, long: w.long(w.zones[i]), finds: w.zones[i].finds.map((f) => f.id) }));
   });
   const labels = {}, answers = {};
-  for (const z of zones) {
-    await page.evaluate((id) => window.__squares.play.enterZone(id, { dur: 0.01 }), z.id);
+  // One shot of an area, framed as a player would (a long area, a street,
+  // around a spot on it), with the finds that are on screen in it.
+  const shoot = async (z, key, near, skip) => {
+    await page.evaluate(({ id, near }) => {
+      const s = window.__squares, zone = s.world.zones.find((x) => x.id === id);
+      const f = near && zone.finds.find((x) => x.id === near);
+      const at = f && (typeof f.at === 'function' ? f.at(s.clock.now()) : f.at);
+      s.play.enterZone(id, { dur: 0.01, near: at ? [zone.ox + at[0], zone.oy + at[1]] : null });
+    }, { id: z.id, near });
     await page.waitForTimeout(1500);
     // Changing floors slides the storeys past each other for a while: wait
     // until the floors and the camera are still, or the answers are taken
@@ -65,22 +72,35 @@ if (mode === 'prepare') {
       return still;
     }, null, { polling: 300, timeout: 10000 }).catch(() => {});
     // Freeze the moment: note where everything is, then take the shot.
-    const found = await page.evaluate((id) => {
+    const found = await page.evaluate(({ id, skip }) => {
       const s = window.__squares;
       const st = document.getElementById('story');
       if (st) st.hidden = true;
       const zone = s.world.zones.find((x) => x.id === id);
       const t = s.clock.now() + 0.15;
-      return zone.finds.map((f) => {
+      return zone.finds.filter((f) => !skip.includes(f.id)).map((f) => {
         const [x, y, h] = typeof f.at === 'function' ? f.at(t) : f.at;
         const [sx, sy] = s.camera.toScreen(zone.anchor[0] + x - y, zone.anchor[1] - zone.lift + (x + y) / 2 - h * 1.12);
-        return { label: f.goose ? 'The goose' : f.label, sx, sy, r: Math.max(f.r * s.cam.z, 22) };
+        return { id: f.id, label: f.goose ? 'The goose' : f.label, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight };
       });
-    }, z.id);
+    }, { id: z.id, skip });
     await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
-    await page.screenshot({ path: path.join(dir, `${z.id}.png`) });
-    labels[z.id] = { name: z.name, shot: `${z.id}.png`, find: found.map((f) => f.label) };
-    answers[z.id] = found;
+    await page.screenshot({ path: path.join(dir, `${key}.png`) });
+    const mine = near ? found.filter((f) => f.seen) : found;
+    labels[key] = { name: z.name, shot: `${key}.png`, find: mine.map((f) => f.label) };
+    answers[key] = mine.map(({ id, seen, ...f }) => f);
+    return mine.map((f) => f.id);
+  };
+  for (const z of zones) {
+    if (!z.long) { await shoot(z, z.id, null, []); continue; }
+    // A street: framed round each find not yet in a shot, as a player
+    // panning along it would come across them.
+    const done = [];
+    let n = 0;
+    for (const f of z.finds) {
+      if (done.includes(f)) continue;
+      done.push(...(await shoot(z, `${z.id}-${++n}`, f, done)));
+    }
   }
   fs.writeFileSync(path.join(dir, 'labels.json'), JSON.stringify(labels, null, 2));
   fs.writeFileSync(path.join(dir, 'answers.json'), JSON.stringify(answers, null, 2));

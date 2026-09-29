@@ -667,7 +667,8 @@ export default {
         }
       }
     }, { bias: 0.3 });
-    R.find({ id: 'octopus', label: 'An escaped octopus', r: 0.9, at: (t) => { const p = octo(t); return [p.x, p.y, p.z + 0.45]; } });
+    // (On the Block Party a big octopus escapes up the alley too, so this one's the little one.)
+    R.find({ id: 'octopus', label: R.opts.day ? 'A little octopus' : 'An escaped octopus', r: 0.9, at: (t) => { const p = octo(t); return [p.x, p.y, p.z + 0.45]; } });
     // the keeper
     R.mover((t) => keeper(t), (ctx, t, p) => {
       const o = octo(t);
