@@ -1,153 +1,312 @@
 # Plum Island
 
-> Status: **Greybox (gate 2)** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] (session 5, every recommendation: decisions 1 to 6) · greybox [ ] · preview [ ]
+> Status: **Greybox** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [ ] · preview [ ]
 >
-> Built in session 5 with its engine piece, terrain and water (ROADMAP E4). Hidden until it ships: open it at `#/plum`. It lives in `src/maps/plum/`. The rough sketch it started from is in [the sketchbook](../sketchbook.html).
+> E4 is built (session 5, "E4 as built" below) and there's a first greybox at `#/plum`, but it was built alongside this brief from the earlier draft, so it doesn't match it yet: "The greybox so far" lists what changes before gate 2.
+>
+> Drafted in the sketchbook session (Sept 2026); finished in session 5 with the owner's answers and ideas (decisions 1 to 17), every real place checked against a real map and current news (see "Real places, checked"), and a build plan for E4. The rough sketch is in [the sketchbook](../sketchbook.html) (open it in a browser; drag the tide). The owner approved it with every recommendation (decisions 25 to 32). Next: build E4, then the greybox.
 
-Plum Island replaces the Cape Cod beach (Low Tide) as the next level: same beach, same tide, moved to a real place. It's where terrain and water (E4) got built and proven.
+Plum Island replaces the Cape Cod beach (Low Tide) as the next level: same beach, same tide, moved to a real place. It's where terrain and water (E4) get built and proven.
 
 ## In one line
-A summer day on a real barrier island, where the tide drains and floods the marsh on the clock, a king tide is coming tonight, and nobody is taking it seriously.
+A July day on a real barrier island, where the tide drains the marsh at midday and a king tide comes over the road at midnight, and nobody on the island is taking it seriously.
 
 ## The story
-A light one, like the Block Party's: it runs across the map and never gets in the way of the geese.
+A light one, like the Block Party's: it runs across the map and never gets in the way of the geese. The goal is every goose (one per area); no whodunit.
 
-**The setup.** A king tide is forecast for this evening. The refuge has put up signs, the town has put up signs, and everyone on the island has ignored them. Meanwhile **the Courier** has a parcel for "G. Goose, Plum Island" and one road to get it there. He knocks on every door in town all day, and at dusk he gives up and heads for the mainland, straight into the king tide.
+**The setup.** A king tide is due tonight. The refuge has put up signs, the town has put up signs, the bait shop has chalked it on its board, and everyone on the island walks straight past all of them. Meanwhile **the Courier** has a parcel for "G. Goose, Plum Island" and one road to get it there, and back.
 
-**What the player does.** Find the goose and the things in each area. The tide decides what you can see: low water uncovers the flats and the creek beds, high water floats other things in. A dial in the corner says what the tide's doing, and a tap skips ahead to the next turn.
+**The day.** The Courier crosses the turnpike at first light, waits for the drawbridge, and spends the day trying to find anyone who'll sign: the Center, the queue at the refuge gate, the Point. Nobody on the island has ever heard of G. Goose. By evening the tide is coming back, and he has to get off the island before it takes the road.
 
-**The ending.** Find every goose and the king tide arrives: the water comes over the turnpike, the Courier's van stops in the middle of it, and the geese swim out to sign for the parcel. It's a pair of waders.
+**What the player does.** Find the goose and the things in each area. The tide decides some of what you can see: low water uncovers the flats and the creek beds, high water floats other things in. A small tide clock on screen says where the water is and when it turns.
+
+**The ending.** Find every goose and the clock jumps to the king tide, just after midnight. The water has come over the turnpike at the island end, by the drawbridge; the Courier's van has stopped in the middle of it. The camera flies there. The geese paddle out to the van in a line and sign for the parcel. It's a pair of waders. Every King Tide Dave drives past them, windows down, through the flood, as he does every king tide.
 
 ## Shape
-- **Wide.** The island runs left to right: the Great Marsh and Plum Island Sound at the back, the island's dunes and houses in the middle, the Atlantic beach in front, the mouth of the Merrimack at the right-hand (north) end.
-- **One piece of ground,** 108 units along the island by 64 across (`src/maps/plum/land.js`), cut like a diorama: the sea shows in section down the front edges. Areas are boxes of it; the ground runs on across them without a seam.
-- **The connector:** the Plum Island Turnpike, the one low road across the marsh from the mainland (off the back edge) to the Center, over the bridge across the Plum Island River. Cars come and go on it all day; at the king tide, it goes under.
-- **The hero:** the tide itself, and the marsh it floods. The landmark on the skyline is the lighthouse at the north end.
-- **Silhouette:** a long sandbar: the island's curve, the river mouth and the jetty at one end, the marsh fraying into creeks behind.
-- **Real geography** (compressed, never rearranged): the refuge (Parker River National Wildlife Refuge) covers the south end, the town the north end, where the turnpike lands. Behind the refuge is Plum Island Sound (flats and a channel); behind the town the Plum Island River and the Great Marsh, with the airfield north of the turnpike and the Pink House's lot south of it; the lighthouse, the Point and the south jetty at the north tip, at the Merrimack's mouth.
+- **Wide, and on the diagonal.** As in the sketch, the island runs along one axis of the map: from the top left of the screen (Sandy Point, the south tip) to the bottom right (the Point and the river mouth, the north end). The Atlantic runs along the bottom left, the Great Marsh, Plum Island Sound and the Plum Island River along the top right. We're looking southwest from over the ocean, so the sun sets on the right, over the marsh, toward Newburyport.
+- **The connector:** the Plum Island Turnpike, the one road on and off, runs from the Center across the marsh and the drawbridge toward the top right, off the back of the map to the mainland. Cars come and go on it all day; at the king tide it goes under at the island end.
+- **The hero:** the tide itself, and the marsh it fills and drains. On the skyline, the lighthouse at the north end and the refuge's observation tower in the dunes.
+- **Silhouette:** a long sandbar, not a square: the island's curve, the jetty sticking out at the north end, the marsh fraying into creeks behind, Sandy Point tapering to nothing at the south.
+- **The paper is the sea.** The plate is the Atlantic: the island sits in it, and the sea runs to every edge of the screen (Palette).
+- **On a phone** held upright, the overview fills the height and the island runs off both sides, a swipe along it, like the Block Party's streets. On its side, the whole island's width.
+- **Real geography, compressed, never rearranged.** The refuge is three-quarters of the real island and nearly empty on purpose (it's a wildlife refuge), so it's squeezed hardest; the town's end, where the people are, keeps the most room.
 
-Where each area sits (world units; x along the island from the refuge, y from the marsh to the sea):
+Draft plan (units; x along the island from the south tip, y from the back to the front). About 112 x 56, a little more ground than the Block Party; the greybox tunes it.
 
-| | x 0 to 44 (the refuge) | x 44 to 80 (the town) | x 80 to 108 |
-| --- | --- | --- | --- |
-| y 0 to 22 (behind) | The Flats | The Turnpike | The North Point (the whole depth) |
-| y 22 to 42 (the island) | The Refuge Dunes | The Center | |
-| y 42 to 64 (the beach, the sea) | The Refuge Beach | The Front Beach | |
+| x → | 0 to 48 (the refuge) | 48 to 70 | 70 to 96 | 96 to 112 |
+| --- | --- | --- | --- | --- |
+| **Back** (y 0 to 28): the mainland shore, then marsh and water | **The Sound** | **The Turnpike** (the road runs back from the Center to the top edge; the drawbridge over the Plum Island River at the island end) | **The Turnpike** (the marsh and the Plum Island River behind the town) | **The North Point** (the river mouth, the Basin) |
+| **The island** (y 28 to 46): road, dunes, houses | **The Refuge Dunes** (the refuge road, Hellcat, the tower; the gatehouse at the north end, x about 46) | **The Center** | **The Town Beach** (rows of houses) | **The North Point** (the lighthouse, the playground) |
+| **The beach and the sea** (y 46 to 56) | **The Refuge Beach** (Sandy Point at the far end) | **The Center** (its beach and the little jetty) | **The Town Beach** | **The North Point** (the jetty out to sea) |
+
+The areas tile the whole map, sea included, so boats, walkers and the plane's shadow are always inside one (see E4 below).
 
 ## Areas
-Seven, each a box of the island's ground (E5, E4).
+Seven, each one area of any shape (E5).
 
 | Area | What's happening | Running gag (plays out over time) | Finds |
 | --- | --- | --- | --- |
-| **The Turnpike** | The causeway and the marsh along it: cars in and out, the clam shack by the road, the little airfield on the marsh, the Pink House's memorial sign | A car that drives through the flood every king tide. At high water it's there again, halfway, with the windows down | A goose and three things |
-| **The Flats** | Plum Island Sound, behind the refuge: clammers at low water, kayaks at high, a sailboat that ran aground | The sailboat: aground at low tide with its owner sitting on the hull, afloat at high tide with its owner still on the hull | Low-tide and high-tide finds |
-| **The Refuge Dunes** | Lot 1, the boardwalk over the dunes, the observation tower full of birders, greenhead fly traps in the marsh edge, a deer in the scrub | The birders swing every scope toward a rare bird. It's the goose. When they look, it's gone | A goose and three things |
-| **The Refuge Beach** | The plover closure: a rope, a ranger, six birds with miles of beach, and everyone else on the open bit by the boardwalk | The ranger keeps moving the rope out a little, and the crowd on the other side keeps shuffling back | A goose and three things |
-| **The Center** | Where the turnpike lands: the parking lot, beach stickers, houses in rows and on stilts, the beach path | The parking lot fills by noon; one car circles it all day | A goose and three things |
-| **The Front Beach** | The town beach: the crowd, umbrellas, a lifeguard, surfers, a beach house that met the ocean | Greenheads: a swarm that chases one man up and down the beach | A low-tide find at the waterline |
-| **The North Point** | The lighthouse and the playground across from it, the jetty with seals on it, lobster boats in the river, a sandbar the seals like | The seals take over more of the jetty as the tide drops, and the fisherman who was there first ends up on the last rock | A goose and three things |
+| **The Turnpike** | The causeway from the mainland: the airfield on the south side (a small plane in and out), the refuge's visitor center, the marsh, a clam shack (a lookalike, no name) on the north side, the Pink House's empty lot and memorial sign on the south side with people stopping for the photo, the drawbridge over the Plum Island River with its memorial flags, a restaurant deck at the island end facing the sunset, greenhead traps on the marsh, "Turn around, don't drown" signs | **Every King Tide Dave:** his truck is parked at the clam shack all day, facing the road. At the king tide he drives through the flood, windows down, waving. And the drawbridge: it goes up for one sailboat and the whole road waits | A goose; the Pink House, back for a moment *(at sunset)*; a car key on a float *(at high tide)*; a lobster crossing the road |
+| **The Sound** | Plum Island Sound behind the refuge: clammers on the flats at low water, kayaks at high, a sailboat that ran aground, the mainland shore beyond | **The sailboat:** aground at low tide with its owner sitting on the hull reading, afloat at high tide with its owner still on the hull reading | A goose; a clammer's lost boot *(at low tide)*; a message in a bottle *(at low tide)*; a kayak paddle *(at high tide)* |
+| **The Refuge Dunes** | The refuge road and its lots, the Hellcat boardwalk through the dunes and the observation tower full of birders, a deer in the grass, greenhead traps along the marsh edge. At the north end, the gatehouse | **The gate:** the lots fill by mid-morning, the ranger hangs "REFUGE FULL", and a line of cars waits on Sunset Drive all day. One car keeps trying: to the front, turned round, back to the end of the line. Bikes sail past the lot. Also, the birders swing every scope at a rare bird; it's the goose; when they look, it's gone | A goose; a birder's lens cap; a deer in the dunes; a checklist with one bird crossed out |
+| **The Refuge Beach** | The ocean beach, closed for the plovers from April to August: miles of empty sand and six birds. The open stretch at the Lot 1 boardwalk, with a plover warden (a volunteer) and the rope. Sandy Point at the far end, the state beach, open, with its own roped nests | **The rope:** the warden moves it out a little every hour, and the crowd on the other side shuffles back each time, towels and all | A goose; a sandcastle inside the rope; the warden's spare stake; a shell collection |
+| **The Center** | Where the turnpike lands: Plum Island Boulevard, the residents-only lot (tickets for everyone else), private lots across the street with hand-painted $20 signs, the bait shop with the tide times chalked on its board (a lookalike, no name), the ice cream window, the little jetty, king tide warning signs, and the Center's beach, where there's no lifeguard | **The greenheads:** a swarm finds one man in the lot at 10am and follows him all day: across the lot, down the Town Beach, back through the Center and out along the Lot 1 boardwalk. Everyone he passes steps aside | A goose; a parking ticket; a beach sticker from 1998; a leash with no dog |
+| **The Town Beach** | North from the Center to the Point: rows of beach houses, the ones on the front up on pilings with sandbags and rip-rap, umbrellas, surfers, the crowd filling by noon and emptying at sunset | **The stairs:** a beach house's stairs end a foot above the sand; every summer its owner nails on another step. Also where the greenhead man ends up, and where everyone turns at sunset | A goose; a buried cooler *(at low tide)*; a stolen french fry; a boogie board |
+| **The North Point** | The lighthouse on the river side and the playground across from it, the Point's lot, the lifeguard stands with a chalkboard of today's tides (the only lifeguards on the island), the jetty out into the Atlantic, lobster boats and the whale watch boat through the river mouth, the Basin behind, Newburyport's steeples across the river | **The jetty at dawn:** fishermen casting off the point and the jetty on the falling tide; as the water drops, seals haul out on the rocks, one spot at a time, until the last fisherman is on the last rock with a seal | A goose; a lobster buoy; a lure on the jetty *(at low tide)*; a seal wearing sunglasses |
 
 ## Cast
-- **The Courier**, door to door in the Center and out to the Point all day, stuck on the turnpike at dusk.
-- **Inspector Pidge**, among the birders on the tower, pointing wherever the goose was a moment ago.
-- **The ranger**, moving the plover rope, a spare stake under one arm.
-- **Every King Tide Dave**, who drives through the flood every time, and stalls halfway.
-- **The birders**, the clammers, the lifeguard, the surfers, the sailboat's owner, the fisherman on the jetty, the man the greenheads chase, the sticker booth's attendant, the people photographing the Pink House's sign.
-- **Animals** (light, before E6): plovers, gulls, seals, a deer, a heron, the greenheads. Simple movers, not a cast system.
-- **The crowd:** beachgoers, day-trippers, families from the houses on stilts.
+- **The Courier**, in his brown uniform with the parcel: over the turnpike at dawn, stuck in the gate queue at noon, asking the lifeguards, racing the tide back at night, stuck in the flood at the end.
+- **Every King Tide Dave**, who drives through the flood every king tide and has the photos to prove it. Parked at the clam shack all day, waiting.
+- **Inspector Pidge**, among the birders on the tower with a borrowed scope, sure a plover is the goose.
+- **The ranger** at the gatehouse, with the "REFUGE FULL" sign.
+- **The plover warden**, a volunteer, moving the rope.
+- **The greenhead man**, and his swarm.
+- **The lifeguards** at the Point, and their chalkboard.
+- **The birders**, the clammers, the kayakers, the sailboat's owner, the fishermen on the jetty, the surfers, the people stopping at the Pink House sign.
+- **Animals** (simple movers, not a cast system; real animal characters wait for E6 and the Catminium): plovers running at the waterline, gulls stealing food, seals, a deer, a heron in the creeks, the greenheads (a swarm of particles).
+- **The crowd:** beachgoers, day-trippers, families from the houses, the line of cars.
 
 ## Palette and plate
-A sun-bleached summer plate, lighter and warmer than the Block. Draft inks for the art director to tune (`src/maps/plum/style.js`):
+A sun-bleached summer plate, lighter and warmer than the Block, printed so it pairs with Downtown Newburyport later (decision 2): **the North Shore inks**, shared by both places. Newburyport adds brick and granite to them; Plum Island adds the beach. Draft inks for the art director to tune:
 
-- Paper `#F4EAD5`: the sheet, and the sand in the sun
+- Sea `#3F8FA6`: the Sound, the river, the Atlantic, **and the paper** (the plate is the sea, so it runs to every edge)
+- Shallows `#8CCFC2`: water over the flats and the creeks
 - Marsh `#9DB36B`: the Great Marsh and dune grass
-- Sea `#3F8FA6`: the Sound, the river, the Atlantic, printed see-through over the ground, so the sand shows under the shallows and the deep bed shows dark
-- Shallows `#8CCFC2`: water over the flats
-- Sand `#E9CF98`: beaches and dunes (wet sand a shade darker, just above the water)
+- Sand `#E9CF98`: beaches and dunes (wet sand a shade darker)
 - Shingle `#A9A8A2`: houses, the jetty, the road
-- Coral `#E3603F`: umbrellas, buoys, the lighthouse's lamp
+- Coral `#E3603F`: umbrellas, buoys, the lighthouse's lamp, the lifeguard stands
+- Cream `#F4EAD5`: foam, the lighthouse, the houses' trim, the page's loose words
+- (Newburyport adds Brick `#B5654A` and Granite `#B8AE9F`.)
 
-Line ink stays the game's navy (`#252D52`). The plate follows the day (`plate.at(t)`): a warm dawn, bleached noon, gold at sunset, a deep blue evening for the king tide, navy at night. After dark the ground is printed in deeper, bluer inks (the same ground, faded in).
+Line ink stays the game's navy (`#252D52`). The plate follows the day (the Block Party's `plate.at(t)`): the sea's paper pale at dawn, bright at noon, gold at sunset, and a deep navy night for the king tide, with the windows, the lighthouse and the lifeguard stands' lamps lit.
 
 ## Alive
-- **The tide**, all day: the water level rises and falls, and the shoreline, the creeks and the flats move with it. Waves roll up the Atlantic beach to the water's edge; the sand stays dark for a while where the tide's just been.
-- **Traffic on the turnpike**, and the king tide over it.
-- **The beach** fills by mid-morning and empties as the tide comes back up it.
-- **Boats**: lobster boats in and out of the river, kayaks on the Sound at high water (pulled up on the beach at low), a small plane round and round the airfield.
-- **Birds**: plovers running at the waterline, a gull with a fry, a heron in the channel.
-- **Greenheads**: a swarm that chases one man up and down the beach.
-- **Sound bed:** surf (waves breaking and drawing back, a hiss of spray), gulls now and then on the clock. Wind in the grass and the plane are for the art pass.
+- **The tide**, all day: the water falls and rises, and the shoreline, the creeks and the flats move with it. Waves break along the Atlantic side.
+- **The day** (six minutes; see Mechanic): fishermen at dawn; the beach and the lots filling by mid-morning; the refuge gate closing; the clammers out at low water; the greenhead swarm in the afternoon; kayaks out as the tide comes back; **sunset**, when everyone on the island turns to watch the sun go down over the marsh, backs to the ocean, while the tide climbs the beach behind them; the lights coming on; the king tide at midnight.
+- **Traffic on the turnpike:** cars in all morning, out all evening, a queue for the drawbridge when it opens, stopping altogether when the road floods.
+- **Boats:** lobster boats and the whale watch boat through the river mouth, kayaks on the Sound at high water, the sailboat, a small plane landing at the airfield.
+- **Birds:** plovers running at the waterline, gulls stealing food, a heron in the creeks, the birders' scopes swinging.
+- **Greenheads:** the swarm following its man across three areas; the traps on the marsh.
+- **Sound bed:** surf, gulls, wind in the grass, a distant plane, the drawbridge's bell, and at night the water. Well under the honk, measured with `loudness()`.
 
 ## Mechanic
-**The tide.** One a day, easier to read than the real two (decision 3), on a six-minute day from 5am: going out all morning, low water from 8:30am to 3:50pm (the flats out, the beach at its widest), coming in all afternoon, the king tide at 8:30pm, when it takes the turnpike (7:15 to 10:45pm), then draining away through the night (`src/maps/plum/tide.js`).
+**The tide.** It runs on the day's clock. The player can't control it. Going out, it drains the marsh and the flats and uncovers finds you can only see at low water; coming back, it covers them and floats other things in. The king tide at the end of the loop floods the road.
 
-Some finds are there only at low tide or only at high tide, and one only at sunset. The list says when ("LOW TIDE" beside it), a hint for one that isn't there says so, and **the dial** skips ahead: tap it and the day runs fast for a second or two, the tide rushing in or out, and lands at the next turn (low tide at 12:30pm, high tide at 8pm).
+**The loop:** about six minutes, dawn to dawn, one tide (decision 4). The clock isn't even: it lingers on low water and high water and hurries through the night after the king tide, so each tide window lasts two full minutes (decision 5):
+
+| Loop time | Hours | The water |
+| --- | --- | --- |
+| 0:00 to 0:30 | 5am to 7am | Falling: fishermen on the jetty, the seals arriving |
+| 0:30 to 2:30 | 7am to 3:30pm | **Low water** (two minutes): the flats, the creek beds and the sandbars out |
+| 2:30 to 3:45 | 3:30pm to 9pm | Rising: kayaks out, the sailboat floats, **sunset** about 8:20pm |
+| 3:45 to 5:45 | 9pm to 1:30am | **High water** (two minutes), building to the **king tide** just after midnight |
+| 5:45 to 6:00 | 1:30am to 5am | The night drains away in fifteen seconds |
+
+Real tides come twice a day; one is easier to read. The king tide at midnight is true to July: the summer's biggest tides there peak around midnight (a near-king tide on July 15, 2026 peaked at 10.0 feet at a quarter past twelve), while the daytime highs are ordinary.
+
+**Fair tide finds** (decision 5): a small tide clock on screen; "at low tide" or "at high tide" beside those finds in the list; each window at least two minutes of every loop. The hint for a find that's away says when it's back.
 
 ## Finds
-One goose and three things per area (28 in all). Finds on the tidal beach float, fly or get carried, so none go under. Pins in the greybox, numbered.
+Draft labels, one goose and three things per area (7 geese, 21 things). Final wording and spots at the greybox. Tide finds and the one sunset find are marked; the goose is never windowed.
 
 | Area | Finds |
 | --- | --- |
-| The Turnpike | The goose (in the clam shack's queue); a lobster crossing the road; a car key on a float *(high tide, in a creek)*; the Pink House, back for a moment *(sunset)* |
-| The Flats | The goose (on the marsh island in the Sound; it swims at the king tide); a clammer's lost boot *(low tide)*; a message in a bottle *(low tide)*; a kayak paddle *(high tide)* |
-| The Refuge Dunes | The goose (popping up in the dunes, never where the scopes point); a birder's lens cap; a deer in the dunes; a checklist, one bird crossed out |
-| The Refuge Beach | The goose (inside the rope with the plovers); a kite inside the rope; the ranger's spare stake; a bucket of shells |
-| The Center | The goose (on the roof of a house on stilts); a parking ticket; a beach sticker from 1998; a leash with no dog |
-| The Front Beach | The goose (under an umbrella, on a towel it didn't bring); a buried cooler *(low tide)*; a stolen french fry; a boogie board |
-| The North Point | The goose (on the playground's swings); a lobster buoy; a lure on the jetty *(low tide)*; a seal wearing sunglasses |
+| The Turnpike | The goose; the Pink House, back for a moment *(at sunset)*; a car key on a float *(at high tide)*; a lobster crossing the road |
+| The Sound | The goose; a clammer's lost boot *(at low tide)*; a message in a bottle *(at low tide)*; a kayak paddle *(at high tide)* |
+| The Refuge Dunes | The goose; a birder's lens cap; a deer in the dunes; a checklist with one bird crossed out |
+| The Refuge Beach | The goose; a sandcastle inside the rope; the warden's spare stake; a shell collection |
+| The Center | The goose; a parking ticket; a beach sticker from 1998; a leash with no dog |
+| The Town Beach | The goose; a buried cooler *(at low tide)*; a stolen french fry; a boogie board |
+| The North Point | The goose; a lobster buoy; a lure on the jetty *(at low tide)*; a seal wearing sunglasses |
 
 ## Shared universe
-- **The goose** in every area (and on the parcel).
-- **The Courier**, the story's thread.
+- **The goose** in every area, and on the parcel ("G. Goose, Plum Island").
+- **The Courier**, the story's thread, and his waders.
 - **Inspector Pidge**, with the birders.
-- **The fake brand** on the banner plane over the beach (its name is still open in LEVELS.md). For the art pass.
-- **A "Have you seen this goose?" poster** on the clam shack. For the art pass.
+- **The fake brand** on the banner plane over the beach (its name is still open in LEVELS.md).
+- **A "Have you seen this goose?" poster** on the clam shack.
+- **Newburyport** across the river, steeples on the skyline: the next place, printed in the same inks.
 
 ## Tone
-Affectionate and local. The erosion and the Pink House are real losses to real people: the jokes are about the people who ignore the tide, never about anyone losing a home. Greenheads and the plover closure are fair game. The Pink House's sign is shown as it is, with people stopping for the photo; its ghost is a nod to people who knew it, not a joke.
+Affectionate and local. The Pink House and the erosion are real losses to real people: the jokes are about the people who ignore the tide and the signs, never about anyone losing a home. So the beach house is stubborn, not wrecked (a new step every summer), and the Pink House is remembered (the sign, the photos, a moment of it at sunset), not mocked. Greenheads, the gate queue, the plover rope, parking and Dave are fair game. Left out on purpose: the summer 2026 swim ban (the sewage spill), which would date the level and isn't funny for the town.
 
-## Engine and kit needs
-**E4, terrain and water**, built and proven on this level (session 5). See `src/engine/terrain.js`.
+## Real places, checked
+Checked against OpenStreetMap, the refuge's own guides, the town and city pages, NOAA's tide station at the river mouth, and news to September 2026. Businesses are lookalikes with no names or logos; public places use their real names (decision 9).
 
-- [x] **Ground with height.** A land (`makeLand`) is heights on a half-unit grid over the whole map, with layers printed on it in turn (sand, the sea bed, mud, marsh, scrub, lawns, dune grass, the airstrip, roads), each the region where its field is above 0, traced like contour lines so the edges are smooth, and shaded where the ground turns away from the light. A map with a land gives it to every zone (`R.ground(x, y)`, walkers, taps, framing, cutaways); each area prints its part with `drawLand(R, land)`. The plate's front edges are cut, like a diorama.
-- [x] **The one rule:** ground never climbs toward the viewer steeper than 0.8 a unit, so drawing it before what stands on it is always right. Steep things (the jetty, the bridge) are things. QA checks it (`steep(land)`).
-- [x] **Water with a level.** Everything lower than `level(t)` is under a see-through sea ink, so the shoreline, the creeks and the flats move on their own; the ground's colors carry the depth. The water shows in section at the plate's cut edges.
-- [x] **Waves and wet sand.** Lines of foam roll up the Atlantic beach (`surf`); the sand stays dark where the tide's just been.
-- [x] **Floating things.** Boats, the buoy, the paddle, the key and the bucket of shells sit on the water (`float(x, y, t)`); people in water are drawn from the waterline up (`wade`).
-- [x] **Finds with a window** (`when`, `note`): taps, pen loops, hints, the list and QA respect them.
-- [x] **The dial** (`map.dial`): a place's own clock on screen, and a tap to skip ahead.
-- [x] **Speed.** Each area's ground goes into its still-floor cache in one picture; each chunk draws its own water once a frame, traced again only when the level moves a step. QA's phone check: every view within budget (slowest the North Point, 43 to 48 ms against 60 across runs). The owner's 2017 laptop: 15 to 22 frames a second in the areas, the Block Party's streets 20 to 24 (both limited by the graphics chip).
-- [x] **Smoke test and QA** cover the tide (ground and taps, low and high water, a low-tide find, the dial, the king tide at the end).
+| Place | Where it really is | Still there? | How we show it |
+| --- | --- | --- | --- |
+| **Plum Island Turnpike** | The only road on, about 2 miles, all in Newbury. Farms and the airfield at the mainland end, then marsh with a cluster of houses, then the bridge, landing at the Center as Plum Island Boulevard | Yes. It floods at storm tides at the island end (by Sunset Drive and Old Point Road); police close it for the flooded part of the tide; the town expects it to flood at every king tide by about 2030 | By name. Floods at its island-end low spots at the king tide (decision 27) |
+| **The drawbridge** (Sgt. Donald A. Wilkinson Bridge) | Over the Plum Island River at the island end; a drawbridge (bascule), 1973, repaired 2024 | Yes. A memorial with flags at its west end, south side | Opens for boats, the traffic waits; the flags |
+| **The Pink House** | 60 Plum Island Turnpike, south side, mid-causeway, about a mile from the island | Demolished March 11, 2025. Newbury put up a memorial sign in April 2026 (a painting of the house on two granite posts); people still stop to photograph it | The empty lot, the sign, people stopping; the house flickers back at sunset (decision 1) |
+| **The clam shack** | Mid-causeway, north side, across the road from the Pink House lot | Open (a fire in Nov 2025; reopened for 2026) | A lookalike, no name (decision 9) |
+| **Plum Island Airport** | South side of the turnpike at the mainland end; two short runways; flying since 1910 | Operating | By name. A small plane in and out |
+| **The refuge's visitor center** | The mainland end of the turnpike, south side | Yes | A small building at the back edge |
+| **Greenhead traps** | Blue boxes on legs on the marshes, mid-June to mid-August | Yes, every summer | Blue boxes on the marsh; the flies peak in July |
+| **A restaurant deck facing the sunset** | The island end of the turnpike, north side, facing the marsh | Open | A lookalike, no name: a sunset crowd on the deck |
+| **The Center** | Where the boulevard meets the beach: a residents-only lot, private lots across the street, a bait shop, an ice cream window, a small jetty | Yes. **No lifeguards on this beach** | As listed; the tide board is the bait shop's |
+| **Parker River National Wildlife Refuge** | The southern three-quarters of the island. **The gatehouse is on the island**, at the south end of Sunset Drive, half a mile south of the Center ($5 a car). One road, about 6 miles, Lots 1 to 7 | Yes. It closes to cars when the lots fill on summer days (bikes and walkers still let in) | By name. The gatehouse and the queue at the north end of the Refuge Dunes |
+| **Hellcat** (Lot 4) | Two-thirds of the way down the refuge; a boardwalk rebuilt in 2020, a 31-step observation tower at the end of the dike on the marsh side | Open | The boardwalk and the tower full of birders |
+| **The refuge beach** | Closed to everyone from April 1 for the piping plovers, except a stretch at the Lot 1 boardwalk (volunteer plover wardens); reopens in stages from mid-August | Yes, every summer | Closed and empty, the rope at Lot 1 |
+| **Sandy Point** | The south tip, a state beach (in Ipswich), open, with roped nests; reached only by the refuge road | Yes | The far tip of the Refuge Beach |
+| **The erosion** | Houses lost just south of the Center in 2008 and 2013 (now behind rip-rap); the recent losses are at the north end, near the jetty (2022 to 2025) | Ongoing | A generic house on pilings with sandbags on the Town Beach, never one anyone could identify |
+| **Newburyport Harbor Light** (Plum Island Light) | The north end, **on the river side**, not the ocean beach; a playground right across from it | Standing (1898) | By name, with the playground |
+| **Lifeguards** | Only at the Point (Newburyport's): stands on the ocean side and the river side, summer days | Yes | The stands and the chalkboard of tides (owner's idea, moved here) |
+| **The jetty** | Runs out into the Atlantic from the island's north-east corner (another comes out from Salisbury opposite) | Yes | Out from the Point toward the front of the screen |
+| **The Basin** | A lagoon on the river side near the north end | Yes | Behind the North Point |
+| **Fishing** | Stripers off the Point and the jetty at dawn and dusk, best at the end of the falling tide | Yes | The fishermen at dawn (owner's idea) |
+| **Seals** | Harbor and gray seals at the river mouth, the jetties and Sandy Point, **mostly autumn to spring**; a few in summer | Yes | Two or three on the jetty (decision 28) |
+| **Boats** | Lobster boats and the whale watch boat from downtown Newburyport through the river mouth; kayaks from the refuge launch across from Lot 1, near high tide; clammers on the Sound's flats at low tide | Yes | As listed |
+| **Town lines** | Newburyport at the north tip (to about 55th Street), Newbury through the Center and the gate, then Rowley (Hellcat), then Ipswich (Sandy Point) | | Not shown, but the Point's city lifeguards and the Center's town lot differ, as they really do |
+| **Not there** | No water tower on the island. The restaurant at the bridge (closed 2023) was torn down in May 2026 | | Neither is drawn |
+
+**Sunset:** in mid-July the sun sets west-northwest, over the marsh toward Newburyport: on the right of our view. Correct in the sketch.
+
+## Engine and kit needs: the plan for E4 (terrain and water)
+
+E4 is built first (PROCESS step 3), in its own commits, before the greybox. It's proven on Plum Island itself rather than a hidden test cove, but the pieces are general: Newburyport, Boston's harbor, the Riviera, Split, the siege, the zoo and Egypt all reuse them. The sketchbook's plate renderer already draws ground and a tide correctly (cells back to front, wet cells topped at the water's level); E4 is that idea, made fast and folded into the engine's areas, chunks and caches.
+
+### What's in the engine now, and what E4 changes
+- **Areas of any shape** (E5), drawn in 16 x 16 chunks, each sorted into the draw order on its own: kept. Every area draws its own piece of the ground.
+- **Each chunk's patch of the screen** (`cellPath` in `zone.js`) assumes a floor at height 0, with a strip above its back edges only where the area ends. Ground that rises inside a chunk would be cut off by its own patch. *Changes:* a chunk's patch reaches up to the highest ground in it.
+- **Caches:** the area you're in caches its floor in one picture, and every other chunk is a picture refreshed a few per frame (6 ms a frame). A tide moves the ground's picture all day. *Changes:* a still layer can change in steps (below), so the ground stays cached and only redraws when the water has moved enough to see.
+- **Finds** are there all the time. *Changes:* a find can have a window (low tide, high tide, sunset), which the hint, the list, taps and QA all respect.
+- **People** walk on a flat floor per area (`schedule()`, `route()`: x, y, and a z for stairs). *Changes:* they walk on the ground's height, and wade.
+
+### 1. Ground with height (`engine/terrain.js`)
+- **One ground for the whole place,** on the map (`terrain`), not per area, so the tide and the seams between areas always match. It's a grid of cells, 1 unit square, each with a kind (marsh, sand, dune, road, rock, lawn, mud) and a height. The level describes it as a function, like the sketch's `cell(i, j)`: the island's outline, the dunes, the creeks, the road on its causeway.
+- **Drawn like a print, not like tiles.** Tops are flat fills in their kind's ink, with ink lines only where the kind changes or the ground steps (a dune's edge, the jetty, the road's shoulder), so it reads as shapes, not a grid. Where ground is higher than the cell in front of it, a side face in a darker shade with the halftone the room walls use. Heights come in steps: a tenth of a unit across the beach and the flats (so the tide creeps up them), whole units on the dunes.
+- **Every area draws its own cells,** back to front, in its floor layer, so the caches, the dark and the lights work as they do on the Block Party's streets. **Areas tile the whole map, sea included:** anything on the clock (a walker, a boat, the plane's shadow) is only drawn inside an area (E10), so the sea round the island belongs to the areas beside it.
+- **Standing on it:** `R.ground(x, y)` gives the height at a spot, for a zone's own things; `route()` and `schedule()` take the ground, so people walk up the dune path and down the beach without a z at every step. Areas count as "inside" up to the top of their ground.
+- **Chunk patches** reach from the bottom of their lowest cell to the top of their highest ground plus the usual headroom, so a dune by a seam isn't clipped.
+- **Plate edges:** where the map ends, the ground shows a cut face down to the sea floor (the sketch's slab) in the sea's side ink, fading into the paper, which is the sea.
+
+### 2. Water with a level (the tide)
+- **A level on the clock:** the map says `water: { level: (t) => z }` (the tide curve, from the level's clock). Every cell below the level is under water: its top is drawn at the level in water inks by depth (shallows over the flats, sea, deep), and its side faces are water. Nothing else is needed for the shoreline, the creeks filling and the flats draining: they move on their own as the level moves. (This is the sketch's rule, and it handles hiding correctly: a dune in front of the marsh covers the water behind it.)
+- **Everything below the level floods.** Real marsh pannes fill through the creeks at a big tide, so this is right here; a hollow that shouldn't flood is made higher. (A pond with its own level waits for a level that needs one.)
+- **The waterline:** an ink line and a cream foam line where wet meets dry; dry sand just above the level drawn a shade darker (wet sand), so you can see where the water just was.
+- **Waves:** on the Atlantic side only, a live foam line that surges up the beach and slides back every few seconds, and a few crest lines on the open sea. These are the only live parts of the water (`anim`), and cheap: strokes along a shoreline the ground has already found.
+- **A still layer that changes in steps.** New in the engine: a still item can say `step: (t) => n` (here, the tide level rounded to a fiftieth of its range). It's cached like any still thing and redrawn only when its step changes, at most one chunk a frame, showing the old picture until the new one is ready. Low to high takes about a minute and a quarter, so each chunk redraws every second or two while the water moves and not at all at low or high water. QA's stills check accepts a step item that holds still between steps. It's general: a site that grows, lights that come on in rows.
+
+### 3. Floating and wading
+- **Floating:** `R.float(x, y, t)` (the higher of the ground and the water) for boats, buoys, kayaks, the van's wheels and the high-tide finds, with a gentle bob. A boat whose water drains settles on the ground (the sailboat on the flats).
+- **Wading:** people and animals in water are drawn cut at the waterline with a ring of ripples (`wade()` in `art.js`), so clammers stand in the shallows and the geese swim to the van.
+
+### 4. Finds with a window
+- `R.find({ ..., when })`: `'low'`, `'high'` (the water under or over a line the map sets, so they follow the tide curve) or `[from, to]` in loop seconds (the Pink House at sunset). The find is drawn and tappable only then.
+- **Fair, by rule** (decision 5): every tide window is at least two minutes of every loop; QA fails one that isn't. The goose is never windowed.
+- **The hint** for a find that's away still shows the ring where to look, with a line saying when ("Back at low tide, in about a minute").
+- **The find list** says "at low tide", "at high tide" or "at sunset" beside those finds, in the chip and the row.
+- **The tide clock:** a small dial on screen, in thumb reach where a house's lift sits, showing the water rising and falling, now, and the next low and high. It's a map widget (`dial`), so later places can show a day clock the same way. It can't be used to change the tide; its label says what it is for screen readers. It respects reduced motion.
+- **Saves don't change:** windows live in the level's code and find ids are as usual. Saves stay v3.
+
+### 5. The camera and the overview
+- **Wide, on a phone** (decision 16): the map's `overview` fills an upright phone's height and runs the island off both sides; on its side, the whole width.
+- **Long areas** (the beaches, the turnpike) are framed a room's worth at a time around where you tap, as the Block Party's streets are (`zoneBox`), and QA frames each find.
+- **No cutaway in front:** it's all outdoors and low, so the areas in front aren't cut away when you step into one. If the greybox shows the dunes or houses hiding the Sound or the marsh behind them, tall things in front fade instead (decided at gate 2).
+
+### 6. Small pieces outside E4
+- **A subtitle on the picker card** (`subtitle` in `maps/index.js`): "Plum Island", with "King Tide" under it (decision 8).
+- **The finale** reuses the Block Party's (`finale` in the map: the clock jumps, the camera flies, the card waits); the geese paddle instead of conga.
+- **The clock** is the level's own (`clock.js`, as on the Block Party), uneven on purpose (Mechanic).
+
+### 7. Tools and checks
+- `npm run new-level` scaffolds a `terrain.js` (the ground as a function, with the kinds from the style sheet) and a tide curve when the brief names one.
+- The greybox kit gets ground kinds in greybox inks, so the greybox has real heights from the start.
+- The contact sheet adds low water, sunset, the king tide and the finale (`tools/shoot.mjs --at` already shows any moment).
+- **QA:** windowed finds are checked on screen and tapped inside their window, and must be untappable outside it; the two-minute rule; step items in the stills check; the speed check times each view at low and at high water.
+- **The smoke test** adds the tide: a low-tide find can't be tapped at high water and can at low, the dial moves, the flooded road stops the traffic.
+- **The playtest tool** shoots a tide find inside its window.
+- **`node tools/fps.mjs plum`** on the owner's 2017 laptop at low water and at the king tide. **The bar:** no view slower than the Block Party's (the whole map at least 40 frames a second, the slowest area at least 20), and no hitch when the ground redraws.
+
+### Order of work
+1. **Ground:** `terrain.js`, chunk patches with height, side faces, standing and walking on it. Tried first on the Crossroads test bed (a dune and a creek added), and the Block Party, the Manor and the Walk-Up checked picture by picture against `main`, so nothing already built changes.
+2. **Water:** the level, wet cells, the waterline, wet sand, waves; step caching and the one-a-frame redraw; fps on the laptop.
+3. **Floating, wading, windowed finds,** the dial, the hint and the list notes, the picker subtitle.
+4. **QA, smoke, shoot, playtest, new-level and the greybox kit** updated.
+5. Then `npm run new-level -- plum` and the greybox, for gate 2.
+
+### Risks, and what we do about them
+- **Redraws hitch on the old laptop.** One chunk a frame, and bigger steps (a thirtieth of the range) if frames drop; measured with fps.mjs before any art.
+- **Too blocky.** Unit cells can look like the sketch's tiles. If the greybox reads as tiles, the cells along the waterline and the dune edges get diagonal cuts (half cells) before the art, not after.
+- **A big map.** About 112 x 56 is more ground than the Block Party. The greybox shows whether an area can shrink; the refuge is the first to squeeze.
+
+Already in the engine: areas of any shape (E5), a paper that changes with the clock (`plate.at(t)`), people on one clock walking paths (`schedule()`), vehicles on a route and a finale (the Block Party).
+
+### E4 as built (session 5)
+Built in `src/engine/terrain.js`, proven on Plum Island. Where it differs from the plan above, on purpose:
+
+- **Smooth, not cells.** Heights on a half-unit grid, and the layers (sand, sea bed, mud, marsh, scrub, lawns, dune grass, roads) are each the region where a field is above 0, traced between the grid's points like contour lines. So edges come out as smooth shapes, never tiles (this answers decision 31 and the "too blocky" risk before the greybox). Shading where the ground turns from the light, halftone on the steepest.
+- **One rule instead of side faces in front.** Ground never climbs toward the viewer steeper than 0.8 a unit, so it never hides what's behind it, and drawing the ground before everything standing on it is always right. Steep things (the jetty, the bridge, a sea wall) are things. QA fails a land that breaks the rule (`steep()`).
+- **The sea is one see-through ink** over the ground, so the ground's own colors carry the depth (sand in the shallows, a darker bed further out) instead of water inks by depth. Foam along every shoreline, sand darkened where the tide's just been, surf lines rolling up a beach (`surf`), and the plate's front edges cut through ground and water alike.
+- **Caching without steps.** The ground never changes, so each area caches all of it in one picture with its still floor. The water is drawn live, once a frame per chunk (each chunk's patch for water reaches up over its back seams), and traced again only when the level moves a small step. No `step` items were needed. The one-chunk-a-frame hitch the plan worried about doesn't arise.
+- **Standing, floating, wading:** `R.ground(x, y)` in any area of a map with a land; `float(x, y, t)` and the level live in the level's `land.js` and `tide.js`; `wade()` is in `terrain.js`.
+- **Windows** are functions (`when: (t) => ...`) with a `note` for the list, so any rule works (a level under a line, an hour of the day).
+- **The dial** can skip ahead (open question 1).
+- **Not yet:** walking up the ground with `route()` (walkers take their height from the ground in their own code), the picker's subtitle, the fading of tall things in front instead of the cutaway, QA's speed check at two tide levels, and the playtest tool shooting tide finds inside their window.
+
+## The greybox so far (session 5)
+A first greybox is at `#/plum`, built from the draft brief in a session that ran alongside this one. It proves E4 on the whole island: seven areas on one piece of ground, the tide moving every shoreline, 28 finds (7 only at low tide, high tide or sunset), the Courier and Every King Tide Dave on the clock, and the geese swimming out to the van at the end. QA and the smoke test pass on it. **Before gate 2 it changes to match this brief:**
+
+- **The layout:** about 112 x 56 (it's 108 x 64), with the areas as the table under Shape has them: the Center with its own beach, the Town Beach north of it with the rows of houses (the greybox has a Front Beach under the Center), the North Point at the right-hand end. Area names: the Sound (it's "The Flats"), the Town Beach.
+- **The paper is the sea** (it's cream paper round a cut diorama now).
+- **The clock:** two minutes of low water and two of high, the king tide just after midnight, the night hurried (it's an even day with the king tide at 8:30pm), so the finale is under the stars.
+- **The turnpike:** the drawbridge (it opens for a sailboat and the road waits; the greybox's bridge is fixed), the airfield on the south side of the road and the clam shack on the north (the greybox has them the other way round), the visitor center at the mainland end, the restaurant deck at the island end, blue greenhead traps, Dave's truck parked at the clam shack all day and driving through the flood past the van (the greybox has him stall halfway).
+- **The Pink House:** three one-second flickers across sunset, with ten seconds around each to tap (the greybox shows it for half a minute).
+- **The refuge:** the gatehouse, "REFUGE FULL", the line of cars on Sunset Drive and the one that keeps trying (the greybox's circling car is in the Center's lot); Sandy Point at the far end; the plover warden, a volunteer, moves the rope (the greybox has the ranger); the finds as listed (a sandcastle inside the rope, the warden's spare stake, a shell collection; the greybox floats a kite, the stake and a bucket instead, since everything on its beach goes under at the king tide).
+- **The Center:** the residents-only lot and the $20 lots, the bait shop's tide board, the ice cream window, the little jetty, the warning signs ("2030 CAME EARLY"), no lifeguard.
+- **The Town Beach:** rows of houses, the stubborn house's stairs, the crowd turning to watch the sunset over the marsh.
+- **The North Point:** the lighthouse on the river side, the lifeguard stands and their chalkboard (the greybox's lifeguard is on the town beach), fishermen at dawn, two or three seals (the greybox has up to seven), the whale watch boat, the Basin, Newburyport's steeples and the Salisbury jetty on the skyline.
+- **The greenhead man** crossing three areas (the greybox's swarm stays on one beach).
+- **The picker's subtitle,** "King Tide".
+
+## Open questions
+The eight left at the brief were settled at gate 1 (decisions 25 to 32). New ones:
+
+1. **Can you skip the tide?** This brief says the player can't control it (decision 5; the dial "can't be used to change the tide"). Asked again while E4 was being built, the owner picked a tide clock you can tap to jump to the next low or high water, "so nobody waits minutes for a find", and that's what's built: the day runs fast for a second or two and lands at the next turn. *Recommend:* keep the skip. With two-minute windows nobody has to wait long, but on a six-minute loop a player who arrives just after low water still waits four minutes for a low-tide find, and the skip is a moment of its own (the tide rushing in). The windows and the notes in the list stay either way.
 
 ## Decisions
 
-Gate 1 (the brief), from the owner at the start of session 5: **every recommendation**, and no additions for now.
+Gate 1 (the brief), the owner's answers at the start of session 5 (Sept 2026):
 
-1. **The Pink House:** the empty lot, the memorial sign (unveiled April 2026: an engraved sign on two granite posts, "never forgotten"), people stopping for the photo; at sunset the house shimmers back for half a minute, and tapping it then is a find.
-2. **Its own map,** printed with the same inks Newburyport will use, so the two read as a pair later.
-3. **Geese plus the light story** (the Courier racing the king tide); **one tide in a six-minute loop**, low at midday, the king tide in the evening; **July**; **waders** in the parcel; called **Plum Island**; the clam shack a lookalike with no name.
-4. **Tide-only finds stay fair with a tide clock you can skip:** "at low tide" beside them in the list, and a tap on the clock jumps ahead to the next low or high water.
-5. **The refuge beach is closed in July** (April to August, for the plovers), except a short stretch by the Lot 1 boardwalk: so the gag is everyone packed onto that stretch, and six plovers with the rest.
-6. **No owner ideas added yet;** they can come at the greybox.
+1. **The Pink House:** the empty lot and the memorial sign, with people still stopping for the photo. The house flickers back for one second at sunset, and catching it is a find ("The Pink House, back for a moment"). Affectionate.
+2. **Its own map,** not joined to Newburyport, in inks that pair with Newburyport later (the North Shore inks).
+3. **Geese plus the light story** (the Courier racing the king tide), like the Block Party. No whodunit.
+4. **About a six-minute loop with one tide:** low water around midday, the king tide at the end of the loop.
+5. **Fair tide finds:** a small tide clock on screen, "at low tide" or "at high tide" beside those finds in the list, low water at least two minutes of every loop. The player can't control the tide.
+6. **July.**
+7. **The parcel is a pair of waders.**
+8. **"Plum Island"** in the picker, with **"King Tide"** as the card's subtitle.
+9. **Names:** the clam shack on the causeway is a lookalike with no name; the refuge, the lighthouse, the turnpike and the airfield use their real names.
 
-The greybox (session 5), for the owner's gate 2:
+The owner's ideas, folded in above:
 
-7. **One piece of ground for the whole map** (108 x 64 units, a half-unit grid), areas as boxes of it that sit at the map's corner, so area files work in the land's own units (like the Block Party's streets).
-8. **Heights:** the dunes 2.75 in the refuge (hummocks), 2.05 in town; the island's top 1 to 1.15; the marsh 0.45; the turnpike's crown 0.65 on a low causeway; the beach from 0.95 at the dune toe down 0.15 a unit; the deep sea bed -2.6; the plate's cut sides to -3.2.
-9. **The tide:** -0.9 at low water, 0.8 at the king tide. The beach is about 12 units wide at noon and gone to the dunes at the king tide; the marsh floods from about 6:45pm.
-10. **Low-tide finds** show while the level is under -0.6, **high-tide ones** over 0.2, **the Pink House** 7:30 to 9:30pm. The dial lands at 12:30pm (low) and 8pm (high, which is also sunset).
-11. **Everything on the tidal beach floats, flies or is carried** (the kite replaces the sandcastle, a bucket of shells the shell collection), since the whole beach goes under at the king tide.
-12. **People on the clock (5):** the Courier's van (over the bridge at 7am, parked at the Center, out at 7:25pm and stuck in the flood till 10:50pm), the Courier on foot (every door in the Center, the lighthouse, the lifeguard), Every King Tide Dave (in at 8pm, stalled halfway, windows down), two cars of beach traffic (the lot's full, so they park on the boulevard). Everyone else stays in their area.
-13. **The first screen** points at the town beach: "King tide tonight. A goose on every stretch. Step in." On a phone the overview frames the town, its beach and the turnpike, and the island runs off the sides.
-14. **The dial** sits under the tallies, or in the thumb corner on a phone's overview.
-15. **The ending:** the clock jumps to 8:30pm, the camera to the turnpike, and the geese swim out across the flooded marsh and round the van; the Courier, on its roof: "G. Goose?", "Sign here.", "Waders."
+10. **The tide in the world,** not just on screen: a chalkboard of today's tides (the lifeguards', at the Point, and the bait shop's in the Center) and king tide warning signs everyone walks past.
+11. **The refuge gate:** the lots fill by mid-morning and the gate closes; a line of cars waits all day, and one car keeps trying.
+12. **Sunset on the marsh:** at the end of the day everyone on the island turns to watch the sun go down over the marsh, backs to the tide rising behind them.
+13. **Fishermen at dawn** off the point and the jetty, the seals taking their spots as the tide drops.
+14. **The greenheads cross areas:** the same swarm follows one person from the parking lot to the beach to the boardwalk.
+15. **The finale at the flooded turnpike:** the Courier's van stops in the water, the geese paddle out to sign for the waders, and Every King Tide Dave drives past them.
+16. **A wide map:** on an upright phone the overview runs the island off the sides, a swipe along it, like the Block Party's streets.
+17. **Animals stay simple** (movers, not a cast system); real animal characters wait for the Catminium.
 
-## Open questions (for gate 2)
-With a recommendation for each.
+What the real-map check changed from the draft (session 5):
 
-1. **The tide's size.** The beach goes from about 12 units at noon to nothing at the king tide. *Recommend:* keep it: the king tide is the story, and the beach at noon is the busiest picture.
-2. **The shape.** Seven areas on a 108 x 64 plate; the Flats and the Refuge Beach are the biggest and emptiest. *Recommend:* keep the layout; the art fills the Sound's flats and the closed beach with the jokes about emptiness (six plovers, miles of sand).
-3. **Check the real map** before the art: the airfield north of the turnpike, the Pink House lot south of it, the clam shack at the mainland end, Lot 1 and its boardwalk at the refuge's north end, the lighthouse set back at the Point, the south jetty. *Recommend:* the lead checks each against a map at the start of the art session.
-4. **The ghost's window** is half a minute a loop (QA warns). *Recommend:* keep it short: it's a bonus for people who know, and the dial's high tide lands in it.
-5. **The owner's own ideas** go here.
+18. **The lifeguard is at the Point,** not the Center's beach (the Center has none).
+19. **The refuge is three-quarters of the island,** and its gate is on the island, half a mile south of the Center; the visitor center is at the mainland end of the turnpike.
+20. **The erosion is south of the Center and at the north end,** not beside the Center; the house we draw is generic.
+21. **The lighthouse is on the river side** of the Point, with the playground across from it; the jetty runs out from the island's north-east corner.
+22. **The drawbridge** is a drawbridge (it opens); the road floods at the island end.
+23. **The king tide is at midnight** (July's big tides peak then); see decision 26.
+24. **No water tower, and no restaurant at the bridge** (torn down in May 2026).
+
+Gate 1, the open questions, settled by the owner with every recommendation (session 5):
+
+25. **The Pink House flickers back three times across sunset** (about 8:10, 8:20 and 8:30pm), one second each; tapping the lot counts for ten seconds around each flicker. The list says "at sunset", and the hint says when.
+26. **The king tide peaks just after midnight,** at the end of the loop (the Mechanic table); the finale is under the stars.
+27. **The road floods anyway,** at its real low spots at the island end by the drawbridge; a sign in the Center says "2030 CAME EARLY".
+28. **Two or three seals** on the jetty, not a colony.
+29. **The lifeguards' chalkboard is at the Point;** the Center's tide times are on the bait shop's board.
+30. **The beach house is stubborn, not wrecked:** stairs that end above the sand and a new step every summer, sandbags, a porch full of people ignoring the warning sign. No house anyone could identify.
+31. **Start with the sketch's cells,** drawn as outlined shapes; decide at gate 2 whether the waterline needs diagonal cuts.
+32. **Newburyport's steeples and the Salisbury jetty** on the far bank at the right-hand edge, as a skyline only.
