@@ -109,6 +109,16 @@
     </button>
   </div>
 
+  <!-- A place whose clock matters (the tide): what it says now, with a little
+       gauge; a tap skips ahead to the next turn. play.js fills it in. -->
+  <button id="dial" class="dial" type="button" hidden>
+    <span class="dial-gauge" aria-hidden="true"><span class="dial-water"></span></span>
+    <span class="dial-text" aria-hidden="true">
+      <span id="dial-label" class="dial-label"></span>
+      <span id="dial-next" class="dial-next"></span>
+    </span>
+  </button>
+
   <!-- A first visit: where to start, pinned to a room on the map (it rides
        along with the picture) until you step into one. -->
   <button id="invite" class="invite" type="button" hidden>

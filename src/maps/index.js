@@ -47,4 +47,14 @@ export default [
     hidden: true,
     load: () => import('./crossroads/map.js'),
   },
+  {
+    id: 'plum',
+    name: 'Plum Island',
+    tagline: 'A barrier island, a king tide tonight, and nobody taking it seriously.',
+    ink: '#3F8FA6',
+    // Greyboxed, at gate 2 (docs/levels/plum.md): the first place with ground
+    // and water (ROADMAP E4). Out of the picker until it ships.
+    hidden: true,
+    load: () => import('./plum/map.js'),
+  },
 ];

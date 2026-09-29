@@ -51,7 +51,7 @@ import { footprint } from './footprint.js';
 import { C, Q, setScreen, goose as drawGoose, box, onLeft, onRight, shade, alpha, glow } from './art.js';
 
 const LAYERS = ['floor', 'wall', 'decor', 'rug', 'thing', 'dark', 'light', 'air'];
-const WALL_L = 1, DECOR_L = 2, THING = 4;
+const WALL_L = 1, DECOR_L = 2, RUG_L = 3, THING = 4;
 export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 
 // def: the zone module. place: where the map puts it.
@@ -70,6 +70,8 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //                 for a room with things standing outside it (a street front)
 //   place.opts:   anything the map wants to tell the zone (R.opts), so a
 //                 zone file shared by two maps can draw differently on one
+//   place.land:   the map's ground with height and its water (terrain.js),
+//                 given by buildWorld to every zone of a map with a land
 export function buildZone(def, place = {}) {
   const [ox, oy, oz] = [place.at?.[0] ?? 0, place.at?.[1] ?? 0, place.at?.[2] ?? 0];
   const shape = place.shape || def.shape;
@@ -77,6 +79,23 @@ export function buildZone(def, place = {}) {
   // Its size is the box around it all (a shape starts at its own 0, 0).
   const w = Math.max(...rects.map((r) => r[2])), d = Math.max(...rects.map((r) => r[3]));
   const h = place.h ?? WALL;
+  // Ground with height (terrain.js): its height at a point, in the zone's own
+  // units, and how low and high it (and its water) goes, for the zone's
+  // picture, its patch of the screen and who counts as standing in it. A
+  // zone without it has a flat floor at 0.
+  const land = place.land || null;
+  const ground = land ? (x, y) => land.h(ox + x, oy + y) - oz : null;
+  let lo = 0, hi = 0;
+  if (ground) {
+    lo = Infinity; hi = -Infinity;
+    for (const [x0, y0, x1, y1] of rects) {
+      for (let x = x0; x <= x1 + 1e-6; x += Math.min(1, x1 - x0)) {
+        for (let y = y0; y <= y1 + 1e-6; y += Math.min(1, y1 - y0)) { const z = ground(x, y); lo = Math.min(lo, z); hi = Math.max(hi, z); }
+      }
+    }
+    hi = Math.max(hi, land.top - oz);
+  }
+  const base = land ? land.base - oz : -SLAB;
   const zone = {
     def,
     id: def.id,
@@ -85,10 +104,11 @@ export function buildZone(def, place = {}) {
     ox, oy, oz, w, d, h,
     rects, // its floor, as boxes in its own units (one, unless it has a shape)
     home: def.home || null, // a long area: where it's framed when you haven't tapped a spot (its own units)
+    ground, lo, hi, base, land,
     span: place.span ?? h + SLAB,
     fixed: !!place.fixed,
     anchor: [isoX(ox, oy), isoY(ox, oy, oz)],
-    bounds: zoneBounds(w, d, h, place.reach),
+    bounds: zoneBounds(w, d, h, place.reach, land ? { hi, base } : null),
     items: [],
     anim: [],
     finds: [],
@@ -128,6 +148,10 @@ export function buildZone(def, place = {}) {
     walkers: place.walkers || [],
     // What the map tells this zone (place.opts), or {}.
     opts: place.opts || {},
+    // The ground's height at a point (0 on a flat floor), for standing things
+    // on it; and the map's land, if it has one (its water: land.level(t)).
+    ground: (x, y) => (ground ? ground(x, y) : 0),
+    land,
     floor: (draw, o) => add('floor', draw, o),
     wall: (draw, o) => add('wall', draw, o),
     decor: (draw, o) => add('decor', draw, o),
@@ -150,7 +174,9 @@ export function buildZone(def, place = {}) {
       return at;
     },
     // A hidden object to find. at: [x, y, z] or (t) => [x, y, z]. r: tap radius in units.
-    find: ({ id, label, at, r = 0.9 }) => finds.push({ id, label, at, r }),
+    // when: (t) => true while it's there to find (under the tide, say, it isn't);
+    // note: a word for the list on when to look ("low tide").
+    find: ({ id, label, at, r = 0.9, when, note }) => finds.push({ id, label, at, r, ...(when ? { when } : {}), ...(note ? { note } : {}) }),
     // The loose goose. pos: [x, y, z?] or (t) => ({ x, y, z?, dir, pose })
     goose: (pos, o = {}) => {
       const fn = typeof pos === 'function' ? pos : () => ({ x: pos[0], y: pos[1], z: pos[2] || 0, ...o });
@@ -313,8 +339,8 @@ function chunk(zone, index, rect, items, cut) {
     bounds: cut ? {
       x0: x0 - y1 - 1.5,
       x1: x1 - y0 + 1.5,
-      y0: (x0 + y0) / 2 - zone.h * ZK - 9,
-      y1: (x1 + y1) / 2 + SLAB * ZK + 1.5,
+      y0: (x0 + y0) / 2 - (zone.h + zone.hi) * ZK - 9,
+      y1: (x1 + y1) / 2 + Math.max(SLAB, -zone.base) * ZK + 1.5,
     } : zone.bounds,
     // What its floor-and-walls cache needs to cover: all of it, or for a piece
     // of street (no walls) just its ground, which is all its patch lets through.
@@ -325,18 +351,23 @@ function chunk(zone, index, rect, items, cut) {
     stale: false,
     cell: null,
   };
-  if (cut && !zone.walls) c.flat = { ...c.bounds, y0: (x0 + y0) / 2 - 1.5 * ZK - 1 };
+  if (cut && !zone.walls) c.flat = { ...c.bounds, y0: (x0 + y0) / 2 - (zone.hi + 1.5) * ZK - 1 };
   // Its patch of the screen, remade when the picture's scale moves the seam's
   // tuck (about a pixel and a half) past a thousandth of a unit.
-  // top: the patch for the layers over the things (the dark, glows, the
-  // air), which reaches as high as anything in the zone can stand.
+  // which: 'flat' for the floor and what's on it; 'top' for the layers over
+  // the things (the dark, glows, the air), which reaches as high as anything
+  // in the zone can stand; 'water' for water on ground with height (terrain.js),
+  // whose surface stands up over the chunk's back seams.
   if (cut) {
-    const keys = [-1, -1], paths = [null, null];
-    c.cell = (top = false) => {
+    const keys = {}, paths = {};
+    c.cell = (which = 'flat') => {
       const over = Math.min(0.2, 1.5 / (Q.pxPerUnit || 8));
-      const k = Math.round(over * 1000), i = top ? 1 : 0;
-      if (k !== keys[i]) { keys[i] = k; paths[i] = cellPath(zone, rect, over, top ? zone.h + 9 : null); }
-      return paths[i];
+      const k = Math.round(over * 1000);
+      if (k !== keys[which]) {
+        keys[which] = k;
+        paths[which] = zone.ground ? groundCellPath(zone, rect, over, which) : cellPath(zone, rect, over, which === 'top' ? zone.h + 9 : null);
+      }
+      return paths[which];
     };
   }
   return c;
@@ -382,14 +413,90 @@ function cellPath(zone, rect, over, rise = null) {
   return p;
 }
 
+// The same for a zone with ground (terrain.js): every edge follows the
+// ground's height along it (every half unit), the strip over a back edge
+// where the zone ends reaches as high as its water can stand (or, for the
+// top patch, anything standing on it), and the strip under a front edge
+// where it ends goes down past the plate's cut side. The water's patch
+// (which: 'water') reaches up over the back edges where the zone carries on
+// too: the water's surface stands above the ground there, over the chunk
+// behind, so each chunk draws its own water and nobody else's.
+function groundCellPath(zone, rect, over, which) {
+  const [x0, y0, x1, y1] = rect;
+  const e = 1e-3, g = zone.ground;
+  const has = (x, y) => zone.rects.some((r) => x >= r[0] && x < r[2] && y >= r[1] && y < r[3]);
+  const up = which === 'top' ? zone.hi + zone.h + 9 : zone.hi + 1.5, down = zone.base - 1.5, water = which === 'water';
+  const cuts = (a, b, axis) => {
+    const at = [a, b];
+    for (const r of zone.rects) for (const v of axis ? [r[1], r[3]] : [r[0], r[2]]) if (v > a + e && v < b - e) at.push(v);
+    at.sort((p, q) => p - q);
+    return at.slice(1).map((v, i) => [at[i], v]);
+  };
+  const along = (a, b) => {
+    const n = Math.max(1, Math.ceil((b - a) / 0.5 - 1e-6)), out = [];
+    for (let k = 0; k <= n; k++) out.push(a + ((b - a) * k) / n);
+    return out;
+  };
+  // A band between two runs of points along an edge, as one shape.
+  const band = (p, A, B) => quad(p, [...A, ...B.slice().reverse()]);
+  const p = new Path2D();
+  quad(p, groundRing(zone, rect));
+  // Along the back right edge (y = y0) and the front left (y = y1), in x.
+  for (const [a, b] of cuts(x0, x1, 0)) {
+    const m = (a + b) / 2;
+    if (has(m, y0 - e) && !water) {
+      const xs = along(a, b);
+      band(p, xs.map((x) => [x, y0 - over, g(x, y0 - over)]), xs.map((x) => [x, y0, g(x, y0)]));
+    } else {
+      const xs = along(has(a - e, y0 + e) ? a - over : a, b);
+      band(p, xs.map((x) => [x, y0, g(x, y0)]), xs.map((x) => [x, y0, up]));
+    }
+    if (!has(m, y1 + e)) {
+      const xs = along(has(a - e, y1 - e) ? a - over : a, b);
+      band(p, xs.map((x) => [x, y1, g(x, y1)]), xs.map((x) => [x, y1, down]));
+    }
+  }
+  // Along the back left edge (x = x0) and the front right (x = x1), in y.
+  for (const [a, b] of cuts(y0, y1, 1)) {
+    const m = (a + b) / 2;
+    if (has(x0 - e, m) && !water) {
+      const ys = along(a, b);
+      band(p, ys.map((y) => [x0 - over, y, g(x0 - over, y)]), ys.map((y) => [x0, y, g(x0, y)]));
+    } else {
+      const ys = along(has(x0 + e, a - e) ? a - over : a, b);
+      band(p, ys.map((y) => [x0, y, g(x0, y)]), ys.map((y) => [x0, y, up]));
+    }
+    if (!has(x1 + e, m)) {
+      const ys = along(has(x1 - e, a - e) ? a - over : a, b);
+      band(p, ys.map((y) => [x1, y, g(x1, y)]), ys.map((y) => [x1, y, down]));
+    }
+  }
+  return p;
+}
+
+// A box of a zone's floor on its ground: the points round its edge, every
+// half unit, at the ground's height.
+function groundRing(zone, [x0, y0, x1, y1]) {
+  const g = zone.ground, pts = [];
+  const n = (a, b) => Math.max(1, Math.ceil((b - a) / 0.5 - 1e-6));
+  const nx = n(x0, x1), ny = n(y0, y1);
+  for (let k = 0; k < nx; k++) { const x = x0 + ((x1 - x0) * k) / nx; pts.push([x, y0, g(x, y0)]); }
+  for (let k = 0; k < ny; k++) { const y = y0 + ((y1 - y0) * k) / ny; pts.push([x1, y, g(x1, y)]); }
+  for (let k = nx; k > 0; k--) { const x = x0 + ((x1 - x0) * k) / nx; pts.push([x, y1, g(x, y1)]); }
+  for (let k = ny; k > 0; k--) { const y = y0 + ((y1 - y0) * k) / ny; pts.push([x0, y, g(x0, y)]); }
+  return pts;
+}
+
 const OUT = { x: -1e4, y: -1e4, out: true };
 
 // Is the world point (x, y, z) inside the zone? Floors count from their own
 // height up to the next floor (span), so each point is in one zone at most.
+// On ground with height, from its lowest point (a wader in a creek) up.
 export function inside(zone, x, y, z) {
   if (!(x >= zone.ox && x < zone.ox + zone.w && y >= zone.oy && y < zone.oy + zone.d &&
-    z >= zone.oz - 0.01 && z < zone.oz + zone.span - 0.01)) return false;
-  if (zone.rects.length === 1) return true;
+    z >= zone.oz + zone.lo - 0.01 && z < zone.oz + zone.hi + zone.span - 0.01)) return false;
+  const r0 = zone.rects[0];
+  if (zone.rects.length === 1 && !r0[0] && !r0[1]) return true;
   const lx = x - zone.ox, ly = y - zone.oy;
   return zone.rects.some((r) => lx >= r[0] && lx < r[2] && ly >= r[1] && ly < r[3]);
 }
@@ -501,7 +608,10 @@ function darken(ctx, zone, k, color) {
     // reach up over the rooms behind it too.
     if (!zone.groundPath) {
       zone.groundPath = new Path2D();
-      for (const [x0, y0, x1, y1] of zone.rects) quad(zone.groundPath, [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]]);
+      for (const r of zone.rects) {
+        const [x0, y0, x1, y1] = r;
+        quad(zone.groundPath, zone.ground ? groundRing(zone, r) : [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]]);
+      }
     }
     ctx.fill(zone.groundPath);
   } else if (Q.own) {
@@ -583,12 +693,16 @@ function drawItems(ctx, piece, t, pick, st = null) {
   const zone = piece.zone || piece;
   const clip = wallClip(zone);
   let things = [];
-  let clipping = false, celled = false;
-  const toCell = (on) => {
-    if (!piece.cell || on === celled) return;
-    if (on) { ctx.save(); ctx.clip(piece.cell(!things)); } else ctx.restore();
-    celled = on;
+  let clipping = false, celled = null;
+  // Clip to the chunk's patch for this item (see chunk(): which), or null for none.
+  const toCell = (which) => {
+    if (!piece.cell || which === celled) return;
+    if (clipping) { ctx.restore(); clipping = false; }
+    if (celled) ctx.restore();
+    if (which) { ctx.save(); ctx.clip(piece.cell(which)); }
+    celled = which;
   };
+  const cellFor = (it) => (!things ? 'top' : it.layer === RUG_L && zone.ground ? 'water' : 'flat');
   for (let i = 0; i < piece.items.length; i++) {
     const it = piece.items[i];
     if (!pick(it)) continue;
@@ -597,11 +711,11 @@ function drawItems(ctx, piece, t, pick, st = null) {
     if (!a) continue;
     if (it.layer > THING && things) {
       if (clipping) { ctx.restore(); clipping = false; }
-      toCell(false);
+      toCell(null);
       drawThings(ctx, things, t, st);
       things = null;
     }
-    toCell(true);
+    toCell(cellFor(it));
     const cut = !!clip && (it.layer === WALL_L || it.layer === DECOR_L) && !it.walls;
     if (cut !== clipping) {
       if (cut) { ctx.save(); ctx.clip(clip); } else ctx.restore();
@@ -618,7 +732,8 @@ function drawItems(ctx, piece, t, pick, st = null) {
     ctx.globalAlpha = a0;
   }
   if (clipping) ctx.restore();
-  toCell(false);
+  clipping = false;
+  toCell(null);
   if (things) drawThings(ctx, things, t, st);
 }
 

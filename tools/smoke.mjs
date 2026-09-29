@@ -563,6 +563,71 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- 7. Ground and water (Plum Island, hidden until it ships) ----------
+// Terrain (engine/terrain.js), the tide on the clock, finds that only show at
+// low tide, the dial that skips ahead, and the king tide at the end.
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
+  // Opened from the picker while another place idles behind it: it sits still,
+  // framed on itself (the title's drift used to carry on round the old one).
+  await page.goto(base + '#/maps');
+  await ready(page);
+  await wait(page, 800);
+  await S(page, () => { location.hash = '#/plum'; });
+  await page.waitForFunction(() => window.__squares.world && window.__squares.world.id === 'plum', null, { timeout: 20000 });
+  await wait(page, 1500);
+  check('a place opened from the picker stands still, framed on itself', await S(page, () => !window.__squares.camera.drifting));
+  const ground = await S(page, async () => {
+    const { land } = await import('/src/maps/plum/land.js');
+    const { level, at } = await import('/src/maps/plum/tide.js');
+    const s = window.__squares, w = s.world;
+    // Where a tap on a point of the ground lands: the area standing there.
+    const tap = (x, y) => { const z = land.h(x, y); return w.zones[w.zoneAt(x - y, (x + y) / 2 - z * 1.12)]?.id; };
+    return {
+      dune: land.h(20, 35.3), beach: land.h(20, 47), sea: land.h(20, 62),
+      taps: [tap(20, 34), tap(20, 12), tap(60, 48), tap(58.5, 8), tap(93, 31)],
+      flat: [land.h(9.2, 17.6) > level(at(12.5)), land.h(9.2, 17.6) > level(at(20))],
+    };
+  });
+  check('the ground has height: dunes over the beach over the sea bed', ground.dune > 2 && ground.beach < 0.5 && ground.sea < -2, JSON.stringify(ground));
+  check('taps land on the area whose ground they hit', ground.taps.join() === 'refuge-dunes,flats,front-beach,turnpike,north-point', ground.taps.join());
+  check('the tide uncovers the flats at noon and covers them at the king tide', ground.flat[0] && !ground.flat[1], JSON.stringify(ground.flat));
+  // A low-tide find: not there at high water (a tap finds nothing), there after the dial skips to low tide.
+  await S(page, () => { const s = window.__squares; s.clock.set(225); s.play.enterZone('flats', { dur: 0.01, near: [9.2, 17.6] }); });
+  await wait(page, 900);
+  await S(page, () => { document.getElementById('story').hidden = true; });
+  const note = await S(page, () => [...document.querySelectorAll('#tray .find-note')].map((n) => n.textContent));
+  check('the list says when a tide-only find is there', note.includes('low tide') && note.includes('high tide'), note.join());
+  let [bx, by] = await findOnScreen(page, 'flats', 'boot');
+  await page.mouse.click(bx, by);
+  await wait(page, 300);
+  check('a low-tide find can\'t be found at high water', !(await S(page, () => window.__squares.store.isFound('plum', 'flats:boot'))));
+  const before = await S(page, () => document.getElementById('dial-label').textContent);
+  await page.click('#dial');
+  await wait(page, 2600);
+  const after = await S(page, () => ({ label: document.getElementById('dial-label').textContent, hour: (5 + (window.__squares.clock.now() % 360) / 15) % 24, toast: document.getElementById('toast').textContent }));
+  check('the dial skips ahead to the next turn of the tide', before !== after.label && after.label === 'Low tide' && Math.abs(after.hour - 12.5) < 0.3 && /Low tide/.test(after.toast), JSON.stringify({ before, ...after }));
+  await S(page, () => window.__squares.play.enterZone('flats', { dur: 0.01, near: [9.2, 17.6] }));
+  await wait(page, 900);
+  [bx, by] = await findOnScreen(page, 'flats', 'boot');
+  await page.mouse.click(bx, by);
+  await wait(page, 300);
+  check('and at low tide it\'s there to find', await S(page, () => window.__squares.store.isFound('plum', 'flats:boot')));
+  const cached = await S(page, () => window.__squares.play.focus.chunks.map((c) => !!(c.bd && c.stills)));
+  check('in an area with ground, every piece of it is cached', cached.length > 1 && cached.every(Boolean), JSON.stringify(cached));
+  // The ending: every goose found, the clock jumps to the king tide, and the
+  // Courier's van is out on the turnpike, under water to its wheels.
+  await S(page, () => { const s = window.__squares; for (const z of s.world.zones) { const g = z.finds.find((f) => f.goose); if (g) s.play.markFound(z, g); } });
+  await wait(page, 3200);
+  const end = await S(page, async () => {
+    const { level } = await import('/src/maps/plum/tide.js');
+    const s = window.__squares, t = s.clock.now(), van = s.world.walkers.find((k) => k.id === 'van').at(t);
+    return { hour: Math.round(((5 + (t % 360) / 15) % 24) * 10) / 10, under: level(t) > van.z, x: Math.round(van.x), y: Math.round(van.y), parade: s.play.fx(performance.now()).parade > 0 };
+  });
+  check('finding every goose brings in the king tide, with the Courier\'s van stuck in it', end.hour >= 20.4 && end.hour < 21.5 && end.under && end.parade && end.y > 5 && end.y < 15, JSON.stringify(end));
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();

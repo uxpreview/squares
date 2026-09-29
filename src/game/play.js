@@ -15,6 +15,11 @@
 // tally for a Case button, calls its finds evidence or curiosities, and ends
 // when you accuse the right suspect: a flash of lightning, and the camera cuts
 // to the reveal.
+//
+// A place whose clock matters (the tide at Plum Island, where some finds only
+// show at low or high water) has a dial (map.dial): it says what the clock
+// says now, and a tap skips ahead to the next turn, the scene running fast
+// for a second or two. A find can be there only some of the time (f.when).
 
 import { isoX, isoY } from '../engine/iso.js';
 import { C, alpha } from '../engine/art.js';
@@ -27,7 +32,7 @@ import { caseState, accuse as accuseIn } from './case.js';
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
 export function createPlay({ camera, store, reduceMotion, clock, setClock, on }) {
-  // on: { exit(), complete(world), place(mapId, zoneId|null) }
+  // on: { exit(), complete(world), place(mapId, zoneId|null), refresh() (every area's picture, now) }
   // clock(): the scene's time in seconds, the same t the renderer draws with.
   // setClock(t): move the scene to another moment (the reveal goes back to dinner).
   const { cam, view } = camera;
@@ -40,6 +45,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
     places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
     thingsPill: $('tally-things-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
+    dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'),
   };
 
   const themeColor = document.querySelector('meta[name="theme-color"]');
@@ -61,6 +67,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const hasStoreys = () => !!(world && world.map.storeys && world.storeys.length > 1);
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
+  // Is a find there to be found at t? (Some only show at low tide.)
+  const here = (f, t) => !f.when || f.when(t);
   const words = () => ({ zone: 'room', invite: '', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
@@ -89,6 +97,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (!wide && shown(ui.place)) top = Math.max(56, ui.place.offsetTop + ui.place.offsetHeight + 12);
       bottom = safeBottom() + (vh < 500 ? 32 : 48);
     }
+    // The dial sits under the tallies, over the top of the picture.
+    if (!ui.dial.hidden && mode === 'zone') top = Math.max(top, ui.dial.offsetTop + ui.dial.offsetHeight + 10);
     if (mode === 'zone' && !ui.roombar.hidden) {
       // Frame the zone around the tray as it rests (peek or hidden). The open
       // sheet is for reading and sits over the scene without moving the camera.
@@ -142,7 +152,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // changes: the edges ask on every frame of a drag, and measuring isn't free.
   let insetsKey = '', insetsNow = null;
   function edgeInsets() {
-    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.roombar.hidden].join();
+    const key = [world.id, mode, current, storey, tray.state, tray.dock(), view.vw, view.vh, ui.roombar.hidden, ui.dial.hidden].join();
     if (key !== insetsKey) { insetsKey = key; insetsNow = insets(); }
     return insetsNow;
   }
@@ -472,6 +482,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function showHint(zone, f) {
     const i = zone.index;
     if (current !== i || mode !== 'zone') enterZone(i);
+    // Not there right now (under the tide): say when, and where to skip.
+    if (!here(f, clock())) {
+      const d = world.map.dial;
+      toast(`${f.label} only shows at ${f.note || 'another time'}.${d ? ` Tap ${d.name || 'the dial'} to skip there.` : ''}`);
+      nudge(ui.dial);
+    }
     // A ring near the thing, offset a bit so it's a nudge rather than the answer.
     const seed = (f.id.length * 31) % 7;
     hints.push({ zone, f, t0: performance.now(), dx: (seed - 3) * 0.35, dy: ((seed * 3) % 5 - 2) * 0.35 });
@@ -505,7 +521,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
           // A place with a finale jumps its clock there (the Block Party's
           // party) and frames where it plays for a while before the card.
           const fin = w.map.finale;
-          if (fin && fin.at != null) setClock(fin.at);
+          // (A skip on the dial still running gives way to it.)
+          if (fin && fin.at != null) { skipping = null; ui.dial.classList.remove('is-skipping'); setClock(fin.at); }
           const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
           if (fz >= 0) {
             showOverviewUI();
@@ -546,6 +563,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     casefile.refresh();
   }
   const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+
+  // A button wiggles to say "this one".
+  function nudge(el) {
+    if (reduceMotion || el.hidden) return;
+    el.classList.remove('nudge');
+    void el.offsetWidth;
+    el.classList.add('nudge');
+  }
 
   // The Case button wiggles when there's news in the case file.
   function nudgeCase(big) {
@@ -608,6 +633,56 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     setTimeout(() => { if (still()) { sound('honk'); on.complete(w); } }, reduceMotion ? 600 : 3000);
   }
 
+  // ---------- The dial: a place's own clock ----------
+  // What the place's clock says now (the tide: "Low tide", with its level in
+  // the little gauge), and a tap skips ahead to the next turn: the scene
+  // runs fast for a moment and lands there, so nobody waits minutes for low
+  // water. map.dial: { name, label(t), level(t) 0..1,
+  // next(t) => { at, label, say } } (at: the moment to land on, label: what
+  // that is, say: a line for when you get there).
+  let dialText = '', dialLevel = -1, skipping = null;
+  function renderDial(t) {
+    const d = active && world && world.map.dial;
+    if (ui.dial.hidden === !!d) ui.dial.hidden = !d;
+    if (!d) return;
+    const label = d.label(t), level = Math.round(d.level(t) * 100) / 100;
+    if (label !== dialText) {
+      dialText = label;
+      const n = d.next(t);
+      ui.dialLabel.textContent = label;
+      ui.dialNext.textContent = `Skip to ${n.label}`;
+      ui.dial.setAttribute('aria-label', `${label}. Skip ahead to ${n.label}.`);
+    }
+    if (level !== dialLevel) { dialLevel = level; ui.dial.style.setProperty('--level', level); }
+  }
+  function skipAhead() {
+    if (!active || !world || !world.map.dial || skipping) return;
+    userAct();
+    const from = clock(), n = world.map.dial.next(from);
+    sound('tide');
+    if (reduceMotion) { setClock(n.at); landed(n); return; }
+    skipping = { from, to: n.at, start: performance.now(), dur: 1800, n };
+    ui.dial.classList.add('is-skipping');
+  }
+  ui.dial.addEventListener('click', skipAhead);
+  function skipStep() {
+    if (!skipping) return;
+    const k = Math.min(1, (performance.now() - skipping.start) / skipping.dur);
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    setClock(skipping.from + (skipping.to - skipping.from) * e);
+    if (k < 1) return;
+    const n = skipping.n;
+    skipping = null;
+    ui.dial.classList.remove('is-skipping');
+    landed(n);
+  }
+  function landed(n) {
+    dialText = '';
+    if (n.say) toast(n.say);
+    // Every other area's picture, at the moment you landed on.
+    if (on.refresh) on.refresh();
+  }
+
   // ---------- Geese calling ----------
   // On the whole map, now and then a room that still hides its goose honks:
   // where to look, without a word, and quiet once you've found it. Not in a
@@ -639,8 +714,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pops.push({ kind: 'call', zone: lastCaller, t0: now });
     debug.calls++;
   }
-  // Over the middle of the room, about head height.
-  const callAt = (z) => [z.anchor[0] + isoX(z.w / 2, z.d / 2), z.anchor[1] - (z.lift || 0) + isoY(z.w / 2, z.d / 2, Math.min(z.h, 6) * 0.6)];
+  // Over the middle of the room (its first box, for an area of any shape),
+  // about head height, on its ground if it has one.
+  const callAt = (z) => {
+    const [x0, y0, x1, y1] = z.rects[0], x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+    const g = z.ground ? Math.max(z.ground(x, y), 0) : 0;
+    return [z.anchor[0] + isoX(x, y), z.anchor[1] - (z.lift || 0) + isoY(x, y, g + Math.min(z.h, 6) * 0.6)];
+  };
 
   // A little "HONK!" in a speech bubble, like the signs in the rooms, sized in
   // screen pixels so it reads at any zoom.
@@ -677,6 +757,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // frame and the next. A jump in the clock (a tool, the reveal) plays nothing.
   let lastTick = null;
   function tick(t) {
+    skipStep();
+    renderDial(t);
     placeInvite();
     if (world && world.map.plate && world.map.plate.at && Math.abs(t - plateAtT) > 0.4) printPlate(t);
     // (The open list is measured as it would rest; that's a style change, so
@@ -711,7 +793,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       ctx.save();
       ctx.setLineDash([5 / cam.z, 4 / cam.z]);
       for (const f of zone.finds) {
-        if (isFound(zone, f)) continue;
+        if (isFound(zone, f) || !here(f, t)) continue;
         const [x, y, z] = findPos(f, t);
         ctx.beginPath();
         ctx.arc(isoX(x, y), isoY(x, y, z), Math.max(f.r, 22 / cam.z), 0, Math.PI * 2);
@@ -722,7 +804,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       ctx.restore();
     }
     for (const f of zone.finds) {
-      if (!isFound(zone, f)) continue;
+      // (A find that's gone for now, under the tide, takes its loop with it.)
+      if (!isFound(zone, f) || !here(f, t)) continue;
       const [x, y, z] = findPos(f, t);
       const r = Math.max(f.r * 1.05, (16 * out) / cam.z, 5 / cam.z);
       const at = foundAt.get(world.id + '/' + keyOf(zone, f));
@@ -835,10 +918,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     return world.zoneAt(X, Y);
   }
 
-  // The world point on a zone's floor under a screen point.
+  // The world point on a zone's floor (or its ground) under a screen point.
   function floorAt(zone, sx, sy) {
     const [X, Y] = camera.toWorld(sx, sy);
-    const lx = Y - zone.anchor[1] + (X - zone.anchor[0]) / 2, ly = Y - zone.anchor[1] - (X - zone.anchor[0]) / 2;
+    const [lx, ly] = world.floorUnder(zone, X, Y);
     return [zone.ox + lx, zone.oy + ly];
   }
 
@@ -848,7 +931,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (lifted(zone)) continue;
       const [ax, ay] = zone.anchor;
       for (const f of zone.finds) {
-        if (isFound(zone, f)) continue;
+        if (isFound(zone, f) || !here(f, t)) continue;
         const [x, y, z] = findPos(f, t);
         const [px, py] = camera.toScreen(ax + isoX(x, y), ay + isoY(x, y, z));
         const d = Math.hypot(px - sx, py - sy);
@@ -990,6 +1073,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     storey = world.defaultStorey;
     nextCall = 0;
     lastCaller = null;
+    dialText = '';
+    dialLevel = -1;
+    skipping = null;
     platePrinted = null;
     printPlate(clock());
     // The lift can be the place's own (brass, at the Manor): map.lift.
@@ -1096,6 +1182,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (mode === 'zone' && current >= 0) tray.render(current);
     },
     markFound,
+    skipAhead,
+    get skipping() { return !!skipping; },
     enterZone: (i, o) => enterZone(typeof i === 'string' ? world.indexOf(i) : i, o),
     toOverview,
     // Show a storey by id or index (the lift does this).

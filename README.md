@@ -6,6 +6,7 @@ A hidden-object picture book you can walk through. Tiny animated places, drawn e
 - **Pick a place:** one card per map, with a live picture and your progress.
 - **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it. A first visit gets a card pinned to a room saying where to start; on the whole map, rooms that still hide their goose honk now and then. A house changes floors from its lift, in the corner.
 - **Whodunits** (Gooseworth Manor): the finds are **evidence** and **curiosities**, and the goal is solving the case. **Case** opens the case file: every suspect, what points at them, their alibi, and **Accuse**. Accuse anyone, any time; the wrong one gives you their alibi (and a joke), and the culprit stays a mystery until you've found every clue against them.
+- **The tide** (Plum Island, still being made): the water rises and falls on the clock, and some things only show at low tide (the list says so). The dial in the corner says what the tide's doing; tap it to skip ahead to the next low or high water.
 
 Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made (or retired, like the Walk-Up) are hidden from the picker but open from a link: `/#/tower`.
 
@@ -71,6 +72,8 @@ src/
                      storeys, doors, "which zone did I tap"
     camera.js        Framing, flights between views, the title-screen drift, the map's soft edges
     renderer.js      Draws a world every frame; cutaways and floors lifting; the fade-in
+    terrain.js       Ground with height and water with a level (a land): tracing its layers,
+                     printing each area's part, the tide, waves, wading, floating
     input.js         Touch, mouse and wheel; stretching past an edge and springing back
   game/            The rules
     play.js          Playing a map: tapping, finding, hints, tallies, the lift, the invitation, the reveal
@@ -106,6 +109,13 @@ src/
       areas/           One file per area
     crossroads/      A hidden test bed (#/crossroads): a street and a pavement of any shape
                      between four rooms, with people walking between them
+    plum/            Plum Island (hidden until it ships, #/plum): a barrier island on a tide
+      land.js          The island's ground and water: its outline, the dunes, the marsh, the roads
+      tide.js          The day, the tide's level, when the flats are out, the dial
+      day.js           The Courier, Every King Tide Dave, beach traffic, on the clock
+      kit.js           Greybox pieces: cars, boats, houses on stilts, umbrellas, traps
+      finale.js        The ending: the geese swim out to the Courier's van
+      areas/           One file per area, in the land's own units
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/
@@ -146,8 +156,11 @@ docs/
 | Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
 | How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
 | See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
-| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop |
+| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop. Close anything else running the game first (another browser tab, an editor's preview pane): it shares the graphics chip and takes a quarter off the numbers |
 | How the map in front of the room you're in is cut away | "The cut layer" in `src/engine/renderer.js` (drawn on a see-through sheet, the room's outline erased, laid on the picture) |
+| Plum Island's ground: the island's shape, the dunes, the marsh, the roads | `src/maps/plum/land.js` (outline points, heights, and the layers' colors in `style.js`); `npm run qa -- plum` fails ground that climbs toward you too steeply |
+| When the tide's in or out, and when tide-only finds show | `TURNS`, `lowTide`, `highTide` and `SUNSET` in `src/maps/plum/tide.js`; where the dial skips to is its `next` |
+| Make a find show only some of the time | `when: (t) => true or false` and `note: 'low tide'` on the find (`R.find` or the greybox's `pin`) |
 | How often the other rooms' pictures refresh | `SNAP_BUDGET_MS` in `src/engine/renderer.js`; it shrinks by itself (`snapQ`) when frames are slow |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |
 | A house's floors, and which one it opens on | `storeys` and `storey` in its `map.js` (the Manor: `src/maps/manor/map.js`) |

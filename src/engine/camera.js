@@ -55,8 +55,12 @@ export function createCamera(canvas, o = {}) {
     flight = { from, to, t0: performance.now(), dur: dur * 1000, arc, then };
   }
 
+  // Straight there, and stay: it ends a flight and the title screen's drift
+  // (a place opened from the picker, with another idling behind it, kept
+  // drifting round the old one).
   function jumpTo(v) {
     flight = null;
+    drift = null;
     Object.assign(cam, v);
   }
 

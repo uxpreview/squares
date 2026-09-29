@@ -1,7 +1,9 @@
 # Plum Island
 
-> Status: **Brief approved** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Greybox** · Brief → Greybox → Art → QA → Preview → Shipped
 > Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [ ] · preview [ ]
+>
+> E4 is built (session 5, "E4 as built" below) and there's a first greybox at `#/plum`, but it was built alongside this brief from the earlier draft, so it doesn't match it yet: "The greybox so far" lists what changes before gate 2.
 >
 > Drafted in the sketchbook session (Sept 2026); finished in session 5 with the owner's answers and ideas (decisions 1 to 17), every real place checked against a real map and current news (see "Real places, checked"), and a build plan for E4. The rough sketch is in [the sketchbook](../sketchbook.html) (open it in a browser; drag the tide). The owner approved it with every recommendation (decisions 25 to 32). Next: build E4, then the greybox.
 
@@ -231,8 +233,37 @@ E4 is built first (PROCESS step 3), in its own commits, before the greybox. It's
 
 Already in the engine: areas of any shape (E5), a paper that changes with the clock (`plate.at(t)`), people on one clock walking paths (`schedule()`), vehicles on a route and a finale (the Block Party).
 
+### E4 as built (session 5)
+Built in `src/engine/terrain.js`, proven on Plum Island. Where it differs from the plan above, on purpose:
+
+- **Smooth, not cells.** Heights on a half-unit grid, and the layers (sand, sea bed, mud, marsh, scrub, lawns, dune grass, roads) are each the region where a field is above 0, traced between the grid's points like contour lines. So edges come out as smooth shapes, never tiles (this answers decision 31 and the "too blocky" risk before the greybox). Shading where the ground turns from the light, halftone on the steepest.
+- **One rule instead of side faces in front.** Ground never climbs toward the viewer steeper than 0.8 a unit, so it never hides what's behind it, and drawing the ground before everything standing on it is always right. Steep things (the jetty, the bridge, a sea wall) are things. QA fails a land that breaks the rule (`steep()`).
+- **The sea is one see-through ink** over the ground, so the ground's own colors carry the depth (sand in the shallows, a darker bed further out) instead of water inks by depth. Foam along every shoreline, sand darkened where the tide's just been, surf lines rolling up a beach (`surf`), and the plate's front edges cut through ground and water alike.
+- **Caching without steps.** The ground never changes, so each area caches all of it in one picture with its still floor. The water is drawn live, once a frame per chunk (each chunk's patch for water reaches up over its back seams), and traced again only when the level moves a small step. No `step` items were needed. The one-chunk-a-frame hitch the plan worried about doesn't arise.
+- **Standing, floating, wading:** `R.ground(x, y)` in any area of a map with a land; `float(x, y, t)` and the level live in the level's `land.js` and `tide.js`; `wade()` is in `terrain.js`.
+- **Windows** are functions (`when: (t) => ...`) with a `note` for the list, so any rule works (a level under a line, an hour of the day).
+- **The dial** can skip ahead (open question 1).
+- **Not yet:** walking up the ground with `route()` (walkers take their height from the ground in their own code), the picker's subtitle, the fading of tall things in front instead of the cutaway, QA's speed check at two tide levels, and the playtest tool shooting tide finds inside their window.
+
+## The greybox so far (session 5)
+A first greybox is at `#/plum`, built from the draft brief in a session that ran alongside this one. It proves E4 on the whole island: seven areas on one piece of ground, the tide moving every shoreline, 28 finds (7 only at low tide, high tide or sunset), the Courier and Every King Tide Dave on the clock, and the geese swimming out to the van at the end. QA and the smoke test pass on it. **Before gate 2 it changes to match this brief:**
+
+- **The layout:** about 112 x 56 (it's 108 x 64), with the areas as the table under Shape has them: the Center with its own beach, the Town Beach north of it with the rows of houses (the greybox has a Front Beach under the Center), the North Point at the right-hand end. Area names: the Sound (it's "The Flats"), the Town Beach.
+- **The paper is the sea** (it's cream paper round a cut diorama now).
+- **The clock:** two minutes of low water and two of high, the king tide just after midnight, the night hurried (it's an even day with the king tide at 8:30pm), so the finale is under the stars.
+- **The turnpike:** the drawbridge (it opens for a sailboat and the road waits; the greybox's bridge is fixed), the airfield on the south side of the road and the clam shack on the north (the greybox has them the other way round), the visitor center at the mainland end, the restaurant deck at the island end, blue greenhead traps, Dave's truck parked at the clam shack all day and driving through the flood past the van (the greybox has him stall halfway).
+- **The Pink House:** three one-second flickers across sunset, with ten seconds around each to tap (the greybox shows it for half a minute).
+- **The refuge:** the gatehouse, "REFUGE FULL", the line of cars on Sunset Drive and the one that keeps trying (the greybox's circling car is in the Center's lot); Sandy Point at the far end; the plover warden, a volunteer, moves the rope (the greybox has the ranger); the finds as listed (a sandcastle inside the rope, the warden's spare stake, a shell collection; the greybox floats a kite, the stake and a bucket instead, since everything on its beach goes under at the king tide).
+- **The Center:** the residents-only lot and the $20 lots, the bait shop's tide board, the ice cream window, the little jetty, the warning signs ("2030 CAME EARLY"), no lifeguard.
+- **The Town Beach:** rows of houses, the stubborn house's stairs, the crowd turning to watch the sunset over the marsh.
+- **The North Point:** the lighthouse on the river side, the lifeguard stands and their chalkboard (the greybox's lifeguard is on the town beach), fishermen at dawn, two or three seals (the greybox has up to seven), the whale watch boat, the Basin, Newburyport's steeples and the Salisbury jetty on the skyline.
+- **The greenhead man** crossing three areas (the greybox's swarm stays on one beach).
+- **The picker's subtitle,** "King Tide".
+
 ## Open questions
-None: the eight left at the brief were settled at gate 1 (decisions 25 to 32). New ones go here.
+The eight left at the brief were settled at gate 1 (decisions 25 to 32). New ones:
+
+1. **Can you skip the tide?** This brief says the player can't control it (decision 5; the dial "can't be used to change the tide"). Asked again while E4 was being built, the owner picked a tide clock you can tap to jump to the next low or high water, "so nobody waits minutes for a find", and that's what's built: the day runs fast for a second or two and lands at the next turn. *Recommend:* keep the skip. With two-minute windows nobody has to wait long, but on a six-minute loop a player who arrives just after low water still waits four minutes for a low-tide find, and the skip is a moment of its own (the tide rushing in). The windows and the notes in the list stay either way.
 
 ## Decisions
 

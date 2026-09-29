@@ -59,11 +59,19 @@ export function ground(R, o = {}) {
   }
 }
 
-// A plain block standing on the floor: furniture, a hero, a machine. (x, y) is
-// its back corner, w runs along x, d along y, h up. name: a small label on it.
+// Where something standing on a zone's ground sits: its lowest point under
+// the footprint (x, y, w, d), so it never floats. 0 on a flat floor.
+export function footing(R, x, y, w = 0, d = 0) {
+  if (!R.land) return 0;
+  return Math.min(R.ground(x, y), R.ground(x + w, y), R.ground(x, y + d), R.ground(x + w, y + d), R.ground(x + w / 2, y + d / 2));
+}
+
+// A plain block standing on the floor (or the ground, on a place with
+// terrain): furniture, a hero, a machine. (x, y) is its back corner, w runs
+// along x, d along y, h up. name: a small label on it.
 // o: { z, dots, depth, anim, top, size }
 export function block(R, x, y, w, d, h, color, name, o = {}) {
-  const z = o.z || 0;
+  const z = o.z ?? footing(R, x, y, w, d);
   const opts = { anim: !!o.anim };
   if (o.depth != null) opts.depth = o.depth;
   R.thing(x + w / 2, y + d / 2, (ctx) => drawBlock(ctx, x, y, z, w, d, h, color, name, o), opts);
@@ -104,7 +112,9 @@ export function tag(ctx, x, y, z, text, o = {}) {
 
 // A find, stood in for by a numbered pin with its tip on the spot. (The
 // greybox shows where finds go, not what they look like.) Pins draw over
-// everything so they're never hidden. find: { id, label, at, r }; n: its number.
+// everything so they're never hidden; one that's only there some of the
+// time (find.when: under the tide) goes faint while it's gone.
+// find: { id, label, at, r, when, note }; n: its number.
 export function pin(R, find, n, o = {}) {
   R.find(find);
   const color = o.color || C.coral;
@@ -112,6 +122,7 @@ export function pin(R, find, n, o = {}) {
     const [x, y, z] = typeof find.at === 'function' ? find.at(t) : find.at;
     const X = x - y, Y = (x + y) / 2 - z * ZK;
     ctx.save();
+    if (find.when && !find.when(t)) ctx.globalAlpha *= 0.3;
     ctx.translate(X, Y);
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -133,7 +144,7 @@ export function pin(R, find, n, o = {}) {
 // Someone standing (or sitting) still, with their name over their head.
 // look: a person style (see folk() in art.js). o: { z, pose, dir, back }
 export function figure(R, x, y, look, name, o = {}) {
-  const z = o.z || 0;
+  const z = o.z ?? footing(R, x, y);
   R.thing(x, y, (ctx, t) => {
     person(ctx, x, y, z, { pose: o.pose || 'stand', dir: o.dir || 'r', back: o.back, ...look }, t);
     if (name && Q.detail) tag(ctx, x, y, z + (o.pose === 'sit' ? 2.4 : 3.0), name, { size: 0.4 });

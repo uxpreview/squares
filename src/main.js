@@ -77,6 +77,7 @@ const play = createPlay({
   on: {
     exit: () => go('#/maps'),
     complete: (world) => screens.showComplete(world),
+    refresh: () => renderer.refreshAll(),
     // Keep the address bar and "continue" in step with where you are.
     place: (mapId, zoneId) => {
       store.setLast(mapId, zoneId);

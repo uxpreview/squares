@@ -16,11 +16,15 @@
 //            it's shown while you're in another room)
 //   walkers  people on the map's timeline go through doors, never walls, and
 //            never faster than a run
+//   land     (places with ground and water) the ground never climbs toward
+//            the viewer too steeply to draw ground-first (engine/terrain.js)
 //   case     (whodunits) every clue in the case file is a find in the place,
 //            every suspect has an accusation scene, the lines are short
 //   screen   on a phone and a desktop, each area framed as a player sees it:
 //            every find on screen, clear of the find list and buttons, big
-//            enough to tap and not crowding another; then actually tapped
+//            enough to tap and not crowding another; then actually tapped.
+//            A find that's only there some of the time (at low tide) is
+//            checked in the middle of its window, and must be there long enough
 //   speed    each area's frame time with the CPU slowed 4x (a mid-range phone),
 //            against a budget set by The Block
 //   sheet    a contact sheet: the whole place (every floor, key moments),
@@ -125,12 +129,26 @@ try {
       defaultStorey: w.storeys[w.defaultStorey] ? w.storeys[w.defaultStorey].id : null,
       order: w.order.map((i) => w.zones[i].id),
       walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
+      land: !!m.land,
       zones: w.zones.map((z) => ({
         id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '', long: w.long(z),
         finds: z.finds.map((f) => {
           // Moving: its spot changes over the loop (a goose's spot is always a function).
           const spots = [0, 7.3, 19.1, 41.7].map((t) => String(typeof f.at === 'function' ? f.at(t) : f.at));
-          return { id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null };
+          // Only there some of the time (f.when): the middle of its longest
+          // stretch in the loop, and how long it's there in all.
+          let window = null;
+          if (f.when) {
+            const loop = m.loop || 60, n = 240, on = [];
+            for (let i = 0; i < n; i++) on.push(!!f.when((i / n) * loop));
+            let best = [0, -1], run = 0, total = 0;
+            for (let i = 0; i < 2 * n; i++) {
+              if (on[i % n]) { run++; if (i < n) total++; if (run > best[0]) best = [run, i]; } else run = 0;
+            }
+            const len = Math.min(best[0], n);
+            window = { mid: best[1] >= 0 ? (((best[1] - len / 2 + 0.5) / n) * loop) % loop : null, secs: (total / n) * loop, note: f.note || '' };
+          }
+          return { id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null, window };
         }),
       })),
       // A whodunit's case file (src/game/case.js): its suspects and their lines.
@@ -208,6 +226,17 @@ try {
   }
   const things = info.zones.reduce((n, z) => n + z.finds.filter((f) => !f.goose).length, 0);
   if (findsOk) pass('finds', `${things} things and ${geese} ${geese === 1 ? 'goose' : 'geese'} across ${info.zones.length} areas.`);
+  // Finds that are only there some of the time: there long enough to find,
+  // and saying when in the list.
+  const windowed = info.zones.flatMap((z) => z.finds.filter((f) => f.window).map((f) => [z, f]));
+  let windowsOk = true;
+  for (const [z, f] of windowed) {
+    const w = f.window;
+    if (w.mid == null || w.secs < 20) { windowsOk = false; fail('finds', `${z.name}: "${f.label}" is only there for ${w.secs.toFixed(0)}s of the loop; give it at least 20.`); }
+    else if (w.secs < 45) warn('finds', `${z.name}: "${f.label}" is only there for ${w.secs.toFixed(0)}s of the loop (${w.note || 'no note'}).`);
+    if (!w.note) { windowsOk = false; fail('finds', `${z.name}: "${f.label}" is only there some of the time but its list entry doesn't say when (note).`); }
+  }
+  if (windowed.length && windowsOk) pass('finds', `${windowed.length} finds only there some of the time (${[...new Set(windowed.map(([, f]) => f.window.note))].join(', ')}), each long enough and saying when.`);
 
   // ---------- The case (whodunits) ----------
   if (info.case) {
@@ -240,6 +269,16 @@ try {
   if (sound) {
     for (const p of sound.problems) fail('sound', p);
     if (!sound.problems.length) pass('sound', `${sound.cues} cues on the clock and the bed (${sound.names.join(', ')}) all play.`);
+  }
+
+  // ---------- Land: ground that can be drawn ground-first ----------
+  if (info.land) {
+    const steep = await page.evaluate(async () => {
+      const { steep } = await import('/src/engine/terrain.js');
+      return steep(window.__squares.world.map.land).map((p) => p.map((v) => +v.toFixed(1)));
+    });
+    for (const [x, y, rise] of steep.slice(0, 12)) fail('land', `The ground at (${x}, ${y}) climbs toward the viewer ${rise} a unit, too steep to draw before what stands behind it (0.8 at most). Ease the slope, or make it a thing.`);
+    if (!steep.length) pass('land', 'The ground never climbs toward the viewer too steeply, so it never hides what stands behind it.');
   }
 
   // ---------- Errors: draw everything at every moment ----------
@@ -386,7 +425,7 @@ try {
           if (!w.zoneAtPoint(p.x, p.y, p.z || 0)) outside++;
           prev = p;
         }
-        out.push({ kind: 'sum', who, fastest, outside: outside * dt });
+        out.push({ kind: 'sum', who, fastest, outside: outside * dt, away: !!k.away });
       }
       return out;
     }, info.loop);
@@ -395,7 +434,8 @@ try {
       if (r.kind === 'wall') { walkOk = false; fail('walkers', `${r.who} walks through the ${r.side} wall of ${byId.get(r.zone).name} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a door.`); }
       else {
         if (r.fastest > 3.6) { walkOk = false; fail('walkers', `${r.who} moves at ${r.fastest.toFixed(1)} units a second somewhere; a run is 3.`); }
-        if (r.outside > 0.2) warn('walkers', `${r.who} spends ${r.outside.toFixed(1)}s outside every area, where nobody draws them.`);
+        // (Someone who leaves the map on purpose, a car off to the mainland, says so: away.)
+        if (r.outside > 0.2 && !r.away) warn('walkers', `${r.who} spends ${r.outside.toFixed(1)}s outside every area, where nobody draws them.`);
       }
     }
     if (walkOk) pass('walkers', `${info.walkers.length} people walk the ${info.loop}s loop through doors, never walls, never faster than a run.`);
@@ -403,6 +443,8 @@ try {
 
   // ---------- On screen and tappable ----------
   const screens = quick ? [['phone', PHONE]] : [['phone', PHONE], ['desktop', DESKTOP]];
+  // The moment the areas are checked at (a find with a window gets its own).
+  const qaAt = info.qa.at ?? 20;
   for (const [kind, viewport] of screens) {
     step(`Framing every area and tapping every find (${kind})`);
     const { ctx, page: p } = kind === 'desktop' ? main : await open(viewport);
@@ -411,15 +453,20 @@ try {
     for (const id of order) {
       const zone = byId.get(id);
       // A long area (a street) is framed around where you tap, so each of its
-      // finds is checked framed around itself; a room, framed whole, once.
-      const spots = zone.long ? zone.finds.map((f) => [f.id]) : [null];
+      // finds is checked framed around itself; a room, framed whole, once. A
+      // find that's only there some of the time is checked on its own, in
+      // the middle of its window (the clock goes there first).
+      const timed = zone.finds.filter((f) => f.window);
+      const spots = zone.long ? zone.finds.map((f) => [f.id]) : timed.length ? [null, ...timed.map((f) => [f.id])] : [null];
       for (const only of spots) {
+      const f0 = only && zone.finds.find((f) => f.id === only[0]);
+      await p.evaluate((t) => window.__squares.clock.set(t), f0 && f0.window ? f0.window.mid : qaAt);
       await frameZone(p, id, only && only[0]);
       const seen = (await p.evaluate(({ id, loop }) => {
         const s = window.__squares, cam = s.cam, w = s.world;
         const z = w.zones.find((x) => x.id === id);
         const vw = innerWidth, vh = innerHeight;
-        const chrome = ['tray', 'roombar', 'to-places', 'floors'].map((i) => document.getElementById(i))
+        const chrome = ['tray', 'roombar', 'to-places', 'floors', 'dial'].map((i) => document.getElementById(i))
           .concat([document.querySelector('.tally')])
           .filter((el) => el && !el.hidden && el.getClientRects().length)
           .map((el) => { const r = el.getBoundingClientRect(); return { name: el.id || el.className, l: r.left, t: r.top, r: r.right, b: r.bottom }; });
@@ -429,7 +476,10 @@ try {
         };
         const now = s.clock.now();
         return z.finds.map((f) => {
-          const moments = typeof f.at === 'function' && !f.goose ? Array.from({ length: 24 }, (_, i) => now + (i / 24) * loop) : [now];
+          // (Moving ones at moments across the loop, while they're there.)
+          let moments = typeof f.at === 'function' && !f.goose ? Array.from({ length: 24 }, (_, i) => now + (i / 24) * loop) : [now];
+          if (f.when) moments = moments.filter((t) => f.when(t)).concat(f.when(now) ? [now] : []).slice(0, 24);
+          if (!moments.length) moments = [now];
           let off = 0, under = null;
           for (const t of moments) {
             const [sx, sy] = at(f, t);
@@ -440,7 +490,7 @@ try {
           const [sx, sy] = at(f, now);
           return { id: f.id, label: f.goose ? 'The goose' : f.label, goose: !!f.goose, moving: moments.length > 1, share: off / moments.length, under, px: f.r * cam.z, sx, sy };
         });
-      }, { id, loop: info.loop })).filter((f) => !only || only.includes(f.id));
+      }, { id, loop: info.loop })).filter((f) => (only ? only.includes(f.id) : zone.long || !zone.finds.find((x) => x.id === f.id).window));
       for (const f of seen) {
         const where = `${zone.name} (${kind})`;
         if (f.share > 0) {
@@ -457,7 +507,7 @@ try {
       }
       // Tap every thing here (geese at the very end: the last one finishes the place).
       for (const f of zone.finds) {
-        if (only && !only.includes(f.id)) continue;
+        if (only ? !only.includes(f.id) : f.window && !zone.long) continue;
         if (f.goose) { geeseLeft.push([id, f]); continue; }
         const r = await tapFind(p, id, f.id);
         if (!r.ok) { screenOk = false; fail('screen', `${zone.name} (${kind}): tapping "${f.label}" didn't find it${r.other ? ` (it found "${r.other}" instead)` : ''}.`); }
