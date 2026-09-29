@@ -172,7 +172,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
         : 'Every goose and every hidden thing. Nothing left but the view.';
     }
     el.complete.hidden = false;
-    if (!reduceMotion) el.complete.animate([{ opacity: 0, transform: 'translate(-50%, 16px) scale(0.96)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: 420, easing: 'cubic-bezier(.2, 1.3, .4, 1)' });
+    if (!reduceMotion) el.complete.animate([{ opacity: 0, transform: 'translateY(16px) scale(0.96)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2, 1.3, .4, 1)' });
     el.completeNext.focus({ preventScroll: true });
   }
   const closeComplete = () => { el.complete.hidden = true; };

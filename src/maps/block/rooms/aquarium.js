@@ -3,7 +3,7 @@
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
   speech, shade, tint, alpha, dots, Q, label, P, paintText, onLeft, onRight, frame,
-  hash, rng, pick,
+  hash, rng, pick, SKIN,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -269,26 +269,24 @@ export default {
       onLeft(ctx, 7.85, 2.6, 0.5, 1.4, C.butter, { lw: 0.03 });
     });
 
-    // On a day (the Block Party), no windows in here: the plaque on the
-    // pillar gets a clock on the day's time, and when feeding time is.
+    // No windows in here: the plaque on the pillar gets a clock on the
+    // day's time, and when feeding time is.
     const day = R.opts.day;
-    if (day) {
-      R.decor((ctx, t) => {
-        const h = day.hour(t);
-        const [X, Y] = P(9.7, 0.01, 3.5);
-        ctx.save();
-        ctx.translate(X, Y);
-        ctx.transform(1, 0.5, 0, 1, 0, 0);
-        ctx.beginPath(); ctx.arc(0, 0, 0.21, 0, TAU); paint(ctx, C.white, { lw: 0.03 });
-        const hA = ((h % 12) / 12) * TAU, mA = (h % 1) * TAU;
-        ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
-        ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(hA) * 0.11, -Math.cos(hA) * 0.11); ctx.stroke();
-        ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(mA) * 0.17, -Math.cos(mA) * 0.17); ctx.stroke();
-        ctx.restore();
-        paintText(ctx, 'right', 9.7, 3.05, 'FEED', 0.12, C.navy);
-        paintText(ctx, 'right', 9.7, 2.85, '10:30', 0.1, C.coral, 'Rethink Sans');
-      }, { anim: true });
-    }
+    R.decor((ctx, t) => {
+      const h = day.hour(t);
+      const [X, Y] = P(9.7, 0.01, 3.5);
+      ctx.save();
+      ctx.translate(X, Y);
+      ctx.transform(1, 0.5, 0, 1, 0, 0);
+      ctx.beginPath(); ctx.arc(0, 0, 0.21, 0, TAU); paint(ctx, C.white, { lw: 0.03 });
+      const hA = ((h % 12) / 12) * TAU, mA = (h % 1) * TAU;
+      ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
+      ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(hA) * 0.11, -Math.cos(hA) * 0.11); ctx.stroke();
+      ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(mA) * 0.17, -Math.cos(mA) * 0.17); ctx.stroke();
+      ctx.restore();
+      paintText(ctx, 'right', 9.7, 3.05, 'FEED', 0.12, C.navy);
+      paintText(ctx, 'right', 9.7, 2.85, '10:30', 0.1, C.coral, 'Rethink Sans');
+    }, { anim: true });
 
     // Fish, sharks and weeds: animated wall layers
     const shark1 = (t) => { const q = pulse(t, 22); return { u: lerp(-3, 12.5, q), v: 3.4 + Math.sin(q * TAU) * 0.5 }; };
@@ -667,8 +665,8 @@ export default {
         }
       }
     }, { bias: 0.3 });
-    // (On the Block Party a big octopus escapes up the alley too, so this one's the little one.)
-    R.find({ id: 'octopus', label: R.opts.day ? 'A little octopus' : 'An escaped octopus', r: 0.9, at: (t) => { const p = octo(t); return [p.x, p.y, p.z + 0.45]; } });
+    // (A big octopus escapes up the alley too, so this one's the little one.)
+    R.find({ id: 'octopus', label: 'A little octopus', r: 0.9, at: (t) => { const p = octo(t); return [p.x, p.y, p.z + 0.45]; } });
     // the keeper
     R.mover((t) => keeper(t), (ctx, t, p) => {
       const o = octo(t);
@@ -853,7 +851,7 @@ export default {
   },
 };
 
-const SKINS = ['#F4CDAA', '#C3835B'];
+const SKINS = [SKIN[0], SKIN[2]];
 const ALGAE_C = 'rgba(126,187,104,0.55)';
 const ALGAE = (() => {
   const r = rng(77);

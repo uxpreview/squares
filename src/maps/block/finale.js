@@ -13,9 +13,12 @@ import { LANES, STAGE, STAGE_Z } from './plan.js';
 import { lostSock } from './style.js';
 
 export const finale = { since: 0 };
-// The sky calls this every frame with the game's fx.
+// The sky calls this every frame with the game's fx. The lap waits for the
+// camera: the game pauses on the last honk, then flies to the stage (about
+// four seconds), so the first goose steps off as it lands.
+const LEAD = 3.8;
 export function follow(fx) {
-  if (!fx.thumb) finale.since = fx.parade || 0;
+  if (!fx.thumb) finale.since = fx.parade > LEAD ? fx.parade - LEAD : 0;
 }
 
 // The conga: round the stage and out along every arm of Main Street and back,
@@ -33,7 +36,8 @@ const GEESE = 16;
 
 // The handover, on the front of the stage, over and over while the geese go
 // round: the Courier holds out the parcel, a goose takes it, the lid comes
-// off, a sock. A 16 second beat.
+// off, a sock. A 16 second beat, with the sock out by 6 seconds, well before
+// the card (map.js, finale.hold).
 const HAND = [STAGE[0] + STAGE[2] - 1.1, STAGE[1] + STAGE[3] - 1.1]; // the stage's front corner
 const courier = { ...folk(5), top: C.brown, bottom: C.brown, hat: 'cap' };
 
@@ -58,16 +62,16 @@ export function conga(R) {
     if (p.out) return;
     const k = finale.since % 16;
     const x = p.x, y = p.y, z = STAGE_Z;
-    person(ctx, x, y, z, { ...courier, pose: k < 5 ? 'carry' : k < 12 ? 'stand' : 'cheer', dir: 'l' }, t);
+    person(ctx, x, y, z, { ...courier, pose: k < 3 ? 'carry' : k < 10 ? 'stand' : 'cheer', dir: 'l' }, t);
     // The parcel: in his hands, then open on the deck, then the sock.
     const px = x - 0.9, py = y - 0.4;
-    if (k < 5) box(ctx, x - 0.55, y - 0.35, z + 1.05, 0.7, 0.5, 0.45, C.woodLight, { flat: true });
+    if (k < 3) box(ctx, x - 0.55, y - 0.35, z + 1.05, 0.7, 0.5, 0.45, C.woodLight, { flat: true });
     else {
       box(ctx, px - 0.35, py - 0.25, z, 0.7, 0.5, 0.45, C.woodLight, { flat: true });
-      if (k > 7) { const sz = z + 0.45 + Math.min(1, (k - 7) / 1.5) * 0.7; lostSock(ctx, px - py, (px + py) / 2 - sz * 1.12); }
+      if (k > 5) { const sz = z + 0.45 + Math.min(1, (k - 5) / 1.2) * 0.7; lostSock(ctx, px - py, (px + py) / 2 - sz * 1.12); }
     }
     if (!Q.detail) return;
-    const say = k < 5 ? 'G. Goose?' : k < 8 ? 'Sign here.' : k < 12 ? 'It\'s a sock.' : 'Happy Block Party!';
+    const say = k < 3 ? 'G. Goose?' : k < 5.5 ? 'Sign here.' : k < 10 ? 'It\'s a sock.' : 'Happy Block Party!';
     speech(ctx, x, y, z + 3, say, { size: 0.5 });
   }, { bias: 0.5 });
 }

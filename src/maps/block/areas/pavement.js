@@ -19,7 +19,7 @@ import {
 import { particles } from '../../../engine/actors.js';
 import { SLAB } from '../../../engine/iso.js';
 import { PAVEMENT, EDGE, SIZE } from '../plan.js';
-import { STREET_NIGHT, printed, board, words, onFloor, cone, streetLamp } from '../style.js';
+import { STREET_NIGHT, printed, board, words, onFloor, cone, streetLamp, litter } from '../style.js';
 import { hour } from '../clock.js';
 
 const readable = () => Q.detail && Q.pxPerUnit >= 12;
@@ -609,7 +609,7 @@ export default {
     }, (ctx, t, p) => {
       if (!p.on || !readable()) return;
       const c = t % 11, round = Math.floor(t / 11);
-      if (c < 3.5) speech(ctx, p.x, p.y, 2.75, 'What\'s this queue for?', { size: 0.42 });
+      if (c < 3.5) speech(ctx, p.x, p.y, 2.75, 'WHAT\'S THIS QUEUE FOR?', { size: 0.42 });
       else if (p.prev && c > 4 && c < 6.6) speech(ctx, p.prev[0], p.prev[1], 2.75, ANSWERS[round % ANSWERS.length], { size: 0.42 });
     }, { bias: 4 });
 
@@ -640,7 +640,7 @@ export default {
       const h = hour(t);
       if (h < 11.5 || h >= 14) return;
       person(ctx, x, y, 0, { ...look, dir: 'l', back: true }, t);
-      if (i === 0 && t % 9 < 2.5 && readable()) speech(ctx, x, y, 2.75, 'One with everything.', { size: 0.42 });
+      if (i === 0 && t % 9 < 2.5 && readable()) speech(ctx, x, y, 2.75, 'ONE WITH EVERYTHING.', { size: 0.42 });
     }, { anim: true }));
 
     // ---------- The newsstand ----------
@@ -711,7 +711,7 @@ export default {
       }, t);
       if (!Q.detail) return;
       if (stop) {
-        if (readable() && ((t % PASS) + PASS) % PASS < PASS_AT + 3) speech(ctx, BUSK.x, BUSK.y, 2.75, 'A deal\'s a deal.', { size: 0.42 });
+        if (readable() && ((t % PASS) + PASS) % PASS < PASS_AT + 3) speech(ctx, BUSK.x, BUSK.y, 2.75, 'A DEAL\'S A DEAL.', { size: 0.42 });
         return;
       }
       // Notes: some go up, some go wrong and drop.
@@ -824,6 +824,18 @@ export default {
       ctx.strokeRect(0.18, 0.08, 0.1, 0.08);
     }));
     R.find({ id: 'sorry-card', label: 'A "Sorry we missed you" card', at: [81.7, 40, 0.05], r: 0.8 });
+    // Round it, what the wind brings down the pavement: party flyers, a box
+    // flattened for the recycling, a crisp packet, old gum. The card is the
+    // only one with the Courier's brown band.
+    R.thing(82.4, 40.6, (ctx) => {
+      litter(ctx, 'box', 83.4, 38.9, 0.25);
+      litter(ctx, 'flyer', 82.7, 41.2, 0.7);
+      litter(ctx, 'flyer', 81.0, 38.7, -0.5);
+      litter(ctx, 'flyer', 83.6, 40.6, 1.9);
+      litter(ctx, 'wrapper', 82.95, 39.95, 0.4);
+      litter(ctx, 'napkin', 81.3, 41.3, 0.3);
+      litter(ctx, 'gum', 82.3, 40.4, 0);
+    });
 
     // A queue ticket, like a deli counter's: number 99, torn off.
     R.thing(30.4, 84.3, (ctx) => onFloor(ctx, 30, 84, 0.5, () => {
@@ -843,5 +855,16 @@ export default {
       floorText(ctx, -0.22, 0, 'No.', 0.08, C.ink);
     }));
     R.find({ id: 'queue-ticket', label: 'A queue ticket', at: [30, 84, 0.05], r: 0.8 });
+    // What the queue leaves behind: chips, a glove, a receipt, a crisp packet,
+    // a bottle cap.
+    R.thing(30.4, 84.4, (ctx) => {
+      litter(ctx, 'chips', 28.8, 83.4, 0.5);
+      litter(ctx, 'glove', 31.3, 84.7, 0.9);
+      litter(ctx, 'receipt', 30.9, 83.1, 1.25);
+      litter(ctx, 'wrapper', 28.9, 84.8, -0.6);
+      litter(ctx, 'cap', 31.6, 83.7, 0);
+      litter(ctx, 'napkin', 29.4, 84.7, 1.1);
+      litter(ctx, 'gum', 30.3, 84.6, 0.5);
+    });
   },
 };

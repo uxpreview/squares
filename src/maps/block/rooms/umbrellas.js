@@ -160,8 +160,8 @@ function cloud(ctx, x, y, z, t, s = 1) {
   ctx.restore();
 }
 
-// On a day (the Block Party): the sky by the hour (as the Lido's), for the
-// window, and a clock on the day's time.
+// The sky by the hour (as the Lido's), for the window, and a clock on the
+// day's time.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -266,9 +266,9 @@ export default {
       paintText(ctx, 'left', 13.9, 3.75, 'please drip responsibly', 0.22, C.navy, 'Rethink Sans');
     });
 
-    // On a day, the window shows the hour and the clock tells the day's time.
+    // The window shows the hour and the clock tells the day's time.
     const day = R.opts.day;
-    if (day) R.decor((ctx, t) => { const h = day.hour(t); dayWindow(ctx, h); dayClockL(ctx, 11.1, 5.4, 0.5, h); }, { anim: true });
+    R.decor((ctx, t) => { const h = day.hour(t); dayWindow(ctx, h); dayClockL(ctx, 11.1, 5.4, 0.5, h); }, { anim: true });
 
     // wires across the ceiling
     R.decor((ctx) => {
@@ -406,22 +406,37 @@ export default {
         umbrella(ctx, x + sw, y - sw, 5.85, { open: 1, r: 0.8, cols: UCOLS[c], len: 1.1, rot: i * 0.4 });
       }, { anim: true, depth: x + y - 2 });
     });
-    // the yellow boot, hanging upside down where an umbrella should be (a find)
+    // the yellow boot, hung up by its pull loop where an umbrella should be
+    // (a find): a wellington, clear as day, with its cuff, black sole and heel
     const BOOT = [5.6, 6.4];
     R.thing(BOOT[0], BOOT[1], (ctx, t) => {
       const sw = Math.sin(t * 1.3) * 0.1;
       const [wx, wy] = P(BOOT[0], BOOT[1], 6.6);
-      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx, wy + 0.6);
+      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx, wy + 0.5);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
       ctx.save();
-      ctx.translate(wx, wy + 0.6);
+      ctx.translate(wx, wy + 0.5);
       ctx.rotate(sw);
+      // the pull loop
+      ctx.beginPath(); ctx.ellipse(0.02, 0.02, 0.07, 0.1, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+      // the shaft and foot, toe to the left
       ctx.beginPath();
-      ctx.moveTo(-0.2, 0); ctx.lineTo(0.2, 0); ctx.lineTo(0.22, 0.7);
-      ctx.quadraticCurveTo(0.24, 0.98, 0.0, 0.98); ctx.lineTo(-0.5, 0.98);
-      ctx.quadraticCurveTo(-0.62, 0.86, -0.46, 0.72); ctx.lineTo(-0.22, 0.62); ctx.closePath();
-      paint(ctx, C.mustard, { dots: shade(C.mustard, 0.4), density: 0.15, lw: 0.05 });
-      ctx.beginPath(); ctx.rect(-0.62, 0.9, 0.86, 0.1); paint(ctx, C.ink, { lw: 0.02 });
+      ctx.moveTo(-0.2, 0.1); ctx.lineTo(0.2, 0.1); ctx.lineTo(0.22, 0.78);
+      ctx.lineTo(0.22, 0.9); ctx.lineTo(-0.5, 0.9);
+      ctx.quadraticCurveTo(-0.64, 0.9, -0.62, 0.78);
+      ctx.quadraticCurveTo(-0.58, 0.64, -0.3, 0.6); ctx.lineTo(-0.22, 0.52); ctx.closePath();
+      paint(ctx, C.mustard, { dots: shade(C.mustard, 0.4), density: 0.15, lw: 0.045 });
+      // the cuff
+      ctx.beginPath(); ctx.rect(-0.22, 0.08, 0.44, 0.12); paint(ctx, shade(C.mustard, 0.2), { lw: 0.035 });
+      // a shine down the shaft
+      ctx.beginPath(); ctx.moveTo(0.1, 0.28); ctx.lineTo(0.12, 0.62);
+      ctx.strokeStyle = C.white; ctx.lineWidth = 0.04; ctx.lineCap = 'round'; ctx.stroke();
+      // the sole: thick, black, with the heel stepped down at the back
+      ctx.beginPath();
+      ctx.moveTo(-0.62, 0.86); ctx.lineTo(0.24, 0.86); ctx.lineTo(0.24, 1.02); ctx.lineTo(-0.02, 1.02);
+      ctx.lineTo(-0.06, 0.95); ctx.lineTo(-0.56, 0.95); ctx.quadraticCurveTo(-0.66, 0.93, -0.62, 0.86); ctx.closePath();
+      paint(ctx, C.ink, { lw: 0.02 });
       ctx.restore();
     }, { anim: true, depth: BOOT[0] + BOOT[1] - 2 });
     R.find({ id: 'boot', label: 'A yellow rain boot', at: [BOOT[0], BOOT[1], 5.9], r: 0.7 });
@@ -616,8 +631,8 @@ export default {
       ctx.strokeStyle = RAIN;
       ctx.lineWidth = 0.035;
       ctx.lineCap = 'round';
-      // (on a day, the downpour at its rush hour)
-      const n = Q.detail ? 32 + (day ? Math.round(day.rush(t) * 18) : 0) : 14;
+      // (the downpour at its rush hour)
+      const n = Q.detail ? 32 + Math.round(day.rush(t) * 18) : 14;
       clouds.forEach((cf, ci) => {
         const [cx, cy, cz] = cf(t);
         ctx.beginPath();

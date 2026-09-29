@@ -233,8 +233,8 @@ function tinyCow(ctx, x, y, z) {
   ctx.restore();
 }
 
-// On a day (the Block Party): the sky by the hour (as the Lido's), for the
-// window, and the clock on the day's time.
+// The sky by the hour (as the Lido's), for the window, and the clock on the
+// day's time.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -349,9 +349,9 @@ export default {
       onRight(ctx, 13.7, 2.4, 2.1, 1.9, C.black, { lw: 0.06 });
       paintText(ctx, 'right', 14.75, 4.05, 'DEPARTURES', 0.2, C.butter);
     });
-    // On a day, the window shows the hour and the clock tells the day's time.
+    // The window shows the hour and the clock tells the day's time.
     const day = R.opts.day;
-    if (day) R.decor((ctx, t) => { const h = day.hour(t); dayWindow(ctx, h); dayClockL(ctx, 14.6, 4.2, 0.55, h); }, { anim: true });
+    R.decor((ctx, t) => { const h = day.hour(t); dayWindow(ctx, h); dayClockL(ctx, 14.6, 4.2, 0.55, h); }, { anim: true });
 
     // split-flap rows, one always flipping
     R.decor((ctx, t) => {

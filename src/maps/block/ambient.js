@@ -1,69 +1,26 @@
-// Things that live on the whole map rather than in one room:
-// print furniture around the plate, a blimp, and a flock of birds.
+// Things that fly over the whole block rather than living in one room: the
+// blimp and the paper plane. (The birds are in shared.js.)
 
-import { WALL, ZK, SLAB } from '../../engine/iso.js';
-import { C, alpha, paint, shade } from '../../engine/art.js';
-import { P3, reg, birds, geeseV } from '../shared.js';
-import { EXTENT } from './layout.js';
+import { C, paint, shade } from '../../engine/art.js';
+import { P3 } from '../shared.js';
+import { SIZE } from './plan.js';
 
-// Registration marks, crop marks, an ink swatch strip and a plate caption,
-// like the margins of a sheet fresh off a risograph.
-export function backdrop(ctx) {
-  const top = -WALL * ZK - 7;
-  const bottom = EXTENT + SLAB * ZK + 6;
-  reg(ctx, 0, top);
-  reg(ctx, 0, bottom);
-  reg(ctx, -EXTENT - 6, EXTENT / 2);
-  reg(ctx, EXTENT + 6, EXTENT / 2);
-
-  // ink swatches on the right margin
-  const inks = [C.navy, C.teal, C.coral, C.mustard, C.blush, C.grey];
-  const sx = EXTENT - 8, sy = EXTENT * 0.78;
-  inks.forEach((c, i) => {
-    ctx.beginPath();
-    ctx.rect(sx + i * 1.6, sy, 1.4, 1.4);
-    ctx.fillStyle = c;
-    ctx.fill();
-  });
-
-  const k = 40;
-  ctx.save();
-  ctx.translate(-EXTENT + 2, EXTENT * 0.78 + 0.7);
-  ctx.scale(1 / k, 1 / k);
-  ctx.font = `${0.9 * k}px "Rethink Sans", system-ui, sans-serif`;
-  ctx.fillStyle = alpha(C.ink, 0.55);
-  ctx.textBaseline = 'middle';
-  ctx.fillText('SQUARES  ·  PLATE 1 OF 1  ·  6 INKS  ·  16 ROOMS, 1 GOOSE', 0, 0);
-  ctx.restore();
-}
-
-// ---------- Blimp ----------
-
-// fx.parade: seconds since the victory lap started (0 = no lap).
-export function sky(ctx, t, world, fx) {
-  blimp(ctx, t);
-  birds(ctx, t, 0, EXTENT);
-  birds(ctx, t + 17, 1, EXTENT);
-  plane(ctx, t);
-  if (fx.parade) geeseV(ctx, t, fx.parade, world.totalGeese, EXTENT);
-}
-
-// o: { along: 'x' (the default, the Block's path) or 'y' (it flies the other
-// way across the map, nose to the lower left), at: where across the map,
-// from, to: where along it it starts and ends }
+// The blimp, with its banner. It flies top right to bottom left, nose to the
+// lower left, over the back rows (the Launch Pad and the Lido): well above the
+// stage when you're on Main Street, and under the title (block.md, 37).
+// o: { at: where across the block, from, to: where along it it starts and ends }
 export function blimp(ctx, t, o = {}) {
   const period = 95;
   const k = ((t % period) + period) % period / period;
-  const along = o.along || 'x', from = o.from ?? -40, to = o.to ?? EXTENT + 40;
-  const u = from + k * (to - from), v = o.at ?? EXTENT * 0.35;
-  const [x, y] = along === 'x' ? [u, v] : [v, u];
+  const from = o.from ?? -40, to = o.to ?? SIZE + 30;
+  const x = o.at ?? SIZE * 0.33, y = from + k * (to - from);
   const z = 17 + Math.sin(t * 0.5) * 0.4;
   const [X, Y] = P3(x, y, z);
 
   ctx.save();
   ctx.translate(X, Y);
-  if (along === 'y') ctx.scale(-1, 1); // mirrored: flying to the lower left
-  ctx.rotate(0.46); // travelling along +x
+  ctx.scale(-1, 1); // mirrored: flying to the lower left
+  ctx.rotate(0.46);
   // banner trailing behind
   const wob = Math.sin(t * 2.2) * 0.25;
   ctx.beginPath();
@@ -87,7 +44,7 @@ export function blimp(ctx, t, o = {}) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = C.coral;
-  if (along === 'y') ctx.scale(-1, 1); // the banner still reads left to right
+  ctx.scale(-1, 1); // the banner still reads left to right
   ctx.fillText('HAVE YOU SEEN THIS GOOSE?', 0, 0);
   ctx.restore();
 
@@ -125,7 +82,7 @@ export function blimp(ctx, t, o = {}) {
 }
 
 // A paper plane that loops lazily over the middle of the block.
-export function plane(ctx, t, span = EXTENT) {
+export function plane(ctx, t, span = SIZE) {
   const a = t * 0.22;
   const cx = span / 2, cy = span / 2;
   const x = cx + Math.cos(a) * 30, y = cy + Math.sin(a) * 30;

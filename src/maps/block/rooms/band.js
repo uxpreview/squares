@@ -2,7 +2,7 @@
 // volume knob, a dog on backing vocals and a neighbor who has had enough.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
-  speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table, mix,
+  speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table, mix, SKIN,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, wave } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -130,8 +130,8 @@ function dog(ctx, x, y, z, t, howl) {
   ctx.restore();
 }
 
-// On a day (the Block Party): the sky by the hour (as the Lido's), for the
-// slice of outside under the garage door and the side door's window.
+// The sky by the hour (as the Lido's), for the slice of outside under the
+// garage door and the side door's window.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -152,10 +152,10 @@ export default {
   blurb: 'The band is called The Honks and the lead singer only knows one word. The neighbor has asked nicely nine times.',
 
   build(R) {
-    // On a day, the band carries both amps out to the stage at 2pm (day.js)
-    // and brings them home about midnight.
+    // The band carries both amps out to the stage at 2pm (day.js) and
+    // brings them home about midnight.
     const day = R.opts.day;
-    const gone = (t) => { if (!day) return false; const h = day.hour(t); return h >= 14.25 && h < 23.9; };
+    const gone = (t) => { const h = day.hour(t); return h >= 14.25 && h < 23.9; };
 
     // ---------- Floor and walls ----------
     R.floor((ctx) => {
@@ -269,7 +269,7 @@ export default {
       inY(ctx, 0.01, () => {
         ctx.beginPath();
         ctx.rect(GX0, 0, GX1 - GX0, GAP);
-        ctx.fillStyle = day ? skyAt(day.hour(t)) : C.sky;
+        ctx.fillStyle = skyAt(day.hour(t));
         ctx.fill();
         ctx.fillStyle = C.greyLight;
         ctx.fillRect(GX0, 0, GX1 - GX0, 0.18);
@@ -552,7 +552,7 @@ export default {
       const o = doorOpen(t);
       if (o <= 0) {
         onLeft(ctx, 11.2, 0, 1.8, 3.2, C.teal, { dots: shade(C.teal, 0.3), density: 0.15 });
-        const sky = day ? skyAt(day.hour(t)) : C.sky;
+        const sky = skyAt(day.hour(t));
         onLeft(ctx, 11.45, 1.9, 1.3, 1.0, sky, { dots: tint(sky, 0.5), density: 0.2 });
         onLeft(ctx, 11.45, 0.35, 1.3, 1.2, shade(C.teal, 0.1));
         const [X, Y] = P(0, 11.45, 1.5);
@@ -583,7 +583,7 @@ export default {
       ctx.globalAlpha = clamp(p.o * 1.5);
       const shout = p.s > 11.3 && p.s < 14.3;
       person(ctx, p.x, p.y, 0, {
-        skin: '#F4CDAA', hair: C.pink, style: 'curly', top: C.lilac, dress: true, dir: 'r',
+        skin: SKIN[0], hair: C.pink, style: 'curly', top: C.lilac, dress: true, dir: 'r',
         pose: 'stand', arms: shout ? [2.95 + wave(t, 20, 0.05), -2.95] : [0.3, -0.3],
       }, t);
       // curlers
@@ -655,7 +655,7 @@ export default {
       ctx.save();
       if (on) { ctx.translate(X, Y); ctx.rotate(Math.sin(ph * 0.5) * 0.1); ctx.translate(-X, -Y); }
       person(ctx, p.x, p.y, 0, {
-        skin: '#95603F', hair: C.mustard, style: 'long', top: C.teal, bottom: C.ink, dir: 'r',
+        skin: SKIN[3], hair: C.mustard, style: 'long', top: C.teal, bottom: C.ink, dir: 'r',
         pose: on ? 'drum' : 'stand', arms: [aA, aB], hat: 'none',
         hold(g) {
           const stick = (hx, hy, a, len = 0.55) => {
@@ -717,7 +717,7 @@ export default {
       const strum = on ? Math.sin(t * 25.1) * 0.25 : 0;
       const aA = on ? 0.55 + strum : 0.4, aB = 1.4;
       person(ctx, p.x, p.y, 0, {
-        skin: '#F4CDAA', hair: C.ink, style: 'short', top: C.ink, bottom: C.red, dir: 'l',
+        skin: SKIN[0], hair: C.ink, style: 'short', top: C.ink, bottom: C.red, dir: 'l',
         pose: on ? 'jump' : 'stand', speed: loud(t) > 1 ? 7.5 : 6.283, phase: 0, arms: [aA, aB], shoes: C.white,
         hold: (g) => guitar(g, C.red, false),
       }, t);
@@ -728,7 +728,7 @@ export default {
       const on = playing(t);
       const strum = on ? Math.sin(t * 12.57) * 0.2 : 0;
       person(ctx, p.x, p.y, 0, {
-        skin: '#C3835B', hair: C.purple, style: 'bun', top: C.mustard, bottom: C.navy, dir: 'r',
+        skin: SKIN[2], hair: C.purple, style: 'bun', top: C.mustard, bottom: C.navy, dir: 'r',
         pose: on ? 'jump' : 'stand', speed: 6.283, phase: Math.PI / 2, arms: [on ? 0.6 + strum : 0.4, 1.4],
         hold: (g) => guitar(g, C.teal, true),
       }, t);

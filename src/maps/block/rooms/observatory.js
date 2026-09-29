@@ -4,7 +4,7 @@
 // someone who keeps spotting shooting stars one second too late.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, planks,
-  frame, chair, onLeft, onRight, windowR, paintText, label, speech, shade, tint, mix, alpha, Q, P, hash, rng,
+  frame, chair, onLeft, onRight, windowR, paintText, label, speech, shade, tint, mix, alpha, Q, P, hash, rng, SKIN,
 } from '../../../engine/art.js';
 import { route, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -273,9 +273,8 @@ function sparkle(ctx, X, Y, s, color) {
 
 const PROJ = [4.4, 12.2, 1.55];
 
-// The sky by the hour, for a room on a day: navy night, a blush dawn, day
-// blue, the party's pink sunset, a purple dusk. Steps of a twentieth keep
-// the color mixes few.
+// The sky by the hour: navy night, a blush dawn, day blue, the party's pink
+// sunset, a purple dusk. Steps of a twentieth keep the color mixes few.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -366,9 +365,9 @@ export default {
       ctx.beginPath(); ctx.arc(X, Y, 0.38, 0, Math.PI * 2); paint(ctx, C.butter, { lw: 0.04 });
       ctx.beginPath(); ctx.arc(X - 0.1, Y + 0.05, 0.08, 0, Math.PI * 2); ctx.fillStyle = C.mustard; ctx.fill();
     });
-    // On a day (the Block Party), the window shows the real sky outside.
+    // The window shows the real sky outside.
     const day = R.opts.day;
-    if (day) R.decor((ctx, t) => skyWindow(ctx, day.hour(t)), { anim: true });
+    R.decor((ctx, t) => skyWindow(ctx, day.hour(t)), { anim: true });
 
     // Twinkling stars on the walls.
     R.decor((ctx, t) => {
@@ -458,7 +457,7 @@ export default {
         face(ctx, [[x + pp[0], y + pp[1], z], [x - pp[0], y - pp[1], z]], null, { lw: 0.07, stroke: C.woodLight });
       }
       person(ctx, p.x, p.y, p.z, {
-        skin: '#95603F', hair: C.white, style: 'curly', top: C.white, bottom: C.navy, pose: p.pose, back: p.back,
+        skin: SKIN[3], hair: C.white, style: 'curly', top: C.white, bottom: C.navy, pose: p.pose, back: p.back,
         dir: 'l', speed: p.pose === 'drum' ? 9 : 5,
         hold: p.pose === 'read' ? (c) => { c.beginPath(); c.rect(-0.05, -0.25, 0.32, 0.4); paint(c, C.butter, { lw: 0.03 }); } : undefined,
       }, t);

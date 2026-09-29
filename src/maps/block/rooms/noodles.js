@@ -3,7 +3,7 @@
 // ordered the large.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
-  speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng,
+  speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 
@@ -526,7 +526,7 @@ export default {
     const CHX = 6.4, CHY = 4.3;
     R.mover(() => ({ x: CHX, y: CHY }), (ctx, t) => {
       const h = chefHands(t);
-      person(ctx, CHX, CHY, 0, { skin: '#E3A97F', hair: C.ink, style: 'short', top: C.white, bottom: C.ink, hat: 'chef', pose: 'stand', dir: 'l', arms: [h.aA, h.aB] }, t);
+      person(ctx, CHX, CHY, 0, { skin: SKIN[1], hair: C.ink, style: 'short', top: C.white, bottom: C.ink, hat: 'chef', pose: 'stand', dir: 'l', arms: [h.aA, h.aB] }, t);
       if (Q.detail && h.s > 3.0) label(ctx, CHX + 1.2, CHY + 0.4, 2.4, 'SLAP!', 0.45, C.red);
       if (Q.detail && pulse(t, 24) > 0.42 && pulse(t, 24) < 0.52) speech(ctx, CHX, CHY, 3.3, 'ORDER UP!', { size: 0.42 });
     });
@@ -685,7 +685,7 @@ export default {
     const waiter = route([[15.0, 4.2, 1.2], [15.0, 7.4], [8.2, 7.9], [7.5, 10.2], [9.0, 11.6, 1.4], [8.6, 14.9], [13.2, 15.0], [14.9, 12.0], [14.9, 10.6, 1.4], [15.0, 7.4]], { speed: 1.3 });
     R.mover(waiter, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, {
-        skin: '#C3835B', hair: C.ink, style: 'short', top: C.white, bottom: C.ink, pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back,
+        skin: SKIN[2], hair: C.ink, style: 'short', top: C.white, bottom: C.ink, pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back,
         arms: [2.0, -0.2],
         hold: (c) => {
           c.beginPath(); c.ellipse(0.35, -0.5, 0.55, 0.12, 0, 0, Math.PI * 2); paint(c, C.grey, { lw: 0.03 });
@@ -726,7 +726,7 @@ export default {
         ctx.beginPath(); ctx.rect(X - f * 0.55 - 0.3, Y - 1.85, 0.6, 0.72); paint(ctx, C.teal, { dots: C.navy, density: 0.2, lw: 0.04 });
       }
       person(ctx, p.x, p.y, 0, {
-        skin: '#95603F', hair: C.ink, top: C.teal, bottom: C.ink, hat: 'helmet', pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, speed: 9,
+        skin: SKIN[3], hair: C.ink, top: C.teal, bottom: C.ink, hat: 'helmet', pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, speed: 9,
         hold: p.bag ? (c) => { c.beginPath(); c.rect(-0.05, 0.1, 0.4, 0.45); paint(c, C.butter, { lw: 0.03 }); } : null,
       }, t);
       if (p.back) {

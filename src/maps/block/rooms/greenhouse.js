@@ -2,7 +2,7 @@
 // pumpkin, a gardener on a ladder and a sprinkler that runs on its own schedule.
 import {
   C, box, rect, disc, cylinder, face, paint, person, folk, plant, slab, floor,
-  onLeft, onRight, speech, paintText, shade, tint, mix, alpha, dots, Q, P, rng, pick,
+  onLeft, onRight, speech, paintText, shade, tint, mix, alpha, dots, Q, P, rng, pick, HAIR, SKIN,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -121,7 +121,7 @@ function gnome(ctx, x, y, z, s = 0.55) {
   paint(ctx, C.navy, { dots: C.ink, density: 0.2, lw: 0.06 });
   ctx.beginPath(); ctx.rect(-0.36, -0.28, 0.72, 0.1); ctx.fillStyle = C.brown; ctx.fill();
   // face
-  ctx.beginPath(); ctx.arc(0, -1.0, 0.22, 0, Math.PI * 2); paint(ctx, '#F4CDAA', { lw: 0.06 });
+  ctx.beginPath(); ctx.arc(0, -1.0, 0.22, 0, Math.PI * 2); paint(ctx, SKIN[0], { lw: 0.06 });
   // beard
   ctx.beginPath(); ctx.moveTo(-0.24, -0.98); ctx.quadraticCurveTo(0, -0.95, 0.24, -0.98); ctx.lineTo(0, -0.42); ctx.closePath();
   paint(ctx, C.white, { lw: 0.06 });
@@ -154,7 +154,8 @@ function wateringCan(ctx, x, y, z, s = 1) {
 }
 
 // A snail facing screen-right. num: text on the shell. bob: body stretch 0..1
-function snail(ctx, X, Y, s, shell, num, bob = 0, stripe) {
+// turn: how far the snail is turned, so the number can stay upright.
+function snail(ctx, X, Y, s, shell, num, bob = 0, stripe, turn = 0) {
   ctx.save();
   ctx.translate(X, Y);
   ctx.scale(s, s);
@@ -178,8 +179,12 @@ function snail(ctx, X, Y, s, shell, num, bob = 0, stripe) {
     ctx.beginPath(); ctx.rect(-0.2, -0.6, 0.12, 0.52); ctx.fillStyle = stripe; ctx.fill();
   }
   if (num) {
-    ctx.beginPath(); ctx.arc(-0.05, -0.34, 0.17, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-    txt(ctx, -0.05, -0.33, num, 0.24, C.ink);
+    ctx.save();
+    ctx.translate(-0.05, -0.34);
+    ctx.rotate(-turn);
+    ctx.beginPath(); ctx.arc(0, 0, 0.19, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+    txt(ctx, 0, 0.01, num, 0.28, C.coral);
+    ctx.restore();
   } else if (Q.detail) {
     ctx.beginPath();
     for (let a = 0; a < 9; a += 0.3) {
@@ -290,9 +295,9 @@ function monstera(ctx, t, front) {
   });
 }
 
-// On a day (the Block Party): the sky through the glass, by the hour, in the
-// top row of panes on the right wall. A blush at dawn, blue all day, the pink
-// sunset, navy with the moon at night.
+// The sky through the glass, by the hour, in the top row of panes on the
+// right wall. A blush at dawn, blue all day, the pink sunset, navy with the
+// moon at night.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
   for (let i = 1; i < SKY.length; i++) {
@@ -525,7 +530,7 @@ export default {
     R.mover(() => ({ x: 12.2, y: 2.8 }), (ctx, t) => {
       const st = hoseState(t);
       const s = pulse(t, HOSE) * HOSE;
-      const g = { skin: '#95603F', hair: C.ink, style: 'short', top: C.teal, bottom: C.brown, hat: 'sun', dir: 'r' };
+      const g = { skin: SKIN[3], hair: C.ink, style: 'short', top: C.teal, bottom: C.brown, hat: 'sun', dir: 'r' };
       let pose = 'point', arms;
       if (st === 'on') arms = [2.3, 0.3];
       if (st === 'off') { arms = [1.4 + Math.sin(t * 14) * 0.3, 0.4]; }
@@ -572,7 +577,7 @@ export default {
       box(ctx, x, y, 0.35, 1.9, 0.9, 0.08, C.white, { top: C.coral, dotsT: C.white, densT: 0.4 });
       face(ctx, [[x, y, 0.43], [x, y + 0.9, 0.43], [x - 0.4, y + 0.9, 1.4], [x - 0.4, y, 1.4]], C.coral, { dots: C.white, density: 0.35 });
       for (const [lx, ly] of [[x + 0.1, y + 0.1], [x + 1.7, y + 0.1], [x + 0.1, y + 0.75], [x + 1.7, y + 0.75]]) box(ctx, lx, ly, 0, 0.08, 0.08, 0.35, C.ink, { flat: true, stroke: false });
-      person(ctx, x + 1.3 + sh, y + 0.2, 0.55, { skin: '#F4CDAA', hair: C.greyLight, style: 'bald', top: C.white, bottom: C.teal, pose: 'sleep', dir: 'r', hat: 'sun' }, t);
+      person(ctx, x + 1.3 + sh, y + 0.2, 0.55, { skin: SKIN[0], hair: C.greyLight, style: 'bald', top: C.white, bottom: C.teal, pose: 'sleep', dir: 'r', hat: 'sun' }, t);
       if (st === 'off' && Q.detail) {
         // the hose bulges behind the kink
         const k = clamp((pulse(t, HOSE) * HOSE - 8) / 2);
@@ -927,7 +932,7 @@ export default {
       const s = pulse(t, RACE) * RACE;
       const wave = (s > 26 && s < 31) || s < 2.5;
       person(ctx, 15.5, 11.3, 0, {
-        skin: '#C3835B', hair: C.greyLight, style: 'short', top: C.white, bottom: C.ink, dir: 'l', pose: wave ? 'wave' : 'stand', hat: 'cap', speed: 14,
+        skin: SKIN[2], hair: C.greyLight, style: 'short', top: C.white, bottom: C.ink, dir: 'l', pose: wave ? 'wave' : 'stand', hat: 'cap', speed: 14,
         arms: wave ? undefined : [0.9, -0.1],
         hold: (c) => {
           c.beginPath(); c.moveTo(0, 0.1); c.lineTo(0.1, -1.1); c.strokeStyle = C.ink; c.lineWidth = 0.05; c.stroke();
@@ -954,7 +959,8 @@ export default {
       ctx.strokeStyle = alpha(C.white, 0.9); ctx.lineWidth = 0.16; ctx.lineCap = 'round'; ctx.stroke();
       ctx.translate(X, Y);
       ctx.rotate(-Math.PI / 2 + 0.46);
-      snail(ctx, 0, 0.1, 0.7, C.mustard, '4', Math.abs(Math.sin(t * 1.5)));
+      // Big enough to read its number, which stays upright as it climbs.
+      snail(ctx, 0, 0.1, 1.0, C.mustard, '4', Math.abs(Math.sin(t * 1.5)), null, -Math.PI / 2 + 0.46);
       ctx.restore();
     }, { anim: true });
     R.find({ id: 'snail', label: 'A snail wearing a number', r: 0.8, at: (t) => { const [x, y, z] = esc(t); return [x, y, z]; } });
@@ -992,13 +998,13 @@ export default {
       }), t);
     });
 
-    // On a day (the Block Party), the top panes show the hour's sky.
+    // The top panes show the hour's sky.
     const day = R.opts.day;
-    if (day) R.decor((ctx, t) => skyPanes(ctx, day.hour(t)), { anim: true });
+    R.decor((ctx, t) => skyPanes(ctx, day.hour(t)), { anim: true });
   },
 };
 
-const HAIRC = '#DDA43F';
+const HAIRC = HAIR[3];
 
 function table(ctx, x, y, w, d, h, color) {
   const lw = 0.14;

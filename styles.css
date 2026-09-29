@@ -1085,7 +1085,7 @@ body[data-dock="right"] .story {
   z-index: 20;
   left: 50%;
   bottom: calc(var(--safe-bottom) + 24px);
-  transform: translateX(-50%);
+  translate: -50% 0;
   width: min(440px, calc(100% - 2 * var(--gutter)));
   padding: 22px 22px 20px;
   background: var(--card);
@@ -1374,6 +1374,10 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
       2.5px 2.5px 0 var(--coral);
   }
   .place-tagline { display: none; }
+  /* The card steps to the side, so a finale plays on beside it. */
+  .complete { left: auto; right: calc(var(--gutter) + env(safe-area-inset-right)); translate: none; width: min(400px, 50%); padding: 16px 18px; }
+  .complete-title { font-size: 28px; }
+  .complete-actions { margin-top: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

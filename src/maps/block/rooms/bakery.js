@@ -2,7 +2,7 @@
 // sneeze, a queue that never ends and one goose with a ticket.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
-  speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng,
+  speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN,
 } from '../../../engine/art.js';
 import { particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -334,7 +334,7 @@ export default {
       else { reach = 0; carry = false; }
       const turn = s >= 5 && s < 6;
       person(ctx, BK[0] - reach * 0.6, BK[1] + reach * 0.2, 0, {
-        skin: '#C3835B', hair: C.ink, style: 'short', top: C.white, bottom: C.navy, hat: 'chef', pose: 'stand',
+        skin: SKIN[2], hair: C.ink, style: 'short', top: C.white, bottom: C.navy, hat: 'chef', pose: 'stand',
         dir: turn ? 'r' : 'l', arms: turn ? [1.0, 0.8] : [1.35, 1.2],
       }, t);
       // the long peel
@@ -419,7 +419,7 @@ export default {
       const sneeze = s >= SNEEZE && s < SNEEZE + 0.8;
       const knead = Math.sin(t * 5);
       person(ctx, 7.6, 5.3, 0, {
-        skin: '#F4CDAA', hair: C.mustard, style: 'bun', top: C.sky, bottom: C.navy, pose: 'stand', dir: 'l',
+        skin: SKIN[0], hair: C.mustard, style: 'bun', top: C.sky, bottom: C.navy, pose: 'stand', dir: 'l',
         arms: pre ? [Math.PI - 0.6, 0.4] : sneeze ? [0.6, -0.6] : [1.4 + knead * 0.3, -1.1 - knead * 0.3],
       }, t);
       if (!Q.detail) return;
@@ -516,7 +516,7 @@ export default {
       const reach = s < 3.6 ? ease(s / 3.6) : s < 12.5 ? 1 : 1 - ease((s - 12.5) / 1.5);
       const holding = s < 4.2 || s > 12.5;
       const arms = panic ? [Math.PI - 0.4 + Math.sin(t * 14) * 0.3, -Math.PI + 0.4 - Math.sin(t * 14) * 0.3] : [0.8 + reach * 1.4, 0.6 + reach * 1.1];
-      person(ctx, PC[0], PC[1], 1.0, { skin: '#F7DCC4', hair: C.brown, style: 'curly', top: C.white, bottom: C.pink, hat: 'chef', pose: 'stand', dir: 'l', arms }, t);
+      person(ctx, PC[0], PC[1], 1.0, { skin: SKIN[5], hair: C.brown, style: 'curly', top: C.white, bottom: C.pink, hat: 'chef', pose: 'stand', dir: 'l', arms }, t);
       // cake top position (in screen space, with the wobble)
       const [BX, BY] = P(CAKE[0], CAKE[1], 1.0);
       const topH = 3.0 * ZK;
@@ -639,7 +639,7 @@ export default {
       const f = pulse(t, QT);
       const hand = f > 0.55 && f < 0.8;
       person(ctx, cash + 0.2, 9.3, 0, {
-        skin: '#633F2A', hair: C.ink, style: 'curly', top: C.pink, bottom: C.navy, pose: hand ? 'carry' : f < 0.12 ? 'point' : 'stand', dir: 'l',
+        skin: SKIN[4], hair: C.ink, style: 'curly', top: C.pink, bottom: C.navy, pose: hand ? 'carry' : f < 0.12 ? 'point' : 'stand', dir: 'l',
         hold: hand ? (c) => { c.beginPath(); c.rect(-0.1, -0.1, 0.4, 0.5); paint(c, C.paperDeep, { lw: 0.03 }); } : null,
       }, t);
       if (Q.detail && f < 0.15) speech(ctx, cash + 0.2, 9.3, 2.7, 'NEXT!', { size: 0.4, dx: 1.5 });
@@ -717,8 +717,8 @@ export default {
         const s = pulse(t, KN) * KN;
         const panic = s > SNEEZE + 0.2 && s < SNEEZE + 3.5;
         const st = bride
-          ? { skin: '#E3A97F', hair: C.brown, style: 'long', top: C.white, dress: true, shoes: C.white }
-          : { skin: '#95603F', hair: C.ink, style: 'short', top: C.navy, bottom: C.navy };
+          ? { skin: SKIN[1], hair: C.brown, style: 'long', top: C.white, dress: true, shoes: C.white }
+          : { skin: SKIN[3], hair: C.ink, style: 'short', top: C.navy, bottom: C.navy };
         person(ctx, x, y, 0, { ...st, pose: panic ? 'jump' : bride ? 'point' : 'stand', dir: 'r', speed: 9, arms: panic ? undefined : bride ? undefined : [2.6, 0.2] }, t);
         if (!Q.detail) return;
         if (bride && !panic && s > 1 && s < 4) speech(ctx, x, y, 2.9, 'IS THAT OURS?', { size: 0.36 });

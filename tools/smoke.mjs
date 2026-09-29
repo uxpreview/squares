@@ -73,7 +73,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
   check('a card opens its place', (await S(page, () => location.hash)) === '#/block' && await page.isVisible('.tally'));
-  check('tallies count the old save', (await page.textContent('#tally-geese')) === '1/16' && (await page.textContent('#tally-things')) === '1/48');
+  check('tallies count the old save, on the Block Party', (await page.textContent('#tally-geese')) === '1/16' && (await page.textContent('#tally-things')) === '1/58');
 
   // Tap the laundromat's floor to go in.
   const [lx, ly] = await S(page, () => {
@@ -88,7 +88,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const [fx, fy] = await findOnScreen(page, 'laundromat', 'coin');
   await page.mouse.click(fx, fy);
   await wait(page, 300);
-  check('tapping a hidden thing circles it', (await page.textContent('#tally-things')) === '2/48');
+  check('tapping a hidden thing circles it', (await page.textContent('#tally-things')) === '2/58');
 
   await page.keyboard.press('ArrowRight');
   await wait(page, 1500);
@@ -138,6 +138,37 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('a v2 save carries over (finds, settings, where you were)', (await page.textContent('#title-progress')).includes('1 goose') &&
     (await page.textContent('#title-play-label')) === 'Continue' &&
     (await S(page, () => window.__squares.store.settings.sound)) === false);
+  await page.close();
+}
+
+// ---------- 1c. A returning v3 player with Block finds, and finds from the Block Party's preview ----------
+// The Block Party took over the Block's id: the old finds keep their names, and
+// anything found at #/blockparty before it shipped joins them.
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => {
+    if (!sessionStorage.getItem('seeded')) {
+      localStorage.clear();
+      localStorage.setItem('squares.save.v3', JSON.stringify({ v: 3, found: { block: ['pool:goose', 'aquarium:octopus'], blockparty: ['bakery:goose', 'main-street:lunch', 'pool:goose'] },
+        cases: {}, settings: { sound: false }, last: { map: 'blockparty', zone: 'bakery' } }));
+      sessionStorage.setItem('seeded', '1');
+    }
+  });
+  await page.goto(base);
+  await ready(page);
+  await wait(page, 400);
+  const title = await S(page, () => ({ map: window.__squares.world.id, found: window.__squares.store.progress(window.__squares.world) }));
+  check('a v3 save keeps its Block finds, and the preview\'s join them', (await page.textContent('#title-progress')).includes('2 geese') &&
+    (await page.textContent('#title-play-label')) === 'Continue' && title.map === 'block', JSON.stringify(title));
+  await page.click('#title-play');
+  await wait(page, 2000);
+  check('continue lands where the preview was left, on the Block Party', (await S(page, () => location.hash)) === '#/block/bakery' &&
+    (await page.textContent('#tally-geese')) === '2/16' && (await page.textContent('#tally-things')) === '2/58');
+  await page.goto(base + '#/blockparty/pool');
+  await ready(page);
+  await wait(page, 1200);
+  check('the preview\'s address goes to the Block Party', (await S(page, () => location.hash)) === '#/block/pool');
+  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')));
+  check('the merged save is written under block, once', !saved.found.blockparty && saved.found.block.length === 4, JSON.stringify(saved.found));
   await page.close();
 }
 
@@ -204,17 +235,18 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await ready(page);
   await wait(page, 1600);
 
-  // A first visit: a card pinned to a room says where to start, with a ring on the room.
+  // A first visit: a card pinned to a room says where to start, with a ring on
+  // the room (on a phone, the Observatory, by the back corner).
   check('a first visit invites you into a room', await page.isVisible('#invite') && await page.isVisible('#invite-ring'));
   const ring = await S(page, () => {
     const s = window.__squares, r = document.getElementById('invite-ring').getBoundingClientRect();
     const [X, Y] = s.camera.toWorld(r.x + r.width / 2, r.y + r.height / 2);
     return { x: r.x + r.width / 2, y: r.y + r.height / 2, zone: s.world.zones[s.world.zoneAt(X, Y)]?.id };
   });
-  check('its ring is on screen, on the room it names', ring.x > 0 && ring.x < 390 && ring.y > 0 && ring.y < 844 && ring.zone === 'laundromat', JSON.stringify(ring));
+  check('its ring is on screen, on the room it names', ring.x > 0 && ring.x < 390 && ring.y > 0 && ring.y < 844 && ring.zone === 'observatory', JSON.stringify(ring));
   await page.click('#invite');
   await wait(page, 1800);
-  check('tapping the invitation steps into its room', (await S(page, () => location.hash)) === '#/block/laundromat');
+  check('tapping the invitation steps into its room', (await S(page, () => location.hash)) === '#/block/observatory');
   await page.click('#to-places');
   await wait(page, 1800);
   check('once you have been in a room, the invitation is gone', !(await page.isVisible('#invite')) && (await S(page, () => location.hash)) === '#/block');
@@ -222,7 +254,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const honked = await page.waitForFunction(() => window.__squares.play.debug.calls > 0, null, { timeout: 9000 }).then(() => true, () => false);
   check('on the whole map, rooms still hiding a goose honk', honked);
 
-  // On a phone the map fills the screen: The Block runs off the sides, a swipe away.
+  // On a phone the map fills the screen: the block runs off the sides, a swipe away.
   const swipe = await S(page, () => { const r = window.__squares.camera.range(); return r ? r.x1 - r.x0 : 0; });
   check('on a phone the map fills the screen, running off the sides', swipe > 20, 'room to swipe: ' + Math.round(swipe));
   // Soft edges: from the left edge, drag further left and it gives; let go and it springs back.
@@ -239,9 +271,10 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('dragged past its edge the map gives, and springs back', past > 1 && after < 0.01, `past ${past.toFixed(1)}, after ${after.toFixed(3)}`);
   await S(page, () => {
     const s = window.__squares;
-    for (const z of s.world.zones) s.play.markFound(z, z.finds.find((f) => f.goose));
+    for (const z of s.world.zones) { const g = z.finds.find((f) => f.goose); if (g) s.play.markFound(z, g); }
   });
-  await wait(page, 5200);
+  // (The party plays for a while before the card: the finale.)
+  await page.waitForSelector('#complete:not([hidden])', { timeout: 20000 }).catch(() => {});
   await page.click('#complete-next');
   await wait(page, 1300);
   check('picker marks the place complete', (await page.textContent('.place-card >> nth=0')).includes('Complete'));
@@ -455,7 +488,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
 // ---------- 6. The Block Party (the Block, connected: streets, walls down, a day) ----------
 {
   const page = await fresh({ width: 390, height: 844 }, () => localStorage.clear());
-  await page.goto(base + '#/blockparty');
+  await page.goto(base + '#/block');
   await ready(page);
   await wait(page, 1200);
   const walls = await S(page, () => {
@@ -484,7 +517,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return { hash: location.hash, z: s.cam.z / room, cx: Math.round(cx), cy: Math.round(cy) };
   }, spot);
   check('a long street is framed around where you tapped it, about as close as a room',
-    framed.hash === '#/blockparty/main-street' && framed.z > 0.6 && framed.z < 1.6 && framed.cx > 0 && framed.cx < 390 && framed.cy > 60 && framed.cy < 700, JSON.stringify(framed));
+    framed.hash === '#/block/main-street' && framed.z > 0.6 && framed.z < 1.6 && framed.cx > 0 && framed.cx < 390 && framed.cy > 60 && framed.cy < 700, JSON.stringify(framed));
   // The day: noon on paper, night on navy, and the page follows.
   const plate = async (h) => {
     await S(page, (t) => window.__squares.clock.set(t), (h - 5) * 15);
@@ -508,6 +541,25 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 2600);
   const party = await S(page, () => { const s = window.__squares, h = (5 + (s.clock.now() % 360) / 15) % 24; return { h: Math.round(h * 10) / 10, parade: s.play.fx(performance.now()).parade > 0 }; });
   check('finding every goose starts the party: the clock jumps to it and the geese conga', party.h >= 19.5 && party.h < 21 && party.parade, JSON.stringify(party));
+  await page.close();
+}
+
+// ---------- 6b. The Block Party's invitation on a big screen ----------
+// Pinned beside the stage, over Main Street's back arm, with its ring on the
+// stage and the BLOCK PARTY backdrop left in view.
+{
+  const page = await fresh({ width: 1440, height: 900 }, () => localStorage.clear());
+  await page.goto(base + '#/block');
+  await ready(page);
+  await wait(page, 1600);
+  const inv = await S(page, () => {
+    const s = window.__squares, r = document.getElementById('invite-ring').getBoundingClientRect(), c = document.getElementById('invite').getBoundingClientRect();
+    const [X, Y] = s.camera.toWorld(r.x + r.width / 2, r.y + r.height / 2);
+    // The middle of the backdrop's lettering: the stage's back corner, 5 up.
+    const [bx, by] = s.camera.toScreen(0, 37.4 - 5 * 1.12);
+    return { zone: s.world.zones[s.world.zoneAt(X, Y)]?.id, clear: bx < c.left || bx > c.right || by < c.top || by > c.bottom };
+  });
+  check('on a big screen the invitation sits beside the stage, its ring on it, the backdrop in view', inv.zone === 'main-street' && inv.clear, JSON.stringify(inv));
   await page.close();
 }
 
