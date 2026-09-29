@@ -417,7 +417,6 @@ export default {
       ctx.save();
       ctx.translate(wx, wy + 0.5);
       ctx.rotate(sw);
-      ctx.scale(1.25, 1.25);
       // the pull loop
       ctx.beginPath(); ctx.ellipse(0.02, 0.02, 0.07, 0.1, 0, 0, Math.PI * 2);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();

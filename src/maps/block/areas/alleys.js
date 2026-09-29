@@ -664,8 +664,8 @@ export default {
       for (const z of [1.2, 2.3]) box(ctx, 19.32, 51.82, z, 0.2, 0.16, 0.06, C.ink, { flat: true, stroke: false });
     });
 
-    // The find: a cat in a bin, sitting down inside it with its head over
-    // the rim and its paws hooked on the front, the lid pushed up behind it,
+    // The find: a cat in a bin, down inside it with just its ears, eyes and
+    // paws over the rim, the lid pushed up behind it,
     // watching the lane (and staring, when the octopus turns up).
     R.thing(19.35, 55.35, (ctx) => dustbin(ctx, 19.05, 55.05, 0.42, 1.0, false));
     R.thing(19.4, 55.4, (ctx, t) => {
@@ -674,11 +674,11 @@ export default {
       const wide = octoHere(t);
       const look = wide ? 1 : Math.sin(t * 0.6) * 0.8;
       const lift = Math.max(0, Math.sin(t * 0.9)) * 0.06;
-      const hy = Y + 0.02 - lift; // the head's middle: its chin sinks behind the rim
+      const hy = Y + 0.1 - lift; // the head's middle: sunk to its nose behind the rim
       // The lid, pushed up against the back of the rim.
       ctx.save();
-      ctx.translate(X + 0.3, Y - 0.42);
-      ctx.rotate(0.7);
+      ctx.translate(X + 0.28, Y - 0.34);
+      ctx.rotate(0.62);
       ctx.beginPath();
       ctx.ellipse(0, 0, 0.5, 0.17, 0, 0, Math.PI * 2);
       paint(ctx, tint(C.grey, 0.2), { lw: 0.035 });

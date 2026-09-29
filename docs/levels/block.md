@@ -1,7 +1,7 @@
 # The Block (connected)
 
 > Status: **Shipped** (session 4e) · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] · greybox [x] (with changes, decisions 14 to 18) · preview [x] (with changes, decisions 34 to 45)
+> Owner approvals: brief [x] · greybox [x] (with changes, decisions 14 to 18) · preview [x] (with changes, decisions 34 to 46)
 >
 > It's The Block Party, first in the picker, under The Block's id, `block`, so saves carried over. It lives in `src/maps/block/`; the old flat Block is gone (its room files stay: the Block Party draws them). `#/blockparty` redirects to `#/block`.
 
@@ -194,3 +194,4 @@ Gate 3 (the preview), from the owner at the start of session 4e: **approved with
 43. **Speech stays mixed:** capitals for signs and crowds (the queue, the people on the bouncy castle's pump, the busker, the sound check), sentence case for the named cast (the Courier, Pidge, the librarian, Gary, the keeper, the chef).
 44. **Neon glows at night only.**
 45. **It ships as The Block Party under `block`:** first in the picker; the flat Block's map is gone and the room files' `R.opts.day` checks are plain code (the Lido's name and the Launch Pad's blurb live in their files now). Old links (`#/block`, `#/block/<room>`, `#room`) land on it, and `#/blockparty` redirects. Saves: every find keeps its name, so v1, v2 and v3 saves keep their finds; anything found on the preview (`blockparty`) is merged into `block` when a save loads.
+46. **The blind playtest of the changed finds** (4e): nine of ten found first go; the snail (3 to 4), the tentacle print, the card and the ticket (3) are fair searches. It found the boot and the cat too easy after their redraws, so the boot went back to its old size (still a wellington) and the cat sank to its ears and eyes; it couldn't tell the lunch was the Courier's, so his brown cap sits on the cool box beside it. (The overdue book scored a miss only because the playtest tool noted where moving finds were a moment before a slow screenshot; fixed.)

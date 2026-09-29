@@ -1112,6 +1112,14 @@ export default {
       disc(ctx, lx + 0.2, ly + 0.08, 0.31, 0.12, C.red, { lw: 0.02 });
       if (Q.detail) words(ctx, 'y', ly + 0.26, lx, 0.15, 'LUNCH', 0.15, C.butter);
     });
+    // His brown cap, left on the cool box beside it, so the lunch reads as
+    // the Courier's.
+    R.thing(60.1, 38.6, (ctx) => {
+      const [X, Y] = P(59.6, 38.2, 0.62);
+      ctx.beginPath(); ctx.ellipse(X + 0.12, Y + 0.06, 0.3, 0.1, -0.2, 0, Math.PI * 2); paint(ctx, shade(C.brown, 0.2), { lw: 0.03 }); // the peak
+      ctx.beginPath(); ctx.ellipse(X - 0.04, Y - 0.02, 0.24, 0.17, 0, Math.PI, 0); ctx.closePath(); paint(ctx, C.brown, { lw: 0.03 }); // the crown
+      if (Q.detail) { ctx.fillStyle = C.butter; ctx.fillRect(X - 0.14, Y - 0.1, 0.2, 0.05); }
+    });
     // He put it down with the party's supplies, waiting by the kerb to be set
     // out: a stack of folding chairs, a cool box, a crate of paper cups, and
     // what's blown off the top of them.

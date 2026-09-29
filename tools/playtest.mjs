@@ -71,13 +71,16 @@ if (mode === 'prepare') {
       window.__lastPose = now;
       return still;
     }, null, { polling: 300, timeout: 10000 }).catch(() => {});
-    // Freeze the moment: note where everything is, then take the shot.
+    // Freeze the moment: stop the clock, note where everything is, then take
+    // the shot (a headless browser can take a second or more to paint, and a
+    // find that moves, like a book on a cart, would have moved on).
     const found = await page.evaluate(({ id, skip }) => {
       const s = window.__squares;
       const st = document.getElementById('story');
       if (st) st.hidden = true;
       const zone = s.world.zones.find((x) => x.id === id);
-      const t = s.clock.now() + 0.15;
+      const t = s.clock.now();
+      s.clock.freeze(t);
       return zone.finds.filter((f) => !skip.includes(f.id)).map((f) => {
         const [x, y, h] = typeof f.at === 'function' ? f.at(t) : f.at;
         const [sx, sy] = s.camera.toScreen(zone.anchor[0] + x - y, zone.anchor[1] - zone.lift + (x + y) / 2 - h * 1.12);
@@ -86,6 +89,7 @@ if (mode === 'prepare') {
     }, { id: z.id, skip });
     await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
     await page.screenshot({ path: path.join(dir, `${key}.png`) });
+    await page.evaluate(() => window.__squares.clock.set(window.__squares.clock.now()));
     const mine = near ? found.filter((f) => f.seen) : found;
     labels[key] = { name: z.name, shot: `${key}.png`, find: mine.map((f) => f.label) };
     answers[key] = mine.map(({ id, seen, ...f }) => f);
