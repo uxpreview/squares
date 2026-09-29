@@ -3,7 +3,8 @@
 The lead sends one of these per area to parallel agents, four to six at once (ten ran fine on the Manor), after the owner approves the greybox (see [PROCESS.md](../PROCESS.md), step 5). Fill in every `{{BLANK}}` from the level's brief; leave the rest as written. Everything below the line is the prompt.
 
 How the lead runs it (learned on the Manor):
-- **Launch each artist in its own git worktree** (the Agent tool's `isolation: "worktree"`). One artist's half-finished file would otherwise break the whole level for everyone else's screenshots. Commit the prep first (style sheet, cast, hooks); the worktree starts from it. When an artist finishes, copy just its area file back into the main copy.
+- **Launch each artist in its own git worktree** (the Agent tool's `isolation: "worktree"`). One artist's half-finished file would otherwise break the whole level for everyone else's screenshots. Commit the prep first (style sheet, cast, hooks). The worktree starts from `main`, not your branch (learned on the Block Party), so the prompt's first step copies your `src`, `tools` and `docs` in. When an artist finishes, copy just its files back into the main copy.
+- **On the owner's Mac, three or four artists at once** is about right; each takes 20 to 40 minutes.
 - **Save the filled-in prompt to a file and point the agent at it**, rather than pasting it into the call.
 - **Give exact positions and times** for everyone who passes through the area (a scratch script can sample the level's walkers), and every find's role in the story and what it must show.
 - **Their report is their final message:** agents can't write report files. Ask for it to be short and specific (what changed, new find positions, worries).
@@ -21,7 +22,7 @@ Right now that file is a **greybox**: plain blocks, labels and numbered pins sho
 You're working in your own copy of the repository (a git worktree), so your half-finished work never breaks anyone else's screenshots, and theirs never break yours.
 
 1. Run `pwd`. It must **not** be the lead's copy ({{LEAD_REPO}}); if it is, stop and say so in your report.
-2. Copy the dependencies in: `cp -r {{LEAD_REPO}}/node_modules ./node_modules` (they're not in git).
+2. Bring your copy up to date with the lead's (it may start from an older commit): `cp -R {{LEAD_REPO}}/src/. ./src/ && cp -R {{LEAD_REPO}}/tools/. ./tools/ && cp -R {{LEAD_REPO}}/docs/. ./docs/`. Then copy the dependencies in: `cp -r {{LEAD_REPO}}/node_modules ./node_modules` (they're not in git; a symlink stops the fonts loading in the tools' browser).
 3. Keep your screenshots in `qa-out/art/` (ignored by git).
 
 The other areas in your copy are still greyboxes; other artists are drawing them right now, in their own copies. That's expected.
