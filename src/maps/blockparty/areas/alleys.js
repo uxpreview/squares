@@ -557,6 +557,23 @@ export default {
       ctx.arc(-0.31, 0.26, 0.022, 0, Math.PI * 2);
       ctx.fillStyle = C.ink;
       ctx.fill();
+      // A paper tag on the ring: whose it is.
+      ctx.beginPath();
+      ctx.rect(-0.3, -0.36, 0.5, 0.22);
+      paint(ctx, C.white, { lw: 0.025 });
+      ctx.beginPath();
+      ctx.moveTo(-0.2, -0.14); ctx.lineTo(-0.2, 0.06);
+      ctx.stroke();
+      if (!Q.detail) return;
+      ctx.save();
+      ctx.translate(-0.05, -0.25);
+      ctx.scale(1 / 40, 1 / 40);
+      ctx.font = '2.5px "Bagel Fat One", "Arial Black", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = C.red;
+      ctx.fillText('NOODLES: BACK', 0, 0);
+      ctx.restore();
     }));
     R.find({ id: 'noodle-key', label: 'The noodle bar\'s back door key', at: [17.0, 51.4, 0.05], r: 0.8 });
 

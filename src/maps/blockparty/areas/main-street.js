@@ -1071,22 +1071,28 @@ export default {
     }
 
     // ---------- The Courier's trail ----------
-    // His map, flat on the road: sixteen circles, all crossed out.
+    // His map, flat on the road: a street map of the Block itself (a cross of
+    // road, sixteen blocks), every block circled and crossed out, folded in
+    // four.
     const [mx, my] = [MID - 1.9, 21.2];
     R.thing(mx, my, (ctx) => {
-      const z = 0.02;
-      face(ctx, [[mx - 0.5, my - 0.38, z], [mx + 0.5, my - 0.38, z], [mx + 0.5, my + 0.38, z], [mx - 0.5, my + 0.38, z]], C.white, { lw: 0.035 });
-      face(ctx, [[mx, my - 0.38, z], [mx, my + 0.38, z]], null, { lw: 0.02, stroke: C.grey });
+      const z = 0.02, W = 0.62, D = 0.5;
+      face(ctx, [[mx - W, my - D, z], [mx + W, my - D, z], [mx + W, my + D, z], [mx - W, my + D, z]], C.white, { lw: 0.035 });
+      // the roads: Main Street's cross, in the road ink
+      face(ctx, [[mx - 0.07, my - D, z], [mx + 0.07, my - D, z], [mx + 0.07, my + D, z], [mx - 0.07, my + D, z]], STREET.road, { stroke: false });
+      face(ctx, [[mx - W, my - 0.07, z], [mx + W, my - 0.07, z], [mx + W, my + 0.07, z], [mx - W, my + 0.07, z]], STREET.road, { stroke: false });
       for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
-          const cx = mx - 0.36 + i * 0.24, cy = my - 0.26 + j * 0.175;
-          disc(ctx, cx, cy, z, 0.065, null, { stroke: C.coral, lw: 0.025 });
-          if (Q.detail) {
-            line(ctx, [cx - 0.07, cy - 0.07, z], [cx + 0.07, cy + 0.07, z], C.ink, 0.02);
-            line(ctx, [cx + 0.07, cy - 0.07, z], [cx - 0.07, cy + 0.07, z], C.ink, 0.02);
-          }
+          const cx = mx + (i < 2 ? -W + 0.16 + i * 0.26 : 0.2 + (i - 2) * 0.26), cy = my + (j < 2 ? -D + 0.14 + j * 0.2 : 0.16 + (j - 2) * 0.2);
+          face(ctx, [[cx - 0.08, cy - 0.06, z], [cx + 0.08, cy - 0.06, z], [cx + 0.08, cy + 0.06, z], [cx - 0.08, cy + 0.06, z]], C.greyLight, { stroke: false });
+          if (!Q.detail) continue;
+          disc(ctx, cx, cy, z, 0.09, null, { stroke: C.coral, lw: 0.025 });
+          line(ctx, [cx - 0.08, cy - 0.08, z], [cx + 0.08, cy + 0.08, z], C.ink, 0.02);
+          line(ctx, [cx + 0.08, cy - 0.08, z], [cx - 0.08, cy + 0.08, z], C.ink, 0.02);
         }
       }
+      // the fold, and a dog-eared corner
+      face(ctx, [[mx + W - 0.18, my + D, z], [mx + W, my + D, z], [mx + W, my + D - 0.18, z]], tint(C.greyLight, 0.4), { lw: 0.02 });
     });
     // A delivery slip, signed with a webbed foot.
     const [sx, sy] = [27, MID + 2.4];
