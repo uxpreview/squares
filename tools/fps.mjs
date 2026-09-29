@@ -3,6 +3,7 @@
 //   node tools/fps.mjs <place> [more places]    the place, then each of its areas
 //   node tools/fps.mjs block --only=laundromat,observatory
 //   node tools/fps.mjs manor --size=1440x800 --dpr=2 --secs=3
+//   node tools/fps.mjs block --eval="window.x = 1"   run some JavaScript in the page first (to switch something off and compare)
 //
 // QA's speed check times the drawing code on a simulated phone; it can't see
 // the time the graphics chip then takes to put the picture on screen, which is
@@ -26,6 +27,7 @@ const [W, H] = opt('size', '1440x800').split('x').map(Number);
 const dpr = +opt('dpr', 2);
 const secs = +opt('secs', 3);
 const only = opt('only', '').split(',').filter(Boolean);
+const setup = (args.find((a) => a.startsWith('--eval=')) || '').slice(7);
 if (!places.length) { console.log('Usage: node tools/fps.mjs <place> [--only=a,b] [--size=1440x800] [--dpr=2] [--secs=3]'); process.exit(1); }
 
 execSync('npx vite build --logLevel error', { cwd: root, stdio: 'inherit' });
@@ -34,6 +36,7 @@ const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ headless: false });
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: dpr });
 await ctx.addInitScript(() => { try { localStorage.clear(); } catch {} });
+if (setup) await ctx.addInitScript(setup);
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('  page error: ' + e));
 

@@ -87,14 +87,27 @@ export const PAVEMENT = [
   [0, EDGE, EDGE, SIZE], // along the left-hand front
 ];
 
-// The stage, at the crossing (world units, x, y, w, d).
-export const STAGE = [MID - 2.5, MID - 2.5, 5, 5];
+// The stage fills the crossing (world units, x, y, w, d), with the walking
+// lanes just clear of it on every side. Its deck is STAGE_Z high; the band
+// plays up there.
+export const STAGE = [MAIN0 + 1.4, MAIN0 + 1.4, MAIN - 2.8, MAIN - 2.8]; // 37.4 to 43.6
+export const STAGE_Z = 1.4;
+
+// The bouncy castle, off the crossing: out along the left-hand arm of Main
+// Street by the noodle bar, between the lanes (x, y, w, d).
+export const CASTLE = [5, MID - 2.1, 5, 4.2];
+
+// The alleys' hot spot: behind the bakery's street door, across the alley
+// from the noodle bar, where the octopus heads every time it gets out. The
+// three alley finds are all here (x0, y0, x1, y1).
+export const HOTSPOT = [16, 49, 20, 63];
 
 // ---------- Walking ----------
-// People walk the streets along lanes: the middle of each alley, both kerbs of
-// Main Street and the middle of the pavement, every way. They cross wherever
+// People walk the streets along lanes: the middle of each alley, both sides of
+// Main Street (just clear of the stage at the crossing) and the middle of the
+// pavement, every way. They cross wherever
 // two lanes meet, so any two points on lanes join up (route() below).
-export const LANES = [(a0 + a1) / 2, MAIN0 + 1.6, MAIN1 - 1.6, (b0 + b1) / 2, EDGE + PAVE / 2]; // 18, 37.6, 43.4, 63, 83
+export const LANES = [(a0 + a1) / 2, MAIN0 + 0.9, MAIN1 - 0.9, (b0 + b1) / 2, EDGE + PAVE / 2]; // 18, 36.9, 44.1, 63, 83
 // The lane behind each column (for a left door) and each row (a right door):
 // the alley, or Main Street's near kerb for the rooms that face it.
 const BEHIND = [null, LANES[0], LANES[2], LANES[3]];

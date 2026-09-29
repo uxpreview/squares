@@ -48,16 +48,21 @@ export function sky(ctx, t, world, fx) {
   if (fx.parade) geeseV(ctx, t, fx.parade, world.totalGeese, EXTENT);
 }
 
-function blimp(ctx, t) {
+// o: { along: 'x' (the default, the Block's path) or 'y' (it flies the other
+// way across the map, nose to the lower left), at: where across the map,
+// from, to: where along it it starts and ends }
+export function blimp(ctx, t, o = {}) {
   const period = 95;
   const k = ((t % period) + period) % period / period;
-  const x = -40 + k * (EXTENT + 80);
-  const y = EXTENT * 0.35;
+  const along = o.along || 'x', from = o.from ?? -40, to = o.to ?? EXTENT + 40;
+  const u = from + k * (to - from), v = o.at ?? EXTENT * 0.35;
+  const [x, y] = along === 'x' ? [u, v] : [v, u];
   const z = 17 + Math.sin(t * 0.5) * 0.4;
   const [X, Y] = P3(x, y, z);
 
   ctx.save();
   ctx.translate(X, Y);
+  if (along === 'y') ctx.scale(-1, 1); // mirrored: flying to the lower left
   ctx.rotate(0.46); // travelling along +x
   // banner trailing behind
   const wob = Math.sin(t * 2.2) * 0.25;
@@ -82,6 +87,7 @@ function blimp(ctx, t) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = C.coral;
+  if (along === 'y') ctx.scale(-1, 1); // the banner still reads left to right
   ctx.fillText('HAVE YOU SEEN THIS GOOSE?', 0, 0);
   ctx.restore();
 
@@ -119,9 +125,9 @@ function blimp(ctx, t) {
 }
 
 // A paper plane that loops lazily over the middle of the block.
-function plane(ctx, t) {
+export function plane(ctx, t, span = EXTENT) {
   const a = t * 0.22;
-  const cx = EXTENT / 2, cy = EXTENT / 2;
+  const cx = span / 2, cy = span / 2;
   const x = cx + Math.cos(a) * 30, y = cy + Math.sin(a) * 30;
   const z = 12 + Math.sin(a * 3) * 2;
   const [X, Y] = P3(x, y, z);

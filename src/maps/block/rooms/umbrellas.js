@@ -4,7 +4,7 @@
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker, tiles,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, windowR, frame, clockL, shelfR,
-  hash, rng, pick,
+  hash, rng, pick, mix,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -160,6 +160,49 @@ function cloud(ctx, x, y, z, t, s = 1) {
   ctx.restore();
 }
 
+// On a day (the Block Party): the sky by the hour (as the Lido's), for the
+// window, and a clock on the day's time.
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+// The sunny window, repainted with the hour's sky: the sun by day, the moon
+// and a star at night.
+function dayWindow(ctx, h) {
+  onRight(ctx, 1.2, 1.9, 3.8, 2.9, skyAt(h), { lw: 0.03 });
+  const dark = h < 5.5 || h > 20.5;
+  const sx = dark ? 3.9 : 1.9 + clamp((h - 6) / 14) * 2.2, sz = dark ? 4.2 : 3.1 + Math.sin(clamp((h - 6) / 14) * Math.PI) * 1.2;
+  const [X, Y] = P(sx, 0.01, sz);
+  ctx.beginPath(); ctx.arc(X, Y, 0.4, 0, Math.PI * 2);
+  paint(ctx, dark ? C.butter : C.mustard, { lw: 0.03 });
+  if (dark) {
+    for (const [u, v] of [[1.8, 4.3], [2.9, 3.6]]) {
+      const [sx2, sy2] = P(u, 0.01, v);
+      ctx.beginPath(); ctx.arc(sx2, sy2, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+    }
+  }
+  face(ctx, [[3.2, 0.01, 2.0], [5.0, 0.01, 2.0], [5.0, 0.01, 2.6], [4.2, 0.01, 2.9], [3.2, 0.01, 2.4]], dark ? C.green : C.leaf, { lw: 0.03 });
+  face(ctx, [[3.1, 0, 1.9], [3.1, 0, 4.8]], null, { lw: 0.1, stroke: C.white });
+  face(ctx, [[1.2, 0, 3.35], [5.0, 0, 3.35]], null, { lw: 0.1, stroke: C.white });
+}
+function dayClockL(ctx, y, z, r, h) {
+  const [X, Y] = P(0, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.transform(1, -0.5, 0, 1, 0, 0);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+  paint(ctx, C.white);
+  const hA = ((h % 12) / 12) * Math.PI * 2, mA = (h % 1) * Math.PI * 2;
+  ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
+  ctx.lineWidth = 0.09; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(hA) * r * 0.5, -Math.cos(hA) * r * 0.5); ctx.stroke();
+  ctx.lineWidth = 0.06; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(mA) * r * 0.8, -Math.cos(mA) * r * 0.8); ctx.stroke();
+  ctx.restore();
+}
+
 export default {
   id: 'umbrellas',
   name: 'Umbrella Shop',
@@ -222,6 +265,10 @@ export default {
       onLeft(ctx, 13.3, 1.5, 1.2, 1.3, C.sky, { dots: tint(C.sky, 0.5), density: 0.2 });
       paintText(ctx, 'left', 13.9, 3.75, 'please drip responsibly', 0.22, C.navy, 'Rethink Sans');
     });
+
+    // On a day, the window shows the hour and the clock tells the day's time.
+    const day = R.opts.day;
+    if (day) R.decor((ctx, t) => { const h = day.hour(t); dayWindow(ctx, h); dayClockL(ctx, 11.1, 5.4, 0.5, h); }, { anim: true });
 
     // wires across the ceiling
     R.decor((ctx) => {
@@ -569,7 +616,8 @@ export default {
       ctx.strokeStyle = RAIN;
       ctx.lineWidth = 0.035;
       ctx.lineCap = 'round';
-      const n = Q.detail ? 32 : 14;
+      // (on a day, the downpour at its rush hour)
+      const n = Q.detail ? 32 + (day ? Math.round(day.rush(t) * 18) : 0) : 14;
       clouds.forEach((cf, ci) => {
         const [cx, cy, cz] = cf(t);
         ctx.beginPath();

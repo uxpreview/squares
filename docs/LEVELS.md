@@ -20,10 +20,10 @@ When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place g
 - **Shape:** a sprawling house cut open along a curved line, grounds and a hedge maze outside.
 - **Needs:** Today + Night. A "whodunit" ending (evidence leads to an accusation) is a new game format worth building once and reusing.
 
-### The Block, connected (a city block)
-**Status: brief, at gate 1. Full brief in [levels/block.md](levels/block.md).**
+### The Block Party (the Block, connected: a city block)
+**Status: built, at gate 3 (the preview), `#/blockparty`. Full brief in [levels/block.md](levels/block.md).**
 - **Spin:** the Block's sixteen rooms, opened onto real streets, on the day of the Block Party. The Courier goes door to door all day with a parcel for "G. Goose, The Block", and every door has a goose behind it.
-- **Alive:** the neighbors carry the party into the street (the cake, the banner, the amps), the octopus escapes down the alley, a queue forms that nobody can explain; maybe a whole day on a loop.
+- **Alive:** the neighbors carry the party into the street (the cake, the banner, the amps), the octopus escapes down the alley, a queue forms that nobody can explain; a whole day on a loop, each room busiest at its hour.
 - **Shape:** the Block's square, with Main Street crossing the middle and alleys between the rest.
 - **Needs:** Today, plus areas of any shape (E5, built in session 4). Replaces today's Block.
 

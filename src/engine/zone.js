@@ -31,7 +31,9 @@
 //
 // Every draw function receives (ctx, t) with ctx already positioned at the
 // zone's back corner, in zone units. Items marked { anim: true } are redrawn
-// each frame. The rest must look the same at every t: in the zone you're in,
+// each frame. An item can also fade: { fade: (t) => 0..1 } draws a still
+// picture (cached like any other) at that opacity, and skips it at 0, so a
+// street can print its night over its day for the cost of a stamp. The rest must look the same at every t: in the zone you're in,
 // they're drawn once into cached pictures (the floor and walls in one, each
 // standing thing in its own, see "Still things" below) and stamped back.
 //
@@ -64,6 +66,8 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //   place.doors:  doors the map cuts in the zone's walls, as in R.walls (so a
 //                 room can sit on two maps, with a door only on one of them)
 //   place.walkers: people on the map's timeline (added by buildWorld)
+//   place.opts:   anything the map wants to tell the zone (R.opts), so a
+//                 zone file shared by two maps can draw differently on one
 export function buildZone(def, place = {}) {
   const [ox, oy, oz] = [place.at?.[0] ?? 0, place.at?.[1] ?? 0, place.at?.[2] ?? 0];
   const shape = place.shape || def.shape;
@@ -100,6 +104,8 @@ export function buildZone(def, place = {}) {
   let order = 0;
   const add = (layer, draw, o = {}) => {
     const it = { layer: LAYERS.indexOf(layer), draw, depth: o.depth ?? 0, anim: !!o.anim, order: order++ };
+    if (o.fade) it.fade = o.fade;
+    if (o.on) it.on = o.on;
     items.push(it);
     return it;
   };
@@ -118,6 +124,8 @@ export function buildZone(def, place = {}) {
     // The map's walkers (people on its shared timeline), if a zone wants to
     // react to them. The engine draws them; zones don't have to.
     walkers: place.walkers || [],
+    // What the map tells this zone (place.opts), or {}.
+    opts: place.opts || {},
     floor: (draw, o) => add('floor', draw, o),
     wall: (draw, o) => add('wall', draw, o),
     decor: (draw, o) => add('decor', draw, o),
@@ -133,7 +141,9 @@ export function buildZone(def, place = {}) {
         return lastP;
       };
       const it = add('thing', (ctx, t) => draw(ctx, t, at(t)), { anim: true, ...o });
-      it.depth = o.depth ?? ((t) => { const p = at(t); return p.x + p.y + (o.bias || 0); });
+      // (p.ahead: someone standing up on something sorts as far forward as
+      // its front, not as their feet; a band on a stage.)
+      it.depth = o.depth ?? ((t) => { const p = at(t); return p.x + p.y + (o.bias || 0) + (p.ahead || 0); });
       it.pos = at;
       return at;
     },
@@ -166,15 +176,26 @@ export function buildZone(def, place = {}) {
     },
     // A light that glows, even through the dark. o: { at: [x, y, z] or (t) => [x, y, z],
     // r: reach in units, color, k: (t) => strength 0..1, draw(ctx, t, k): the flame or bulb }
-    light: (o) => add('light', (ctx, t) => {
+    light: (o) => lit(o, add('light', (ctx, t) => {
       const [x, y, z] = typeof o.at === 'function' ? o.at(t) : o.at;
       const k = o.k ? o.k(t) : 1;
       glow(ctx, x, y, z, o.r ?? 2.5, o.color || C.butter, k);
       if (o.draw) o.draw(ctx, t, k);
-    }, { anim: true }),
+    }, { anim: true, on: o.k && !o.draw ? (t) => o.k(t) > 0.002 : null })),
     // How dark the room is: fn(t) returns 0 (lit) to 1 (pitch black).
-    dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true }),
+    dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true, on: (t) => fn(t) > 0.002 }),
   };
+
+  // A glow that stays put only needs drawing by the chunks it can reach: its
+  // floor spot, out to its reach, and back as far as its height lifts it up
+  // the screen (a street has many lamps and many chunks).
+  function lit(o, it) {
+    if (Array.isArray(o.at) && !o.draw) {
+      const [x, y, z] = o.at, r = (o.r ?? 2.5) + 1, up = 2 * Math.max(0, z) * ZK;
+      it.area = [x - r - up, y - r - up, x + r, y + r];
+    }
+    return it;
+  }
 
   def.build(R);
 
@@ -187,6 +208,16 @@ export function buildZone(def, place = {}) {
     }, (ctx, t, p) => { if (p !== OUT) wk.draw(ctx, t, p, wk); }, { bias: wk.bias || 0 });
   }
 
+  // A standing thing out behind a back wall (a sign on the street outside a
+  // door) is drawn with the room's things, so it would stand over that wall
+  // from inside. It shows while the wall is down (on the overview) and hides
+  // while it's up.
+  for (const it of items) {
+    if (it.layer !== THING || it.pos || !it.at) continue;
+    const side = it.at[0] < -0.01 ? 'left' : it.at[1] < -0.01 ? 'right' : null;
+    if (side) { it.behind = side; it.zone = zone; }
+  }
+
   items.sort((a, b) => a.layer - b.layer || a.order - b.order);
   zone.anim = items.filter((it) => it.anim);
   // The backdrop cache (the zone you're in) takes the flat things that don't
@@ -194,7 +225,7 @@ export function buildZone(def, place = {}) {
   // moving one (a curtain over a rainy window), so it's stamped in its turn.
   let moving = false;
   for (const it of items) {
-    if (it.layer < THING && it.anim) moving = true;
+    if (it.layer < THING && (it.anim || it.fade)) moving = true;
     it.backdrop = it.layer < THING && !it.anim && !moving;
   }
   zone.chunks = chunksOf(zone);
@@ -242,14 +273,23 @@ function chunksOf(zone) {
     return best;
   };
   zone.chunkAt = owner;
+  const ownerOf = (it, t) => {
+    if (it.ownT !== t) { const p = it.pos(t); it.ownT = t; it.own = owner(p.x, p.y); }
+    return it.own;
+  };
   return parts.map((rect, i) => {
     const items = [];
     for (const it of zone.items) {
-      if (it.layer !== THING) items.push(it);
+      if (it.layer !== THING) {
+        const a = it.area;
+        if (!a || (a[0] < rect[2] && a[2] > rect[0] && a[1] < rect[3] && a[3] > rect[1])) items.push(it);
+      }
       else if (it.pos) {
-        // Something that moves is drawn by the chunk it's in right now.
-        const draw = it.draw, pos = it.pos;
-        items.push({ ...it, draw: (ctx, t) => { const p = pos(t); if (owner(p.x, p.y) === i) draw(ctx, t); } });
+        // Something that moves is drawn by the chunk it's in right now (asked
+        // once a frame, whichever chunk asks first; the others skip it
+        // before sorting).
+        const mine = (t) => ownerOf(it, t) === i;
+        items.push({ ...it, mine, draw: (ctx, t) => { if (mine(t)) it.draw(ctx, t); } });
       } else if (owner(...(it.at || [0, 0])) === i) items.push(it);
     }
     return chunk(zone, i, rect, items, true);
@@ -274,12 +314,16 @@ function chunk(zone, index, rect, items, cut) {
       y0: (x0 + y0) / 2 - zone.h * ZK - 9,
       y1: (x1 + y1) / 2 + SLAB * ZK + 1.5,
     } : zone.bounds,
+    // What its floor-and-walls cache needs to cover: all of it, or for a piece
+    // of street (no walls) just its ground, which is all its patch lets through.
+    flat: null,
     snap: null,
     snapScale: 0,
     snapT: -1,
     stale: false,
     cell: null,
   };
+  if (cut && !zone.walls) c.flat = { ...c.bounds, y0: (x0 + y0) / 2 - 1.5 * ZK - 1 };
   // Its patch of the screen, remade when the picture's scale moves the seam's
   // tuck (about a pixel and a half) past a thousandth of a unit.
   // top: the patch for the layers over the things (the dark, glows, the
@@ -450,7 +494,15 @@ function darken(ctx, zone, k, color) {
   if (!(k > 0.002)) return;
   ctx.save();
   ctx.fillStyle = alpha(color, Math.min(0.92, k * 0.85));
-  if (Q.own) {
+  if (!zone.walls) {
+    // Outdoors (a street), only the ground darkens: anything over it would
+    // reach up over the rooms behind it too.
+    if (!zone.groundPath) {
+      zone.groundPath = new Path2D();
+      for (const [x0, y0, x1, y1] of zone.rects) quad(zone.groundPath, [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]]);
+    }
+    ctx.fill(zone.groundPath);
+  } else if (Q.own) {
     // In the zone's own picture, darken only what the zone drew.
     ctx.globalCompositeOperation = 'source-atop';
     const b = zone.bounds;
@@ -486,18 +538,38 @@ function stamp(ctx, st, it, m) {
   return m;
 }
 
+// How much of an item shows at t: 0 (skip it), up to 1.
+function shown(it, t) {
+  if (it.on && !it.on(t)) return 0;
+  if (it.behind) {
+    const z = it.zone;
+    if (z.low != null && z.inner[it.behind] && wallHeight(z, it.behind) > 2.4) return 0;
+  }
+  if (!it.fade) return 1;
+  const a = it.fade(t);
+  return a > 0.002 ? Math.min(1, a) : 0;
+}
+
 // st: the zone's still things, cached (or null to draw everything live).
 function drawThings(ctx, list, t, st) {
-  const keyed = list.map((it) => [depthOf(it, t), it.order, it]);
+  const keyed = [];
+  for (const it of list) if (!it.mine || it.mine(t)) keyed.push([depthOf(it, t), it.order, it]);
   keyed.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   let m = null; // the zone's transform, while stamping
   for (const k of keyed) {
     const it = k[2];
+    const a = shown(it, t);
+    if (!a) continue;
+    const a0 = ctx.globalAlpha;
+    if (a < 1) ctx.globalAlpha = a0 * a;
     const was = stamp(ctx, st, it, m);
-    if (was) { m = was; continue; }
-    if (m) { ctx.setTransform(m); m = null; }
-    fresh(ctx);
-    it.draw(ctx, t);
+    if (was) m = was;
+    else {
+      if (m) { ctx.setTransform(m); m = null; }
+      fresh(ctx);
+      it.draw(ctx, t);
+    }
+    ctx.globalAlpha = a0;
   }
   if (m) ctx.setTransform(m);
 }
@@ -519,6 +591,8 @@ function drawItems(ctx, piece, t, pick, st = null) {
     const it = piece.items[i];
     if (!pick(it)) continue;
     if (it.layer === THING) { things.push(it); continue; }
+    const a = shown(it, t);
+    if (!a) continue;
     if (it.layer > THING && things) {
       if (clipping) { ctx.restore(); clipping = false; }
       toCell(false);
@@ -531,10 +605,15 @@ function drawItems(ctx, piece, t, pick, st = null) {
       if (cut) { ctx.save(); ctx.clip(clip); } else ctx.restore();
       clipping = cut;
     }
+    const a0 = ctx.globalAlpha;
+    if (a < 1) ctx.globalAlpha = a0 * a;
     const m = !clip && stamp(ctx, st, it, null);
-    if (m) { ctx.setTransform(m); continue; }
-    fresh(ctx);
-    it.draw(ctx, t);
+    if (m) ctx.setTransform(m);
+    else {
+      fresh(ctx);
+      it.draw(ctx, t);
+    }
+    ctx.globalAlpha = a0;
   }
   if (clipping) ctx.restore();
   toCell(false);
@@ -599,7 +678,7 @@ export function drawSnapshot(ctx, zone) {
 // order; animated items in the same layers are drawn on top of the cache. Like
 // still things (below), it's drawn at the fraction of a pixel it's stamped at.
 function bakeBackdrop(zone, k, fx, fy, dpr) {
-  const b = zone.bounds;
+  const b = zone.flat || zone.bounds;
   const sx = Math.floor(b.x0 * k + fx), sy = Math.floor(b.y0 * k + fy);
   const w = Math.ceil(b.x1 * k + fx) - sx, h = Math.ceil(b.y1 * k + fy) - sy;
   let cv = zone.backdrop;

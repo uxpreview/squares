@@ -142,7 +142,7 @@ docs/
 | Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
 | How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
 | See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
-| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop |
+| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop |
 | How the map in front of the room you're in is cut away | "The cut layer" in `src/engine/renderer.js` (drawn on a see-through sheet, the room's outline erased, laid on the picture) |
 | How often the other rooms' pictures refresh | `SNAP_BUDGET_MS` in `src/engine/renderer.js`; it shrinks by itself (`snapQ`) when frames are slow |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |

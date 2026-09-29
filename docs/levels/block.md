@@ -1,9 +1,9 @@
 # The Block (connected)
 
-> Status: **Art** (gate 2 approved with changes; 4c next) · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Preview** (at gate 3) · Brief → Greybox → Art → QA → Preview → Shipped
 > Owner approvals: brief [x] · greybox [x] (with changes, decisions 14 to 18) · preview [ ]
 >
-> The greybox opens from `#/blockparty` (hidden from the picker). When it ships it takes over The Block's id, `block`, so saves carry over.
+> It opens from `#/blockparty` (hidden from the picker). When it ships it takes over The Block's id, `block`, so saves carry over.
 
 The Block as it is today, sixteen rooms on a plate with paper between them, becomes one city block: the same sixteen rooms, facing real streets, with the neighbors walking between them all day. It replaces today's Block in the picker (same id, `block`, so saves carry over).
 
@@ -108,8 +108,8 @@ The Block's: warm, silly, all ages, with the odd adult joke in the margins (the 
 - [x] **The day's timeline:** `src/maps/blockparty/day.js` (like the Manor's `evening.js`). *(Session 4b.)*
 - [x] **Framing a long area on a phone:** a street is framed a room's worth at a time, around where you tap it (or around a find, for QA); panning along it moves that spot. *(Session 4b: `zoneBox` in `src/engine/world.js`.)*
 - [ ] **A moving find** that circles the block (the van): a find already can move, within its own area; the van needs its own area, or a find that belongs to the street and follows the road.
-- [ ] **The victory lap along Main Street** instead of round the plate.
-- [ ] **QA:** the Block's speed with walls down, the streets and the walkers, against the budget the Block itself set.
+- [x] **The victory lap along Main Street** instead of round the plate. *(4c: `finale.js`; a map can name a `finale`: the clock it jumps to, where the camera goes, how long before the card.)*
+- [x] **QA:** the Block's speed with walls down, the streets and the walkers, against the budget the Block itself set. *(4c: see the roadmap, 4c.)*
 
 ## Open questions
 **Answered at gate 1 (session 4b): every recommendation, as written.** A day on a loop; the party and the Courier; the Main Street cross; walls down, all sixteen rooms kept, old saves as they are. Kept below for the record.
@@ -159,13 +159,28 @@ Also seen at the health pass, on the owner's Mac (desktop and phone, dawn, the p
 - **The blimp crosses the title** on desktop (by day under its first letters, by night over "Party"). Keeping its path clear of the top left would stop it.
 - **QA's close-finds warning** carries over from the Block: in the Roller Disco the goose and the slice of pizza are within 12px on a phone.
 
-Left for the art (4c):
+The health pass's open calls, answered by the owner at the start of 4c (every recommendation):
 
-- Signs off the shopfront walls (walls down cuts them to waist height): hanging signs and awnings.
-- Each room busiest at its hour (the rooms don't know the day's clock yet), and its windows showing the hour.
-- The night printed in night inks rather than darkened (a flat navy over the rooms for now).
-- The victory lap along Main Street, the Honks playing, the parcel handed over (a single sock).
-- The rocket launching at the party's climax; the ice rink's snowman scoring; the librarian's shush reaching into the library.
-- The queue, the hot dog cart, the newsstand and the busker drawn; the bouncy castle and the lorry drawn.
-- A sound bed: street noise, the sound check, the crowd.
-- The rooms' doors dressed (a frame, a step, a mat) where there's no painted door.
+19. **It ships as The Block Party.** The title, the picker and the back button all say it; it still takes the `block` id, so saves carry over.
+20. **The party queue stands in loose clumps,** thickest at the Main Street end, thinning round the corner, instead of one tidy row.
+21. **HONK bubbles keep clear of the invitation card,** wherever it's pinned.
+22. **At night the print marks and the caption print in the light ink,** as the Manor's words do.
+23. **The blimp flies clear of the title:** across the block the other way, top right to bottom left.
+
+The art, QA and preview (session 4c). All of "left for the art" is built:
+
+24. **The rooms keep their files.** What a room shows the street is its front, `fronts/<id>.js`: a sign that reads from the overview and is a joke up close, the door dressed, an OPEN or CLOSED card on its hours, the doorway glowing at night while it's open, and its rush (extra people at its hour, `HOURS` in `clock.js`). Anything a room does differently here (windows showing the hour's sky, clocks on the day's time, the rocket, the snowman's empty spot) is in the room file behind `R.opts.day`, which only this map passes, so The Block in the picker is unchanged (checked pixel by pixel, room by room; the disco's pizza moved on both, off the goose).
+25. **Painted signs stay on the walls** (you see them inside); the street sees the fronts. A front standing outside a back wall hides while you're in that room (its wall is up) and shows on the overview.
+26. **The stage fills the crossing:** a deck 6.2 square and 1.4 high, a backdrop 7 high on its back edges ("BLOCK / PARTY", "ALL WELCOME* / *even geese"), built through the day (a frame at dawn, the deck by noon, the backdrop by 1:30, the band's gear and lights by 2:30). Main Street's walking lanes moved to 0.9 from each kerb so people pass it; the Honks play up on the deck. The bouncy castle is on the left-hand arm by the noodle bar.
+27. **The night:** the streets are printed in night inks (navy and lilac), nothing dimmed on top; the rooms stay lit with a soft warm glow; lamps glow. The pink sunset holds to 8pm, dusk at 9, night from 10.
+28. **The ending:** the last goose jumps the clock to the party (7:48pm) and flies the camera to the stage; the sixteen geese come off it one by one and conga round Main Street; the Courier hands over the parcel on the front of the stage ("It's a sock."); the card comes after nine seconds. The laundromat's LOST poster shows the same sock.
+29. **The rocket** goes up once a day at 8:48pm, at the height of the party (the countdown board from 7:30, the crowd behind a rope, half the party turns to look); a new one is wheeled out by dawn.
+30. **The pool is The Lido** on this map ("NOW ON THE GROUND FLOOR"); its file keeps "Rooftop Pool" for The Block.
+31. **The invitation** is pinned over the stage's backdrop on a desktop (so the stage still shows), and at the Observatory on a phone.
+32. **Sound:** a street bed (traffic and people), and cues taken from the day itself: the lorry's horn when it says HONK, the librarian's shush, the sound check's thumps, the crowd at the party, the rocket.
+33. **The cast** wear their parts (the Courier's brown uniform and parcel, the Honks' goose tees, the snowman judge's score cards and melt) and no name tags; speech shows close up.
+
+For the owner at gate 3:
+
+- **Shouting or not:** the rooms and fronts shout in capitals ("IS IT 5 YET?"); the streets, the cast and the ending speak in sentence case ("Ooh, a seat.", "It's a sock."). One way everywhere, or keep the mix (capitals for signs and crowds, sentence case for the named cast)?
+- **Neon by day:** the arcade's and the disco's neon only glow at night (a glow by day cost too much every frame).

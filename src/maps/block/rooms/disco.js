@@ -145,6 +145,20 @@ function cubbies(ctx, y0, y1, seed) {
   box(ctx, 0, y0, 3.08, W, y1 - y0, 0.12, C.wood, { lw: 0.04 });
 }
 
+// A neon clock on the right wall, its hands on the day's hour.
+function neonClock(ctx, h) {
+  const x = 15.2, z = 3.7, r = 0.4;
+  const ring = [];
+  for (let a = 0; a < Math.PI * 2; a += 0.35) ring.push([x + Math.cos(a) * r, 0.02, z + Math.sin(a) * r]);
+  face(ctx, ring, C.night, { lw: 0.1, stroke: C.pink });
+  const hand = (turns, len, lw) => {
+    const a = turns * Math.PI * 2;
+    face(ctx, [[x, 0.02, z], [x + Math.sin(a) * len, 0.02, z + Math.cos(a) * len]], null, { lw, stroke: C.white });
+  };
+  hand((h % 12) / 12, 0.2, 0.07);
+  hand(h % 1, 0.3, 0.045);
+}
+
 export default {
   id: 'disco',
   name: 'Roller Disco',
@@ -220,12 +234,15 @@ export default {
       paintText(ctx, 'right', 15.1, 4.82, 'EXIT', 0.3, C.white);
     });
 
-    // The ALL SKATE / REVERSE lightbox, and a string of blinking bulbs.
+    // The ALL SKATE / REVERSE lightbox, and a string of blinking bulbs. On a
+    // day (the Block Party), a neon clock by the exit with the real time on it.
+    const day = R.opts.day;
     R.decor((ctx, t) => {
       const rev = reversing(t);
       const blink = rev && Math.sin(t * 12) > 0;
       onRight(ctx, 12.0, 2.3, 2.6, 0.9, rev ? (blink ? C.coral : C.red) : C.ink, { lw: 0.05 });
       paintText(ctx, 'right', 13.3, 2.75, rev ? 'REVERSE!' : 'ALL SKATE', 0.42, rev ? C.white : C.butter);
+      if (day) neonClock(ctx, day.hour(t));
       if (!Q.detail) return;
       for (const plane of ['L', 'R']) {
         for (let i = 0; i < 20; i++) {
@@ -391,7 +408,7 @@ export default {
         face(ctx, [[x, 2.5, 0.25], [x + 0.2, 2.5, 0.25], [x + 0.2, 2.5, 1.05], [x, 2.5, 1.05]], on ? GLOWS[i % GLOWS.length] : shade(C.purple, 0.4), { stroke: false });
       }
       // decks
-      for (const [dx, isPizza] of [[6.5, false], [8.9, true]]) {
+      for (const [dx, isPizza] of [[6.5, true], [8.9, false]]) {
         box(ctx, dx - 0.6, 1.5, 1.3, 1.2, 0.9, 0.08, C.grey, { lw: 0.03 });
         disc(ctx, dx, 1.95, 1.39, 0.42, C.black, { lw: 0.03 });
         const a = t * 3.5;
@@ -420,7 +437,7 @@ export default {
       // laptop with a sticker
       box(ctx, 5.6, 1.5, 1.3, 0.5, 0.5, 0.05, C.greyLight, { lw: 0.03 });
     }, { anim: true });
-    R.find({ id: 'pizza', label: 'A slice of pizza', at: [8.9, 1.95, 1.45], r: 0.7 });
+    R.find({ id: 'pizza', label: 'A slice of pizza', at: [6.5, 1.95, 1.45], r: 0.7 }); // on the left deck, clear of the goose
 
     // The DJ, bobbing, calling out the reverse
     R.mover(() => ({ x: 7.2, y: 0.8 }), (ctx, t) => {

@@ -270,9 +270,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // (placeInvite, every frame) and goes once you step into a room. A map says
   // what it says (words.invite, words.hint) and where (invite: the zone, the
   // spot the ring marks, and the pin the card points at, which by default is
-  // the same spot), in its map.js.
+  // the same spot), in its map.js; invite.phone, if it has one, says where on
+  // a phone (a screen under 900px wide).
   function inviteSpot() {
-    const inv = world.map.invite || {};
+    const all = world.map.invite || {};
+    const inv = all.phone && view.vw < 900 ? all.phone : all;
     const i = inv.zone ? world.indexOf(inv.zone) : world.order[0];
     const zone = world.zones[i];
     if (!zone) return null;
@@ -481,8 +483,16 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         setTimeout(() => {
           if (!still()) return;
           sound('fanfare');
-          toOverview({ dur: 2.5 });
-          setTimeout(() => { if (still()) on.complete(w); }, 2600);
+          // A place with a finale jumps its clock there (the Block Party's
+          // party) and frames where it plays for a while before the card.
+          const fin = w.map.finale;
+          if (fin && fin.at != null) setClock(fin.at);
+          const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
+          if (fz >= 0) {
+            showOverviewUI();
+            camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), insets(), 0.5)), 2.5);
+          } else toOverview({ dur: 2.5 });
+          setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
         }, 1800);
       }
       toast(allGeese ? words().complete : `HONK. Goose ${p.geese} of ${world.totalGeese}.${zoneDone ? ` ${zone.name}, all found.` : ''}`);
@@ -596,7 +606,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const [sx, sy] = camera.toScreen(...callAt(z));
       return sx > s.left + 20 && sx < vw - s.right - 20 && sy > s.top + 30 && sy < vh - s.bottom;
     };
-    const left = world.zones.filter((z) => z !== lastCaller && !lifted(z) && z.finds.some((f) => f.goose && !isFound(z, f)) && seen(z));
+    // Never on the invitation card (or its ring): the bubble would sit on it.
+    const card = !ui.invite.hidden && ui.invite.style.visibility !== 'hidden' ? ui.invite.getBoundingClientRect() : null;
+    const clear = (z) => {
+      if (!card) return true;
+      const [sx, sy] = camera.toScreen(...callAt(z));
+      // The bubble is about 80 x 40 px, above its point.
+      return sx + 45 < card.left - 8 || sx - 45 > card.right + 8 || sy < card.top - 8 || sy - 45 > card.bottom + 30;
+    };
+    const left = world.zones.filter((z) => z !== lastCaller && !lifted(z) && z.finds.some((f) => f.goose && !isFound(z, f)) && seen(z) && clear(z));
     if (!left.length) return;
     lastCaller = left[Math.floor(Math.random() * left.length)];
     pops.push({ kind: 'call', zone: lastCaller, t0: now });

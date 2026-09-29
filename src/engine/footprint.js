@@ -17,6 +17,8 @@ export function footprint() {
   const box = [Infinity, Infinity, -Infinity, -Infinity];
   let path = [Infinity, Infinity, -Infinity, -Infinity];
   let dash = [];
+  // Where a clip lets ink land (root units), or null for anywhere.
+  let limit = null;
 
   const grow = (b, x, y) => {
     if (x < b[0]) b[0] = x;
@@ -45,8 +47,14 @@ export function footprint() {
   };
   const ink = (b, pad = 0) => {
     if (!(b[0] <= b[2])) return;
-    grow(box, b[0] - pad, b[1] - pad);
-    grow(box, b[2] + pad, b[3] + pad);
+    let [x0, y0, x1, y1] = [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
+    if (limit) {
+      x0 = Math.max(x0, limit[0]); y0 = Math.max(y0, limit[1]);
+      x1 = Math.min(x1, limit[2]); y1 = Math.min(y1, limit[3]);
+      if (x0 > x1 || y0 > y1) return;
+    }
+    grow(box, x0, y0);
+    grow(box, x1, y1);
   };
   const strokePad = (g) => (g.lineWidth * scaleOf() / 2) * (g.lineJoin === 'miter' ? g.miterLimit : 1.5);
   const STATE = ['lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'font', 'textAlign', 'textBaseline', 'globalAlpha',
@@ -58,11 +66,12 @@ export function footprint() {
     textBaseline: 'alphabetic', globalAlpha: 1, globalCompositeOperation: 'source-over', fillStyle: '#000', strokeStyle: '#000',
     shadowBlur: 0, shadowColor: 'rgba(0,0,0,0)', shadowOffsetX: 0, shadowOffsetY: 0, filter: 'none', lineDashOffset: 0,
     imageSmoothingEnabled: true,
-    save() { stack.push([m, dash, STATE.map((k) => g[k])]); },
+    save() { stack.push([m, dash, STATE.map((k) => g[k]), limit]); },
     restore() {
       const s = stack.pop();
       if (!s) return;
       [m, dash] = s;
+      limit = s[3];
       STATE.forEach((k, i) => { g[k] = s[2][i]; });
     },
     translate(x, y) { mul(1, 0, 0, 1, x, y); },
@@ -93,7 +102,15 @@ export function footprint() {
     },
     fill(p) { if (p && typeof p === 'object') no('Path2D'); plain(g); ink(path); },
     stroke(p) { if (p) no('Path2D'); plain(g); ink(path, strokePad(g)); },
-    clip() {}, // clipping only ever takes ink away
+    // Clipping only ever takes ink away: what's drawn next lands inside the
+    // box round the path (a Path2D clip is left unmeasured, so it errs big).
+    clip(p) {
+      if (p && typeof p === 'object') return;
+      if (!(path[0] <= path[2])) return;
+      limit = limit
+        ? [Math.max(limit[0], path[0]), Math.max(limit[1], path[1]), Math.min(limit[2], path[2]), Math.min(limit[3], path[3])]
+        : path.slice();
+    },
     fillRect(x, y, w, h) { plain(g); const b = [Infinity, Infinity, -Infinity, -Infinity]; quad(b, x, y, x + w, y + h); ink(b); },
     strokeRect(x, y, w, h) { plain(g); const b = [Infinity, Infinity, -Infinity, -Infinity]; quad(b, x, y, x + w, y + h); ink(b, strokePad(g)); },
     clearRect() {},

@@ -2,7 +2,7 @@
 // volume knob, a dog on backing vocals and a neighbor who has had enough.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
-  speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table,
+  speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table, mix,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, wave } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -130,12 +130,33 @@ function dog(ctx, x, y, z, t, howl) {
   ctx.restore();
 }
 
+// On a day (the Block Party): the sky by the hour (as the Lido's), for the
+// slice of outside under the garage door and the side door's window.
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+// Where an amp stood, once the band has carried it to the stage: tape on the
+// floor round its spot.
+function ampSpot(ctx, x, y, w, d) {
+  rect(ctx, x, y, w, d, 0.015, alpha(C.ink, 0.08), { lw: 0.05, stroke: C.mustard });
+}
+
 export default {
   id: 'band',
   name: 'Band Practice',
   blurb: 'The band is called The Honks and the lead singer only knows one word. The neighbor has asked nicely nine times.',
 
   build(R) {
+    // On a day, the band carries both amps out to the stage at 2pm (day.js)
+    // and brings them home about midnight.
+    const day = R.opts.day;
+    const gone = (t) => { if (!day) return false; const h = day.hour(t); return h >= 14.25 && h < 23.9; };
+
     // ---------- Floor and walls ----------
     R.floor((ctx) => {
       slab(ctx, C.grey);
@@ -248,7 +269,7 @@ export default {
       inY(ctx, 0.01, () => {
         ctx.beginPath();
         ctx.rect(GX0, 0, GX1 - GX0, GAP);
-        ctx.fillStyle = C.sky;
+        ctx.fillStyle = day ? skyAt(day.hour(t)) : C.sky;
         ctx.fill();
         ctx.fillStyle = C.greyLight;
         ctx.fillRect(GX0, 0, GX1 - GX0, 0.18);
@@ -419,6 +440,14 @@ export default {
     // ---------- Big furniture along the walls ----------
     // Guitar amp stack against the right wall, speaker cones pulse
     R.thing(6.6, 1.4, (ctx, t) => {
+      if (gone(t)) {
+        ampSpot(ctx, 5.0, 0.3, 1.6, 1.1);
+        // a sign propped where it stood
+        face(ctx, [[5.1, 0.45, 0], [6.5, 0.45, 0], [6.45, 0.25, 1.0], [5.15, 0.25, 1.0]], C.woodLight, { lw: 0.04, dots: C.wood, density: 0.2 });
+        label(ctx, 5.8, 0.45, 0.68, 'GONE TO', 0.22, C.coral);
+        label(ctx, 5.8, 0.45, 0.36, 'THE GIG', 0.22, C.coral);
+        return;
+      }
       const k = kick(t) * loud(t);
       const sh = loud(t) > 1 ? Math.sin(t * 60) * 0.03 : 0;
       ctx.save();
@@ -444,6 +473,7 @@ export default {
 
     // Bass amp against the left wall, cone faces the room
     R.thing(1.6, 6.6, (ctx, t) => {
+      if (gone(t)) { ampSpot(ctx, 0.3, 5.1, 1.3, 1.5); return; }
       const k = kick(t) * loud(t);
       box(ctx, 0.3, 5.1, 0, 1.3, 1.5, 1.7, C.navy, { top: C.ink });
       if (Q.detail) {
@@ -522,7 +552,8 @@ export default {
       const o = doorOpen(t);
       if (o <= 0) {
         onLeft(ctx, 11.2, 0, 1.8, 3.2, C.teal, { dots: shade(C.teal, 0.3), density: 0.15 });
-        onLeft(ctx, 11.45, 1.9, 1.3, 1.0, C.sky, { dots: tint(C.sky, 0.5), density: 0.2 });
+        const sky = day ? skyAt(day.hour(t)) : C.sky;
+        onLeft(ctx, 11.45, 1.9, 1.3, 1.0, sky, { dots: tint(sky, 0.5), density: 0.2 });
         onLeft(ctx, 11.45, 0.35, 1.3, 1.2, shade(C.teal, 0.1));
         const [X, Y] = P(0, 11.45, 1.5);
         ctx.beginPath(); ctx.arc(X, Y, 0.07, 0, Math.PI * 2); ctx.fillStyle = C.mustard; ctx.fill();
@@ -709,7 +740,9 @@ export default {
       if (!Q.detail || !playing(t)) return;
       const cols = [C.coral, C.navy, C.teal, C.purple, C.red];
       const n = loud(t) > 1 ? 30 : 20;
+      const g = gone(t);
       particles(t, n, 2.6, (k, r, i) => {
+        if (g && i % sources.length < 2) return; // (no amps, no notes from them)
         const [sx, sy, sz] = sources[i % sources.length];
         const dx = (r() - 0.5) * 2.5, dy = (r() - 0.5) * 2.5;
         const x = sx + dx * k + Math.sin(k * 8 + i) * 0.2;

@@ -401,6 +401,9 @@ export default {
     // Light poles at the rink corners with bulbs strung between them.
     const poles = [[3.7, 4.2], [15.3, 4.2], [15.3, 13.3], [3.7, 13.3]];
     const PZ = 4.3;
+    // On a day (the Block Party), the pole lamps light up after dark.
+    const day = R.opts.day;
+    if (day) poles.forEach(([x, y]) => R.light({ at: [x, y, PZ], r: 3.4, color: C.butter, k: (t) => day.nightK(t) * 0.6 }));
     poles.forEach(([x, y], i) => {
       R.thing(x, y, (ctx) => {
         box(ctx, x - 0.08, y - 0.08, 0, 0.16, 0.16, PZ, C.navy, { flat: true });
@@ -649,8 +652,11 @@ export default {
         if (show) scoreCard(ctx, x + 0.45, y - 0.45, 3.05, scores[j][((cyc % 5) + 5) % 5]);
       }, { bias: 2.2 });
     });
-    // The snowman is the third judge.
+    // The snowman is the third judge. (On a day, the Block Party, he's wheeled
+    // out to judge the party at 5pm: he's the walker then, not this.)
+    const out = R.opts.day && R.walkers.find((w) => w.id === 'snowman');
     R.mover(() => ({ x: 1.7, y: 12.9 }), (ctx, t) => {
+      if (out && !out.at(t).hide) return;
       const s = pulse(t, FIG) * FIG;
       snowman(ctx, 1.7, 12.9, t, s > 10.6 && s < 13.8 ? '1.0' : null);
     });

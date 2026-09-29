@@ -2,7 +2,7 @@
 // a flamingo float, and a lifeguard who has seen enough running today.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, plant, slab, planks,
-  speech, shade, tint, alpha, dots, Q, label, P,
+  speech, shade, tint, mix, alpha, dots, Q, label, P,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -67,6 +67,37 @@ function waterTower(ctx, t) {
   label(ctx, cx + 1.2, cy + 1.2, 6.1, 'SQ', 0.7, C.coral);
 }
 
+// The sky by the hour, for a pool on a day: navy night, a blush dawn, day
+// blue, the party's pink sunset, a purple dusk (steps of a twentieth keep
+// the color mixes few).
+const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
+function skyAt(h) {
+  for (let i = 1; i < SKY.length; i++) {
+    const [h0, c0] = SKY[i - 1], [h1, c1] = SKY[i];
+    if (h <= h1) return mix(c0, c1, Math.round(((h - h0) / (h1 - h0)) * 20) / 20);
+  }
+  return C.night;
+}
+function skyInWater(ctx, t, h) {
+  const day = h >= 8 && h <= 17;
+  if (!day) {
+    poly(ctx, [[PX0, PY0, WATER_Z], [PX1, PY0, WATER_Z], [PX1, PY1, WATER_Z], [PX0, PY1, WATER_Z]]);
+    ctx.fillStyle = alpha(skyAt(h), 0.4);
+    ctx.fill();
+  }
+  if (!Q.detail) return;
+  // the sun (or the moon) in the water, broken up by ripples
+  const dark = h < 5.5 || h > 20.5;
+  const [X, Y] = P(dark ? 11.4 : 6.2, dark ? 11.7 : 5.3, WATER_Z);
+  ctx.fillStyle = alpha(dark ? C.butter : C.white, dark ? 0.9 : 0.7);
+  for (let i = 0; i < 4; i++) {
+    const w = (0.7 - i * 0.12) * (1 + Math.sin(t * 2 + i) * 0.15);
+    ctx.beginPath();
+    ctx.ellipse(X + Math.sin(t * 1.3 + i * 2) * 0.08, Y - 0.3 + i * 0.2, w, 0.07, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 export default {
   id: 'pool',
   name: 'Rooftop Pool',
@@ -116,6 +147,14 @@ export default {
       }
       ctx.restore();
     }, { anim: true });
+    // On a day (the Block Party), the water mirrors the sky: blush at dawn,
+    // pink at the party, navy with the moon in it at night, and the pool
+    // lights come on after dark.
+    const day = R.opts.day;
+    if (day) {
+      R.rug((ctx, t) => skyInWater(ctx, t, day.hour(t)), { anim: true });
+      R.light({ at: [(PX0 + PX1) / 2, (PY0 + PY1) / 2, WATER_Z], r: 6, color: C.tealLight, k: (t) => day.nightK(t) * 0.5 });
+    }
 
     // Water tower and bunting to the corners
     R.thing(4.2, 4.2, (ctx, t) => waterTower(ctx, t));

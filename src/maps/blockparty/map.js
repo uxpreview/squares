@@ -5,16 +5,20 @@
 // streets and into every room at once; step into a room and its walls rise.
 // The whole block runs through a day in six minutes (day.js).
 //
-// At gate 2 (the greybox): the streets are blocked out, the rooms are the
-// Block's own. It opens from #/blockparty and isn't in the picker; when it
+// The rooms are the Block's own files, each with a street front added here
+// (fronts/). It opens from #/blockparty and isn't in the picker; when it
 // ships it takes over The Block's id, so saves carry over. The brief is
-// docs/levels/block.md; the layout is plan.js.
+// docs/levels/block.md; the layout is plan.js; the colors are style.js.
 import { WALL, ZK, SLAB } from '../../engine/iso.js';
 import { C, alpha } from '../../engine/art.js';
-import { reg } from '../shared.js';
-import { sky } from '../block/ambient.js';
-import { AT, DOORS, GRID, SIZE, MID, LOOP } from './plan.js';
-import { walkers, nightfall, plate, at } from './day.js';
+import { reg, birds } from '../shared.js';
+import { blimp, plane } from '../block/ambient.js';
+import { AT, DOORS, GRID, SIZE, MID, LOOP, STAGE, STAGE_Z } from './plan.js';
+import { walkers, nightfall, plate } from './day.js';
+import { hour, at, nightK, open, rush, LAUNCH } from './clock.js';
+import { follow } from './finale.js';
+import { sound } from './sound.js';
+import * as FRONTS from './fronts/index.js';
 
 import observatory from '../block/rooms/observatory.js';
 import launchpad from '../block/rooms/launchpad.js';
@@ -42,15 +46,27 @@ const ROOMS = {
   noodles, bakery, laundromat, ballpit, umbrellas, aquarium, band, trains,
 };
 
-// Each room as the Block draws it, with night falling on it too: it darkens
-// and its windows glow (day.js).
-const withNight = (room) => ({ ...room, build(R) { room.build(R); nightfall(R); } });
+// Each room as the Block draws it, with its street front (fronts/) and the
+// night on it (it stays lit: day.js).
+const onTheStreet = (room) => ({ ...room, ...RENAMED[room.id], build(R) { room.build(R); FRONTS[room.id](R); nightfall(R); } });
+// On the ground, the pool is the Lido, and the rocket only goes up once a day.
+const RENAMED = {
+  pool: { name: 'The Lido' },
+  launchpad: { blurb: 'Rocket SQ-1 goes up once a day, at the height of the party. The mechanic has a new one built by dawn.' },
+};
+
+// What a room can ask about the day: the hour (0 to 24), how dark it is
+// outside, whether it's open and how busy (0 to 1), and when the rocket goes.
+const dayFor = (id) => ({ hour, nightK, open: (t) => open(id, t), rush: (t) => rush(id, t), launch: at(LAUNCH) });
 
 const rooms = GRID.flatMap((row, r) => row.map((id, c) => ({
-  zone: withNight(ROOMS[id]),
+  zone: onTheStreet(ROOMS[id]),
   at: AT[id],
   tag: `Unit ${c + 1}${'ABCD'[r]}`,
   doors: DOORS[id] ? [DOORS[id]] : [],
+  // The day, for a room file that wants it (R.opts.day): on The Block it's
+  // absent, so the room draws as it always has.
+  opts: { day: dayFor(id) },
 })));
 
 // Prev / next and the list: the streets first, then the rooms snaking through
@@ -58,28 +74,42 @@ const rooms = GRID.flatMap((row, r) => row.map((id, c) => ({
 const cells = GRID.flatMap((row, r) => row.map((id, c) => ({ id, r, c })));
 cells.sort((a, b) => a.c + a.r - (b.c + b.r) || ((a.c + a.r) % 2 ? a.c - b.c : b.c - a.c));
 
-// Registration marks round the sheet, and its caption.
-function backdrop(ctx) {
+// Registration marks round the sheet, and its caption, printed in the light
+// ink after dark (like the Manor's words on its night).
+function backdrop(ctx, t) {
+  const night = nightK(t) > 0.5;
   const top = -WALL * ZK - 7, bottom = SIZE + SLAB * ZK + 6;
-  reg(ctx, 0, top);
-  reg(ctx, 0, bottom);
-  reg(ctx, -SIZE - 6, SIZE / 2);
-  reg(ctx, SIZE + 6, SIZE / 2);
-  const k = 40;
   ctx.save();
+  reg(ctx, 0, top, night ? C.paper : null);
+  reg(ctx, 0, bottom, night ? C.paper : null);
+  reg(ctx, -SIZE - 6, SIZE / 2, night ? C.paper : null);
+  reg(ctx, SIZE + 6, SIZE / 2, night ? C.paper : null);
+  const k = 40;
   ctx.translate(-SIZE + 2, SIZE * 0.8);
   ctx.scale(1 / k, 1 / k);
   ctx.font = `${0.9 * k}px "Rethink Sans", system-ui, sans-serif`;
-  ctx.fillStyle = alpha(C.ink, 0.55);
+  ctx.fillStyle = alpha(night ? C.paper : C.ink, 0.55);
   ctx.textBaseline = 'middle';
-  ctx.fillText('SQUARES  ·  THE BLOCK PARTY  ·  GREYBOX', 0, 0);
+  ctx.fillText('SQUARES  ·  THE BLOCK PARTY  ·  16 ROOMS, 16 GEESE, 1 SOCK', 0, 0);
   ctx.restore();
+}
+
+// Over the block: the blimp (on a path that keeps clear of the title, top
+// left), birds by day, the paper plane, and the finale's clock.
+function sky(ctx, t, world, fx) {
+  follow(fx);
+  blimp(ctx, t, { along: 'y', at: SIZE * 0.66, from: -40, to: SIZE + 30 });
+  if (nightK(t) < 0.5) {
+    birds(ctx, t, 0, SIZE);
+    birds(ctx, t + 17, 1, SIZE);
+  }
+  plane(ctx, t, SIZE);
 }
 
 export default {
   id: 'blockparty',
   name: 'The Block Party',
-  short: 'The Block',
+  short: 'The Block Party',
   tagline: 'Sixteen rooms, one street party, a goose in every room.',
   zones: [
     ...rooms,
@@ -93,8 +123,15 @@ export default {
   loop: LOOP,
   // The paper changes with the hour: warm at dawn, amber at the party, navy at night.
   plate,
-  // A first visit: the invitation points at the stage.
-  invite: { zone: 'main-street', at: [MID, MID, 1.2] },
+  // A first visit: the invitation points at the stage, pinned over its
+  // backdrop so the stage still shows; on a phone, where the
+  // stage is in the thick of it, it pins by the back corner instead, on the
+  // Observatory (block.md, decision 18).
+  invite: { zone: 'main-street', at: [MID, MID, 1.4], pin: [STAGE[0] + 0.3, STAGE[1] + 0.3, STAGE_Z + 7.6], phone: { zone: 'observatory', pin: [0, 0, WALL - 2] } },
+  // The ending: the clock jumps to the party, the camera goes to the stage,
+  // and the geese conga off it (finale.js); the card comes after a while.
+  finale: { at: at(19.8), zone: 'main-street', near: [MID + 5, MID + 2], hold: 9 },
+  sound,
   // As the Block: on a phone held upright the block fills the height and the
   // side rooms are a swipe away; on its side, the width; on a big screen, all of it.
   overview: (portrait, storey, short) => {

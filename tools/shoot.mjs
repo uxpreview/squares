@@ -109,6 +109,9 @@ await page.evaluate(([z, a, w, f, fr]) => {
   s.play.debug.finds = f;
 }, [zoom, at, wait, showFinds, freeze]);
 await page.waitForTimeout(wait * 1000);
+// Every other room's picture at this moment (a headless browser paints too
+// rarely for them to keep up with the clock).
+await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); })));
 await page.screenshot({ path: out });
 const stats = await page.evaluate((id) => {
   const s = window.__squares;
