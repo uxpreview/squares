@@ -6,11 +6,8 @@
 //
 // Lines are [who, what they say]; who is a cast id (style.js).
 import { C, Q, mix, alpha, setScreen, dots, shade, person } from '../../engine/art.js';
-import { INK, CAST, iguana, queasy } from './style.js';
+import { INK, CAST, iguana, queasy, verdict } from './style.js';
 
-// What the case file tells the art: whether it's solved (the reveal at the
-// pool draws the iguana under a towel from then on).
-export const verdict = { solved: null };
 
 const suspects = [
   {

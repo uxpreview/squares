@@ -110,6 +110,10 @@ export const sickness = (id, t) => Math.max(green(t, SICK[id]), HERRING[id] ? HE
 // A face at that much green.
 export const queasy = (skin, k) => (k > 0 ? mix(skin, INK.queasyGreen, 0.75 * k) : skin);
 
+// What the case file tells the art: when it was solved (the reveal at the
+// pool puts a towel over the iguana from then on), or null.
+export const verdict = { solved: null };
+
 // ---------- The cast ----------
 // Everyone on the day's clock (day.js), their name and look.
 export const CAST = {

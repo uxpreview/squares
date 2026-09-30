@@ -29,7 +29,7 @@ export default {
     figure(R, 21, 1, folk(23), 'Barman', { dir: 'l' });
     figure(R, 30, 9, folk(24), 'Lifeguard');
     pin(R, { id: 'bar-tab', label: "Chad's bar tab", at: [22.5, 2.1, 1.3] }, 1);
-    pin(R, { id: 'towel', label: 'A towel saving a lounger', at: [2.5, 13.8, 0.6] }, 2);
+    pin(R, { id: 'towel', label: 'A lounger reserved since day one', at: [2.5, 13.8, 0.6] }, 2);
     // The goose: at its muster station in a life jacket, the only one listening.
     R.goose([15.5, 2.6, 0], { dir: 'l' });
     paths(R);
