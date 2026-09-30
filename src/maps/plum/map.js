@@ -80,6 +80,9 @@ export default {
     goosePerZone: true,
     things: [3, 3],
     at: at(12),
+    // Timed at low water at noon, and at high water after dark (the evening
+    // inks, the lights, the most water on screen).
+    speedAt: [at(12), at(23)],
     moments: [
       { at: at(6), label: 'Dawn, going out' },
       { at: at(12), label: 'Low tide' },

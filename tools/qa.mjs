@@ -527,6 +527,9 @@ try {
   // ---------- Speed ----------
   if (!quick) {
     step('Timing every area with the CPU slowed 4x');
+    // The tapping page has found every goose and is playing the ending: stop
+    // it, so it doesn't compete with the timing for the processor.
+    await main.page.goto('about:blank');
     const gpu = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] });
     const { ctx, page: p } = await open(PHONE, { browser: gpu, dsf: 3 });
     const cdp = await ctx.newCDPSession(p);
@@ -537,14 +540,28 @@ try {
     // Settled: floors and walls where they're heading (a headless browser
     // paints so slowly that walls rising would take the whole measurement),
     // and the room's caches made.
+    // A place whose look changes with its clock (a tide) names the moments to
+    // time it at (qa.speedAt, loop seconds); each view is timed at each, and
+    // the slowest counts. Otherwise wherever the clock has got to.
+    const moments = info.qa.speedAt || [null];
+    const fmtAt = (at) => (at == null ? '' : ` at ${fmt(at)}`);
     const measure = async (label) => {
+      let worst = null;
+      for (const at of moments) {
+        if (at != null) await p.evaluate((t) => window.__squares.clock.set(t), at);
+        const ms = await measureOnce();
+        if (!worst || ms > worst[1]) worst = [label + (moments.length > 1 ? fmtAt(at) : ''), ms];
+      }
+      times.push(worst);
+    };
+    const measureOnce = async () => {
       await p.waitForFunction(() => !window.__squares.camera.flying, null, { timeout: 20000 }).catch(() => {});
       await p.evaluate(() => window.__squares.renderer.settleNow());
       await p.waitForFunction(() => { const z = window.__squares.play.focus; return !z || z.chunks.every((c) => c.stills && c.bd); }, null, { timeout: 20000 }).catch(() => {});
       await p.waitForTimeout(1500);
       await p.evaluate(() => { const f = window.__squares.perf; f.n = 0; f.total = 0; f.worst = 0; });
       await p.waitForFunction(() => window.__squares.perf.n >= 12, null, { timeout: 20000 }).catch(() => {});
-      times.push([label, await p.evaluate(() => { const f = window.__squares.perf; return f.n ? f.total / f.n : f.ms; })]);
+      return p.evaluate(() => { const f = window.__squares.perf; return f.n ? f.total / f.n : f.ms; });
     };
     for (const s of info.storeys.length ? info.storeys : [{ id: null, name: 'The whole place' }]) {
       if (s.id) await p.evaluate((i) => window.__squares.play.setStorey(i), s.id);

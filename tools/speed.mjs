@@ -6,6 +6,7 @@
 //   node tools/speed.mjs <level> --walk     every area in turn on one page, as QA does
 //   node tools/speed.mjs <level> --frames=12 --only=library,study
 //   node tools/speed.mjs <level> --live     with the room's caches off, to compare
+//   node tools/speed.mjs <level> --at=100   at a moment of the loop (seconds; the clock runs on from it)
 //
 // Prints each view's average frame (ms) and its parts: the room you're in,
 // the other rooms, refreshing their pictures, the backdrop and the sky.
@@ -35,6 +36,7 @@ async function open(hash) {
   await p.goto(base + '#/' + hash);
   await p.waitForFunction(() => window.__squares && window.__squares.world, null, { timeout: 30000 });
   if (args.includes('--live')) await p.evaluate(() => { window.__squares.renderer.caching = false; });
+  if (opt('at', null) != null) await p.evaluate((t) => window.__squares.clock.set(t), +opt('at', 0));
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   return { ctx, p };
