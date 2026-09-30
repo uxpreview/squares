@@ -1,7 +1,7 @@
 # <Level name>
 
 > Status: **Brief** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [ ] · greybox [ ] · preview [ ]
+> Approvals: brief [ ] (the lead's call) · greybox [ ] (the lead's call) · preview [ ] (the owner)
 
 ## In one line
 What it is and why it's funny, in one sentence.

@@ -4,7 +4,7 @@ Levels get added often, so making one has to be a repeatable pipeline, not a fre
 
 ## Principles
 
-1. **Decide on paper before pixels.** A brief and a greybox cost minutes to change. Finished art costs hours. The owner's approval comes at the cheap moments.
+1. **Decide on paper before pixels.** A brief and a greybox cost minutes to change. Finished art costs hours. Decisions get made at the cheap moments and written into the brief, where the owner sees them all at the preview.
 2. **One source of truth per level.** Its brief (`docs/levels/<id>.md`). Every agent that touches the level reads it first; every decision made later goes back into it.
 3. **Parallel where the work is independent, one voice where it needs judgment.** Areas are drawn in parallel by separate agents. Consistency, the story and the finds get one reviewer each.
 4. **Machines check what machines can check.** Errors, performance, finds being on screen and tappable, copy rules: automated, every time. People (and a fresh-eyes playtest agent) check whether it's fun.
@@ -14,7 +14,7 @@ Levels get added often, so making one has to be a repeatable pipeline, not a fre
 
 | Role | Who | Does |
 | --- | --- | --- |
-| **Owner** | You | Picks the level. Approves at three gates: brief, greybox, preview. About 15 minutes each. |
+| **Owner** | You | Picks the level. Reviews once, at the preview (gate 3), before it's listed. At gates 1 and 2 the lead takes its own recommendations and records them (the owner's choice, Sept 2026); the owner can overturn any of them at the preview. |
 | **Lead** | The main Claude session | Writes the brief, builds any engine pieces, scaffolds and greyboxes, briefs and coordinates the agents, runs QA, fixes, ships. |
 | **Area artists** | Parallel agents, one per area | Draw one area each from the brief, the level's style sheet and `tools/ROOM_BRIEF.md`. Check their own work with screenshots. |
 | **Art director** | One agent, after the areas land | Looks at the whole level at once: palette drift, scale, density, repeated jokes, whether the areas' stories connect. Fixes what's off. |
@@ -25,17 +25,17 @@ Levels get added often, so making one has to be a repeatable pipeline, not a fre
 ### 1. Pick
 From [LEVELS.md](LEVELS.md). The owner chooses.
 
-### 2. Brief (gate 1: the owner approves)
-The lead writes `docs/levels/<id>.md` from [the template](levels/_TEMPLATE.md): the story and its solution, the shape, the areas and each one's running gag, the cast, the palette, what keeps it alive, the finds, the shared-universe cameos, and the engine pieces it needs. The owner reads it and says yes, or what to change.
+### 2. Brief (gate 1: the lead's call)
+The lead writes `docs/levels/<id>.md` from [the template](levels/_TEMPLATE.md): the story and its solution, the shape, the areas and each one's running gag, the cast, the palette, what keeps it alive, the finds, the shared-universe cameos, and the engine pieces it needs. Each open question gets a recommendation; the lead takes it and writes it into the brief's Decisions as the lead's call. Still ask the owner when a choice can't be undone cheaply later and there's no clear recommendation.
 
 ### 3. Engine prep
 Anything the level needs that the engine can't do yet gets built first, in its own commits, with the smoke test extended to cover it. Engine work never waits on art, and art never works around missing engine pieces.
 
-### 4. Scaffold and greybox (gate 2: the owner approves)
+### 4. Scaffold and greybox (gate 2: the lead's call)
 - `npm run new-level -- <id>` makes the level's folder, map file, style sheet (the brief's inks), backdrop and sky, and a placeholder file per area (from the brief's Areas table), all in one step, and lists the level (hidden until it ships).
 - The greybox: every area blocked out in plain shapes with the greybox kit (`src/maps/greybox.js`): floors, walls and doors, the hero, furniture, paths, where people stand, the finds as numbered pins, the camera framing tuned. If people move between areas, their evening goes in the level's timeline (see `src/maps/manor/evening.js`).
 - A place with ground and water (a coast, a hill, a river) starts from its land instead of floors: one `land.js` with its heights, the layers printed on them and the water's level through the loop (see `src/maps/plum/land.js` and `src/engine/terrain.js`). Its areas print their part of it. QA fails ground too steep to draw ground-first.
-- `npm run qa -- <id>` must pass. Its contact sheet (every floor, key moments, every area on desktop and phone) and a preview link go to the owner.
+- `npm run qa -- <id>` must pass. The lead checks its contact sheet (every floor, key moments, every area on desktop and phone) against the brief and records any change in the brief's Decisions.
 - This is the moment to change the layout, the composition or the shape. After this gate, the layout is fixed.
 
 ### 5. Area art (parallel)
@@ -57,10 +57,20 @@ One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the
 **Playtest:** a fresh agent sent [prompts/playtester.md](prompts/playtester.md) plays from screenshots only (`node tools/playtest.mjs <id> prepare`), guesses where each find is, and scores itself (`check`). Every find should take between 20 and 90 seconds for a fresh player. Too easy or impossible gets moved or relabeled.
 
 ### 8. Preview (gate 3: the owner approves)
-The pull request's Vercel preview, with a short checklist of what to look at. The owner plays it on their phone. Feedback goes in the PR or the chat; the lead fixes and re-runs QA.
+The owner's one review. The pull request's Vercel preview, with a short checklist of what to look at, the lead's calls from gates 1 and 2 (in the brief's Decisions) so any can be overturned, and any questions still open, each with a recommendation. Speed is settled on the owner's 2017 laptop (`npm run qa`, `node tools/fps.mjs`), not in the cloud. The owner plays it on their phone. Feedback goes in the PR or the chat; the lead fixes and re-runs QA.
 
 ### 9. Ship
 Merge. Update the roadmap (what shipped, what was learned), move the level's status in LEVELS.md, and note which helpers were promoted into the kit.
+
+## Two levels at once
+
+Two levels can be built at the same time, each in its own session (the owner opens them), on its own branch, with its own PR. Not more than two: the lead of each already runs its artists in parallel, and the owner's laptop is where speed gets settled.
+
+- **Stagger them.** Best is one level in its brief or greybox (mostly writing) while the other is in art and QA (heavy on the computer).
+- **Measuring takes turns.** Only one session at a time runs `npm run qa`, `node tools/fps.mjs`, `node tools/speed.mjs` or `node tools/playtest.mjs` on the owner's laptop: two at once make each other's numbers noisy and QA's tap checks flaky. Writing, greyboxing and art can overlap freely. Before a long run, check nothing else is running (`pgrep -fl "tools/(qa|fps|speed|playtest)"`) and wait if something is.
+- **Engine changes take turns.** Only one of the two changes `src/engine/`, `src/game/`, `src/ui/` or the shared tools at a time; it merges first, and the other brings `main` in before it builds on them. The other level keeps to its own folder (`src/maps/<id>/`), its brief, and its own lines in `src/maps/index.js` and the smoke test.
+- **Shared files are merged, not overwritten.** The roadmap, README, `src/maps/index.js` and `tools/smoke.mjs` get edits from both. Each session adds its own lines and brings `main` in before its final checks, so conflicts are small and caught early.
+- **Levels that reuse the same code** (the Block Party's streets, the water): the first to change a shared piece does it in its own commits and says so in the roadmap.
 
 ## The quality bar
 
