@@ -683,6 +683,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('out on the street, every house stays closed and nothing lifts', Object.values(street).every(([k, v]) => k > 0.9 && v < 0.1), JSON.stringify(street));
   const floors = await S(page, () => { const ids = window.__squares.world.drawOrder.map((c) => c.zone.id); return ['green', 'yellow', 'grey'].every((h) => ids.indexOf(h + '-1') < ids.indexOf(h + '-2') && ids.indexOf(h + '-2') < ids.indexOf(h + '-3')); });
   check('every house is drawn floor by floor, bottom up', floors);
+  await page.close();
+}
+
 // ---------- All-You-Can-Eat: a whodunit on four decks (docs/levels/cruise.md) ----------
 {
   const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
