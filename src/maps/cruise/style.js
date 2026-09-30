@@ -23,6 +23,24 @@ export const INK = {
 // The paper this level is printed on: the sea at noon.
 export const PAPER = INK.sea;
 
+// The ship's materials: every area draws from these (and C), so the decks
+// are one plate. The art keeps the greybox's deck tones (DECKS) as its base.
+export const MAT = {
+  brass: '#C9A24A',
+  chrome: '#C9CDD3',
+  glass: '#BFE3E6',
+  pool: '#5CC2CC',
+  teakDark: '#8E5B36',
+  carpetRed: '#B8453C',
+  carpetGold: '#E0B04F',
+  felt: '#2F7D5B', // the casino's tables
+  steel: '#8C939E',
+  steelDark: '#5D6570',
+  crewBlue: '#3E5C8A',
+  canvas: '#EFE6D2', // awnings, loungers
+  hullRed: '#B83A31', // the hull's bottom, below the waterline
+};
+
 // Each deck's own materials: its floor, its walls (inside the hull), and the
 // hull's plating on the cut side. The greybox uses these tones; the art keeps them.
 export const DECKS = {
@@ -99,7 +117,7 @@ export const CAST = {
   doreen: { name: 'Doreen', color: INK.flamingo, look: { skin: SKIN[5], hair: HAIR[4], style: 'curly', hat: 'none', top: INK.flamingo, bottom: C.white } },
   chad: { name: 'Chad', color: C.coral, look: { skin: SKIN[1], hair: HAIR[3], style: 'short', hat: 'cap', top: C.coral, bottom: C.teal } },
   gloria: { name: 'Gloria', color: C.white, look: { skin: SKIN[2], hair: HAIR[0], style: 'bun', hat: 'none', top: C.white, dress: true } },
-  captain: { name: 'Captain Stubbs', color: C.white, look: { skin: SKIN[0], hair: HAIR[4], style: 'short', hat: 'cap', top: C.white, bottom: C.white } },
+  captain: { name: 'Captain Stubbs', color: C.white, look: { skin: SKIN[0], hair: HAIR[4], style: 'short', hat: 'none', top: C.white, bottom: C.white } },
   chef: { name: 'Chef Gaston', color: C.white, look: { skin: SKIN[3], hair: HAIR[1], style: 'short', hat: 'chef', top: C.white, bottom: C.ink } },
   tyler: { name: 'Tyler', color: C.sky, look: { skin: SKIN[0], hair: HAIR[5], style: 'short', hat: 'cap', top: C.sky, bottom: C.navy, scale: 0.7 } },
   brenda: { name: 'Brenda', color: C.purple, look: { skin: SKIN[1], hair: HAIR[2], style: 'long', hat: 'none', top: C.purple, dress: true } },
@@ -114,7 +132,7 @@ export const CAST = {
 export function drawCast(ctx, id, p, t) {
   if (id === 'iguana') return iguana(ctx, p.x, p.y, p.z, p.dir, t);
   const c = CAST[id];
-  const look = { ...c.look };
+  const look = { ...c.look, ...(COSTUME[id] || {}) };
   look.skin = queasy(look.skin, sickness(id, t));
   person(ctx, p.x, p.y, p.z, { ...look, pose: p.pose || (p.moving ? 'walk' : 'stand'), dir: p.dir, back: p.back, scale: look.scale }, t);
 }
@@ -148,3 +166,56 @@ export const LIFT_COLORS = { plate: C.greyLight, ink: C.ink };
 
 // Names only show when you're close enough to read them.
 export const readable = () => Q.detail && Q.pxPerUnit >= 14;
+
+// ---------- Costumes ----------
+// What makes the cast who they are, drawn over the plain person (wear: over
+// the torso; face: over the head). Pidge is the Manor's Pidge, on holiday.
+const OUTLINE = { lw: 0.03 };
+export const COSTUME = {
+  pidge: {
+    wear(ctx, b) { // a pigeon's shimmering neck, and the trench coat's belt
+      ctx.beginPath();
+      ctx.ellipse(0.02, b.top + 0.02, 0.27, 0.09, 0, 0, Math.PI * 2);
+      paint(ctx, C.teal, { ...OUTLINE, dots: C.purple, density: 0.35 });
+      ctx.beginPath();
+      ctx.rect(-0.28, b.hipY - 0.34, 0.56, 0.07);
+      paint(ctx, shade(C.wood, 0.35), { stroke: false });
+    },
+    face(ctx, hy, back) { // beak, a pigeon's orange eye, and a sun hat
+      if (!back) {
+        ctx.beginPath();
+        ctx.arc(0.24, hy + 0.02, 0.055, 0, Math.PI * 2);
+        ctx.fillStyle = C.coral;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0.245, hy + 0.02, 0.028, 0, Math.PI * 2);
+        ctx.fillStyle = C.ink;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0.3, hy + 0.0); ctx.lineTo(0.54, hy + 0.08); ctx.lineTo(0.3, hy + 0.13);
+        ctx.closePath();
+        paint(ctx, shade(C.grey, 0.55), OUTLINE);
+      }
+      ctx.beginPath();
+      ctx.ellipse(0.02, hy - 0.2, 0.5, 0.1, 0, 0, Math.PI * 2);
+      paint(ctx, C.butter, OUTLINE);
+      ctx.beginPath();
+      ctx.ellipse(0.02, hy - 0.3, 0.24, 0.14, 0, Math.PI, 0);
+      paint(ctx, C.butter, OUTLINE);
+      ctx.fillStyle = INK.flamingo;
+      ctx.fillRect(-0.22, hy - 0.28, 0.48, 0.06);
+    },
+  },
+  captain: {
+    face(ctx, hy) { // a white peaked cap with gold braid
+      ctx.beginPath();
+      ctx.ellipse(0.02, hy - 0.24, 0.32, 0.12, 0, 0, Math.PI * 2);
+      paint(ctx, C.white, OUTLINE);
+      ctx.beginPath();
+      ctx.ellipse(0.28, hy - 0.16, 0.16, 0.045, 0.2, 0, Math.PI * 2);
+      paint(ctx, C.black, OUTLINE);
+      ctx.fillStyle = MAT.brass;
+      ctx.fillRect(-0.2, hy - 0.2, 0.44, 0.05);
+    },
+  },
+};
