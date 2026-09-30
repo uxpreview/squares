@@ -175,20 +175,42 @@ export default {
       box(ctx, 8.6, 4.2, 0.72, 0.4, 1.4, 0.7, shade(OAT, 0.06), { lw: 0.035 });
     });
     // The binoculars, left on the sectional (for the planes, and the harbor).
-    R.thing(10.3, 3.9, (ctx) => {
-      for (const dy of [-0.12, 0.12]) {
-        const [X, Y] = P(10.0, 3.7 + dy, 0.78);
-        ctx.save(); ctx.translate(X, Y);
-        ctx.beginPath(); ctx.roundRect(-0.2, -0.3, 0.26, 0.3, 0.08); paint(ctx, C.black, { lw: 0.03 });
-        ctx.beginPath(); ctx.ellipse(0.02, -0.15, 0.09, 0.12, 0, 0, Math.PI * 2); paint(ctx, tint(C.sky, 0.2), { lw: 0.02 });
-        ctx.restore();
+    // Lying on the seat, at the end the guests leave free: two fat black
+    // barrels side by side, joined at the hinge, their big lenses toward
+    // you, and a coral strap looped on the cushion. Sorted in front of the
+    // sectional, behind whoever sits on it.
+    const BX = 9.2, BY = 3.72, BZ = 0.72;
+    R.thing(BX + 0.6, BY + 0.4, (ctx) => {
+      const K = C.black, len = 0.62;
+      // The strap, a loop on the cushion.
+      const [S0x, S0y] = P(BX + 0.08, BY - 0.2, BZ + 0.12), [S1x, S1y] = P(BX + 0.08, BY + 0.2, BZ + 0.12);
+      const [Lx, Ly] = P(BX - 0.3, BY + 0.2, BZ + 0.01), [Mx, My] = P(BX + 0.25, BY + 0.5, BZ + 0.01);
+      ctx.beginPath(); ctx.moveTo(S0x, S0y); ctx.quadraticCurveTo(Lx, Ly, (Lx + Mx) / 2, (Ly + My) / 2); ctx.quadraticCurveTo(Mx, My, S1x, S1y);
+      ctx.lineCap = 'round';
+      if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.stroke(); }
+      ctx.strokeStyle = C.coral; ctx.lineWidth = 0.055; ctx.stroke();
+      // The barrels, far one first: an eyepiece, then the fat tube.
+      for (const dy of [-0.2, 0.2]) {
+        const y = BY + dy;
+        box(ctx, BX, y - 0.09, BZ + 0.03, 0.16, 0.18, 0.18, shade(C.grey, 0.4), { flat: true, lw: 0.03 });
+        box(ctx, BX + 0.16, y - 0.15, BZ, len - 0.16, 0.3, 0.3, K, { flat: true, lw: 0.035, top: tint(K, 0.2) });
+        if (Q.detail) box(ctx, BX + 0.3, y - 0.151, BZ + 0.02, 0.2, 0.302, 0.26, tint(K, 0.12), { flat: true, stroke: false });
+        // The big lens on the end, a round of blue glass with a glint.
+        const n = 14, pts = [];
+        for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; pts.push([BX + len + 0.005, y + Math.cos(a) * 0.11, BZ + 0.15 + Math.sin(a) * 0.11]); }
+        face(ctx, pts, mix(C.sky, C.navy, 0.25), { lw: 0.025 });
+        if (Q.detail) { const [GXp, GYp] = P(BX + len + 0.01, y - 0.04, BZ + 0.2); ctx.fillStyle = alpha(C.white, 0.85); ctx.beginPath(); ctx.arc(GXp, GYp, 0.035, 0, Math.PI * 2); ctx.fill(); }
+        if (dy < 0) box(ctx, BX + 0.22, BY - 0.07, BZ + 0.08, 0.26, 0.14, 0.14, shade(C.grey, 0.3), { flat: true, lw: 0.025 }); // the hinge
       }
-      const [X, Y] = P(10.0, 3.7, 0.95); ctx.fillStyle = C.grey; ctx.fillRect(X - 0.25, Y - 0.04, 0.2, 0.06);
-    });
-    R.find({ id: 'binoculars', label: 'A pair of binoculars', at: [10.0, 3.7, 0.95], r: 0.7 });
+    }, { depth: 15.65 });
+    R.find({ id: 'binoculars', label: 'A pair of binoculars', at: [BX + 0.3, BY, BZ + 0.15], r: 0.88 });
     R.thing(6.8, 7.0, (ctx) => {
       box(ctx, 5.2, 5.4, 0, 1.6, 1.6, 0.5, C.ink, { lw: 0.035, top: shade(C.greyLight, 0.2) });
-      for (const [x, y] of [[5.6, 5.8], [5.8, 5.7], [6.4, 6.6]]) cylinder(ctx, x, y, 0.5, 0.08, 0.2, C.white, { flat: true });
+      // Coffee-table books, and a little plant.
+      box(ctx, 5.45, 5.55, 0.5, 0.7, 0.5, 0.09, C.teal, { flat: true, lw: 0.02 });
+      box(ctx, 5.5, 5.6, 0.59, 0.6, 0.42, 0.08, C.mustard, { flat: true, lw: 0.02 });
+      cylinder(ctx, 6.45, 6.6, 0.5, 0.13, 0.18, C.coral, { flat: true });
+      for (const [dx, dy, dz] of [[-0.08, 0.06, 0.72], [0.08, -0.05, 0.76], [0, 0, 0.84]]) disc(ctx, 6.45 + dx, 6.6 + dy, dz, 0.11, C.leaf, { lw: 0.02 });
     }, { on: (t) => H(t) >= 12.2 });
     // Before that it's a flat box and a bag of screws.
     R.thing(6.9, 7.1, (ctx) => {
@@ -198,7 +220,14 @@ export default {
     R.thing(6.81, 7.01, (ctx, t) => {
       rect(ctx, 5.6, 6.1, 0.8, 0.5, 0.51, C.woodLight, { lw: 0.02 });
       cylinder(ctx, 6.2, 5.8, 0.5, 0.1, 0.55, C.red, { flat: true });
-      if (nightK(t) > 0.2 && Q.detail) glow(ctx, 5.7, 5.75, 0.9, 1.0, C.butter, 0.6 + Math.sin(t * 7) * 0.1);
+      // One fat candle in a jar, lit at night.
+      cylinder(ctx, 5.85, 6.35, 0.52, 0.12, 0.2, alpha(C.butter, 0.8), { flat: true });
+      if (nightK(t) > 0.2 && Q.detail) {
+        const [FX, FY] = P(5.85, 6.35, 0.8);
+        ctx.beginPath(); ctx.moveTo(FX, FY - 0.14); ctx.quadraticCurveTo(FX + 0.06, FY - 0.02, FX, FY); ctx.quadraticCurveTo(FX - 0.06, FY - 0.02, FX, FY - 0.14);
+        ctx.fillStyle = C.mustard; ctx.fill();
+        glow(ctx, 5.85, 6.35, 0.85, 1.0, C.butter, 0.6 + Math.sin(t * 7) * 0.1);
+      }
     }, { anim: true, on: during(13, 29) });
 
     // The goose, in an empty wine crate, honking at every plane.
@@ -247,8 +276,8 @@ export default {
     const GUESTS = [
       { at: [1.9, 4.95], dir: 'r', look: folk(1021, { dress: true, top: C.coral }), talk: true },
       { at: [1.5, 5.6], dir: 'l', look: folk(1022, { top: C.mustard, dress: false }), pour: true },
-      { at: [10.2, 3.75], sit: true, dir: 'l', look: folk(1023, { top: C.teal, dress: false, style: 'bun' }) },
-      { at: [11.0, 3.75], sit: true, dir: 'l', look: folk(1024, { top: C.purple, dress: false }) },
+      { at: [10.45, 3.75], sit: true, dir: 'r', look: folk(1023, { top: C.teal, dress: false, style: 'bun' }) },
+      { at: [11.05, 3.75], sit: true, dir: 'r', look: folk(1024, { top: C.purple, dress: false }) },
     ];
     GUESTS.forEach((g, i) => {
       R.mover(() => ({ x: g.at[0], y: g.at[1] }), (ctx, t, p) => {
@@ -256,7 +285,7 @@ export default {
         const asleep = h >= 24.5;
         const z = g.sit ? 0.05 : 0;
         if (asleep && !g.sit) return;
-        person(ctx, p.x, p.y, g.sit && asleep ? 0.75 : z, { ...g.look, pose: asleep ? 'sleep' : g.sit ? 'sit' : 'stand', dir: g.dir, hold: asleep ? undefined : wine, arms: asleep ? undefined : [1.2, 0.15] }, t);
+        person(ctx, p.x, p.y, g.sit && asleep ? 0.75 : z, { ...g.look, pose: asleep ? 'sleep' : g.sit ? 'sit' : 'stand', dir: asleep ? 'l' : g.dir, hold: asleep ? undefined : wine, arms: asleep ? undefined : [1.2, 0.15] }, t);
         let say = null;
         const k = planeK(t);
         if (k === 'over' && (g.talk || i === 3)) say = '. . .';
@@ -412,7 +441,7 @@ export default {
       ctx.restore();
       if (over(t) && Q.detail) tick(ctx, rx, 1.6, 1.75);
     }, { anim: true, depth: 19.95 });
-    R.find({ id: 'glass', label: 'A wine glass on the railing', at: [PORCH.x1 - 0.14, 1.6, 1.4], r: 0.85, out: true });
+    R.find({ id: 'glass', label: 'A wine glass on the railing', at: [PORCH.x1 - 0.14, 1.6, 1.4], r: 0.88, out: true });
 
     // String lights between the posts, lit at dusk.
     onPorch(R, 14.6, 2.2, (ctx, t) => {

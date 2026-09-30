@@ -18,7 +18,7 @@ import { ladyLook, OPEN_HOUSE } from '../day.js';
 import { H, during, track, boards, edison, kitchenL, sagaOn, saga, porchDepth, onPorch, rails } from './grey-2.js';
 
 const BOOTIE = tint(C.sky, 0.25);
-const LEMON = C.mustard;
+const LEMON = mix(C.mustard, C.butter, 0.35); // a lemon yellow, brighter than the badge's gold
 
 // ---------- The showing ----------
 // Eighteen visitors: each comes up onto the porch, in the door, puts on
@@ -169,12 +169,11 @@ export default {
       ctx.beginPath(); ctx.arc(0, 0, 0.7, 0, Math.PI * 2); ctx.fillStyle = C.grey; ctx.fill();
       ctx.restore();
       onRight(ctx, 6.4, 2.3, 0.4, 0.18, C.white, { lw: 0.015 });
-      // Art over the panel fridge's end: a print of a lemon (on theme).
+      // Art over the panel fridge's end: two blocks of color, called Untitled (Calm).
       onLeft(ctx, 7.5, 2.4, 1.3, 1.5, C.ink);
-      onLeft(ctx, 7.6, 2.5, 1.1, 1.3, tint(C.butter, 0.5));
-      ctx.save(); ctx.transform(1, -0.5, 0, ZK, -8.15, 8.15 / 2 - 3.15 * ZK);
-      ctx.beginPath(); ctx.ellipse(0, 0, 0.35, 0.24, -0.3, 0, Math.PI * 2); ctx.fillStyle = LEMON; ctx.fill();
-      ctx.restore();
+      onLeft(ctx, 7.6, 2.5, 1.1, 1.3, C.white);
+      onLeft(ctx, 7.75, 2.65, 0.55, 0.75, tint(C.teal, 0.3), { stroke: false });
+      onLeft(ctx, 8.1, 3.1, 0.45, 0.55, C.lilac, { stroke: false });
     });
     // The panel fridge you'd never find, and a stool row at the island.
     R.thing(0.95, 7.3, (ctx) => {
@@ -203,17 +202,24 @@ export default {
       box(ctx, x - 0.25, 4.1, 0.95, 0.5, 0.5, 0.1, C.black, { flat: true, lw: 0.02 });
     });
     // The realtor's name tag, left on the island.
+    // A big gold badge, alone on the island's bare quartz: a white strip
+    // with REALTOR on it, a shine. Sorted in front of the island (one
+    // thing, sorted at its far corner), or the island paints over it.
     R.thing(2.6, 3.6, (ctx) => {
-      const z = 1.31;
-      rect(ctx, 2.05, 3.2, 0.75, 0.4, z, C.mustard, { lw: 0.03 });
-      rect(ctx, 2.12, 3.3, 0.61, 0.2, z + 0.005, C.white, { stroke: false });
-      if (Q.detail) { ctx.save(); ctx.translate(0, -z * ZK); paintText(ctx, 'floor', 2.42, 3.4, 'REALTOR', 0.1, C.ink, 'Rethink Sans'); ctx.restore(); }
-    });
+      const z = 1.31, x0 = 1.95, y0 = 3.12, w = 1.0, d = 0.56;
+      rect(ctx, x0 + 0.03, y0 + 0.03, w, d, z - 0.005, shade(C.mustard, 0.35), { stroke: false });
+      rect(ctx, x0, y0, w, d, z, tint(C.mustard, 0.1), { lw: 0.035 });
+      rect(ctx, x0 + 0.08, y0 + 0.16, w - 0.16, 0.26, z + 0.005, C.white, { lw: 0.02 });
+      if (Q.detail) {
+        rect(ctx, x0 + 0.08, y0 + 0.05, 0.3, 0.06, z + 0.004, tint(C.butter, 0.4), { stroke: false });
+        ctx.save(); ctx.translate(0, -z * ZK); paintText(ctx, 'floor', x0 + w / 2, y0 + 0.29, 'REALTOR', 0.17, C.ink, 'Rethink Sans'); ctx.restore();
+      }
+    }, { depth: 8.05 });
     R.thing(3.8, 3.8, (ctx) => {
-      for (let i = 0; i < 6; i++) rect(ctx, 3.0 + (i % 2) * 0.05, 3.25 - (i % 3) * 0.04, 0.6, 0.45, 1.31 + i * 0.03, C.white, { lw: 0.02 });
-      if (Q.detail) { ctx.save(); ctx.translate(0, -1.5 * ZK); paintText(ctx, 'floor', 3.3, 3.45, 'OFFER', 0.1, C.ink, 'Rethink Sans'); ctx.restore(); }
-    }, { on: during(16.1, 29) });
-    R.find({ id: 'tag', label: "A realtor's name tag", at: [2.42, 3.4, 1.35], r: 0.7 });
+      for (let i = 0; i < 6; i++) rect(ctx, 3.15 + (i % 2) * 0.05, 3.25 - (i % 3) * 0.04, 0.6, 0.45, 1.31 + i * 0.03, C.white, { lw: 0.02 });
+      if (Q.detail) { ctx.save(); ctx.translate(0, -1.5 * ZK); paintText(ctx, 'floor', 3.45, 3.45, 'OFFER', 0.1, C.ink, 'Rethink Sans'); ctx.restore(); }
+    }, { on: during(16.1, 29), depth: 8.06 });
+    R.find({ id: 'tag', label: "A realtor's name tag", at: [2.45, 3.4, 1.35], r: 0.88 });
     for (const [x, y] of [[1.7, 3.5], [2.6, 3.5], [3.5, 3.5]]) edison(R, x, y, 1.2);
 
     // ---------- The middle: the table and the lemons ----------
@@ -225,19 +231,28 @@ export default {
     R.thing(5.0, 5.8, (ctx) => chair(ctx, 4.3, 5.4, 0, C.woodLight, 'r'));
     R.thing(6.4, 4.8, (ctx) => chair(ctx, 5.6, 4.0, 0, C.woodLight, 'l'));
     // The bowl nobody's allowed to use: four fake lemons, a card.
+    // (Both sorted in front of the table, or its top paints over them.)
     R.thing(6.5, 6.2, (ctx) => {
       disc(ctx, 6.25, 5.9, 1.2, 0.42, C.white, { lw: 0.035 });
       disc(ctx, 6.25, 5.9, 1.36, 0.46, tint(C.white, 0.2), { lw: 0.035 });
       for (const [dx, dy] of [[-0.12, -0.1], [0.15, -0.05], [0, 0.14], [0.06, -0.2]]) lemon(ctx, 6.25 + dx, 5.9 + dy, 1.36, 0.85);
-      face(ctx, [[6.55, 5.15, 1.2], [6.95, 5.15, 1.2], [6.95, 5.2, 1.45], [6.55, 5.2, 1.45]], C.white, { lw: 0.02 });
-      lettering(ctx, 'x', 6.75, 5.21, 1.33, 'DO NOT EAT', 0.07, C.red);
-    });
-    // One got away: the find.
-    R.thing(5.75, 5.45, (ctx) => {
-      lemon(ctx, 5.72, 5.45, 1.2, 1.25);
-      if (Q.detail) { const [X, Y] = P(5.72, 5.45, 1.34); ctx.fillStyle = C.white; ctx.fillRect(X - 0.03, Y - 0.05, 0.1, 0.07); }
-    });
-    R.find({ id: 'lemon', label: 'A plastic lemon', at: [5.72, 5.45, 1.35], r: 0.7 });
+      face(ctx, [[6.25, 5.15, 1.2], [6.65, 5.15, 1.2], [6.65, 5.2, 1.45], [6.25, 5.2, 1.45]], C.white, { lw: 0.02 });
+      lettering(ctx, 'x', 6.45, 5.21, 1.33, 'DO NOT EAT', 0.07, C.red);
+    }, { depth: 13.45 });
+    // One got away: the find. A big bright lemon rolled off to the table's
+    // far corner, its produce sticker still on.
+    const LX = 5.5, LY = 5.3;
+    R.thing(LX, LY, (ctx) => {
+      lemon(ctx, LX, LY, 1.2, 1.6);
+      if (Q.detail) {
+        const [X, Y] = P(LX, LY, 1.2);
+        ctx.save(); ctx.translate(X, Y); ctx.scale(1.6, 1.6); ctx.rotate(-0.3);
+        ctx.beginPath(); ctx.ellipse(0.06, -0.1, 0.07, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.015 });
+        ctx.fillStyle = C.teal; ctx.fillRect(0.02, -0.11, 0.08, 0.02);
+        ctx.restore();
+      }
+    }, { depth: 13.46 });
+    R.find({ id: 'lemon', label: 'A plastic lemon', at: [LX, LY, 1.35], r: 0.88 });
     R.thing(1.2, 8.5, (ctx) => plant(ctx, 1.1, 8.3, 0, 0, { scale: 1.3, kind: 'leafy', potColor: C.white, leaf: C.green }));
 
     // ---------- The front room: the staged sofa ----------
@@ -293,7 +308,7 @@ export default {
       lettering(ctx, 'x', 10.37, 3.01, 1.04, 'PLEASE', 0.08, C.ink);
     });
     R.thing(11.9, 3.0, (ctx) => { bootie(ctx, 11.45, 2.7, -0.2); bootie(ctx, 11.8, 2.95, 0.25); });
-    R.find({ id: 'booties', label: 'A pair of shoe booties', at: [11.62, 2.82, 0.15], r: 0.75 });
+    R.find({ id: 'booties', label: 'A pair of shoe booties', at: [11.62, 2.82, 0.15], r: 0.88 });
 
     // ---------- The porch: the sign ----------
     const signDay = (t) => H(t) < 19.4;

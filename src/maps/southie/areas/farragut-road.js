@@ -595,15 +595,18 @@ export default {
     R.thing(PX + 0.35, MY + 1.3, lateSign(false), { on: (t) => hh(t) < 18 });
     R.thing(PX + 0.35, MY + 1.3, lateSign(true), { on: (t) => hh(t) >= 18 });
     // Its tag: DO NOT REMOVE (a find).
-    const TAG = [PX + 0.4, MY + 1.85, G + 0.42];
-    R.thing(TAG[0], TAG[1] + 0.1, (ctx) => {
-      line(ctx, [[PX + 0.3, TAG[1] - 0.1, G + 0.7], [TAG[0], TAG[1], TAG[2] + 0.2]], C.ink, 0.025);
-      panel(ctx, 'y', TAG[0], TAG[1], TAG[2], 0.5, 0.36, C.white, { lw: 0.03 });
-      lettering(ctx, 'y', TAG[0] + 0.01, TAG[1], TAG[2] + 0.08, 'DO NOT', 0.08, C.red, 'Bagel Fat One');
-      lettering(ctx, 'y', TAG[0] + 0.01, TAG[1], TAG[2] - 0.05, 'REMOVE', 0.08, C.red, 'Bagel Fat One');
-      if (Q.detail) for (let i = 0; i < 2; i++) face(ctx, [[TAG[0] + 0.01, TAG[1] - 0.18, TAG[2] - 0.12 - i * 0.04], [TAG[0] + 0.01, TAG[1] + 0.18, TAG[2] - 0.12 - i * 0.04], [TAG[0] + 0.01, TAG[1] + 0.18, TAG[2] - 0.13 - i * 0.04], [TAG[0] + 0.01, TAG[1] - 0.18, TAG[2] - 0.13 - i * 0.04]], C.ink, { stroke: false });
+    // A big white tag on a string, hanging down the mattress's face under
+    // the FREE sign, facing you (well away from the street's white signs).
+    const TAG = [PX + 0.42, MY + 0.9, G + 0.4];
+    R.thing(TAG[0], TAG[1] + 0.35, (ctx) => {
+      line(ctx, [[PX + 0.36, MY + 0.55, G + 0.8], [TAG[0], TAG[1] - 0.05, TAG[2] + 0.27]], C.ink, 0.03);
+      panel(ctx, 'y', TAG[0], TAG[1], TAG[2], 0.64, 0.52, C.white, { lw: 0.035 });
+      if (Q.detail) disc(ctx, TAG[0] + 0.01, TAG[1] - 0.05, TAG[2] + 0.2, 0.03, C.ink, { stroke: false }); // the eyelet
+      lettering(ctx, 'y', TAG[0] + 0.01, TAG[1], TAG[2] + 0.08, 'DO NOT', 0.13, C.red, 'Bagel Fat One');
+      lettering(ctx, 'y', TAG[0] + 0.01, TAG[1], TAG[2] - 0.08, 'REMOVE', 0.13, C.red, 'Bagel Fat One');
+      if (Q.detail) for (let i = 0; i < 2; i++) face(ctx, [[TAG[0] + 0.01, TAG[1] - 0.22, TAG[2] - 0.17 - i * 0.04], [TAG[0] + 0.01, TAG[1] + 0.22, TAG[2] - 0.17 - i * 0.04], [TAG[0] + 0.01, TAG[1] + 0.22, TAG[2] - 0.185 - i * 0.04], [TAG[0] + 0.01, TAG[1] - 0.22, TAG[2] - 0.185 - i * 0.04]], C.ink, { stroke: false });
     });
-    R.find({ id: 'tag', label: 'A mattress tag', at: TAG, r: 0.85 });
+    R.find({ id: 'tag', label: 'A mattress tag', at: TAG, r: 0.95 });
     // Pigeons working the curb.
     R.thing(ROAD.walk0 + 1.6, 31.6, (ctx, t) => { for (const [x, y, ph] of [[16.9, 31.2, 0], [17.2, 31.9, 1.7], [16.8, 32.6, 3.1]]) pigeon(ctx, x, y, G, t, ph); }, { anim: true, on: (t) => hour(t) >= 7 && hour(t) < 19 && !raining(t) });
     // Bins at the gaps, overflowing on Moving Day; a cat on one.

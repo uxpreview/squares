@@ -321,7 +321,7 @@ export default {
       box(ctx, 1.75, 3.55, 0.35, 0.2, 0.1, 0.1, C.ink, { flat: true, stroke: false });
       line3(ctx, [[2.3, 3.6, 0.03], [2.7, 3.4, 0.03]], C.grey, 0.06);
       cylinder(ctx, 1.4, 4.2, 0, 0.22, 0.35, C.sky);
-      says(ctx, 2.2, 2.9, 1.3, t, hh(t) > 14.3 ? ['Fixed, Auntie.'] : ['It\'s the washer, Auntie.', 'Almost.', 'Who put this in?', 'It\'s not the washer.'], 9, 3, 2);
+      says(ctx, 2.7, 2.2, 1.1, t, hh(t) > 14.3 ? ['Fixed, Auntie.'] : ['It\'s the washer, Auntie.', 'Almost.', 'Who put this in?', 'It\'s not the washer.'], 9, 3, 2);
     }, { anim: true, on: hours(7.5, 15) });
     // After he's gone, the faucet drips into a pot. Fixed.
     R.thing(1.0, 3.9, (ctx, t) => {
@@ -330,17 +330,40 @@ export default {
       if (k < 0.5) disc(ctx, 0.5, 3.66, 1.72 - k * 0.8, 0.04, C.sky, { lw: 0.01 });
       else if (Q.detail && k < 0.65) label(ctx, 0.3, 3.4, 1.9, 'plink', 0.18, C.ink, 'Rethink Sans');
     }, { anim: true, on: hours(15, 29) });
-    // The deposits: an old coffee can on the counter, DEPOSITS on masking
-    // tape, bills sticking out of the slot in its lid.
+    // The deposits: an old tin coffee can on the counter, its lid off and
+    // leaning on it, a blue label, DEPOSITS on masking tape, and a wad of
+    // bills sticking up out of it. Sorted in front of the counter (one
+    // thing, sorted at its far end), or the counter paints over it.
+    const DX = 0.6, DY = 2.75, DZ = 1.15, DR = 0.25, DH = 0.5;
     R.thing(0.95, 2.95, (ctx) => {
-      cylinder(ctx, 0.6, 2.75, 1.15, 0.2, 0.42, C.red, { top: C.greyLight });
-      if (!Q.detail) return;
-      lettering(ctx, 'x', 0.6, 2.96, 1.46, 'COFFEE', 0.07, C.white);
-      face(ctx, [[0.46, 2.955, 1.25], [0.78, 2.955, 1.25], [0.78, 2.955, 1.36], [0.46, 2.955, 1.36]], tint(C.butter, 0.5), { lw: 0.01 });
-      lettering(ctx, 'x', 0.62, 2.965, 1.305, 'DEPOSITS', 0.055, C.ink);
-      box(ctx, 0.52, 2.7, 1.57, 0.2, 0.05, 0.14, C.leaf, { flat: true, lw: 0.012 });
-      box(ctx, 0.6, 2.76, 1.57, 0.14, 0.04, 0.1, C.green, { flat: true, lw: 0.012 });
-    });
+      const tin = mix(C.greyLight, C.grey, 0.35);
+      // The bills first, inside the rim, so the can's front hides their feet.
+      for (const [dx, dy, a, c] of [[-0.1, -0.05, -0.25, C.leaf], [0.04, 0.02, 0.1, tint(C.green, 0.25)], [0.12, -0.08, 0.35, C.leaf]]) {
+        const [X, Y] = P(DX + dx, DY + dy, DZ + DH - 0.05);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(a);
+        ctx.beginPath(); ctx.rect(-0.1, -0.38, 0.2, 0.36); paint(ctx, c, { lw: 0.02 });
+        if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, -0.2, 0.05, 0.07, 0, 0, Math.PI * 2); ctx.strokeStyle = shade(C.green, 0.3); ctx.lineWidth = 0.015; ctx.stroke(); }
+        ctx.restore();
+      }
+      cylinder(ctx, DX, DY, DZ, DR, DH, tin, { flat: true, top: shade(C.ink, 0.1) });
+      // The tin's ridges, the blue label round its middle, the tape.
+      const X0 = DX - DY, rx = DR * Math.SQRT2, band = (z, h, c) => {
+        const Yb = (DX + DY) / 2 - z * ZK, Yt = Yb - h * ZK;
+        ctx.beginPath(); ctx.moveTo(X0 - rx, Yt); ctx.lineTo(X0 - rx, Yb); ctx.ellipse(X0, Yb, rx, rx / 2, 0, Math.PI, 0, true);
+        ctx.lineTo(X0 + rx, Yt); ctx.ellipse(X0, Yt, rx, rx / 2, 0, 0, Math.PI, false); ctx.closePath();
+        paint(ctx, c, { lw: 0.02 });
+      };
+      band(DZ + 0.12, 0.24, C.navy);
+      if (Q.detail) {
+        lettering(ctx, 'x', DX + 0.02, DY + DR + 0.01, DZ + 0.3, 'COFFEE', 0.075, C.white);
+        face(ctx, [[DX - 0.2, DY + DR + 0.02, DZ + 0.15], [DX + 0.22, DY + DR + 0.02, DZ + 0.15], [DX + 0.22, DY + DR + 0.02, DZ + 0.24], [DX - 0.2, DY + DR + 0.02, DZ + 0.24]], tint(C.butter, 0.45), { lw: 0.012 });
+        lettering(ctx, 'x', DX + 0.01, DY + DR + 0.03, DZ + 0.195, 'DEPOSITS', 0.065, C.ink);
+      }
+      // The lid, off, leaning on the can's right.
+      const n = 14, pts = [];
+      for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; pts.push([DX + 0.3 + Math.sin(a) * 0.05, DY - 0.18 + Math.cos(a) * 0.25, DZ + 0.25 + Math.sin(a) * 0.24]); }
+      face(ctx, pts, tint(C.greyLight, 0.2), { lw: 0.025 });
+    }, { depth: 5.65 });
     // The stove, and the percolator on it (its glass knob bubbling).
     R.thing(1.1, 5.6, (ctx) => {
       box(ctx, 0, 4.5, 0, 1.1, 1.1, 1.15, C.white, { lw: 0.04, top: shade(C.white, 0.08) });
@@ -611,7 +634,7 @@ export default {
 
     // Her armchair at the bay: green velvet, an afghan over the back, a
     // footstool; the radiator cover is the windowsill, where the scanner
-    // lives (and a can of Gander Cola).
+    // lives.
     R.thing(12.0, 7.0, (ctx) => {
       const x = 10.85, y = 5.8, col = C.green;
       box(ctx, x, y, 0, 1.15, 1.1, 0.5, shade(col, 0.1), { lw: 0.04 });
@@ -626,9 +649,6 @@ export default {
     R.thing(12.5, 8.3, (ctx) => {
       box(ctx, 11.95, 6.9, 0, 0.5, 1.35, 1.0, C.white, { lw: 0.035, top: C.woodLight });
       if (Q.detail) for (let u = 7.0; u < 8.2; u += 0.14) line3(ctx, [[12.45, u, 0.15], [12.45, u, 0.85]], shade(C.white, 0.2), 0.03);
-      // Gander Cola, the can she keeps for the man who reads the meters.
-      cylinder(ctx, 12.2, 8.0, 1.0, 0.09, 0.28, BRAND.can);
-      if (Q.detail) lettering(ctx, 'x', 12.2, 8.09, 1.14, 'GC', 0.06, BRAND.ink);
     });
     // The police scanner: black, an aerial, a row of red lights chasing.
     R.thing(12.6, 8.35, (ctx) => {
@@ -648,7 +668,7 @@ export default {
       const lines = h < 9 ? ['...coffee run, City Point...', 'All quiet. Kssht.'] : h < 12 ? ['Truck stuck on Farragut.', 'Couch on a rope. Farragut.', 'Brown van double-parked.'] : h < 13 ? ['Line on a porch. Farragut.'] : h < 15.2 ? ['Truck with no roof. Day Blvd.', 'Man soaked. Castle Island.'] : h < 21 ? ['Truck\'s out! Farragut\'s clear.', 'Plane low over the bay.', 'Mattress in the road.'] : ['Goose on a porch. Farragut.', 'Say again? A goose?', 'Kssht. All quiet.'];
       const p = t % 8;
       if (p < 3.4 && Q.detail) {
-        speech(ctx, 12.2, 7.35, 2.2, lines[Math.floor(t / 8) % lines.length], { size: 0.36 });
+        speech(ctx, 12.2, 7.35, 3.2, lines[Math.floor(t / 8) % lines.length], { size: 0.36 }); // high, over the window, clear of her chair
         ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
         const [X, Y] = P(12.2, 7.1, 1.6);
         for (const r of [0.18, 0.3]) { ctx.beginPath(); ctx.arc(X, Y, r, -1.2, -0.3); ctx.stroke(); }
@@ -679,6 +699,11 @@ export default {
       rect(ctx, 13.35, 3.1, 0.35, 0.45, 1.02, C.woodLight, { lw: 0.015 });
       rect(ctx, 13.38, 3.15, 0.29, 0.35, 1.025, C.white, { stroke: false });
       cylinder(ctx, 14.0, 3.2, 1.01, 0.08, 0.15, C.white);
+      // Gander Cola, the can she keeps out here for the man who reads the
+      // meters (well away from the scanner and the deposits, so it's never
+      // mistaken for either).
+      cylinder(ctx, 14.05, 3.72, 1.01, 0.09, 0.28, BRAND.can);
+      if (Q.detail) lettering(ctx, 'x', 14.05, 3.81, 1.15, 'GC', 0.06, BRAND.ink);
     });
     R.thing(14.35, 4.0, (ctx) => {
       box(ctx, 13.75, 3.35, 1.01, 0.45, 0.4, 0.12, C.teal, { flat: true, lw: 0.02, top: shade(C.teal, 0.4) });
@@ -711,9 +736,9 @@ export default {
     }, { anim: true, on: noon, depth: 24 });
 
     // ---------- The finds ----------
-    R.find({ id: 'keys', label: 'The ring of spare keys', at: [5.2, 2.95, 1.3], r: 0.75 });
-    R.find({ id: 'deposits', label: 'A coffee can of deposits', at: [0.6, 2.75, 1.4], r: 0.7 });
-    R.find({ id: 'scanner', label: 'A police scanner', at: [12.2, 7.37, 1.2], r: 0.7 });
+    R.find({ id: 'keys', label: 'The ring of spare keys', at: [5.2, 2.95, 1.3], r: 0.88 });
+    R.find({ id: 'deposits', label: 'A coffee can of deposits', at: [DX, DY, DZ + 0.3], r: 0.88 });
+    R.find({ id: 'scanner', label: 'A police scanner', at: [12.2, 7.37, 1.2], r: 0.88 });
   },
 };
 

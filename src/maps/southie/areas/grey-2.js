@@ -88,11 +88,22 @@ export function bike(ctx, x, y, z) {
   // The water bottle's cage on the front post.
   box(ctx, x + 0.26, y + 0.1, z + 0.86, 0.12, 0.12, 0.05, K, { flat: true, stroke: false });
 }
-// The bike's water bottle: see-through blue, a black cap.
+// The bike's water bottle: a tall sports bottle, see-through blue with a
+// grip band, a black cap with a white squeeze spout, and a clip on the cap.
 export function bottle(ctx, x, y, z) {
-  cylinder(ctx, x, y, z, 0.11, 0.42, tint(C.sky, 0.25), { flat: true });
-  cylinder(ctx, x, y, z + 0.42, 0.08, 0.1, C.black, { flat: true });
-  if (Q.detail) box(ctx, x - 0.02, y - 0.02, z + 0.16, 0.04, 0.04, 0.14, alpha(C.white, 0.7), { flat: true, stroke: false });
+  cylinder(ctx, x, y, z, 0.12, 0.52, tint(C.sky, 0.2), { flat: true });
+  if (Q.detail) {
+    // The grip band round its waist, and a shine.
+    const [X, Y] = P(x, y, z + 0.18), rx = 0.12 * Math.SQRT2;
+    ctx.fillStyle = C.water; ctx.fillRect(X - rx, Y - 0.12 * ZK, rx * 2, 0.1 * ZK);
+    box(ctx, x - 0.03, y - 0.03, z + 0.08, 0.03, 0.03, 0.36, alpha(C.white, 0.75), { flat: true, stroke: false });
+  }
+  cylinder(ctx, x, y, z + 0.52, 0.1, 0.09, C.black, { flat: true });
+  cylinder(ctx, x, y, z + 0.61, 0.045, 0.1, C.white, { flat: true });
+  // The clip: a black loop off the cap.
+  const [CX, CY] = P(x + 0.12, y + 0.12, z + 0.5);
+  ctx.beginPath(); ctx.ellipse(CX + 0.05, CY + 0.03, 0.06, 0.1, 0.4, 0, Math.PI * 2);
+  ctx.strokeStyle = C.black; ctx.lineWidth = 0.035; ctx.stroke();
 }
 
 // The movers: matching purple shirts with a white patch, coral caps.
@@ -218,7 +229,7 @@ export function sagaOn(R, f) {
       const carrying = sg.bike.carried;
       person(ctx, p.x, p.y, p.z, { ...MOVER[i], pose: p.pose || 'stand', dir: p.dir, arms: carrying ? [1.25, 1.25] : undefined, hold: !carrying && i === 0 ? workOrder : undefined }, t);
       const say = stopLine(t, i);
-      if (say && Q.detail) speech(ctx, p.x, p.y, p.z + 2.7, say, { size: 0.42 });
+      if (say && Q.detail) speech(ctx, p.x, p.y, p.z + 3.3, say, { size: 0.42 }); // high, clear of the counters
     }, { on: (t) => { const sg = saga(t); const m = sg && sg.movers && sg.movers[i]; return !!m && here(m); }, depth: (t) => { const p = pos(t); return p.off ? 0 : porchDepth(p); } });
   });
 }
@@ -453,23 +464,41 @@ export default {
       lettering(ctx, 'y', 0.97, q[1] + w / 2, z0 + hh / 2, msg, 0.1, C.tealLight);
     }, { anim: true, depth: 8.41 });
     // The coffee machine that needs an app, a bowl of limes, the speaker.
+    // All of it sorts in front of the counter (the counter is one thing,
+    // sorted at its far end), or the counter paints over it.
     R.thing(0.8, 5.2, (ctx) => {
       box(ctx, 0.15, 4.7, 1.25, 0.6, 0.5, 0.75, C.black, { flat: true, lw: 0.03 });
       box(ctx, 0.75, 4.8, 1.25, 0.1, 0.3, 0.1, C.greyLight, { flat: true, lw: 0.02 });
-      disc(ctx, 0.55, 4.0, 1.28, 0.3, C.white, { lw: 0.03 });
-      if (Q.detail) for (const [dx, dy] of [[-0.08, -0.05], [0.1, 0.06], [0, 0.12]]) disc(ctx, 0.55 + dx, 4.0 + dy, 1.36, 0.09, C.leaf, { lw: 0.02 });
-    });
-    R.thing(0.8, 3.1, (ctx) => {
-      cylinder(ctx, 0.75, 3.0, 1.25, 0.2, 0.46, tint(C.grey, 0.2), { flat: true });
-      if (Q.detail) disc(ctx, 0.75, 3.0, 1.71, 0.13, C.ink, { stroke: false });
-    });
-    R.thing(0.81, 3.11, (ctx, t) => {
+      disc(ctx, 0.55, 2.8, 1.28, 0.3, C.white, { lw: 0.03 });
+      if (Q.detail) for (const [dx, dy] of [[-0.08, -0.05], [0.1, 0.06], [0, 0.12]]) disc(ctx, 0.55 + dx, 2.8 + dy, 1.36, 0.09, C.leaf, { lw: 0.02 });
+    }, { depth: 6.6 });
+    // The smart speaker: a squat charcoal puck with a light ring on top,
+    // right by the owner who asks it things. The ring glows teal all day and
+    // a bright bit chases round it when it answers (wrongly).
+    const SX = 0.62, SY = 3.65, SZ = 1.25;
+    R.thing(SX + 0.4, SY + 0.4, (ctx) => {
+      cylinder(ctx, SX, SY, SZ, 0.3, 0.34, shade(C.navy, 0.35), { side: shade(C.navy, 0.45), flat: true });
+      if (Q.detail) {
+        // The fabric's seam round its middle.
+        const [X, Y] = P(SX, SY, SZ + 0.12), rx = 0.3 * Math.SQRT2;
+        ctx.beginPath(); ctx.ellipse(X, Y, rx, rx / 2, 0, 0, Math.PI);
+        ctx.strokeStyle = alpha(C.grey, 0.5); ctx.lineWidth = 0.02; ctx.stroke();
+      }
+    }, { depth: 6.62 });
+    R.thing(SX + 0.41, SY + 0.41, (ctx, t) => {
       const tk = talk(t), on = tk && tk.who === 'speaker';
-      disc(ctx, 0.75, 3.0, 1.715, 0.17, on ? C.tealLight : C.grey, { lw: 0.02 });
-      if (on && Q.detail) glow(ctx, 0.75, 3.0, 1.75, 0.6, C.tealLight, 0.6 + Math.sin(t * 8) * 0.2);
-    }, { anim: true });
-    R.find({ id: 'speaker', label: 'A smart speaker', at: [0.75, 3.0, 1.5], r: 0.7 });
-    edison(R, 2.4, 5.6, 1.3);
+      const z = SZ + 0.345, [X, Y] = P(SX, SY, z), rx = 0.22 * Math.SQRT2;
+      ctx.beginPath(); ctx.ellipse(X, Y, rx, rx / 2, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = C.tealLight; ctx.lineWidth = on ? 0.08 : 0.06; ctx.stroke();
+      if (on) {
+        const a = t * 6;
+        ctx.beginPath(); ctx.ellipse(X, Y, rx, rx / 2, 0, a, a + 1.4);
+        ctx.strokeStyle = C.white; ctx.lineWidth = 0.08; ctx.stroke();
+      }
+      if (Q.detail) glow(ctx, SX, SY, z + 0.05, on ? 0.8 : 0.5, C.tealLight, on ? 0.75 + Math.sin(t * 8) * 0.15 : 0.4);
+    }, { anim: true, depth: 6.63 });
+    R.find({ id: 'speaker', label: 'A smart speaker', at: [SX, SY, SZ + 0.2], r: 0.88 });
+    edison(R, 2.6, 7.2, 1.3); // clear of the speaker
     edison(R, 6.3, 5.8, 1.1);
 
     // The goose, in a moving box marked DECOR, which it is now.
@@ -494,7 +523,7 @@ export default {
       person(ctx, p.x, p.y, 0, { ...OWNER2_LOOK, pose: p.moving ? 'walk' : 'stand', dir: p.dir, arms: [1.3, 1.3], speed: 5 }, t);
     }, { on: during(7.4, 19) });
     R.thing(7.6, 4.6, (ctx) => rainBoot(ctx, 7.6, 4.6));
-    R.find({ id: 'boot', label: "A dog's rain boot", at: [7.6, 4.6, 0.2], r: 0.7 });
+    R.find({ id: 'boot', label: "A dog's rain boot", at: [7.6, 4.6, 0.2], r: 0.88 });
 
     // Their boxes, after noon; the seller's, before.
     R.thing(6.2, 8.5, (ctx) => {
@@ -559,7 +588,7 @@ export default {
       if (home(t)) bottle(ctx, 11.3, 6.95, 0.86);
       else bottle(ctx, 11.0, 6.55, 0.02);
     }, { on: after, bias: 0.3 });
-    R.find({ id: 'bottle', label: "The bike's water bottle", at: (t) => (home(t) ? [11.3, 6.95, 1.1] : [11.0, 6.55, 0.25]), r: 0.7, ...AFTER });
+    R.find({ id: 'bottle', label: "The bike's water bottle", at: (t) => (home(t) ? [11.3, 6.95, 1.1] : [11.0, 6.55, 0.3]), r: 0.88, ...AFTER });
 
     // The bike's trip, whenever it's on this floor (the stairs up to the
     // penthouse are this floor's), and its movers.
@@ -575,9 +604,9 @@ export default {
       const say = p.say || (tk && tk.who === 'owner' && !p.moving ? tk.text : null);
       if (say && Q.detail) speech(ctx, p.x, p.y, 2.7, say, { size: 0.42 });
     }, { on: during(7.5, RIDE0) });
-    R.mover(() => ({ x: 0.75, y: 3.0 }), (ctx, t) => {
+    R.mover(() => ({ x: SX, y: SY }), (ctx, t) => {
       const tk = talk(t);
-      if (tk && tk.who === 'speaker' && Q.detail) speech(ctx, 0.75, 3.0, 2.05, tk.text, { size: 0.42, fill: tint(C.tealLight, 0.6) });
+      if (tk && tk.who === 'speaker' && Q.detail) speech(ctx, SX, SY, SZ + 0.45, tk.text, { size: 0.42, fill: tint(C.tealLight, 0.6) });
     }, { on: (t) => !!talk(t), bias: 6 });
     // The ride: pedalling, the screen's glow, the instructor.
     R.mover(() => ({ x: BIKE_HOME[0] - 0.45, y: BIKE_HOME[1] }), (ctx, t, p) => {

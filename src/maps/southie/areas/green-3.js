@@ -605,9 +605,9 @@ export default {
       ctx.beginPath(); ctx.ellipse(-0.35, 0, 0.05, 0.1, 0, 0, Math.PI * 2); paint(ctx, shade(C.brown, 0.2), { lw: 0.02 });
       ctx.restore();
     });
-    R.find({ id: 'tape', label: 'A tape measure', at: [2.7, 8.15, 0.25], r: 0.7 });
-    R.find({ id: 'leg', label: 'The couch\'s missing leg', at: [10.6, 7.6, 0.15], r: 0.7 });
-    R.find({ id: 'plan', label: 'A floor plan on a napkin', at: [5.95, 5.3, 1.03], r: 0.7, ...AFTER });
+    R.find({ id: 'tape', label: 'A tape measure', at: [2.7, 8.15, 0.25], r: 0.88 });
+    R.find({ id: 'leg', label: 'The couch\'s missing leg', at: [10.6, 7.6, 0.15], r: 0.88 });
+    R.find({ id: 'plan', label: 'A floor plan on a napkin', at: [5.95, 5.3, 1.03], r: 0.88, ...AFTER });
   },
 };
 

@@ -168,6 +168,14 @@ function bookHeld(ctx) {
   ctx.beginPath(); ctx.rect(-0.04, -0.3, 0.36, 0.26); paint(ctx, C.navy, { lw: 0.025 });
   ctx.beginPath(); ctx.rect(0.0, -0.27, 0.3, 0.2); paint(ctx, C.white, { stroke: false });
 }
+// The logbook keeper's pencil, poised: his logbook's on the ground.
+function pencilHeld(ctx) {
+  ctx.save(); ctx.rotate(-0.6);
+  ctx.beginPath(); ctx.rect(0.0, -0.05, 0.34, 0.07); paint(ctx, C.mustard, { lw: 0.02 });
+  ctx.beginPath(); ctx.moveTo(0.34, -0.05); ctx.lineTo(0.42, -0.015); ctx.lineTo(0.34, 0.02); ctx.closePath(); paint(ctx, C.woodLight, { lw: 0.015 });
+  ctx.fillStyle = C.pink; ctx.fillRect(-0.05, -0.05, 0.05, 0.07);
+  ctx.restore();
+}
 function cameraHeld(ctx) {
   ctx.beginPath(); ctx.rect(-0.08, -0.2, 0.3, 0.2); paint(ctx, C.black, { lw: 0.02 });
   ctx.beginPath(); ctx.rect(0.2, -0.17, 0.3, 0.14); paint(ctx, shade(C.grey, 0.4), { lw: 0.02 });
@@ -774,7 +782,7 @@ export default {
     R.thing(59.5, 3.2, (ctx) => {
       for (const [dx, dy] of [[-0.25, -0.2], [0.25, -0.1], [0.0, 0.3]]) line(ctx, [[59.6, 3.0, G + 1.3], [59.6 + dx, 3.0 + dy, G]], C.ink, 0.04);
       box(ctx, 59.45, 2.9, G + 1.3, 0.3, 0.2, 0.2, C.black, { flat: true, lw: 0.02 });
-      box(ctx, 59.5, 3.1, G + 1.33, 0.2, 0.6, 0.16, C.white, { flat: true, lw: 0.02 });
+      box(ctx, 59.5, 3.1, G + 1.33, 0.2, 0.6, 0.16, shade(C.grey, 0.45), { flat: true, lw: 0.02 }); // a dark lens (a white one read as the logbook)
     }, { on: spot });
     // The one on the stepladder, in a poncho when it rains.
     const s2 = folk(782, { top: C.coral, bottom: C.navy, hat: 'beanie' });
@@ -787,11 +795,11 @@ export default {
     stay(R, 60.2, 2.55, s2, { z: G + 1.0, dir: 'l', hours: spot, wet: { wear: poncho }, react: { face: binosUp, arms: [2.3, 2.2] }, depth: 62.8 });
     // The logbook keeper: every plane, a tick.
     const s3 = folk(783, { top: C.sky, bottom: C.ink, style: 'bald', hair: C.greyLight });
-    stay(R, 62.5, 2.8, s3, { dir: 'l', pose: 'read', hold: bookHeld, hours: spot, umb: C.teal, react: { pose: 'read', arms: [1.3, 1.2] } });
+    stay(R, 62.5, 2.8, s3, { dir: 'l', pose: 'read', hold: pencilHeld, hours: spot, umb: C.teal, react: { pose: 'read', arms: [1.3, 1.2] } });
     talk(R, 62.5, 2.8, G + 2.8, (t) => (spot(t) && PL(t) > 8.2 && PL(t) < 10.6 ? 'Tick.' : spot(t) && PL(t) > 13 && PL(t) < 15.5 && frac(t / 114) < 0.5 ? 'A321. Nice.' : null), { size: 0.4 });
     // A radio on the cooler, listening to the tower.
     R.thing(58.3, 3.3, (ctx) => {
-      box(ctx, 57.95 + 0.1, 2.95, G, 0.75, 0.5, 0.5, C.red, { flat: true, lw: 0.03, top: C.white });
+      box(ctx, 57.95 + 0.1, 2.95, G, 0.75, 0.5, 0.5, C.red, { flat: true, lw: 0.03, top: shade(C.red, 0.25) });
       box(ctx, 58.2, 3.05, G + 0.5, 0.35, 0.18, 0.22, C.black, { flat: true, lw: 0.02 });
       line(ctx, [[58.25, 3.1, G + 0.72], [58.1, 3.05, G + 1.25]], C.ink, 0.02);
     }, { on: spot });
@@ -836,18 +844,23 @@ export default {
     }, { size: 0.4 });
 
     // ---------- The logbook, dropped by the fence ----------
+    // Open on the walk a step from his feet: a navy spiral notebook, cream
+    // pages ruled in blue, a column of bold red ticks, the spiral down the middle.
     const LOG = [63.3, 3.35];
     R.rug((ctx) => {
-      const z = G + 0.02, [x, y] = LOG;
-      face(ctx, [[x - 0.45, y - 0.3, z], [x + 0.45, y - 0.3, z], [x + 0.45, y + 0.3, z], [x - 0.45, y + 0.3, z]], C.navy, { lw: 0.035 });
-      face(ctx, [[x - 0.4, y - 0.26, z + 0.03], [x - 0.02, y - 0.26, z + 0.03], [x - 0.02, y + 0.26, z + 0.03], [x - 0.4, y + 0.26, z + 0.03]], C.white, { lw: 0.02 });
-      face(ctx, [[x + 0.02, y - 0.26, z + 0.03], [x + 0.4, y - 0.26, z + 0.03], [x + 0.4, y + 0.26, z + 0.03], [x + 0.02, y + 0.26, z + 0.03]], C.white, { lw: 0.02 });
+      const z = G + 0.02, [x, y] = LOG, hx = 0.55, hy = 0.36;
+      face(ctx, [[x - hx, y - hy, z], [x + hx, y - hy, z], [x + hx, y + hy, z], [x - hx, y + hy, z]], C.navy, { lw: 0.04 });
+      const page = tint(C.butter, 0.7);
+      face(ctx, [[x - hx + 0.05, y - hy + 0.04, z + 0.03], [x - 0.03, y - hy + 0.04, z + 0.03], [x - 0.03, y + hy - 0.04, z + 0.03], [x - hx + 0.05, y + hy - 0.04, z + 0.03]], page, { lw: 0.02 });
+      face(ctx, [[x + 0.03, y - hy + 0.04, z + 0.03], [x + hx - 0.05, y - hy + 0.04, z + 0.03], [x + hx - 0.05, y + hy - 0.04, z + 0.03], [x + 0.03, y + hy - 0.04, z + 0.03]], page, { lw: 0.02 });
       if (!Q.detail) return;
-      ctx.save(); ctx.globalAlpha *= 0.55;
-      for (let v = y - 0.18; v < y + 0.22; v += 0.09) for (const [a, b] of [[x - 0.36, x - 0.06], [x + 0.06, x + 0.36]]) line(ctx, [[a, v, z + 0.04], [b, v, z + 0.04]], C.sky, 0.015);
-      for (let v = y - 0.2; v < y + 0.22; v += 0.07) disc(ctx, x, v, z + 0.05, 0.025, C.ink, { stroke: false });
-      for (const v of [y - 0.14, y - 0.05, y + 0.04]) line(ctx, [[x + 0.08, v, z + 0.045], [x + 0.12, v + 0.03, z + 0.045], [x + 0.2, v - 0.04, z + 0.045]], C.red, 0.02);
+      ctx.save(); ctx.globalAlpha *= 0.6;
+      for (let v = y - 0.24; v < y + 0.3; v += 0.1) for (const [a, b] of [[x - hx + 0.1, x - 0.08], [x + 0.08, x + hx - 0.1]]) line(ctx, [[a, v, z + 0.04], [b, v, z + 0.04]], C.sky, 0.015);
       ctx.restore();
+      for (let v = y - 0.28; v < y + 0.3; v += 0.08) disc(ctx, x, v, z + 0.05, 0.03, C.ink, { stroke: false });
+      // Scribbled plane numbers on the left, ticks on the right.
+      for (let v = y - 0.22; v < y + 0.26; v += 0.1) line(ctx, [[x - 0.4, v, z + 0.045], [x - 0.15, v, z + 0.045]], C.ink, 0.025);
+      for (let v = y - 0.22; v < y + 0.26; v += 0.1) line(ctx, [[x + 0.14, v, z + 0.045], [x + 0.2, v + 0.04, z + 0.045], [x + 0.34, v - 0.06, z + 0.045]], C.red, 0.035);
     });
     R.find({ id: 'logbook', label: "A plane spotter's logbook", at: [LOG[0], LOG[1], G + 0.1], r: 0.9 });
 

@@ -402,8 +402,8 @@ export default {
     R.goose((t) => ({ x: 7.45, y: 7.5, z: 0.3, pose: Math.sin(t * 0.5) > 0.85 ? 'honk' : 'sit', dir: 'l' }), { bias: 0.9 });
 
     // ---------- The finds ----------
-    R.find({ id: 'toaster', label: 'A second toaster', at: [1.47, 7.4, 0.45], r: 0.7 });
-    R.find({ id: 'lease', label: 'A lease signed twice', at: [2.8, 3.95, 1.25], r: 0.7 });
+    R.find({ id: 'toaster', label: 'A second toaster', at: [1.47, 7.4, 0.45], r: 0.88 });
+    R.find({ id: 'lease', label: 'A lease signed twice', at: [2.8, 3.95, 1.25], r: 0.88 });
     // (In his arms for its last minute, on the way to the stairs.)
     R.find({ id: 'lastbox', label: 'The last box', at: (t) => { if (h(t) < 11.88) return [5.9, 4.9, 1.2]; const p = himAt(t); return [p.x, p.y, 1.5]; }, r: 0.8, ...BEFORE });
   },

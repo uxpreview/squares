@@ -276,8 +276,8 @@ export default {
     // ---------- The finds ----------
     // The lamp and the TV count once they're up here (later than one
     // o'clock: the curb gives them up in the afternoon).
-    R.find({ id: 'lamp', label: 'A lamp with no shade', at: [2.3, 6.5, 2.2], r: 0.7, when: has(LAMP), note: 'after noon' });
-    R.find({ id: 'tv', label: 'A free TV', at: [11.8, 7.05, 0.95], r: 0.8, when: has(TV), note: 'after noon' });
-    R.find({ id: 'sign', label: 'A "FREE" sign', at: [5.55, 5.14, 1.25], r: 0.7 });
+    R.find({ id: 'lamp', label: 'A lamp with no shade', at: [2.3, 6.5, 1.45], r: 0.9, when: has(LAMP), note: 'after noon' });
+    R.find({ id: 'tv', label: 'A free TV', at: [11.8, 7.05, 0.95], r: 0.88, when: has(TV), note: 'after noon' });
+    R.find({ id: 'sign', label: 'A "FREE" sign', at: [5.55, 5.14, 1.25], r: 0.88 });
   },
 };

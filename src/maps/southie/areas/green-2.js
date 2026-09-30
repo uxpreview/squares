@@ -19,6 +19,18 @@ import { BEFORE, AFTER, outK, inK } from '../clock.js';
 import { hh, hours, oldSide, newSide, says, line3, backWindow, sleeper } from './green-1.js';
 
 const W = ROOM['green-2'];
+// A line said with its bubble running off to the right of the speaker (the
+// tail at its left end), so it never sits over the poster to their left.
+function saysRight(ctx, x, y, z, t, lines, every, on, off = 0, size = 0.4) {
+  const tt = t + off, i = Math.floor(tt / every), p = tt - i * every;
+  if (p > on || !Q.detail || p < 0) return;
+  const text = lines[i % lines.length], k = 40;
+  ctx.save();
+  ctx.font = `${size * k}px "Bagel Fat One", "Arial Black", sans-serif`;
+  const w = ctx.measureText(text).width + size * k * 0.9;
+  ctx.restore();
+  speech(ctx, x, y, z, text, { size, dx: (w / 2 - size * k * 0.6) / k });
+}
 // The poster lets go at 11:37 and is on the floor by 11:42.
 const DROP = [11.62, 11.7];
 const dropK = (t) => clamp((hh(t) - DROP[0]) / (DROP[1] - DROP[0]));
@@ -269,7 +281,7 @@ export default {
         hold: after ? null : (c) => { c.beginPath(); c.rect(-0.02, -0.34, 0.16, 0.28); paint(c, C.black, { lw: 0.02 }); },
       }, t);
       const lines = after ? ['That was there when we moved in.', 'It\'s a feature.'] : h >= 11.15 ? ['What hole?', 'It\'s original to the house.'] : ['We\'re getting the deposit back.', 'All of it.', 'Plus interest.', 'Mike, get off the futon.'];
-      says(ctx, p.x, p.y, 2.6, t, lines, 8, 3.6, 1);
+      saysRight(ctx, p.x, p.y, 3.3, t, lines, 8, 3.6, 1);
     }, { bias: 0.4 });
     // The goose, before noon: in an open pizza box on the floor, finishing
     // the crusts. After: asleep at the foot of her bed, in its own mask.
@@ -447,8 +459,8 @@ export default {
     });
 
     // ---------- The finds ----------
-    R.find({ id: 'ball', label: 'A ping-pong ball', at: [0.82, 2.55, 0.15], r: 0.65, ...BEFORE });
-    R.find({ id: 'hole', label: 'The hole behind the poster', at: [0, HY, HZ], r: 0.8, ...BEFORE });
-    R.find({ id: 'mask', label: 'A sleep mask', at: [10.2, 3.7, 1.1], r: 0.7, ...AFTER });
+    R.find({ id: 'ball', label: 'A ping-pong ball', at: [0.82, 2.55, 0.15], r: 0.88, ...BEFORE });
+    R.find({ id: 'hole', label: 'The hole behind the poster', at: [0, HY, HZ], r: 0.88, ...BEFORE });
+    R.find({ id: 'mask', label: 'A sleep mask', at: [10.2, 3.7, 1.1], r: 0.88, ...AFTER });
   },
 };

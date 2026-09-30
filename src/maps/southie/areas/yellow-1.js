@@ -486,15 +486,15 @@ export default {
     theirs(3.2, 7.7, ['TUPPERWARE', '(ALL OF IT)'], 0.85);
     theirs(8.4, 7.9, ['FRAGILE'], 0.4);
     // The kitchen table, the hamster's new cage on it (with a label), the
-    // teapot, a bowl of butterscotch candies.
+    // teapot, a dish of peppermints.
     R.thing(3.4, 6.2, (ctx) => {
       chair(ctx, 1.35, 5.0, 0, C.wood, 'r');
       table(ctx, 1.85, 4.55, 1.5, 1.5, 1.15, C.woodLight);
       chair(ctx, 2.2, 6.1, 0, C.wood, 'l');
     }, { on: neu });
     R.thing(3.5, 6.3, (ctx) => {
-      disc(ctx, 3.0, 5.7, 1.16, 0.2, C.white, { lw: 0.02 });
-      if (Q.detail) for (const [u, v] of [[2.95, 5.65], [3.05, 5.72], [3.0, 5.62]]) disc(ctx, u, v, 1.2, 0.05, C.mustard, { stroke: false });
+      disc(ctx, 3.0, 5.7, 1.16, 0.2, C.coral, { lw: 0.02 });
+      if (Q.detail) for (const [u, v] of [[2.95, 5.65], [3.05, 5.72], [3.0, 5.62]]) disc(ctx, u, v, 1.2, 0.05, C.red, { lw: 0.012, stroke: C.white });
     }, { on: neu });
     R.thing(3.6, 6.4, (ctx, t) => {
       // The cage, its wheel going round.
@@ -534,13 +534,25 @@ export default {
       sofa(ctx, 9.2, 3.0, 2.4, C.teal);
       if (Q.detail) for (const u of [9.3, 11.35]) rect(ctx, u, 3.35, 0.2, 0.8, 0.905, C.white, { lw: 0.015 });
     }, { on: neu });
-    // The reading glasses, on the seat.
+    // The reading glasses, alone on the seat's left end: two round lenses,
+    // a bridge, the arms folded, in tortoiseshell.
+    const GLX = 9.78, GLY = 3.75, GLZ = 0.735;
     R.thing(11.7, 4.3, (ctx) => {
-      const z = 0.735;
-      for (const u of [9.98, 10.4]) { const [X, Y] = P(u, 3.72, z); ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.12, 0, 0, Math.PI * 2); paint(ctx, alpha(tint(C.sky, 0.5), 0.8), { lw: 0.055, stroke: C.brown }); }
-      const [a, b] = P(10.12, 3.72, z), [c, d] = P(10.26, 3.72, z);
-      ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.strokeStyle = C.brown; ctx.lineWidth = 0.05; ctx.stroke();
-      for (const u of [9.8, 10.58]) { const [e, f] = P(u, 3.72, z), [g, h] = P(u - 0.02, 3.35, z + 0.08); ctx.beginPath(); ctx.moveTo(e, f); ctx.lineTo(g, h); ctx.stroke(); }
+      const z = GLZ, frame = (w) => {
+        ctx.strokeStyle = C.brown; ctx.lineWidth = w; ctx.stroke();
+        if (Q.detail) { ctx.save(); ctx.setLineDash([0.035, 0.05]); ctx.strokeStyle = shade(C.brown, 0.5); ctx.stroke(); ctx.restore(); }
+      };
+      // The folded arms, behind the lenses.
+      for (const u of [GLX - 0.26, GLX + 0.26]) { const [e, f] = P(u, GLY - 0.02, z + 0.02), [g, h] = P(u + 0.02, GLY - 0.34, z + 0.05); ctx.beginPath(); ctx.moveTo(e, f); ctx.lineTo(g, h); frame(0.05); }
+      for (const u of [GLX - 0.22, GLX + 0.22]) {
+        const [X, Y] = P(u, GLY, z);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.21, 0.17, 0, 0, Math.PI * 2);
+        ctx.fillStyle = alpha(tint(C.sky, 0.55), 0.85); ctx.fill();
+        frame(0.065);
+        if (Q.detail) { ctx.beginPath(); ctx.arc(X - 0.07, Y - 0.06, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill(); }
+      }
+      const [a, b] = P(GLX - 0.05, GLY, z + 0.03), [c, d] = P(GLX + 0.05, GLY, z + 0.03);
+      ctx.beginPath(); ctx.moveTo(a, b); ctx.quadraticCurveTo((a + c) / 2, (b + d) / 2 - 0.06, c, d); frame(0.05);
     }, { on: neu });
     const recliner = (ctx) => {
       const x = 10.0, y = 6.3, col = C.brown;
@@ -573,19 +585,20 @@ export default {
       onLeft(ctx, 1.33, 2.02, 0.14, 0.12, C.red, { stroke: false });
     }, { on: neu });
 
-    // The wife in the recliner by day with the crossword (glasses on); at
+    // The wife in the recliner by day with the crossword (squinting); at
     // night she's on the sofa and he's asleep in the recliner.
     const wife = folk(81, { style: 'curly', hair: C.greyLight, top: C.lilac, bottom: C.navy, skin: SKIN_FAIR });
     const walt = folk(82, { style: 'bald', top: tint(C.sky, 0.2), bottom: C.brown, hair: C.greyLight });
-    const specs = (c, hy) => {
+    // No glasses on her (the only pair in the room is on the couch): she squints.
+    const squint = (c, hy) => {
       c.strokeStyle = C.ink; c.lineWidth = 0.03;
-      c.beginPath(); c.arc(0.12, hy + 0.02, 0.07, 0, Math.PI * 2); c.moveTo(0.33, hy + 0.02); c.arc(0.26, hy + 0.02, 0.07, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.moveTo(0.06, hy + 0.02); c.lineTo(0.15, hy + 0.04); c.moveTo(0.21, hy + 0.04); c.lineTo(0.3, hy + 0.02); c.stroke();
     };
     const late = (t) => { const h = hour(t); return h >= 20.5 || h < 5; };
-    R.mover((t) => (neu(t) ? (late(t) ? { x: 11.05, y: 3.9, z: 0.05, dir: 'l' } : { x: 10.8, y: 6.9, z: 0.05, dir: 'r' }) : { x: -99, y: -99 }), (ctx, t, p) => {
+    R.mover((t) => (neu(t) ? (late(t) ? { x: 11.2, y: 3.9, z: 0.05, dir: 'l' } : { x: 10.8, y: 6.9, z: 0.05, dir: 'r' }) : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
       person(ctx, p.x, p.y, p.z, {
-        ...wife, pose: 'sit', dir: p.dir, arms: [1.1, 1.0], face: specs,
+        ...wife, pose: 'sit', dir: p.dir, arms: late(t) ? [0.55, 0.45] : [1.1, 1.0], face: squint,
         hold: (c) => { c.beginPath(); c.rect(-0.05, -0.28, 0.3, 0.36); paint(c, C.white, { lw: 0.02 }); if (Q.detail) { c.strokeStyle = alpha(C.ink, 0.6); c.lineWidth = 0.01; c.beginPath(); for (let i = 1; i < 4; i++) { c.moveTo(-0.05 + i * 0.075, -0.28); c.lineTo(-0.05 + i * 0.075, 0.08); c.moveTo(-0.05, -0.28 + i * 0.09); c.lineTo(0.25, -0.28 + i * 0.09); } c.stroke(); } },
       }, t);
       if (!late(t)) says(ctx, p.x, p.y, 2.3, t, ['Seven letters: "misplaced".', 'Couch.', 'Walt. The couch.'], 9, 3.4, 4);
@@ -626,9 +639,9 @@ export default {
     R.goose((t) => (old(t) ? { x: 6.95, y: 8.2, z: 0.3, pose: 'sit', dir: 'r' } : { x: 0.65, y: 2.75, z: 3.0, pose: Math.sin(t * 0.7) > 0.8 ? 'honk' : 'sit', dir: 'r' }), { bias: 1.2 });
 
     // ---------- The finds ----------
-    R.find({ id: 'hamster', label: 'A runaway hamster', at: hamster0, r: 0.8, ...BEFORE });
-    R.find({ id: 'drawing', label: 'A crayon drawing of the house', at: [0, 4.6, 2], r: 0.75 });
-    R.find({ id: 'glasses', label: 'A pair of reading glasses', at: [10.2, 3.72, 0.78], r: 0.7, ...AFTER });
+    R.find({ id: 'hamster', label: 'A runaway hamster', at: hamster0, r: 0.88, ...BEFORE });
+    R.find({ id: 'drawing', label: 'A crayon drawing of the house', at: [0, 4.6, 2], r: 0.88 });
+    R.find({ id: 'glasses', label: 'A pair of reading glasses', at: [GLX, GLY, GLZ + 0.05], r: 0.88, ...AFTER });
   },
 };
 
