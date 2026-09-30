@@ -98,10 +98,16 @@ if (mode === 'prepare') {
       const t = s.clock.now();
       s.clock.freeze(t);
       const dial = document.getElementById('dial');
+      // The game's buttons and bars: a find under one isn't in the shot.
+      const chrome = ['tray', 'roombar', 'to-places', 'floors', 'dial'].map((i) => document.getElementById(i))
+        .concat([document.querySelector('.tally')])
+        .filter((el) => el && !el.hidden && el.getClientRects().length)
+        .map((el) => el.getBoundingClientRect());
+      const under = (x, y) => chrome.some((r) => x > r.left - 8 && x < r.right + 8 && y > r.top - 8 && y < r.bottom + 8);
       return zone.finds.filter((f) => !skip.includes(f.id) && (!only || only.includes(f.id))).map((f) => {
         const [x, y, h] = typeof f.at === 'function' ? f.at(t) : f.at;
         const [sx, sy] = s.camera.toScreen(zone.anchor[0] + x - y, zone.anchor[1] - zone.lift + (x + y) / 2 - h * 1.12);
-        return { id: f.id, label: f.goose ? 'The goose' : f.label, note: f.note || null, here: !f.when || !!f.when(t), dial: dial && !dial.hidden ? dial.innerText.replace(/\s+/g, ' ').trim() : null, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight };
+        return { id: f.id, label: f.goose ? 'The goose' : f.label, note: f.note || null, here: !f.when || !!f.when(t), dial: dial && !dial.hidden ? dial.innerText.replace(/\s+/g, ' ').trim() : null, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight && !under(sx, sy) };
       });
     }, { id: z.id, skip, only });
     await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
