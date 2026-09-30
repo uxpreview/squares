@@ -13,17 +13,20 @@ export default {
 
   build(R) {
     deck(R, 'casino', 'promenade');
-    block(R, 3, 6.4, 5, 1, 2.2, INK.sunYellow, 'SLOTS');
-    block(R, 2, 1, 9, 1, 2.2, INK.sunYellow, 'SLOTS');
-    block(R, 7, 10, 2.6, 1.6, 1, C.green, 'ROULETTE');
-    block(R, 12.5, 13, 3, 1.2, 1.1, C.navy, 'GANGWAY');
-    block(R, 13, 3, 3, 3, 2.2, C.sky, 'DUTY FREE');
-    figure(R, 9.5, 9, folk(81), 'Croupier', { dir: 'l' });
-    figure(R, 14, 12.2, folk(82), 'Security', { dir: 'r' });
-    figure(R, 4, 3, folk(83), 'Slots', { dir: 'r', back: true });
-    figure(R, 6, 3, folk(84), '', { dir: 'r', back: true });
-    pin(R, { id: 'clicker', label: 'The gangway clicker', at: [14.3, 13.5, 1.25] }, 1);
-    pin(R, { id: 'handprints', label: 'Sticky handprints on a slot machine', at: [5.8, 7.4, 1.6] }, 2);
+    block(R, 11, 6.4, 5, 1, 2.2, INK.sunYellow, 'SLOTS');
+    block(R, 7, 1, 9, 1, 2.2, INK.sunYellow, 'SLOTS');
+    block(R, 14.5, 10, 2.6, 1.6, 1, C.green, 'ROULETTE');
+    block(R, 3, 9, 3, 2, 1, C.green, 'CARDS');
+    block(R, 10.5, 13.2, 3, 1.2, 1.1, C.navy, 'GANGWAY');
+    block(R, 20, 4, 3, 3, 2.2, C.sky, 'DUTY FREE');
+    figure(R, 17.5, 9, folk(81), 'Croupier', { dir: 'l' });
+    figure(R, 12, 12.4, folk(82), 'Security', { dir: 'r' });
+    figure(R, 9, 3, folk(83), 'Slots', { dir: 'r', back: true });
+    figure(R, 11, 3, folk(84), '', { dir: 'r', back: true });
+    figure(R, 2, 5.5, folk(85), '9am queue', { dir: 'r' });
+    figure(R, 4, 11, folk(86), 'Cards', { pose: 'sit' });
+    pin(R, { id: 'clicker', label: 'The gangway clicker', at: [11.8, 13.7, 1.25] }, 1);
+    pin(R, { id: 'handprints', label: 'Sticky handprints on a slot machine', at: [13.8, 7.4, 1.6] }, 2);
     paths(R);
   },
 };

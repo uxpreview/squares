@@ -72,90 +72,92 @@ const SIT = { pose: 'sit' };
 
 const DAYS = {
   // First through the doors at 7am, every morning since 1987.
-  doreen: from(26.5, 12.5, P).say(0, 4, 'Number 2!')
-    .to(33, 10).to(38, 6.5).until(at(7.7), { dir: 'r', back: true })
-    .to(36, 11).until(34, SIT)
-    .door('theater-buffet-2').to(20, 6).lift(CB).to(12, 12)
+  doreen: from(18.5, 12.5, P).say(0, 4, 'Number 2!')
+    .to(25, 10).to(30, 6.5).until(at(7.7), { dir: 'r', back: true })
+    .to(28, 11).until(34, SIT)
+    .door('theater-buffet-2').to(12, 6).lift(CB).to(12, 12)
     .until(at(10.2), SIT).say(at(10.2), at(10.6), 'I feel funny.', SIT).until(at(13), SIT)
-    .to(20, 6).lift(CREW).door('engine-crew').to(50, 5).door('crew-sick').to(59.5, 6.5)
+    .to(12, 6).lift(CREW).door('engine-crew').to(42, 5).door('crew-sick').to(59.5, 6.5)
     .until(at(16.8), { dir: 'r', back: true })
-    .door('crew-sick').door('engine-crew').to(20, 6).lift(P).to(22.5, 12).door('theater-buffet-2')
-    .to(26.5, 12.5).until(LOOP, { dir: 'r', back: true }),
+    .door('crew-sick').door('engine-crew').to(12, 6).lift(P).to(14.5, 12).door('theater-buffet-2')
+    .to(18.5, 12.5).until(LOOP, { dir: 'r', back: true }),
 
   // At the pool bar since last night, until the stewards carry him home at 11.
-  chad: from(46, 4, SUN).until(at(8), { dir: 'r' }).say(at(8), at(8.5), 'Another Green Mermaid!', { dir: 'r' }).until(at(11), { dir: 'r' })
-    .speed(1.4).to(34, 6).door('slide-pool').to(20, 5).lift(CB).to(45, 6).to(45, 12.5)
+  // (On the Sun Deck everyone keeps to the back of the pool, y 4, or its
+  // front, y 11.8: the water is world x 28 to 40, y 5 to 11.)
+  chad: from(38, 4, SUN).until(at(8), { dir: 'r' }).say(at(8), at(8.5), 'Another Green Mermaid!', { dir: 'r' }).until(at(11), { dir: 'r' })
+    .speed(1.4).to(22, 4).door('slide-pool').to(12, 5).lift(CB).to(45, 6).to(45, 12.5)
     .until(at(15.5), { pose: 'sleep' }).speed(WALK)
-    .to(45, 6).to(20, 5).lift(SUN).to(22, 6).door('slide-pool').to(46, 4).until(LOOP, { dir: 'r' }),
+    .to(45, 6).to(12, 5).lift(SUN).to(14, 6).door('slide-pool').to(22, 4).to(38, 4).until(LOOP, { dir: 'r' }),
 
   // Carries Chad home, then does the towel animals.
-  steward: from(30, 4, CB).until(at(9.5), { dir: 'l' })
-    .to(20, 5).lift(SUN).to(22, 6).door('slide-pool').to(45, 5.2).until(at(11), { dir: 'l' })
-    .speed(1.4).to(34, 7).door('slide-pool').to(20, 6.2).lift(CB).to(44, 7).to(46.6, 11.8).until(at(13.4)).speed(WALK)
-    .to(36, 5).until(at(15), { dir: 'l' }).to(8, 5).until(at(17), { dir: 'r' }).to(30, 4).until(LOOP, { dir: 'l' }),
+  steward: from(30, 4, CB).until(at(9.2), { dir: 'l' })
+    .to(12, 5).lift(SUN).to(14, 6).door('slide-pool').to(22, 4.4).to(36.5, 4.4).until(at(11), { dir: 'l' })
+    .speed(1.4).to(22, 4.8).door('slide-pool').to(12, 6.2).lift(CB).to(44, 7).to(46.6, 11.8).until(at(13.6)).speed(WALK)
+    .to(36, 5).until(at(15), { dir: 'l' }).to(6, 5).until(at(17), { dir: 'r' }).to(30, 4).until(LOOP, { dir: 'l' }),
 
-  // In the spa in her cucumber mask, except for the eggs at 7:10.
-  gloria: from(40, 4.5, P).until(at(7.5), { dir: 'r', back: true })
-    .door('theater-buffet').to(20, 4).lift(CB).to(46, 3.2).door('cabins-adults').to(66, 8)
+  // In the spa in her cucumber mask, except for the eggs at 7am.
+  gloria: from(32, 4.5, P).until(at(7.5), { dir: 'r', back: true })
+    .door('theater-buffet').to(12, 4).lift(CB).to(46, 3.2).door('cabins-adults').to(66, 8)
     .until(at(11), SIT).say(at(11), at(11.4), 'Ahh. Pink again.', SIT).until(at(12.5), SIT)
-    .to(52, 3.2).door('cabins-adults').to(20, 4).lift(SUN).to(22, 5).door('slide-pool').to(38, 12)
+    .to(52, 3.2).door('cabins-adults').to(12, 4).lift(SUN).to(14, 5).door('slide-pool').to(22, 11.8).to(30, 12)
     .until(at(17), SIT)
-    .to(34, 6).door('slide-pool').to(20, 4).lift(P).to(22, 3.2).door('theater-buffet').to(40, 4.5).until(LOOP, { dir: 'r', back: true }),
+    .to(22, 11.8).door('slide-pool').to(12, 4).lift(P).to(14, 3.2).door('theater-buffet').to(32, 4.5).until(LOOP, { dir: 'r', back: true }),
 
   // Hasn't left the wheel in four days.
   captain: from(66, 5.5, SUN).until(at(9), { dir: 'r' }).say(at(9), at(9.4), "I'm fine.", { dir: 'r' })
     .until(at(14), { dir: 'r' }).say(at(14), at(14.4), 'Steady as she goes.', { dir: 'r' })
     .until(at(17.5), { dir: 'r' }).say(at(17.5), at(18), 'Land ho. Nobody gets off.', { dir: 'r' }).until(LOOP, { dir: 'r' }),
 
-  // At the carving station, and down to the stores for more shrimp at 2.
-  chef: from(49, 4.5, P).until(at(8.5), { dir: 'l' }).say(at(8.5), at(8.9), 'Shrimp, madame?', { dir: 'l' }).until(at(13), { dir: 'l' })
-    .door('theater-buffet').to(20, 4).lift(CREW).door('engine-crew').to(44, 4).until(at(15), { dir: 'r', back: true })
-    .door('engine-crew').to(20, 4).lift(P).to(22, 3.2).door('theater-buffet').to(49, 4.5).until(LOOP, { dir: 'l' }),
+  // At the carving station, and down to the stores for more shrimp at 1.
+  chef: from(41, 4.5, P).until(at(8.5), { dir: 'l' }).say(at(8.5), at(8.9), 'Shrimp, madame?', { dir: 'l' }).until(at(13), { dir: 'l' })
+    .door('theater-buffet').to(12, 4).lift(CREW).door('engine-crew').to(36, 4).until(at(15), { dir: 'r', back: true })
+    .door('engine-crew').to(12, 4).lift(P).to(14, 3.2).door('theater-buffet').to(41, 4.5).until(LOOP, { dir: 'l' }),
 
   // Doreen's grandson, eight, loose.
-  tyler: from(28.5, 13.5, P).until(at(8), { dir: 'r', back: true })
+  tyler: from(20.5, 13.5, P).until(at(8), { dir: 'r', back: true })
     .door('theater-buffet-2').to(10, 10).until(at(11), SIT)
-    .to(22, 12).door('theater-buffet-2').to(40, 12).to(52, 5).door('buffet-casino').to(62, 9).until(at(13), { dir: 'r', back: true })
-    .door('buffet-casino').to(40, 8).to(26, 3.2).door('theater-buffet').to(20, 5).lift(SUN).to(22, 7).door('slide-pool').to(30, 12).until(at(17), { dir: 'l' })
-    .to(26, 8).door('slide-pool').to(20, 5).lift(P).to(22, 12).door('theater-buffet-2').to(28.5, 13.5).until(LOOP, { dir: 'r', back: true }),
+    .to(14, 12).door('theater-buffet-2').to(32, 12).to(44, 5).door('buffet-casino').to(62, 9).until(at(13), { dir: 'r', back: true })
+    .door('buffet-casino').to(32, 8).to(18, 3.2).door('theater-buffet').to(12, 5).lift(SUN).to(14, 7).door('slide-pool').to(22, 12).until(at(17), { dir: 'l' })
+    .to(18, 8).door('slide-pool').to(12, 5).lift(P).to(14, 12).door('theater-buffet-2').to(20.5, 13.5).until(LOOP, { dir: 'r', back: true }),
 
   // Cabin 7: Brenda inside, Ray in the corridor, all day.
   brenda: from(27, 12, CB).until(at(9), { dir: 'r', back: true }).say(at(9), at(9.4), 'And take your lamp!', { dir: 'r', back: true })
     .until(at(13), { dir: 'r', back: true }).say(at(13), at(13.4), 'The salad, Ray!', { dir: 'r', back: true }).until(LOOP, { dir: 'r', back: true }),
 
   ray: from(27, 5, CB).until(at(9), { dir: 'l' }).say(at(9.4), at(9.8), 'It was a gift!', { dir: 'l' })
-    .to(20, 5).lift(P).to(22, 3.2).door('theater-buffet').to(52, 3.2).door('buffet-casino').to(64, 12).until(at(16), SIT)
-    .to(60, 5).door('buffet-casino').to(26, 3.2).door('theater-buffet').to(20, 5).lift(CB).to(27, 5).until(LOOP, { dir: 'l' }),
+    .to(12, 5).lift(P).to(14, 3.2).door('theater-buffet').to(44, 3.2).door('buffet-casino').to(64, 12).until(at(16), SIT)
+    .to(60, 5).door('buffet-casino').to(18, 3.2).door('theater-buffet').to(12, 5).lift(CB).to(27, 5).until(LOOP, { dir: 'l' }),
 
   // The cruise director: the drill at 10, the limbo at noon, bingo at 3.
-  kelly: from(30, 5, SUN).say(0, 5, 'Good morning, sunshines!')
-    .to(42, 2.6).until(at(10), { dir: 'l' }).say(at(10), at(10.6), 'Muster stations, please!', { dir: 'l' }).until(at(11.5), { dir: 'l' })
-    .to(33, 8).until(at(12), { dir: 'r' }).say(at(12), at(12.5), 'How low can you go?', { dir: 'r' }).until(at(13.5), { dir: 'r' })
-    .to(26, 6).door('slide-pool').to(20, 5).lift(P).to(11, 4).until(at(15), { dir: 'r', back: false }).say(at(15), at(15.5), 'B four! Before...', { dir: 'r' })
+  kelly: from(22, 5, SUN).say(0, 5, 'Good morning, sunshines!')
+    .to(34, 2.6).until(at(10), { dir: 'l' }).say(at(10), at(10.6), 'Muster stations, please!', { dir: 'l' }).until(at(11.5), { dir: 'l' })
+    .to(26, 3.5).to(26.5, 10).until(at(12), { dir: 'l' }).say(at(12), at(12.5), 'How low can you go?', { dir: 'l' }).until(at(13.5), { dir: 'l' })
+    .to(18, 6).door('slide-pool').to(12, 5).lift(P).to(11, 4).until(at(15), { dir: 'r', back: false }).say(at(15), at(15.5), 'B four! Before...', { dir: 'r' })
     .until(at(16.5), { dir: 'r' })
-    .to(20, 5).lift(SUN).to(22, 6).door('slide-pool').to(30, 5).until(LOOP, { dir: 'r' }),
+    .to(12, 5).lift(SUN).to(14, 6).door('slide-pool').to(22, 5).until(LOOP, { dir: 'r' }),
 
   // The ship's doctor. Up to tape off the salad bar at 1.
   swabb: from(64, 6, CREW).until(at(11), { dir: 'l' })
-    .door('crew-sick').door('engine-crew').to(20, 5).lift(P).to(22, 3.2).door('theater-buffet').to(38, 5)
+    .door('crew-sick').door('engine-crew').to(12, 5).lift(P).to(14, 3.2).door('theater-buffet').to(30, 5)
     .until(at(13.6), { dir: 'r', back: true }).say(at(13.6), at(14), 'Salad bar closed!', { dir: 'r', back: true })
-    .door('theater-buffet').to(20, 5).lift(CREW).door('engine-crew').door('crew-sick').to(64, 6)
+    .door('theater-buffet').to(12, 5).lift(CREW).door('engine-crew').door('crew-sick').to(64, 6)
     .until(at(16.5), { dir: 'l' }).say(at(16.5), at(17), "It's fine. It's fine.", { dir: 'l' }).until(LOOP, { dir: 'l' }),
 
   // On holiday. Interviewing the wrong things all day.
-  pidge: from(34.5, 9.5, P).say(0, 8, 'You. Swan. Talk.', { dir: 'l' }).until(at(8), { dir: 'l' })
+  pidge: from(26.5, 9.5, P).say(0, 8, 'You. Swan. Talk.', { dir: 'l' }).until(at(8), { dir: 'l' })
     .door('theater-buffet-2').to(10, 7).say(at(9), at(9.6), 'Nothing up his sleeve? Search the hat.', { dir: 'l', back: true })
-    .to(20, 5).lift(SUN).to(22, 7).door('slide-pool').to(36, 9).until(at(12), { dir: 'r' }).say(at(12), at(12.6), 'For the investigation.', { pose: 'lie' })
-    .until(at(12.8)).door('pool-bridge').to(62, 7).say(at(13.8), at(14.4), 'Captain. Why are you green?', { dir: 'r' })
-    .door('pool-bridge').to(26, 8).door('slide-pool').to(20, 5).lift(P).to(22, 12).door('theater-buffet-2').to(34.5, 9.5)
-    .until(at(16.8), { dir: 'l' }).say(at(16.8), at(17.5), 'I feel fine. Is it hot in here?', { dir: 'l' }).until(LOOP, { dir: 'l' }),
+    .to(12, 5).lift(SUN).to(14, 7).door('slide-pool').to(26.5, 8.2).until(at(12), { dir: 'r' }).say(at(12), at(12.6), 'For the investigation.', { pose: 'lie' })
+    .until(at(12.8)).to(27, 11.8).to(44, 11.8).door('pool-bridge').to(62, 7).say(at(14.1), at(14.7), 'Captain. Why are you green?', { dir: 'r' })
+    .door('pool-bridge').to(44, 11.8).to(22, 11.8).to(18, 8).door('slide-pool').to(12, 5).lift(P).to(14, 12).door('theater-buffet-2').to(26.5, 9.5)
+    .until(at(17.4), { dir: 'l' }).say(at(17.4), at(18), 'I feel fine. Is it hot in here?', { dir: 'l' }).until(LOOP, { dir: 'l' }),
 
   // Patient zero. Out of the salad bar before the doors opened, up to the
   // pool all day, and back down for dinner.
-  iguana: from(26, 3.2, P).speed(1.3)
-    .door('theater-buffet').to(20, 4).lift(SUN).to(22, 5).door('slide-pool').to(48, 12.5)
+  iguana: from(18, 3.2, P).speed(1.3)
+    .door('theater-buffet').to(12, 4).lift(SUN).to(14, 5).door('slide-pool').to(22, 11.8).to(40, 12.5)
     .until(at(16), { dir: 'r' })
-    .to(34, 7).door('slide-pool').to(20, 4).lift(P).to(22, 3.2).door('theater-buffet').to(26, 3.2).until(LOOP, { dir: 'r' }),
+    .to(26, 11.8).to(20, 8).door('slide-pool').to(12, 4).lift(P).to(14, 3.2).door('theater-buffet').to(18, 3.2).until(LOOP, { dir: 'r' }),
 };
 
 // In the lift shaft between decks, nobody's drawn (they're behind its doors).

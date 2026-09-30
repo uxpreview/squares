@@ -6,10 +6,10 @@
 //   far side (0, starboard, the back wall) to the cut side (16, the side
 //   facing us, cut away). The bow tapers from x 64 to a point at x 80.
 //
-//   Sun Deck    The Waterslide 0-24 | The Pool 24-56 | The Bridge 56-80   (open air)
-//   Cabins      The Cabins 0-48                | Adults Only 48-80
-//   Promenade   The Theater 0-24 | The Buffet 24-56 | The Casino 56-80
-//   Crew Only   The Engine Room 0-24 | The Crew Bar 24-56 | The Sick Bay 56-80
+//   Sun Deck    The Waterslide 0-16 | The Pool 16-48 | The Bridge 48-80   (open air)
+//   Cabins      The Cabins 0-48                      | Adults Only 48-80
+//   Promenade   The Theater 0-16 | The Buffet 16-48 | The Casino 48-80
+//   Crew Only   The Engine Room 0-16 | The Crew Bar 16-48 | The Sick Bay 48-80
 //   (the sea)   The Port, a little island off the far side, ahead
 //
 // World units: x runs to the screen's lower right, y to the lower left, z up.
@@ -27,19 +27,23 @@ export const DECK = { crew: -STOREY, promenade: 0, cabins: STOREY, sun: 2 * STOR
 
 // Area id -> [x, y, z] of its back corner, and its size.
 export const AREAS = {
-  waterslide: { at: [0, 0, DECK.sun], size: [24, BEAM] },
-  pool: { at: [24, 0, DECK.sun], size: [32, BEAM] },
-  bridge: { at: [56, 0, DECK.sun], size: [24, BEAM] },
+  waterslide: { at: [0, 0, DECK.sun], size: [16, BEAM] },
+  pool: { at: [16, 0, DECK.sun], size: [32, BEAM] },
+  bridge: { at: [48, 0, DECK.sun], size: [32, BEAM] },
   cabins: { at: [0, 0, DECK.cabins], size: [48, BEAM] },
   'adults-only': { at: [48, 0, DECK.cabins], size: [32, BEAM] },
-  theater: { at: [0, 0, DECK.promenade], size: [24, BEAM] },
-  buffet: { at: [24, 0, DECK.promenade], size: [32, BEAM] },
-  casino: { at: [56, 0, DECK.promenade], size: [24, BEAM] },
-  'engine-room': { at: [0, 0, DECK.crew], size: [24, BEAM] },
-  'crew-bar': { at: [24, 0, DECK.crew], size: [32, BEAM] },
-  'sick-bay': { at: [56, 0, DECK.crew], size: [24, BEAM] },
+  theater: { at: [0, 0, DECK.promenade], size: [16, BEAM] },
+  buffet: { at: [16, 0, DECK.promenade], size: [32, BEAM] },
+  casino: { at: [48, 0, DECK.promenade], size: [32, BEAM] },
+  'engine-room': { at: [0, 0, DECK.crew], size: [16, BEAM] },
+  'crew-bar': { at: [16, 0, DECK.crew], size: [32, BEAM] },
+  'sick-bay': { at: [48, 0, DECK.crew], size: [32, BEAM] },
   port: { at: [60, -34, SEA], size: [18, 16] },
 };
+// Every area starts on a multiple of 16 (and so do its 16-unit chunks), on
+// every deck, so each piece of a deck is drawn after the piece of the deck
+// below it. (Boundaries at 24 and 56 let the Cabins' walls poke up through
+// the Sun Deck.)
 export const AT = Object.fromEntries(Object.entries(AREAS).map(([id, a]) => [id, a.at]));
 
 // The corridor: every deck's doors sit on it, near the far wall.
@@ -76,7 +80,7 @@ for (const [area, list] of Object.entries(DOORS)) {
 // The lift: one shaft through every deck, against the far wall. People step
 // in at its doors (LIFT.x, LIFT.y) on one deck and out on another. It's in
 // the Engine Room, the Theater, the Cabins and the Waterslide.
-export const LIFT = { x: 20, y: 1.4, box: [18.4, 0, 3.2, 2.4] }; // box: x, y, w, d
+export const LIFT = { x: 12, y: 1.4, box: [10.4, 0, 3.2, 2.4] }; // box: x, y, w, d
 
 // The gangway: the Casino's door in the cut side, where the port's pier
 // meets the ship at 6pm.

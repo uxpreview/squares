@@ -23,7 +23,7 @@ export default {
     figure(R, 11.8, 12, folk(62, { scale: 0.7 }), 'Kids', { pose: 'sit' });
     figure(R, 14.6, 13, folk(63, { scale: 0.7 }), '', { pose: 'sit' });
     pin(R, { id: 'slime-kit', label: 'A slime kit', at: [4.7, 11.5, 1.4] }, 1);
-    pin(R, { id: 'rabbit', label: 'A rabbit in a lifebuoy', at: [21.5, 14, 0.4] }, 2);
+    pin(R, { id: 'rabbit', label: 'A rabbit in a lifebuoy', at: [14.8, 14.6, 0.4] }, 2);
     paths(R);
   },
 };
