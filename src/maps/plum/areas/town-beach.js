@@ -38,11 +38,11 @@ export default {
 
     // Rows of houses: behind the boulevard, two rows in front of it, and the
     // front row up on pilings on the dunes.
-    for (let i = 0; i < 7; i++) house(R, 71 + i * 3.4, 27.8, 2.4, 1.8, GREY.house[(i + 1) % 6], { h: 1.8, ridge: 'x' });
-    for (let i = 0; i < 7; i++) house(R, 70.6 + i * 3.5, 32.6, 2.6, 2.2, GREY.house[i % 6], { ridge: i % 2 ? 'x' : 'y' });
-    for (let i = 0; i < 6; i++) house(R, 72.2 + i * 3.8, 35.8, 2.6, 2.2, GREY.house[(i + 3) % 6], { ridge: i % 2 ? 'y' : 'x' });
+    for (let i = 0; i < 7; i++) house(R, 71 + i * 3.4, 27.8, 2.4, 1.8, (i + 1), { h: 1.8, ridge: 'x' });
+    for (let i = 0; i < 7; i++) house(R, 70.6 + i * 3.5, 32.6, 2.6, 2.2, i, { ridge: i % 2 ? 'x' : 'y' });
+    for (let i = 0; i < 6; i++) house(R, 72.2 + i * 3.8, 35.8, 2.6, 2.2, (i + 3), { ridge: i % 2 ? 'y' : 'x' });
     const FRONT = [71.2, 74.6, 78, STUB[0], 86.2, 89.6, 93];
-    FRONT.forEach((x, i) => house(R, x, 39, 2.8, 2.2, GREY.house[(i + 2) % 6], { stilts: 1.1, ridge: 'y', label: x === STUB[0] ? 'THE STUBBORN HOUSE' : null }));
+    FRONT.forEach((x, i) => house(R, x, 39, 2.8, 2.2, (i + 2), { stilts: 1.1, ridge: 'y', label: x === STUB[0] ? 'THE STUBBORN HOUSE' : null }));
     // Sandbags along the front row's toe.
     for (let x = 70.6; x < 95.6; x += 1.2) {
       if (x > STUB[0] - 1 && x < STUB[0] + 3) continue; // (not under the stairs)

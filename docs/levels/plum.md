@@ -1,9 +1,9 @@
 # Plum Island
 
-> Status: **Greybox** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [ ] (at gate 2 now) · preview [ ]
+> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [x] (with every recommendation, decisions 35 to 38) · preview [ ]
 >
-> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and is waiting on the owner at gate 2.
+> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and approved at gate 2. Session 5c draws it, QAs it and puts it up for gate 3 ("The art" below).
 >
 > Drafted in the sketchbook session (Sept 2026); finished in session 5 with the owner's answers and ideas (decisions 1 to 17), every real place checked against a real map and current news (see "Real places, checked"), and a build plan for E4. The rough sketch is in [the sketchbook](../sketchbook.html) (open it in a browser; drag the tide). The owner approved it with every recommendation (decisions 25 to 32). Next: build E4, then the greybox.
 
@@ -203,7 +203,7 @@ E4 is built first (PROCESS step 3), in its own commits, before the greybox. It's
 ### 5. The camera and the overview
 - **Wide, on a phone** (decision 16): the map's `overview` fills an upright phone's height and runs the island off both sides; on its side, the whole width.
 - **Long areas** (the beaches, the turnpike) are framed a room's worth at a time around where you tap, as the Block Party's streets are (`zoneBox`), and QA frames each find.
-- **No cutaway in front:** it's all outdoors and low, so the areas in front aren't cut away when you step into one. If the greybox shows the dunes or houses hiding the Sound or the marsh behind them, tall things in front fade instead (decided at gate 2).
+- **The cutaway, as everywhere:** stepping into an area cuts away the areas in front of it, as on the Block Party. Fading tall things instead was left for gate 2; the owner kept the cutaway (decision 36).
 
 ### 6. Small pieces outside E4
 - **A subtitle on the picker card** (`subtitle` in `maps/index.js`): "Plum Island", with "King Tide" under it (decision 8).
@@ -261,7 +261,7 @@ The first greybox (session 5) was built from the draft brief; 5b rebuilt it to m
 - **The ending:** the clock jumps to 12:15am, the camera flies to the van in the flood by the drawbridge, the geese paddle out from the Center's back shore and round it, the Courier holds up the parcel (greenhead spray), and Dave drives past, windows down.
 - **Engine, on the way:** a land can have no rim (`rim: false`): no cut sides, its deep water printed in the paper's color where the plate ends (`paper(t)`); water whose ink follows the clock (`water.color` as a function); a picker card printed on its plate (`plate.bleed`); a subtitle on the picker card (`subtitle`, "King Tide").
 
-**For the owner at gate 2** (each with a recommendation):
+**For the owner at gate 2** (each with a recommendation; all four taken, decisions 35 to 38):
 1. **On a phone**, the overview frames the Center and the Town Beach at full height, and you swipe along the island (decision 16). *Recommend:* keep.
 2. **Stepping into an area** cuts away the areas in front of it, as on the Block Party. The brief left fading tall things instead for this gate. *Recommend:* keep the cutaway; nothing in front is tall enough to need a fade, and the houses on pilings are the only thing that hides much.
 3. **Sunset on the sea:** a sea mixed with gold reads as muddy olive, so the sea goes gold only briefly and then pink and lavender, while the land keeps its colors. *Recommend:* keep, and let the art director tune it.
@@ -323,3 +323,9 @@ The owner, at the start of session 5b (Sept 2026):
 33. **Keep the skip.** A tap on the tide clock runs the day fast to the next low or high water (it lands at noon, or at 11pm as the road goes under). The windows and the notes in the list stay. This replaces "the player can't control the tide" in decision 5.
 34. **The parcel is greenhead fly spray,** not waders: the only thing anyone on the island wants, and it ties the ending to the greenhead swarm. "Could've used that this afternoon."
 
+Gate 2 (the greybox), the owner at the start of session 5c (Sept 2026), taking every recommendation:
+
+35. **The phone framing stays:** on an upright phone the overview frames the Center and the Town Beach at full height, and you swipe along the island.
+36. **The cutaway stays** when you step into an area, rather than fading tall things in front.
+37. **The sunset on the sea stays:** gold briefly, then pink and lavender, with the land keeping its colors. The art director tunes it.
+38. **Hellcat's tower stays by the refuge road;** the art can stretch its boardwalk along the marsh edge.

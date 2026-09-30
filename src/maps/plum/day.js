@@ -25,6 +25,7 @@ import { tag } from '../greybox.js';
 import { PIKE, BLVD, GATE, SHACK, BRIDGE, LOTS, roadZ, h } from './land.js';
 import { LOOP, KING_AT, at, hour, level } from './tide.js';
 import { car, who } from './kit.js';
+import { GH, ghWalk } from './swarm.js';
 
 const IN = PIKE + 0.6, OUT = PIKE - 0.6; // the turnpike's lanes: onto the island, and off
 const SOUTH = BLVD + 0.5, NORTH = BLVD - 0.5; // the island road's lanes
@@ -179,22 +180,7 @@ const trier = vehicle('trier', 'The car that keeps trying', C.coral, [
 
 // ---------- The greenhead man ----------
 // At ten a swarm of greenheads finds him in the Center's lot and follows him
-// all day: across the lot, down the Town Beach and back, through the Center,
-// past the refuge's line and out along the Lot 1 boardwalk, where he stops
-// with everyone for the sunset. Then it's too dark for the flies, and he
-// goes home.
-const GH = [at(10), at(21.5)];
-const ghSteps = [
-  [58.2, 36.4], { until: GH[0], pose: 'stand' },
-  { wait: 3, pose: 'point', say: 'What was that?' },
-  { speed: 2.4 }, [62, 37.6], [62, 43.4], [70, 45], [92, 45.2], { wait: 3, pose: 'wave' },
-  [72, 45.6], [63, 44.4], [62, 38], [61.6, NORTH - 1.2], [GATE + 1, NORTH - 1.2], { wait: 2, pose: 'wave' },
-  [44, NORTH - 1.2], [42.4, 34.4], { speed: WALK }, [40, 36.4], [40, 43.6], [40.6, 46], { until: at(19.8), pose: 'wave' },
-  { until: at(20.9), pose: 'stand', dir: 'l', back: true },
-  [40, 43.6], [40, 36.4], [42, 34.4], { until: GH[1] + 1 },
-  [58.2, 36.4],
-];
-const ghWalk = schedule(ghSteps, { loop: LOOP, name: 'The greenhead man', speed: WALK });
+// all day (his walk is in swarm.js, where the areas read it to step aside).
 const ghLook = folk(141, { top: C.white, bottom: C.coral });
 const greenheadMan = {
   id: 'greenhead', name: 'The greenhead man', loop: LOOP, color: C.coral,

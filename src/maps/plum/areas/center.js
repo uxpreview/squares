@@ -34,8 +34,8 @@ export default {
     sign(R, 50.6, BLVD - 1.6, 'SUNSET DR', 1.3);
 
     // Houses behind the boulevard and between the lots and the dunes.
-    [[49.2, 27.7], [53.4, 27.6]].forEach(([x, y], i) => house(R, x, y, 2.4, 1.8, GREY.house[(i + 2) % 6], { h: 1.8, ridge: 'x' }));
-    [[48.6, 36.2], [51.6, 36.6], [65.4, 38.8]].forEach(([x, y], i) => house(R, x, y, 2.4, 2.2, GREY.house[(i + 4) % 6], { ridge: i % 2 ? 'x' : 'y' }));
+    [[49.2, 27.7], [53.4, 27.6]].forEach(([x, y], i) => house(R, x, y, 2.4, 1.8, (i + 2), { h: 1.8, ridge: 'x' }));
+    [[48.6, 36.2], [51.6, 36.6], [65.4, 38.8]].forEach(([x, y], i) => house(R, x, y, 2.4, 2.2, (i + 4), { ridge: i % 2 ? 'x' : 'y' }));
 
     // The bait shop and its board: today's tides, chalked up, and the king
     // tide at the bottom in capitals.

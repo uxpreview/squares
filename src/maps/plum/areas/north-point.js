@@ -49,7 +49,7 @@ export default {
     block(R, 102.6, 33.8, 2.6, 1.2, 1.8, C.mustard, 'PLAYGROUND', { size: 0.4 });
     const [l0, m0] = LOTS.point;
     [l0 + 0.4, l0 + 3.2].forEach((x, i) => R.thing(x + 0.5, m0 + 2.4, (ctx) => car(ctx, x, m0 + 1.4, h(x, m0 + 1.4), GREY.car[(i + 5) % 7], 'y')));
-    house(R, 97, 27.4, 2.4, 2, GREY.house[4], { ridge: 'x' });
+    house(R, 97, 27.4, 2.4, 2, 4, { ridge: 'x' });
 
     // The lifeguard stands, ocean side and river side, and their chalkboard
     // of today's tides.

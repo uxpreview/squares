@@ -151,7 +151,6 @@ Each is one PR. Order can change; dependencies can't.
 
 Open, for the owner:
 
-- **Plum Island's greybox (gate 2):** approve, or say what to change; four questions in plum.md ("For the owner at gate 2").
 - **Lag on older laptops, what's next** (the owner's call; the streets are done in 4c): step sharpness down from 2x to 1.5x when frames stay slow, and back up when they're quick (it only ever steps 3x to 2x now, once, and never back), recommended first since it helps every place and every view (drawing at 1x roughly doubles a room's frames); then cache the Manor's night backdrop (drawn once, only the rain and lightning live), which only helps the Manor. What's left on the Block Party is mostly the graphics chip laying the cut sheet down and stamping the other rooms' pictures at 2x.
 - **The review's leftovers** (3d found these and left them for the owner's call):
   - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
@@ -165,6 +164,7 @@ Open, for the owner:
 
 Made:
 
+- **Plum Island's greybox is approved** (gate 2) with every recommendation: the phone framing (the Center and the Town Beach at full height, a swipe along the island), the cutaway kept rather than fading tall things, the sunset on the sea gold briefly then pink and lavender (the art director tunes it), Hellcat's tower by the refuge road with its boardwalk along the marsh edge. *(5c, the owner, plum.md 35 to 38)*
 - **Plum Island's tide clock can skip** to the next low or high water; the parcel is greenhead fly spray. *(5b, the owner, plum.md 33 and 34)*
 - **A place printed on the sea bleeds:** no cut sides, the deep water the paper's own color, the picker card printed on it too. *(5b)*
 - **Plum Island's brief is approved** (gate 1) with every recommendation: its own map in the North Shore inks (to pair with Newburyport), geese plus the Courier racing the king tide, a six-minute loop with one tide (two minutes of low water, two of high, the king tide just after midnight), fair tide finds (a tide clock, "at low tide" in the list), July, a pair of waders, "Plum Island" with "King Tide" under it, real names for public places and lookalikes for businesses. E4 is built first, on it. *(Session 5, the owner; plum.md decisions 1 to 32)*

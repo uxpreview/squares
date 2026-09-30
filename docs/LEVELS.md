@@ -163,5 +163,5 @@ Characters and things that turn up everywhere:
 - **The goose**, in every place.
 - **The Courier:** a parcel for "G. Goose" hidden in every place.
 - **Inspector Pidge:** a pigeon detective always one place behind the goose, and always wrong.
-- **A fake brand** on posters, trucks and packaging across every place (name to decide).
+- **A fake brand** on posters, trucks and packaging across every place: **Gander Cola** ("Take a gander."), red cans, white lettering. First on Plum Island's banner plane (plum.md, 5c).
 - **"Have you seen this goose?" posters** (the Block's blimp already has one).

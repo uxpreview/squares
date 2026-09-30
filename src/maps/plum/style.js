@@ -70,6 +70,25 @@ export function paperAt(t) {
   return mix(deep, seaAt(t), 0.55);
 }
 
+// ---------- The art's shared inks ----------
+// Beach houses: cedar shingle gone silver, or painted, with white trim. Each
+// house takes one body and one trim by its index (kit.js house()).
+export const HOUSE = {
+  body: [tint(INK.shingle, 0.28), mix(INK.shingle, C.brown, 0.18), tint(C.sky, 0.35), tint(C.blush, 0.3), tint(INK.shallows, 0.35), C.butter, tint(INK.shingle, 0.5)],
+  roof: [shade(INK.shingle, 0.28), mix(INK.shingle, C.navy, 0.35), mix(C.brown, INK.shingle, 0.4)],
+  trim: C.white,
+  door: [C.teal, C.coral, C.navy, C.mustard],
+  glass: tint(C.sky, 0.2),
+};
+// Cars: the six inks, a little sun-faded.
+export const CARS = [C.coral, C.teal, C.mustard, tint(C.sky, 0.1), C.white, C.purple, C.red, tint(INK.shingle, 0.2)];
+// A lit window, lamp or lantern after dark, and when the lights are on.
+export const LIT = C.butter;
+export const lightsOn = (t) => nightK(t) >= 0.3;
+// The fake brand, on the banner plane and on cans and coolers across the
+// island (and later across every place): Gander Cola. "Take a gander."
+export const BRAND = { name: 'GANDER COLA', line: 'TAKE A GANDER', can: C.red, ink: C.white };
+
 // Greybox tones for blocks and labels, so the plan reads at a glance.
 export const GREY = {
   house: [C.white, C.greyLight, tint(C.sky, 0.3), tint(C.blush, 0.3), C.mint, C.butter],
