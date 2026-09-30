@@ -1,7 +1,7 @@
 # Moving Day
 
-> Status: **Brief** · Brief → Greybox → Art → QA → Preview → Shipped
-> Approvals: brief [x] (the lead's call, session 6, decisions 1 to 24) · greybox [ ] (the lead's call) · preview [ ] (the owner)
+> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Approvals: brief [x] (the lead's call, session 6, decisions 1 to 24) · greybox [x] (the lead's call, session 6, decisions 25 to 31) · preview [ ] (the owner)
 >
 > Written in session 6 (Sept 2026) from the backlog entry in [LEVELS.md](../LEVELS.md) and the owner's sketch in [the sketchbook](../sketchbook.html) ("Southie: Moving Day"). Every landmark and street was checked against OpenStreetMap and the news to September 2026 before a line of it was written ("Real places, checked"). The owner reviews once, at the preview (PROCESS.md): at the brief and the greybox the lead takes its own recommendations and writes them into Decisions, where the owner can overturn any of them. The id is `southie` (`#/southie`), hidden until it ships.
 
@@ -193,8 +193,30 @@ Checked against OpenStreetMap (street bearings, building footprints and addresse
 
 **Performance:** nine stacked apartments, a long road and a big park. The bar, on the owner's 2017 laptop: no view slower than the Block Party's (its streets 18 to 21 frames a second, rooms 21 to 33). A closed house is one cached picture; the rain is the new cost, measured in the greybox.
 
+## E11 as built (session 6)
+Built in the engine before the greybox, in its own commit, and checked by the smoke test on this level:
+
+- **A zone's outside** is a layer (`R.shell(draw, o)`), drawn after everything in the zone and before the air. It shows while you're anywhere but in that zone, and fades out (and back) as you step in and out (`zone.shellK`, animated by the renderer like walls going up and down). On the overview a closed house is a still picture like any other zone's.
+- **`cutaway.above: 'column'`** lifts only the zones above the one you're in whose footprint overlaps it (that house's upper floors), dims nothing, and cuts everything in front of the room at every height, not just its own floor.
+- **Taps:** a closed building counts its whole box, floor to ceiling. On a map with any, where a tap's line of sight meets several things (a house's second floor, its third floor above and behind, the street), the nearest wins: the highest point it meets. Other maps keep the old rule.
+- **Finds inside** a closed building can't be tapped (`out: true` for one on a porch or a window box, which can).
+- **Buildings on a land:** `land: false` on a zone's place, so it stands on the ground without printing it; `span` set to the floor height, so each point is in one floor.
+- **Porches:** a building's outside can say what floor it encloses (`box`); standing things outside that (its porch, whoever's out on it, the couch at the end) are drawn after the outside, since they stand in front of it. Without it the front painted over its own porches.
+- **Taps in a room:** in the room you're in, a tap inside its own outline is the room's, since whatever's in front of it is cut away there (the house in front's upper floors); and on a map with buildings the walls are tested finer (a shallow apartment's framing is centered up on its back wall, which the old 2-unit steps jumped over, so a tap there fell through to the street behind).
+- **Found on the way:** stacked floors could be drawn out of order (a ground floor waiting on a strip of yard behind it, drawn after the floors above it). A floor is now always drawn after the one it stands on. The shipped places' draw order is unchanged, checked map by map.
+
 ## The greybox (session 6, gate 2)
-*(Filled in when it's built.)*
+At `#/southie` (hidden from the picker until it ships). Everything below is plain blocks, labels and numbered pins; the art replaces it and keeps the layout, the walks and the finds.
+
+- **The layout** as the table under Shape has it, tightened: 96 x 68. The row on Farragut Road at the left (x 0.5 to 15.5, inside one of the road's 16-unit chunks so its houses never straddle a seam), the road (sidewalks, parking both sides, two lanes), Marine Park from x 28.5 to the beach at 42.5, Pleasure Bay from 50 to 74, Castle Island's mound at the right with the fort on it, the harbor across the front. Day Boulevard runs along the shore, up through the park past the Farragut circle, and out along the bay's causeway to the Castle Island lot.
+- **The houses:** the Green House, the Yellow House and the Grey One, north to south, a zone per floor (4.4 units floor to floor), each with its floor, two back walls, a stair hall along the north side (the back wall, so nothing in it stands between you and the rooms), porches three high on the north half of the front and a bay stack on the south half, and its outside: the front, the south side, the bay, the roof, windows lit at night. The front door is under the porches. The rest of the row stands north of East Broadway and south of the Grey One (not enterable, drawn by Farragut Road).
+- **The clock** as the Mechanic table has it (`clock.js`): before noon 7am to noon, the handover noon to 1pm, after noon 1pm to 5am, rain 10am to 3pm, sunset 7:20pm. The lease clock on screen skips to noon, sunset and the next morning. The paper goes grey with the rain, pink at sunset, navy at night.
+- **Farragut Road:** parked cars both sides, the truck in at 7, stuck by 9 between a parked car and a double-parked pickup, the queue behind it, the car bounced aside at 3pm, the truck out; the Storrowed truck; the curb pile in front of the Yellow House, leaving one piece at a time as the collector carries it up; NO PARKING signs; the goose poster; the couch on its rope in front of the Green House from 9am.
+- **Marine Park:** the Farragut statue on its circle, the bath house, the playground, the shelter, trees, the lawn chair audience facing the row, walkers along the beach.
+- **Castle Island:** the fort on its mound, the McKay monument, the hot dog stand and its line, the lot, containers along the port fence, plane spotters and Inspector Pidge, walkers on the east walkway and the Sugar Bowl.
+- **Around it** (`ambient.js`): City Point's rooftops behind the row, Dorchester Heights far off at the back left, the Seaport's towers behind, the port's cranes; the rain; a plane on runway 4R's line over Pleasure Bay about once a minute.
+- **The people on the clock** (`day.js`): the Courier (every house's third floor from 7:30, a hot dog at Castle Island after noon, the Green House's third floor at 9:30pm); the landlady (the inspection from 11am, keys on the porch at noon); a mover in each house, out before noon and in after; the curb collector, four trips up the Yellow House.
+- **Framing:** on a phone held upright the overview frames the row and the road at full height; the park and the island are a swipe to the right.
 
 ## Open questions
 None: the lead took its own recommendations (decisions below), and the owner can overturn any of them at the preview.
@@ -227,3 +249,14 @@ The lead's calls at the brief (gate 1), session 6 (Sept 2026), each with its rea
 22. **Brand names on finds:** none. the exercise bike looks like the famous one and is never called it; the rental truck and the hot dog stand are lookalikes too.
 23. **The paper follows the day and the weather** (grey while it rains), and the page and the browser's bars follow it, as on the Block Party.
 24. **Engine work is this level's this round** (the owner: Moving Day owns engine changes while the cruise ship is built in parallel; it merges first). E11 is written general, so the cruise ship's hull can use it once it's merged.
+
+The lead's calls at the greybox (gate 2), session 6, from its contact sheet (QA: 14 passed, 9 warnings, 0 failed):
+
+25. **The greybox is approved; the layout is fixed.** The row reads as a row of triple-deckers from the whole map, every apartment frames well on a phone and a laptop, and the day reads at every moment (the rain's grey, the pink sunset, the navy first night).
+26. **The map is 96 x 68,** tightened from the brief's 110 x 72 so the row is the hero: the park and Pleasure Bay were squeezed, the harbor band in front kept.
+27. **The stair hall runs along each house's north side** (its back wall, as the camera sees it), with the porches on the north half of the front and the bay stack on the south half: a hall along the south side stood between the camera and the rooms.
+28. **The ending happens on the Green House's top porch**, where the street can see it: the couch comes over the rail, gets pivoted, and the geese sit on it out there ("close enough"). Inside, it would be hidden by the house's closed front.
+29. **Outdoor finds get bigger in the art** (tap radius about 0.9 and objects near a unit): QA warns the greybox's are about 10px across on a phone.
+30. **No walls-down cutaway:** houses are closed on the overview instead, and the road, park and island have no walls to drop.
+31. **The cranes, the skyline and the rooftops behind the row are placeholders** that the art makes smaller and fainter: in the greybox they compete with the row.
+

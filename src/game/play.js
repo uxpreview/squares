@@ -910,6 +910,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // pan, only zones that are really there count.
   function zoneAtScreen(sx, sy, skipLifted = false) {
     const [X, Y] = camera.toWorld(sx, sy);
+    // In a room, whatever's in front of it is cut away round it, so a tap
+    // there is the room's (the house in front's upper floors, on a street of houses).
+    if (mode === 'zone' && current >= 0 && world.cutaway.front && world.zoneAt(X, Y, (z) => z.index !== current) === current) return current;
     if (skipLifted) return world.zoneAt(X, Y, lifted);
     if (hasStoreys()) {
       const i = world.zoneAt(X, Y, lifted);

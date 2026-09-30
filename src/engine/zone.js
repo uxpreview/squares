@@ -54,7 +54,7 @@ import { footprint } from './footprint.js';
 import { C, Q, setScreen, goose as drawGoose, box, onLeft, onRight, shade, alpha, glow } from './art.js';
 
 const LAYERS = ['floor', 'wall', 'decor', 'rug', 'thing', 'dark', 'light', 'shell', 'air'];
-const WALL_L = 1, DECOR_L = 2, RUG_L = 3, THING = 4;
+const WALL_L = 1, DECOR_L = 2, RUG_L = 3, THING = 4, SHELL_L = 7;
 export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 
 // def: the zone module. place: where the map puts it.
@@ -225,7 +225,16 @@ export function buildZone(def, place = {}) {
     // anywhere but in this zone and fades away when you step in, so a house on
     // the overview is closed and opens like a dollhouse. Still unless o.anim.
     // Finds inside can't be tapped while it's closed (see find's out).
-    shell: (draw, o) => { zone.shelled = true; const it = add('shell', draw, o); it.shellOf = zone; return it; },
+    // o.box: [x0, y0, x1, y1], the floor its outside encloses: standing things
+    // outside it (a porch, whoever's out on it) are drawn after the outside,
+    // since they stand in front of it.
+    shell: (draw, o = {}) => {
+      zone.shelled = true;
+      if (o.box) zone.shellBox = o.box;
+      const it = add('shell', draw, o);
+      it.shellOf = zone;
+      return it;
+    },
     // How dark the room is: fn(t) returns 0 (lit) to 1 (pitch black).
     dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true, on: (t) => fn(t) > 0.002 }),
   };
@@ -730,18 +739,33 @@ function drawItems(ctx, piece, t, pick, st = null) {
     celled = which;
   };
   const cellFor = (it) => (!things ? 'top' : it.layer === RUG_L && zone.ground ? 'water' : 'flat');
+  // A building's standing things outside its walls (its porch) go on after
+  // its outside, which they stand in front of; the rest before it.
+  const box = zone.shellBox;
+  const outOf = box ? (it) => {
+    const p = it.pos ? it.pos(t) : it.at;
+    if (!p) return false;
+    const x = p.x ?? p[0], y = p.y ?? p[1];
+    return x < box[0] || y < box[1] || x > box[2] || y > box[3];
+  } : null;
+  let later = null;
+  const flush = () => {
+    if (clipping) { ctx.restore(); clipping = false; }
+    toCell(null);
+    if (things) {
+      if (outOf) { later = things.filter(outOf); things = things.filter((it) => !outOf(it)); }
+      drawThings(ctx, things, t, st);
+      things = null;
+    }
+  };
   for (let i = 0; i < piece.items.length; i++) {
     const it = piece.items[i];
     if (!pick(it)) continue;
     if (it.layer === THING) { things.push(it); continue; }
     const a = shown(it, t);
     if (!a) continue;
-    if (it.layer > THING && things) {
-      if (clipping) { ctx.restore(); clipping = false; }
-      toCell(null);
-      drawThings(ctx, things, t, st);
-      things = null;
-    }
+    if (it.layer > THING && things) flush();
+    if (it.layer > SHELL_L && later) { flush(); drawThings(ctx, later, t, st); later = null; }
     toCell(cellFor(it));
     const cut = !!clip && (it.layer === WALL_L || it.layer === DECOR_L) && !it.walls;
     if (cut !== clipping) {
@@ -761,7 +785,8 @@ function drawItems(ctx, piece, t, pick, st = null) {
   if (clipping) ctx.restore();
   clipping = false;
   toCell(null);
-  if (things) drawThings(ctx, things, t, st);
+  if (things) flush();
+  if (later) drawThings(ctx, later, t, st);
 }
 
 const all = () => true;

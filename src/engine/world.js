@@ -269,7 +269,10 @@ export function buildWorld(map) {
       // Walls down, a room only reaches as high as its walls stand now, so a
       // tap on the street behind a lowered wall lands on the street.
       const top = z.low != null && z.walls ? Math.max(1.5, wallHeight(z, 'left'), wallHeight(z, 'right')) : Math.max(6, z.h);
-      for (let h = 0; h <= top; h += top < 2 ? top : 2) {
+      // (On a map with buildings, rooms are shallow for their height, so the
+      // middle of one's framing is up on its back wall: look finer.)
+      const step = top < 2 ? top : shells ? 0.5 : 2;
+      for (let h = 0; h <= top; h += step) {
         const [lx, ly] = unproject(X - ax, Y - ay + h * ZK);
         if (lx < x0 - (x0 ? 0 : 0.5) || ly < y0 - (y0 ? 0 : 0.5) || lx > x1 || ly > y1) continue;
         if (h > 0 && lx > 1.2 && ly > 1.2) continue; // above the floor only near the back walls

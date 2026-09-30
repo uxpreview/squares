@@ -642,6 +642,44 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- 7. Buildings you step into (Moving Day, E11) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
+  await page.goto(base + '#/southie');
+  await ready(page);
+  await wait(page, 1500);
+  const houses = () => S(page, () => Object.fromEntries(window.__squares.world.zones.filter((z) => z.shelled).map((z) => [z.id, [Math.round(z.shellK * 100) / 100, Math.round(z.veil * 100) / 100]])));
+  const shut = await houses();
+  check('on the overview every house is closed', Object.values(shut).length === 9 && Object.values(shut).every(([k, v]) => k === 1 && v === 0), JSON.stringify(shut));
+  // Zoomed in close on the Green House without stepping in, its first floor's
+  // keys can't be tapped through its front; the tap opens the house instead.
+  await S(page, () => { const s = window.__squares, z = s.world.zones.find((x) => x.id === 'green-1'); s.camera.jumpTo({ x: z.anchor[0] + 6, y: z.anchor[1] + 2, z: s.cam.z * 3.5 }); });
+  await wait(page, 200);
+  let [kx, ky] = await findOnScreen(page, 'green-1', 'keys');
+  await page.mouse.click(kx, ky);
+  await wait(page, 1600);
+  check("a find inside a closed house can't be tapped through its front", !(await S(page, () => window.__squares.store.isFound('southie', 'green-1:keys'))));
+  await page.goto(base + '#/southie');
+  await ready(page);
+  await wait(page, 1500);
+  // A tap on the Yellow House's second-floor front opens that floor.
+  const [fx, fy] = await S(page, () => {
+    const s = window.__squares, z = s.world.zones.find((x) => x.id === 'yellow-2');
+    const [x, y, h] = [12.5, 6.8, 2.2];
+    return s.camera.toScreen(z.anchor[0] + (x - y), z.anchor[1] + (x + y) / 2 - h * 1.12);
+  });
+  await page.mouse.click(fx, fy);
+  await wait(page, 2500);
+  const inside = await S(page, () => window.__squares.play.focus?.id);
+  const open = await houses();
+  check("a tap on a closed house's second-floor front opens its second floor", inside === 'yellow-2', inside);
+  check('its front is gone and only the floor above it, in that house, lifts', open['yellow-2'][0] === 0 && open['yellow-3'][1] === 1 &&
+    open['yellow-1'][1] === 0 && open['green-3'][1] === 0 && open['grey-3'][1] === 0 && open['green-2'][0] === 1, JSON.stringify(open));
+  const floors = await S(page, () => { const ids = window.__squares.world.drawOrder.map((c) => c.zone.id); return ['green', 'yellow', 'grey'].every((h) => ids.indexOf(h + '-1') < ids.indexOf(h + '-2') && ids.indexOf(h + '-2') < ids.indexOf(h + '-3')); });
+  check('every house is drawn floor by floor, bottom up', floors);
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();
