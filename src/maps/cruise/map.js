@@ -102,6 +102,7 @@ export default {
     invite: 'Start at the buffet',
     hint: 'Find where it began. Name patient zero.',
     whole: 'The whole ship',
+    inside: 'on the ship', // the case-closed card: "You found 20 of the 29 things on the ship."
     complete: 'Patient zero was a stowaway iguana. It is not getting off either.',
   },
   loop: LOOP,
