@@ -256,9 +256,14 @@ export function createRenderer(canvas, camera, o = {}) {
     const lift = world.cutaway.lift ?? LIFT;
     const ghost = world.cutaway.ghost ?? GHOST;
     for (const c of world.drawOrder) if (c.zone !== focus) { if (c.backdrop) dropBackdrop(c); if (c.stills) dropStills(c); }
+    // (A street of houses lifts only the floors over the room you're in, in
+    // its own house, and dims nothing.)
+    const column = world.cutaway.above === 'column';
+    const over = (z) => focus && z.oz > focus.oz + 0.05 && z.ox < focus.ox + focus.w - 0.01 && focus.ox < z.ox + z.w - 0.01 &&
+      z.oy < focus.oy + focus.d - 0.01 && focus.oy < z.oy + z.d - 0.01;
     for (const z of world.zones) {
-      const up = world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
-      const down = focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
+      const up = column ? (!z.fixed && over(z) ? 1 : 0) : world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
+      const down = !column && focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
       const ease = settle ? 1 : Math.min(1, dt * 7);
       z.veil += (up - z.veil) * ease;
       z.dim = (z.dim || 0) + (down - (z.dim || 0)) * ease;
@@ -271,6 +276,14 @@ export function createRenderer(canvas, camera, o = {}) {
         z.wallK += (want - z.wallK) * (settle ? 1 : Math.min(1, dt * 6));
         if (Math.abs(z.wallK - want) < 0.004) z.wallK = want;
         if (z.wallK !== was) for (const c of z.chunks) c.stale = true;
+      }
+      // A building's outside: gone while you're in it, back when you leave.
+      if (z.shelled) {
+        const want = z === focus ? 0 : 1;
+        const was = z.shellK;
+        z.shellK += (want - z.shellK) * (settle ? 1 : Math.min(1, dt * 6));
+        if (Math.abs(z.shellK - want) < 0.004) z.shellK = want;
+        if (z.shellK !== was) for (const c of z.chunks) c.stale = true;
       }
     }
     settle = false;
@@ -340,7 +353,7 @@ export function createRenderer(canvas, camera, o = {}) {
       // Only the outlines that are on screen and overlap this chunk cut it:
       // on a street, most of its pieces are elsewhere, and every different
       // set of outlines is another sheet to lay down.
-      const by = cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
+      const by = cuts && z !== focus && (world.cutaway.above === 'column' || Math.abs(z.oz - focus.oz) < focus.h) ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
       let g = ctx;
       if (by && by.length) {
         // It can go on the sheet that's out if the outlines that sheet will
@@ -466,6 +479,7 @@ export function createRenderer(canvas, camera, o = {}) {
     for (const z of world.zones) {
       z.veil = 0; z.lift = 0; z.dim = 0;
       if (z.low != null) z.wallK = 0;
+      if (z.shelled) z.shellK = 1;
     }
   }
 

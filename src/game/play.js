@@ -930,8 +930,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     for (const zone of world.zones) {
       if (lifted(zone)) continue;
       const [ax, ay] = zone.anchor;
+      // (A closed building's finds are inside it, out of reach, bar any on its porch.)
+      const shut = zone.shelled && zone.shellK > 0.5;
       for (const f of zone.finds) {
-        if (isFound(zone, f) || !here(f, t)) continue;
+        if (isFound(zone, f) || !here(f, t) || (shut && !f.out)) continue;
         const [x, y, z] = findPos(f, t);
         const [px, py] = camera.toScreen(ax + isoX(x, y), ay + isoY(x, y, z));
         const d = Math.hypot(px - sx, py - sy);
