@@ -56,15 +56,15 @@ The culprit's card is **"Someone else?"** (a plain shadow and a question mark), 
 
 The plan (world units; x along the ship from the stern, y from the far side to the cut side; every deck 16 deep):
 
-| Deck (storey, z) | x 0 to 24 | x 24 to 48 | x 48 to 56 | x 56 to 80 (the bow tapers from x 64) |
+| Deck (storey, z) | x 0 to 16 | x 16 to 48 | | x 48 to 80 (the bow tapers from x 64) |
 | --- | --- | --- | --- | --- |
-| **Sun Deck** (14.2, open air, rails not walls) | **The Waterslide** (0 to 24) | **The Pool** (24 to 56) | | **The Bridge** (56 to 80) |
+| **Sun Deck** (14.2, open air, rails not walls) | **The Waterslide** (0 to 16) | **The Pool** (16 to 48) | | **The Bridge** (48 to 80) |
 | **Cabins** (7.1) | **The Cabins** (0 to 48, a corridor of cabins) | | **Adults Only** (48 to 80) | |
-| **Promenade** (0) | **The Theater** (0 to 24) | **The Buffet** (24 to 56) | | **The Casino** (56 to 80) |
-| **Crew Only** (-7.1, below the waterline) | **The Engine Room** (0 to 24) | **The Crew Bar** (24 to 56) | | **The Sick Bay** (56 to 80) |
+| **Promenade** (0) | **The Theater** (0 to 16) | **The Buffet** (16 to 48) | | **The Casino** (48 to 80) |
+| **Crew Only** (-7.1, below the waterline) | **The Engine Room** (0 to 16) | **The Crew Bar** (16 to 48) | | **The Sick Bay** (48 to 80) |
 | **Outside** (the sea, -0.6) | **The Port**, off the far side, ahead (x 60 to 78, y -34 to -18) | | | |
 
-**Connections:** a lift and a stair tower in the same place on every deck (against the far wall, x 22 to 26), so people vanish into the lift doors on one deck and step out on another; doors between the areas on each deck, along a corridor by the far wall. On the Sun Deck the areas are open to each other (a rail with gaps).
+**Connections:** a lift in the same place on every deck (against the far wall, x 10.4 to 13.6; decision 28), so people vanish into the lift doors on one deck and step out on another; doors between the areas on each deck, along a corridor by the far wall. On the Sun Deck the areas are open to each other (a rail with gaps).
 
 ## Areas
 
@@ -199,3 +199,8 @@ Gate 2, the greybox (the lead's calls, Sept 2026; the owner reviews them at the 
 25. **Gloria starts the day at the buffet** (7am, in her mask), is back in the spa by 8, pink at 11, at the pool all afternoon, and back to the buffet for dinner.
 26. **Chad sleeps in cabin 12** (the stern end of the corridor is the honeymoon suite; cabins run 1 to 12 toward the bow), carried there at 11 by a steward, back at the pool bar by 5.
 27. **Labels:** "A sign hung on a hot tub" (QA read "A Do Not Disturb sign" as Title Case); the invitation's hint is "Find where it began. Name patient zero." (short enough for its card on a phone).
+
+The art (session 7, the lead's calls):
+28. **Every area starts on a multiple of 16, on every deck** (the stern areas 0 to 16, the middle 16 to 48, the bow 48 to 80; the Cabins 0 to 48). The engine draws a deck in 16-unit chunks from each area's corner and sorts chunks by where they start, so boundaries at 24 and 56 put a piece of the deck below after the deck above it and the Cabins' walls showed through the Sun Deck (the Pool's artist caught it). Now each piece of a deck comes after the piece under it. The Theater, the Engine Room and the Waterslide are 16 wide; the Bridge, the Casino and the Sick Bay 32. The lift moved to x 12 so it stays in the stern areas.
+29. **On the Sun Deck people walk round the pool,** behind it (y 4) or in front (y 11.8), never across the water.
+30. **The ship's sound is built from sounds the game already has** (the sea is the surf bed; the drill is seven bells and the bridge bell; bingo is the ding; the port's welcome is the fanfare). A ship's horn is for a round when this level can change `src/game/`.
