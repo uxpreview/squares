@@ -1,93 +1,829 @@
 // The Sound: Plum Island Sound, behind the refuge (docs/levels/plum.md). At
-// low water the flats come out and the clammers walk out onto them; at high
-// water they're under again and the kayaks come out from the launch across
-// from Lot 1. A sailboat ran aground at dawn, and its owner is waiting it
-// out on the hull, reading, all day, aground or afloat. The mainland's marsh
-// along the back.
+// low water the flats come out and the clammers walk out onto them, with the
+// clam warden checking licences; at high water they're under again and the
+// kayaks come out from the launch across from Lot 1. A sailboat ran aground
+// at dawn, and its owner is waiting it out on the hull, reading, all day,
+// aground or afloat. The mainland's marsh along the back: salt hay on its
+// staddles, greenhead traps, an osprey on its pole and somebody's camp.
 //
-// Greybox: the Sound is real ground and water (land.js), everything on it
-// blocks and labels. World units, like land.js.
-import { C, Q, folk, box } from '../../../engine/art.js';
-import { drawLand } from '../../../engine/terrain.js';
-import { pin } from '../../greybox.js';
+// World units, like land.js. The chunk seams (x 16 and 32, y 16) are kept
+// clear of anything wide and tall: the sailboat sits at x 19.4 for that.
+import { C, Q, P, SKIN, HAIR, box, disc, face, poly, paint, person, folk, speech, glow, alpha, shade, tint, mix, cylinder, paintText } from '../../../engine/art.js';
+import { clamp, pulse } from '../../../engine/actors.js';
+import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h } from '../land.js';
-import { level, lowTide, highTide, nightK } from '../tide.js';
-import { EVENING } from '../style.js';
-import { boat, who, trap, sign, tag } from '../kit.js';
+import { level, lowTide, highTide, nightK, sunsetWatch, at } from '../tide.js';
+import { EVENING, INK, LAND, LIT, lightsOn, BRAND } from '../style.js';
+import { boat, trap, signpost, board, house } from '../kit.js';
 
-// The sailboat, aground on the flats south of the channel.
-const SAIL = [15.6, 21.8];
-// The clammers: where they wait on the back beach, and where they dig.
-const CLAMMERS = [
-  { home: [11, 26.4], dig: [11.6, 22.8], seed: 41 },
-  { home: [14, 26.3], dig: [21.4, 23.2], seed: 44 },
-  { home: [28, 26.6], dig: [26.4, 23.4], seed: 47 },
-];
-// How far out the flats are: 0 under water, 1 dry enough to dig.
-const out = (t) => Math.max(0, Math.min(1, (-0.5 - level(t)) / 0.25));
-const LAUNCH = [40.2, 26.2];
+// ---------- Where things are ----------
+const SAIL = [19.4, 21.8]; // the sailboat, aground on the flats south of the channel
+const LAUNCH = [40.2, 26.2]; // the refuge's kayak launch, across from Lot 1
+const BOOT = [12.4, 22.2];
+const BOTTLE = [8, 9.4];
+const PADDLE = [23, 22.6];
+const TOW = [21.8, 20.4]; // the towing sign on its piling, by the sailboat's bow
+const SUN0 = at(19.8), SUN1 = at(20.9); // the sunset watch, in loop seconds
+const WADERS = shade(C.green, 0.28);
+const FONT = 'Rethink Sans';
+
+// ---------- Little helpers ----------
+const lerp = (a, b, k) => a + (b - a) * k;
+const dirOf = (dx, dy) => (dx - dy >= 0 ? 'r' : 'l');
+const say = (ctx, x, y, z, text, size = 0.44) => { if (Q.detail) speech(ctx, x, y, z, text, { size }); };
+// A line between two world points, inked, then colored.
+function stick(ctx, a, b, color, w = 0.06) {
+  const [x0, y0] = P(...a), [x1, y1] = P(...b);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+  ctx.lineCap = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.05; ctx.stroke(); }
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
+}
+// Lettering on a plane along x (facing lower left), centred on (x, y, z).
+function letters(ctx, x, y, z, text, size, ink = C.ink, font = FONT) {
+  if (!Q.detail) return;
+  ctx.save();
+  const [dx, dy] = P(0, y, 0);
+  ctx.translate(dx, dy);
+  paintText(ctx, 'right', x, z, text, size, ink, font);
+  ctx.restore();
+}
+// Someone drawn standing (or wading, when the water's over their feet).
+function body(ctx, x, y, z, look, o, t) {
+  const L = level(t);
+  const draw = (g) => person(g, x, y, z, { ...look, ...o }, t);
+  if (L > z + 0.05) wade(ctx, x, y, z, L, draw); else draw(ctx);
+}
+// Bent over (a clammer at the rake): the whole figure tipped forward from the feet.
+function bent(ctx, x, y, z, look, o, t, lean) {
+  const [X, Y] = P(x, y, z), f = o.dir === 'l' ? -1 : 1, L = level(t);
+  const draw = (g) => { g.save(); g.translate(X, Y); g.rotate(f * lean); g.translate(-X, -Y); person(g, x, y, z, { ...look, ...o }, t); g.restore(); };
+  if (L > z + 0.05) wade(ctx, x, y, z, L, draw); else draw(ctx);
+}
+// Someone sitting in a kayak: waist up, cut at the deck.
+function seated(ctx, x, y, zDeck, look, o, t) {
+  const [X, Y] = P(x, y, zDeck + 0.1);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(X - 3, Y - 4, 6, 4); ctx.clip();
+  person(ctx, x, y, zDeck - 0.62, { ...look, pose: 'stand', ...o }, t);
+  ctx.restore();
+}
+
+// A walk on the clock: from start at t0, steps of { to: [x, y], speed } or
+// { wait: s } / { until: t } (with anything else they should say while
+// there: dir, back, a tag). Returns (t) => where and what, or null when
+// they're not here.
+function plan(t0, start, steps, speed = 1.2) {
+  const segs = [];
+  let t = t0, [x, y] = start, dir = 'r';
+  for (const s of steps) {
+    if (s.to) {
+      const [bx, by] = s.to, dur = Math.hypot(bx - x, by - y) / (s.speed || speed);
+      dir = dirOf(bx - x, by - y);
+      segs.push({ ...s, t0: t, t1: t + dur, ax: x, ay: y, bx, by, move: true, dir, back: by - y + bx - x < -0.01 });
+      t += dur; x = bx; y = by;
+    } else {
+      const dur = s.until != null ? s.until - t : s.wait;
+      segs.push({ dir, back: false, ...s, t0: t, t1: t + dur, ax: x, ay: y, bx: x, by: y, move: false });
+      t += dur;
+    }
+  }
+  const fn = (tt) => {
+    for (const g of segs) {
+      if (tt < g.t0 || tt >= g.t1) continue;
+      const k = (tt - g.t0) / (g.t1 - g.t0);
+      return { x: lerp(g.ax, g.bx, k), y: lerp(g.ay, g.by, k), moving: g.move, dir: g.dir, back: g.back, seg: g, k };
+    }
+    return null;
+  };
+  fn.end = t;
+  return fn;
+}
+const away = (p) => ({ x: p[0], y: p[1], gone: true });
+
+// ---------- Kayaks ----------
+function kayak(ctx, x, y, z, ang, color) {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  const W = (u, v, zz) => [x + u * c - v * s, y + u * s + v * c, zz];
+  const out = [[-1.1, 0], [-0.55, -0.26], [0.55, -0.26], [1.1, 0], [0.55, 0.26], [-0.55, 0.26]];
+  face(ctx, out.map(([u, v]) => W(u, v, z + 0.02)), shade(color, 0.3), { lw: 0.04 });
+  face(ctx, out.map(([u, v]) => W(u, v, z + 0.2)), color, { lw: 0.04 });
+  if (Q.detail) face(ctx, [[-0.32, 0], [-0.2, -0.14], [0.2, -0.14], [0.32, 0], [0.2, 0.14], [-0.2, 0.14]].map(([u, v]) => W(u, v, z + 0.21)), C.ink, { stroke: false });
+}
+// A double paddle across the kayak, dipping one side then the other.
+function paddle(ctx, x, y, zDeck, ang, t, blade, still = false) {
+  const c = Math.cos(ang), s = Math.sin(ang), sw = still ? 0 : Math.sin(t * 3.2);
+  const u = still ? 0.1 : 0.18 * Math.cos(t * 3.2);
+  const a = [x + u * c + 0.95 * s, y + u * s - 0.95 * c, zDeck + (still ? 0.35 : 0.55 + 0.32 * sw)];
+  const b = [x + u * c - 0.95 * s, y + u * s + 0.95 * c, zDeck + (still ? 0.35 : 0.55 - 0.32 * sw)];
+  stick(ctx, a, b, C.ink, 0.05);
+  for (const p of [a, b]) {
+    const [X, Y] = P(...p);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.16, 0.08, 0.5, 0, Math.PI * 2);
+    paint(ctx, blade, { lw: 0.03 });
+  }
+}
+// A kayaker's afternoon: carry it down from the launch, wait for the water
+// (or not), paddle out to a lazy circle, stop for the sunset, come back.
+function kayakTrip(o) {
+  const [ex, ey] = o.from, [sx, sy] = o.spot;
+  const carry = Math.hypot(sx - ex, sy - ey);
+  const a1 = o.appear + carry;
+  const c0 = [o.center[0] + o.r * Math.cos(o.phase), o.center[1] + o.ry * Math.sin(o.phase)];
+  const tc = o.float + Math.hypot(c0[0] - sx, c0[1] - sy) / o.speed;
+  const w = (Math.PI * 2) / 40;
+  const active = (t) => (t - tc) - Math.max(0, Math.min(t, SUN1) - Math.max(tc, SUN0));
+  const onCircle = (t) => {
+    const a = o.phase + w * active(t);
+    return { x: o.center[0] + o.r * Math.cos(a), y: o.center[1] + o.ry * Math.sin(a), ang: Math.atan2(o.ry * Math.cos(a), -o.r * Math.sin(a)) };
+  };
+  const pr = onCircle(o.leave), [lx, ly] = o.land;
+  const tl = o.leave + Math.hypot(lx - pr.x, ly - pr.y) / o.speed;
+  const te = tl + Math.hypot(ex - lx, ey - ly);
+  const outAng = Math.atan2(c0[1] - sy, c0[0] - sx);
+  return (t) => {
+    if (t < o.appear || t >= te) return { ...away(o.from) };
+    if (t < a1) { const k = (t - o.appear) / carry; return { x: lerp(ex, sx, k), y: lerp(ey, sy, k), mode: 'carry', ang: outAng, dir: dirOf(sx - ex, sy - ey), back: true }; }
+    if (t < o.float) return { x: sx, y: sy, mode: 'wait', ang: outAng };
+    if (t < tc) { const k = (t - o.float) / (tc - o.float); return { x: lerp(sx, c0[0], k), y: lerp(sy, c0[1], k), mode: 'paddle', ang: outAng }; }
+    if (t < o.leave) return { ...onCircle(t), mode: sunsetWatch(t) ? 'watch' : 'paddle' };
+    if (t < tl) { const k = (t - o.leave) / (tl - o.leave); return { x: lerp(pr.x, lx, k), y: lerp(pr.y, ly, k), mode: 'paddle', ang: Math.atan2(ly - pr.y, lx - pr.x) }; }
+    const k = (t - tl) / (te - tl);
+    return { x: lerp(lx, ex, k), y: lerp(ly, ey, k), mode: 'carry', ang: Math.PI / 2, dir: dirOf(ex - lx, ey - ly), back: false };
+  };
+}
+// Draw a kayaker from a kayakTrip (or H's) position.
+function drawKayaker(ctx, t, p, look, color, blade, extra = {}) {
+  if (p.gone) return;
+  if (p.mode === 'carry') {
+    const z = h(p.x, p.y);
+    body(ctx, p.x, p.y, z, look, { pose: 'walk', dir: p.dir, back: p.back, arms: [Math.PI - 0.3, -Math.PI + 0.3] }, t);
+    kayak(ctx, p.x, p.y, z + 2.25, p.ang, color);
+    return;
+  }
+  const g = h(p.x, p.y), L = level(t), afloat = L > g;
+  const z = (afloat ? L : g) - 0.08 + (afloat ? 0.03 * Math.sin(t * 1.8 + p.x) : 0);
+  if (afloat && Q.lines) {
+    const [X, Y] = P(p.x, p.y, L);
+    ctx.beginPath(); ctx.ellipse(X, Y, 1.5, 0.55, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = alpha(C.white, 0.7); ctx.lineWidth = 0.05; ctx.stroke();
+  }
+  kayak(ctx, p.x, p.y, z, p.ang, color);
+  const cx = Math.cos(p.ang), sy = Math.sin(p.ang);
+  const watch = p.mode === 'watch' || extra.watch;
+  const dir = watch ? 'r' : dirOf(cx, sy), back = watch || cx + sy < -0.05;
+  const zd = z + 0.2;
+  if (p.mode === 'hands') {
+    const s = Math.sin(t * 5);
+    seated(ctx, p.x, p.y, zd, look, { dir, back, arms: [1.3 + s * 0.7, 1.3 - s * 0.7] }, t);
+    if (Q.detail && afloat) {
+      // Splashes where the hands go in.
+      ctx.fillStyle = alpha(C.white, 0.9);
+      for (const k of [-1, 1]) {
+        const ph = (t * 1.6 + (k > 0 ? 0.5 : 0)) % 1;
+        const [X, Y] = P(p.x - sy * 0.45 * k, p.y + cx * 0.45 * k, L + ph * 0.5);
+        ctx.beginPath(); ctx.arc(X, Y, 0.06 * (1 - ph) + 0.02, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    return;
+  }
+  const still = p.mode === 'wait' || watch;
+  seated(ctx, p.x, p.y, zd, look, { dir, back, arms: still ? [0.5, 0.5] : [1.25, 1.25] }, t);
+  paddle(ctx, p.x, p.y, zd, p.ang, t, blade, still);
+}
+
+// ---------- Birds ----------
+// A heron or an egret: legs, a body, an S of a neck and a dagger of a bill.
+// strike: 0 to 1, the neck shooting out. night: printed as a silhouette.
+function wader(ctx, x, y, z, t, o) {
+  const [X, Y] = P(x, y, z), f = o.dir === 'l' ? -1 : 1, s = o.scale || 1;
+  const col = o.night ? shade(C.night, 0.2) : o.color;
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = o.night ? col : o.legs; ctx.lineWidth = 0.05;
+  ctx.beginPath(); ctx.moveTo(-0.04, 0); ctx.lineTo(0.02, -0.72); ctx.moveTo(0.1, 0); ctx.lineTo(0.06, -0.72); ctx.stroke();
+  // Body: a tipped oval with the tail down behind.
+  ctx.beginPath();
+  ctx.ellipse(0.02, -0.86, 0.34, 0.15, -0.35, 0, Math.PI * 2);
+  ctx.moveTo(-0.26, -0.8); ctx.lineTo(-0.46, -0.66); ctx.lineTo(-0.2, -0.72);
+  paint(ctx, col, { lw: 0.04, dots: o.night ? null : o.dots, density: 0.12 });
+  // The neck, coiled or striking, then the head and bill.
+  const k = o.strike || 0;
+  const hx = lerp(0.22, 0.6, k), hy = lerp(-1.5, -1.0, k);
+  ctx.beginPath(); ctx.moveTo(0.24, -0.95);
+  ctx.bezierCurveTo(lerp(0.05, 0.4, k), -1.1, lerp(0.4, 0.5, k), -1.3, hx, hy);
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.15; ctx.stroke(); }
+  ctx.strokeStyle = col; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, col, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(hx + 0.05, hy - 0.04); ctx.lineTo(hx + 0.38, hy + 0.02 + k * 0.08); ctx.lineTo(hx + 0.05, hy + 0.04);
+  paint(ctx, o.night ? col : o.bill, { lw: 0.025 });
+  if (o.cap && !o.night) { ctx.beginPath(); ctx.moveTo(hx - 0.06, hy - 0.05); ctx.lineTo(hx - 0.3, hy - 0.12); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke(); }
+  ctx.restore();
+}
+// Where a wading bird stands along a line across the channel (at x, from yA
+// on the marsh side toward yB in the deep): wherever the water is about
+// `depth` deep, smoothed over the last dozen seconds so it walks, not jumps.
+function shoreline(x, yA, yB, depth) {
+  const n = Math.round(Math.abs(yB - yA) / 0.1), sg = Math.sign(yB - yA);
+  const H = Array.from({ length: n + 1 }, (_, i) => h(x, yA + sg * i * 0.1));
+  const edge = (L) => { for (let i = 0; i <= n; i++) if (H[i] <= L - depth) return yA + sg * i * 0.1; return yB; };
+  return (t) => { let s = 0; for (let k = 0; k < 8; k++) s += edge(level(t - k * 1.6)); return s / 8; };
+}
+// A bird in flight, wings flapping: an M in the air.
+function flier(ctx, x, y, z, t, color, span = 0.5, speed = 7) {
+  const [X, Y] = P(x, y, z), fl = Math.sin(t * speed) * 0.2;
+  ctx.beginPath();
+  ctx.moveTo(X - span, Y - fl); ctx.quadraticCurveTo(X - span * 0.45, Y - 0.2 - fl, X, Y);
+  ctx.quadraticCurveTo(X + span * 0.45, Y - 0.2 - fl, X + span, Y - fl);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke(); }
+  ctx.strokeStyle = color; ctx.lineWidth = 0.08; ctx.stroke();
+}
+// A gull standing (or bobbing): a white body, grey back, yellow bill.
+function gull(ctx, x, y, z, t, dir = 'r', peck = false) {
+  const [X, Y] = P(x, y, z), f = dir === 'l' ? -1 : 1;
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f, 1);
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.04;
+  ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.18); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.18); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, -0.3, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+  ctx.beginPath(); ctx.ellipse(-0.06, -0.33, 0.17, 0.07, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
+  const hy = peck ? -0.22 : -0.46, hx = peck ? 0.26 : 0.18;
+  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
+  ctx.restore();
+}
+
+// ---------- The marsh's own things ----------
+// Salt hay stacked on a staddle: a ring of short posts and a haystack on top,
+// the way they've dried it on the Great Marsh for three hundred years.
+function staddle(ctx, x, y) {
+  const z = h(x, y);
+  {
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      box(ctx, x + Math.cos(a) * 0.62 - 0.06, y + Math.sin(a) * 0.62 - 0.06, z, 0.12, 0.12, 0.5, shade(C.wood, 0.2), { flat: true, lw: 0.03 });
+    }
+    const hay = mix(C.mustard, C.woodLight, 0.45);
+    const [X, Y] = P(x, y, z + 0.5), [, Yt] = P(x, y, z + 2.1);
+    ctx.beginPath();
+    ctx.moveTo(X - 1.15, Y);
+    ctx.bezierCurveTo(X - 1.2, Y - 1.0, X - 0.5, Yt, X, Yt);
+    ctx.bezierCurveTo(X + 0.5, Yt, X + 1.2, Y - 1.0, X + 1.15, Y);
+    ctx.ellipse(X, Y, 1.15, 0.5, 0, 0, Math.PI);
+    paint(ctx, hay, { dots: shade(hay, 0.45), density: 0.18, lw: 0.05 });
+    if (Q.detail) {
+      ctx.strokeStyle = alpha(shade(hay, 0.4), 0.8); ctx.lineWidth = 0.03; ctx.beginPath();
+      for (let k = -2; k <= 2; k++) { ctx.moveTo(X + k * 0.35, Y + 0.3 - Math.abs(k) * 0.08); ctx.quadraticCurveTo(X + k * 0.3, Y - 0.6, X + k * 0.12, Yt + 0.2); }
+      ctx.stroke();
+    }
+  }
+}
+// Tufts of cordgrass along an edge (still, and cheap once cached). At the
+// king tide their tips stick out of the flood, which is true.
+function tufts(ctx, pts) {
+  {
+    if (!Q.detail) return;
+    ctx.lineCap = 'round';
+    for (const [x, y, n] of pts) {
+      const z = h(x, y), [X, Y] = P(x, y, z);
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) { const dx = (i - (n - 1) / 2) * 0.09; ctx.moveTo(X + dx, Y); ctx.lineTo(X + dx * 2.2 + (i % 2 ? 0.05 : -0.04), Y - 0.35 - (i % 3) * 0.08); }
+      ctx.strokeStyle = shade(INK.marsh, 0.35); ctx.lineWidth = 0.05; ctx.stroke();
+    }
+  }
+}
+// A sign of several lines on two posts, facing lower left.
+function notice(R, x, y, lines, o = {}) {
+  const z = h(x, y), w = o.w || 2, lh = o.lh || 0.4, post = o.post || 1.3, n = lines.length;
+  const draw = (ctx) => {
+    for (const k of [-1, 1]) box(ctx, x + k * (w / 2 - 0.25) - 0.05, y - 0.05, z, 0.1, 0.1, post + n * lh * 0.5, C.wood, { flat: true, lw: 0.03 });
+    const top = z + post + n * lh * 0.5;
+    board(ctx, 'x', x, y + 0.06, top - (n * lh) / 2, w, n * lh + 0.12, null, { board: o.board || C.white });
+    lines.forEach((s, i) => letters(ctx, x, y + 0.06, top - lh * (i + 0.55), s, (o.size || 0.26) * (i === 0 ? 1.15 : 1), i === 0 && o.head ? o.head : o.ink || C.ink, i === 0 ? 'Bagel Fat One' : FONT));
+  };
+  // (With no R, just the drawing, to fold into another still picture.)
+  if (R) R.thing(x + 0.1, y + 0.1, draw);
+  return draw;
+}
 
 export default {
   id: 'sound',
   name: 'The Sound',
-  blurb: 'Plum Island Sound at low water: clammers out on the mud, a sailboat aground, and its owner still sitting on the hull.',
+  blurb: 'Clammers on the mud at noon, kayaks on the water by dusk. The sailboat ran aground at dawn, and its owner has not looked up from her book since.',
   home: [24, 17],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });
-    sign(R, 24, 13.2, 'PLUM ISLAND SOUND', 2.5);
-    sign(R, 20, 2.4, 'THE GREAT MARSH', 1.4);
 
-    // The sailboat: sits on the mud at low water, floats at high. Its owner
-    // sits on the hull all day either way, reading.
-    const owner = folk(52, { top: C.sky });
-    R.thing(SAIL[0] + 1.5, SAIL[1] + 0.6, (ctx, t) => {
-      boat(ctx, SAIL[0], SAIL[1], t, { along: 'x', len: 3.2, wid: 1.2, mast: 4.2, label: 'Aground since dawn' });
-      who(ctx, SAIL[0] + 0.6, SAIL[1] + 0.2, float(SAIL[0], SAIL[1], t) + 0.3, owner, 'Its owner, reading', { pose: 'read' }, t);
-    }, { anim: true });
+    // ================= The mainland's marsh, along the back =================
+    for (const [x, y] of [[10, 3.2], [24, 3.6], [38, 4.4]]) trap(R, x, y);
+    // The greenheads round the traps, by day: the traps work, a bit.
+    for (const [x, y] of [[10, 3.2], [24, 3.6], [38, 4.4]]) {
+      R.thing(x + 0.9, y + 0.9, (ctx, t) => {
+        if (!Q.detail || nightK(t) > 0.5) return;
+        ctx.fillStyle = C.ink;
+        for (let i = 0; i < 4; i++) {
+          const a = t * (3 + i) + i * 1.7;
+          const [X, Y] = P(x + Math.cos(a) * 0.7, y + Math.sin(a * 1.3) * 0.6, 2.4 + 0.3 * Math.sin(a * 2));
+          ctx.fillRect(X - 0.04, Y - 0.04, 0.08, 0.08);
+        }
+      }, { anim: true });
+    }
+    // Cordgrass along the marsh edge (kept clear of the skiff).
+    const edgeTufts = (x0, x1) => { const pts = []; for (let x = x0; x < x1; x += 2.3) { if (Math.abs(x - 21) < 1.6) continue; let y = 4; while (y < 7 && h(x, y + 0.3) > 0.38) y += 0.3; pts.push([x, y, 3 + (Math.round(x) % 3)]); } return pts; };
+    // The marsh's still things, one picture per chunk (salt hay, the camp's
+    // boardwalk, the osprey's pole, the grass), back to front.
+    const OS = [44.2, 2.4], OZ = h(...OS) + 4.6;
+    const T1 = edgeTufts(9.5, 15.5), T2 = edgeTufts(16.8, 31), T3 = edgeTufts(33.2, 47.5);
+    R.thing(15.5, 7, (ctx) => { staddle(ctx, 13, 2.4); tufts(ctx, T1); });
+    R.thing(31, 7, (ctx) => { staddle(ctx, 27.4, 2.2); boardwalk(ctx); tufts(ctx, T2); });
+    R.thing(47.5, 7, (ctx) => { staddle(ctx, 35.4, 1.8); pole(ctx); tufts(ctx, T3); });
+    // Somebody's old gunning camp, up on stilts, with a boardwalk out to the
+    // creek and a skiff at the end of it. Its window is lit at night.
+    house(R, 19.6, 0.6, 2.2, 1.6, 1, { stilts: 0.9, h: 1.5, ridge: 'x', door: C.coral });
+    function boardwalk(ctx) {
+      const z = 0.5;
+      for (let y = 2.4; y < 4.6; y += 0.7) box(ctx, 20.5, y, z - 0.1, 0.08, 0.08, 0.2, shade(C.wood, 0.25), { flat: true, stroke: false });
+      box(ctx, 20.4, 2.2, z, 0.6, 2.5, 0.08, C.woodLight, { flat: true, lw: 0.03 });
+      if (Q.detail) { ctx.strokeStyle = shade(C.woodLight, 0.3); ctx.lineWidth = 0.02; ctx.beginPath(); for (let y = 2.5; y < 4.7; y += 0.3) { const [a, b] = P(20.4, y, z + 0.08), [c, d] = P(21, y, z + 0.08); ctx.moveTo(a, b); ctx.lineTo(c, d); } ctx.stroke(); }
+      board(ctx, 'x', 20.7, 4.72, z + 0.75, 1.3, 0.36, 'GONE CLAMMING', { size: 0.18, font: FONT, board: C.butter });
+      box(ctx, 20.66, 4.62, z, 0.08, 0.08, 0.6, C.wood, { flat: true, lw: 0.03 });
+    }
+    R.thing(21.6, 6, (ctx, t) => boat(ctx, 20.9, 5.7, t, { along: 'y', len: 1.7, wid: 0.75, color: C.white, stripe: C.teal, bob: level(t) > h(20.9, 5.7) }), { anim: true });
+    // The osprey's pole, and its nest, on the marsh.
+    function pole(ctx) {
+      box(ctx, OS[0] - 0.08, OS[1] - 0.08, OZ - 4.6, 0.16, 0.16, 4.6, shade(C.wood, 0.3), { flat: true, lw: 0.035 });
+      box(ctx, OS[0] - 0.55, OS[1] - 0.55, OZ, 1.1, 1.1, 0.1, C.wood, { flat: true, lw: 0.03 });
+      const [X, Y] = P(OS[0], OS[1], OZ + 0.1);
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.1, 0.95, 0.42, 0, 0, Math.PI * 2);
+      paint(ctx, mix(C.brown, C.wood, 0.3), { dots: shade(C.brown, 0.4), density: 0.3, lw: 0.04 });
+      if (Q.detail) { ctx.strokeStyle = shade(C.brown, 0.2); ctx.lineWidth = 0.04; ctx.beginPath(); for (let i = 0; i < 7; i++) { const a = i * 0.9; ctx.moveTo(X + Math.cos(a) * 0.5, Y - 0.1 + Math.sin(a) * 0.2); ctx.lineTo(X + Math.cos(a) * 1.15, Y - 0.1 + Math.sin(a) * 0.45); } ctx.stroke(); }
+    }
+    // The osprey: sits on the nest, and every so often goes round the Sound
+    // once looking for a fish (and looking at everyone else's).
+    const ospreyAt = (t) => {
+      const s = ((t % 46) + 46) % 46;
+      if (s < 30 || nightK(t) > 0.5) return { x: OS[0] + 0.1, y: OS[1] + 0.1, z: OZ + 0.2, sit: true };
+      const a = ((s - 30) / 16) * Math.PI * 2;
+      const r = Math.sin(a / 2);
+      return { x: OS[0] - 6 * r + Math.sin(a) * -3, y: OS[1] + 7 * r, z: OZ + 1.5 * r + 0.2 };
+    };
+    R.mover(ospreyAt, (ctx, t, p) => {
+      if (p.sit) {
+        const [X, Y] = P(p.x, p.y, p.z);
+        ctx.beginPath(); ctx.ellipse(X, Y - 0.25, 0.2, 0.3, 0.1, 0, Math.PI * 2); paint(ctx, shade(C.brown, 0.15), { lw: 0.035 });
+        ctx.beginPath(); ctx.arc(X + 0.05, Y - 0.6, 0.13, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+        if (Q.detail) { ctx.fillStyle = C.ink; ctx.fillRect(X + 0.04, Y - 0.63, 0.14, 0.04); ctx.beginPath(); ctx.moveTo(X + 0.16, Y - 0.62); ctx.lineTo(X + 0.26, Y - 0.56); ctx.lineTo(X + 0.15, Y - 0.56); ctx.fill(); }
+        return;
+      }
+      flier(ctx, p.x, p.y, p.z, t, tint(C.brown, 0.15), 0.7, 5);
+    }, { bias: 12 });
 
-    // Clammers walk out as the flats come out, dig, and walk back as the tide
-    // comes in.
-    CLAMMERS.forEach((c, i) => {
-      const look = folk(c.seed, { top: C.mustard, bottom: C.brown });
-      R.mover((t) => {
-        const k = out(t), x = c.home[0] + (c.dig[0] - c.home[0]) * k, y = c.home[1] + (c.dig[1] - c.home[1]) * k;
-        const moving = k > 0.02 && k < 0.98;
-        return { x, y, pose: moving ? 'walk' : k >= 0.98 ? 'carry' : 'stand', dir: level(t + 1) < level(t) ? 'l' : 'r' };
-      }, (ctx, t, p) => who(ctx, p.x, p.y, h(p.x, p.y), look, i ? null : 'Clammers', p, t));
+    // ================= The channel =================
+    // Channel markers: a green can and a red nun, leaning with the current.
+    for (const [x, y, col, num, nun] of [[9, 18, C.green, '3', false], [26.6, 12, C.red, '4', true]]) {
+      R.thing(x + 0.3, y + 0.3, (ctx, t) => {
+        const z = float(x, y, t) - 0.1 + 0.05 * Math.sin(t * 1.4 + x), lean = 0.12 * Math.sin(t * 0.7 + y);
+        cylinder(ctx, x, y, z, 0.3, 0.95, col, { flat: true });
+        if (nun) {
+          const [X, Y] = P(x, y, z + 0.95), [Xt, Yt] = P(x + lean, y, z + 1.5);
+          ctx.beginPath(); ctx.moveTo(X - 0.42, Y); ctx.lineTo(Xt, Yt); ctx.lineTo(X + 0.42, Y); ctx.ellipse(X, Y, 0.42, 0.21, 0, 0, Math.PI); paint(ctx, col, { lw: 0.04 });
+        }
+        if (Q.detail) { const [X, Y] = P(x, y + 0.3, z + 0.5); ctx.fillStyle = C.white; ctx.font = '0.4px "Bagel Fat One", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(num, X, Y); }
+      }, { anim: true });
+    }
+    // A heron in the channel, stepping in and out with the water's edge;
+    // after dark, a silhouette against the moon on the water.
+    const heronY = shoreline(36, 5.4, 13.5, 0.32);
+    R.mover((t) => ({ x: 36 + 0.4 * Math.sin(t / 9), y: heronY(t) }), (ctx, t, p) => {
+      const z = h(p.x, p.y), L = level(t), night = nightK(t) > 0.55;
+      if (night && Q.detail) {
+        // The moon's road on the water, just behind it.
+        ctx.strokeStyle = alpha(C.butter, 0.55 * nightK(t)); ctx.lineWidth = 0.06; ctx.beginPath();
+        for (let i = 0; i < 7; i++) { const w = (0.75 - i * 0.08) * (0.8 + 0.25 * Math.sin(t * 1.3 + i)); const [X, Y] = P(p.x - 0.1 - i * 0.28, p.y - 0.1 - i * 0.28, L); ctx.moveTo(X - w, Y); ctx.lineTo(X + w, Y); }
+        ctx.stroke();
+      }
+      const s = pulse(t, 11), strike = s > 0.9 ? Math.sin(((s - 0.9) / 0.1) * Math.PI) : 0;
+      const draw = (g) => wader(g, p.x, p.y, z, t, { color: mix(C.grey, C.navy, 0.25), legs: C.ink, bill: C.mustard, dots: C.navy, cap: true, scale: 1.25, dir: 'l', strike, night });
+      if (L > z + 0.02) wade(ctx, p.x, p.y, z, L, draw, 0.3); else draw(ctx);
     });
-
-    // Kayaks: out on the Sound when there's water, pulled up at the launch
-    // when there isn't.
-    for (const [cx, cy, r, ph, color] of [[30, 14, 4.5, 0, C.coral], [16, 13.5, 3.5, 2, C.teal]]) {
-      const look = folk(60 + ph, { top: C.white });
-      R.mover((t) => {
-        const wet = level(t) > -0.3;
-        if (!wet) return { x: LAUNCH[0] - ph, y: LAUNCH[1], beached: true };
-        const a = t / 9 + ph;
-        return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.6 };
-      }, (ctx, t, p) => {
-        const z = p.beached ? h(p.x, p.y) : float(p.x, p.y, t);
-        box(ctx, p.x - 1.1, p.y - 0.25, z, 2.2, 0.5, 0.3, color, { flat: true });
-        if (!p.beached) who(ctx, p.x, p.y, z + 0.1, look, null, { pose: 'sit' }, t);
-        if (Q.detail) tag(ctx, p.x, p.y, z + (p.beached ? 1 : 2.6), p.beached ? 'Kayak, waiting' : 'Kayak', { size: 0.34 });
+    // Two egrets, doing the same thing more nervously. They go to roost at dark.
+    for (const [x, yA, yB, ph] of [[10.5, 5.6, 13.5, 0], [44.5, 4.8, 16, 3]]) {
+      const ey = shoreline(x, yA, yB, 0.22);
+      R.mover((t) => ({ x: x + 0.6 * Math.sin(t / 5 + ph), y: ey(t) }), (ctx, t, p) => {
+        if (nightK(t) > 0.6) return;
+        const z = h(p.x, p.y), L = level(t), s = pulse(t + ph, 6), strike = s > 0.85 ? Math.sin(((s - 0.85) / 0.15) * Math.PI) : 0;
+        const draw = (g) => wader(g, p.x, p.y, z, t, { color: C.white, legs: C.ink, bill: C.mustard, dots: C.grey, scale: 0.95, dir: Math.cos(t / 5 + ph) > 0 ? 'r' : 'l', strike });
+        if (L > z + 0.02) wade(ctx, p.x, p.y, z, L, draw, 0.25); else draw(ctx);
       });
     }
-    sign(R, LAUNCH[0] + 2.4, LAUNCH[1], 'KAYAK LAUNCH', 1.2);
+    // A gull going round and round over the flats, by day.
+    const gullAt = (t) => { const a = t / 4; return { x: 22 + Math.cos(a) * 5, y: 17 + Math.sin(a) * 3, z: 5.5 + Math.sin(a * 2) * 0.4 }; };
+    R.mover(gullAt, (ctx, t, p) => { if (nightK(t) <= 0.5) flier(ctx, p.x, p.y, p.z, t, C.white, 0.45, 8); }, { bias: 12 });
 
-    // A heron in the channel, and greenhead traps on the mainland's marsh.
-    R.mover((t) => ({ x: 36 + Math.sin(t / 7) * 1.5, y: 12.6 }), (ctx, t, p) => {
-      const z = h(p.x, p.y);
-      box(ctx, p.x - 0.2, p.y - 0.2, Math.max(z, level(t) - 0.3), 0.4, 0.4, 1.6, C.greyLight, { flat: true });
-      if (Q.detail) tag(ctx, p.x, p.y, Math.max(z, level(t)) + 2.3, 'Heron', { size: 0.34 });
+    // ================= The sailboat (the running gag) =================
+    // Aground at low tide, afloat at high, and its owner on the hull reading
+    // through all of it: the tide coming up round her, the warden, the
+    // sunset (she looks up for that), and the night, by her reading lamp.
+    const owner = folk(52, { top: C.sky, bottom: C.white, hat: 'sun', style: 'long', hair: C.brown });
+    const boatZ = (t) => { const g = h(...SAIL), L = level(t); return float(...SAIL, t) - 0.15 + (L > g ? 0.04 * Math.sin(t * 1.7 + SAIL[0]) : 0); };
+    const ownerSpot = (t) => [SAIL[0] + 0.95, SAIL[1] + 0.34, boatZ(t) + 0.45 - 0.72];
+    R.thing(SAIL[0] + 1.8, SAIL[1] + 0.7, (ctx, t) => {
+      const [bx, by] = SAIL, g = h(bx, by), L = level(t), afloat = L > g;
+      const z = boatZ(t), deck = z + 0.45;
+      // The tide coming up round the hull: rings on the water.
+      if (L > g - 0.05 && L < g + 0.45 && Q.lines) {
+        const [X, Y] = P(bx, by, L), k = pulse(t, 2.5);
+        ctx.strokeStyle = alpha(C.white, 0.8 * (1 - k)); ctx.lineWidth = 0.05;
+        ctx.beginPath(); ctx.ellipse(X, Y, 2.3 + k * 0.6, 1.0 + k * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      // The anchor she put out on the mud, for all the good it did.
+      if (!afloat) {
+        const az = h(bx + 2.8, by + 1.2);
+        stick(ctx, [bx + 1.55, by, deck - 0.05], [bx + 2.8, by + 1.2, az + 0.05], C.woodLight, 0.035);
+      }
+      boat(ctx, bx, by, t, { along: 'x', len: 3.2, wid: 1.2, color: C.white, stripe: C.navy, cabin: tint(C.sky, 0.45), bob: afloat });
+      const mx = bx + 0.35;
+      // The boom with its sail rolled up on it, and the mast.
+      stick(ctx, [mx, by, deck + 0.95], [bx - 1.35, by, deck + 0.85], C.wood, 0.07);
+      if (Q.detail) stick(ctx, [mx - 0.1, by, deck + 1.05], [bx - 1.2, by, deck + 0.95], INK.cream, 0.14);
+      box(ctx, mx - 0.05, by - 0.05, deck, 0.1, 0.1, 4.1, C.greyLight, { flat: true, lw: 0.03 });
+      // A flag at half-mast, for the day she's having.
+      const fz = deck + 2.2, fl = Math.sin(t * 4) * 0.06;
+      face(ctx, [[mx, by, fz + 0.3], [mx, by + 0.55, fz + 0.2 + fl], [mx, by + 0.5, fz + 0.02 + fl], [mx, by, fz]], C.coral, { lw: 0.03 });
+      if (Q.detail) face(ctx, [[mx, by + 0.18, fz + 0.28], [mx, by + 0.3, fz + 0.25 + fl * 0.5], [mx, by + 0.3, fz + 0.07 + fl * 0.5], [mx, by + 0.18, fz + 0.03]], C.white, { stroke: false });
+      // The masthead light and the reading lamp, on at dusk.
+      const on = lightsOn(t);
+      disc(ctx, mx, by, deck + 4.12, 0.08, on ? LIT : C.white, { lw: 0.025 });
+      if (on) glow(ctx, mx, by, deck + 4.12, 0.9, LIT, nightK(t) * 0.9);
+      stick(ctx, [mx, by + 0.02, deck + 1.9], [mx + 0.45, by + 0.2, deck + 1.95], C.ink, 0.03);
+      const [lx, ly] = P(mx + 0.5, by + 0.22, deck + 1.9);
+      ctx.beginPath(); ctx.moveTo(lx - 0.14, ly + 0.08); ctx.lineTo(lx, ly - 0.1); ctx.lineTo(lx + 0.14, ly + 0.08); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.03 });
+      if (on) { ctx.beginPath(); ctx.arc(lx, ly + 0.1, 0.06, 0, Math.PI * 2); ctx.fillStyle = LIT; ctx.fill(); }
+      // (Its glow is drawn here with the boat, not as a light of its own:
+      // a light that moves is drawn by every chunk.)
+      const glowK = nightK(t);
+      // Her mug, with the steam coming off it.
+      const [ux, uy] = [bx + 1.3, by - 0.12];
+      cylinder(ctx, ux, uy, deck, 0.09, 0.18, C.coral, { flat: true });
+      if (Q.detail && !on) {
+        ctx.strokeStyle = alpha(C.white, 0.8); ctx.lineWidth = 0.03;
+        for (let i = 0; i < 2; i++) { const k = (t * 0.5 + i * 0.5) % 1; const [X, Y] = P(ux, uy, deck + 0.25 + k * 0.6); ctx.beginPath(); ctx.moveTo(X, Y); ctx.quadraticCurveTo(X + 0.08 * Math.sin(t * 3 + i), Y - 0.1, X, Y - 0.2); ctx.stroke(); }
+      }
+      // Her, reading. The page turns every nine seconds.
+      const watch = sunsetWatch(t);
+      const [ox, oy, oz] = ownerSpot(t);
+      const book = (c2, tt) => {
+        c2.beginPath(); c2.rect(0.22, -0.14, 0.52, 0.3); paint(c2, C.coral, { lw: 0.03 });
+        c2.beginPath(); c2.rect(0.25, -0.12, 0.22, 0.25); c2.rect(0.49, -0.12, 0.22, 0.25); paint(c2, C.white, { lw: 0.02 });
+        const k = pulse(tt, 9);
+        if (k < 0.1) { const w = 0.22 * Math.cos((k / 0.1) * Math.PI); c2.beginPath(); c2.rect(0.48, -0.15, w, 0.25); paint(c2, INK.cream, { lw: 0.02 }); }
+      };
+      person(ctx, ox, oy, oz, { ...owner, pose: 'sit', dir: 'r', back: watch, arms: watch ? [0.35, 0.3] : [1.0, 0.95], hold: watch ? null : book }, t);
+      if (glowK > 0.3) glow(ctx, mx + 0.5, by + 0.22, deck + 1.5, 1.8, LIT, glowK * 0.8);
+      // What she says, now and then.
+      const s = t % 360;
+      const line = s > 60 && s < 66 ? 'It\'ll float.' : s > 186 && s < 192 ? 'Told you.' : s > 298 && s < 304 ? 'One more chapter.' : null;
+      const w = wardenAsk(t);
+      if (w && w.who === 'boat' && w.k > 0.5) say(ctx, ox, oy, oz + 2.4, ASK.boat[1]);
+      else if (line) say(ctx, ox, oy, oz + 2.4, line);
+    }, { anim: true });
+    // The towing company's sign on a piling, right off her bow. Ignored.
+    const TOP = 0.85;
+    R.thing(TOW[0] + 0.2, TOW[1] + 0.2, (ctx, t) => {
+      const z = Math.max(h(...TOW), level(t));
+      if (z < TOP) box(ctx, TOW[0] - 0.13, TOW[1] - 0.13, z, 0.26, 0.26, TOP - z, shade(C.wood, 0.3), { flat: true, lw: 0.03 });
+    }, { anim: true });
+    R.thing(TOW[0] + 0.21, TOW[1] + 0.21, (ctx) => {
+      box(ctx, TOW[0] - 0.13, TOW[1] - 0.13, TOP, 0.26, 0.26, 2.3, shade(C.wood, 0.3), { flat: true, lw: 0.03 });
+      board(ctx, 'x', TOW[0], TOW[1] + 0.16, TOP + 1.7, 1.7, 0.42, 'NEED A TOW?', { size: 0.26, font: 'Bagel Fat One', board: C.mustard });
+      board(ctx, 'x', TOW[0], TOW[1] + 0.16, TOP + 1.25, 1.3, 0.34, 'RADIO CH 16', { size: 0.2, font: FONT, board: C.white });
+      gull(ctx, TOW[0], TOW[1], TOP + 2.3, 0, 'l');
     });
-    for (const [x, y] of [[10, 3.2], [24, 3.6], [38, 4.4]]) trap(R, x, y);
 
-    // The goose, on the marsh island in the middle of the Sound (at the king
-    // tide the island goes under, and it swims).
-    R.goose((t) => { const x = 30 + Math.sin(t / 5) * 0.8; return { x, y: 20.4, z: float(x, 20.4, t), dir: Math.cos(t / 5) > 0 ? 'r' : 'l', pose: level(t) > h(x, 20.4) ? 'swim' : 'walk' }; });
-    // Finds: two out only at low water, one afloat only at high.
-    pin(R, { id: 'boot', label: 'A clammer\'s lost boot', at: [12.4, 22.2, h(12.4, 22.2) + 0.3], r: 0.8, when: lowTide, note: 'low tide' }, 1);
-    pin(R, { id: 'bottle', label: 'A message in a bottle', at: [8, 9.4, h(8, 9.4) + 0.2], r: 0.8, when: lowTide, note: 'low tide' }, 2);
-    pin(R, { id: 'paddle', label: 'A kayak paddle', at: (t) => [23 + Math.sin(t / 3) * 0.4, 22.6 + Math.cos(t / 4) * 0.3, float(23, 22.6, t) + 0.1], r: 0.8, when: highTide, note: 'high tide' }, 3);
+    // ================= The flats: clammers, and the warden =================
+    // The clam warden walks out, asks everyone for their licence (the boat
+    // included), and stands on the beach writing it all down.
+    const warden = plan(44, [18, 27.9], [
+      { to: [22.1, 24.9] }, { wait: 6, ask: 1, dir: 'r' },
+      { to: [27.2, 22.7] }, { wait: 6, ask: 2, dir: 'l' },
+      { to: [19.9, 23.4] }, { wait: 6, ask: 'boat', dir: 'r', back: true },
+      { to: [10.1, 24.1] }, { wait: 7, ask: 0, dir: 'r' },
+      { to: [17.4, 26.9] }, { until: 150, note: true, dir: 'l' },
+      { to: [17.4, 27.9] },
+    ]);
+    const ASK = { 1: ['Licence?', 'Right here.'], 2: ['Licence?', 'Since 1971.'], boat: ['You can\'t park here.', 'Tell the tide.'], 0: ['Licence?', 'Can it wait?'] };
+    function wardenAsk(t) { const p = warden(t); return p && p.seg.ask != null ? { who: p.seg.ask, k: p.k } : null; }
+    const wLook = folk(50, { top: mix(C.woodLight, C.mustard, 0.35), bottom: C.green, hat: 'sun', style: 'pony', skin: SKIN[3] });
+    const clipboard = (g) => { g.beginPath(); g.rect(0.2, -0.1, 0.3, 0.38); paint(g, C.wood, { lw: 0.03 }); g.beginPath(); g.rect(0.24, -0.05, 0.22, 0.28); paint(g, C.white, { stroke: false }); };
+    R.mover((t) => warden(t) || away([18, 27.9]), (ctx, t, p) => {
+      if (p.gone) return;
+      const z = h(p.x, p.y), asking = p.seg.ask != null;
+      body(ctx, p.x, p.y, z, wLook, { pose: p.moving ? 'walk' : asking && p.k < 0.5 ? 'point' : 'read', dir: p.dir, back: p.back, hold: p.moving || (asking && p.k < 0.5) ? null : clipboard }, t);
+      if (asking && p.k < 0.5) say(ctx, p.x, p.y, z + 2.5, ASK[p.seg.ask][0]);
+    });
+
+    // The clammers. Each has a bucket; they walk out as the flats come out,
+    // rake, and walk back in as the tide turns.
+    const bucket = (ctx, x, y, z) => {
+      cylinder(ctx, x, y, z, 0.17, 0.32, tint(C.grey, 0.35), { flat: true });
+      if (Q.detail) for (const [dx, dy] of [[-0.05, -0.03], [0.05, 0.02], [0, 0.06]]) disc(ctx, x + dx, y + dy, z + 0.33, 0.05, INK.cream, { lw: 0.015 });
+    };
+    const rake = (g, t) => {
+      const s = Math.sin(t * 2.2), ex = 0.58 + s * 0.14, ey = 1.22;
+      g.lineCap = 'round';
+      g.beginPath(); g.moveTo(0.02, -0.12); g.lineTo(ex, ey);
+      if (Q.lines) { g.strokeStyle = C.ink; g.lineWidth = 0.11; g.stroke(); }
+      g.strokeStyle = C.wood; g.lineWidth = 0.06; g.stroke();
+      g.beginPath(); g.moveTo(ex - 0.17, ey); g.lineTo(ex + 0.17, ey);
+      for (let k = -2; k <= 2; k++) { g.moveTo(ex + k * 0.08, ey); g.lineTo(ex + k * 0.08 + 0.02, ey + 0.1); }
+      g.strokeStyle = C.ink; g.lineWidth = 0.04; g.stroke();
+    };
+    const pail = (g) => { g.beginPath(); g.rect(0.12, 0.3, 0.26, 0.28); paint(g, tint(C.grey, 0.35), { lw: 0.03 }); };
+    const card = (g) => { g.beginPath(); g.rect(0.5, -0.45, 0.24, 0.16); paint(g, C.white, { lw: 0.025 }); };
+
+    // One Boot: lost a boot in the mud this morning and has spent the whole
+    // low tide hopping round it on one foot, trying not to put a sock in the mud.
+    const c0 = plan(28, [11, 27.9], [
+      { to: [11, 26.4], speed: 0.7 }, { to: [10.9, 23.3], speed: 0.7 }, { until: 160, dir: 'r', stuck: true },
+      { to: [11, 26.4], speed: 0.7 }, { to: [11, 27.9], speed: 0.7 },
+    ]);
+    const c0Look = folk(41, { top: C.mustard, bottom: WADERS, shoes: WADERS, hat: 'cap', style: 'short' });
+    R.mover((t) => c0(t) || away([11, 27.9]), (ctx, t, p) => {
+      if (p.gone) return;
+      const hop = Math.abs(Math.sin(t * 5.5)) * 0.28, z = h(p.x, p.y) + hop;
+      const s = t % 14, reach = p.seg.stuck && s > 4 && s < 6.5;
+      body(ctx, p.x, p.y, z, c0Look, { pose: reach ? 'point' : 'stand', dir: p.dir, back: p.back, arms: reach ? null : [1.55 + 0.25 * Math.sin(t * 5.5), -1.4 - 0.3 * Math.sin(t * 5.5)] }, t);
+      // The sock.
+      if (Q.detail) { const [X, Y] = P(p.x, p.y, z), f = p.dir === 'l' ? -1 : 1; ctx.beginPath(); ctx.ellipse(X + f * 0.12, Y - 0.02, 0.14, 0.08, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 }); }
+      const w = wardenAsk(t);
+      if (w && w.who === 0 && w.k > 0.5) say(ctx, p.x, p.y, z + 2.5, ASK[0][1]);
+      else if (p.seg.stuck && s < 3) say(ctx, p.x, p.y, z + 2.5, 'It\'s RIGHT there.');
+      else if (p.seg.stuck && s > 8.5 && s < 11) say(ctx, p.x, p.y, z + 2.5, 'Nobody look.');
+    });
+
+    // Two who actually dig: bent at the rake, a bucket filling beside them.
+    // The second, Ern, is last off the flats every day, and walks home along
+    // the beach with his lantern at dusk, after the sunset.
+    const c1 = plan(32, [14, 27.9], [{ to: [14, 26.3] }, { to: [22.8, 24.2] }, { until: 163, dig: true, dir: 'r' }, { to: [14, 26.3] }, { to: [14, 27.9] }]);
+    const c2 = plan(36, [28, 27.9], [
+      { to: [28, 26.6] }, { to: [26.4, 23.4] }, { until: 198, dig: true, dir: 'l' },
+      { to: [28, 26.6], speed: 0.9 }, { until: 216, watch: true, dir: 'r', back: true },
+      { to: [46.4, 26.9], speed: 1.0 }, { to: [47, 27.9], speed: 1.0 },
+    ]);
+    const lantern = (g, t) => {
+      g.strokeStyle = C.ink; g.lineWidth = 0.03; g.beginPath(); g.moveTo(0.45, -0.2); g.lineTo(0.45, 0.05); g.stroke();
+      g.beginPath(); g.rect(0.35, 0.05, 0.2, 0.26); paint(g, LIT, { lw: 0.03 });
+      g.beginPath(); g.rect(0.33, 0.02, 0.24, 0.05); g.rect(0.33, 0.3, 0.24, 0.05); paint(g, C.ink, { stroke: false });
+    };
+    const digger = (fn, look, who, extra) => R.mover((t) => fn(t) || away([20, 27.9]), (ctx, t, p) => {
+      if (p.gone) return;
+      const z = h(p.x, p.y), w = wardenAsk(t), asked = w && w.who === who;
+      const f = p.dir === 'l' ? -1 : 1;
+      if (p.seg.dig && !asked) {
+        const s = Math.sin(t * 2.2 + who);
+        bent(ctx, p.x, p.y, z, look, { pose: 'stand', dir: p.dir, arms: [0.9 + s * 0.25, 0.7 + s * 0.25], hold: rake }, t, 0.42);
+        bucket(ctx, p.x + 0.35 * f, p.y + 0.45, z);
+      } else if (p.seg.dig) {
+        body(ctx, p.x, p.y, z, look, { pose: who === 1 ? 'point' : 'stand', dir: p.dir, hold: who === 1 ? card : null }, t);
+        bucket(ctx, p.x + 0.35 * f, p.y + 0.45, z);
+        if (w.k > 0.5) say(ctx, p.x, p.y, z + 2.5, ASK[who][1]);
+      } else {
+        const lit = extra && t > 196;
+        body(ctx, p.x, p.y, z, look, { pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, arms: lit ? [0.9, -0.2] : null, hold: lit ? lantern : pail }, t);
+        if (lit) glow(ctx, p.x + 0.35, p.y - 0.35, z + 1.0, 1.7, LIT, 0.35 + 0.6 * nightK(t));
+      }
+      if (extra && p.seg.dig && t > 188 && t < 196) say(ctx, p.x, p.y, z + 2.5, 'Five more minutes.');
+    });
+    digger(c1, folk(44, { top: C.teal, bottom: WADERS, shoes: WADERS, hat: 'cap', style: 'bald' }), 1, false);
+    digger(c2, folk(47, { top: C.coral, bottom: WADERS, shoes: WADERS, hat: 'beanie', hair: HAIR[4], style: 'curly' }), 2, true);
+
+    // Clams squirting on the flats at low tide, and three green crabs.
+    const SQUIRTS = [[20.6, 23.6, 0], [24.4, 25.2, 1.1], [25.2, 22.6, 2.3], [18.4, 24.6, 0.7], [16.6, 24.9, 1.8]];
+    R.thing(25.4, 25.4, (ctx, t) => {
+      if (!Q.detail || !lowTide(t)) return;
+      ctx.fillStyle = alpha(C.white, 0.95);
+      for (const [x, y, ph] of SQUIRTS) {
+        const k = pulse(t + ph, 3.4);
+        if (k > 0.3) continue;
+        const z = h(x, y), q = k / 0.3;
+        for (let i = 0; i < 3; i++) { const u = clamp(q - i * 0.12); const [X, Y] = P(x + u * 0.25, y - u * 0.1, z + Math.sin(u * Math.PI) * 0.55); ctx.beginPath(); ctx.arc(X, Y, 0.045, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }, { anim: true });
+    for (const [x, y, ph] of [[23.6, 25.6, 0], [30.2, 24.4, 2], [15.2, 24.2, 4]]) {
+      R.thing(x, y, (ctx, t) => {
+        if (!Q.detail || level(t) > h(x, y) - 0.02) return;
+        const cx = x + 0.35 * Math.sin(t / 2 + ph), z = h(cx, y);
+        const [X, Y] = P(cx, y, z);
+        ctx.beginPath(); ctx.ellipse(X, Y - 0.06, 0.13, 0.07, 0, 0, Math.PI * 2); paint(ctx, mix(C.green, C.brown, 0.4), { lw: 0.025 });
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.beginPath();
+        for (const k of [-1, 1]) { ctx.moveTo(X + k * 0.1, Y - 0.08); ctx.lineTo(X + k * 0.2, Y - 0.16 - 0.03 * Math.sin(t * 6)); ctx.moveTo(X + k * 0.08, Y - 0.03); ctx.lineTo(X + k * 0.18, Y + 0.02); }
+        ctx.stroke();
+      }, { anim: true });
+    }
+
+    // ================= The back beach =================
+    notice(R, 13.4, 27.2, ['CLAM FLATS', 'PERMIT REQUIRED', 'YES, YOU'], { w: 2.1, size: 0.24, board: C.white, head: C.teal });
+    // Biscuit, who has been told about the gulls.
+    const dogOwner = plan(46, [33.8, 27.9], [{ to: [33.8, 26.4], speed: 1 }, { until: 150, dir: 'r', back: true }, { to: [33.8, 27.9], speed: 1 }]);
+    const doLook = folk(58, { top: C.purple, bottom: C.navy, hat: 'cap' });
+    const fig8 = (t) => { const w = (Math.PI * 2) / 7; return [35.2 + 2.3 * Math.sin(w * t), 22.9 + 1.0 * Math.sin(2 * w * t)]; };
+    const dogAt = (t) => {
+      const o = dogOwner(t);
+      if (!o) return { x: 35.6, y: 27.9, gone: true };
+      const side = [o.x + 0.7, o.y - 0.3];
+      const k = clamp((t - 50) / 3) * clamp((149 - t) / 3);
+      const [fx, fy] = fig8(t);
+      const x = lerp(side[0], fx, k), y = lerp(side[1], fy, k);
+      const [nx, ny] = k > 0.5 ? fig8(t + 0.1) : [side[0] + (o.moving ? 0 : 0.01), side[1]];
+      return { x, y, dir: dirOf(nx - x, ny - y), run: k > 0.5 };
+    };
+    R.mover((t) => dogOwner(t) || away([35.6, 27.9]), (ctx, t, p) => {
+      if (p.gone) return;
+      const z = h(p.x, p.y), s = t % 12, shout = !p.moving && s < 2.6;
+      body(ctx, p.x, p.y, z, doLook, { pose: p.moving ? 'walk' : shout ? 'wave' : 'stand', dir: p.dir, back: p.back && !shout }, t);
+      if (shout) say(ctx, p.x, p.y, z + 2.5, (Math.floor(t / 12) % 2) ? 'BISCUIT, NO.' : 'BISCUIT!');
+    });
+    R.mover(dogAt, (ctx, t, p) => {
+      if (p.gone) return;
+      const z = h(p.x, p.y), [X, Y] = P(p.x, p.y, z), f = p.dir === 'l' ? -1 : 1, b = p.run ? Math.abs(Math.sin(t * 12)) * 0.12 : 0;
+      ctx.save(); ctx.translate(X, Y - b); ctx.scale(f, 1);
+      const fur = C.woodLight;
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.lineCap = 'round'; ctx.beginPath();
+      const sw = p.run ? Math.sin(t * 12) * 0.12 : 0;
+      for (const [lx, d] of [[-0.2, sw], [0.2, -sw]]) { ctx.moveTo(lx, -0.25); ctx.lineTo(lx + d, 0); }
+      ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, -0.33, 0.3, 0.14, 0, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.035 });
+      ctx.beginPath(); ctx.arc(0.3, -0.48, 0.12, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.03 });
+      ctx.beginPath(); ctx.ellipse(0.26, -0.5, 0.05, 0.09, 0.4, 0, Math.PI * 2); paint(ctx, C.brown, { lw: 0.02 });
+      ctx.beginPath(); ctx.moveTo(-0.28, -0.38); ctx.lineTo(-0.45, -0.55 + Math.sin(t * 14) * 0.06); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+      ctx.restore();
+    });
+    // The gulls Biscuit is after: they go up when he comes, and come down again.
+    for (const [gx, gy, ph] of [[33.4, 22.2, 0], [37, 23.5, 1.3]]) {
+      R.mover((t) => ({ x: gx, y: gy }), (ctx, t) => {
+        if (nightK(t) > 0.6) return;
+        const d = dogAt(t), near = d.gone ? 0 : clamp((1.9 - Math.hypot(d.x - gx, d.y - gy)) / 0.9);
+        const z = float(gx, gy, t);
+        if (near > 0.05) { flier(ctx, gx, gy, z + 0.3 + near * 1.6, t, C.white, 0.35, 10); return; }
+        gull(ctx, gx, gy, z + (level(t) > h(gx, gy) ? -0.12 + 0.03 * Math.sin(t * 2 + ph) : 0), t, ph ? 'l' : 'r', pulse(t + ph, 3) < 0.2);
+      });
+    }
+    // The sunset couple: chairs out on the beach, backs to everyone, then home.
+    const coupleLooks = [folk(71, { top: C.white, bottom: C.teal }), folk(72, { dress: true, top: C.pink, hat: 'sun' })];
+    [[32.6, 26.5], [33.9, 26.3]].forEach(([x, y], i) => {
+      const walk = plan(193 + i, [x + 0.4, 27.9], [{ to: [x, y], speed: 1 }, { until: 232, sit: true, dir: 'r', back: true }, { to: [x + 0.4, 27.9], speed: 1 }]);
+      R.mover((t) => walk(t) || away([x, 27.9]), (ctx, t, p) => {
+        if (p.gone) return;
+        const z = h(p.x, p.y);
+        if (!p.seg.sit) { body(ctx, p.x, p.y, z, coupleLooks[i], { pose: 'walk', dir: p.dir, back: p.back }, t); return; }
+        person(ctx, p.x, p.y, z - 0.2, { ...coupleLooks[i], pose: 'sit', dir: 'r', back: true, arms: [0.4, 0.3] }, t);
+        // The chair, in front of them from here.
+        const cc = [C.coral, C.teal][i];
+        stick(ctx, [p.x - 0.3, p.y + 0.35, z], [p.x + 0.3, p.y - 0.2, z + 0.35], C.greyLight, 0.03);
+        stick(ctx, [p.x + 0.3, p.y + 0.35, z], [p.x - 0.3, p.y - 0.2, z + 0.35], C.greyLight, 0.03);
+        face(ctx, [[p.x - 0.3, p.y + 0.3, z + 0.3], [p.x + 0.3, p.y + 0.3, z + 0.3], [p.x + 0.3, p.y + 0.24, z + 0.78], [p.x - 0.3, p.y + 0.24, z + 0.78]], cc, { lw: 0.035, dots: shade(cc, 0.4), density: 0.2 });
+        if (Q.detail) face(ctx, [[p.x - 0.1, p.y + 0.3, z + 0.3], [p.x + 0.1, p.y + 0.3, z + 0.3], [p.x + 0.1, p.y + 0.24, z + 0.78], [p.x - 0.1, p.y + 0.24, z + 0.78]], C.white, { stroke: false });
+      });
+    });
+
+    // ================= The kayak launch =================
+    // A ramp down the beach, a rack of refuge kayaks, the sign, and a cooler.
+    R.rug((ctx) => {
+      const x0 = 39.5, x1 = 40.9;
+      for (let y = 25.8; y < 27.5; y += 0.34) {
+        const z = h(40.2, y + 0.17) + 0.06;
+        face(ctx, [[x0, y, z], [x1, y, z], [x1, y + 0.3, z], [x0, y + 0.3, z]], tint(C.woodLight, 0.1), { lw: 0.03 });
+      }
+    });
+    const launchSign = notice(null, 38.6, 27.6, ['KAYAK LAUNCH', 'HIGH TIDE ONLY', 'NO, REALLY'], { w: 2.1, size: 0.24, board: C.white, head: C.coral });
+    R.thing(39.7, 27.7, (ctx) => {
+      const z = h(37.6, 27.2);
+      for (const [dx, dy] of [[0, 0], [1.6, 0], [0, 0.6], [1.6, 0.6]]) box(ctx, 36.8 + dx, 26.6 + dy, z, 0.1, 0.1, 1.4, C.wood, { flat: true, lw: 0.03 });
+      for (const zz of [0.55, 1.2]) box(ctx, 36.75, 26.55, z + zz, 1.8, 0.8, 0.07, C.wood, { flat: true, lw: 0.03 });
+      kayak(ctx, 37.7, 26.95, z + 0.62, 0, C.mint);
+      kayak(ctx, 37.7, 26.95, z + 1.27, 0, C.purple);
+      launchSign(ctx);
+    });
+    R.thing(42.3, 27.5, (ctx) => {
+      const x = 41.7, y = 26.9, z = h(x, y);
+      box(ctx, x, y, z, 0.9, 0.55, 0.55, BRAND.can, { flat: true, lw: 0.035, top: C.white });
+      letters(ctx, x + 0.45, y + 0.55, z + 0.3, 'GANDER', 0.2, BRAND.ink, 'Bagel Fat One');
+    });
+
+    // ================= The kayakers =================
+    // Kayaker One has been sitting in a kayak on the mud since the morning,
+    // waiting for the water. Two comes down when it does. They go round
+    // lazily, stop for the sunset, and come in before dark.
+    const kA = kayakTrip({ appear: 30, from: [40.2, 27.9], spot: [40.6, 23.6], float: 191, center: [38, 12], r: 3.5, ry: 2.1, phase: 1.6, speed: 1.0, leave: 246, land: [40.3, 25.3] });
+    const kB = kayakTrip({ appear: 185, from: [41.8, 27.9], spot: [41.8, 23.8], float: 191, center: [21.8, 10.6], r: 3.2, ry: 2.0, phase: 0.2, speed: 1.6, leave: 244, land: [41.6, 25.4] });
+    const aLook = folk(60, { top: C.white, bottom: C.teal, hat: 'sun' }), bLook = folk(62, { top: C.teal, hat: 'cap' });
+    R.mover(kA, (ctx, t, p) => {
+      drawKayaker(ctx, t, p, aLook, C.coral, C.white);
+      if (p.mode === 'wait' && !p.gone) {
+        const s = t % 30, z = h(p.x, p.y) + 1.9;
+        if (s < 3) say(ctx, p.x, p.y, z, 'Any minute now.');
+        else if (t > 186) say(ctx, p.x, p.y, z, 'FINALLY.');
+      }
+    });
+    R.mover(kB, (ctx, t, p) => drawKayaker(ctx, t, p, bLook, C.teal, C.white));
+    // Kayaker Three, who pushed off at sunset and only then noticed the
+    // paddle wasn't in the kayak. Paddles by hand, all night, headlamp on,
+    // until the tide drops and there it is.
+    const H = { from: [42.8, 27.9], spot: [42.6, 24.6], drift: [27.4, 23.4], home: [42, 25.2] };
+    const hCarry = Math.hypot(H.spot[0] - H.from[0], H.spot[1] - H.from[1]);
+    const hGo = 222, hArrive = hGo + Math.hypot(H.drift[0] - H.spot[0], H.drift[1] - H.spot[1]) / 0.55, hFound = 351;
+    const hDrift = (t) => { const a = clamp((t - hArrive) / 5); return [H.drift[0] + a * 0.6 * Math.sin((t - hArrive) / 7), H.drift[1] + a * 0.35 * Math.sin((t - hArrive) / 5)]; };
+    const hAt = (t) => {
+      const s = ((t % 360) + 360) % 360;
+      if (s < 196) return away(H.from);
+      if (s < 196 + hCarry) { const k = (s - 196) / hCarry; return { x: lerp(H.from[0], H.spot[0], k), y: lerp(H.from[1], H.spot[1], k), mode: 'carry', ang: -2.9, dir: 'l', back: true }; }
+      if (s < hGo) return { x: H.spot[0], y: H.spot[1], mode: 'ashore', ang: -2.9 };
+      if (s < hArrive) { const k = (s - hGo) / (hArrive - hGo); return { x: lerp(H.spot[0], H.drift[0], k), y: lerp(H.spot[1], H.drift[1], k), mode: 'hands', ang: Math.atan2(H.drift[1] - H.spot[1], H.drift[0] - H.spot[0]) }; }
+      if (s < hFound) { const [x, y] = hDrift(s); return { x, y, mode: 'hands', ang: -2.9 + 0.6 * Math.sin((s - hArrive) / 13) }; }
+      const [fx, fy] = hDrift(hFound), k = (s - hFound) / (360 - hFound);
+      return { x: lerp(fx, H.home[0], k), y: lerp(fy, H.home[1], k), mode: 'paddle', ang: Math.atan2(H.home[1] - fy, H.home[0] - fx) };
+    };
+    const hLook = folk(66, { top: C.pink, bottom: C.navy, hat: 'cap', style: 'pony', skin: SKIN[3] });
+    R.mover(hAt, (ctx, t, p) => {
+      if (p.gone) return;
+      const s = ((t % 360) + 360) % 360;
+      if (p.mode === 'ashore') {
+        // Standing by the kayak on the sand, for the sunset.
+        const z = h(p.x, p.y), watch = sunsetWatch(t);
+        kayak(ctx, p.x, p.y, z - 0.04, p.ang, C.mustard);
+        body(ctx, p.x - 0.4, p.y + 0.8, h(p.x - 0.4, p.y + 0.8), hLook, { pose: 'stand', dir: watch ? 'r' : 'l', back: watch }, t);
+        return;
+      }
+      drawKayaker(ctx, t, p, hLook, C.mustard, C.mustard);
+      const L = level(t), zt = Math.max(L, h(p.x, p.y)) + 1.95;
+      if (p.mode === 'hands') {
+        if (s < hGo + 3.5) say(ctx, p.x, p.y, zt, 'Wait.');
+        else if (s % 24 < 3) say(ctx, p.x, p.y, zt, 'Little help?');
+        const k = nightK(t);
+        if (k > 0.3) { const [X, Y] = P(p.x, p.y, Math.max(L, h(p.x, p.y)) + 1.55); ctx.beginPath(); ctx.arc(X + 0.1, Y, 0.06, 0, Math.PI * 2); ctx.fillStyle = LIT; ctx.fill(); glow(ctx, p.x, p.y, Math.max(L, h(p.x, p.y)) + 1.4, 1.1, LIT, k * 0.6); }
+      } else if (p.mode === 'paddle' && s < hFound + 4) say(ctx, p.x, p.y, zt, 'Found it!');
+    });
+
+    // ================= The goose =================
+    // On the marsh island in the middle of the Sound, under a sign that says
+    // BIRDS ONLY, which it is. It walks the island at low tide, honks at the
+    // kayaks, faces the sunset like everyone else, and swims when the king
+    // tide takes the island.
+    signpost(R, 29, 19.4, 'BIRDS ONLY', { w: 1.3, h: 0.42, post: 0.75, size: 0.22, font: FONT, board: C.white });
+    R.goose((t) => {
+      const x = 30 + Math.sin(t / 5) * 0.8, y = 20.4, g = h(x, y), L = level(t);
+      const swim = L > g + 0.02;
+      if (sunsetWatch(t) && !swim) return { x, y, z: g, dir: 'r', pose: 'stand' };
+      const s = t % 17;
+      return { x, y, z: swim ? L : g, dir: Math.cos(t / 5) > 0 ? 'r' : 'l', pose: swim ? 'swim' : s < 1.6 ? 'honk' : s > 9 && s < 11 ? 'peck' : 'walk' };
+    });
+    R.thing(31.6, 22.4, (ctx) => tufts(ctx, [[27.6, 19.2, 5], [28.2, 21.9, 4], [31.4, 21.5, 5], [30.6, 18.8, 4], [29, 22.2, 3]]));
+
+    // ================= The finds =================
+    // A clammer's boot, stuck upright in the mud, next to One Boot (low tide).
+    R.thing(BOOT[0] + 0.3, BOOT[1] + 0.3, (ctx, t) => {
+      if (!lowTide(t)) return;
+      const [x, y] = BOOT, z = h(x, y);
+      disc(ctx, x, y, z + 0.01, 0.36, shade(LAND.mud, 0.2), { stroke: false });
+      // A tall rubber boot in profile, tipped over and half sucked down.
+      const [X, Y] = P(x, y, z);
+      ctx.save(); ctx.translate(X, Y + 0.04); ctx.rotate(0.3);
+      ctx.beginPath();
+      ctx.moveTo(-0.17, -0.78); ctx.lineTo(0.1, -0.78); ctx.lineTo(0.12, -0.2);
+      ctx.quadraticCurveTo(0.42, -0.2, 0.44, -0.06); ctx.lineTo(0.44, 0); ctx.lineTo(-0.2, 0); ctx.closePath();
+      paint(ctx, WADERS, { lw: 0.045, dots: shade(WADERS, 0.5), density: 0.14 });
+      ctx.beginPath(); ctx.rect(-0.18, -0.8, 0.3, 0.12); paint(ctx, C.mustard, { lw: 0.035 });
+      ctx.beginPath(); ctx.ellipse(-0.03, -0.8, 0.15, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.ink, { stroke: false });
+      ctx.restore();
+      // The mud it's stuck in, lapping up over the foot.
+      ctx.beginPath(); ctx.ellipse(X + 0.05, Y + 0.02, 0.4, 0.13, 0, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.1), { lw: 0.03 });
+    }, { anim: true });
+    R.find({ id: 'boot', label: 'A clammer\'s lost boot', at: [BOOT[0], BOOT[1], h(...BOOT) + 0.3], r: 0.8, when: lowTide, note: 'low tide' });
+    // A message in a bottle, washed up on the far flats (low tide).
+    R.thing(BOTTLE[0] + 0.4, BOTTLE[1] + 0.2, (ctx, t) => {
+      if (!lowTide(t)) return;
+      const [x, y] = BOTTLE, z = h(x, y) + 0.1;
+      const a = P(x - 0.32, y + 0.12, z), b = P(x + 0.2, y - 0.08, z), n = P(x + 0.42, y - 0.16, z + 0.02);
+      const glass = mix(C.teal, C.green, 0.4);
+      ctx.lineCap = 'round';
+      const line = (p, q, c, w) => { ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(...q); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.stroke(); };
+      if (Q.lines) { line(a, b, C.ink, 0.32); line(b, n, C.ink, 0.17); }
+      line(a, b, glass, 0.24); line(b, n, glass, 0.1);
+      line([lerp(a[0], b[0], 0.2), lerp(a[1], b[1], 0.2)], [lerp(a[0], b[0], 0.8), lerp(a[1], b[1], 0.8)], INK.cream, 0.1);
+      if (Q.detail) line([a[0] + 0.05, a[1] - 0.07], [b[0] - 0.05, b[1] - 0.07], alpha(C.white, 0.8), 0.035);
+      ctx.beginPath(); ctx.arc(n[0] + 0.05, n[1] - 0.02, 0.06, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.025 });
+    }, { anim: true });
+    R.find({ id: 'bottle', label: 'A message in a bottle', at: [BOTTLE[0], BOTTLE[1], h(...BOTTLE) + 0.2], r: 0.8, when: lowTide, note: 'low tide' });
+    // A kayak paddle, drifting on the flood (high tide): Kayaker Three's.
+    const paddleAt = (t) => [PADDLE[0] + Math.sin(t / 3) * 0.4, PADDLE[1] + Math.cos(t / 4) * 0.3, float(PADDLE[0], PADDLE[1], t) + 0.1];
+    R.mover((t) => { const [x, y] = paddleAt(t); return { x, y }; }, (ctx, t) => {
+      if (!highTide(t)) return;
+      const [x, y, z] = paddleAt(t), a = t / 9, c = Math.cos(a) * 0.42, s = Math.sin(a) * 0.42;
+      const zz = z - 0.08;
+      if (Q.lines) { const [X, Y] = P(x, y, zz - 0.02); ctx.beginPath(); ctx.ellipse(X, Y, 0.75, 0.3, 0, 0, Math.PI * 2); ctx.strokeStyle = alpha(C.white, 0.7); ctx.lineWidth = 0.04; ctx.stroke(); }
+      stick(ctx, [x - c, y - s, zz], [x + c, y + s, zz], C.ink, 0.06);
+      for (const k of [-1, 1]) { const [X, Y] = P(x + k * c * 1.05, y + k * s * 1.05, zz); ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.1, a * 0.5, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.03 }); }
+    });
+    R.find({ id: 'paddle', label: 'A kayak paddle', at: paddleAt, r: 0.8, when: highTide, note: 'high tide' });
   },
 };
