@@ -1043,7 +1043,7 @@ export default {
     });
 
     // ---------- Finds ----------
-    R.find({ id: 'hammock', label: 'A hammock between two pipes', at: [13, 13.5, 1.15], r: 1.4 });
+    R.find({ id: 'hammock', label: 'A hammock between two pipes', at: [12.78, 13.45, 1.55], r: 1.0 });
     R.find({ id: 'wrench', label: 'A lost wrench', at: [4, 14.8, 0.05], r: 0.7 });
   },
 };
