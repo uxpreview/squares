@@ -32,8 +32,9 @@ import marinePark from './areas/marine-park.js';
 import castleIsland from './areas/castle-island.js';
 
 const FLOORS = { green: [green1, green2, green3], yellow: [yellow1, yellow2, yellow3], grey: [grey1, grey2, grey3] };
-const NAMES = { green: 'Green House', yellow: 'Yellow House', grey: 'The Grey One' };
-const ORD = ['1st floor', '2nd floor', '3rd floor'];
+// (Short, so the room bar has room for the apartment's name beside it.)
+const NAMES = { green: 'Green House', yellow: 'Yellow House', grey: 'Grey One' };
+const ORD = ['1st', '2nd', '3rd'];
 // A floor of a house: stacked on the ground, standing on the land without
 // printing it, only as tall as its floor (so each point is in one floor).
 const floorOf = (id, y, f) => ({

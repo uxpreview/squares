@@ -82,13 +82,13 @@ export function nightK(t) {
 const NOON = at(11.9), SUNSET_AT = at(19.1), MORNING = at(8.5);
 export const dial = {
   name: 'the lease clock',
+  // What time it is (to ten minutes) and what's going on, so a player can
+  // tell whether "before noon" is still on.
   label(t) {
     const h = hour(t);
-    if (h >= 12 && h < 13) return 'Noon: the keys';
-    if (h >= 7 && h < 12) return 'Moving out';
-    if (h >= 13 && h < 21) return 'Moving in';
-    if (h >= 21 || h < 5) return 'First night';
-    return 'Moving Day';
+    const phase = h >= 12 && h < 13 ? 'the keys' : h >= 7 && h < 12 ? 'moving out' : h >= 13 && h < 21 ? 'moving in' : h >= 21 || h < 5 ? 'first night' : 'dawn';
+    const m = Math.floor((h % 1) * 6) * 10, hh = Math.floor(h), h12 = ((hh + 11) % 12) + 1;
+    return `${h12}:${String(m).padStart(2, '0')}${hh < 12 ? 'am' : 'pm'} · ${phase}`;
   },
   // How far through the day it is (the dial's hand), 0 at 5am to 1.
   level: (t) => wrap(t) / LOOP,
