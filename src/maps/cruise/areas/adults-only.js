@@ -24,7 +24,7 @@ export default {
     figure(R, 22, 6, folk(53), 'On the phone', { dir: 'l' });
     figure(R, 11, 5, folk(54), 'Attendant', { dir: 'r' });
     pin(R, { id: 'spa-card', label: "Gloria's spa card", at: [19.6, 6.4, 0.7] }, 1);
-    pin(R, { id: 'dnd-sign', label: 'A Do Not Disturb sign', at: [10.4, 13.9, 1] }, 2);
+    pin(R, { id: 'dnd-sign', label: 'A sign hung on a hot tub', at: [10.4, 13.9, 1] }, 2);
     paths(R);
   },
 };

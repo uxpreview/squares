@@ -9,7 +9,7 @@ import { INK } from '../style.js';
 export default {
   id: 'pool',
   name: 'The Pool',
-  blurb: 'Every lounger has had a towel on it since 5am, and nobody on any of them. The drill is at ten. Nobody is going.',
+  blurb: 'Every lounger has had a towel on it since 5am and nobody on it. At the lifeboat drill, only one passenger is listening.',
 
   build(R) {
     deck(R, 'pool', 'sun', { rails: true });

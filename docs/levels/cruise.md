@@ -1,7 +1,7 @@
 # All You Can Eat
 
-> Status: **Brief** · Brief → Greybox → Art → QA → Preview → Shipped
-> Approvals: brief [x] (the lead's call, decisions 1 to 16) · greybox [ ] (the lead's call) · preview [ ] (the owner)
+> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Approvals: brief [x] (the lead's call, decisions 1 to 16) · greybox [x] (the lead's call, decisions 17 to 27) · preview [ ] (the owner)
 >
 > Session 7 (Sept 2026), built alongside Boston (Moving Day) in another session. Boston owns engine changes this round (PROCESS.md, "Two levels at once"), so this level is built only from what exists: storeys and the lift (the Manor), walkers on one clock, the whodunit format (`game/case.js`), a place's own dial (Plum Island's tide), and a plate that changes with the clock (the Block Party). It keeps to `src/maps/cruise/`, this brief, and its own lines in shared files.
 
@@ -51,7 +51,7 @@ The culprit's card is **"Someone else?"** (a plain shadow and a question mark), 
 - **Below the waterline:** the sea's surface meets the hull a little above the crew deck's floor, so the crew deck is seen through the water, printed in the sea's ink, like an aquarium. Step into it and the water tint lifts.
 - **Silhouette:** a cruise ship, not a box. The bow tapers to a point, the stern is square with its name on it, a big red funnel and the corkscrew of the waterslide stick up from the top deck, lifeboats hang along the far rail.
 - **The hero:** the buffet, the crime scene, in the middle of the Promenade. On the skyline: the funnel and the waterslide.
-- **The port**, a little palm island in the front corner (below the stern, lower left on screen), where the sea's otherwise empty: a pier, a hut, a welcome banner, the yellow quarantine flag at the end. The ship reaches it at 6pm and nobody gets off.
+- **The port**, a little palm island off the far side, ahead of the ship (to the right of it on screen), where the sea's otherwise empty: a pier, a hut, a welcome banner, the yellow quarantine flag at the end. The ship reaches it at 6pm and nobody gets off.
 - **On a phone** held upright, the overview fills the height round the middle of the ship (the buffet), and the bow and stern run off the sides: a swipe along the ship, like Plum Island. On its side, and on a big screen, the whole ship.
 
 The plan (world units; x along the ship from the stern, y from the far side to the cut side; every deck 16 deep):
@@ -62,7 +62,7 @@ The plan (world units; x along the ship from the stern, y from the far side to t
 | **Cabins** (7.1) | **The Cabins** (0 to 48, a corridor of cabins) | | **Adults Only** (48 to 80) | |
 | **Promenade** (0) | **The Theater** (0 to 24) | **The Buffet** (24 to 56) | | **The Casino** (56 to 80) |
 | **Crew Only** (-7.1, below the waterline) | **The Engine Room** (0 to 24) | **The Crew Bar** (24 to 56) | | **The Sick Bay** (56 to 80) |
-| **Outside** (the sea, -2) | **The Port**, in front of the stern (x 0 to 18, y 26 to 44) | | | |
+| **Outside** (the sea, -0.6) | **The Port**, off the far side, ahead (x 60 to 78, y -34 to -18) | | | |
 
 **Connections:** a lift and a stair tower in the same place on every deck (against the far wall, x 22 to 26), so people vanish into the lift doors on one deck and step out on another; doors between the areas on each deck, along a corridor by the far wall. On the Sun Deck the areas are open to each other (a rail with gaps).
 
@@ -108,7 +108,7 @@ Draft inks:
 **Queasy green is the level's clue color.** Only the sick, the iguana and the red herrings (Gloria's mask, the Green Mermaids, the slime, the captain) wear it, so the eye can hunt for it. Plants and anything else green use a leaf green from `C`, never it.
 
 ## Alive
-- **The day,** a three-minute loop from 7am to 7pm (15 seconds an hour): the buffet opens (7am), the casino opens (9am), the lifeboat drill (10am), Chad carried home (11am), the limbo (noon), the salad bar taped off (1pm), bingo (3pm), the crew party (3pm), the port in sight (5pm), docking and the yellow flag (6pm), the sunset (6 to 7pm).
+- **The day,** a four-minute loop from 7am to 7pm (20 seconds an hour): the buffet opens (7am), the casino opens (9am), the lifeboat drill (10am), Chad carried home (11am), the limbo (noon), the salad bar taped off (1pm), bingo (3pm), the crew party (3pm), the port in sight (5pm), docking and the yellow flag (6pm), the sunset (6 to 7pm).
 - **People going green,** each at their own time, deck by deck from the Promenade upward. Their faces go queasy green over a few seconds and stay green till the loop starts again.
 - **The ship:** a wake behind the stern, the funnel smoking, flags snapping, the sea's surface lapping at the hull, spray at the bow, gulls. At 6pm it slows and the wake fades.
 - **Sound:** a sea bed (hull wash, gulls), the ship's horn at 7am and at docking, the drill's alarm (seven short, one long), the band tuning on the island, the dinner gong. Measured under the honk (`loudness()`).
@@ -117,7 +117,7 @@ Draft inks:
 **Watch who goes green, and when.** Everyone turns green at their own time, and the dial (the ship's clock, from Plum Island's tide dial) skips to the day's moments: breakfast, the drill, noon, bingo, docking. Scrub back to 7am and the only green things aboard are the red herrings and the iguana. The crew never turn.
 
 ## Finds
-17 evidence (the case file names them), 12 curiosities, and the goose. Labels are placeholders to settle at the greybox (sentence case, unique, no captions that give the answer).
+17 evidence (the case file names them), 11 curiosities, and the goose. Labels are placeholders to settle at the greybox (sentence case, unique, no captions that give the answer).
 
 | Area | Evidence | Curiosities |
 | --- | --- | --- |
@@ -158,12 +158,22 @@ All of it exists; nothing new is built for this level (Boston owns engine change
 ## Open questions
 None for now; see Decisions.
 
+## The greybox (gate 2)
+
+Open it at `#/cruise` (hidden from the picker). `npm run qa -- cruise --quick` passes clean (11 passed, no warnings).
+
+- **The plan** is `src/maps/cruise/plan.js`: the four decks on the Manor's storeys, the areas' sizes, the doors along the corridor, the lift shaft (x 18.4 to 21.6 on every deck, against the far side), the bow's taper, the waterline.
+- **The ship's kit** is `src/maps/cruise/ship.js`: `deck()` lays every area's floor (tapered at the bow), the hull's slab along the cut side (red under the crew deck), its walls with the plan's doors (the far side angling in at the bow is drawn in pieces, since the engine's walls are straight), the lift's doors (a lift house on the Sun Deck), and a `lifeboat()`.
+- **The day** is `src/maps/cruise/day.js`: thirteen people on the clock, riding the lift between decks (nobody's drawn inside the shaft). The style sheet has the day's clock (`at(h)`, `clockLabel`), its moments (the dial's skips), the sea's color through the day, and who's green when (`SICK`, `HERRING`, `sickness(id, t)`, `queasy(skin, k)`).
+- **The case file** is `src/maps/cruise/case.js`, with portraits in portholes.
+- **The sea** is `src/maps/cruise/ambient.js`: the wake (it fades as the ship slows into port), glints, gulls, the waterline, and the sea over the crew deck, lifted when you step down there.
+
 ## Decisions
 Gate 1, the brief (the lead's calls, Sept 2026; the owner reviews them at the preview):
 1. **The id is `cruise`,** the name **All You Can Eat**, the subtitle **Day Four** (under the name on its picker card, like Plum Island's "King Tide"). The ship is the *MS Bottomless*.
 2. **A whodunit, and the culprit is not the goose:** it's a stowaway iguana (manor.md 2: later mysteries need a different culprit). Reptiles really do carry salmonella, so the solution is fair and the lab slip can say so.
 3. **Six suspects, all green for the wrong reason,** and the culprit's card is "Someone else?" / "Not on the manifest", which ties to the gangway clicker (2,401 aboard, 2,400 on the manifest).
-4. **Seventeen evidence finds,** like the Manor (six against the iguana, eleven for the suspects), plus twelve curiosities and the goose. Every piece of evidence hidden among look-alikes at its real size (manor.md 28), from the start this time.
+4. **Seventeen evidence finds,** like the Manor (six against the iguana, eleven for the suspects), plus eleven curiosities and the goose. Every piece of evidence hidden among look-alikes at its real size (manor.md 28), from the start this time.
 5. **Four decks on the Manor's storeys,** changed from the lift, drawn as the ship's elevator panel (SUN DECK, CABINS, PROMENADE, CREW ONLY). Why not all four decks spread apart like the Walk-Up: the ship would stop reading as a ship. Stacked, it's a ship; the lift and the cut side show every deck.
 6. **It opens on the Promenade** (the buffet, where it started), the two decks above lifted and hovering faint, the crew deck below through the cut side. The invitation: "Start at the buffet", pinned over the salad bar.
 7. **The ship runs on the diagonal, stern top left, bow bottom right,** cut open along the side facing us, 80 units long and 16 wide, the bow tapering from x 64.
@@ -176,3 +186,16 @@ Gate 1, the brief (the lead's calls, Sept 2026; the owner reviews them at the pr
 14. **The lift and a stair tower sit in the same place on every deck** (x 22 to 26, against the far wall), so people ride between decks on the clock and the decks read as one ship.
 15. **Pidge runs the accusations** (on holiday). The Courier is on the tender boat that's never allowed alongside; the parcel is a pair of armbands.
 16. **This session's order:** the brief, the greybox, then as much of the art as the session allows, one PR; measuring (QA, fps, playtest) takes turns with the Boston session.
+
+Gate 2, the greybox (the lead's calls, Sept 2026; the owner reviews them at the preview):
+17. **The day is four minutes, not three:** 20 seconds an hour. The ship is 80 units long, and at a walk people couldn't get from the Sun Deck to the Promenade and back inside an hour of the day. People walk a little quicker than at the Manor (1.6 a second).
+18. **The name is written All-You-Can-Eat** in the game. QA keeps a place's name to three words, and the hyphens are how the phrase is spelled anyway.
+19. **The port moved off the far side, ahead of the ship** (to the right of it on screen). Off the cut side it drew over the engine room when you stepped in (the lower hull reaches down the screen in front of the ship), and ahead of the bow it sat under the lift panel. It's where the picture was emptiest.
+20. **Lifted decks hover faint** (lift 14, ghost 0.09): an exploded drawing of the ship on the overview, quiet enough not to crowd an area you've stepped into.
+21. **The waterline is just under the Promenade** (z -0.6), so the whole crew deck is under the sea, seen through its ink.
+22. **One lift, no stairs** between decks: people step into its doors on one deck and out on another. The stair tower in the brief is scenery for the art.
+23. **The bow tapers on every deck from x 64,** so the Bridge, Adults Only, the Casino and the Sick Bay each end in the point; their far walls angle in with it.
+24. **Pidge's day:** the buffet (the butter swan), the theater (the magician's hat), the pool at noon (he tries the limbo), the bridge at 2pm, back to the buffet, green by 4pm. The sick bay was too far to fit.
+25. **Gloria starts the day at the buffet** (7am, in her mask), is back in the spa by 8, pink at 11, at the pool all afternoon, and back to the buffet for dinner.
+26. **Chad sleeps in cabin 12** (the stern end of the corridor is the honeymoon suite; cabins run 1 to 12 toward the bow), carried there at 11 by a steward, back at the pool bar by 5.
+27. **Labels:** "A sign hung on a hot tub" (QA read "A Do Not Disturb sign" as Title Case); the invitation's hint is "Find where it began. Name patient zero." (short enough for its card on a phone).

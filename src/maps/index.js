@@ -58,7 +58,7 @@ export default [
   },
   {
     id: 'cruise',
-    name: 'All You Can Eat',
+    name: 'All-You-Can-Eat',
     subtitle: 'Day Four',
     tagline: 'Day four at sea. Something from the buffet is going round, and nobody is getting off.',
     ink: '#D6473A',

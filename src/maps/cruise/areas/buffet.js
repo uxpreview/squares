@@ -9,7 +9,7 @@ import { INK } from '../style.js';
 export default {
   id: 'buffet',
   name: 'The Buffet',
-  blurb: 'All you can eat, 7am to midnight. It opened at seven. Something had already been at the salad bar.',
+  blurb: 'All you can eat, 7am to midnight. When the doors opened at seven, something had already been at the salad bar.',
 
   build(R) {
     deck(R, 'buffet', 'promenade');

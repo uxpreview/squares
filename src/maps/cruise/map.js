@@ -41,7 +41,7 @@ const dial = {
 
 export default {
   id: 'cruise',
-  name: 'All You Can Eat',
+  name: 'All-You-Can-Eat',
   short: 'The ship', // the back button in an area
   tagline: 'Day four at sea. Something from the buffet is going round, and nobody is getting off.',
   zones: [
@@ -74,7 +74,7 @@ export default {
   lift: LIFT_COLORS,
   // Decks above the one you're on lift off and hover, faint, like an
   // exploded drawing of the ship.
-  cutaway: { front: true, above: true, walls: 1.2, lift: 12, ghost: 0.16 },
+  cutaway: { front: true, above: true, walls: 1.2, lift: 14, ghost: 0.09 },
   // The paper is the sea, and it follows the day; it runs to every edge, and
   // to the picker card's edges too.
   plate: { at: (t) => ({ paper: seaAt(t), kind: 'night' }), bleed: true },
@@ -85,7 +85,7 @@ export default {
   // ship to its full height, bow and stern running off the sides; on a phone
   // on its side, the decks filling the height.
   overview: (portrait) => {
-    const X0 = -34, X1 = LENGTH + 4, Y0 = -(DECK.sun + 10) * 1.12 - 8, Y1 = (LENGTH + BEAM) / 2 + 10;
+    const X0 = -24, X1 = 112, Y0 = -(DECK.sun + 10) * 1.12 - 8, Y1 = (LENGTH + BEAM) / 2 + 10;
     if (portrait) return [23, 37, Y0 + 4, Y1 - 4];
     return [X0, X1, Y0, Y1];
   },
@@ -97,7 +97,7 @@ export default {
   words: {
     zone: 'deck',
     invite: 'Start at the buffet',
-    hint: 'Find where it started. Name patient zero.',
+    hint: 'Find where it began. Name patient zero.',
     whole: 'The whole ship',
     complete: 'Patient zero was a stowaway iguana. It is not getting off either.',
   },

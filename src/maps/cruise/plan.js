@@ -10,7 +10,7 @@
 //   Cabins      The Cabins 0-48                | Adults Only 48-80
 //   Promenade   The Theater 0-24 | The Buffet 24-56 | The Casino 56-80
 //   Crew Only   The Engine Room 0-24 | The Crew Bar 24-56 | The Sick Bay 56-80
-//   (the sea)   The Port, a little island off the cut side, by the stern
+//   (the sea)   The Port, a little island off the far side, ahead
 //
 // World units: x runs to the screen's lower right, y to the lower left, z up.
 import { WALL, SLAB } from '../../engine/iso.js';
@@ -38,7 +38,7 @@ export const AREAS = {
   'engine-room': { at: [0, 0, DECK.crew], size: [24, BEAM] },
   'crew-bar': { at: [24, 0, DECK.crew], size: [32, BEAM] },
   'sick-bay': { at: [56, 0, DECK.crew], size: [24, BEAM] },
-  port: { at: [4, 20, SEA], size: [18, 16] },
+  port: { at: [60, -34, SEA], size: [18, 16] },
 };
 export const AT = Object.fromEntries(Object.entries(AREAS).map(([id, a]) => [id, a.at]));
 
