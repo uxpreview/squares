@@ -1,9 +1,9 @@
 # Plum Island
 
-> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Preview** · Brief → Greybox → Art → QA → Preview → Shipped
 > Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [x] (with every recommendation, decisions 35 to 38) · preview [ ]
 >
-> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and approved at gate 2. Session 5c draws it, QAs it and puts it up for gate 3 ("The art" below).
+> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and approved at gate 2. Session 5c drew it, QA'd it and blind-playtested it; it's at gate 3 now ("The art" below, and "For the owner at gate 3").
 >
 > Drafted in the sketchbook session (Sept 2026); finished in session 5 with the owner's answers and ideas (decisions 1 to 17), every real place checked against a real map and current news (see "Real places, checked"), and a build plan for E4. The rough sketch is in [the sketchbook](../sketchbook.html) (open it in a browser; drag the tide). The owner approved it with every recommendation (decisions 25 to 32). Next: build E4, then the greybox.
 
@@ -293,6 +293,14 @@ Drawn by nine artists in parallel, each in their own worktree (the seven areas, 
 
 **Speed, honestly:** in this cloud session QA's speed check reads Plum Island's areas at 44 to 75 ms against the 60 ms budget. It reads the shipped Block Party, unchanged, at 22 to 77 ms in the same session (seven of its rooms over 60; it passed at 43 slowest on the machine it shipped from), and the same view swings by 15 ms between runs. So the cloud can't settle it: `npm run qa -- plum` and `node tools/fps.mjs plum` on the owner's Mac can (the bar: no view slower than the Block Party's, whose streets run at 20 to 24 frames a second and rooms at 21 to 33 on the 2017 laptop).
 
+**The blind playtest** (from screenshots, with the dial): 27 of 28 found the first time. The three it found hardest were moved: the lure was half under the area's name at the bottom of a laptop's frame (now two rocks inshore); the lobster wandered off the road behind the clam shack's roof at noon (now it stays on the asphalt); and the Pink House was never caught, because the shot fell between flickers (now it's faint on its lot all through its window, and in full three times). A second fresh tester re-checked those three (see the PR). Its other notes: a sitting goose, legs tucked, can read as a pool float (that's the game's goose, shared with every place, so left alone); neighbors' geese show at the edges of an area's framing (as on the Block Party); the dial read clearly as a tide control, but jumping from noon to the king tide at 11pm overshoots sunset, so a player who taps it first never sees the Pink House (question 2 below).
+
+**For the owner at gate 3** (each with a recommendation):
+1. **Speed on your Mac.** The cloud can't settle it (above). *Recommend:* run `npm run qa -- plum` (its speed check) and `node tools/fps.mjs plum` on the 2017 laptop, next to the Block Party (`node tools/fps.mjs block`). If an area is clearly slower than the Block Party's streets, the fix that helps every place is the open roadmap item: step sharpness down from 2x to 1.5x when frames stay slow.
+2. **Sunset and the dial.** The dial skips between noon and 11pm (decision 33), so it jumps over sunset and the Pink House. *Recommend:* add a third stop between them: before 7:40pm, a tap says "Skip to sunset" and lands at 7:50pm; after sunset it skips to high tide as now.
+3. **The Pink House's ghost.** Faint on its lot all through sunset (7:40 to 9pm), in full for a moment three times (decision 25, which had it invisible between flickers). *Recommend:* keep; it gives the player something to tap and reads as a memory.
+4. **The night printed in dusk ink** on the buildings, people and finds in their day colors, rather than the whole island dimmed. *Recommend:* keep.
+
 ## Open questions
 None open. The skip was settled at the start of session 5b (decision 33).
 
@@ -353,3 +361,13 @@ Gate 2 (the greybox), the owner at the start of session 5c (Sept 2026), taking e
 36. **The cutaway stays** when you step into an area, rather than fading tall things in front.
 37. **The sunset on the sea stays:** gold briefly, then pink and lavender, with the land keeping its colors. The art director tunes it.
 38. **Hellcat's tower stays by the refuge road;** the art can stretch its boardwalk along the marsh edge.
+
+The lead's calls in session 5c (the owner said to use the lead's recommendations wherever something was open):
+
+39. **The fake brand is Gander Cola** ("Take a gander."): red cans, white lettering; on the banner plane and at most one touch per area, never on a find. For every place from now on (LEVELS.md).
+40. **The banner reads the right way round both ways** (a brand wants to be read), not backwards on its way back.
+41. **The night is printed, not dimmed:** the buildings get a dusk print with their windows lit; people, cars and finds keep their day colors, so every find reads at any hour. `R.dark` was tried and dropped (outdoors it only darkens the ground, which already prints its night inks, and its edge showed).
+42. **The sunset on the sea** (decision 37, tuned): gold for about five seconds, then dusty pink, mauve, lavender, indigo, navy.
+43. **The Courier's van stays in the flood as long as the ending plays** (it used to drive off at 12:50am under the geese).
+44. **The Pink House is faint on its lot all through its window**, in full three times (see question 3 at gate 3).
+
