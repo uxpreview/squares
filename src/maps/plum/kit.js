@@ -26,7 +26,8 @@ function shape(ctx, pts, fill, o) {
 // A car, 1 wide and 2 long, pointing along x ('x') or y ('y'), its wheels at
 // z: a low body, a cabin with its windows, wheels peeking out under the
 // sides, and a roof rack or a surfboard if asked. In water (a flooded road),
-// only what's above it shows. o: { rack, board, lights }
+// only what's above it shows. o: { rack, board, dir (1: the front toward +x
+// or +y, the default; -1 the other way) }
 export function car(ctx, x, y, z, color, along = 'y', label = null, t = 0, water = null, o = {}) {
   const X = along === 'x';
   const [w, d] = X ? [2, 1] : [1, 2];
@@ -38,7 +39,8 @@ export function car(ctx, x, y, z, color, along = 'y', label = null, t = 0, water
     }
     box(g, x - w / 2, y - d / 2, z + 0.16, w, d, 0.48, color, { flat: true, lw: 0.045 });
     // The cabin, set back a little from the front, glass all round.
-    const [cw, cd, cx, cy] = X ? [1.05, 0.84, x - 0.1, y] : [0.84, 1.05, x, y - 0.1];
+    const back = 0.1 * (o.dir || 1); // the cabin sits back from the bonnet
+    const [cw, cd, cx, cy] = X ? [1.05, 0.84, x - back, y] : [0.84, 1.05, x, y - back];
     const glass = mix(tint(C.sky, 0.25), color, 0.12);
     box(g, cx - cw / 2, cy - cd / 2, z + 0.64, cw, cd, 0.4, glass, { flat: true, top: tint(color, 0.08), left: shade(glass, 0.12), right: glass, lw: 0.04 });
     // Pillars between the windows, so it reads as a cabin, not a box.
