@@ -46,7 +46,7 @@ export function createRenderer(canvas, camera, o = {}) {
   // (QA times each view on its own frames that way).
   const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0, lays: 0, get snapQ() { return snapQ; } };
   let snapCredit = 0;
-  let lastT = 0;
+  let lastT = 0, lastFrame = 0;
   let slowFrames = 0;
   let intro = null;
   let caching = true; // tools can turn the room's caches off, to compare
@@ -85,17 +85,37 @@ export function createRenderer(canvas, camera, o = {}) {
     }
   }
 
-  // Drop from 3x to 2x if frames stay slow (under ~35 fps) for a couple of seconds.
+  // Sharpness follows the frame rate. If frames stay slow (under ~35 a
+  // second) for a couple of seconds, it steps down: 3x to 2x, then 2x to
+  // 1.5x. An older laptop's graphics chip spends most of a frame putting
+  // pixels on screen, and 1.5x is about half the pixels of 2x (the 2017
+  // laptop's Plum Island went from 14-21 frames a second to 22-27). After a
+  // few seconds at the screen's full rate it steps back up, waiting twice as
+  // long each time a step up didn't hold. Tools keep one sharpness so their
+  // measurements compare; one can switch this on with camera.view.dprAuto = true.
+  const SHARP = [3, 2, 1.5];
+  let quickFrames = 0, upWait = 180, steppedUp = -1e9, settled = 0;
+  function sharpness(cap, world) {
+    view.dprCap = cap;
+    slowFrames = quickFrames = 0;
+    settled = performance.now() + 1500; // the step's own hitch isn't a slow frame
+    camera.measure();
+    if (world) for (const c of world.drawOrder) { dropBackdrop(c); dropStills(c); }
+  }
   function watchFrameRate(gap, world) {
     if (!(gap > 0) || gap > 0.25 || document.hidden) return; // tab switches, first frame
     perf.gap = perf.gap * 0.95 + gap * 1000 * 0.05;
-    if (view.dpr <= 2 || performance.now() < 4000) return;
+    const now = performance.now();
+    if (now < 4000 || now < settled) return;
+    if (!(view.dprAuto ?? !navigator.webdriver)) return;
     slowFrames = perf.gap > 28 ? slowFrames + 1 : 0;
-    if (slowFrames > 90) {
-      view.dprCap = 2;
-      slowFrames = 0;
-      camera.measure();
-      if (world) for (const c of world.drawOrder) { dropBackdrop(c); dropStills(c); }
+    quickFrames = perf.gap < 18 ? quickFrames + 1 : 0;
+    if (slowFrames > 90 && view.dpr > SHARP[2]) {
+      if (now - steppedUp < 10000) upWait = Math.min(upWait * 2, 7200);
+      sharpness(SHARP.find((s) => s < view.dpr), world);
+    } else if (quickFrames > upWait && view.dprCap < SHARP[0] && (window.devicePixelRatio || 1) > view.dpr) {
+      steppedUp = now;
+      sharpness(SHARP[SHARP.indexOf(view.dprCap) - 1], world);
     }
   }
 
@@ -190,7 +210,9 @@ export function createRenderer(canvas, camera, o = {}) {
     const f0 = performance.now();
     const { t, now, focus } = o;
     const dt = Math.max(0, Math.min(0.05, t - lastT || 0)); // the clock can jump (tools)
-    watchFrameRate(t - lastT, world);
+    // Real time between frames, not the scene's (which races when the clock skips ahead).
+    watchFrameRate((f0 - lastFrame) / 1000, world);
+    lastFrame = f0;
     lastT = t;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);

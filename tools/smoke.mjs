@@ -563,7 +563,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
-// ---------- 7. Ground and water (Plum Island, hidden until it ships) ----------
+// ---------- 7. Ground and water (Plum Island) ----------
 // Terrain (engine/terrain.js), the tide on the clock, finds that only show at
 // low tide, the dial that skips ahead, and the king tide at the end.
 {
@@ -616,6 +616,17 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.mouse.click(bx, by);
   await wait(page, 300);
   check('and at low tide it\'s there to find', await S(page, () => window.__squares.store.isFound('plum', 'sound:boot')));
+  // From low water the dial stops at sunset (the Pink House's window) before high tide.
+  const dialTo = async () => {
+    await page.click('#dial');
+    await wait(page, 2600);
+    return S(page, async () => {
+      const { hour } = await import('/src/maps/plum/tide.js');
+      return { hour: Math.round(hour(window.__squares.clock.now()) * 100) / 100, next: document.getElementById('dial-next').textContent };
+    });
+  };
+  const dusk = await dialTo(), high = await dialTo();
+  check('from low tide the dial stops at sunset, then high tide', Math.abs(dusk.hour - 19.83) < 0.3 && Math.abs(high.hour - 23) < 0.3 && /low tide/.test(high.next), JSON.stringify({ dusk, high }));
   const cached = await S(page, () => window.__squares.play.focus.chunks.map((c) => !!(c.bd && c.stills)));
   check('in an area with ground, every piece of it is cached', cached.length > 1 && cached.every(Boolean), JSON.stringify(cached));
   // The ending: every goose found, the clock jumps to the king tide, and the

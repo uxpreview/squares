@@ -4,6 +4,8 @@
 //   node tools/fps.mjs block --only=laundromat,observatory
 //   node tools/fps.mjs manor --size=1440x800 --dpr=2 --secs=3
 //   node tools/fps.mjs block --eval="window.x = 1"   run some JavaScript in the page first (to switch something off and compare)
+//   node tools/fps.mjs plum --auto   let sharpness step down when frames are slow, as it does for players
+//                                    (tools keep one sharpness otherwise); prints where each view ended up
 //
 // QA's speed check times the drawing code on a simulated phone; it can't see
 // the time the graphics chip then takes to put the picture on screen, which is
@@ -28,7 +30,8 @@ const dpr = +opt('dpr', 2);
 const secs = +opt('secs', 3);
 const only = opt('only', '').split(',').filter(Boolean);
 const setup = (args.find((a) => a.startsWith('--eval=')) || '').slice(7);
-if (!places.length) { console.log('Usage: node tools/fps.mjs <place> [--only=a,b] [--size=1440x800] [--dpr=2] [--secs=3]'); process.exit(1); }
+const auto = args.includes('--auto');
+if (!places.length) { console.log('Usage: node tools/fps.mjs <place> [--only=a,b] [--size=1440x800] [--dpr=2] [--secs=3] [--auto]'); process.exit(1); }
 
 execSync('npx vite build --logLevel error', { cwd: root, stdio: 'inherit' });
 const server = await preview({ root, logLevel: 'error', preview: { port: 0 } });
@@ -41,13 +44,14 @@ const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('  page error: ' + e));
 
 // Go to a view, let it land and settle, then count real frames.
-const measure = (hash) => page.evaluate(async ([hash, secs]) => {
+const measure = (hash) => page.evaluate(async ([hash, secs, auto]) => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   location.hash = hash;
   await sleep(400);
   for (let i = 0; i < 150 && !(window.__squares.world && window.__squares.world.id === hash.split('/')[1]); i++) await sleep(100);
   for (let i = 0; i < 100 && window.__squares.camera.flying; i++) await sleep(100);
-  await sleep(2500);
+  // With --auto, long enough for sharpness to step down if it's going to.
+  await sleep(auto ? 9000 : 2500);
   const f = window.__squares.perf;
   f.n = 0; f.total = 0;
   let n = 0;
@@ -56,11 +60,12 @@ const measure = (hash) => page.evaluate(async ([hash, secs]) => {
     const tick = (now) => { n++; if (now - t0 < secs * 1000) requestAnimationFrame(tick); else done(); };
     requestAnimationFrame(tick);
   });
-  return { fps: n / secs, ms: f.n ? f.total / f.n : 0 };
-}, [hash, secs]);
+  return { fps: n / secs, ms: f.n ? f.total / f.n : 0, dpr: window.__squares.camera.view.dpr };
+}, [hash, secs, auto]);
 
 await page.goto(base + '#/');
 await page.waitForFunction(() => window.__squares, null, { timeout: 30000 });
+if (auto) await page.evaluate(() => { window.__squares.camera.view.dprAuto = true; });
 const gpu = await page.evaluate(() => {
   const g = document.createElement('canvas').getContext('webgl');
   const d = g && g.getExtension('WEBGL_debug_renderer_info');
@@ -68,7 +73,7 @@ const gpu = await page.evaluate(() => {
 });
 console.log(`${W} x ${H} at ${dpr}x, on ${gpu}\n`);
 
-const row = (name, r) => console.log(`${r.fps.toFixed(0).padStart(4)} fps  ${r.ms.toFixed(1).padStart(5)} ms drawing  ${name}`);
+const row = (name, r) => console.log(`${r.fps.toFixed(0).padStart(4)} fps  ${r.ms.toFixed(1).padStart(5)} ms drawing  ${auto ? `at ${r.dpr}x  ` : ''}${name}`);
 const results = [];
 for (const place of places) {
   const all = await measure(`#/${place}`);
