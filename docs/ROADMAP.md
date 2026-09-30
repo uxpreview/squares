@@ -26,7 +26,7 @@ And for a game that adds levels often: **each level should be cheaper to make th
 - **Places:** The Block Party (the Block, connected: sixteen rooms on streets through a day; it replaced the flat Block under its id, `block`), Gooseworth Manor (a whodunit at night, three floors), and Plum Island (a barrier island on a tide, the first place with ground and water). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** Boston (three real neighborhoods), reusing the water and the Block Party's streets; the owner picks which neighborhood goes first. Then The Block, But Wrong ([LEVELS.md](LEVELS.md)).
+- **Next levels:** Boston's Moving Day and All You Can Eat (the cruise ship), built at the same time in two sessions (PROCESS.md, "Two levels at once"). Then The Block, But Wrong ([LEVELS.md](LEVELS.md)).
 
 ## Engine work
 
@@ -153,11 +153,12 @@ Each is one PR. Order can change; dependencies can't.
   - **It ships:** in the picker after Gooseworth Manor. The night stays printed rather than dimmed.
   - **Checks:** `npm run qa -- plum` and `npm run smoke` pass on the owner's Mac.
 - [ ] **6. Boston.** Three real neighborhoods, one event each: Moving Day (Southie), Beacon and Arlington (a snow day), The Feast (the North End and the Financial District). The owner picks which goes first. Reuses the water (E4) and the Block Party's streets (areas of any shape).
-- [ ] **7. The Block, But Wrong.** The Block Party's layout, flipped; proves the pipeline can turn a level around fast. Also a flip mechanic.
-- [ ] **8. La Dolce Riviera.** The first outdoor showpiece.
-- [ ] **9. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
-- [ ] **10. The campaign and onboarding (G1, G2, G4).**
-- [ ] **11. Polish and performance (P1 to P4, E9).**
+- [ ] **7. All You Can Eat (the cruise ship).** A whodunit on four decks: something from the buffet is going round the ship, and you find patient zero before it docks. Built alongside Boston in its own session, from what exists (storeys and the lift, walkers, the whodunit format, a dial, a plate on the clock); Boston owns engine changes this round. Brief: [levels/cruise.md](levels/cruise.md).
+- [ ] **8. The Block, But Wrong.** The Block Party's layout, flipped; proves the pipeline can turn a level around fast. Also a flip mechanic. *(Moved after the cruise ship, the owner's call, Sept 2026.)*
+- [ ] **9. La Dolce Riviera.** The first outdoor showpiece.
+- [ ] **10. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
+- [ ] **11. The campaign and onboarding (G1, G2, G4).**
+- [ ] **12. Polish and performance (P1 to P4, E9).**
 - Then a level every one or two sessions from [LEVELS.md](LEVELS.md), and the case study (P5) once there are five or six.
 
 ## Decisions

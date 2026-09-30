@@ -72,6 +72,7 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Needs:** Terrain.
 
 ### All You Can Eat (cruise ship)
+**Brief: [levels/cruise.md](levels/cruise.md) (session 7, built alongside Boston).** The brief settles the story (patient zero is a stowaway iguana), the four decks and the port; where it differs from this sketch, the brief wins.
 - **Spin:** a cruise ship cut open from bow to stern on day four. Something at the buffet has started spreading deck to deck. Find patient zero (the green one) before the ship docks at a port nobody gets off at.
 - **Alive:** waterslide, pool, a lifeboat drill nobody is listening to, a limbo contest, a man being carried back to his cabin at 11 a.m.
 - **Adult humor:** the adults-only deck, a divorce playing out in cabin 7, the casino open at 9 a.m., and below the waterline, the crew having a better party.
