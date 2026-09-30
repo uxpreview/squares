@@ -6,7 +6,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 import { BEFORE, AFTER } from '../clock.js';
 
 const out = BEFORE.when, inn = AFTER.when;
@@ -19,7 +19,7 @@ export default {
   blurb: 'Moving out to the suburbs, moving in from the suburbs. The hamster has not decided.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 0, siding: SIDING.yellow, trim: TRIM.yellow, name: 'THE FAMILY', label: 'Yellow House' });
+    apartment(R, { floor: 0, walls: ROOM['yellow-1'], floorInk: ROOM['yellow-1'].floor, siding: SIDING.yellow, trim: TRIM.yellow, name: 'THE FAMILY', label: 'Yellow House' });
     for (const [x, y] of BOXES) stuff(R, x, y, 1, 1, 1, C.woodLight, 'box', out);
     stuff(R, 9.2, 3, 2.4, 1.2, 1, C.teal, 'sofa (new)', inn);
     stuff(R, 4.4, 7.2, 0.2, 1.6, 3.2, C.white, 'height chart');

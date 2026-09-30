@@ -5,7 +5,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 import { AFTER, hour } from '../clock.js';
 import { CURB, CURB_UP } from '../plan.js';
 
@@ -17,7 +17,7 @@ export default {
   blurb: 'Everything on the curb this morning is up here by tonight. The couch is still wet.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 2, siding: SIDING.yellow, trim: TRIM.yellow, name: 'SOUTHIE XMAS' });
+    apartment(R, { floor: 2, walls: ROOM['yellow-3'], floorInk: ROOM['yellow-3'].floor, siding: SIDING.yellow, trim: TRIM.yellow, name: 'SOUTHIE XMAS' });
     stuff(R, 9, 3, 2.4, 1.2, 1, C.purple, 'curb couch', arrived(CURB[0] + CURB_UP));
     stuff(R, 5, 3.2, 1.6, 1.2, 1.2, C.wood, 'curb dresser', arrived(CURB[1] + CURB_UP));
     stuff(R, 11.4, 6.6, 0.9, 0.9, 1.2, C.greyLight, 'curb TV', arrived(CURB[2] + CURB_UP));

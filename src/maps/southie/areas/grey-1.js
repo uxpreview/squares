@@ -5,7 +5,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 
 export default {
   id: 'grey-1',
@@ -13,7 +13,7 @@ export default {
   blurb: 'Luxury living, parking not included. Booties on, please (not you, apparently).',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 0, siding: SIDING.grey, trim: TRIM.grey, floorInk: C.greyLight, name: 'OPEN HOUSE', label: 'The Grey One' });
+    apartment(R, { floor: 0, walls: ROOM['grey-1'], floorInk: ROOM['grey-1'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true, name: 'OPEN HOUSE', label: 'The Grey One' });
     stuff(R, 1, 3, 3, 1, 1.3, C.white, 'island (quartz)');
     stuff(R, 9, 3.2, 2.4, 1.2, 0.9, C.greyLight, 'staged sofa');
     stuff(R, 5.2, 5, 1.6, 1.6, 1, C.wood, 'table');

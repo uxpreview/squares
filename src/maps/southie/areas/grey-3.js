@@ -5,7 +5,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 
 export default {
   id: 'grey-3',
@@ -13,7 +13,7 @@ export default {
   blurb: 'A hot tub, a fire table and a view of Castle Island. Every minute a plane comes over and everyone stops mid-word.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 2, siding: SIDING.grey, trim: TRIM.grey, floorInk: C.greyLight, name: 'ROOF DECK' });
+    apartment(R, { floor: 2, walls: ROOM['grey-3'], floorInk: ROOM['grey-3'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true, name: 'ROOF DECK' });
     stuff(R, 8.6, 3, 2.8, 1.2, 0.9, C.greyLight, 'sectional');
     stuff(R, 1, 3, 2.6, 1, 1.3, C.white, 'kitchen');
     stuff(R, 5.2, 5.4, 1.6, 1.6, 0.6, C.coral, 'fire table');

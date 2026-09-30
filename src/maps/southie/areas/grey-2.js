@@ -5,7 +5,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 import { AFTER } from '../clock.js';
 
 export default {
@@ -14,7 +14,7 @@ export default {
   blurb: 'The movers match and the dog rides in a stroller. The bike went to the wrong floor twice.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 1, siding: SIDING.grey, trim: TRIM.grey, floorInk: C.greyLight, name: 'NEW OWNERS' });
+    apartment(R, { floor: 1, walls: ROOM['grey-2'], floorInk: ROOM['grey-2'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true, name: 'NEW OWNERS' });
     stuff(R, 10.4, 6.4, 1.6, 0.8, 1.4, C.black, 'bike', AFTER.when);
     stuff(R, 0.5, 6, 0.9, 1.4, 2, C.white, 'smart fridge');
     stuff(R, 6, 3.2, 1.2, 0.8, 1, C.purple, 'dog stroller');

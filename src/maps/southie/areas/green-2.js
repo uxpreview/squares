@@ -6,7 +6,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 import { BEFORE, AFTER, between } from '../clock.js';
 
 const out = BEFORE.when, inn = AFTER.when;
@@ -16,7 +16,7 @@ export default {
   blurb: 'Four guys, one futon, and a poster over a hole in the wall. The landlady knows about the hole.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 1, siding: SIDING.green, trim: TRIM.green, name: 'ROOMMATES' });
+    apartment(R, { floor: 1, walls: ROOM['green-2'], floorInk: ROOM['green-2'].floor, siding: SIDING.green, trim: TRIM.green, name: 'ROOMMATES' });
     stuff(R, 9, 3, 2.4, 1.1, 0.8, C.navy, 'futon', out);
     stuff(R, 4.6, 4.4, 3, 1.4, 1.1, C.green, 'beer pong', out);
     stuff(R, 11.4, 6.6, 0.8, 1.2, 1.4, C.greyLight, 'TV on a crate', out);

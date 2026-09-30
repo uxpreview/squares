@@ -7,7 +7,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 
 export default {
   id: 'green-1',
@@ -15,7 +15,7 @@ export default {
   blurb: 'Fifty-two years on the first floor and every key on one ring. She is not moving; everyone else is.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 0, siding: SIDING.green, trim: TRIM.green, name: 'LANDLADY', label: 'Green House' });
+    apartment(R, { floor: 0, walls: ROOM['green-1'], floorInk: ROOM['green-1'].floor, siding: SIDING.green, trim: TRIM.green, name: 'LANDLADY', label: 'Green House' });
     stuff(R, 9.2, 2.8, 2.2, 1.2, 1, C.lilac, 'couch (plastic)');
     stuff(R, 11.2, 6.4, 0.8, 0.8, 1.2, C.wood, 'window chair');
     stuff(R, 5, 3, 1.6, 1.2, 1.2, C.wood, 'table');

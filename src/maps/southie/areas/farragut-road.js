@@ -13,8 +13,8 @@ import { drawLand } from '../../../engine/terrain.js';
 import { block, figure, pin, tag, drawBlock } from '../../greybox.js';
 import { land, h } from '../land.js';
 import { ROAD, HOUSES, OTHER_HOUSES, ROW_X0, GROUND, SHORE_Y, CURB, FH } from '../plan.js';
-import { hour, at, between } from '../clock.js';
-import { house, stuff } from '../kit.js';
+import { hour, at, between, nightK } from '../clock.js';
+import { house, stuff, dusk, car, truck } from '../kit.js';
 import { finale, beat, playing, HAUL, PIVOT } from '../finale.js';
 import { SIDING, INK, CARS } from '../style.js';
 
@@ -52,24 +52,28 @@ export default {
   build(R) {
     drawLand(R, land);
     // The rest of the row: north of East Broadway, and south of the Grey One.
-    OTHER_HOUSES.forEach((y, i) => R.thing(ROW_X0 + 7, y + 4.5, (ctx) => house(ctx, ROW_X0, y, G, SIDING.others[i])));
+    OTHER_HOUSES.forEach((y, i) => {
+      R.thing(ROW_X0 + 7, y + 4.5, (ctx) => house(ctx, ROW_X0, y, G, SIDING.others[i]));
+      // (And printed again in dusk inks after dark.)
+      R.thing(ROW_X0 + 7, y + 4.5, (ctx) => house(ctx, ROW_X0, y, G, SIDING.others[i], C.white, dusk), { fade: (t) => Math.round(nightK(t) * 8) / 8 });
+    });
     // Parked cars, both sides (not across the chunk seams at y 16, 32, 48).
     const west = [3, 6.2, 9.4, 18.2, 21.4, 25, 28.2, 36, 42, 50, 53.4];
     const east = [2.4, 5.6, 8.8, 12, 20, 23.2, 26.4, 36.4, 41, 44.2, 50.4, 53.6];
-    west.forEach((y, i) => block(R, ROAD.park0 + 0.2, y, 1.8, 2.8, 1.3, CARS[i % CARS.length]));
-    east.forEach((y, i) => block(R, ROAD.park1 - 2, y, 1.8, 2.8, 1.3, CARS[(i + 3) % CARS.length]));
+    west.forEach((y, i) => R.thing(ROAD.park0 + 1.1, y + 2.8, (ctx) => car(ctx, ROAD.park0 + 1.1, y + 1.4, G, CARS[i % CARS.length], { dir: 1 })));
+    east.forEach((y, i) => R.thing(ROAD.park1 - 1.1, y + 2.8, (ctx) => car(ctx, ROAD.park1 - 1.1, y + 1.4, G, CARS[(i + 3) % CARS.length], { dir: -1 })));
     // The car in the truck's way, and the pickup double-parked across from it.
     R.mover((t) => ({ x: blockerX(t) + 0.9, y: STUCK + 2.4 }), (ctx, t, p) => drawBlock(ctx, p.x - 0.9, STUCK + 1, G, 1.8, 2.8, 1.3, C.teal, 'parked'));
     block(R, ROAD.lane1 + 0.2, STUCK + 0.6, 1.9, 3.2, 1.6, C.red, 'pickup');
     // The truck.
     R.mover((t) => { const y = truckY(t); return y == null ? { x: -1e4, y: -1e4 } : { x: TRUCK_X + 1.2, y: y + 7 }; }, (ctx, t, p) => {
       if (p.x < -1e3) return;
-      drawBlock(ctx, TRUCK_X, p.y - 7, G, 2.4, 7, 3.6, INK.truck, 'TRUCK');
+      truck(ctx, TRUCK_X + 1.2, p.y - 3.5, G, { dir: 1 });
     });
     // The queue behind it, honking, while it's stuck.
     [24, 19.4].forEach((y, i) => block(R, ROAD.mid - 1.1, y, 2, 3, 1.3, CARS[(i + 5) % CARS.length], i ? '' : 'HONK', { anim: false }));
     // The Storrowed truck, parked, its roof peeled open.
-    block(R, ROAD.park1 - 2.2, 29, 2.2, 2.6, 3.2, INK.truck, 'STORROWED');
+    R.thing(ROAD.park1 - 1.2, 29 + 7, (ctx) => truck(ctx, ROAD.park1 - 1.2, 29 + 3.5, G, { dir: -1, roof: 'peeled' }));
     // The curb pile in front of the Yellow House (it empties up its stairs all afternoon).
     const pileY = yOf('yellow') + 2.4;
     const gone = (hh) => (t) => { const x = hour(t); return x >= 8 && x < hh; };

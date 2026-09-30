@@ -7,7 +7,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 import { BEFORE, AFTER } from '../clock.js';
 import { goose as drawGoose } from '../../../engine/art.js';
 import { drawBlock } from '../../greybox.js';
@@ -20,7 +20,7 @@ export default {
   blurb: 'The couch does not fit up the stairs, so it has been on a rope since nine. They have measured the stairwell six times.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 2, siding: SIDING.green, trim: TRIM.green, name: 'THE COUCH' });
+    apartment(R, { floor: 2, walls: ROOM['green-3'], floorInk: ROOM['green-3'].floor, siding: SIDING.green, trim: TRIM.green, name: 'THE COUCH' });
     stuff(R, 9, 3, 2.4, 1.4, 1.1, C.coral, 'old armchair', out);
     stuff(R, 4.8, 3, 1.4, 1.4, 1.2, C.wood, 'left behind', out);
     stuff(R, 5, 4.6, 2.6, 2.2, 1, C.woodLight, 'boxes', inn);

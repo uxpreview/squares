@@ -67,6 +67,24 @@ export function paperAt(t) {
 // The page's loose words print in the light ink once the paper's dark.
 export const kindAt = (t) => (nightK(t) > 0.5 ? 'night' : 'day');
 
+// ---------- Each apartment's colors ----------
+// Its inside walls (the back and the north side) and its floor, decided
+// before the artists start so the row is one plate. The old guard's
+// wallpaper and linoleum, the roommates' landlord beige, the new people's
+// fresh white, and the Grey One's grey floors and white walls (every gut-reno
+// has them).
+export const ROOM = {
+  'green-1': { left: tint(C.blush, 0.35), right: tint(C.blush, 0.15), floor: tint(C.lilac, 0.25) },
+  'green-2': { left: mix(C.butter, C.greyLight, 0.55), right: mix(C.butter, C.grey, 0.45), floor: C.woodLight },
+  'green-3': { left: C.white, right: tint(C.greyLight, 0.4), floor: tint(C.woodLight, 0.2) },
+  'yellow-1': { left: tint(C.butter, 0.35), right: tint(C.mustard, 0.45), floor: C.wood },
+  'yellow-2': { left: tint(C.lilac, 0.45), right: tint(C.mint, 0.25), floor: C.woodLight },
+  'yellow-3': { left: tint(C.sky, 0.4), right: tint(C.sky, 0.2), floor: tint(C.wood, 0.1) },
+  'grey-1': { left: C.white, right: tint(C.greyLight, 0.5), floor: shade(C.greyLight, 0.12) },
+  'grey-2': { left: C.white, right: tint(C.greyLight, 0.5), floor: shade(C.greyLight, 0.12) },
+  'grey-3': { left: C.white, right: tint(C.greyLight, 0.5), floor: shade(C.greyLight, 0.12) },
+};
+
 // ---------- Shared inks for the art ----------
 export const CARS = [C.coral, C.teal, C.mustard, tint(C.sky, 0.1), C.white, C.purple, C.red, INK.asphalt, C.black];
 export const LIT = C.butter; // a lit window

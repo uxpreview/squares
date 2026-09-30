@@ -5,7 +5,7 @@
 import { C, folk } from '../../../engine/art.js';
 import { figure, pin } from '../../greybox.js';
 import { apartment, stuff } from '../kit.js';
-import { SIDING, TRIM } from '../style.js';
+import { SIDING, TRIM, ROOM } from '../style.js';
 import { BEFORE } from '../clock.js';
 
 export default {
@@ -14,7 +14,7 @@ export default {
   blurb: 'The lease says noon and it is 11:58. There has been one box left since ten.',
   size: [15, 9],
   build(R) {
-    apartment(R, { floor: 1, siding: SIDING.yellow, trim: TRIM.yellow, name: 'THE OVERLAP' });
+    apartment(R, { floor: 1, walls: ROOM['yellow-2'], floorInk: ROOM['yellow-2'].floor, siding: SIDING.yellow, trim: TRIM.yellow, name: 'THE OVERLAP' });
     stuff(R, 1.2, 3, 2.2, 1.6, 1.2, C.wood, 'kitchen table');
     stuff(R, 9, 3, 2, 1.2, 1, C.coral, 'her couch');
     stuff(R, 9, 5.6, 2, 1.2, 1, C.teal, 'his couch');

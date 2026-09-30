@@ -259,7 +259,8 @@ export function createRenderer(canvas, camera, o = {}) {
     // (A street of houses lifts only the floors over the room you're in, in
     // its own house, and dims nothing.)
     const column = world.cutaway.above === 'column';
-    const over = (z) => focus && z.oz > focus.oz + 0.05 && z.ox < focus.ox + focus.w - 0.01 && focus.ox < z.ox + z.w - 0.01 &&
+    // (Outdoors, a street or a park, nothing's over you.)
+    const over = (z) => focus && !focus.fixed && z.oz > focus.oz + 0.05 && z.ox < focus.ox + focus.w - 0.01 && focus.ox < z.ox + z.w - 0.01 &&
       z.oy < focus.oy + focus.d - 0.01 && focus.oy < z.oy + z.d - 0.01;
     for (const z of world.zones) {
       const up = column ? (!z.fixed && over(z) ? 1 : 0) : world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
@@ -353,7 +354,10 @@ export function createRenderer(canvas, camera, o = {}) {
       // Only the outlines that are on screen and overlap this chunk cut it:
       // on a street, most of its pieces are elsewhere, and every different
       // set of outlines is another sheet to lay down.
-      const by = cuts && z !== focus && (world.cutaway.above === 'column' || Math.abs(z.oz - focus.oz) < focus.h) ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
+      // (Outdoors, a closed building is never cut: the street runs past it,
+      // and a strip of yard behind it would cut it to ribbons.)
+      const by = cuts && z !== focus && !(focus.fixed && z.shelled && z.shellK > 0.5) &&
+        ((world.cutaway.above === 'column' && !focus.fixed) || Math.abs(z.oz - focus.oz) < focus.h) ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
       let g = ctx;
       if (by && by.length) {
         // It can go on the sheet that's out if the outlines that sheet will
