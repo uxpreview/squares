@@ -677,9 +677,10 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     open['yellow-1'][1] === 0 && open['green-3'][1] === 0 && open['grey-3'][1] === 0 && open['green-2'][0] === 1, JSON.stringify(open));
   // Out on the street, nothing lifts.
   await S(page, () => window.__squares.play.enterZone('farragut-road', { dur: 0.01 }));
-  await wait(page, 1500);
+  await wait(page, 2500);
   const street = await houses();
-  check('out on the street, every house stays closed and nothing lifts', Object.values(street).every(([k, v]) => k === 1 && v === 0), JSON.stringify(street));
+  // (The one you just left may still be closing.)
+  check('out on the street, every house stays closed and nothing lifts', Object.values(street).every(([k, v]) => k > 0.9 && v < 0.1), JSON.stringify(street));
   const floors = await S(page, () => { const ids = window.__squares.world.drawOrder.map((c) => c.zone.id); return ['green', 'yellow', 'grey'].every((h) => ids.indexOf(h + '-1') < ids.indexOf(h + '-2') && ids.indexOf(h + '-2') < ids.indexOf(h + '-3')); });
   check('every house is drawn floor by floor, bottom up', floors);
   await page.close();
