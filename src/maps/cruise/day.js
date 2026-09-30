@@ -127,7 +127,7 @@ const DAYS = {
 
   ray: from(27, 5, CB).until(at(9), { dir: 'l' }).say(at(9.4), at(9.8), 'It was a gift!', { dir: 'l' })
     .to(12, 5).lift(P).to(14, 3.2).door('theater-buffet').to(44, 3.2).door('buffet-casino').to(64, 12).until(at(16), SIT)
-    .to(60, 5).door('buffet-casino').to(18, 3.2).door('theater-buffet').to(12, 5).lift(CB).to(27, 5).until(LOOP, { dir: 'l' }),
+    .to(60.5, 10).to(60.5, 5).door('buffet-casino').to(18, 3.2).door('theater-buffet').to(12, 5).lift(CB).to(27, 5).until(LOOP, { dir: 'l' }),
 
   // The cruise director: the drill at 10, the limbo at noon, bingo at 3.
   kelly: from(22, 5, SUN).say(0, 5, 'Good morning, sunshines!')
