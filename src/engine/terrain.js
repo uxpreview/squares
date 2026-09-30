@@ -466,7 +466,9 @@ function paintWater(ctx, land, pc, P, t, o, part = 'all') {
       const sbox = U != null ? under(land, pc) : box;
       pc.sea = {
         key,
-        sea: fill(sea, land, sbox, (k) => L - H[k], flat, P) ? sea : null,
+        // (Where the ground is always under, the opaque print covers it: the
+        // see-through water stops a little way past its edge.)
+        sea: fill(sea, land, sbox, U != null ? (k) => Math.min(L - H[k], H[k] - U + 0.12) : (k) => L - H[k], flat, P) ? sea : null,
         deep: ink.deepAlpha > 0 && L - ink.depth > lo && fill(deep, land, box, (k) => L - ink.depth - H[k], flat, P) ? deep : null,
         foam: L < hi && edges(foam, land, box, (k) => L - H[k], flat, P) ? foam : null,
       };
@@ -570,7 +572,22 @@ function paintUnder(ctx, land, pc, P, t, o) {
   const ink = land.water;
   if (!pc.under) {
     const U = ink.under, { H } = land;
-    if (!land.underF) land.underF = land.layers.map((L) => L.F.map((f, k) => Math.min(f, U - H[k])));
+    if (!land.underF) {
+      // Each layer only where no later one covers it (with a little overlap
+      // under the later one's edge), so the open sea is painted once, not
+      // once per layer stacked on it.
+      const F = land.layers.map((L) => L.F.map((f, k) => Math.min(f, U - H[k])));
+      const cover = new Float32Array(H.length).fill(-Infinity);
+      for (let n = F.length - 1; n >= 0; n--) {
+        const f = F[n];
+        for (let k = 0; k < f.length; k++) {
+          const own = f[k];
+          f[k] = Math.min(own, 0.12 - cover[k]);
+          if (own > cover[k]) cover[k] = own;
+        }
+      }
+      land.underF = F;
+    }
     // (Flat: the ground's shading under deep water barely shows through it,
     // and every fill here is painted every frame.)
     const cut = (colors) => ({ ...land, layers: land.layers.map((L, n) => ({ ...L, F: land.underF[n], color: colors[L.id] || L.color, edge: null, flat: true })) });
