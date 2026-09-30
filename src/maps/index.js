@@ -66,4 +66,14 @@ export default [
     hidden: true,
     load: () => import('./crossroads/map.js'),
   },
+  {
+    id: 'cruise',
+    name: 'All-You-Can-Eat',
+    subtitle: 'Day Four',
+    tagline: 'Day four at sea. Something from the buffet is going round, and nobody is getting off.',
+    ink: '#D6473A',
+    // A whodunit on a cruise ship (docs/levels/cruise.md). Hidden until it ships.
+    hidden: true, // unfinished: out of the picker until it ships (open it at #/cruise)
+    load: () => import('./cruise/map.js'),
+  },
 ];
