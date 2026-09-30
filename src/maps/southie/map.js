@@ -16,6 +16,7 @@ import { LOOP, at, dial } from './clock.js';
 import { walkers } from './day.js';
 import { backdrop, sky, paperAt } from './ambient.js';
 import { kindAt } from './style.js';
+import { sound as soundBed } from './sound.js';
 
 import green1 from './areas/green-1.js';
 import green2 from './areas/green-2.js';
@@ -75,6 +76,7 @@ export default {
     if (short) return [X0, X1, (Y0 + Y1) / 2 - 1, (Y0 + Y1) / 2 + 1];
     return [X0, X1, Y0, Y1];
   },
+  sound: soundBed,
   backdrop,
   sky,
   words: {
