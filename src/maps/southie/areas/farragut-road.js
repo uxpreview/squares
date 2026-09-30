@@ -21,7 +21,7 @@
 // night the streetlights, the cars' shapes in the dark, and a pizza at 9:30.
 //
 // World units, like plan.js and land.js (this area sits at the map's corner).
-import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha } from '../../../engine/art.js';
+import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha, goose } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { drawLand } from '../../../engine/terrain.js';
 import { land } from '../land.js';
@@ -338,6 +338,17 @@ function noParking(ctx, x, y) {
   lettering(ctx, 'x', x, y + 0.07, z + 0.02, 'MOVING DAY', 0.12, C.ink, 'Bagel Fat One');
   lettering(ctx, 'x', x, y + 0.07, z - 0.18, 'SEPT 1  7AM-6PM', 0.08, C.ink);
   lettering(ctx, 'x', x, y + 0.07, z - 0.34, 'TOW ZONE', 0.09, C.red, 'Bagel Fat One');
+}
+// The poster the goose's been on in every place: "Have you seen this goose?",
+// taped to a pole, a little soggy (a goose drawn on it).
+function goosePoster(ctx, x, y) {
+  pole(ctx, x, y, G, 2.8, C.greyLight, 0.05);
+  const z = G + 2.1;
+  panel(ctx, 'x', x, y + 0.06, z, 0.9, 1.1, C.white, { lw: 0.035 });
+  lettering(ctx, 'x', x, y + 0.07, z + 0.38, 'HAVE YOU SEEN', 0.1, C.ink, 'Bagel Fat One');
+  lettering(ctx, 'x', x, y + 0.07, z + 0.25, 'THIS GOOSE?', 0.1, C.ink, 'Bagel Fat One');
+  if (Q.detail) goose(ctx, x - 0.12, y + 0.08, z - 0.35, 0, { scale: 0.42, dir: 'r' });
+  lettering(ctx, 'x', x, y + 0.07, z - 0.42, 'ANSWERS TO HONK', 0.065, C.red);
 }
 // A streetlight: a post-top lantern on a dark green post.
 const LAMP_H = 3.9;
@@ -720,6 +731,7 @@ export default {
 
     // ---------- NO PARKING, MOVING DAY ----------
     for (const [x, y] of [[ROAD.walk0 + 1.75, 39.2], [ROAD.walk0 + 1.75, 45.4], [ROAD.park1 + 0.3, 48.9], [ROAD.park1 + 0.3, 58.0]]) R.thing(x, y + 0.1, (ctx) => noParking(ctx, x, y));
+    R.thing(ROAD.park1 + 0.35, 46.1, (ctx) => goosePoster(ctx, ROAD.park1 + 0.35, 46));
 
     // ---------- The truck ----------
     R.mover((t) => { const b = truckBack(t); return b == null ? HIDE : { x: TX + 1.2, y: b + TRUCK_L, b }; }, (ctx, t, p) => {
