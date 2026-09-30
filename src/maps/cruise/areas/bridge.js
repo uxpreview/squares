@@ -635,8 +635,9 @@ export default {
       cylinder(ctx, 12.55, 2.0, 1.1, 0.07, 0.2, C.black);
       cylinder(ctx, 12.7, 2.1, 1.1, 0.07, 0.2, C.black);
       // The patches: a small blue box marked 500.
-      box(ctx, 12.45, 2.48, 1.1, 0.34, 0.24, 0.22, C.sky, { flat: true });
-      lettering(ctx, 'x', 12.62, 2.72, 1.21, '500', 0.11, C.navy);
+      box(ctx, 12.35, 2.48, 1.1, 0.5, 0.26, 0.26, C.sky, { flat: true });
+      lettering(ctx, 'x', 12.6, 2.74, 1.28, 'SEASICK', 0.075, C.navy);
+      lettering(ctx, 'x', 12.6, 2.74, 1.18, '500', 0.08, C.navy);
       // A tin of crackers.
       cylinder(ctx, 12.2, 3.05, 1.1, 0.17, 0.18, INK.funnelRed, { top: C.butter });
       // The manual.

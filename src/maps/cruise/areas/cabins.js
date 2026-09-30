@@ -221,8 +221,10 @@ const HAIRY = shade(C.brown, 0.3);
 // its body at (x, y, z).
 function towelMonkey(ctx, x, y, z, zr) {
   const [X, Y] = P(x, y, z);
-  const rise = (zr - z) * ZK;
-  ctx.save(); ctx.translate(X, Y);
+  // Drawn half as big again as the other towel animals, so it reads as a
+  // monkey from a room's framing (the playtest took it for a swan).
+  const k = 1.45, rise = ((zr - z) * ZK) / k;
+  ctx.save(); ctx.translate(X, Y); ctx.scale(k, k);
   // arms up to the rim
   ctx.lineCap = 'round';
   for (const s of [-1, 1]) {
@@ -1111,6 +1113,6 @@ export default {
     // ---------- The finds ----------
     R.find({ id: 'chad-bucket', label: 'A bucket outside cabin 12', at: [44.6, 8, 0.3], r: 0.8 });
     R.find({ id: 'garland', label: 'A nibbled flower garland', at: [3, 13.4, 0.9], r: 0.8 });
-    R.find({ id: 'towel-monkey', label: 'A towel monkey', at: [34.5, 14.3, 1.1], r: 0.8 });
+    R.find({ id: 'towel-monkey', label: 'A towel monkey', at: [34.5, 14.3, 1.2], r: 0.9 });
   },
 };

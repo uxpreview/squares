@@ -733,7 +733,7 @@ export default {
       card(19.98, 6.5, 0.4, ['HOT STONES', '2 TO 3'], false);
       card(19.85, 6.85, -0.3, ['SEAWEED', '4 TO 5'], false);
       card(19.38, 6.78, 0.5, ['MANICURE', '3 TO 4'], false);
-      card(19.6, 6.4, 0.1, ['CUCUMBER MASK', '6 TO 11'], true);
+      card(19.6, 6.4, 0.1, ['GLORIA', 'CUCUMBER MASK', '6 TO 11'], true);
     });
     R.find({ id: 'spa-card', label: "Gloria's spa card", at: [19.6, 6.4, 0.7], r: 0.8 });
 

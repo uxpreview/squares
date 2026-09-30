@@ -712,7 +712,8 @@ export const COSTUME = {
     },
   },
 
-  // White uniform, epaulettes, the peaked cap, a green face and his bucket.
+  // White uniform, epaulettes, the peaked cap and a green face. (His bucket
+  // stays on the deck by the wheel: it's evidence, and one bucket is enough.)
   captain: {
     arms: [0.25, -0.1],
     wear(ctx, b) {
@@ -728,22 +729,6 @@ export const COSTUME = {
         for (let i = 0; i < 5; i++) { ctx.moveTo(-0.02 + i * 0.06, b.top + 0.1); ctx.lineTo(-0.02 + i * 0.06, b.top + 0.18); }
         ctx.stroke();
       }
-    },
-    hold(ctx) { // the bucket, hanging from his hand
-      ctx.save();
-      ctx.translate(...HELD);
-      const [hx, hy] = hand(0.25, -1.95);
-      ctx.beginPath();
-      ctx.moveTo(hx - 0.17, hy + 0.12); ctx.lineTo(hx + 0.17, hy + 0.12); ctx.lineTo(hx + 0.13, hy + 0.46); ctx.lineTo(hx - 0.13, hy + 0.46);
-      ctx.closePath();
-      paint(ctx, MAT.steel, OUTLINE);
-      ctx.beginPath();
-      ctx.ellipse(hx, hy + 0.12, 0.17, 0.04, 0, 0, Math.PI * 2);
-      paint(ctx, MAT.steelDark, OUTLINE);
-      ctx.beginPath();
-      ctx.moveTo(hx - 0.16, hy + 0.12); ctx.quadraticCurveTo(hx, hy - 0.12, hx + 0.16, hy + 0.12);
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
-      ctx.restore();
     },
     face(ctx, hy, back) {
       if (!back) { // a neat grey beard

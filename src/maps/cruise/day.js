@@ -187,7 +187,8 @@ export const walkers = Object.entries(DAYS).map(([id, b]) => {
       if (!readable()) return;
       const top = p.z + headroom(id, p);
       if (p.say) speech(ctx, p.x, p.y, top + 0.1, p.say, { size: 0.5 });
-      else tag(ctx, p.x, p.y, top, c.name, { size: 0.34 });
+      // (No name over the iguana: it's patient zero, and a tag would say so.)
+      else if (id !== 'iguana') tag(ctx, p.x, p.y, top, c.name, { size: 0.34 });
     },
   };
 }).filter(Boolean);
