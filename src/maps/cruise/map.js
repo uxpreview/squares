@@ -9,6 +9,7 @@ import { walkers } from './day.js';
 import { seaAt, clockLabel, wrap, MOMENTS, LIFT_COLORS } from './style.js';
 import { backdrop, sky } from './ambient.js';
 import cruiseCase from './case.js';
+import { sound } from './sound.js';
 
 import waterslide from './areas/waterslide.js';
 import pool from './areas/pool.js';
@@ -90,6 +91,7 @@ export default {
     return [X0, X1, Y0, Y1];
   },
   walkers,
+  sound,
   backdrop,
   sky,
   // A whodunit: the goal is naming patient zero (case.js).
