@@ -62,7 +62,9 @@ export default {
   land,
   walkers,
   loop: LOOP,
-  plate: { at: (t) => ({ paper: paperAt(t), kind: kindAt(t) }) },
+  // In the picker, the card is printed on the paper too, at 9:30 in the
+  // morning: the truck just stuck, the curb filling, before the rain.
+  plate: { at: (t) => ({ paper: paperAt(t), kind: kindAt(t) }), bleed: true, thumbAt: at(9.5) },
   dial,
   invite: { zone: 'green-2', at: [ROW_X0 + 13.6, 21.5, GROUND + FH + 2.2] },
   // The ending: the clock jumps to 9:30pm, the camera goes to the Green

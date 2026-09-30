@@ -436,7 +436,9 @@ export function createRenderer(canvas, camera, o = {}) {
 
   // A small still picture of a whole map, for the level picker. A place printed
   // on its own plate (a night, say) gets its backdrop too, since that's its look.
+  // A map can pick the moment it's shown at (plate.thumbAt, loop seconds).
   function thumbnail(world, w, h, t = 6) {
+    if (world.map.plate && world.map.plate.thumbAt != null) t = world.map.plate.thumbAt;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cv = document.createElement('canvas');
     cv.width = Math.round(w * dpr);
