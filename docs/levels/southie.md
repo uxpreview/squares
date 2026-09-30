@@ -1,6 +1,6 @@
 # Moving Day
 
-> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **QA** · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, session 6, decisions 1 to 24) · greybox [x] (the lead's call, session 6, decisions 25 to 31) · preview [ ] (the owner)
 >
 > Written in session 6 (Sept 2026) from the backlog entry in [LEVELS.md](../LEVELS.md) and the owner's sketch in [the sketchbook](../sketchbook.html) ("Southie: Moving Day"). Every landmark and street was checked against OpenStreetMap and the news to September 2026 before a line of it was written ("Real places, checked"). The owner reviews once, at the preview (PROCESS.md): at the brief and the greybox the lead takes its own recommendations and writes them into Decisions, where the owner can overturn any of them. The id is `southie` (`#/southie`), hidden until it ships.
@@ -218,6 +218,22 @@ At `#/southie` (hidden from the picker until it ships). Everything below is plai
 - **The people on the clock** (`day.js`): the Courier (every house's third floor from 7:30, a hot dog at Castle Island after noon, the Green House's third floor at 9:30pm); the landlady (the inspection from 11am, keys on the porch at noon); a mover in each house, out before noon and in after; the curb collector, four trips up the Yellow House.
 - **Framing:** on a phone held upright the overview frames the row and the road at full height; the park and the island are a swipe to the right.
 
+## The art (session 6)
+The lead drew the shared kit first (`kit.js`: the finished triple-decker with its clapboards, corner boards, trimmed windows, bay, porches with balusters and the cornice with dentils, and the Grey One's modern variant with glass balconies; each printed again in dusk inks at night with its windows lit; cars, the HEAVE-HO rental truck, cartons, iced coffee cups, lawn chairs, a bagged mattress), each apartment's colors (`ROOM` in the style sheet), the sound and what's around the map. Then eight artists in their own worktrees (a house each, the road, the park, the island, the cast on the clock), then one art director over the whole level.
+
+**What's there now:**
+- **The Green House:** the landlady's front room (rosebud wallpaper, the plastic-covered couch, a hall of fifty-two years of tenants, the scanner narrating the street, her friend Dot at the kitchen table with scratch tickets, the nephew under the sink); the roommates' last morning (THE DEPOSITS reunion tour poster sliding down at 11:37 to show the hole, beer pong against himself, a chore chart that says "nobody"), then the night-shift nurse asleep in a mask with printed eyes, the one dark window on the row at night; the last tenant's hammock-and-lava-lamp flat ("It's all yours!"), then the couple measuring the stairwell ("Seventy-one inches." "It's seventy-two.") and rigging the pulley on their porch.
+- **The Yellow House:** the family's boxes with the hamster popping out of a different one every twenty seconds, a beagle always at the right box, a height chart that gains PEANUT at the bottom; the Overlap's two of everything, the stopped clock at 11:58 and the last box that keeps getting one more thing; Southie Christmas, empty on purpose (a calendar left on AUGUST) until the curb comes up one piece at a time, and Christmas lights on the first night ("It's September.").
+- **The Grey One:** the open house (lemons with "DO NOT EAT", booties, eighteen visitors at 1pm, "Is the island load-bearing?", nineteen offers by evening), and the landlady herself walking through in her shoes at 1:45, leaving prints the realtor mops at 3:30; the new owners, their dog in a raincoat and a stroller, a smart speaker that answers wrongly, and the exercise bike's trip up to the wrong floor, down through the showing ("The bike is not included.") and back; the penthouse's hot tub on the balcony, and every conversation stopping mid-word when a plane comes over.
+- **Farragut Road:** the truck (in at 7, stuck by 9, "IS THIS A STREET?"), the car in its own NO PARKING zone ticketed at 8:05, the pickup's owner in a recliner in its bed ("Take your time."), the queue honking, the car's owner at noon ("Huh." "Nope."), six neighbors bouncing the car aside at 3 ("HEAVE!" "HO!") and applause; the couch on its sling with a hard hat below on the guide rope; the curb pile under a tarp in the rain; the Storrowed truck and its driver in a foil blanket ("Nobody mentioned bridges."); the Courier's van ("PARCELS (EVENTUALLY)"); the goose poster; streetlights and a pizza car at night.
+- **Marine Park:** nine neighbors arriving with lawn chairs to score the moves (the truck gets a two, then ten at 3pm), a plaid free couch carried onto the lawn at 1:10 and sat on till the small hours; Farragut on his pedestal with pigeons on his cap; the kite in the tree and the frisbee that joins it; the playground empty in the rain and the kid who jumps the first puddle; boxes stacked under the shelter out of the rain; the bath house ("NO LIFEGUARD / SEE YOU IN JUNE"); a Brownie swimming through the rain ("Sixty-one degrees!"); power walkers in ponchos on the Sugar Bowl loop.
+- **Castle Island:** the hot dog line, the same length at every hour (thirty customers a day, and at night in lawn chairs: "They open at eleven."), the goose in it forever; the spotters and the radio ("...four right, cleared to land..."), Inspector Pidge sure every plane is the goose; Fort Independence closed on a Tuesday and a tourist knocking; the McKay monument; the Sugar Bowl and a footbridge; a container ship up the channel.
+- **The cast on the clock:** the Courier (a parcel for G. GOOSE, 3RD FLOOR, winded on every staircase, a hot dog at lunch, "Worth it."), the landlady (housecoat, curlers under a rain bonnet, a ring of keys that jingles), three movers each carrying something different on every trip, the curb collector in a garbage-bag poncho dragging the soaked couch.
+- **Around the map:** the backs of P Street's triple-deckers facing the row across the yards, rooftops fading behind, Dorchester Heights' tower far off, the Seaport, the port's cranes on their quay, jets coming in low with their shadows on the water, clouds, stars.
+- **The ending:** the couch hands over from the road to the Green House's top porch at the first frame of the ending; eight geese haul, it wobbles over the rail and pivots, four sit on it, the couple in the porch door ("Close enough." "It's seventy-two.").
+
+**Engine, on the way:** a map can pick the moment its picker card shows (`plate.thumbAt`); an ending's area is drawn live every frame for its first minute (it was a picture refreshed when there was time, so the pivot stalled; the Block Party's and Plum Island's endings get it too); a long area honks from over its goose; the harbor's water takes the night.
+
 ## Open questions
 None: the lead took its own recommendations (decisions below), and the owner can overturn any of them at the preview.
 
@@ -259,4 +275,12 @@ The lead's calls at the greybox (gate 2), session 6, from its contact sheet (QA:
 29. **Outdoor finds get bigger in the art** (tap radius about 0.9 and objects near a unit): QA warns the greybox's are about 10px across on a phone.
 30. **No walls-down cutaway:** houses are closed on the overview instead, and the road, park and island have no walls to drop.
 31. **The cranes, the skyline and the rooftops behind the row are placeholders** that the art makes smaller and fainter: in the greybox they compete with the row.
+
+The lead's calls in the art (session 6), on the art director's findings:
+
+32. **The couch changes hands at the first frame of the ending:** the road stops drawing it and the Green House draws it from then on, hanging, hauled and pivoted, so it's never in two places.
+33. **The landlady herself walks through the Open House** at 1:45pm (the Grey One draws her with the cast's look, and the cast hides her at home meanwhile), not a lookalike.
+34. **Three couches, three jokes:** the hero on the rope, the curb's purple one that goes to Southie Christmas, the audience's plaid one on the lawn. One stray cat on the street; rail pigeons only on the Green House's top porch and Southie Christmas; "Step 1 of 94" belongs to the Overlap.
+35. **The shared street pieces live in the kit** (umbrella, streetlight, bench, pigeon, cat, the held iced coffee), promoted from the areas' copies.
+36. **Dorchester Heights is faint and low, at the far top left,** off a laptop's overview and seen zoomed out or on a wide screen: in this view west is up and to the left, where the title is.
 

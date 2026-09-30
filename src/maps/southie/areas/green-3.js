@@ -18,9 +18,10 @@ import {
 } from '../../../engine/art.js';
 import { route, particles, clamp, ease } from '../../../engine/actors.js';
 import { apartment, carton, lettering } from '../kit.js';
-import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
+import { SIDING, TRIM, ROOM, BRAND, INK, lightsOn } from '../style.js';
 import { AFTER, rainK } from '../clock.js';
 import { playing, beat, HAUL, PIVOT } from '../finale.js';
+import { ending } from '../ambient.js';
 import { hh, hours, oldSide, newSide, says, line3, backWindow, sleeper, pigeon, umbrella, onHours } from './green-1.js';
 
 const W = ROOM['green-3'];
@@ -90,6 +91,25 @@ function couch(ctx, cx, cy, cz, a) {
 // over the rail from the rope, turned a quarter, set down in the porch's
 // corner (close enough).
 const C0 = [16.0, 2.2, 1.0], C1 = [14.35, 2.5, 1.3], C2 = [13.8, 3.2, 0.55], CF = [13.75, 3.45, 0];
+// Before that, the haul (h: 0..1): up the rope from where it has hung all
+// day (Farragut Road draws it there until the ending, then hands it over
+// here, where it's drawn fresh every frame) to the rail.
+const HANG = [16.9, 2.2, -2.6];
+const hauledTo = (h) => HANG.map((v, i) => v + (C0[i] - v) * h);
+// Where it hangs while the camera flies in, swaying as the street drew it.
+const hanging = (t) => [HANG[0] + 0.14 * Math.sin(t * 0.9), HANG[1], HANG[2] + 0.08 * Math.sin(t * 1.3)];
+// The sling (Farragut Road's): two straps under it, up to the hook on the rope.
+function sling(ctx, c) {
+  const x = c[0] - CW / 2, y = c[1] - CD / 2, z = c[2];
+  const hook = [c[0], c[1], z + 2.2];
+  line3(ctx, [PULLEY, hook], shade(C.woodLight, 0.2), 0.06);
+  for (const dy of [0.45, CD - 0.45]) {
+    line3(ctx, [[x - 0.05, y + dy, z + 1.05], [x - 0.05, y + dy, z], [x + CW + 0.05, y + dy, z], [x + CW + 0.05, y + dy, z + 0.66]], INK.truck, 0.07);
+    line3(ctx, [[x + CW + 0.05, y + dy, z + 0.66], hook], INK.truck, 0.05);
+    line3(ctx, [[x, y + dy, z + 1.05], hook], INK.truck, 0.05);
+  }
+  disc(ctx, hook[0], hook[1], hook[2], 0.08, C.grey, { lw: 0.02 });
+}
 function couchAt(k) {
   if (k <= 0.3) { const e = ease(k / 0.3); return { c: C0.map((v, i) => v + (C1[i] - v) * e), a: 0 }; }
   if (k <= 0.78) {
@@ -534,14 +554,20 @@ export default {
       line3(ctx, pts, C.woodLight, 0.06);
     }, { anim: true, on: () => playing(), depth: 19.5 });
     R.mover((t) => {
-      if (!playing()) return { x: -99, y: -99 };
+      if (!ending()) return { x: -99, y: -99 };
       const k = beat(PIVOT);
-      if (k <= 0) return { x: -99, y: -99 };
-      const { c } = couchAt(k);
+      const c = !playing() ? hanging(t) : k <= 0 ? hauledTo(beat(HAUL)) : couchAt(k).c;
       return { x: c[0], y: c[1], ahead: c[0] > 14.6 ? 3 : 0 };
     }, (ctx, t, p) => {
       if (p.x < -50) return;
-      const k = beat(PIVOT), { c, a } = couchAt(k);
+      const k = beat(PIVOT);
+      if (k <= 0) {
+        const c = !playing() ? hanging(t) : hauledTo(beat(HAUL));
+        couch(ctx, c[0], c[1], c[2], 0);
+        sling(ctx, c);
+        return;
+      }
+      const { c, a } = couchAt(k);
       couch(ctx, c[0], c[1], c[2], a);
       // A paperback under the corner with no leg.
       if (k >= 1) rbox(ctx, c[0], c[1], 0, a, -CW / 2 + 0.1, CD / 2 - 0.35, 0.3, 0.25, 0, 0.2, C.teal, { flat: true, lw: 0.02 });

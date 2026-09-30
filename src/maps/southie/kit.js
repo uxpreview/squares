@@ -398,3 +398,146 @@ export function mattress(ctx, x, y, z, o = {}) {
     ctx.restore();
   }
 }
+
+// ---------- The neighborhood's small things ----------
+// Drawn once here, so the road, the park, the island, the cast and the rooms
+// share one hand (five artists had each drawn their own).
+
+// An umbrella over someone standing at (x, y, z): the canopy's scallops, the
+// shaft down to the hand. sway: a wobble in the wind; r: its reach (a golf
+// umbrella is about 1.35); top: how high the canopy sits (2.95 over someone
+// standing).
+export function umbrella(ctx, x, y, z, color, sway = 0, r = 0.78, top = 2.95) {
+  const [X, Y] = P3(x, y, z);
+  ctx.save();
+  ctx.translate(X + sway, Y - top * ZK);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.12 - sway, 1.25); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-r, 0.05);
+  ctx.quadraticCurveTo(-r, -0.7 * r, 0, -0.74 * r);
+  ctx.quadraticCurveTo(r, -0.7 * r, r, 0.05);
+  const n = r > 1 ? 6 : 4;
+  for (let i = n - 1; i >= 0; i--) { const a = -r + (i + 0.5) * (2 * r / n); ctx.quadraticCurveTo(a + r / n, -0.12, a - r / n + 0.02, 0.05); }
+  ctx.closePath();
+  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.4), density: 0.12 });
+  ctx.beginPath(); ctx.moveTo(0, -0.74 * r); ctx.lineTo(0, -0.74 * r - 0.14); ctx.stroke();
+  ctx.restore();
+}
+
+// The park's green streetlight on its plinth, at (x, y) standing on z: the
+// lantern's glass (butter when lit), a little roof.
+export const LAMPPOST = mix(C.green, C.ink, 0.55);
+export const LAMP_H = 3.9;
+export function streetlight(ctx, x, y, z, lit = false) {
+  box(ctx, x - 0.16, y - 0.16, z, 0.32, 0.32, 0.35, LAMPPOST, { flat: true, lw: 0.03 });
+  box(ctx, x - 0.07, y - 0.07, z + 0.35, 0.14, 0.14, LAMP_H - 0.35, LAMPPOST, { flat: true, lw: 0.03 });
+  const zt = z + LAMP_H;
+  box(ctx, x - 0.2, y - 0.2, zt, 0.4, 0.4, 0.55, lit ? LIT : tint(C.sky, 0.45), { flat: true, lw: 0.03, top: LAMPPOST });
+  const [X, Y] = P3(x, y, zt + 0.55);
+  ctx.beginPath(); ctx.moveTo(X - 0.4, Y + 0.02); ctx.lineTo(X, Y - 0.34); ctx.lineTo(X + 0.4, Y + 0.02); ctx.closePath();
+  paint(ctx, LAMPPOST, { lw: 0.03 });
+}
+
+// A park bench, w long: iron legs, the back, the seat in front of it. Along
+// x (facing +y) or, with along: 'y', facing +x.
+export function bench(ctx, x, y, z, o = {}) {
+  const w = o.w || 1.7;
+  if (o.along === 'y') {
+    for (const dy of [0.15, w - 0.25]) box(ctx, x + 0.1, y + dy, z, 0.5, 0.1, 0.45, C.ink, { flat: true, lw: 0.02 });
+    box(ctx, x - 0.05, y, z + 0.53, 0.08, w, 0.5, C.wood, { flat: true, lw: 0.03 });
+    box(ctx, x, y, z + 0.45, 0.6, w, 0.08, C.wood, { flat: true, lw: 0.03 });
+    return;
+  }
+  for (const dx of [0.15, w - 0.25]) box(ctx, x + dx, y + 0.1, z, 0.1, 0.5, 0.45, C.ink, { flat: true, lw: 0.02 });
+  box(ctx, x, y - 0.05, z + 0.53, w, 0.08, 0.5, C.wood, { flat: true, lw: 0.03 });
+  box(ctx, x, y, z + 0.45, w, 0.6, 0.08, C.wood, { flat: true, lw: 0.03 });
+}
+
+// A line through 3D points (a rope, a leash, a fishing line).
+export function line3(ctx, pts, color, lw = 0.05) {
+  ctx.beginPath();
+  pts.forEach((p, i) => { const [X, Y] = P3(p[0], p[1], p[2]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+
+// The donut shop's iced coffee in someone's hand (a person's hold).
+export function cupHeld(ctx) {
+  ctx.beginPath(); ctx.moveTo(-0.11, -0.34); ctx.lineTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.lineTo(0.11, -0.34); ctx.closePath();
+  paint(ctx, mix(C.brown, C.white, 0.45), { lw: 0.025 });
+  ctx.fillStyle = CUP.band; ctx.fillRect(-0.1, -0.2, 0.2, 0.08);
+  ctx.fillStyle = CUP.lid; ctx.fillRect(-0.11, -0.37, 0.22, 0.05);
+  ctx.strokeStyle = CUP.lid; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(0.03, -0.37); ctx.lineTo(0.08, -0.55); ctx.stroke();
+}
+
+// A gull standing at (x, y, z), now and then pecking; dir -1 faces left.
+export function gullStand(ctx, x, y, z, t = 0, peck = false, dir = 1) {
+  const [X, Y] = P3(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(dir, 1);
+  const pk = peck && Math.sin(t * 4 + x) > 0.6;
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.035;
+  ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.16); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.16); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, -0.26, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+  ctx.beginPath(); ctx.ellipse(-0.06, -0.29, 0.16, 0.065, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { stroke: false });
+  const hx = pk ? 0.26 : 0.18, hy = pk ? -0.2 : -0.42;
+  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
+  ctx.restore();
+}
+
+// A pigeon at (x, y, z), bobbing (or pecking): coral feet, a grey body and
+// wing, the purple-grey head, an eye. o: { dir: 'l', peck, phase }.
+export function pigeon(ctx, x, y, z, t, o = {}) {
+  const [X, Y] = P3(x, y, z);
+  const bob = o.peck ? Math.max(0, Math.sin(t * 7 + (o.phase || 0))) * 0.12 : Math.sin(t * 5 + (o.phase || 0)) * 0.03;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(o.dir === 'l' ? -0.8 : 0.8, 0.8);
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05;
+  ctx.beginPath(); ctx.moveTo(-0.03, -0.18); ctx.lineTo(-0.05, 0); ctx.moveTo(0.06, -0.18); ctx.lineTo(0.07, 0); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, -0.3, 0.3, 0.17, -0.1, 0, Math.PI * 2);
+  ctx.moveTo(-0.22, -0.32); ctx.lineTo(-0.48, -0.36); ctx.lineTo(-0.26, -0.22);
+  paint(ctx, C.grey, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(-0.05, -0.33, 0.15, 0.08, -0.2, 0, Math.PI * 2); ctx.fillStyle = shade(C.grey, 0.15); ctx.fill();
+  ctx.beginPath(); ctx.arc(0.24, -0.45 + bob, 0.1, 0, Math.PI * 2); paint(ctx, mix(C.grey, C.purple, 0.3), { lw: 0.025 });
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.moveTo(0.33, -0.46 + bob); ctx.lineTo(0.41, -0.43 + bob); ctx.lineTo(0.33, -0.41 + bob); ctx.fill();
+  ctx.fillStyle = C.coral; ctx.beginPath(); ctx.arc(0.27, -0.47 + bob, 0.02, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// A cat at (x, y, z), its tail going: sitting (a loaf), walking, asleep, or
+// cross (standing, its back up in an arch). o: { color, eyes, dir: 'l',
+// walk, sleep, cross, stripes, phase }.
+export function cat(ctx, x, y, z, t, o = {}) {
+  const [X, Y] = P3(x, y, z);
+  const col = o.color || C.ink;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(o.dir === 'l' ? -1 : 1, 1);
+  if (Q.detail && !o.cross) { ctx.beginPath(); ctx.ellipse(0, 0, 0.32, 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
+  const tail = Math.sin(t * (o.cross ? 6 : 1.5) + (o.phase || 0)) * 0.25;
+  ctx.beginPath(); ctx.moveTo(-0.25, -0.1); ctx.quadraticCurveTo(-0.55, -0.2 + tail, -0.45, -0.6 + tail);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = col; ctx.lineWidth = 0.07; ctx.stroke();
+  if (o.cross) {
+    ctx.beginPath();
+    ctx.moveTo(-0.3, 0); ctx.lineTo(-0.28, -0.25); ctx.quadraticCurveTo(0, -0.75, 0.28, -0.3); ctx.lineTo(0.3, 0); ctx.lineTo(0.2, 0); ctx.lineTo(0.15, -0.2); ctx.lineTo(-0.15, -0.2); ctx.lineTo(-0.2, 0); ctx.closePath();
+  } else if (o.walk) {
+    const s = Math.sin(t * 12) * 0.08;
+    ctx.strokeStyle = col; ctx.lineWidth = 0.08;
+    ctx.beginPath(); ctx.moveTo(-0.18, -0.2); ctx.lineTo(-0.18 + s, 0); ctx.moveTo(0.18, -0.2); ctx.lineTo(0.18 - s, 0); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, -0.3, 0.3, 0.16, 0, 0, Math.PI * 2);
+  } else {
+    ctx.beginPath(); ctx.ellipse(0, -0.25, 0.26, 0.25, 0, 0, Math.PI * 2);
+  }
+  paint(ctx, col, { lw: 0.035, dots: o.stripes ? shade(col, 0.4) : null, density: 0.3 });
+  const hx = o.cross ? 0.32 : o.walk ? 0.3 : 0.12, hy = o.cross ? -0.42 : o.walk ? -0.45 : -0.58;
+  ctx.beginPath(); ctx.arc(hx, hy, 0.17, 0, Math.PI * 2);
+  ctx.moveTo(hx - 0.14, hy - 0.08); ctx.lineTo(hx - 0.12, hy - 0.3); ctx.lineTo(hx - 0.02, hy - 0.14);
+  ctx.moveTo(hx + 0.04, hy - 0.15); ctx.lineTo(hx + 0.14, hy - 0.3); ctx.lineTo(hx + 0.16, hy - 0.06);
+  paint(ctx, col, { lw: 0.035 });
+  if (o.sleep) { ctx.fillStyle = C.ink; ctx.fillRect(hx - 0.07, hy - 0.01, 0.09, 0.02); ctx.fillRect(hx + 0.05, hy - 0.01, 0.09, 0.02); }
+  else { ctx.fillStyle = o.eyes || C.mustard; ctx.fillRect(hx - 0.06, hy - 0.03, 0.08, 0.035); ctx.fillRect(hx + 0.06, hy - 0.03, 0.08, 0.035); }
+  ctx.restore();
+}

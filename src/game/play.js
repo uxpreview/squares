@@ -980,6 +980,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (mode !== 'overview') showOverviewUI();
       return;
     }
+    // (A room you're in stays yours while the middle of the screen is still
+    // inside its framing: on a phone the list takes the bottom of the screen,
+    // so the middle can sit below a shallow room, over the house in front.)
+    if (mode === 'zone' && current >= 0 && !world.long(world.zones[current])) {
+      const [X, Y] = camera.toWorld(view.vw / 2, view.vh / 2);
+      const [X0, X1, Y0, Y1] = world.zoneBox(world.zones[current]);
+      if (X >= X0 && X <= X1 && Y >= Y0 && Y <= Y1) return;
+    }
     const i = zoneAtScreen(view.vw / 2, view.vh / 2, true);
     if (i >= 0 && i !== current) showZoneUI(i);
     // Panned along a long area: that's the spot it's framed around now.
@@ -1206,5 +1214,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     get mode() { return mode; },
     get active() { return active; },
     fx: (now) => ({ parade: parade ? (now - parade) / 1000 : 0 }),
+    // The area a place's ending plays in, for its first minute: drawn live
+    // every frame, not as a picture refreshed when there's time (the camera
+    // frames it from outside, so it isn't the room you're in).
+    live(now) {
+      const fin = world && world.map.finale;
+      if (!parade || !fin || !fin.zone || (now - parade) / 1000 > 60) return null;
+      return world.zones[world.indexOf(fin.zone)] || null;
+    },
   };
 }

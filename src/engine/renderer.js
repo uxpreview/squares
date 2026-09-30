@@ -204,7 +204,8 @@ export function createRenderer(canvas, camera, o = {}) {
     return sheet;
   }
 
-  // o: { t, now, focus, level, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
+  // o: { t, now, focus, live, level, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
+  // live: a zone drawn every frame though you're not in it (an ending's)
   // level: the storey being looked at; zones on storeys above it lift out of the way.
   function render(world, o) {
     const f0 = performance.now();
@@ -309,7 +310,7 @@ export function createRenderer(canvas, camera, o = {}) {
     const lastOf = new Map();
     for (const c of visible) lastOf.set(c.zone, c);
     const p0 = performance.now();
-    refreshSnapshots(visible.filter((c) => c.zone !== focus), t, k);
+    refreshSnapshots(visible.filter((c) => c.zone !== focus && c.zone !== o.live), t, k);
     perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
     setScreen(k, dpr);
 
@@ -407,7 +408,7 @@ export function createRenderer(canvas, camera, o = {}) {
           drawZoneVector(ctx, c, t, false, st);
         }
         focusMs += performance.now() - q0;
-      } else if (!c.snap) {
+      } else if (!c.snap || z === o.live) {
         Q.lines = k > 6;
         Q.detail = k > 4.5;
         drawZoneVector(ctx, c, t);

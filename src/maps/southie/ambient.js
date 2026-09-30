@@ -17,7 +17,7 @@ import { rain } from '../../engine/weather.js';
 import { reg, birds, geeseV } from '../shared.js';
 import { W, D, HOUSES, HOUSE_D, ROW_X0, ROW_X1 } from './plan.js';
 import { rainK, nightK, hour, SUNSET } from './clock.js';
-import { paperAt, INK, SIDING, LIT } from './style.js';
+import { paperAt, INK, SIDING, LIT, LAND } from './style.js';
 import { follow } from './finale.js';
 
 export { paperAt };
@@ -50,13 +50,19 @@ const inView = (fx, X0, Y0, X1, Y1) => !fx || !fx.view || (X1 > fx.view[0] && X0
 const FH = 4.4, TD = FH * 3 + 0.5; // a triple-decker's floors and its height
 // P Street's row: the backs of its houses face ours across the yards (their
 // fronts face west, away from us), with their back porches three high.
+// (Six of them, down to Day Boulevard: the city stops at the shore, as the
+// map does, instead of running on out over the harbor.)
 const P_ROW = { x0: -13.5, x1: -1.5 };
-const P_HOUSES = Array.from({ length: 7 }, (_, i) => -2.5 + i * 10.4);
-// Further west, rooftops fading into the paper, a row at a time.
+const P_HOUSES = Array.from({ length: 6 }, (_, i) => -2.5 + i * 10.4);
+// Further west, rooftops fading into the paper a row at a time, each row
+// lower than the one in front (distance, not a wall), down to the shore.
 const FAR_ROWS = [-29, -44, -59];
-// Dorchester Heights: its hill and the white marble tower (1902).
-// (Really 2.5 km west: compressed, it peeks over P Street's rooftops.)
-const HEIGHTS = { x: -50, y: 22 };
+const FAR_H = [TD - 2.5, TD - 5, TD - 7.5];
+const FAR_BACK = [0.72, 0.8, 0.87]; // how far each row sits back into the paper
+// Dorchester Heights: the white marble tower (1902), between
+// the last two rows, so the nearer rooftops cover its foot and only the
+// tower stands above them, faint. (Really 2.5 km west: compressed.)
+const HEIGHTS = { x: -52, y: 22 };
 // The Seaport's towers, behind to the north (x, y, w, d, h).
 const SEAPORT = [[-36, -66, 7, 6, 30], [-26, -74, 6, 7, 42], [-15, -68, 8, 6, 34], [-4, -78, 7, 7, 48], [7, -70, 6, 6, 28], [16, -76, 7, 6, 38], [-44, -74, 6, 6, 24]];
 // The port's container cranes behind Castle Island, booms up.
@@ -69,9 +75,9 @@ function geo() {
   const g = {
     pE: P(), pS: P(), pT: P(), porch: P(), porchS: P(), pWin: P(),
     far: FAR_ROWS.map(() => ({ e: P(), s: P(), t: P() })),
-    hill: P(), towerE: P(), towerS: P(), towerT: P(), cupola: P(),
+    towerE: P(), towerS: P(), towerT: P(), cupola: P(),
     seaE: P(), seaS: P(), seaT: P(), seaGrid: P(),
-    crane: P(), craneW: P(),
+    crane: P(), craneW: P(), quayE: P(), quayS: P(), quayT: P(),
   };
   const r = rng(7);
   // P Street's backs.
@@ -90,21 +96,21 @@ function geo() {
   }
   // Rooftops further west.
   FAR_ROWS.forEach((x, k) => {
-    for (let y = -6; y < 70; y += 10.4) {
-      const h = TD - 1 + r() * 2;
+    for (let y = -6; y < 52; y += 10.4) {
+      const h = FAR_H[k] - 1 + r() * 2;
       boxInto(g.far[k].e, g.far[k].s, g.far[k].t, x, y + r() * 0.8, 0.4, 12, 8.8, h);
     }
   });
-  // Dorchester Heights: a long low hill, the tower on it, a cupola on that.
-  const hill = [];
-  for (let a = -1; a <= 1.0001; a += 0.1) hill.push([HEIGHTS.x + a * 14, HEIGHTS.y - a * 10, 6 * Math.cos((a * Math.PI) / 2) ** 1.5]);
-  hill.push([HEIGHTS.x + 14, HEIGHTS.y - 10, 0], [HEIGHTS.x - 14, HEIGHTS.y + 10, 0]);
-  poly(g.hill, hill);
-  const tx = HEIGHTS.x - 1.4, ty = HEIGHTS.y - 1.4;
-  boxInto(g.towerE, g.towerS, g.towerT, tx, ty, 5.5, 2.8, 2.8, 16);
-  boxInto(g.towerE, g.towerS, g.towerT, tx + 0.4, ty + 0.4, 21.5, 2, 2, 2.2);
-  poly(g.cupola, [[tx + 0.4, ty + 2.4, 23.7], [tx + 2.4, ty + 2.4, 23.7], [tx + 1.4, ty + 1.4, 26.8]]);
-  poly(g.cupola, [[tx + 2.4, ty + 0.4, 23.7], [tx + 2.4, ty + 2.4, 23.7], [tx + 1.4, ty + 1.4, 26.8]]);
+  // Dorchester Heights: the tower and its cupola, standing up out of the
+  // rooftops (its hill is under them, hidden; drawn, it lay on the roofs
+  // like a rug).
+  // A slimmer, shorter tower than the greybox's: far off, not a landmark
+  // standing over the title.
+  const tx = HEIGHTS.x - 1, ty = HEIGHTS.y - 1;
+  boxInto(g.towerE, g.towerS, g.towerT, tx, ty, 4, 2, 2, 11);
+  boxInto(g.towerE, g.towerS, g.towerT, tx + 0.3, ty + 0.3, 15, 1.4, 1.4, 1.6);
+  poly(g.cupola, [[tx + 0.3, ty + 1.7, 16.6], [tx + 1.7, ty + 1.7, 16.6], [tx + 1, ty + 1, 18.8]]);
+  poly(g.cupola, [[tx + 1.7, ty + 0.3, 16.6], [tx + 1.7, ty + 1.7, 16.6], [tx + 1, ty + 1, 18.8]]);
   // The Seaport.
   for (const [x, y, w, d, h] of SEAPORT) {
     boxInto(g.seaE, g.seaS, g.seaT, x, y, 0, w, d, h);
@@ -112,6 +118,9 @@ function geo() {
   }
   // Cranes: two legs and a cross beam each side, a machinery house on top,
   // the boom raised and pointing north over the channel.
+  // The quay they stand on: Conley Terminal's apron, a low slab along the
+  // channel.
+  boxInto(g.quayE, g.quayS, g.quayT, CRANES[0] - 5, -26.5, -0.8, CRANES[CRANES.length - 1] - CRANES[0] + 13, 7.5, 0.8);
   for (const x of CRANES) {
     const y = -22;
     for (const [dx, dy] of [[0, 0], [2.4, 0], [0, 2.4], [2.4, 2.4]]) boxInto(g.crane, g.crane, g.crane, x + dx, y + dy, 0, 0.3, 0.3, 10);
@@ -136,7 +145,7 @@ function sun(ctx, t) {
   if (h < 16.8 || h > SUNSET + 0.25) return;
   // Down behind Dorchester Heights' tower.
   const k = ramp(16.8, SUNSET + 0.2, h);
-  const x = HEIGHTS.x + 4 - k * 3, y = HEIGHTS.y - 6, z = 22 - k * 20;
+  const x = HEIGHTS.x + 4 - k * 3, y = HEIGHTS.y - 6, z = 17 - k * 16;
   const X = PX(x, y), Y = PY(x, y, z);
   ctx.save();
   ctx.fillStyle = alpha(mix(C.butter, C.coral, k), 0.85);
@@ -176,38 +185,41 @@ export function backdrop(ctx, t, world, fx) {
     fill(g.seaT, tone(tint(glass, 0.3), t, 0.62));
     if (Q.detail) fill(g.seaGrid, n > 0.5 ? alpha(LIT, 0.35 * n) : tone(shade(glass, 0.3), t, 0.6));
   }
-  // The cranes behind Castle Island.
+  // The cranes behind Castle Island (far back into the paper: they stand
+  // on the port's quay, off the map, and mustn't read as floating).
   if (inView(fx, 20, -60, 110, 40)) {
-    fill(g.crane, tone(C.coral, t, 0.55), tone(C.ink, t, 0.62), 0.04);
-    fill(g.craneW, tone(C.white, t, 0.55), tone(C.ink, t, 0.62), 0.04);
+    fill(g.quayS, tone(shade(LAND.paving, 0.25), t, 0.68));
+    fill(g.quayE, tone(shade(LAND.paving, 0.12), t, 0.68));
+    fill(g.quayT, tone(LAND.paving, t, 0.68));
+    fill(g.crane, tone(C.coral, t, 0.68), tone(C.ink, t, 0.74), 0.04);
+    fill(g.craneW, tone(C.white, t, 0.68), tone(C.ink, t, 0.74), 0.04);
     if (n > 0.3) for (const x of CRANES) glow(ctx, x + 1.3, -29, 14.2, 0.8, C.red, n * (0.6 + 0.4 * Math.sin(t * 3 + x)));
   }
-  // Rooftops west of the row, fading back row by row.
-  g.far.slice().reverse().forEach((f, i) => {
-    const back = 0.74 - i * 0.07;
-    const k = FAR_ROWS.length - 1 - i;
+  // Rooftops west of the row, fading back row by row, with Dorchester
+  // Heights (and the sun going down behind it) between the last two.
+  for (let k = FAR_ROWS.length - 1; k >= 0; k--) {
+    const f = g.far[k], back = FAR_BACK[k];
     const c = SIDING.others[k % SIDING.others.length];
     fill(f.s, tone(shade(c, 0.2), t, back));
     fill(f.e, tone(c, t, back));
     fill(f.t, tone(C.greyLight, t, back));
-  });
-  // Dorchester Heights, its hill and tower, and the sun going down behind it.
-  if (inView(fx, -140, -30, -40, 60)) {
-    sun(ctx, t);
-    fill(g.hill, tone(C.green, t, 0.55));
-    fill(g.towerS, tone(shade(C.white, 0.18), t, 0.4), tone(C.ink, t, 0.55), 0.04);
-    fill(g.towerE, tone(C.white, t, 0.4), tone(C.ink, t, 0.55), 0.04);
-    fill(g.towerT, tone(C.white, t, 0.4));
-    fill(g.cupola, tone(C.greyLight, t, 0.4), tone(C.ink, t, 0.55), 0.04);
+    if (k === FAR_ROWS.length - 1 && inView(fx, -140, -30, -40, 60)) {
+      sun(ctx, t);
+      fill(g.towerS, tone(shade(C.white, 0.18), t, 0.6), tone(C.ink, t, 0.7), 0.035);
+      fill(g.towerE, tone(C.white, t, 0.6), tone(C.ink, t, 0.7), 0.035);
+      fill(g.towerT, tone(C.white, t, 0.6));
+      fill(g.cupola, tone(C.greyLight, t, 0.6), tone(C.ink, t, 0.7), 0.035);
+    }
   }
   // P Street's backs, nearest, a little fainter than the row.
-  const pc = SIDING.others[0];
-  fill(g.pS, tone(shade(pc, 0.22), t, 0.3), tone(C.ink, t, 0.4), 0.035);
-  fill(g.pE, tone(pc, t, 0.3), tone(C.ink, t, 0.4), 0.035);
-  fill(g.pT, tone(C.greyLight, t, 0.3), tone(C.ink, t, 0.4), 0.035);
-  fill(g.pWin, n > 0.4 ? mix(tone(tint(C.sky, 0.3), t, 0.3), LIT, q(n)) : tone(tint(C.sky, 0.3), t, 0.3));
-  fill(g.porchS, tone(shade(C.white, 0.2), t, 0.3));
-  fill(g.porch, tone(C.white, t, 0.3), tone(C.ink, t, 0.4), 0.03);
+  // (Back 0.42: clearly behind the row, and lighter under the title.)
+  const pc = SIDING.others[0], pb = 0.42;
+  fill(g.pS, tone(shade(pc, 0.22), t, pb), tone(C.ink, t, pb + 0.12), 0.035);
+  fill(g.pE, tone(pc, t, pb), tone(C.ink, t, pb + 0.12), 0.035);
+  fill(g.pT, tone(C.greyLight, t, pb), tone(C.ink, t, pb + 0.12), 0.035);
+  fill(g.pWin, n > 0.4 ? mix(tone(tint(C.sky, 0.3), t, pb), LIT, q(n * 0.8)) : tone(tint(C.sky, 0.3), t, pb));
+  fill(g.porchS, tone(shade(C.white, 0.2), t, pb));
+  fill(g.porch, tone(C.white, t, pb), tone(C.ink, t, pb + 0.12), 0.03);
   ctx.restore();
   // Print marks, and the caption, in the light ink once the paper's dark.
   const [X0, X1, Y0, Y1] = world.overviewBox(false);
@@ -339,8 +351,15 @@ function clouds(ctx, t) {
 // Rain doesn't fall indoors: not on the houses (their roofs take it).
 const HOUSE_BOXES = HOUSES.map(([, y]) => [ROW_X0, y, ROW_X1, y + HOUSE_D]);
 const indoors = (x, y) => HOUSE_BOXES.some(([a, b, c, d]) => x >= a && x < c && y >= b && y < d);
+// The ending, from its very first frame (every goose found; the camera's
+// still flying to the Green House): finale.js's beats wait for the camera,
+// but the couch changes hands now, while there's time for the street's
+// picture to catch up (Farragut Road and the Couch, green-3).
+let lap = 0;
+export const ending = () => lap > 0;
 export function sky(ctx, t, world, fx) {
   follow(fx);
+  if (!fx.thumb) lap = fx.parade || 0;
   clouds(ctx, t);
   const r = rainK(t);
   if (r > 0.02) {
@@ -348,12 +367,15 @@ export function sky(ctx, t, world, fx) {
     // The view's box on the ground, roughly (iso back to x, y).
     const cx = (vx0 + vx1) / 2, cy = (vy0 + vy1) / 2 + 8, half = Math.max(vx1 - vx0, (vy1 - vy0) * 2) * 0.7;
     const X = cy + cx / 2, Y = cy - cx / 2;
+    // Looking into an apartment, the rain falls past its open front, not
+    // across the room: fewer drops, fainter, so the finds stay clear.
+    const room = fx.focus && !fx.focus.fixed ? 0.35 : 1;
     rain(ctx, t, {
       area: [X - half, Y - half, X + half, Y + half],
-      n: Math.round((Q.detail ? 260 : 160) * r),
+      n: Math.round((Q.detail ? 260 : 160) * r * room),
       top: 16,
       speed: 24,
-      color: alpha(nightK(t) > 0.5 ? C.sky : C.navy, 0.35),
+      color: alpha(nightK(t) > 0.5 ? C.sky : C.navy, 0.35 * (room < 1 ? 0.7 : 1)),
       skip: indoors,
     });
   }

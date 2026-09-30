@@ -27,8 +27,8 @@ import { drawLand } from '../../../engine/terrain.js';
 import { land } from '../land.js';
 import { ROAD, HOUSES, OTHER_HOUSES, ROW_X0, GROUND, SHORE_Y, CURB, FH } from '../plan.js';
 import { hour, between, nightK, rainK, wetK } from '../clock.js';
-import { house, dusk, panes, car, truck, carton, lawnChair, mattress, lettering } from '../kit.js';
-import { beat, playing, HAUL, PIVOT } from '../finale.js';
+import { house, dusk, panes, car, truck, carton, lawnChair, mattress, lettering, umbrella, cat, LAMPPOST, LAMP_H, streetlight as kitLight, bench as kitBench, pigeon as kitPigeon, gullStand, cupHeld, line3 as line } from '../kit.js';
+import { ending } from '../ambient.js';
 import { SIDING, INK, CARS, CUP, LIT, EVENING, BRAND } from '../style.js';
 
 const G = GROUND;
@@ -50,7 +50,6 @@ const HIDE = { x: -1e4, y: -1e4, hide: true };
 
 // Inks for the street, from the plate's.
 const GRANITE = mix(C.greyLight, C.grey, 0.4);
-const LAMPPOST = mix(C.green, C.ink, 0.55);
 const TARP = mix(C.sky, C.navy, 0.35);
 const BIN = mix(C.sky, C.navy, 0.25);
 const RECLINER = mix(C.brown, C.wood, 0.35);
@@ -58,12 +57,8 @@ const PUDDLE = alpha(tint(C.sky, 0.35), 0.6);
 const VEIL = alpha(C.night, 0.42);
 const UMBRELLAS = [C.teal, C.coral, C.mustard, C.purple, C.navy, C.pink];
 
-function line(ctx, pts, color, lw = 0.05) {
-  ctx.beginPath();
-  pts.forEach((p, i) => { const [X, Y] = P3(p[0], p[1], p[2]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
-  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.stroke();
-}
+// The street's one stray cat: a grey tabby.
+const STRAY = C.grey;
 const pole = (ctx, x, y, z, h, color = C.greyLight, r = 0.06) => box(ctx, x - r, y - r, z, r * 2, r * 2, h, color, { flat: true, lw: 0.03 });
 // A flat panel facing the lower left (along x, at y) or lower right (along y, at x).
 function panel(ctx, along, x, y, z, w, h, fill, o = {}) {
@@ -97,14 +92,7 @@ function carBoxes(x, y, z, along) {
 }
 
 // ---------- Things people hold (in the person's own units) ----------
-// An iced coffee: clear cup, pink band, orange lid, a straw.
-function cupHeld(ctx) {
-  ctx.beginPath(); ctx.moveTo(-0.11, -0.34); ctx.lineTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.lineTo(0.11, -0.34); ctx.closePath();
-  paint(ctx, mix(C.brown, C.white, 0.45), { lw: 0.025 });
-  ctx.fillStyle = CUP.band; ctx.fillRect(-0.1, -0.2, 0.2, 0.08);
-  ctx.fillStyle = CUP.lid; ctx.fillRect(-0.11, -0.37, 0.22, 0.05);
-  ctx.strokeStyle = CUP.lid; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(0.03, -0.37); ctx.lineTo(0.08, -0.55); ctx.stroke();
-}
+// (The iced coffee, cupHeld, is the kit's.)
 // A carrier tray of four.
 function trayHeld(ctx) {
   ctx.beginPath(); ctx.rect(-0.3, -0.05, 0.6, 0.12); paint(ctx, C.woodLight, { lw: 0.025 });
@@ -126,24 +114,6 @@ function blanket(ctx, b) {
   ctx.beginPath();
   ctx.moveTo(-0.34, b.top + 0.05); ctx.lineTo(0.34, b.top + 0.05); ctx.lineTo(0.42, b.hipY + 0.1); ctx.lineTo(-0.42, b.hipY + 0.1); ctx.closePath();
   paint(ctx, tint(C.greyLight, 0.2), { lw: 0.03, dots: C.grey, density: 0.2 });
-}
-// An umbrella over someone standing at (x, y, z).
-function umbrella(ctx, x, y, z, color, sway = 0) {
-  const [X, Y] = P3(x, y, z);
-  const top = Y - 2.95 * ZK, r = 0.78;
-  ctx.save();
-  ctx.translate(X + sway, top);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.12 - sway, 1.25); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-r, 0.05);
-  ctx.quadraticCurveTo(-r, -0.55, 0, -0.58);
-  ctx.quadraticCurveTo(r, -0.55, r, 0.05);
-  for (let i = 3; i >= 0; i--) { const a = -r + (i + 0.5) * (2 * r / 4); ctx.quadraticCurveTo(a + r / 4, -0.12, a - r / 4 + 0.02, 0.05); }
-  ctx.closePath();
-  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.4), density: 0.12 });
-  ctx.beginPath(); ctx.moveTo(0, -0.58); ctx.lineTo(0, -0.72); ctx.stroke();
-  ctx.restore();
 }
 // A traffic cone.
 function cone(ctx, x, y, z) {
@@ -265,12 +235,15 @@ const honking = (i) => every(5.3, 0.9, i * 0.29);
 
 // ---------- The couch on the rope ----------
 // Up from the sidewalk in front of the Green House at 9am, halfway up from
-// 9:20 on, all day and all night; at the end the geese haul it up to the
-// porch and the house takes it in (finale.js; green-3 draws the rest).
+// 9:20 on, all day and all night. At the end the Couch (green-3) takes it
+// over where it hangs, from the moment the last goose is found, and draws
+// the haul and the pivot itself: the street's big picture is redrawn only
+// as often as there's time, so a couch drawn here lagged a second or more
+// behind the geese's (two couches, one on the rail, one still hanging).
 const COUCH = [16.6, yOf('green') + 1];
 const COUCH_W = 1.6, COUCH_D = 2.4;
 function couchZ(t) {
-  if (playing()) return beat(PIVOT) > 0 ? null : G + 6.2 + (2 * FH + 1 - 6.2) * beat(HAUL);
+  if (ending()) return null;
   const hr = hour(t);
   if (hr >= 5 && hr < 9) return null;
   if (hr >= 9 && hr < 9.35) return G + 0.4 + 5.8 * ((hr - 9) / 0.35);
@@ -350,17 +323,8 @@ function goosePoster(ctx, x, y) {
   if (Q.detail) goose(ctx, x - 0.12, y + 0.08, z - 0.35, 0, { scale: 0.42, dir: 'r' });
   lettering(ctx, 'x', x, y + 0.07, z - 0.42, 'ANSWERS TO HONK', 0.065, C.red);
 }
-// A streetlight: a post-top lantern on a dark green post.
-const LAMP_H = 3.9;
-function streetlight(ctx, x, y, lit = false) {
-  box(ctx, x - 0.16, y - 0.16, G, 0.32, 0.32, 0.35, LAMPPOST, { flat: true, lw: 0.03 });
-  pole(ctx, x, y, G + 0.35, LAMP_H - 0.35, LAMPPOST, 0.07);
-  const z = G + LAMP_H;
-  box(ctx, x - 0.2, y - 0.2, z, 0.4, 0.4, 0.55, lit ? LIT : tint(C.sky, 0.45), { flat: true, lw: 0.03, top: LAMPPOST });
-  const [X, Y] = P3(x, y, z + 0.55);
-  ctx.beginPath(); ctx.moveTo(X - 0.4, Y + 0.02); ctx.lineTo(X, Y - 0.34); ctx.lineTo(X + 0.4, Y + 0.02); ctx.closePath();
-  paint(ctx, LAMPPOST, { lw: 0.03 });
-}
+// A streetlight (the kit's), standing on the sidewalk.
+const streetlight = (ctx, x, y, lit = false) => kitLight(ctx, x, y, G, lit);
 function hydrant(ctx, x, y) {
   box(ctx, x - 0.2, y - 0.2, G, 0.4, 0.4, 0.14, C.red, { flat: true, lw: 0.025 });
   box(ctx, x - 0.15, y - 0.15, G + 0.14, 0.3, 0.3, 0.55, C.red, { flat: true, lw: 0.03 });
@@ -371,30 +335,9 @@ function barrel(ctx, x, y, color, lid = true) {
   box(ctx, x - 0.3, y - 0.3, G, 0.6, 0.6, 1.0, color, { lw: 0.03, dens: 0.14 });
   if (lid) box(ctx, x - 0.34, y - 0.34, G + 1.0, 0.68, 0.68, 0.08, shade(color, 0.12), { flat: true, lw: 0.025 });
 }
-function bench(ctx, x, y) {
-  for (const dx of [0.15, 1.45]) box(ctx, x + dx, y + 0.1, G, 0.1, 0.5, 0.45, C.ink, { flat: true, lw: 0.02 });
-  box(ctx, x, y, G + 0.45, 1.7, 0.6, 0.08, C.wood, { flat: true, lw: 0.03 });
-  box(ctx, x, y - 0.05, G + 0.53, 1.7, 0.08, 0.5, C.wood, { flat: true, lw: 0.03 });
-}
-function gullStand(ctx, x, y, z, t = 0, peck = false, dir = 1) {
-  const [X, Y] = P3(x, y, z);
-  ctx.save(); ctx.translate(X, Y); ctx.scale(dir, 1);
-  const pk = peck && Math.sin(t * 4 + x) > 0.6;
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.035;
-  ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.16); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.16); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.26, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
-  ctx.beginPath(); ctx.ellipse(-0.06, -0.29, 0.16, 0.065, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { stroke: false });
-  const hx = pk ? 0.26 : 0.18, hy = pk ? -0.2 : -0.42;
-  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-  ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
-  ctx.restore();
-}
-function pigeon(ctx, x, y, z, t, ph) {
-  const [X, Y] = P3(x, y, z);
-  const pk = Math.sin(t * 5 + ph) > 0.4 ? 0.1 : 0;
-  ctx.beginPath(); ctx.ellipse(X, Y - 0.16, 0.2, 0.11, 0, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
-  ctx.beginPath(); ctx.arc(X + 0.17, Y - 0.3 + pk, 0.08, 0, Math.PI * 2); paint(ctx, mix(C.grey, C.purple, 0.3), { lw: 0.025 });
-}
+const bench = (ctx, x, y) => kitBench(ctx, x, y, G);
+
+const pigeon = (ctx, x, y, z, t, ph = 0) => kitPigeon(ctx, x, y, z, t, { phase: ph, peck: true });
 // A dog, on a lead, in a raincoat when it rains.
 function dog(ctx, x, y, z, t, dir, coat) {
   const [X, Y] = P3(x, y, z);
@@ -591,12 +534,9 @@ export default {
     talk(R, EWALK - 0.1, 22.2, G + 1.9, (t) => (between(7.5, 20)(t) && every(19, 3.2, 0.4)(t) ? (frac(t / 38) < 0.5 ? 'Nobody mentioned bridges.' : 'It was a shortcut.') : null));
     // Someone taking its picture.
     stay(R, EWALK + 0.2, 18.4, folk(504, { top: C.pink }), { pose: 'point', dir: 'l', back: true, hold: phoneHeld, hours: (t) => between(9, 11.5)(t) || between(16, 18.5)(t), umb: C.purple });
-    // A cat asleep on its warm hood at night.
-    R.thing(SX + 0.2, 17.4, (ctx) => {
-      const [X, Y] = P3(SX + 0.2, 17.6, G + 1.55);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.34, 0.16, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
-      ctx.beginPath(); ctx.arc(X + 0.28, Y - 0.1, 0.12, 0, Math.PI * 2); paint(ctx, C.ink, { stroke: false });
-    }, { on: between(21, 5) });
+    // The street's stray asleep on its warm hood at night (by day she's on
+    // the bins in front of the Yellow House).
+    R.thing(SX + 0.2, 17.4, (ctx) => cat(ctx, SX + 0.2, 17.6, G + 1.55, 0, { color: STRAY, stripes: true, sleep: true, dir: 'l' }), { on: between(21, 5) });
 
     // ---------- The curb pile, in front of the Yellow House ----------
     // Put out one piece at a time all morning; carried up the Yellow House
@@ -613,9 +553,10 @@ export default {
     }, { on: out(8, CURB[0]) });
     R.thing(PX + 0.9, 33.4, (ctx) => {
       box(ctx, PX + 0.1, 32.4, G, 0.8, 1.0, 1.35, C.wood, { lw: 0.035, dens: 0.14 });
+      // (Its middle drawer's missing, up on the third floor tonight too.)
       for (let i = 0; i < 3; i++) {
-        face(ctx, [[PX + 0.9, 32.5, G + 0.2 + i * 0.4], [PX + 0.9, 33.3, G + 0.2 + i * 0.4], [PX + 0.9, 33.3, G + 0.5 + i * 0.4], [PX + 0.9, 32.5, G + 0.5 + i * 0.4]], tint(C.wood, 0.15), { lw: 0.025 });
-        if (Q.detail) box(ctx, PX + 0.9, 32.85, G + 0.32 + i * 0.4, 0.04, 0.1, 0.06, C.butter, { flat: true, stroke: false });
+        face(ctx, [[PX + 0.9, 32.5, G + 0.2 + i * 0.4], [PX + 0.9, 33.3, G + 0.2 + i * 0.4], [PX + 0.9, 33.3, G + 0.5 + i * 0.4], [PX + 0.9, 32.5, G + 0.5 + i * 0.4]], i === 1 ? C.ink : tint(C.wood, 0.15), { lw: 0.025 });
+        if (Q.detail && i !== 1) box(ctx, PX + 0.9, 32.85, G + 0.32 + i * 0.4, 0.04, 0.1, 0.06, C.butter, { flat: true, stroke: false });
       }
     }, { on: out(8.8, CURB[1]) });
     R.thing(PX + 0.9, 34.4, (ctx) => {
@@ -671,12 +612,7 @@ export default {
       barrel(ctx, 15.9, 26.95, BIN, false);
       for (let i = 0; i < 3; i++) box(ctx, 15.62 + i * 0.05, 26.7, G + 1.0 + i * 0.1, 0.55, 0.55, 0.06, C.woodLight, { flat: true, lw: 0.02 });
     });
-    R.thing(15.95, 26.25, (ctx, t) => {
-      const [X, Y] = P3(15.9, 26.2, G + 1.08);
-      ctx.beginPath(); ctx.ellipse(X, Y - 0.2, 0.22, 0.2, 0, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
-      ctx.beginPath(); ctx.arc(X + 0.1, Y - 0.48, 0.13, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
-      ctx.beginPath(); ctx.moveTo(X - 0.18, Y - 0.05); ctx.quadraticCurveTo(X - 0.45, Y - 0.1 + Math.sin(t * 2) * 0.15, X - 0.4, Y - 0.4); ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.06; ctx.stroke();
-    }, { anim: true, on: (t) => !raining(t) });
+    R.thing(15.95, 26.25, (ctx, t) => cat(ctx, 15.9, 26.2, G + 1.08, t, { color: STRAY, stripes: true, dir: 'r' }), { anim: true, on: (t) => !raining(t) && !between(21, 5)(t) });
     R.thing(16.6, 47.6, (ctx) => {
       barrel(ctx, 15.9, 47.0, BIN); barrel(ctx, 16.6, 47.0, BIN);
       // The Grey One's boxes, flattened and tied, matching.
@@ -689,7 +625,7 @@ export default {
       box(ctx, ROW_X0 + 15, PULLEY[1] - 0.1, PULLEY[2] + 0.2, PULLEY[0] - ROW_X0 - 14.8, 0.2, 0.2, C.wood, { flat: true, lw: 0.03 });
       const [X, Y] = P3(PULLEY[0], PULLEY[1], PULLEY[2]);
       ctx.beginPath(); ctx.arc(X, Y, 0.2, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.03 });
-    }, { on: (t) => couchZ(t) != null || (hour(t) >= 8.5 && hour(t) < 9) });
+    }, { on: (t) => ending() || couchZ(t) != null || (hour(t) >= 8.5 && hour(t) < 9) });
     // The rope comes down to the sling, and the couch sways under it. A man
     // on the sidewalk steadies it with a guide rope some of the day.
     const guide = (t) => { const hr = hour(t); return (hr >= 9.3 && hr < 11.9) || (hr >= 13.2 && hr < 18.5); };
@@ -697,8 +633,8 @@ export default {
     R.mover((t) => {
       const z = couchZ(t);
       if (z == null) return HIDE;
-      const sw = playing() ? 0 : 0.14 * Math.sin(t * 0.9) * (guide(t) ? 0.4 : 1);
-      const x = COUCH[0] - 0.9 * beat(HAUL);
+      const sw = 0.14 * Math.sin(t * 0.9) * (guide(t) ? 0.4 : 1);
+      const x = COUCH[0];
       return { x: x + COUCH_W + sw, y: COUCH[1] + COUCH_D, z, sw, cx: x };
     }, (ctx, t, p) => {
       if (p.hide) return;
@@ -716,7 +652,7 @@ export default {
       line(ctx, [[x, y + 0.45, z + 1.05], hook], INK.truck, 0.05);
       line(ctx, [[x, y + COUCH_D - 0.45, z + 1.05], hook], INK.truck, 0.05);
       disc(ctx, hook[0], hook[1], hook[2], 0.08, C.grey, { lw: 0.02 });
-      if (guide(t) && !playing()) line(ctx, [[x + COUCH_W, y + COUCH_D - 0.1, z + 0.2], [GUIDE[0] + 0.35, GUIDE[1] - 0.1, G + 1.5]], shade(C.woodLight, 0.2), 0.04);
+      if (guide(t)) line(ctx, [[x + COUCH_W, y + COUCH_D - 0.1, z + 0.2], [GUIDE[0] + 0.35, GUIDE[1] - 0.1, G + 1.5]], shade(C.woodLight, 0.2), 0.04);
       // Wet: it drips.
       if (raining(t) && Q.detail && z > G + 2) {
         for (let i = 0; i < 3; i++) {
@@ -734,32 +670,39 @@ export default {
     R.thing(ROAD.park1 + 0.35, 46.1, (ctx) => goosePoster(ctx, ROAD.park1 + 0.35, 46));
 
     // ---------- The truck ----------
-    R.mover((t) => { const b = truckBack(t); return b == null ? HIDE : { x: TX + 1.2, y: b + TRUCK_L, b }; }, (ctx, t, p) => {
-      if (p.hide) return;
-      const front = p.y;
-      const a = clamp01(front / 6) * clamp01((64 - front) / 5);
-      if (a <= 0.01) return;
-      const hr = hh(t);
-      // Now and then it tries: a little shove forward, a little back.
-      const tries = stuck(t) && every(9, 1.2, 0.15)(t);
-      const wig = tries ? Math.sin(t * 18) * 0.05 : 0;
-      ctx.save(); ctx.globalAlpha *= a;
-      truck(ctx, TX, p.b + TRUCK_L / 2 + wig, G, { dir: 1 });
+    // (Stuck and still, it's a still picture, the most of the day on the
+    // heaviest view; drawn every frame only while it moves, or tries to.)
+    // Now and then it tries: a little shove forward, a little back.
+    const tries = (t) => stuck(t) && every(9, 1.2, 0.15)(t);
+    const truckArt = (ctx, b, wig) => {
+      const front = b + TRUCK_L;
+      truck(ctx, TX, b + TRUCK_L / 2 + wig, G, { dir: 1 });
       // Its one side mirror (the other's in the road), and the driver.
       box(ctx, TX + 1.2, front - 1.55 + wig, G + 1.9, 0.14, 0.12, 0.08, C.ink, { flat: true, stroke: false });
       box(ctx, TX + 1.3, front - 1.6 + wig, G + 1.75, 0.08, 0.28, 0.55, C.ink, { flat: true, lw: 0.02 });
       const [HX, HY] = P3(TX - 0.45, front - 0.3 + wig, G + 2.15);
       ctx.beginPath(); ctx.arc(HX, HY, 0.26, 0, Math.PI * 2); paint(ctx, mix(C.brown, C.woodLight, 0.6), { lw: 0.03 });
       ctx.beginPath(); ctx.arc(HX, HY - 0.05, 0.28, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, C.red, { stroke: false });
-      // Hazards while it's stuck.
-      if (stuck(t) && frac(t * 1.2) < 0.5 && Q.detail) {
-        for (const y of [front - 0.05, p.b + 0.05]) disc(ctx, TX + 1.15, y, G + 0.7, 0.12, C.mustard, { lw: 0.02 });
-      }
+    };
+    R.mover((t) => { const b = truckBack(t); return b == null || (stuck(t) && !tries(t)) ? HIDE : { x: TX + 1.2, y: b + TRUCK_L, b }; }, (ctx, t, p) => {
+      if (p.hide) return;
+      const front = p.y;
+      const a = clamp01(front / 6) * clamp01((64 - front) / 5);
+      if (a <= 0.01) return;
+      ctx.save(); ctx.globalAlpha *= a;
+      truckArt(ctx, p.b, tries(t) ? Math.sin(t * 18) * 0.05 : 0);
       ctx.restore();
-      if (!Q.detail) return;
-      const say = stuck(t) && every(7.1, 1.6, 0.55)(t) ? (frac(t / 14.2) < 0.5 ? 'SORRY!' : 'IS THIS A STREET?') : hr >= 15.28 && hr < 15.55 ? 'THANK YOU!' : null;
-      if (say) speech(ctx, TX, front - 1, G + 4.6, say, { size: 0.5 });
     });
+    R.thing(TX + 1.2, STUCK + TRUCK_L, (ctx) => truckArt(ctx, STUCK, 0), { on: (t) => stuck(t) && !tries(t) });
+    // Its hazards while it's stuck, and what the driver says.
+    R.thing(TX + 1.21, STUCK + TRUCK_L + 0.01, (ctx, t) => {
+      if (!Q.detail) return;
+      const hr = hh(t), b = truckBack(t);
+      if (b == null) return;
+      if (stuck(t) && frac(t * 1.2) < 0.5) for (const y of [b + TRUCK_L - 0.05, b + 0.05]) disc(ctx, TX + 1.15, y, G + 0.7, 0.12, C.mustard, { lw: 0.02 });
+      const say = stuck(t) && every(7.1, 1.6, 0.55)(t) ? (frac(t / 14.2) < 0.5 ? 'SORRY!' : 'IS THIS A STREET?') : hr >= 15.28 && hr < 15.55 ? 'THANK YOU!' : null;
+      if (say) speech(ctx, TX, b + TRUCK_L - 1, G + 4.6, say, { size: 0.5 });
+    }, { anim: true, on: (t) => stuck(t) || (hh(t) >= 15.28 && hh(t) < 15.55) });
     // The snapped-off side mirror, in the road where the truck clipped it.
     const MIRROR = [ROAD.lane0 + 0.55, 29.6, G];
     R.thing(MIRROR[0] + 0.4, MIRROR[1] + 0.3, (ctx) => {
@@ -777,15 +720,24 @@ export default {
     R.find({ id: 'mirror', label: 'A snapped-off side mirror', at: [MIRROR[0], MIRROR[1], G + 0.15], r: 0.9 });
 
     // The car in the way, and the ticket it got at 8:20.
-    R.mover((t) => { const b = bounce(t); return { x: BLOCK.x + b.dx + 0.75, y: BLOCK.y + 1.4, b }; }, (ctx, t, p) => {
-      const { dx, z } = p.b, hr = hh(t);
+    // (Still pictures before and after the bounce; it moves for 20 minutes.)
+    const hopping = (t) => { const hr = hh(t); return hr >= 15 && hr < 15.3; };
+    const blockArt = (ctx, dx, z, ticket) => {
       const x = BLOCK.x + dx;
       if (z > 0.02 && Q.detail) { ctx.save(); ctx.globalAlpha *= 0.2; disc(ctx, x, BLOCK.y, G + 0.01, 1.1, C.ink, { stroke: false }); ctx.restore(); }
-      car(ctx, x, BLOCK.y, G + z, C.teal, { dir: 1, ticket: hr >= 8.35 });
-      if (hr >= 8.35 && Q.detail) box(ctx, x + 0.25, BLOCK.y + 0.3, G + z + 0.84, 0.45, 0.3, 0.02, INK.truck, { flat: true, lw: 0.02 });
-      const n = nightK(t);
-      if (n > 0.02) { ctx.save(); ctx.globalAlpha *= q8(n); veil(ctx, carBoxes(x, BLOCK.y, G + z)); ctx.restore(); }
+      car(ctx, x, BLOCK.y, G + z, C.teal, { dir: 1, ticket });
+      if (ticket && Q.detail) box(ctx, x + 0.25, BLOCK.y + 0.3, G + z + 0.84, 0.45, 0.3, 0.02, INK.truck, { flat: true, lw: 0.02 });
+    };
+    R.mover((t) => { if (!hopping(t)) return HIDE; const b = bounce(t); return { x: BLOCK.x + b.dx + 0.75, y: BLOCK.y + 1.4, b }; }, (ctx, t, p) => {
+      if (p.hide) return;
+      blockArt(ctx, p.b.dx, p.b.z, true);
     });
+    const ticketed = (t) => hh(t) >= 8.35;
+    R.thing(BLOCK.x + 0.75, BLOCK.y + 1.4, (ctx) => blockArt(ctx, 0, 0, false), { on: (t) => !ticketed(t) });
+    R.thing(BLOCK.x + 0.75, BLOCK.y + 1.4, (ctx) => blockArt(ctx, 0, 0, true), { on: (t) => ticketed(t) && hh(t) < 15 });
+    R.thing(BLOCK.x - 0.15, BLOCK.y + 1.4, (ctx) => blockArt(ctx, -0.9, 0, true), { on: (t) => hh(t) >= 15.3 });
+    R.thing(BLOCK.x + 0.76, BLOCK.y + 1.41, (ctx) => veil(ctx, carBoxes(BLOCK.x, BLOCK.y, G)), { ...byNight, on: (t) => hh(t) < 15 });
+    R.thing(BLOCK.x - 0.14, BLOCK.y + 1.41, (ctx) => veil(ctx, carBoxes(BLOCK.x - 0.9, BLOCK.y, G)), { ...byNight, on: (t) => hh(t) >= 15.3 });
     // The pickup, double-parked across from it, its owner in a recliner in
     // the bed, watching. (The space beside it is saved: a lawn chair.)
     const PU = [ROAD.lane1 - 0.32, 36.6];
@@ -820,19 +772,29 @@ export default {
     QUEUE.forEach((q, i) => {
       const [, , color, , , along] = q;
       const X = along === 'x';
-      R.mover((t) => { const p = queuePos(q, t); return p ? { ...p, x: p.x + (X ? 1.4 : 0.75), y: p.y + (X ? 0.75 : 1.4), cx: p.x, cy: p.y } : HIDE; }, (ctx, t, p) => {
+      const carArt = (ctx, cx, cy) => {
+        car(ctx, cx, cy, G, color, { dir: 1, along: X ? 'x' : undefined });
+        // The driver.
+        const [HX, HY] = X ? P3(cx + 0.55, cy + 0.25, G + 1.02) : P3(cx - 0.3, cy + 0.55, G + 1.02);
+        ctx.beginPath(); ctx.arc(HX, HY, 0.19, 0, Math.PI * 2); paint(ctx, mix(C.woodLight, C.brown, (i % 3) * 0.3), { lw: 0.025 });
+        ctx.beginPath(); ctx.arc(HX, HY - 0.04, 0.2, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, [C.ink, C.mustard, C.brown, C.grey][i], { stroke: false });
+      };
+      // Moving, it's drawn every frame; stopped in the queue (most of the
+      // day), a still picture, and only its horn is animated.
+      const waiting = (t) => { const p = queuePos(q, t); return !!(p && p.still); };
+      R.mover((t) => { const p = queuePos(q, t); return p && !p.still ? { ...p, x: p.x + (X ? 1.4 : 0.75), y: p.y + (X ? 0.75 : 1.4), cx: p.x, cy: p.y } : HIDE; }, (ctx, t, p) => {
         if (p.hide) return;
         const a = X ? clamp01((p.cx + 1) / 4) * clamp01((28 - p.cx) / 2) : clamp01((p.cy + 2) / 4) * clamp01((62 - p.cy) / 4);
         if (a <= 0.01) return;
         ctx.save(); ctx.globalAlpha *= a;
-        car(ctx, p.cx, p.cy, G, color, { dir: 1, along: X ? 'x' : undefined });
-        // The driver.
-        const [HX, HY] = X ? P3(p.cx + 0.55, p.cy + 0.25, G + 1.02) : P3(p.cx - 0.3, p.cy + 0.55, G + 1.02);
-        ctx.beginPath(); ctx.arc(HX, HY, 0.19, 0, Math.PI * 2); paint(ctx, mix(C.woodLight, C.brown, (i % 3) * 0.3), { lw: 0.025 });
-        ctx.beginPath(); ctx.arc(HX, HY - 0.04, 0.2, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, [C.ink, C.mustard, C.brown, C.grey][i], { stroke: false });
+        carArt(ctx, p.cx, p.cy);
         ctx.restore();
-        if (p.still && Q.detail && honking(i)(t)) speech(ctx, p.cx, p.cy, G + 2.1, ['HONK', 'HONK HONK', 'C\'MON!', 'BEEP'][i], { size: 0.46, fill: i === 2 ? C.butter : C.white });
       });
+      const [qx, qy] = q;
+      R.thing(qx + (X ? 1.4 : 0.75), qy + (X ? 0.75 : 1.4), (ctx) => carArt(ctx, qx, qy), { on: waiting });
+      R.thing(qx + (X ? 1.41 : 0.76), qy + (X ? 0.76 : 1.41), (ctx) => {
+        if (Q.detail) speech(ctx, qx, qy, G + 2.1, ['HONK', 'HONK HONK', 'C\'MON!', 'BEEP'][i], { size: 0.46, fill: i === 2 ? C.butter : C.white });
+      }, { anim: true, on: (t) => waiting(t) && honking(i)(t) });
     });
 
     // ---------- The goose, in the other lane, honking along ----------

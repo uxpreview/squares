@@ -11,41 +11,12 @@ import {
   onLeft, onRight, P, chair, table, plant,
 } from '../../../engine/art.js';
 import { schedule, particles, clamp } from '../../../engine/actors.js';
-import { apartment, carton, lettering } from '../kit.js';
+import { apartment, carton, lettering, cat } from '../kit.js';
 import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
 import { BEFORE, hour, at } from '../clock.js';
 import { LOOP } from '../plan.js';
 import { oldSide, newSide, tapeLabel, backWindow, says, sofa } from './yellow-1.js';
 
-// A cat, sitting (or, cross, standing with its back up), at (x, y, z).
-function cat(ctx, x, y, z, t, o = {}) {
-  const [X, Y] = P(x, y, z);
-  const col = o.color || C.ink;
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(o.dir === 'l' ? -1 : 1, 1);
-  const tail = Math.sin(t * (o.cross ? 6 : 1.5) + (o.phase || 0)) * 0.25;
-  ctx.beginPath(); ctx.moveTo(-0.25, -0.1); ctx.quadraticCurveTo(-0.55, -0.2 + tail, -0.45, -0.6 + tail);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.lineCap = 'round'; ctx.stroke();
-  ctx.strokeStyle = col; ctx.lineWidth = 0.07; ctx.stroke();
-  ctx.beginPath();
-  if (o.cross) {
-    // Standing, the back up in an arch.
-    ctx.moveTo(-0.3, 0); ctx.lineTo(-0.28, -0.25); ctx.quadraticCurveTo(0, -0.75, 0.28, -0.3); ctx.lineTo(0.3, 0); ctx.lineTo(0.2, 0); ctx.lineTo(0.15, -0.2); ctx.lineTo(-0.15, -0.2); ctx.lineTo(-0.2, 0); ctx.closePath();
-  } else {
-    ctx.ellipse(0, -0.25, 0.26, 0.25, 0, 0, Math.PI * 2);
-  }
-  paint(ctx, col, { lw: 0.035 });
-  const hx = o.cross ? 0.32 : 0.12, hy = o.cross ? -0.42 : -0.58;
-  ctx.beginPath(); ctx.arc(hx, hy, 0.17, 0, Math.PI * 2);
-  ctx.moveTo(hx - 0.14, hy - 0.08); ctx.lineTo(hx - 0.12, hy - 0.3); ctx.lineTo(hx - 0.02, hy - 0.14);
-  ctx.moveTo(hx + 0.04, hy - 0.15); ctx.lineTo(hx + 0.14, hy - 0.3); ctx.lineTo(hx + 0.16, hy - 0.06);
-  paint(ctx, col, { lw: 0.035 });
-  // Narrowed eyes.
-  ctx.fillStyle = o.eyes || C.mustard;
-  ctx.fillRect(hx - 0.06, hy - 0.03, 0.08, 0.035); ctx.fillRect(hx + 0.06, hy - 0.03, 0.08, 0.035);
-  ctx.restore();
-}
 
 // A toaster on its side of the kitchen, popping now and then.
 function toaster(ctx, x, y, z, t, color, every, off) {

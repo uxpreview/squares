@@ -276,8 +276,10 @@ export default {
       if (Q.detail && over(t)) speech(ctx, p.x, p.y, 2.6, '. . .', { size: 0.4 });
     }, { on: during(13, 20) });
 
-    // The morning: two delivery guys building the coffee table (step one of
-    // many), and a wine person stocking the fridge before the party.
+    // The morning: two delivery guys building the coffee table (the
+    // Yellow House's Overlap has the flat-pack's step 1 of 94; this one
+    // only said some assembly), and a wine person stocking the fridge
+    // before the party.
     R.mover(() => ({ x: 7.9, y: 6.9 }), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, { ...folk(1071, { top: C.coral, hat: 'cap', dress: false }), pose: 'sit', dir: 'l', arms: [1.3 + Math.sin(t * 6) * 0.3, 0.6] }, t);
       for (const [x, y] of [[6.9, 7.3], [7.2, 7.8]]) box(ctx, x, y, 0, 0.9, 0.12, 0.05, C.woodLight, { flat: true, lw: 0.02 });
@@ -285,7 +287,7 @@ export default {
     }, { on: during(8, 12.2) });
     R.mover(() => ({ x: 9.5, y: 6.4 }), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, { ...folk(1072, { top: C.coral, hat: 'cap', dress: false }), dir: 'l', arms: [1.4, 1.4], hold: (c) => { c.fillStyle = C.white; c.strokeStyle = C.ink; c.lineWidth = 0.03; c.fillRect(0.2, -0.45, 0.7, 0.5); c.strokeRect(0.2, -0.45, 0.7, 0.5); c.fillStyle = C.ink; c.fillRect(0.3, -0.35, 0.3, 0.2); } }, t);
-      if (Q.detail && t % 15 < 3.5) speech(ctx, p.x, p.y, 2.7, 'Step 1 of 94.', { size: 0.42 });
+      if (Q.detail && t % 15 < 3.5) speech(ctx, p.x, p.y, 2.7, 'It said some assembly.', { size: 0.42 });
     }, { on: during(8, 12.2) });
     R.mover(() => ({ x: 1.6, y: 4.95 }), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, { ...folk(1081, { top: C.purple, style: 'long', dress: false }), dir: 'l', arms: [1.6 + Math.sin(t * 2) * 0.3, 0.2] }, t);

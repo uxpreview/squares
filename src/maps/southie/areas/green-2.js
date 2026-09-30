@@ -16,7 +16,7 @@ import { route, particles, clamp } from '../../../engine/actors.js';
 import { apartment, carton, lettering } from '../kit.js';
 import { SIDING, TRIM, ROOM, BRAND } from '../style.js';
 import { BEFORE, AFTER, outK, inK } from '../clock.js';
-import { hh, hours, oldSide, newSide, says, line3, backWindow, sleeper, pigeon } from './green-1.js';
+import { hh, hours, oldSide, newSide, says, line3, backWindow, sleeper } from './green-1.js';
 
 const W = ROOM['green-2'];
 // The poster lets go at 11:37 and is on the floor by 11:42.
@@ -445,8 +445,6 @@ export default {
       }, t);
       says(ctx, p.x, p.y, 2.6, t, ['Good morning.', 'What couch?'], 6, 3);
     });
-    // A pigeon on the porch rail all day, under the couch.
-    R.thing(14.7, 1.2, (ctx, t) => pigeon(ctx, 14.62, 0.9, 1.13, t, { dir: 'l', peck: true }), { anim: true });
 
     // ---------- The finds ----------
     R.find({ id: 'ball', label: 'A ping-pong ball', at: [0.82, 2.55, 0.15], r: 0.65, ...BEFORE });

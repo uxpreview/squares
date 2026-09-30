@@ -21,7 +21,10 @@ import {
 } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { particles, clamp } from '../../../engine/actors.js';
-import { apartment, lettering } from '../kit.js';
+import { apartment, lettering, umbrella, pigeon, cat } from '../kit.js';
+// The neighborhood's umbrella, pigeon and cat are the kit's now; the other
+// rooms still ask for them here.
+export { umbrella, pigeon, cat };
 import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
 import { hour, rainK, nightK } from '../clock.js';
 
@@ -123,75 +126,8 @@ export function sleeper(ctx, x, y, z, len, o = {}) {
   if (Q.detail) face(ctx, [[x + 0.3, y - 0.55, z + 0.37 + b], [x + 0.3, y + 0.55, z + 0.37 + b]], null, { lw: 0.06, stroke: C.white });
 }
 
-// A pigeon, bobbing, at (x, y, z).
-export function pigeon(ctx, x, y, z, t, o = {}) {
-  const [X, Y] = P(x, y, z);
-  const bob = o.peck ? Math.max(0, Math.sin(t * 7 + (o.phase || 0))) * 0.12 : Math.sin(t * 5 + (o.phase || 0)) * 0.03;
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(o.dir === 'l' ? -0.8 : 0.8, 0.8);
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05;
-  ctx.beginPath(); ctx.moveTo(-0.03, -0.18); ctx.lineTo(-0.05, 0); ctx.moveTo(0.06, -0.18); ctx.lineTo(0.07, 0); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.3, 0.3, 0.17, -0.1, 0, Math.PI * 2);
-  ctx.moveTo(-0.22, -0.32); ctx.lineTo(-0.48, -0.36); ctx.lineTo(-0.26, -0.22);
-  paint(ctx, C.grey, { lw: 0.03 });
-  ctx.beginPath(); ctx.ellipse(-0.05, -0.33, 0.15, 0.08, -0.2, 0, Math.PI * 2); ctx.fillStyle = shade(C.grey, 0.15); ctx.fill();
-  ctx.beginPath(); ctx.arc(0.24, -0.45 + bob, 0.1, 0, Math.PI * 2); paint(ctx, mix(C.grey, C.purple, 0.3), { lw: 0.025 });
-  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.moveTo(0.33, -0.46 + bob); ctx.lineTo(0.41, -0.43 + bob); ctx.lineTo(0.33, -0.41 + bob); ctx.fill();
-  ctx.fillStyle = C.coral; ctx.beginPath(); ctx.arc(0.27, -0.47 + bob, 0.02, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-}
 
-// An umbrella over someone standing at (x, y, z).
-export function umbrella(ctx, x, y, z, color, sway = 0, lift = 0) {
-  const [X, Y] = P(x, y, z);
-  const top = Y - (2.95 + lift) * ZK, r = 0.78;
-  ctx.save();
-  ctx.translate(X + sway, top);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.12 - sway, 1.25); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-r, 0.05);
-  ctx.quadraticCurveTo(-r, -0.55, 0, -0.58);
-  ctx.quadraticCurveTo(r, -0.55, r, 0.05);
-  for (let i = 3; i >= 0; i--) { const a = -r + (i + 0.5) * (2 * r / 4); ctx.quadraticCurveTo(a + r / 4, -0.12, a - r / 4 + 0.02, 0.05); }
-  ctx.closePath();
-  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.4), density: 0.12 });
-  ctx.beginPath(); ctx.moveTo(0, -0.58); ctx.lineTo(0, -0.72); ctx.stroke();
-  ctx.restore();
-}
 
-// A cat at (x, y, z), sitting (a loaf) or walking; its tail going.
-export function cat(ctx, x, y, z, t, o = {}) {
-  const [X, Y] = P(x, y, z);
-  const col = o.color || C.ink;
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(o.dir === 'l' ? -1 : 1, 1);
-  if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.32, 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
-  const tail = Math.sin(t * 1.5 + (o.phase || 0)) * 0.25;
-  ctx.beginPath(); ctx.moveTo(-0.25, -0.1); ctx.quadraticCurveTo(-0.55, -0.2 + tail, -0.45, -0.6 + tail);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.lineCap = 'round'; ctx.stroke();
-  ctx.strokeStyle = col; ctx.lineWidth = 0.07; ctx.stroke();
-  if (o.walk) {
-    const s = Math.sin(t * 12) * 0.08;
-    ctx.strokeStyle = col; ctx.lineWidth = 0.08;
-    ctx.beginPath(); ctx.moveTo(-0.18, -0.2); ctx.lineTo(-0.18 + s, 0); ctx.moveTo(0.18, -0.2); ctx.lineTo(0.18 - s, 0); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(0, -0.3, 0.3, 0.16, 0, 0, Math.PI * 2);
-  } else {
-    ctx.beginPath(); ctx.ellipse(0, -0.25, 0.26, 0.25, 0, 0, Math.PI * 2);
-  }
-  paint(ctx, col, { lw: 0.035, dots: o.stripes ? shade(col, 0.4) : null, density: 0.3 });
-  const hx = o.walk ? 0.3 : 0.12, hy = o.walk ? -0.45 : -0.58;
-  ctx.beginPath(); ctx.arc(hx, hy, 0.17, 0, Math.PI * 2);
-  ctx.moveTo(hx - 0.14, hy - 0.08); ctx.lineTo(hx - 0.12, hy - 0.3); ctx.lineTo(hx - 0.02, hy - 0.14);
-  ctx.moveTo(hx + 0.04, hy - 0.15); ctx.lineTo(hx + 0.14, hy - 0.3); ctx.lineTo(hx + 0.16, hy - 0.06);
-  paint(ctx, col, { lw: 0.035 });
-  ctx.fillStyle = o.eyes || C.mustard;
-  if (o.sleep) { ctx.fillStyle = C.ink; ctx.fillRect(hx - 0.07, hy - 0.01, 0.09, 0.02); ctx.fillRect(hx + 0.05, hy - 0.01, 0.09, 0.02); }
-  else { ctx.fillRect(hx - 0.06, hy - 0.03, 0.08, 0.035); ctx.fillRect(hx + 0.06, hy - 0.03, 0.08, 0.035); }
-  ctx.restore();
-}
 
 // Someone on hour keyframes: [[hour, x, y, z?], ...]; between two frames
 // they walk (or, if z changes, hop). Returns (t) => { x, y, z, dir, moving }.
@@ -773,8 +709,6 @@ export default {
         ctx.fillRect(X, Y, 0.03, 0.12);
       }, 17);
     }, { anim: true, on: noon, depth: 24 });
-    // A pigeon on the porch rail, sheltering.
-    R.thing(14.7, 1.8, (ctx, t) => pigeon(ctx, 14.62, 1.6, 1.13, t, { dir: 'l', phase: 1 }), { anim: true });
 
     // ---------- The finds ----------
     R.find({ id: 'keys', label: 'The ring of spare keys', at: [5.2, 2.95, 1.3], r: 0.75 });

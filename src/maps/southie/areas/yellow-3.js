@@ -12,7 +12,7 @@ import {
   onLeft, onRight, P,
 } from '../../../engine/art.js';
 import { route, particles, clamp } from '../../../engine/actors.js';
-import { apartment, lettering } from '../kit.js';
+import { apartment, lettering, pigeon } from '../kit.js';
 import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
 import { hour } from '../clock.js';
 import { CURB, CURB_UP } from '../plan.js';
@@ -25,24 +25,6 @@ const has = (h0) => (t) => { const h = hour(t); return (h >= h0) || h < 5; };
 // The first night, from the lamp on.
 const night = has(LAMP + 0.5);
 
-// A pigeon, bobbing, at (x, y, z).
-function pigeon(ctx, x, y, z, t, o = {}) {
-  const [X, Y] = P(x, y, z);
-  const bob = o.peck ? Math.max(0, Math.sin(t * 7 + (o.phase || 0))) * 0.12 : Math.sin(t * 5 + (o.phase || 0)) * 0.03;
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(o.dir === 'l' ? -0.8 : 0.8, 0.8);
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05;
-  ctx.beginPath(); ctx.moveTo(-0.03, -0.18); ctx.lineTo(-0.05, 0); ctx.moveTo(0.06, -0.18); ctx.lineTo(0.07, 0); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.3, 0.3, 0.17, -0.1, 0, Math.PI * 2);
-  ctx.moveTo(-0.22, -0.32); ctx.lineTo(-0.48, -0.36); ctx.lineTo(-0.26, -0.22);
-  paint(ctx, C.grey, { lw: 0.03 });
-  ctx.beginPath(); ctx.ellipse(-0.05, -0.33, 0.15, 0.08, -0.2, 0, Math.PI * 2); ctx.fillStyle = shade(C.grey, 0.15); ctx.fill();
-  ctx.beginPath(); ctx.arc(0.24, -0.45 + bob, 0.1, 0, Math.PI * 2); paint(ctx, mix(C.grey, C.purple, 0.3), { lw: 0.025 });
-  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.moveTo(0.33, -0.46 + bob); ctx.lineTo(0.41, -0.43 + bob); ctx.lineTo(0.33, -0.41 + bob); ctx.fill();
-  ctx.fillStyle = C.coral; ctx.beginPath(); ctx.arc(0.27, -0.47 + bob, 0.02, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-}
 
 export default {
   id: 'yellow-3',
@@ -198,11 +180,11 @@ export default {
       box(ctx, 7.8, 2.5, 1.35, 0.14, 0.14, 0.26, BRAND.can, { flat: true, lw: 0.015 });
       if (Q.detail) lettering(ctx, 'x', 7.87, 2.645, 1.48, 'GC', 0.07, BRAND.ink);
     }, { on: has(DRESSER) });
-    // The TV: a big old set on a milk crate, rabbit ears, snow by day and
-    // a ballgame (more or less) at night.
+    // The TV: the curb's big old grey set (the same one), on a milk crate,
+    // rabbit ears, snow by day and a ballgame (more or less) at night.
     R.thing(12.2, 7.5, (ctx) => {
       box(ctx, 11.35, 6.65, 0, 0.85, 0.8, 0.42, C.teal, { flat: true, lw: 0.03 });
-      box(ctx, 11.3, 6.6, 0.42, 0.95, 0.9, 0.85, mix(C.wood, C.brown, 0.4), { lw: 0.04 });
+      box(ctx, 11.3, 6.6, 0.42, 0.95, 0.9, 0.85, C.grey, { lw: 0.04 });
       for (const a of [-0.5, 0.5]) { const [x0, y0] = P(11.78, 7.05, 1.27), [x1, y1] = P(11.78 + a * 0.4, 7.05 - a * 0.4, 1.95); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke(); }
     }, { on: has(TV) });
     R.thing(12.25, 7.55, (ctx, t) => {

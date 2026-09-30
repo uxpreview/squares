@@ -29,7 +29,7 @@ import { route } from '../../../engine/actors.js';
 import { land, h } from '../land.js';
 import { MCKAY, SUGAR_BOWL, GROUND, LOOP } from '../plan.js';
 import { hour, at, between, nightK, rainK, wetK } from '../clock.js';
-import { car, lawnChair, lettering } from '../kit.js';
+import { car, lawnChair, lettering, umbrella, bench, LAMP_H, streetlight as kitLight, gullStand, cupHeld, line3 as line } from '../kit.js';
 import { CARS, INK, LIT, LAND, EVENING, CUP, BRAND } from '../style.js';
 import { planeAt } from '../ambient.js';
 
@@ -72,7 +72,6 @@ const UP = 2.7; // an arm pointing at the sky
 
 // ---------- Inks ----------
 const GRANITE = mix(C.greyLight, C.grey, 0.4);
-const LAMPPOST = mix(C.green, C.ink, 0.55);
 const VEIL = alpha(C.night, 0.42);
 const UMBRELLAS = [C.teal, C.coral, C.mustard, C.purple, C.navy, C.pink];
 const COAT = mix(C.wood, C.greyLight, 0.45); // Pidge's trench coat
@@ -81,12 +80,7 @@ const HULL = mix(C.navy, C.ink, 0.2);
 const PUDDLE = alpha(tint(C.sky, 0.35), 0.6);
 const MESH = alpha(C.grey, 0.22);
 
-function line(ctx, pts, color, lw = 0.05) {
-  ctx.beginPath();
-  pts.forEach((p, i) => { const [X, Y] = P3(p[0], p[1], p[2]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
-  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.stroke();
-}
+
 const pole = (ctx, x, y, z, ht, color = C.greyLight, r = 0.06) => box(ctx, x - r, y - r, z, r * 2, r * 2, ht, color, { flat: true, lw: 0.03 });
 // A flat panel facing the lower left (along x, at y) or lower right (along y, at x).
 function panel(ctx, along, x, y, z, w, ht, fill, o = {}) {
@@ -151,12 +145,7 @@ function rbox(ctx, cx, cy, z, w, d, ht, a, color, o = {}) {
 }
 
 // ---------- Things people hold (in the person's own units) ----------
-function cupHeld(ctx) {
-  ctx.beginPath(); ctx.moveTo(-0.11, -0.34); ctx.lineTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.lineTo(0.11, -0.34); ctx.closePath();
-  paint(ctx, mix(C.brown, C.white, 0.45), { lw: 0.025 });
-  ctx.fillStyle = CUP.band; ctx.fillRect(-0.1, -0.2, 0.2, 0.08);
-  ctx.fillStyle = CUP.lid; ctx.fillRect(-0.11, -0.37, 0.22, 0.05);
-}
+
 function phoneHeld(ctx) {
   ctx.beginPath(); ctx.rect(-0.02, -0.34, 0.18, 0.28); paint(ctx, C.black, { lw: 0.02 });
 }
@@ -206,25 +195,6 @@ function poncho(ctx, b) {
   ctx.beginPath(); ctx.arc(0.02, b.top - 0.32, 0.36, Math.PI * 0.95, Math.PI * 2.05); paint(ctx, C.mustard, { lw: 0.03 });
 }
 
-// An umbrella over someone standing at (x, y, z).
-function umbrella(ctx, x, y, z, color, sway = 0) {
-  const [X, Y] = P3(x, y, z);
-  const top = Y - 2.95 * ZK, r = 0.78;
-  ctx.save();
-  ctx.translate(X + sway, top);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.12 - sway, 1.25); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-r, 0.05);
-  ctx.quadraticCurveTo(-r, -0.55, 0, -0.58);
-  ctx.quadraticCurveTo(r, -0.55, r, 0.05);
-  for (let i = 3; i >= 0; i--) { const a = -r + (i + 0.5) * (2 * r / 4); ctx.quadraticCurveTo(a + r / 4, -0.12, a - r / 4 + 0.02, 0.05); }
-  ctx.closePath();
-  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.4), density: 0.12 });
-  ctx.beginPath(); ctx.moveTo(0, -0.58); ctx.lineTo(0, -0.72); ctx.stroke();
-  ctx.restore();
-}
-
 // Someone who holds still in their hours: cached pictures, one for each of
 // dry and raining (o.umb: an umbrella color; o.wet: how they look in the
 // rain) and calm and looking up at a plane (o.react: how they look then, or
@@ -254,35 +224,12 @@ function talk(R, x, y, z, say, o = {}) {
   R.thing(x, y, (ctx, t) => { const s = say(t); if (s && Q.detail) speech(ctx, x, y, z, s, { size: o.size || 0.44 }); }, { anim: true, depth: x + y + 6, on: (t) => !!say(t) });
 }
 
-// ---------- Street furniture ----------
-const LAMP_H = 3.9;
-function streetlight(ctx, x, y, lit = false) {
-  const z = gz(x, y);
-  box(ctx, x - 0.16, y - 0.16, z, 0.32, 0.32, 0.35, LAMPPOST, { flat: true, lw: 0.03 });
-  pole(ctx, x, y, z + 0.35, LAMP_H - 0.35, LAMPPOST, 0.07);
-  const zt = z + LAMP_H;
-  box(ctx, x - 0.2, y - 0.2, zt, 0.4, 0.4, 0.55, lit ? LIT : tint(C.sky, 0.45), { flat: true, lw: 0.03, top: LAMPPOST });
-  const [X, Y] = P3(x, y, zt + 0.55);
-  ctx.beginPath(); ctx.moveTo(X - 0.4, Y + 0.02); ctx.lineTo(X, Y - 0.34); ctx.lineTo(X + 0.4, Y + 0.02); ctx.closePath();
-  paint(ctx, LAMPPOST, { lw: 0.03 });
-}
+// ---------- Street furniture (the kit's) ----------
+const streetlight = (ctx, x, y, lit = false) => kitLight(ctx, x, y, gz(x, y), lit);
 function lamp(R, x, y) {
   R.thing(x, y, (ctx) => streetlight(ctx, x, y));
   R.thing(x + 0.001, y + 0.001, (ctx) => streetlight(ctx, x, y, true), byNight);
   R.light({ at: [x, y, gz(x, y) + LAMP_H + 0.3], r: 3, color: LIT, k: nightK });
-}
-// A park bench, w long along x (facing +y) or along y (facing +x), at z.
-function bench(ctx, x, y, z, o = {}) {
-  const w = o.w || 1.7;
-  if (o.along === 'y') {
-    for (const dy of [0.15, w - 0.25]) box(ctx, x + 0.1, y + dy, z, 0.5, 0.1, 0.45, C.ink, { flat: true, lw: 0.02 });
-    box(ctx, x, y, z + 0.45, 0.6, w, 0.08, C.wood, { flat: true, lw: 0.03 });
-    box(ctx, x - 0.05, y, z + 0.53, 0.08, w, 0.5, C.wood, { flat: true, lw: 0.03 });
-    return;
-  }
-  for (const dx of [0.15, w - 0.25]) box(ctx, x + dx, y + 0.1, z, 0.1, 0.5, 0.45, C.ink, { flat: true, lw: 0.02 });
-  box(ctx, x, y, z + 0.45, w, 0.6, 0.08, C.wood, { flat: true, lw: 0.03 });
-  box(ctx, x, y - 0.05, z + 0.53, w, 0.08, 0.5, C.wood, { flat: true, lw: 0.03 });
 }
 // A bench turned to face outward from a circle's middle (the Sugar Bowl's
 // ring), at angle a round (cx, cy), r out.
@@ -298,19 +245,7 @@ function ringBench(ctx, cx, cy, r, a, z) {
   rbox(ctx, x, y, z + 0.45, 1.7, 0.6, 0.07, t, C.wood);
   if (!backFirst) drawBack();
 }
-function gullStand(ctx, x, y, z, t = 0, peck = false, dir = 1) {
-  const [X, Y] = P3(x, y, z);
-  ctx.save(); ctx.translate(X, Y); ctx.scale(dir, 1);
-  const pk = peck && Math.sin(t * 4 + x) > 0.6;
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.035;
-  ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.16); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.16); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.26, 0.24, 0.12, -0.1, 0, TAU); paint(ctx, C.white, { lw: 0.035 });
-  ctx.beginPath(); ctx.ellipse(-0.06, -0.29, 0.16, 0.065, -0.15, 0, TAU); paint(ctx, C.grey, { stroke: false });
-  const hx = pk ? 0.26 : 0.18, hy = pk ? -0.2 : -0.42;
-  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, TAU); paint(ctx, C.white, { lw: 0.03 });
-  ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
-  ctx.restore();
-}
+
 function gullFly(ctx, x, y, z, t, dir = 1, fry = false) {
   const [X, Y] = P3(x, y, z);
   const flap = Math.sin(t * 11) * 0.22;

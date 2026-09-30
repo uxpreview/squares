@@ -29,7 +29,7 @@ import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, h } from '../land.js';
 import { CIRCLE, BATH_HOUSE, PLAYGROUND, SHELTER, DAY_BLVD } from '../plan.js';
 import { hour, between, nightK, rainK, wetK } from '../clock.js';
-import { dusk, carton, lawnChair, lettering, car } from '../kit.js';
+import { dusk, carton, lawnChair, lettering, car, umbrella, streetlight, LAMP_H, bench as kitBench, pigeon as kitPigeon, gullStand, cupHeld, line3 as line } from '../kit.js';
 import { INK, CUP, LIT, EVENING, BRAND } from '../style.js';
 
 // ---------- Small helpers ----------
@@ -63,19 +63,13 @@ const GRANITE = mix(C.greyLight, C.grey, 0.4);
 const STUCCO = mix(C.butter, INK.paper, 0.55);
 const BRICK = INK.brick;
 const TILE = mix(C.red, C.brown, 0.3);
-const LAMPPOST = mix(C.green, C.ink, 0.55);
 const SHELTER_ROOF = mix(C.green, C.ink, 0.3);
 const CHIPS = mix(C.woodLight, C.brown, 0.3);
 const COUCH_INK = mix(C.green, C.mustard, 0.4); // somebody's curb, 1987
 const PUDDLE = alpha(tint(C.sky, 0.35), 0.6);
 const SAND = mix(C.butter, INK.paper, 0.35);
 
-function line(ctx, pts, color, lw = 0.05) {
-  ctx.beginPath();
-  pts.forEach((p, i) => { const [X, Y] = P3(p[0], p[1], p[2]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
-  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.stroke();
-}
+
 const pole = (ctx, x, y, z, hgt, color = C.greyLight, r = 0.06) => box(ctx, x - r, y - r, z, r * 2, r * 2, hgt, color, { flat: true, lw: 0.03 });
 // A flat panel facing the lower left (along x, at y) or lower right (along y, at x).
 function panel(ctx, along, x, y, z, w, hgt, fill, o = {}) {
@@ -91,24 +85,6 @@ function board(ctx, x, y, z, w, hgt, fill, lines) {
   const gap = hgt / (lines.length + 1);
   lines.forEach(([text, size, ink, font], i) => lettering(ctx, 'y', x + 0.01, y, z + hgt / 2 - gap * (i + 1), text, size, ink || C.ink, font || 'Bagel Fat One'));
 }
-// An umbrella over someone at (x, y, z): r its reach, top its height.
-function umbrella(ctx, x, y, z, color, sway = 0, r = 0.78, top = 2.95) {
-  const [X, Y] = P3(x, y, z);
-  ctx.save();
-  ctx.translate(X + sway, Y - top * ZK);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.12 - sway, 1.25); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-r, 0.05);
-  ctx.quadraticCurveTo(-r, -0.7 * r, 0, -0.74 * r);
-  ctx.quadraticCurveTo(r, -0.7 * r, r, 0.05);
-  const n = r > 1 ? 6 : 4;
-  for (let i = n - 1; i >= 0; i--) { const a = -r + (i + 0.5) * (2 * r / n); ctx.quadraticCurveTo(a + r / n, -0.12, a - r / n + 0.02, 0.05); }
-  ctx.closePath();
-  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.4), density: 0.12 });
-  ctx.beginPath(); ctx.moveTo(0, -0.74 * r); ctx.lineTo(0, -0.74 * r - 0.14); ctx.stroke();
-  ctx.restore();
-}
 // A park tree, like the ones along Farragut Road.
 function tree(ctx, x, y, z, s = 1, ink = day, leaf = C.green) {
   const [X, Y] = P3(x, y, z);
@@ -121,41 +97,13 @@ function tree(ctx, x, y, z, s = 1, ink = day, leaf = C.green) {
   }
   ctx.restore();
 }
-// A park lamp: a post-top lantern on a dark green post.
-const LAMP_H = 3.9;
-function streetlight(ctx, x, y, z, lit = false) {
-  box(ctx, x - 0.16, y - 0.16, z, 0.32, 0.32, 0.35, LAMPPOST, { flat: true, lw: 0.03 });
-  pole(ctx, x, y, z + 0.35, LAMP_H - 0.35, LAMPPOST, 0.07);
-  const zt = z + LAMP_H;
-  box(ctx, x - 0.2, y - 0.2, zt, 0.4, 0.4, 0.55, lit ? LIT : tint(C.sky, 0.45), { flat: true, lw: 0.03, top: LAMPPOST });
-  const [X, Y] = P3(x, y, zt + 0.55);
-  ctx.beginPath(); ctx.moveTo(X - 0.4, Y + 0.02); ctx.lineTo(X, Y - 0.34); ctx.lineTo(X + 0.4, Y + 0.02); ctx.closePath();
-  paint(ctx, LAMPPOST, { lw: 0.03 });
-}
 // A park bench along y, facing +x (the lower right).
-function bench(ctx, x, y, z) {
-  for (const dy of [0.15, 1.45]) box(ctx, x + 0.1, y + dy, z, 0.5, 0.1, 0.45, C.ink, { flat: true, lw: 0.02 });
-  box(ctx, x - 0.05, y, z + 0.53, 0.08, 1.7, 0.5, C.wood, { flat: true, lw: 0.03 });
-  box(ctx, x, y, z + 0.45, 0.6, 1.7, 0.08, C.wood, { flat: true, lw: 0.03 });
-}
+const bench = (ctx, x, y, z) => kitBench(ctx, x, y, z, { along: 'y' });
 function barrel(ctx, x, y, z, color) {
   box(ctx, x - 0.3, y - 0.3, z, 0.6, 0.6, 1.0, color, { lw: 0.03, dens: 0.14 });
   box(ctx, x - 0.34, y - 0.34, z + 1.0, 0.68, 0.68, 0.08, shade(color, 0.12), { flat: true, lw: 0.025 });
 }
-// Critters.
-function gullStand(ctx, x, y, z, t = 0, peck = false, dir = 1) {
-  const [X, Y] = P3(x, y, z);
-  ctx.save(); ctx.translate(X, Y); ctx.scale(dir, 1);
-  const pk = peck && Math.sin(t * 4 + x) > 0.6;
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.035;
-  ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.16); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.16); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.26, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
-  ctx.beginPath(); ctx.ellipse(-0.06, -0.29, 0.16, 0.065, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { stroke: false });
-  const hx = pk ? 0.26 : 0.18, hy = pk ? -0.2 : -0.42;
-  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-  ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
-  ctx.restore();
-}
+// Critters (a gull standing is the kit's).
 function gullFly(ctx, x, y, z, t) {
   const [X, Y] = P3(x, y, z);
   const f = Math.sin(t * 7) * 0.22;
@@ -165,17 +113,7 @@ function gullFly(ctx, x, y, z, t) {
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.lineCap = 'round'; ctx.stroke();
   ctx.strokeStyle = C.white; ctx.lineWidth = 0.05; ctx.stroke();
 }
-function pigeon(ctx, x, y, z, t, ph = 0, dir = 1) {
-  const [X, Y] = P3(x, y, z);
-  const bob = Math.max(0, Math.sin(t * 5 + ph)) * 0.08;
-  ctx.save(); ctx.translate(X, Y); ctx.scale(dir * 0.8, 0.8);
-  ctx.beginPath(); ctx.ellipse(0, -0.24, 0.28, 0.15, -0.1, 0, Math.PI * 2);
-  ctx.moveTo(-0.2, -0.26); ctx.lineTo(-0.44, -0.3); ctx.lineTo(-0.24, -0.16);
-  paint(ctx, C.grey, { lw: 0.03 });
-  ctx.beginPath(); ctx.arc(0.22, -0.4 + bob, 0.1, 0, Math.PI * 2); paint(ctx, mix(C.grey, C.purple, 0.3), { lw: 0.025 });
-  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.moveTo(0.31, -0.41 + bob); ctx.lineTo(0.39, -0.38 + bob); ctx.lineTo(0.31, -0.36 + bob); ctx.fill();
-  ctx.restore();
-}
+const pigeon = (ctx, x, y, z, t, ph = 0, dir = 1) => kitPigeon(ctx, x, y, z, t, { phase: ph, dir: dir < 0 ? 'l' : 'r' });
 // A dog, trotting; in a raincoat when it rains.
 function dog(ctx, x, y, z, t, dir, coat, fur = C.wood) {
   const [X, Y] = P3(x, y, z);
@@ -190,13 +128,7 @@ function dog(ctx, x, y, z, t, dir, coat, fur = C.wood) {
 }
 
 // ---------- Things people hold (in the person's own units) ----------
-function cupHeld(ctx) {
-  ctx.beginPath(); ctx.moveTo(-0.11, -0.34); ctx.lineTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.lineTo(0.11, -0.34); ctx.closePath();
-  paint(ctx, mix(C.brown, C.white, 0.45), { lw: 0.025 });
-  ctx.fillStyle = CUP.band; ctx.fillRect(-0.1, -0.2, 0.2, 0.08);
-  ctx.fillStyle = CUP.lid; ctx.fillRect(-0.11, -0.37, 0.22, 0.05);
-  ctx.strokeStyle = CUP.lid; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(0.03, -0.37); ctx.lineTo(0.08, -0.55); ctx.stroke();
-}
+
 const chairHeld = (color) => (ctx) => { ctx.beginPath(); ctx.rect(-0.08, -0.5, 0.16, 0.9); paint(ctx, color, { lw: 0.03 }); };
 function sandwichHeld(ctx) {
   ctx.beginPath(); ctx.moveTo(-0.18, 0); ctx.lineTo(0.18, 0); ctx.lineTo(0, -0.22); ctx.closePath(); paint(ctx, C.woodLight, { lw: 0.025 });
@@ -673,7 +605,7 @@ export default {
       couch(ctx, p.x, p.y, z + 0.75 + bob, COUCH_INK, null);
       who(1, CO.d + 0.1, null);
       who(2, CO.d + 1.6, (c) => { c.beginPath(); c.rect(-0.1, -0.1, 0.7, 0.45); paint(c, C.white, { lw: 0.03 }); c.fillStyle = C.teal; c.fillRect(-0.1, -0.1, 0.7, 0.12); });
-      if (Q.detail && frac(t / 6) < 0.5) speech(ctx, p.x + 0.7, p.y + 1.2, z + 3.2, frac(t / 12) < 0.5 ? 'It was free!' : 'Pivot!', { size: 0.42 });
+      if (Q.detail && frac(t / 6) < 0.5) speech(ctx, p.x + 0.7, p.y + 1.2, z + 3.2, frac(t / 12) < 0.5 ? 'It was free!' : 'Front row!', { size: 0.42 });
     });
     {
       const z = gz(CO.x + 0.7, CO.y + 1.2);

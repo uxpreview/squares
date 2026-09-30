@@ -23,7 +23,7 @@ import { C, Q, P, SKIN, HAIR, folk, person, paint, speech, alpha, mix, tint, sha
 import { ZK } from '../../engine/iso.js';
 import { schedule } from '../../engine/actors.js';
 import { HOUSES, ROW_X0, FH, GROUND, ROAD, STAND, FRONT } from './plan.js';
-import { FLIGHTS, HALL, BODY, DOOR, carton } from './kit.js';
+import { FLIGHTS, HALL, BODY, DOOR, carton, umbrella } from './kit.js';
 import { LOOP, at, hour, rainK } from './clock.js';
 import { CURB } from './plan.js';
 import { CUP } from './style.js';
@@ -87,24 +87,6 @@ const stroke = (g, pts, color, lw) => {
 function feet(ctx, p, fn) {
   const [X, Y] = P(p.x, p.y, p.z);
   ctx.save(); ctx.translate(X, Y); ctx.scale(p.dir === 'l' ? -1 : 1, 1); fn(ctx); ctx.restore();
-}
-// An umbrella over someone at (x, y, z) (Farragut Road's, the same hand).
-function umbrella(ctx, x, y, z, color, sway = 0) {
-  const [X, Y] = P(x, y, z);
-  const top = Y - 2.95 * ZK, r = 0.78;
-  ctx.save();
-  ctx.translate(X + sway, top);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0.12 - sway, 1.25); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-r, 0.05);
-  ctx.quadraticCurveTo(-r, -0.55, 0, -0.58);
-  ctx.quadraticCurveTo(r, -0.55, r, 0.05);
-  for (let i = 3; i >= 0; i--) { const a = -r + (i + 0.5) * (2 * r / 4); ctx.quadraticCurveTo(a + r / 4, -0.12, a - r / 4 + 0.02, 0.05); }
-  ctx.closePath();
-  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.4), density: 0.12 });
-  ctx.beginPath(); ctx.moveTo(0, -0.58); ctx.lineTo(0, -0.72); ctx.stroke();
-  ctx.restore();
 }
 // Arms: holding something in front, up over the head, dragging behind.
 const CARRY = [1.2, 1.2], OVERHEAD = [2.75, -2.75], DRAG = [-0.7, -1.0];
@@ -220,9 +202,10 @@ function flatBox(g, hy) {
 function dresser(g) {
   rect(g, -0.36, -0.55, 0.9, 1.0, C.wood, 0.035, { dots: shade(C.wood, 0.5), density: 0.12 });
   if (!Q.detail) return;
+  // (The middle drawer's missing, on the curb and upstairs.)
   for (let i = 0; i < 3; i++) {
-    rect(g, -0.3, -0.48 + i * 0.31, 0.78, 0.26, tint(C.wood, 0.15), 0.02);
-    g.fillStyle = C.butter; g.fillRect(0.06, -0.37 + i * 0.31, 0.06, 0.05);
+    rect(g, -0.3, -0.48 + i * 0.31, 0.78, 0.26, i === 1 ? C.ink : tint(C.wood, 0.15), 0.02);
+    if (i !== 1) { g.fillStyle = C.butter; g.fillRect(0.06, -0.37 + i * 0.31, 0.06, 0.05); }
   }
 }
 function tv(g) {
@@ -376,6 +359,8 @@ function walker(id, name, seed, steps, o = {}) {
     draw(ctx, t, p) {
       const w = walk(t);
       const d = o.dress(t, p, w, ctx0);
+      // (Somewhere else for a while, drawn by that area: the walk goes on.)
+      if (d.hide) return;
       const z = p.z + (d.z || 0);
       const q = { ...p, z };
       if (d.under) d.under(ctx, q);
@@ -552,6 +537,11 @@ const policeScanner = (g) => {
   stroke(g, [[0.46, -0.45], [0.46, -0.72]], C.black, 0.03);
   if (Q.detail) { g.fillStyle = C.red; g.fillRect(0.48, -0.38, 0.06, 0.04); }
 };
+// When she's out at the Grey One's showing (grey-1.js draws her walk through).
+export const OPEN_HOUSE = [13.45, 14.34];
+// Her look for another area to draw her in: the rain bonnet if she's come in
+// from the rain, the keys jingling if she's walking.
+export const ladyLook = (bonnet, moving) => ({ ...LADY, wear: wear(cardigan, keyring(moving)), face: face(curlers(bonnet)) });
 const landlady = walker('landlady', 'Landlady', 71, [
   room('green', 0), { until: at(10.9) },
   door('green'), landing('green', 1), room('green', 1), { until: at(11.45), say: 'What is this.' },
@@ -562,6 +552,9 @@ const landlady = walker('landlady', 'Landlady', 71, [
   color: C.purple,
   dress(t, p, w) {
     const h = hh(t), rain = wet(t, w), porch = w.x > FRONT && !w.moving;
+    // Half past one: next door at the Open House, in her own slippers (the
+    // Grey One's first floor draws her there, in this look; ladyLook).
+    if (h >= OPEN_HOUSE[0] && h < OPEN_HOUSE[1] && !w.moving) return { hide: true };
     let hold = clipboard, arms, pose, speak = p.say, extra = null;
     if (porch) {
       // Handing out keys, one at a time, to the line in the rain.

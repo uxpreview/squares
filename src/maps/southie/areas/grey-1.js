@@ -2,8 +2,9 @@
 // for a showing: fake lemons in a bowl nobody's allowed to use, a staged
 // sofa with one throw pillow placed just so, a realtor with a clipboard and
 // a tablet, a basket of shoe booties at the door. Twenty people at the 1pm
-// showing, all measuring. Everyone must wear the booties; a lady in a
-// housecoat who looks a lot like the landlady walks through in her shoes.
+// showing, all measuring. Everyone must wear the booties; the landlady
+// from the Green House walks through in her slippers (she's out of her own
+// flat then: day.js, OPEN_HOUSE).
 import {
   C, Q, SKIN, HAIR, box, rect, disc, face, paint, person, folk, speech, glow, chair, plant,
   shade, tint, mix, alpha, P, onLeft, onRight, paintText,
@@ -13,6 +14,7 @@ import { ZK } from '../../../engine/iso.js';
 import { apartment, lettering } from '../kit.js';
 import { SIDING, TRIM, ROOM } from '../style.js';
 import { at, rainK, nightK } from '../clock.js';
+import { ladyLook, OPEN_HOUSE } from '../day.js';
 import { H, during, track, boards, edison, kitchenL, sagaOn, saga, porchDepth, onPorch, rails } from './grey-2.js';
 
 const BOOTIE = tint(C.sky, 0.25);
@@ -110,14 +112,14 @@ const clipTab = (ctx) => {
   ctx.fillStyle = C.tealLight; ctx.fillRect(0.24, -0.25, 0.28, 0.2);
 };
 
-// ---------- The lookalike ----------
-// A lady in a housecoat and curlers, in her own shoes, straight through.
+// ---------- The landlady ----------
+// In her housecoat, curlers and rain bonnet, keys jingling, in her own
+// slippers, straight through (day.js hides her at home meanwhile).
 const LADY = track([
   [13.45, 14.2, 4.0], [13.49, 13.4, 1.4], [13.52, 12.1, 1.0], [13.56, 12.2, 2.5], [13.7, 7.4, 5.0, { dir: 'l', say: 'Plastic lemons. Classy.' }],
   [13.8, 7.4, 5.0, { dir: 'l', say: 'Plastic lemons. Classy.' }], [13.87, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }],
   [14.0, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }], [14.22, 12.2, 2.5], [14.26, 12.1, 1.0], [14.3, 13.4, 1.4], [14.34, 14.2, 4.0],
 ]);
-const LADY_LOOK = { skin: SKIN[0], hair: HAIR[4], style: 'curly', dress: true, top: C.pink, shoes: C.brown, phase: 2 };
 // Her muddy prints, laid as she goes and mopped up at half past three.
 const PRINTS = [];
 for (let h = 13.53; h < 14.24; h += 0.007) {
@@ -385,9 +387,9 @@ export default {
 
     // The lady in the housecoat, and her prints.
     R.mover((t) => LADY(H(t)), (ctx, t, p) => {
-      person(ctx, p.x, p.y, 0, { ...LADY_LOOK, pose: p.pose, dir: p.dir, back: p.back }, t);
+      person(ctx, p.x, p.y, 0, { ...ladyLook(true, p.pose === 'walk'), pose: p.pose, dir: p.dir, back: p.back }, t);
       if (p.say && Q.detail) speech(ctx, p.x, p.y, 2.6, p.say, { size: 0.42 });
-    }, { on: during(13.45, 14.34), depth: (t) => porchDepth(LADY(H(t))) });
+    }, { on: during(...OPEN_HOUSE), depth: (t) => porchDepth(LADY(H(t))) });
     R.thing(0, 0, (ctx, t) => {
       const h = H(t), fade = h > 15.4 ? Math.max(0, 1 - (h - 15.4) / 0.55) : 1;
       if (fade <= 0) return;

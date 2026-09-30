@@ -176,6 +176,7 @@ function frame(now) {
     t,
     now,
     focus: play.focus,
+    live: play.live(now),
     level: play.level,
     still: !camera.flying && !camera.drifting && !input.busy,
     fx: play.fx(now),
