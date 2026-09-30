@@ -6,7 +6,7 @@ A hidden-object picture book you can walk through. Tiny animated places, drawn e
 - **Pick a place:** one card per map, with a live picture and your progress.
 - **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it. A first visit gets a card pinned to a room saying where to start; on the whole map, rooms that still hide their goose honk now and then. A house changes floors from its lift, in the corner.
 - **Whodunits** (Gooseworth Manor): the finds are **evidence** and **curiosities**, and the goal is solving the case. **Case** opens the case file: every suspect, what points at them, their alibi, and **Accuse**. Accuse anyone, any time; the wrong one gives you their alibi (and a joke), and the culprit stays a mystery until you've found every clue against them.
-- **The tide** (Plum Island, still being made): the water rises and falls on the clock, and some things only show at low tide (the list says so). The dial in the corner says what the tide's doing; tap it to skip ahead to the next low or high water.
+- **The tide** (Plum Island): the water rises and falls on the clock, and some things only show at low tide (the list says so). The dial in the corner says what the tide's doing; tap it to skip ahead to the next low water, sunset or high water.
 
 Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made (or retired, like the Walk-Up) are hidden from the picker but open from a link: `/#/tower`.
 
@@ -109,7 +109,7 @@ src/
       areas/           One file per area
     crossroads/      A hidden test bed (#/crossroads): a street and a pavement of any shape
                      between four rooms, with people walking between them
-    plum/            Plum Island (hidden until it ships, #/plum): a barrier island on a tide
+    plum/            Plum Island: a barrier island on a tide
       land.js          The island's ground and water: its outline, the dunes, the marsh, the roads
       tide.js          The day, the tide's level, when the flats are out, the dial
       style.js         The style sheet: the North Shore inks, the sea through the day, the night print, Gander Cola
@@ -157,13 +157,13 @@ docs/
 | What a place's overview frames (on a phone, a desk, a phone on its side) | `overview` in its `map.js`; places without one use `overviewBox` in `src/engine/world.js`, which fills a phone |
 | How a place fades in when it opens | `startIntro` and `INTRO_MS` in `src/engine/renderer.js` |
 | Change how floors lift away (and dim below) in a building | `LIFT`, `GHOST` and `BELOW` at the top of `src/engine/renderer.js` |
-| Sharpness vs. speed | `dprCap` in `src/engine/camera.js`; neighbor picture sizes are `SNAP_STEPS` in `src/engine/renderer.js` |
+| Sharpness vs. speed | The steps sharpness takes when frames stay slow (3x, 2x, 1.5x) and back up when they're quick: `SHARP` and `watchFrameRate` in `src/engine/renderer.js` (tools keep one sharpness unless they set `camera.view.dprAuto`); neighbor picture sizes are `SNAP_STEPS` there too |
 | How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
 | See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
-| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop. Close anything else running the game first (another browser tab, an editor's preview pane): it shares the graphics chip and takes a quarter off the numbers |
+| See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs; `--auto` lets sharpness step down on slow frames as it does for players, and says where each view ended up). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop. Close anything else running the game first (another browser tab, an editor's preview pane): it shares the graphics chip and takes a quarter off the numbers |
 | How the map in front of the room you're in is cut away | "The cut layer" in `src/engine/renderer.js` (drawn on a see-through sheet, the room's outline erased, laid on the picture) |
 | Plum Island's ground: the island's shape, the dunes, the marsh, the roads | `src/maps/plum/land.js` (outline points, heights, and the layers' colors in `style.js`); `npm run qa -- plum` fails ground that climbs toward you too steeply |
-| When the tide's in or out, and when tide-only finds show | `TURNS`, `lowTide`, `highTide` and `SUNSET` in `src/maps/plum/tide.js`; where the dial skips to is its `next` |
+| When the tide's in or out, and when tide-only finds show | `TURNS`, `lowTide`, `highTide` and `SUNSET` in `src/maps/plum/tide.js`; where the dial skips to (low water, sunset, high water) is its `next` |
 | Plum Island's sea through the day (the sunset's pink and lavender) | `SEA` and `paperAt` in `src/maps/plum/style.js` |
 | Who steps aside for the greenhead swarm | `aside(x, y, t)` from `src/maps/plum/swarm.js`, added to where someone stands in their area's file |
 | Plum Island's sounds | `src/maps/plum/sound.js` (when each cue plays); the sounds themselves (`bridgebell`, `prop`, `lap`, `crickets`, the `island` bed) are in `src/game/audio.js` |

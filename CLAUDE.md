@@ -21,7 +21,7 @@ The owner is a designer who vibe codes. Explain changes in plain language, say w
 - `node tools/shoot.mjs <target> <out.png> [--mobile] [--landscape] [--zoom=2] [--t=4] [--at=90] [--freeze] [--storey=up] [--finds] [--eval="js"]` to look at your work. Targets: `title`, `maps`, a map id (`block`), or `map/zone` (`block/pool`). `--at` shows a moment of the scene (seconds), `--freeze` stops the clock right on it (to catch a flash of lightning), `--storey` a floor, `--finds` rings every find, `--eval` sets up a state first. Always look at desktop and `--mobile`.
 - `npm run new-level -- <id>` scaffolds a new place from its brief (`docs/levels/<id>.md`).
 - `npm run qa -- <id>` runs every machine check on a place and makes its contact sheet in `qa-out/<id>/` (ignored by git). It must pass before a level goes to the owner. `--quick` skips the slow parts.
-- `node tools/fps.mjs <id>` counts real frames per second in every view, in a visible window on this computer's graphics chip. QA's speed check can't see graphics-chip lag; run this after changing how things are drawn. `--only=a,b` for some views, `--eval="js"` to switch something off first and compare.
+- `node tools/fps.mjs <id>` counts real frames per second in every view, in a visible window on this computer's graphics chip. QA's speed check can't see graphics-chip lag; run this after changing how things are drawn. `--only=a,b` for some views, `--eval="js"` to switch something off first and compare, `--auto` to let sharpness step down on slow frames as it does for players (tools keep one sharpness otherwise).
 - `node tools/playtest.mjs <id> prepare|check` runs a blind playtest from screenshots (see `docs/prompts/playtester.md`).
 
 ## Architecture (see README for the file map)

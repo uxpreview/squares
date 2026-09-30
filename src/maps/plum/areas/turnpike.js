@@ -14,7 +14,7 @@
 // World units, like land.js. Everything standing on the marsh that the king
 // tide reaches has its foot drawn live from the water line (feet()), since a
 // still picture would stand over the water.
-import { C, Q, box, disc, face, poly, paint, paintText, person, folk, speech, label, cylinder, mix, tint, shade, alpha } from '../../../engine/art.js';
+import { C, Q, box, disc, face, poly, paint, paintText, person, folk, speech, label, cylinder, mix, tint, shade, alpha, glow } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h, roadZ, PIKE, RIVER, BRIDGE, DECK, PINK, SHACK, AIRFIELD, VISITOR, DECK_AT, PANNES, CREEKS } from '../land.js';
@@ -427,39 +427,59 @@ export default {
     const [px, py] = PINK, gz = footing(R, px - 1.2, py - 1.2, 2.4, 2.4);
     // The house, back for a moment at sunset (three times, a second each):
     // pink clapboard, white trim, its porch facing the road, a light on.
+    // The same house is its own ghost in between (P: the inks to draw it in).
     const H0 = 55.4, H1 = 58.4, D0 = 9.4, D1 = 11.8, hz0 = footing(R, H0, D0, H1 - H0, D1 - D0);
-    R.thing(59.2, D1 + 0.1, (ctx) => {
-      const top = hz0 + 3.1, rise = 1.15, m = (D0 + D1) / 2;
-      box(ctx, H0, D0, hz0, H1 - H0, D1 - D0, 3.1, PINKHOUSE, { dotsL: shade(PINKHOUSE, 0.45), dens: 0.12, lw: 0.05 });
+    const HOUSE_INKS = { body: PINKHOUSE, roof: ROOF, lit: LIT, trim: C.white, chimney: C.brown, line: undefined, dots: true };
+    const GHOST_INKS = { body: mix(C.pink, C.white, 0.2), roof: mix(C.pink, C.lilac, 0.45), lit: C.white, trim: C.white, chimney: mix(C.pink, C.lilac, 0.6), line: mix(C.pink, C.white, 0.5), dots: false };
+    const pinkHouse = (ctx, P) => {
+      const top = hz0 + 3.1, rise = 1.15, m = (D0 + D1) / 2, ln = P.line, st = (o) => (ln ? { ...o, stroke: o.stroke || ln } : o);
+      box(ctx, H0, D0, hz0, H1 - H0, D1 - D0, 3.1, P.body, P.dots ? { dotsL: shade(P.body, 0.45), dens: 0.12, lw: 0.05 } : { flat: true, lw: 0.05, stroke: ln });
       if (Q.detail) {
-        ctx.strokeStyle = alpha(shade(PINKHOUSE, 0.3), 0.55); ctx.lineWidth = 0.025; ctx.beginPath();
+        ctx.strokeStyle = alpha(ln || shade(P.body, 0.3), 0.55); ctx.lineWidth = 0.025; ctx.beginPath();
         for (let z = hz0 + 0.26; z < top; z += 0.26) { const [a, b] = P3(H0, D1, z), [c, d] = P3(H1, D1, z), [e, f] = P3(H1, D0, z); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.lineTo(e, f); }
         ctx.stroke();
       }
       // Windows, lit: someone's home.
       for (const z of [hz0 + 0.55, hz0 + 1.95]) {
-        for (const u of [H0 + 0.35, H0 + 1.25, H0 + 2.15]) pane(ctx, 'x', 0, D1, u, u + 0.5, z, z + 0.75, LIT, { lw: 0.04, stroke: C.white });
-        if (z > hz0 + 1) for (const v of [D0 + 0.4, D0 + 1.45]) pane(ctx, 'y', H1, 0, v, v + 0.5, z, z + 0.75, LIT, { lw: 0.04, stroke: C.white });
+        for (const u of [H0 + 0.35, H0 + 1.25, H0 + 2.15]) pane(ctx, 'x', 0, D1, u, u + 0.5, z, z + 0.75, P.lit, { lw: 0.04, stroke: P.trim });
+        if (z > hz0 + 1) for (const v of [D0 + 0.4, D0 + 1.45]) pane(ctx, 'y', H1, 0, v, v + 0.5, z, z + 0.75, P.lit, { lw: 0.04, stroke: P.trim });
       }
-      pane(ctx, 'y', H1, 0, D0 + 0.95, D0 + 1.45, hz0, hz0 + 1.4, C.white, { lw: 0.04 });
-      pane(ctx, 'y', H1, 0, D0 + 0.25, D0 + 0.7, hz0 + 0.55, hz0 + 1.3, LIT, { lw: 0.04, stroke: C.white });
-      ctx.strokeStyle = C.white; ctx.lineWidth = 0.09; ctx.beginPath();
+      pane(ctx, 'y', H1, 0, D0 + 0.95, D0 + 1.45, hz0, hz0 + 1.4, P.trim, st({ lw: 0.04 }));
+      pane(ctx, 'y', H1, 0, D0 + 0.25, D0 + 0.7, hz0 + 0.55, hz0 + 1.3, P.lit, { lw: 0.04, stroke: P.trim });
+      ctx.strokeStyle = P.trim; ctx.lineWidth = 0.09; ctx.beginPath();
       for (const [cx, cy] of [[H0, D1], [H1, D1], [H1, D0]]) { const [a, b] = P3(cx, cy, hz0), [c, d] = P3(cx, cy, top); ctx.moveTo(a, b); ctx.lineTo(c, d); }
       ctx.stroke();
       // The roof, ridge along x, its gable end to the road.
-      face(ctx, [[H0, D0, top], [H1, D0, top], [H1, m, top + rise], [H0, m, top + rise]], shade(ROOF, 0.12), { lw: 0.05 });
-      box(ctx, H0 + 0.5, m - 0.2, top + rise - 0.4, 0.4, 0.4, 0.9, C.brown, { flat: true, lw: 0.04 });
-      face(ctx, [[H1, D0, top], [H1, D1, top], [H1, m, top + rise]], shade(PINKHOUSE, 0.06), { lw: 0.05, stroke: C.white });
-      if (Q.detail) pane(ctx, 'y', H1, 0, m - 0.2, m + 0.2, top + 0.2, top + 0.6, LIT, { lw: 0.035, stroke: C.white });
-      face(ctx, [[H0 - 0.1, D1 + 0.12, top], [H1 + 0.1, D1 + 0.12, top], [H1 + 0.1, m, top + rise], [H0 - 0.1, m, top + rise]], ROOF, { lw: 0.05, dots: Q.detail ? shade(ROOF, 0.4) : null, density: 0.14 });
+      face(ctx, [[H0, D0, top], [H1, D0, top], [H1, m, top + rise], [H0, m, top + rise]], shade(P.roof, 0.12), st({ lw: 0.05 }));
+      box(ctx, H0 + 0.5, m - 0.2, top + rise - 0.4, 0.4, 0.4, 0.9, P.chimney, { flat: true, lw: 0.04, stroke: ln });
+      face(ctx, [[H1, D0, top], [H1, D1, top], [H1, m, top + rise]], shade(P.body, 0.06), { lw: 0.05, stroke: P.trim });
+      if (Q.detail) pane(ctx, 'y', H1, 0, m - 0.2, m + 0.2, top + 0.2, top + 0.6, P.lit, { lw: 0.035, stroke: P.trim });
+      face(ctx, [[H0 - 0.1, D1 + 0.12, top], [H1 + 0.1, D1 + 0.12, top], [H1 + 0.1, m, top + rise], [H0 - 0.1, m, top + rise]], P.roof, st({ lw: 0.05, dots: Q.detail && P.dots ? shade(P.roof, 0.4) : null, density: 0.14 }));
       // The porch along the road side: floor, posts, rail, roof.
-      box(ctx, H1, D0 + 0.1, hz0, 0.8, D1 - D0 - 0.2, 0.3, C.white, { flat: true, lw: 0.04 });
-      for (const v of [D0 + 0.2, (D0 + D1) / 2, D1 - 0.3]) pole(ctx, H1 + 0.7, v, hz0 + 0.3, 1.3, C.white, 0.05);
-      if (Q.detail) line(ctx, [[H1 + 0.72, D0 + 0.2, hz0 + 0.75], [H1 + 0.72, D1 - 0.3, hz0 + 0.75]], C.white, 0.06);
-      face(ctx, [[H1, D0 + 0.05, hz0 + 1.75], [H1, D1 - 0.05, hz0 + 1.75], [H1 + 0.9, D1 - 0.05, hz0 + 1.55], [H1 + 0.9, D0 + 0.05, hz0 + 1.55]], shade(ROOF, 0.05), { lw: 0.04 });
-    // Faint all through its window (a memory, and something to tap), back
-    // in full for a moment three times across the sunset.
-    }, { fade: (t) => Math.max(flicker(t), pinkWindow(t) ? 0.3 : 0) });
+      box(ctx, H1, D0 + 0.1, hz0, 0.8, D1 - D0 - 0.2, 0.3, P.trim, { flat: true, lw: 0.04, stroke: ln });
+      for (const v of [D0 + 0.2, (D0 + D1) / 2, D1 - 0.3]) box(ctx, H1 + 0.65, v - 0.05, hz0 + 0.3, 0.1, 0.1, 1.3, P.trim, { flat: true, lw: 0.03, stroke: ln });
+      if (Q.detail) line(ctx, [[H1 + 0.72, D0 + 0.2, hz0 + 0.75], [H1 + 0.72, D1 - 0.3, hz0 + 0.75]], P.trim, 0.06);
+      face(ctx, [[H1, D0 + 0.05, hz0 + 1.75], [H1, D1 - 0.05, hz0 + 1.75], [H1 + 0.9, D1 - 0.05, hz0 + 1.55], [H1 + 0.9, D0 + 0.05, hz0 + 1.55]], shade(P.roof, 0.05), st({ lw: 0.04 }));
+    };
+    // In full for a moment three times across the sunset.
+    R.thing(59.2, D1 + 0.1, (ctx) => pinkHouse(ctx, HOUSE_INKS), { fade: flicker });
+    // In between, all through its window, its ghost: the same house in pale
+    // light, see-through, a little off the ground, swaying, glowing pink. It
+    // gives the player something to tap (gate 3, the owner: "the ghost is the
+    // Pink House").
+    const [hbx, hby] = P3((H0 + H1) / 2, (D0 + D1) / 2, hz0);
+    R.thing(59.2, D1 + 0.1, (ctx, t) => {
+      const k = 1 - flicker(t);
+      if (k <= 0.01) return;
+      glow(ctx, (H0 + H1) / 2, (D0 + D1) / 2, hz0 + 2, 4.6, C.pink, k * (0.8 + 0.2 * Math.sin(t * 1.9)));
+      ctx.save();
+      ctx.globalAlpha *= k * (0.62 + 0.08 * Math.sin(t * 2.3));
+      ctx.translate(hbx, hby - 0.25 - 0.12 * Math.sin(t * 1.4));
+      ctx.transform(1, 0, 0.035 * Math.sin(t * 1.1), 1, 0, 0);
+      ctx.translate(-hbx, -hby);
+      pinkHouse(ctx, GHOST_INKS);
+      ctx.restore();
+    }, { anim: true, on: pinkWindow });
     // The memorial: a painting of the house on two granite posts, facing the road.
     const mx = 59.6, mz = R.ground(mx, py);
     R.thing(mx + 0.25, py + 0.9, (ctx) => {

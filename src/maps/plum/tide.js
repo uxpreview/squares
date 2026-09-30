@@ -97,7 +97,9 @@ export function nightK(t) {
 
 // The dial (play.js): the tide, what it says now, and where a tap skips to.
 // Low water lands at noon; high water at 11pm, just as the road goes under.
-const LOW_AT = at(12), HIGH_AT = at(23);
+// On the way up it stops at sunset first (7:50pm, the Pink House's window),
+// so skipping never jumps over it (gate 3).
+const LOW_AT = at(12), SUNSET_AT = at(19.83), HIGH_AT = at(23);
 export const dial = {
   name: 'the tide',
   label(t) {
@@ -111,9 +113,11 @@ export const dial = {
   next(t) {
     const L = level(t);
     const up = L < -0.6 || (rising(t) && L <= 0.15);
-    const target = up ? HIGH_AT : LOW_AT;
+    const dusk = up && wrap(t) < SUNSET_AT - 5;
+    const target = dusk ? SUNSET_AT : up ? HIGH_AT : LOW_AT;
     let when = t - wrap(t) + target;
     while (when < t + 5) when += LOOP;
+    if (dusk) return { at: when, label: 'sunset', say: 'Sunset. Everyone turns to watch the marsh, backs to the tide.' };
     return up
       ? { at: when, label: 'high tide', say: 'High tide. The marsh is filling up, and so is the road.' }
       : { at: when, label: 'low tide', say: 'Low tide. The flats are out.' };

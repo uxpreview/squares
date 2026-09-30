@@ -38,6 +38,15 @@ export default [
     load: () => import('./manor/map.js'),
   },
   {
+    id: 'plum',
+    name: 'Plum Island',
+    subtitle: 'King Tide',
+    tagline: 'A barrier island, a king tide tonight, and nobody taking it seriously.',
+    ink: '#3F8FA6',
+    // The first place with ground and water (ROADMAP E4; docs/levels/plum.md).
+    load: () => import('./plum/map.js'),
+  },
+  {
     id: 'crossroads',
     name: 'The Crossroads',
     tagline: 'A test bed: areas of any shape, and people walking between them.',
@@ -46,16 +55,5 @@ export default [
     // checking engine changes. Opens from #/crossroads.
     hidden: true,
     load: () => import('./crossroads/map.js'),
-  },
-  {
-    id: 'plum',
-    name: 'Plum Island',
-    subtitle: 'King Tide',
-    tagline: 'A barrier island, a king tide tonight, and nobody taking it seriously.',
-    ink: '#3F8FA6',
-    // Greyboxed, at gate 2 (docs/levels/plum.md): the first place with ground
-    // and water (ROADMAP E4). Out of the picker until it ships.
-    hidden: true,
-    load: () => import('./plum/map.js'),
   },
 ];
