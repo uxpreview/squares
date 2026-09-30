@@ -350,6 +350,7 @@ body[data-screen="places"] .places-list > li { animation: fade-up 0.5s cubic-bez
 .place-pic canvas { display: block; width: 100%; height: 100%; }
 .place-body { padding: 16px 18px 18px; }
 .place-card-name { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.05; }
+.place-card-sub { margin: 2px 0 0; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-ink); }
 .place-card-tag { margin: 6px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--ink-soft); }
 .place-card-meta {
   display: flex;

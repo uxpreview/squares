@@ -46,7 +46,13 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 //              (0 deepAlpha for none: the ground's own colors under it can
 //              carry the depth, for less drawing)
 //   side:      the plate's cut sides: { soil, dots }
+//   rim:       false for a land with no cut sides or back edge line: its
+//              edges run into the paper (a place printed on the sea, whose
+//              deep water is the paper's own color)
+//   paper(t):  with no rim, the paper's color at t (under the water where
+//              the plate ends, it's printed in it)
 // }
+// water.color can be a function of t, for water whose ink follows the day.
 export function makeLand(o) {
   const step = o.step || 0.5;
   const nx = Math.round(o.w / step), ny = Math.round(o.d / step);
@@ -96,6 +102,8 @@ export function makeLand(o) {
     lag: o.lag ?? 18,
     water,
     side: { soil: C.woodLight, dots: C.brown, ...(o.side || {}) },
+    rim: o.rim !== false,
+    paper: o.paper || null,
     // The water's depth at a point (0 on dry ground), and whether it's under.
     depth: (x, y, t) => Math.max(0, (o.level ? o.level(t) : -Infinity) - h(x, y)),
     wet: (x, y, t) => (o.level ? o.level(t) : -Infinity) > h(x, y),
@@ -306,7 +314,7 @@ function ground(land, box, P, o, front) {
     const p = new Path2D();
     if (edges(p, land, box, (k) => c - H[k], zv, P)) strokes.push({ path: p, color: o.contourInk || alpha(C.ink, 0.25), lw: 0.04, dash: true });
   }
-  return { fills, strokes, sides: sides(land, box, P, front), soil: land.side.soil, soilDots: land.side.dots };
+  return { fills, strokes, sides: land.rim ? sides(land, box, P, front) : [], soil: land.side.soil, soilDots: land.side.dots };
 }
 
 // The plate's cut sides where a piece meets its front edges: soil, with the
@@ -424,8 +432,16 @@ function paintWater(ctx, land, pc, P, t, o) {
       };
     }
     const s = pc.sea;
+    if (!s.sides) s.sides = waterSides(land, pc, P, L, land.rim ? 0 : 1);
+    // Without a rim, everything under the water where the plate ends is
+    // printed in the paper's own color (the deep water is the paper), so the
+    // sea runs on past the map with no edge.
+    if (!land.rim && land.paper) {
+      ctx.fillStyle = land.paper(t);
+      for (const { p } of s.sides) ctx.fill(p);
+    }
     if (s.sea) {
-      ctx.fillStyle = alpha(ink.color, ink.alpha);
+      ctx.fillStyle = alpha(typeof ink.color === 'function' ? ink.color(t) : ink.color, ink.alpha);
       ctx.fill(s.sea);
     }
     if (s.deep) {
@@ -464,41 +480,8 @@ function paintWater(ctx, land, pc, P, t, o) {
       }
     }
     // The water's side, where the plate is cut through it.
-    for (const [on, along] of [[pc.front.y, 'y'], [pc.front.x, 'x']]) {
-      if (!on) continue;
-      const p = new Path2D(), top = new Path2D();
-      let open = false, any = false;
-      const n = along === 'y' ? i1 - i0 : j1 - j0;
-      const at = (q) => (along === 'y' ? [(i0 + q) * step, j1 * step, H[j1 * W + i0 + q]] : [i1 * step, (j0 + q) * step, H[(j0 + q) * W + i1]]);
-      // Runs of the edge that are under water, each a band from the ground up to the level.
-      let run = [];
-      const flush = () => {
-        if (run.length < 2) { run = []; return; }
-        run.forEach(([x, y], q) => { const [X, Y] = P(x, y, L); q ? p.lineTo(X, Y) : p.moveTo(X, Y); q ? top.lineTo(X, Y) : top.moveTo(X, Y); });
-        for (let q = run.length - 1; q >= 0; q--) { const [x, y, z] = run[q]; const [X, Y] = P(x, y, Math.min(z, L)); p.lineTo(X, Y); }
-        p.closePath();
-        any = true;
-        run = [];
-      };
-      for (let q = 0; q <= n; q++) {
-        const [x, y, z] = at(q);
-        if (z < L) {
-          if (!open && q > 0) {
-            // Where it goes under, part way along the step.
-            const [px, py, pz] = at(q - 1), u = (L - pz) / (z - pz);
-            run.push([px + (x - px) * u, py + (y - py) * u, L]);
-          }
-          run.push([x, y, z]);
-          open = true;
-        } else if (open) {
-          const [px, py, pz] = at(q - 1), u = (L - pz) / (z - pz);
-          run.push([px + (x - px) * u, py + (y - py) * u, L]);
-          flush();
-          open = false;
-        }
-      }
-      flush();
-      if (any) {
+    if (land.rim) {
+      for (const { p, top, along } of s.sides) {
         ctx.fillStyle = alpha(along === 'y' ? shade(ink.side, 0.15) : ink.side, 0.55);
         ctx.fill(p);
         if (Q.lines) {
@@ -510,7 +493,7 @@ function paintWater(ctx, land, pc, P, t, o) {
     }
   }
   // The plate's back edges: an ink line along the ground, or the water where it's over it.
-  if (Q.lines && (pc.back.x || pc.back.y)) {
+  if (Q.lines && land.rim && (pc.back.x || pc.back.y)) {
     ctx.beginPath();
     if (pc.back.y) for (let i = i0; i <= i1; i++) { const [X, Y] = P(i * step, j0 * step, Math.max(H[j0 * W + i], L)); i === i0 ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); }
     if (pc.back.x) for (let j = j0; j <= j1; j++) { const [X, Y] = P(i0 * step, j * step, Math.max(H[j * W + i0], L)); j === j0 ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); }
@@ -518,6 +501,51 @@ function paintWater(ctx, land, pc, P, t, o) {
     ctx.lineWidth = 0.06;
     ctx.stroke();
   }
+}
+
+// Where a piece's water is cut by the plate's front edges: a band from the
+// ground up to the level along each, and its top line.
+function waterSides(land, pc, P, L, under = 0) {
+  const [i0, j0, i1, j1] = pc.box;
+  const { H, W, step } = land;
+  const out = [];
+  for (const [on, along] of [[pc.front.y, 'y'], [pc.front.x, 'x']]) {
+    if (!on) continue;
+    const p = new Path2D(), top = new Path2D();
+    let open = false, any = false;
+    const n = along === 'y' ? i1 - i0 : j1 - j0;
+    const at = (q) => (along === 'y' ? [(i0 + q) * step, j1 * step, H[j1 * W + i0 + q]] : [i1 * step, (j0 + q) * step, H[(j0 + q) * W + i1]]);
+    // Runs of the edge that are under water, each a band from the ground up to the level.
+    let run = [];
+    const flush = () => {
+      if (run.length < 2) { run = []; return; }
+      run.forEach(([x, y], q) => { const [X, Y] = P(x, y, L); q ? p.lineTo(X, Y) : p.moveTo(X, Y); q ? top.lineTo(X, Y) : top.moveTo(X, Y); });
+      for (let q = run.length - 1; q >= 0; q--) { const [x, y, z] = run[q]; const [X, Y] = P(x, y, Math.min(z, L) - under); p.lineTo(X, Y); }
+      p.closePath();
+      any = true;
+      run = [];
+    };
+    for (let q = 0; q <= n; q++) {
+      const [x, y, z] = at(q);
+      if (z < L) {
+        if (!open && q > 0) {
+          // Where it goes under, part way along the step.
+          const [px, py, pz] = at(q - 1), u = (L - pz) / (z - pz);
+          run.push([px + (x - px) * u, py + (y - py) * u, L]);
+        }
+        run.push([x, y, z]);
+        open = true;
+      } else if (open) {
+        const [px, py, pz] = at(q - 1), u = (L - pz) / (z - pz);
+        run.push([px + (x - px) * u, py + (y - py) * u, L]);
+        flush();
+        open = false;
+      }
+    }
+    flush();
+    if (any) out.push({ p, top, along });
+  }
+  return out;
 }
 
 // ---------- Helpers for what stands on it ----------

@@ -412,6 +412,12 @@ export function createRenderer(canvas, camera, o = {}) {
     Q.lines = k > 6;
     Q.detail = false;
     const plate = world.map.plate;
+    // A plate that bleeds (Plum Island, printed on the sea) fills the card
+    // with its paper, so the picture runs to its edges there too.
+    if (plate && plate.bleed) {
+      const paper = plate.at ? plate.at(t).paper : plate.paper;
+      if (paper) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = paper; g.fillRect(0, 0, cv.width, cv.height); g.restore(); }
+    }
     const fx = { view: [cx - w / 2 / z, cy - h / 2 / z, cx + w / 2 / z, cy + h / 2 / z], level: world.top, thumb: true };
     if (plate && world.map.backdrop) world.map.backdrop(g, t, world, fx);
     for (const c of world.drawOrder) {
