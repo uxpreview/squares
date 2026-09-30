@@ -15,12 +15,12 @@ export default {
     block(R, 2, 6.2, 8, 2.6, 3, C.grey, 'ENGINE');
     block(R, 2, 10.5, 8, 2.6, 3, C.grey, 'ENGINE');
     block(R, 3, 0.6, 5, 0.8, 3, C.navy, 'GAUGES');
-    block(R, 10.5, 14.2, 0.4, 0.4, 3.2, C.grey, 'PIPE');
-    block(R, 15, 14.2, 0.4, 0.4, 3.2, C.grey, '');
-    block(R, 10.9, 13.9, 4.1, 1.1, 0.2, C.white, 'HAMMOCK', { z: 1.1 });
-    figure(R, 12.8, 14.4, folk(91), 'Engineer', { pose: 'sleep', z: 1.3 });
+    block(R, 10.5, 13.2, 0.4, 0.4, 3.2, C.grey, 'PIPE');
+    block(R, 15, 13.2, 0.4, 0.4, 3.2, C.grey, '');
+    block(R, 10.9, 12.9, 4.1, 1.1, 0.2, C.white, 'HAMMOCK', { z: 1.1 });
+    figure(R, 12.8, 13.4, folk(91), 'Engineer', { pose: 'sleep', z: 1.3 });
     figure(R, 5, 2.4, folk(92), 'Apprentice', { dir: 'r', back: true });
-    pin(R, { id: 'hammock', label: 'A hammock between two pipes', at: [13, 14.4, 1.6] }, 1);
+    pin(R, { id: 'hammock', label: 'A hammock between two pipes', at: [13, 13.4, 1.6] }, 1);
     pin(R, { id: 'wrench', label: 'A lost wrench', at: [4, 14.8, 0.05] }, 2);
     paths(R);
   },

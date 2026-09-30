@@ -202,7 +202,9 @@ export function passenger(R, x, y, seed, o = {}) {
   const look = { ...folk(seed), ...(o.look || {}) };
   R.thing(x, y, (ctx, t) => {
     const k = green(t, o.sick);
-    person(ctx, x, y, o.z || 0, { ...look, skin: queasy(look.skin, k), pose: o.pose || 'stand', dir: o.dir || 'r', back: o.back, scale: o.scale, hold: o.hold }, t);
+    // (A dress shows skin for legs, so someone going green wears trousers.)
+    const dress = look.dress && o.sick == null;
+    person(ctx, x, y, o.z || 0, { ...look, dress, bottom: look.dress && !dress ? look.top : look.bottom, skin: queasy(look.skin, k), pose: o.pose || 'stand', dir: o.dir || 'r', back: o.back, scale: o.scale, hold: o.hold }, t);
   }, { anim: true });
 }
 

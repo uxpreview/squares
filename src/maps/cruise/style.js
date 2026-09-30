@@ -137,7 +137,10 @@ export function drawCast(ctx, id, p, t) {
   if (id === 'iguana') return iguana(ctx, p.x, p.y, p.z, p.dir, t);
   const c = CAST[id];
   const look = { ...c.look, ...(COSTUME[id] || {}) };
-  look.skin = queasy(look.skin, sickness(id, t));
+  const k = sickness(id, t);
+  // (A dress shows skin for legs; nobody should go green from the ankles up.)
+  if (k > 0 && look.dress) { look.dress = false; look.bottom = look.top; }
+  look.skin = queasy(look.skin, k);
   person(ctx, p.x, p.y, p.z, { ...look, pose: p.pose || (p.moving ? 'walk' : 'stand'), dir: p.dir, back: p.back, scale: look.scale }, t);
 }
 
