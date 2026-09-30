@@ -117,16 +117,19 @@ const COURIER = { ...folk(7), skin: SKIN[2], hair: HAIR[1], style: 'short', top:
 const COURIER_SAYS = ['G. GOOSE?', 'SIGN HERE?', 'IT SAYS URGENT', 'JUST A SIGNATURE', 'G. GOOSE??'];
 const NOPE = ['NOPE.', 'NOT TODAY.', 'KEEP GOING.', 'NO LANDING.', 'SHOO.'];
 
+// (About 0.6 across, so it reads on a phone: the art director's size.)
+const PK = 1.45;
 function parcel(ctx, x, y, z) {
-  box(ctx, x - 0.21, y - 0.18, z, 0.42, 0.36, 0.3, KRAFT, { lw: 0.03, dens: 0.1 });
+  const w = 0.21 * PK, d = 0.18 * PK, h = 0.3 * PK;
+  box(ctx, x - w, y - d, z, 2 * w, 2 * d, h, KRAFT, { lw: 0.03, dens: 0.1 });
   if (!Q.detail) return;
   // String both ways round the top, and the label on the side facing us.
-  face(ctx, [[x - 0.21, y, z + 0.3], [x + 0.21, y, z + 0.3]], null, { lw: 0.02, stroke: C.white });
-  face(ctx, [[x, y - 0.18, z + 0.3], [x, y + 0.18, z + 0.3], [x, y + 0.18, z]], null, { lw: 0.02, stroke: C.white });
-  face(ctx, [[x - 0.17, y + 0.181, z + 0.05], [x + 0.13, y + 0.181, z + 0.05], [x + 0.13, y + 0.181, z + 0.22], [x - 0.17, y + 0.181, z + 0.22]], C.white, { lw: 0.012 });
-  if (Q.pxPerUnit < 30) return;
-  lettering(ctx, 'x', x - 0.02, y + 0.19, z + 0.17, 'G. GOOSE', 0.055);
-  lettering(ctx, 'x', x - 0.02, y + 0.19, z + 0.1, 'MS BOTTOMLESS', 0.04);
+  face(ctx, [[x - w, y, z + h], [x + w, y, z + h]], null, { lw: 0.025, stroke: C.white });
+  face(ctx, [[x, y - d, z + h], [x, y + d, z + h], [x, y + d, z]], null, { lw: 0.025, stroke: C.white });
+  face(ctx, [[x - 0.17 * PK, y + d + 0.001, z + 0.05 * PK], [x + 0.13 * PK, y + d + 0.001, z + 0.05 * PK], [x + 0.13 * PK, y + d + 0.001, z + 0.22 * PK], [x - 0.17 * PK, y + d + 0.001, z + 0.22 * PK]], C.white, { lw: 0.012 });
+  if (Q.pxPerUnit < 24) return;
+  lettering(ctx, 'x', x - 0.02 * PK, y + d + 0.01, z + 0.17 * PK, 'G. GOOSE', 0.055 * PK);
+  lettering(ctx, 'x', x - 0.02 * PK, y + d + 0.01, z + 0.1 * PK, 'MS BOTTOMLESS', 0.04 * PK);
 }
 const KRAFT = C.woodLight;
 
@@ -340,8 +343,14 @@ const PALMS = [
 ];
 
 // A coconut on the sand; o.face paints one on it (the find).
+// o.s scales it (the find is a big one, about 0.65 across, so it reads on a phone).
 function coconut(ctx, x, y, z, o = {}) {
-  const [X, Y] = P(x, y, z);
+  const [X0, Y0] = P(x, y, z);
+  if (o.s) { ctx.save(); ctx.translate(X0, Y0); ctx.scale(o.s, o.s); ctx.translate(-X0, -Y0); }
+  coconutAt(ctx, X0, Y0, o);
+  if (o.s) ctx.restore();
+}
+function coconutAt(ctx, X, Y, o) {
   ctx.beginPath(); ctx.ellipse(X, Y, 0.24, 0.21, o.tilt || 0, 0, TAU);
   paint(ctx, C.brown, { lw: 0.025, dots: shade(C.brown, 0.5), density: 0.3 });
   if (!Q.detail) return;
@@ -496,20 +505,20 @@ export default {
     R.thing(4.4, 7.7, (ctx) => {
       coconut(ctx, 3.9, 7.3, 0.2); coconut(ctx, 4.3, 7.6, 0.2, { tilt: 0.5 });
     });
-    const FACE = [13.05, 11.75, 0.5];
+    const FACE = [13.05, 11.75, 0.56];
     R.thing(13.5, 12.0, (ctx) => {
       coconut(ctx, 12.7, 11.55, 0.2);
       coconut(ctx, 13.15, 11.4, 0.2, { tilt: 0.4 });
       coconut(ctx, 13.35, 11.85, 0.2, { tilt: -0.3 });
       coconut(ctx, 12.9, 12.0, 0.2);
-      coconut(ctx, ...FACE, { face: true });
+      coconut(ctx, ...FACE, { face: true, s: 1.35 });
       // Half a husk, emptied.
       const [X, Y] = P(13.8, 12.3, 0.1);
       ctx.beginPath(); ctx.ellipse(X, Y, 0.22, 0.12, 0, 0, Math.PI); ctx.closePath();
       paint(ctx, C.brown, { lw: 0.02 });
       ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.08, 0, 0, TAU); ctx.fillStyle = C.white; ctx.fill();
     });
-    R.find({ id: 'coconut', label: 'A coconut with a face', at: FACE, r: 0.7 });
+    R.find({ id: 'coconut', label: 'A coconut with a face', at: FACE, r: 0.75 });
 
     // ---------- The gift shop ----------
     R.thing(SHOP.x1, SHOP.y1, (ctx) => {
@@ -1065,7 +1074,7 @@ export default {
       // Sorted with the pier: behind it on its left, in front of it on its right.
       depth: (t) => { const p = tender(t); return p.x + p.y + (p.x > 9.5 && p.y > 11 ? 2.5 : 0); },
     });
-    R.find({ id: 'parcel', label: 'A parcel for G. Goose', at: (t) => { const [x, y, z] = parcelAt(tender(t)); return [x, y, z + 0.16]; }, r: 0.7 });
+    R.find({ id: 'parcel', label: 'A parcel for G. Goose', at: (t) => { const [x, y, z] = parcelAt(tender(t)); return [x, y, z + 0.22]; }, r: 0.75 });
   },
 };
 

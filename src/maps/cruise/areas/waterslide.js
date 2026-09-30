@@ -512,8 +512,9 @@ export default {
           ctx.beginPath(); ctx.ellipse(X, Y, 0.1, 0.06, 0, 0, Math.PI * 2); ctx.fill();
         }
       }
-      // The mini golf: carpet, with a teak edge.
-      rect(ctx, 10, 10.4, 5.2, 4.2, 0.02, C.leaf, { lw: 0.04, dots: C.green, density: 0.18 });
+      // The mini golf: carpet, with a teak edge. A deep green (C.green), so
+      // the biggest green thing on the top deck is never the clue's green.
+      rect(ctx, 10, 10.4, 5.2, 4.2, 0.02, C.green, { lw: 0.04, dots: shade(C.green, 0.35), density: 0.18 });
       if (Q.detail) {
         for (const [x, y] of [[11.1, 13.7], [12.4, 11.1]]) disc(ctx, x, y, 0.03, 0.13, C.ink, { stroke: false });
         textFloor(ctx, 12.6, 14.25, 'TEE', 0.22, alpha(C.white, 0.8));
@@ -548,7 +549,8 @@ export default {
     }, { anim: true });
 
     // ---------- The far rail ----------
-    // The lifeboat on its davits, with a stowaway nobody has noticed.
+    // The lifeboat on its davits, with a passenger hiding in it. (Not a
+    // stowaway: the ship has one of those, and it isn't him.)
     R.thing(4.5, 1.3, (ctx) => {
       const x = 2;
       for (const dx of [0.5, 4]) {
@@ -562,7 +564,7 @@ export default {
       }
       lifeboat(ctx, x, 0.1, 2.2, 4.5);
       lettering(ctx, 'x', 3.3, 1.3, 2.6, 'BOTTOMLESS 1', 0.24);
-      lettering(ctx, 'x', 3.3, 1.3, 2.36, 'OCCUPIED SINCE TUESDAY', 0.11);
+      lettering(ctx, 'x', 3.3, 1.3, 2.36, 'HIDING FROM THE IN-LAWS', 0.11);
     });
     // His head, up out of the cover now and then for a look round.
     R.thing(3.3, 1.35, (ctx, t) => {
@@ -582,21 +584,28 @@ export default {
       ctx.restore();
     }, { anim: true });
 
-    // Gander Cola, by the lift.
+    // The towel hut, by the lift: empty since 5am (every towel on board is
+    // on a lounger at the Pool). The Pool's bar has the Gander Cola cooler.
     R.thing(15, 1.1, (ctx) => {
-      box(ctx, 14.4, 0.2, 0, 1.2, 0.85, 2.4, INK.funnelRed, { top: tint(INK.funnelRed, 0.2) });
-      face(ctx, [[14.55, 1.06, 1.0], [15.45, 1.06, 1.0], [15.45, 1.06, 2.2], [14.55, 1.06, 2.2]], shade(INK.funnelRed, 0.15), { lw: 0.02 });
-      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) cylinder(ctx, 14.72 + i * 0.28, 1.1, 1.2 + j * 0.45, 0.08, 0.3, INK.funnelRed, { flat: true, top: MAT.chrome });
-      lettering(ctx, 'x', 15, 1.06, 0.72, 'GANDER', 0.24, C.white);
-      lettering(ctx, 'x', 15, 1.06, 0.45, 'Take a gander.', 0.12, C.white);
-      box(ctx, 14.6, 1.05, 0.12, 0.8, 0.05, 0.16, C.ink, { flat: true, stroke: false });
+      box(ctx, 14.4, 0.2, 0, 1.2, 0.85, 2.4, INK.hullWhite, { top: tint(INK.teak, 0.3), dotsL: shade(INK.hullWhite, 0.25) });
+      face(ctx, [[14.55, 1.06, 0.3], [15.45, 1.06, 0.3], [15.45, 1.06, 1.9], [14.55, 1.06, 1.9]], MAT.teakDark, { lw: 0.02 });
+      for (const z of [0.75, 1.3]) face(ctx, [[14.55, 1.07, z], [15.45, 1.07, z], [15.45, 1.07, z + 0.05], [14.55, 1.07, z + 0.05]], INK.teak, { lw: 0.015 });
+      // One towel left, folded, and it's damp.
+      box(ctx, 14.62, 0.7, 1.35, 0.32, 0.3, 0.1, INK.flamingo, { flat: true, lw: 0.015 });
+      board(ctx, 'x', 15, 1.08, 2.15, 1.05, 0.34, 'TOWELS', { board: INK.sea, ink: C.white, size: 0.17, edge: 0.02 });
+      board(ctx, 'x', 15.1, 1.09, 1.05, 0.62, 0.3, '', { board: C.white, edge: 0.015 });
+      lettering(ctx, 'x', 15.1, 1.1, 1.12, 'NONE LEFT', 0.07, INK.funnelRed);
+      lettering(ctx, 'x', 15.1, 1.1, 0.99, 'SINCE 5AM', 0.07, C.ink);
     });
 
     // The sunbather who found the one spot left: on top of the lift house.
     R.thing(12.7, 0.95, (ctx, t) => {
-      rect(ctx, 10.5, 0.15, 3.1, 0.62, 4.41, INK.flamingo, { lw: 0.02, dots: C.white, density: 0.3 });
+      // (Not the Pool's pink towel and not the Pool's sunbather: a striped
+      // beach towel and a man in red trunks, so the two never read as one.)
+      rect(ctx, 10.5, 0.15, 3.1, 0.62, 4.41, INK.sunYellow, { lw: 0.02 });
+      if (Q.detail) for (let i = 0; i < 4; i++) rect(ctx, 10.75 + i * 0.75, 0.15, 0.22, 0.62, 4.415, C.white, { stroke: false });
       const k = green(t, 100);
-      person(ctx, 12.5, 0.5, 4.45, { skin: qz(SKIN[5], k), hair: HAIR[3], style: 'long', top: C.teal, bottom: C.teal, pose: 'lie', dir: 'r', arms: [2.8, 0.3] }, t);
+      person(ctx, 12.5, 0.5, 4.45, { skin: qz(SKIN[3], k), hair: HAIR[1], style: 'short', top: INK.funnelRed, bottom: INK.funnelRed, pose: 'lie', dir: 'r', arms: [0.3, 0.2] }, t);
       cocktail(ctx, 13.7, 0.55, 4.41);
       if (k > 0.5) bucket(ctx, 10.7, 0.45, 4.41);
     }, { anim: true });

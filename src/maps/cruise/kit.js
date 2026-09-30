@@ -19,6 +19,72 @@ export function shape(ctx, pts, fill, o) {
   paint(ctx, fill, o);
 }
 
+// ---------- Drawing flat on a plane ----------
+// (The areas each wrote these; now they share one, so the ship's signs and
+// lines are drawn by one hand.)
+// Flat on an upright plane facing the lower left (y fixed): the origin is the
+// top left corner at (x, y, z), u runs along +x, v down.
+export function onY(ctx, x, y, z, draw) {
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.transform(1, 0.5, 0, ZK, X, Y);
+  draw(ctx);
+  ctx.restore();
+}
+// The same facing the lower right (x fixed): the origin is the top left
+// corner as we see it (the high-y end), and u runs along -y.
+export function onX(ctx, x, y, z, draw) {
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.transform(1, -0.5, 0, ZK, X, Y);
+  draw(ctx);
+  ctx.restore();
+}
+// A bow area's far wall (the Bridge, Adults Only, the Casino, the Sick Bay,
+// each 32 long): straight to x 16, then angling in to the point at 32.
+export const farY = (x) => (x <= 16 ? 0 : (x - 16) / 2);
+// Flat on that wall where it angles in (x past 16): u runs along the wall,
+// one unit for each unit of x, v down.
+export function onBow(ctx, x, z, draw) {
+  const [X, Y] = P(x, farY(x) + 0.03, z);
+  ctx.save();
+  ctx.transform(0.5, 0.75, 0, ZK, X, Y);
+  draw(ctx);
+  ctx.restore();
+}
+// Words in whatever units the context is in (onY and the rest), centred on (u, v).
+export function words(ctx, s, u, v, size, color = C.ink, align = 'center', weight = 700, font = 'Rethink Sans') {
+  if (!Q.detail) return;
+  ctx.save();
+  ctx.translate(u, v);
+  ctx.scale(1 / 40, 1 / 40);
+  ctx.font = `${weight} ${size * 40}px "${font}", sans-serif`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(s, 0, 0);
+  ctx.restore();
+}
+// A line through screen points, inked: the ship's one outline (ink 0.06
+// wider than the colour) under a coloured stroke.
+export function inked(ctx, pts, color, w, cap = 'round') {
+  ctx.beginPath();
+  pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)));
+  ctx.lineCap = cap;
+  ctx.lineJoin = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.06; ctx.stroke(); }
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
+}
+// Where a person's hand is on screen, given the arm's angle (the engine's
+// person: 0 hangs down, PI points up, positive swings toward where they
+// face). near: the arm on our side. s: the person's scale.
+export function hand(x, y, z, dir, a, near = true, s = 1) {
+  const f = dir === 'l' ? -1 : 1;
+  const hx = (near ? 0.22 : -0.22) + Math.sin(a) * 0.72, hy = -1.53 + Math.cos(a) * 0.72;
+  const [X, Y] = P(x, y, z);
+  return [X + f * s * hx, Y + s * hy];
+}
+
 // ---------- Words ----------
 // Lettering painted on an upright plane: along x (facing the lower left) or
 // y (the lower right), centred on (x, y, z).

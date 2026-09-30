@@ -19,7 +19,11 @@ import { ZK } from '../../../engine/iso.js';
 import { deck } from '../ship.js';
 import { HOUR } from '../plan.js';
 import { INK, MAT, at, wrap, hourOf, readable } from '../style.js';
-import { P, shape, board, porthole, bucket } from '../kit.js';
+import { P, shape, board, porthole, bucket, onY, onX, inked, hand, words as wordsAt } from '../kit.js';
+
+// The engine room letters a little heavier than the rest of the ship (stencils).
+const words = (ctx, s, u, v, size, color = C.ink, align = 'center', weight = 800, font) => wordsAt(ctx, s, u, v, size, color, align, weight, font);
+const handAt = (x, y, z, dir, a, s = 1) => hand(x, y, z, dir, a, true, s);
 
 // ---------- The clock down here ----------
 // How fast the ship's going (the same rule as the wake in ambient.js): full
@@ -50,46 +54,6 @@ const tapsSoFar = (s) => TAPS.filter((a) => s >= a).length;
 
 // ---------- Little drawing helpers (in this area's own units) ----------
 
-// Draw flat on an upright plane facing the lower left (y fixed): the origin
-// at (x, y, z), u runs along +x, v down.
-function onY(ctx, x, y, z, draw) {
-  const [X, Y] = P(x, y, z);
-  ctx.save();
-  ctx.transform(1, 0.5, 0, ZK, X, Y);
-  draw(ctx);
-  ctx.restore();
-}
-// The same on a plane facing the lower right (x fixed): u runs toward -y
-// (so words read left to right on the stern wall), v down.
-function onX(ctx, x, y, z, draw) {
-  const [X, Y] = P(x, y, z);
-  ctx.save();
-  ctx.transform(1, -0.5, 0, ZK, X, Y);
-  draw(ctx);
-  ctx.restore();
-}
-// Words in whatever units the context is in, centred on (u, v).
-function words(ctx, s, u, v, size, color = C.ink, align = 'center', weight = 800, font = 'Rethink Sans') {
-  if (!Q.detail) return;
-  ctx.save();
-  ctx.translate(u, v);
-  ctx.scale(1 / 40, 1 / 40);
-  ctx.font = `${weight} ${size * 40}px "${font}", sans-serif`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  ctx.fillText(s, 0, 0);
-  ctx.restore();
-}
-// A line through screen points, inked (an outline under a colored stroke).
-function inked(ctx, pts, color, w, cap = 'round') {
-  ctx.beginPath();
-  pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)));
-  ctx.lineCap = cap;
-  ctx.lineJoin = 'round';
-  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.07; ctx.stroke(); }
-  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
-}
 // A pipe through 3D points: inked, with a shine along its top.
 function pipe(ctx, pts3, color, w = 0.3, cap = 'round') {
   const pts = pts3.map((p) => P(...p));
@@ -158,16 +122,6 @@ function needle(g, u, v, r, val) {
   g.strokeStyle = C.red; g.lineWidth = Math.max(0.03, r * 0.08); g.lineCap = 'round'; g.stroke();
   g.beginPath(); g.arc(u, v, r * 0.1, 0, Math.PI * 2);
   g.fillStyle = C.ink; g.fill();
-}
-
-// Where a person's hand is on screen, given the arm's angle (the engine's
-// person: 0 hangs down, PI points up, positive swings toward where they face).
-const SHOULDER = -1.53;
-function handAt(x, y, z, dir, a, s = 1) {
-  const f = dir === 'l' ? -1 : 1;
-  const hx = 0.22 + Math.sin(a) * 0.72, hy = SHOULDER + Math.cos(a) * 0.72;
-  const [X, Y] = P(x, y, z);
-  return [X + f * s * hx, Y + s * hy];
 }
 
 // Someone who stays down here, drawn every frame: o.pose(t) returns their
@@ -1013,7 +967,8 @@ export default {
     // A towel on the warmest spot on the ship, and someone on it in shades.
     R.thing(6.0, ENGINES[0].y + ENG_D, (ctx, t) => {
       const e = ENGINES[0], z = HEAD_Z + HEAD_H + 0.16;
-      rect(ctx, 3.6, e.y + 0.75, 2.6, 1.0, z, C.pink, { lw: 0.025 });
+      // (A crew-issue towel: the pink ones are the Pool's.)
+      rect(ctx, 3.6, e.y + 0.75, 2.6, 1.0, z, MAT.crewBlue, { lw: 0.025 });
       if (Q.detail) for (let k = 0; k < 3; k++) rect(ctx, 3.8 + k * 0.8, e.y + 0.75, 0.25, 1.0, z + 0.005, C.white, { stroke: false });
       lying(ctx, 6.0, e.y + 1.3, z + 0.02, LOOK.sunbather, t, { face: shades, arms: [3.0, 2.9] });
     }, { depth: ENG_X + ENG_W + ENGINES[0].y + ENG_D + 0.03 });

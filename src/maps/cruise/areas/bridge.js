@@ -13,52 +13,9 @@ import { ZK } from '../../../engine/iso.js';
 import { deck, outline, lifeboat } from '../ship.js';
 import { HOUR } from '../plan.js';
 import { INK, MAT, at, wrap, hourOf, green, queasy, COSTUME } from '../style.js';
-import { P, lettering, board, lifebuoy, bucket, gull, CREW_LOOK } from '../kit.js';
+import { P, lettering, board, lifebuoy, bucket, gull, CREW_LOOK, onY, words, inked, hand } from '../kit.js';
 
 // ---------- Little drawing helpers (in this area's own units) ----------
-
-// Draw flat on an upright plane facing the viewer's lower left (y fixed):
-// the origin is the top left corner at (x, y, z), u runs along +x, v down.
-function onY(ctx, x, y, z, draw) {
-  const [X, Y] = P(x, y, z);
-  ctx.save();
-  ctx.transform(1, 0.5, 0, ZK, X, Y);
-  draw(ctx);
-  ctx.restore();
-}
-// Words in whatever units the context is in, centred on (u, v).
-function words(ctx, s, u, v, size, color = C.ink, align = 'center', weight = 700) {
-  if (!Q.detail) return;
-  ctx.save();
-  ctx.translate(u, v);
-  ctx.scale(1 / 40, 1 / 40);
-  ctx.font = `${weight} ${size * 40}px "Rethink Sans", sans-serif`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  ctx.fillText(s, 0, 0);
-  ctx.restore();
-}
-// A line in screen units, inked (an outline under a colored stroke).
-function inked(ctx, pts, color, w) {
-  ctx.beginPath();
-  pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)));
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.06; ctx.stroke(); }
-  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
-}
-
-// Where a person's hand is on screen, given the arm's angle (the engine's
-// person: 0 hangs down, PI points up, positive swings toward where they face).
-const SHOULDER = -1.53;
-function hand(x, y, z, dir, a, near = true, s = 1) {
-  const f = dir === 'l' ? -1 : 1;
-  const hx = (near ? 0.22 : -0.22) + Math.sin(a) * 0.72, hy = SHOULDER + Math.cos(a) * 0.72;
-  const [X, Y] = P(x, y, z);
-  return [X + f * s * hx, Y + s * hy];
-}
-
 // Someone who stays on the bridge, drawn every frame. o.pose(t) returns the
 // person's changing options (arms, pose, dir); o.after draws what they hold.
 function body(R, x, y, look, o = {}) {

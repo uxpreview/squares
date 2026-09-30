@@ -612,11 +612,13 @@ export default {
       paintText(ctx, 'left', 2.0, 5.2, 'OPEN 7AM', 0.26, C.ink, 'Rethink Sans');
       paintText(ctx, 'left', 2.0, 4.85, 'TO MIDNIGHT', 0.22, C.ink, 'Rethink Sans');
     });
-    // The display's number: 2 when the doors open, then everybody.
+    // The display's number: 2 when the doors open, then everybody, then
+    // everybody again (it's all you can eat). It never stops on the ship's
+    // head count: the gangway clicker is the one place that number is told.
     R.decor((ctx, t) => {
       if (!Q.detail) return;
       const s = wrap(t);
-      const n = s < 4 ? 2 : Math.min(2401, 2 + Math.floor((s - 4) * 10.34));
+      const n = s < 4 ? 2 : 2 + Math.floor((s - 4) * 23.7);
       paintText(ctx, 'left', 7.5, 3.98, n.toLocaleString('en-US'), 0.7, INK.funnelRed);
     }, { anim: true });
     // A gull at a porthole, looking in at the food now and then.

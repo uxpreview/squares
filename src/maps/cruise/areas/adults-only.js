@@ -17,57 +17,14 @@ import { ZK } from '../../../engine/iso.js';
 import { deck, outline } from '../ship.js';
 import { LOOP } from '../plan.js';
 import { INK, MAT, at, wrap, green, queasy } from '../style.js';
-import { P, lettering, board, porthole, lounger, cocktail, bucket, gull, CREW_LOOK } from '../kit.js';
+import { P, lettering, board, porthole, lounger, cocktail, bucket, gull, CREW_LOOK, onY, onBow, farY, words, inked } from '../kit.js';
 
 // ---------- Little drawing helpers (in this area's own units) ----------
 
-// The deck's half width at x: straight to x 16, then in to the point at 32.
-const half = (x) => (x <= 16 ? 8 : 8 * (1 - (x - 16) / 16));
-const farY = (x) => 8 - half(x);
 
 // A face at k green, in tenths (so the colour mixes stay few).
 const qz = (skin, k) => queasy(skin, Math.round(k * 10) / 10);
 
-// Draw flat on an upright plane facing the viewer's lower left (y fixed):
-// the origin is the top left corner at (x, y, z), u runs along +x, v down.
-function onY(ctx, x, y, z, draw) {
-  const [X, Y] = P(x, y, z);
-  ctx.save();
-  ctx.transform(1, 0.5, 0, ZK, X, Y);
-  draw(ctx);
-  ctx.restore();
-}
-// The same on the far wall where it angles in to the bow (x past 16): u runs
-// along the wall, one unit for each unit of x.
-function onBow(ctx, x, z, draw) {
-  const [X, Y] = P(x, farY(x) + 0.03, z);
-  ctx.save();
-  ctx.transform(0.5, 0.75, 0, ZK, X, Y);
-  draw(ctx);
-  ctx.restore();
-}
-// Words in whatever units the context is in, centred on (u, v).
-function words(ctx, s, u, v, size, color = C.ink, align = 'center', weight = 700) {
-  if (!Q.detail) return;
-  ctx.save();
-  ctx.translate(u, v);
-  ctx.scale(1 / 40, 1 / 40);
-  ctx.font = `${weight} ${size * 40}px "Rethink Sans", sans-serif`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  ctx.fillText(s, 0, 0);
-  ctx.restore();
-}
-// A line in screen units, inked (an outline under a colored stroke).
-function inked(ctx, pts, color, w) {
-  ctx.beginPath();
-  pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)));
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.06; ctx.stroke(); }
-  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
-}
 // A cucumber slice, lying flat or stuck on something (screen units, r across).
 function slice(ctx, X, Y, r = 0.1, flat = true) {
   ctx.beginPath();
