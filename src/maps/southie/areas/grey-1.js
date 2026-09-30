@@ -219,7 +219,7 @@ export default {
       for (let i = 0; i < 6; i++) rect(ctx, 3.15 + (i % 2) * 0.05, 3.25 - (i % 3) * 0.04, 0.6, 0.45, 1.31 + i * 0.03, C.white, { lw: 0.02 });
       if (Q.detail) { ctx.save(); ctx.translate(0, -1.5 * ZK); paintText(ctx, 'floor', 3.45, 3.45, 'OFFER', 0.1, C.ink, 'Rethink Sans'); ctx.restore(); }
     }, { on: during(16.1, 29), depth: 8.06 });
-    R.find({ id: 'tag', label: "A realtor's name tag", at: [2.45, 3.4, 1.35], r: 0.88 });
+    R.find({ id: 'tag', label: "A realtor's name tag", at: [2.45, 3.4, 1.4], r: 1.0 });
     for (const [x, y] of [[1.7, 3.5], [2.6, 3.5], [3.5, 3.5]]) edison(R, x, y, 1.2);
 
     // ---------- The middle: the table and the lemons ----------
@@ -252,7 +252,8 @@ export default {
         ctx.restore();
       }
     }, { depth: 13.46 });
-    R.find({ id: 'lemon', label: 'A plastic lemon', at: [LX, LY, 1.35], r: 0.88 });
+    // (Centered on the lemon itself, clear of the bowl beside it.)
+    R.find({ id: 'lemon', label: 'A plastic lemon', at: [LX - 0.35, LY - 0.05, 1.5], r: 0.9 });
     R.thing(1.2, 8.5, (ctx) => plant(ctx, 1.1, 8.3, 0, 0, { scale: 1.3, kind: 'leafy', potColor: C.white, leaf: C.green }));
 
     // ---------- The front room: the staged sofa ----------

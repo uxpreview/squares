@@ -90,6 +90,13 @@ export function bike(ctx, x, y, z) {
 }
 // The bike's water bottle: a tall sports bottle, see-through blue with a
 // grip band, a black cap with a white squeeze spout, and a clip on the cap.
+// The same, half again as big (in grey-2 itself, where it's a find).
+function bottleBig(ctx, x, y, z) {
+  const X = x - y, Y = (x + y) / 2 - z * ZK;
+  ctx.save(); ctx.translate(X, Y); ctx.scale(1.5, 1.5); ctx.translate(-X, -Y);
+  bottle(ctx, x, y, z);
+  ctx.restore();
+}
 export function bottle(ctx, x, y, z) {
   cylinder(ctx, x, y, z, 0.12, 0.52, tint(C.sky, 0.2), { flat: true });
   if (Q.detail) {
@@ -384,12 +391,17 @@ function stroller(ctx, s, t, asleep) {
   const [QX, QY] = P(x + 0.45 * d, y - 0.12, 1.02 + wob);
   ctx.beginPath(); ctx.ellipse(QX, QY, 0.07, 0.09, 0, 0, Math.PI * 2); paint(ctx, C.woodLight, { lw: 0.02 });
 }
-// A dog's yellow rain boot, fallen over, sole up a little.
+// A dog's yellow rain boot, lying on its side: a tall shaft and a round toe,
+// a dark sole and a coral cuff, so it reads as a boot.
 function rainBoot(ctx, x, y) {
-  box(ctx, x - 0.28, y - 0.13, 0, 0.44, 0.26, 0.24, C.mustard, { flat: true, lw: 0.03, top: tint(C.mustard, 0.2) });
-  box(ctx, x + 0.12, y - 0.15, 0, 0.18, 0.3, 0.32, C.mustard, { flat: true, lw: 0.03 });
-  box(ctx, x - 0.3, y - 0.14, 0, 0.62, 0.28, 0.05, C.ink, { flat: true, stroke: false });
-  if (Q.detail) box(ctx, x + 0.12, y - 0.15, 0.3, 0.18, 0.3, 0.04, C.coral, { flat: true, stroke: false });
+  // The foot, lying along x, toe to the right.
+  box(ctx, x - 0.1, y - 0.16, 0.02, 0.62, 0.32, 0.3, C.mustard, { lw: 0.03, top: tint(C.mustard, 0.2), dotsL: shade(C.mustard, 0.35) });
+  disc(ctx, x + 0.52, y, 0.17, 0.17, tint(C.mustard, 0.15), { lw: 0.03 });
+  // The shaft, standing up at the heel.
+  box(ctx, x - 0.36, y - 0.18, 0.02, 0.32, 0.36, 0.72, C.mustard, { lw: 0.03, top: shade(C.mustard, 0.45) });
+  if (Q.detail) box(ctx, x - 0.38, y - 0.2, 0.62, 0.36, 0.4, 0.12, C.coral, { flat: true, lw: 0.025 });
+  // The sole.
+  box(ctx, x - 0.38, y - 0.18, 0, 0.98, 0.36, 0.04, C.ink, { flat: true, stroke: false });
 }
 
 // The smart speaker's wrong answers, one exchange at a time.
@@ -523,7 +535,7 @@ export default {
       person(ctx, p.x, p.y, 0, { ...OWNER2_LOOK, pose: p.moving ? 'walk' : 'stand', dir: p.dir, arms: [1.3, 1.3], speed: 5 }, t);
     }, { on: during(7.4, 19) });
     R.thing(7.6, 4.6, (ctx) => rainBoot(ctx, 7.6, 4.6));
-    R.find({ id: 'boot', label: "A dog's rain boot", at: [7.6, 4.6, 0.2], r: 0.88 });
+    R.find({ id: 'boot', label: "A dog's rain boot", at: [7.65, 4.6, 0.4], r: 0.9 });
 
     // Their boxes, after noon; the seller's, before.
     R.thing(6.2, 8.5, (ctx) => {
@@ -585,10 +597,11 @@ export default {
     const home = (t) => { const sg = saga(t); return !!sg && sg.stop === 1 && !sg.bike.carried; };
     R.thing(11.4, 7.2, (ctx) => bike(ctx, BIKE_HOME[0], BIKE_HOME[1], 0.02), { on: home });
     R.mover((t) => (home(t) ? { x: 11.3, y: 6.95 } : { x: 11.0, y: 6.55 }), (ctx, t, p) => {
-      if (home(t)) bottle(ctx, 11.3, 6.95, 0.86);
-      else bottle(ctx, 11.0, 6.55, 0.02);
+      // (Drawn half again as big: it's small next to the bike.)
+      if (home(t)) bottleBig(ctx, 11.3, 6.95, 0.86);
+      else bottleBig(ctx, 11.0, 6.55, 0.02);
     }, { on: after, bias: 0.3 });
-    R.find({ id: 'bottle', label: "The bike's water bottle", at: (t) => (home(t) ? [11.3, 6.95, 1.1] : [11.0, 6.55, 0.3]), r: 0.88, ...AFTER });
+    R.find({ id: 'bottle', label: "The bike's water bottle", at: (t) => (home(t) ? [11.3, 6.95, 1.1] : [11.0, 6.55, 0.3]), r: 0.95, ...AFTER });
 
     // The bike's trip, whenever it's on this floor (the stairs up to the
     // penthouse are this floor's), and its movers.
