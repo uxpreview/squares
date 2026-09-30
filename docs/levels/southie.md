@@ -1,6 +1,6 @@
 # Moving Day
 
-> Status: **QA** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Preview** · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, session 6, decisions 1 to 24) · greybox [x] (the lead's call, session 6, decisions 25 to 31) · preview [ ] (the owner)
 >
 > Written in session 6 (Sept 2026) from the backlog entry in [LEVELS.md](../LEVELS.md) and the owner's sketch in [the sketchbook](../sketchbook.html) ("Southie: Moving Day"). Every landmark and street was checked against OpenStreetMap and the news to September 2026 before a line of it was written ("Real places, checked"). The owner reviews once, at the preview (PROCESS.md): at the brief and the greybox the lead takes its own recommendations and writes them into Decisions, where the owner can overturn any of them. The id is `southie` (`#/southie`), hidden until it ships.
@@ -233,6 +233,19 @@ The lead drew the shared kit first (`kit.js`: the finished triple-decker with it
 - **The ending:** the couch hands over from the road to the Green House's top porch at the first frame of the ending; eight geese haul, it wobbles over the rail and pivots, four sit on it, the couple in the porch door ("Close enough." "It's seventy-two.").
 
 **Engine, on the way:** a map can pick the moment its picker card shows (`plate.thumbAt`); an ending's area is drawn live every frame for its first minute (it was a picture refreshed when there was time, so the pivot stalled; the Block Party's and Plum Island's endings get it too); a long area honks from over its goose; the harbor's water takes the night.
+
+## QA, speed and the playtest (session 6)
+- **QA** (`npm run qa -- southie`, on the owner's 2017 laptop): 15 passed, 0 warnings, 0 failed. Slowest view on the slowed-down phone check: Farragut Road, under the 60 ms budget. The smoke test passes, with checks for houses you open.
+- **Real frames a second** on the 2017 laptop (`node tools/fps.mjs southie`), 1440 x 800 window: at 2x the whole map 40, the apartments 13 to 18, Farragut Road and Marine Park 11, Castle Island 14; as a player gets them, with sharpness stepping down to 1.5x (`--auto`), the apartments about 25, the road and the park 17. A little under Plum Island's areas (12 to 21 at 2x). The drawing code takes 2 to 13 ms a frame, and switching off the cutaway, the skyline or the sky changed little: it's the graphics chip putting the picture on screen, as on the Block Party and Plum Island.
+- **Blind playtest, round 1:** 39 of 48 on the first pass. Four misses were finds that weren't drawn at all (painted over by the counter, table or sofa they stood on: each now sorts after its furniture); the rest were decoys (a lemon painting, a red can by the scanner, white cylinders by the binoculars, a white lens by the logbook), a tag too small, and tap areas too tight (now 0.85 to 1). The tester also asked for the time on the dial ("11:40am · moving out") and for room names that fit the bar: both done.
+
+## For the owner at gate 3
+Each with a recommendation; every earlier call is in Decisions, and any can be overturned.
+1. **Play it on your phone** at `#/southie` (hidden from the picker until you approve): tap a house's floor and it opens, the floor above lifts; step out onto the road and the houses close. *Recommend:* approve the houses you open (E11) as the level's mechanic.
+2. **Farragut Road, not a lettered street** (decision 3). *Recommend:* keep; it's the only real street where you can see the row from the air.
+3. **Speed on the 2017 laptop:** about 25 frames a second in the apartments and 17 on the road and in the park, as a player gets them. *Recommend:* ship as is, and take the next step on older laptops (the open roadmap item) for every place at once, rather than for this level.
+4. **Rain from ten till three** (decision 10) greys the whole map for a third of the loop. *Recommend:* keep; it's what happened on the day and the funniest part of it (the mattress umbrella, the ponchos, the Brownie).
+5. **It ships to the picker** after Plum Island, as "Moving Day" with "South Boston" under it. *Recommend:* yes.
 
 ## Open questions
 None: the lead took its own recommendations (decisions below), and the owner can overturn any of them at the preview.
