@@ -1,6 +1,6 @@
 # All You Can Eat
 
-> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Preview** (gate 3, hidden at `#/cruise`) · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, decisions 1 to 16) · greybox [x] (the lead's call, decisions 17 to 27) · preview [ ] (the owner)
 >
 > Session 7 (Sept 2026), built alongside Boston (Moving Day) in another session. Boston owns engine changes this round (PROCESS.md, "Two levels at once"), so this level is built only from what exists: storeys and the lift (the Manor), walkers on one clock, the whodunit format (`game/case.js`), a place's own dial (Plum Island's tide), and a plate that changes with the clock (the Block Party). It keeps to `src/maps/cruise/`, this brief, and its own lines in shared files.
@@ -155,8 +155,38 @@ All of it exists; nothing new is built for this level (Boston owns engine change
 - [x] **A plate that follows the clock** (`plate.at(t)`) and a sea that bleeds (`plate.bleed`).
 - [ ] **The sea in front of the hull:** drawn by the level (its `sky`), not the engine: a see-through band of the sea's ink over the crew deck, cleared when you step in (`fx.focus`).
 
+## The art (session 7)
+
+Twelve areas and the cast, each drawn by an artist in its own worktree (four at a time on the owner's Mac, while the Boston session built Moving Day), then one art direction pass, full QA, frame rates on the owner's laptop, and a blind playtest. What's in each area is in its file's header and blurb; the highlights:
+
+- **The Buffet:** the rush at 7am, the "NOW SERVING" board climbing all day past everyone aboard, the salad bar taped off at 1pm with people reaching under the tape, the butter swan slumping an hour at a time, buckets turning up by the green.
+- **The Pool:** loungers reserved all day and nobody on them, the drill at 10 with only the goose listening (in its life jacket), the limbo at noon, the iguana on its lounger in sunglasses.
+- **The Waterslide:** the big man stuck in the corkscrew, poked out with a pool noodle, a minute a go; the funnel with the ship's crest (a knife and fork).
+- **The Bridge:** the green captain and the first officer steering with one finger, the couple doing the pose on the bow through spray and a gull, the CCTV bank showing the other decks' gags live.
+- **The Cabins:** cabin 7 throwing Ray's things into the corridor an hour at a time with an audience on folding chairs, towel animals getting grander down the corridor.
+- **Adults Only:** the attendant's SHHH! going round the deck an hour at a time; the hot tub couple who haven't moved in four days.
+- **The Theater:** the Great Gary pulling everything but a rabbit out of his hat (a pigeon at 9am, when Pidge says to search it), the kids' slime show, bingo at 3.
+- **The Casino:** the 8:59 queue with cups of coins; the man betting on green since day one, who wins at 6pm and faints.
+- **The Engine Room:** the chief asleep in the hammock through every alarm, the gauge in the red.
+- **The Crew Bar:** the better party, building all day and going off at 3pm; the waiter who drops his smile down here.
+- **The Sick Bay:** DAYS WITHOUT AN OUTBREAK: 0, changed back by Dr. Swabb every time (it climbs while he's up at the buffet).
+- **The Port:** the island getting ready all day, the yellow flag at 6pm, the band playing the welcome to nobody; the Courier's tender waved off at the pier every time.
+- **The cast:** Pidge in a Hawaiian shirt under the trench coat; Doreen and her plate; Chad carried home by two stewards, still toasting; Gloria's cucumber mask; the captain's green face; the iguana, which walks, bobs its head, wears sunglasses on its lounger and, once the case is solved, a towel.
+
+**Checks.** `npm run qa -- cruise` passes (14 passed, 0 failed; speed within budget, slowest the Pool at 52 ms, the Cabins and Adults Only also over 40). `npm run smoke` passes, with a new check that opens the ship. On the owner's 2017 laptop (`node tools/fps.mjs cruise`, 1440 x 800 at 2x): the whole ship 40 frames a second; the areas 20 to 33 (the Pool 20, the Cabins 23, the Buffet and the Crew Bar and the Port 24, the Casino 26, the Sick Bay 27, the Engine Room 28, the Bridge 29, the Waterslide and Adults Only 30, the Theater 33): level with Plum Island (12 to 21) and the Block Party's Main Street (18 to 20). The map is the biggest download so far (614 KB, 194 KB gzipped).
+
+**The blind playtest:** 25 of 29 found, and the story held together (the tester suspected a reptile from the claw prints and the shed skin, was sure once the mystery card listed them, and laughed at Doreen's "number 2" and "Somebody put a towel on that lizard!"). Fixed after it, and re-checked by a second fresh tester: decisions 31 to 36.
+
+## For the owner at gate 3
+
+1. **The name is written All-You-Can-Eat** (decision 18): QA keeps a place's name to three words. Recommendation: keep it; the other way is to let QA allow this one name.
+2. **It opens on the Promenade,** the two decks above hovering faint, the buffet in the middle (decision 6). The picker card shows the whole ship from the top. Recommendation: keep; the other choice is opening on the Sun Deck, which shows the whole ship but puts the buffet two decks down.
+3. **The iguana is in plain sight all day** (on its lounger at the pool, walking the ship at breakfast and dinner). The playtester suspected a reptile during the hunt. Recommendation: keep; naming it still takes all six clues, and it sunbathing in plain view is the joke.
+4. **A ship's horn** (the game has none; the port uses the car horn this round, decision 30). Recommendation: add one the next time this level can change `src/game/`.
+5. **Three quieter stretches** the art director noticed (the Bridge's stern half, the back of the Cabins corridor, the Crew Bar's front before 3pm). None hides a find. Recommendation: a small density pass after you've played it, if they read empty to you.
+
 ## Open questions
-None for now; see Decisions.
+See "For the owner at gate 3".
 
 ## The greybox (gate 2)
 
@@ -204,3 +234,9 @@ The art (session 7, the lead's calls):
 28. **Every area starts on a multiple of 16, on every deck** (the stern areas 0 to 16, the middle 16 to 48, the bow 48 to 80; the Cabins 0 to 48). The engine draws a deck in 16-unit chunks from each area's corner and sorts chunks by where they start, so boundaries at 24 and 56 put a piece of the deck below after the deck above it and the Cabins' walls showed through the Sun Deck (the Pool's artist caught it). Now each piece of a deck comes after the piece under it. The Theater, the Engine Room and the Waterslide are 16 wide; the Bridge, the Casino and the Sick Bay 32. The lift moved to x 12 so it stays in the stern areas.
 29. **On the Sun Deck people walk round the pool,** behind it (y 4) or in front (y 11.8), never across the water.
 30. **The ship's sound is built from sounds the game already has** (the sea is the surf bed; the drill is seven bells and the bridge bell; bingo is the ding; the port's welcome is the fanfare). A ship's horn is for a round when this level can change `src/game/`.
+31. **The art director cut the repeats:** a second sunbather, a second Gander Cola cooler, a third pink towel; a second "stowaway" in a lifeboat (he's hiding from his in-laws now, so the clicker's 2,401 has one answer); the Buffet's board no longer stops at 2,401 (the clicker is the one place that says it). Helpers two or more areas drew went into `kit.js` (drawing on upright faces and the bow wall, lettering, inked lines, a person's hand).
+32. **After the blind playtest:** Gloria's name is printed on her spa card (the tester couldn't tell it from the others); the towel monkey is drawn half as big again (it read as a swan); the patches box says SEASICK 500; the captain no longer carries a bucket (it took taps from the one by the wheel, which is the evidence), and the ice bucket moved from the wheel to the queue for the pose; the hammock's tap sits on the middle of its canvas.
+33. **"Doreen's tongs" is "Tongs with a pink scrunchie":** Doreen leaves the buffet at 8:40am, so most players never see her there to know which tongs are hers. The case file still says whose they are.
+34. **No name tag over the iguana:** it's patient zero, and "An iguana" over its head said so.
+35. **Two stewards carry Chad** (the cast artist drew a second under him; the brief always said "the stewards").
+36. **Two small fixes outside the level,** in their own commit: the case file said "It's in the The Buffet" for areas whose names start with The; the case-closed card said "things in the house" on a ship (a map can now say where, `words.inside`; the Manor reads as before).
