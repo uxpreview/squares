@@ -102,8 +102,9 @@ export const AREAS = {
 // ---------- The curb ----------
 // The hours the curb collector carries each free thing up the Yellow House
 // (the couch, the dresser, the TV, the lamp): gone from the curb then, up on
-// his floor about half an hour later.
-export const CURB = [13.6, 15.2, 16.8, 18.4];
+// his floor about half an hour later. (Close enough together that the last
+// two, which are finds, are up there two minutes of every loop.)
+export const CURB = [13.2, 14.3, 15.4, 16.5];
 export const CURB_UP = 0.6;
 
 // ---------- The loop ----------

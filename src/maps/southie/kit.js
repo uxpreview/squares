@@ -73,11 +73,17 @@ export function apartment(R, o) {
     }
   }
   // The stairwell's banister, where the stairs from below come up.
-  if (hole) R.thing((hole[0] + hole[2]) / 2, HALL.y1, (ctx) => box(ctx, hole[0], HALL.y1 - 0.08, 0, hole[2] - hole[0] - 0.3, 0.08, 1, trim, { flat: true }));
+  if (hole) R.thing((hole[0] + hole[2]) / 2, HALL.y1, (ctx) => {
+    const x0 = hole[0], x1 = hole[2] - 0.3;
+    box(ctx, x0, HALL.y1 - 0.08, 0.95, x1 - x0, 0.1, 0.08, C.wood, { flat: true, lw: 0.025 });
+    for (let x = x0 + 0.1; x < x1; x += 0.45) box(ctx, x, HALL.y1 - 0.06, 0, 0.06, 0.06, 0.95, C.wood, { flat: true, stroke: false });
+  });
 
   // The porch (or the Grey One's balcony), always showing: people stand out
   // on it, and it stands in front of the house's outside.
-  R.thing(PORCH.x1, PORCH.y1 - 0.1, (ctx) => porch(ctx, 0, 0, 0, o));
+  // (Its deck sorts behind whoever stands on it, its rails and posts in front.)
+  R.thing(PORCH.x0 + 0.1, PORCH.y0 + 0.1, (ctx) => porch(ctx, 0, 0, 0, o, 'deck'));
+  R.thing(PORCH.x1, PORCH.y1 - 0.1, (ctx) => porch(ctx, 0, 0, 0, o, 'rails'));
 
   // ---------- The outside ----------
   // By day, printed again in dusk inks after dark (the night printed, not
@@ -220,17 +226,22 @@ export function outside(ctx, x, y, z, band, ink) {
 }
 // A floor's porch, at (x, y, z): deck boards, balusters and a rail, turned
 // posts up to the porch above (the Grey One: a glass balcony, black posts).
-export function porch(ctx, x, y, z, band) {
+// part: 'deck' or 'rails' (drawn as two things, so whoever's on the porch
+// stands between them), or both.
+export function porch(ctx, x, y, z, band, part = null) {
   const modern = !!band.modern, trim = band.trim || C.white;
   const x0 = PORCH.x0, x1 = PORCH.x1, y0 = PORCH.y0, y1 = PORCH.y1;
   ctx.save();
   ctx.translate(...P3(x, y, z));
-  box(ctx, x0, y0, ZB, x1 - x0, y1 - y0, -ZB, modern ? C.black : trim, { flat: true, top: modern ? shade(C.greyLight, 0.1) : C.woodLight, lw: 0.035 });
-  if (Q.detail && !modern) {
-    ctx.save(); ctx.globalAlpha *= 0.3;
-    for (let u = y0 + 0.4; u < y1; u += 0.4) face(ctx, [[x0, u, 0.005], [x1, u, 0.005], [x1, u + 0.03, 0.005], [x0, u + 0.03, 0.005]], C.brown, { stroke: false });
-    ctx.restore();
+  if (part !== 'rails') {
+    box(ctx, x0, y0, ZB, x1 - x0, y1 - y0, -ZB, modern ? C.black : trim, { flat: true, top: modern ? shade(C.greyLight, 0.1) : C.woodLight, lw: 0.035 });
+    if (Q.detail && !modern) {
+      ctx.save(); ctx.globalAlpha *= 0.3;
+      for (let u = y0 + 0.4; u < y1; u += 0.4) face(ctx, [[x0, u, 0.005], [x1, u, 0.005], [x1, u + 0.03, 0.005], [x0, u + 0.03, 0.005]], C.brown, { stroke: false });
+      ctx.restore();
+    }
   }
+  if (part === 'deck') { ctx.restore(); return; }
   const H = 1.05, rx = x1 - 0.14;
   if (modern) {
     face(ctx, [[rx, y0, 0], [rx, y1, 0], [rx, y1, H], [rx, y0, H]], alpha(tint(C.sky, 0.35), 0.45), { lw: 0.03 });

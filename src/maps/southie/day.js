@@ -101,9 +101,9 @@ function trips(id, f, seed, name) {
 
 // The curb collector: the free things up the Yellow House, one at a time.
 const collector = (() => {
-  const steps = [curb('yellow', 1.2), { until: at(13.4) }];
+  const steps = [curb('yellow', 1.2), { until: at(13.1) }];
   for (const h of CURB) steps.push({ until: at(h) }, ...up('yellow', 2), { wait: 1.5 }, ...down('yellow', 2));
-  return walker('collector', 'Collector', 61, steps, { color: C.mustard, speed: 1.8 });
+  return walker('collector', 'Collector', 61, steps, { color: C.mustard, speed: 2.6 });
 })();
 
 export const walkers = [
