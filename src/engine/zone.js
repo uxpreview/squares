@@ -27,6 +27,9 @@
 //   thing  - everything that stands up; depth-sorted back to front by x + y
 //   dark   - the room's darkness when the lights go out (R.dark)
 //   light  - glows from lamps, candles and fires (R.light); they shine through the dark
+//   shell  - the zone's outside (R.shell): a house's front, porches and roof,
+//            over everything in it while you're not in it; it fades away when
+//            you step in (a building seen from outside, opened like a dollhouse)
 //   air    - drawn last, over everything (rain, snow, light beams, smoke)
 //
 // Every draw function receives (ctx, t) with ctx already positioned at the
@@ -50,8 +53,8 @@ import { S, WALL, SLAB, ZK, isoX, isoY, zoneBounds } from './iso.js';
 import { footprint } from './footprint.js';
 import { C, Q, setScreen, goose as drawGoose, box, onLeft, onRight, shade, alpha, glow } from './art.js';
 
-const LAYERS = ['floor', 'wall', 'decor', 'rug', 'thing', 'dark', 'light', 'air'];
-const WALL_L = 1, DECOR_L = 2, RUG_L = 3, THING = 4;
+const LAYERS = ['floor', 'wall', 'decor', 'rug', 'thing', 'dark', 'light', 'shell', 'air'];
+const WALL_L = 1, DECOR_L = 2, RUG_L = 3, THING = 4, SHELL_L = 7;
 export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 
 // def: the zone module. place: where the map puts it.
@@ -71,7 +74,9 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //   place.opts:   anything the map wants to tell the zone (R.opts), so a
 //                 zone file shared by two maps can draw differently on one
 //   place.land:   the map's ground with height and its water (terrain.js),
-//                 given by buildWorld to every zone of a map with a land
+//                 given by buildWorld to every zone of a map with a land;
+//                 false for a zone that stands on the land without printing it
+//                 or being shaped by it (a house on a map with a shore)
 export function buildZone(def, place = {}) {
   const [ox, oy, oz] = [place.at?.[0] ?? 0, place.at?.[1] ?? 0, place.at?.[2] ?? 0];
   const shape = place.shape || def.shape;
@@ -121,6 +126,8 @@ export function buildZone(def, place = {}) {
     veil: 0, // 0 = fully shown, 1 = lifted out of the way (see cutaway in the renderer)
     lift: 0, // how far up it's drawn right now because of that, in world iso units
     dim: 0, // 0..1, faded back because it's below the zone you're in
+    shelled: false, // has an outside (R.shell)
+    shellK: 1, // 1 = its outside showing (closed), 0 = gone (you're in it); the renderer animates it
   };
   const { items, finds } = zone;
   let order = 0;
@@ -177,7 +184,9 @@ export function buildZone(def, place = {}) {
     // A hidden object to find. at: [x, y, z] or (t) => [x, y, z]. r: tap radius in units.
     // when: (t) => true while it's there to find (under the tide, say, it isn't);
     // note: a word for the list on when to look ("low tide").
-    find: ({ id, label, at, r = 0.9, when, note }) => finds.push({ id, label, at, r, ...(when ? { when } : {}), ...(note ? { note } : {}) }),
+    // out: in a zone with an outside (R.shell), a find that's outside it (on a
+    // porch), so it can be tapped while the house is closed.
+    find: ({ id, label, at, r = 0.9, when, note, out }) => finds.push({ id, label, at, r, ...(when ? { when } : {}), ...(note ? { note } : {}), ...(out ? { out } : {}) }),
     // The loose goose. pos: [x, y, z?] or (t) => ({ x, y, z?, dir, pose })
     goose: (pos, o = {}) => {
       const fn = typeof pos === 'function' ? pos : () => ({ x: pos[0], y: pos[1], z: pos[2] || 0, ...o });
@@ -211,6 +220,21 @@ export function buildZone(def, place = {}) {
       glow(ctx, x, y, z, o.r ?? 2.5, o.color || C.butter, k);
       if (o.draw) o.draw(ctx, t, k);
     }, { anim: true, on: o.k && !o.draw ? (t) => o.k(t) > 0.002 : null })),
+    // The zone's outside, seen from the street: a house's front walls, porches,
+    // roof and windows, drawn over everything in it. It shows while you're
+    // anywhere but in this zone and fades away when you step in, so a house on
+    // the overview is closed and opens like a dollhouse. Still unless o.anim.
+    // Finds inside can't be tapped while it's closed (see find's out).
+    // o.box: [x0, y0, x1, y1], the floor its outside encloses: standing things
+    // outside it (a porch, whoever's out on it) are drawn after the outside,
+    // since they stand in front of it.
+    shell: (draw, o = {}) => {
+      zone.shelled = true;
+      if (o.box) zone.shellBox = o.box;
+      const it = add('shell', draw, o);
+      it.shellOf = zone;
+      return it;
+    },
     // How dark the room is: fn(t) returns 0 (lit) to 1 (pitch black).
     dark: (fn, o = {}) => add('dark', (ctx, t) => darken(ctx, zone, fn(t), o.color || C.night), { anim: true, on: (t) => fn(t) > 0.002 }),
   };
@@ -660,6 +684,11 @@ function stamp(ctx, st, it, m) {
 // How much of an item shows at t: 0 (skip it), up to 1.
 function shown(it, t) {
   if (it.on && !it.on(t)) return 0;
+  if (it.shellOf) {
+    const k = it.shellOf.shellK;
+    if (!(k > 0.002)) return 0;
+    if (k < 1) { const f = it.fade ? it.fade(t) : 1; return f > 0.002 ? k * Math.min(1, f) : 0; }
+  }
   if (it.behind) {
     const z = it.zone;
     if (z.low != null && z.inner[it.behind] && wallHeight(z, it.behind) > 2.4) return 0;
@@ -710,18 +739,33 @@ function drawItems(ctx, piece, t, pick, st = null) {
     celled = which;
   };
   const cellFor = (it) => (!things ? 'top' : it.layer === RUG_L && zone.ground ? 'water' : 'flat');
+  // A building's standing things outside its walls (its porch) go on after
+  // its outside, which they stand in front of; the rest before it.
+  const box = zone.shellBox;
+  const outOf = box ? (it) => {
+    const p = it.pos ? it.pos(t) : it.at;
+    if (!p) return false;
+    const x = p.x ?? p[0], y = p.y ?? p[1];
+    return x < box[0] || y < box[1] || x > box[2] || y > box[3];
+  } : null;
+  let later = null;
+  const flush = () => {
+    if (clipping) { ctx.restore(); clipping = false; }
+    toCell(null);
+    if (things) {
+      if (outOf) { later = things.filter(outOf); things = things.filter((it) => !outOf(it)); }
+      drawThings(ctx, things, t, st);
+      things = null;
+    }
+  };
   for (let i = 0; i < piece.items.length; i++) {
     const it = piece.items[i];
     if (!pick(it)) continue;
     if (it.layer === THING) { things.push(it); continue; }
     const a = shown(it, t);
     if (!a) continue;
-    if (it.layer > THING && things) {
-      if (clipping) { ctx.restore(); clipping = false; }
-      toCell(null);
-      drawThings(ctx, things, t, st);
-      things = null;
-    }
+    if (it.layer > THING && things) flush();
+    if (it.layer > SHELL_L && later) { flush(); drawThings(ctx, later, t, st); later = null; }
     toCell(cellFor(it));
     const cut = !!clip && (it.layer === WALL_L || it.layer === DECOR_L) && !it.walls;
     if (cut !== clipping) {
@@ -741,7 +785,8 @@ function drawItems(ctx, piece, t, pick, st = null) {
   if (clipping) ctx.restore();
   clipping = false;
   toCell(null);
-  if (things) drawThings(ctx, things, t, st);
+  if (things) flush();
+  if (later) drawThings(ctx, later, t, st);
 }
 
 const all = () => true;

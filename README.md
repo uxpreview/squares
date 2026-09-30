@@ -6,6 +6,7 @@ A hidden-object picture book you can walk through. Tiny animated places, drawn e
 - **Pick a place:** one card per map, with a live picture and your progress.
 - **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it. A first visit gets a card pinned to a room saying where to start; on the whole map, rooms that still hide their goose honk now and then. A house changes floors from its lift, in the corner.
 - **Whodunits** (Gooseworth Manor): the finds are **evidence** and **curiosities**, and the goal is solving the case. **Case** opens the case file: every suspect, what points at them, their alibi, and **Accuse**. Accuse anyone, any time; the wrong one gives you their alibi (and a joke), and the culprit stays a mystery until you've found every clue against them.
+- **Houses you open** (Moving Day): on the whole map the houses are closed; tap a floor and its front comes off and the floors above it lift away. Some things are only there before noon (the old tenants') or after (the new ones'), and the list says which; the lease clock in the corner skips to noon, sunset and the next morning.
 - **The tide** (Plum Island): the water rises and falls on the clock, and some things only show at low tide (the list says so). The dial in the corner says what the tide's doing; tap it to skip ahead to the next low water, sunset or high water.
 
 Progress is saved in the browser. Links go straight to a place or a zone: `/#/block`, `/#/block/laundromat`, `/#/tower/roof`. Old links like `/#laundromat` still work. Places still being made (or retired, like the Walk-Up) are hidden from the picker but open from a link: `/#/tower`.
@@ -129,6 +130,16 @@ src/
       sound.js         The sea bed, and cues on the clock (the drill, bingo, the port's welcome)
       finale.js        The ending: the geese swim out to the Courier's van
       areas/           One file per area, in the land's own units
+    southie/         Moving Day: a row of triple-deckers on Farragut Road, South Boston, on September 1st
+      plan.js          Where everything is: the row, the road, Marine Park, Pleasure Bay, Castle Island
+      clock.js         The day (out by noon, in after), the rain, the lease clock on screen
+      land.js          The ground and water: the park, the beach, the bay, the causeways, the island
+      style.js         The style sheet: the siding colors, the paper through the day and the rain
+      kit.js           The triple-decker: a floor of a house, its stairs, porches and outside; the rest of the row
+      day.js           Everyone on the clock: the Courier, the landlady, the movers, the curb collector
+      finale.js        The ending: the geese bring the couch in
+      ambient.js       Around it: City Point's rooftops, Dorchester Heights, the Seaport, the planes, the rain
+      areas/           Nine apartments (a file per floor of each house) and three outdoor areas
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/

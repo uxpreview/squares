@@ -204,7 +204,8 @@ export function createRenderer(canvas, camera, o = {}) {
     return sheet;
   }
 
-  // o: { t, now, focus, level, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
+  // o: { t, now, focus, live, level, still, fx, marks(ctx, zone, t, now), top(ctx, t, now) }
+  // live: a zone drawn every frame though you're not in it (an ending's)
   // level: the storey being looked at; zones on storeys above it lift out of the way.
   function render(world, o) {
     const f0 = performance.now();
@@ -256,9 +257,15 @@ export function createRenderer(canvas, camera, o = {}) {
     const lift = world.cutaway.lift ?? LIFT;
     const ghost = world.cutaway.ghost ?? GHOST;
     for (const c of world.drawOrder) if (c.zone !== focus) { if (c.backdrop) dropBackdrop(c); if (c.stills) dropStills(c); }
+    // (A street of houses lifts only the floors over the room you're in, in
+    // its own house, and dims nothing.)
+    const column = world.cutaway.above === 'column';
+    // (Outdoors, a street or a park, nothing's over you.)
+    const over = (z) => focus && !focus.fixed && z.oz > focus.oz + 0.05 && z.ox < focus.ox + focus.w - 0.01 && focus.ox < z.ox + z.w - 0.01 &&
+      z.oy < focus.oy + focus.d - 0.01 && focus.oy < z.oy + z.d - 0.01;
     for (const z of world.zones) {
-      const up = world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
-      const down = focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
+      const up = column ? (!z.fixed && over(z) ? 1 : 0) : world.cutaway.above && !z.fixed && z.storey > level ? 1 : 0;
+      const down = !column && focus && world.cutaway.above && !z.fixed && !focus.fixed && z.storey < level ? 1 : 0;
       const ease = settle ? 1 : Math.min(1, dt * 7);
       z.veil += (up - z.veil) * ease;
       z.dim = (z.dim || 0) + (down - (z.dim || 0)) * ease;
@@ -271,6 +278,14 @@ export function createRenderer(canvas, camera, o = {}) {
         z.wallK += (want - z.wallK) * (settle ? 1 : Math.min(1, dt * 6));
         if (Math.abs(z.wallK - want) < 0.004) z.wallK = want;
         if (z.wallK !== was) for (const c of z.chunks) c.stale = true;
+      }
+      // A building's outside: gone while you're in it, back when you leave.
+      if (z.shelled) {
+        const want = z === focus ? 0 : 1;
+        const was = z.shellK;
+        z.shellK += (want - z.shellK) * (settle ? 1 : Math.min(1, dt * 6));
+        if (Math.abs(z.shellK - want) < 0.004) z.shellK = want;
+        if (z.shellK !== was) for (const c of z.chunks) c.stale = true;
       }
     }
     settle = false;
@@ -295,7 +310,7 @@ export function createRenderer(canvas, camera, o = {}) {
     const lastOf = new Map();
     for (const c of visible) lastOf.set(c.zone, c);
     const p0 = performance.now();
-    refreshSnapshots(visible.filter((c) => c.zone !== focus), t, k);
+    refreshSnapshots(visible.filter((c) => c.zone !== focus && c.zone !== o.live), t, k);
     perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
     setScreen(k, dpr);
 
@@ -340,7 +355,10 @@ export function createRenderer(canvas, camera, o = {}) {
       // Only the outlines that are on screen and overlap this chunk cut it:
       // on a street, most of its pieces are elsewhere, and every different
       // set of outlines is another sheet to lay down.
-      const by = cuts && z !== focus && Math.abs(z.oz - focus.oz) < focus.h ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
+      // (Outdoors, a closed building is never cut: the street runs past it,
+      // and a strip of yard behind it would cut it to ribbons.)
+      const by = cuts && z !== focus && !(focus.fixed && z.shelled && z.shellK > 0.5) &&
+        ((world.cutaway.above === 'column' && !focus.fixed) || Math.abs(z.oz - focus.oz) < focus.h) ? cuts.filter(([f, , r]) => r && inFront(f, c) && overlap(r, reach)) : null;
       let g = ctx;
       if (by && by.length) {
         // It can go on the sheet that's out if the outlines that sheet will
@@ -390,7 +408,7 @@ export function createRenderer(canvas, camera, o = {}) {
           drawZoneVector(ctx, c, t, false, st);
         }
         focusMs += performance.now() - q0;
-      } else if (!c.snap) {
+      } else if (!c.snap || z === o.live) {
         Q.lines = k > 6;
         Q.detail = k > 4.5;
         drawZoneVector(ctx, c, t);
@@ -419,7 +437,9 @@ export function createRenderer(canvas, camera, o = {}) {
 
   // A small still picture of a whole map, for the level picker. A place printed
   // on its own plate (a night, say) gets its backdrop too, since that's its look.
+  // A map can pick the moment it's shown at (plate.thumbAt, loop seconds).
   function thumbnail(world, w, h, t = 6) {
+    if (world.map.plate && world.map.plate.thumbAt != null) t = world.map.plate.thumbAt;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cv = document.createElement('canvas');
     cv.width = Math.round(w * dpr);
@@ -466,6 +486,7 @@ export function createRenderer(canvas, camera, o = {}) {
     for (const z of world.zones) {
       z.veil = 0; z.lift = 0; z.dim = 0;
       if (z.low != null) z.wallK = 0;
+      if (z.shelled) z.shellK = 1;
     }
   }
 

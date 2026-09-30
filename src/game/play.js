@@ -714,10 +714,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pops.push({ kind: 'call', zone: lastCaller, t0: now });
     debug.calls++;
   }
-  // Over the middle of the room (its first box, for an area of any shape),
-  // about head height, on its ground if it has one.
+  // Over the middle of the room, about head height, on its ground if it has
+  // one. A long area (a street, a park, an island) honks from over its goose,
+  // wherever that is, not from the middle of its box (which can be water).
   const callAt = (z) => {
-    const [x0, y0, x1, y1] = z.rects[0], x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+    let [x0, y0, x1, y1] = z.rects[0], x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+    const gf = world.long(z) && z.finds.find((f) => f.goose);
+    if (gf) [x, y] = findPos(gf, clock());
     const g = z.ground ? Math.max(z.ground(x, y), 0) : 0;
     return [z.anchor[0] + isoX(x, y), z.anchor[1] - (z.lift || 0) + isoY(x, y, g + Math.min(z.h, 6) * 0.6)];
   };
@@ -910,6 +913,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // pan, only zones that are really there count.
   function zoneAtScreen(sx, sy, skipLifted = false) {
     const [X, Y] = camera.toWorld(sx, sy);
+    // In a room, whatever's in front of it is cut away round it, so a tap
+    // there is the room's (the house in front's upper floors, on a street of houses).
+    if (mode === 'zone' && current >= 0 && world.cutaway.front && world.zoneAt(X, Y, (z) => z.index !== current) === current) return current;
     if (skipLifted) return world.zoneAt(X, Y, lifted);
     if (hasStoreys()) {
       const i = world.zoneAt(X, Y, lifted);
@@ -930,8 +936,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     for (const zone of world.zones) {
       if (lifted(zone)) continue;
       const [ax, ay] = zone.anchor;
+      // (A closed building's finds are inside it, out of reach, bar any on its porch.)
+      const shut = zone.shelled && zone.shellK > 0.5;
       for (const f of zone.finds) {
-        if (isFound(zone, f) || !here(f, t)) continue;
+        if (isFound(zone, f) || !here(f, t) || (shut && !f.out)) continue;
         const [x, y, z] = findPos(f, t);
         const [px, py] = camera.toScreen(ax + isoX(x, y), ay + isoY(x, y, z));
         const d = Math.hypot(px - sx, py - sy);
@@ -971,6 +979,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (cam.z < zoneModeZ()) {
       if (mode !== 'overview') showOverviewUI();
       return;
+    }
+    // (A room you're in stays yours while the middle of the screen is still
+    // inside its framing: on a phone the list takes the bottom of the screen,
+    // so the middle can sit below a shallow room, over the house in front.)
+    if (mode === 'zone' && current >= 0 && !world.long(world.zones[current])) {
+      const [X, Y] = camera.toWorld(view.vw / 2, view.vh / 2);
+      const [X0, X1, Y0, Y1] = world.zoneBox(world.zones[current]);
+      if (X >= X0 && X <= X1 && Y >= Y0 && Y <= Y1) return;
     }
     const i = zoneAtScreen(view.vw / 2, view.vh / 2, true);
     if (i >= 0 && i !== current) showZoneUI(i);
@@ -1198,5 +1214,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     get mode() { return mode; },
     get active() { return active; },
     fx: (now) => ({ parade: parade ? (now - parade) / 1000 : 0 }),
+    // The area a place's ending plays in, for its first minute: drawn live
+    // every frame, not as a picture refreshed when there's time (the camera
+    // frames it from outside, so it isn't the room you're in).
+    live(now) {
+      const fin = world && world.map.finale;
+      if (!parade || !fin || !fin.zone || (now - parade) / 1000 > 60) return null;
+      return world.zones[world.indexOf(fin.zone)] || null;
+    },
   };
 }

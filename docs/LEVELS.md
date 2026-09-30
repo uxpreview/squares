@@ -81,6 +81,7 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Needs:** Today (it's stacked interiors, sideways).
 
 ### Moving Day (South Boston)
+**At gate 3 (session 6): drawn, QA'd and blind-playtested (hidden, `#/southie`). Brief: [levels/southie.md](levels/southie.md).** The real-map check moved it from a lettered street to Farragut Road, where the row faces Marine Park, Pleasure Bay and Castle Island across open ground (decision 3); where the sketch and the brief differ, the brief wins.
 **Boston is three places now,** each one real neighborhood with one event, instead of a panorama of landmarks (which reads as a postcard, with nothing to explore). Replaces Wicked Pissah.
 - **Spin:** September 1st, when most leases in the city turn over at once. A lettered street of cut-open triple-deckers where everyone moves on the same day: the old neighbors out, the new condo people in, and everyone's stuff in the wrong apartment.
 - **Heroes and jokes:** a moving truck on a street built for horses, cars parked on both sides (Storrow Drive isn't in Southie, so the famous stuck truck can't be the hero); a couch going up to the third floor on one rope (pivot); the new glass condo moving in a Peloton and a dog stroller; curb furniture, help yourself; Dorchester Heights watching over it; Castle Island and the hot dog line at the end of the causeway; the Seaport's towers a little closer every year; a plane landing at Logan, rattling every window.

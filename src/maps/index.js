@@ -47,6 +47,16 @@ export default [
     load: () => import('./plum/map.js'),
   },
   {
+    id: 'southie',
+    name: 'Moving Day',
+    subtitle: 'South Boston',
+    tagline: 'Everyone out by noon, everyone in by night, one truck, and a goose in every apartment.',
+    ink: '#E8793A',
+    // The first Boston place (docs/levels/southie.md). Hidden until it ships.
+    hidden: true,
+    load: () => import('./southie/map.js'),
+  },
+  {
     id: 'crossroads',
     name: 'The Crossroads',
     tagline: 'A test bed: areas of any shape, and people walking between them.',

@@ -24,6 +24,10 @@
 //   front: zones in front of it are cut away around its outline (the block)
 //   above: zones on floors above it lift up and fade out (a building's floors).
 //          With named storeys, the lift does the same in the overview.
+//          'column': only the floors above it in its own building lift (a
+//          street of houses: step into a second floor and only that house's
+//          third floor lifts), and the front cut takes everything in front of
+//          it, at any height (the house next door's upper floors too).
 //   walls: waist height for inside walls (a number turns "walls down" on): a wall
 //          with a room right behind it drops to this height unless you're in its room
 //   lift, ghost: how far lifted floors rise (iso units) and how faint they get
@@ -52,15 +56,23 @@ const rectOf = (c) => (c.rect
 // Back to front: by how far along the floor each chunk's back corner is, then
 // upward, except that anything in front of another on the same floor always
 // comes after it (a small chunk of street beside a big room can be further
-// back by its corner and still be in front).
+// back by its corner and still be in front), and a floor always comes after
+// the one it stands on (in a house, the ground floor can wait on a strip of
+// yard behind it that the floors above don't touch).
+const over = (a, b) => {
+  const A = rectOf(a), B = rectOf(b);
+  return Math.min(A[2], B[2]) - Math.max(A[0], B[0]) > 0.01 && Math.min(A[3], B[3]) - Math.max(A[1], B[1]) > 0.01;
+};
 function sortChunks(list) {
   const order = list.slice().sort((a, b) => a.ox + a.oy - (b.ox + b.oy) || a.oz - b.oz || a.ox - b.ox);
   const n = order.length;
   const after = order.map(() => []), need = new Array(n).fill(0);
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      if (i === j || Math.abs(order[i].oz - order[j].oz) > 0.5) continue;
-      if (inFront(order[i], order[j])) { after[i].push(j); need[j]++; }
+      if (i === j) continue;
+      const a = order[i], b = order[j];
+      const first = Math.abs(a.oz - b.oz) > 0.5 ? a.oz < b.oz && over(a, b) : inFront(a, b);
+      if (first) { after[i].push(j); need[j]++; }
     }
   }
   // Take the first one in the plain order that has nothing left to wait for
@@ -103,7 +115,9 @@ export function buildWorld(map) {
   const cutaway = { front: false, above: false, walls: null, ...(map.cutaway || { front: true }) };
   const walkers = map.walkers || [];
   const land = map.land || null;
-  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers, land }), { index }));
+  // (A zone can stand on the land without printing it: place.land false, a house.)
+  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers, land: place.land === false ? null : land }), { index }));
+  const shells = zones.some((z) => z.shelled);
   // What's drawn, back to front: every zone's chunks (see zone.js).
   const drawOrder = sortChunks(zones.flatMap((z) => z.chunks));
   const order = map.order
@@ -214,31 +228,59 @@ export function buildWorld(map) {
   // Tests the floor, then a few heights so taps on walls and tall things count
   // too. Zones lifted by a cutaway are tested where they're drawn. skip(zone)
   // leaves zones out.
+  // A closed building (a zone with its outside showing, R.shell) counts its
+  // whole box, floor to ceiling. On a map with those, where a tap meets things
+  // at different heights (a house's second floor, the third floor above and
+  // behind it along the same line of sight, the street), the nearest along the
+  // line of sight wins: the highest point it meets (looking down, higher is
+  // nearer), ties to the one drawn last.
   function zoneAt(X, Y, skip) {
     const under = new Map(); // where the tap meets each zone's ground (asked once a zone)
+    let best = -1, bestZ = -Infinity;
+    const hit = (z, at) => {
+      if (!shells) return true;
+      if (at > bestZ + 1e-6) { best = z.index; bestZ = at; }
+      return false;
+    };
     for (let i = drawOrder.length - 1; i >= 0; i--) {
       const c = drawOrder[i], z = c.zone;
       if (skip && skip(z)) continue;
       const [ax, ay] = [z.anchor[0], z.anchor[1] - (z.lift || 0)];
       const [x0, y0, x1, y1] = c.rect;
+      // A closed building: its whole box. The line of sight through the tap
+      // runs (lx + s, ly + s, s / ZK) from its floor point; it's in the box
+      // for s in each axis's range, and meets the box first (nearest you) at
+      // the top of all three.
+      if (z.shelled && z.shellK > 0.5) {
+        const [lx, ly] = unproject(X - ax, Y - ay);
+        const top = Math.min(x1 - lx, y1 - ly, z.h * ZK);
+        const bottom = Math.max(x0 - lx, y0 - ly, 0);
+        // (Its top face counts a little lower, so the floor over it wins there.)
+        if (top >= bottom && hit(z, z.oz + top / ZK - 0.02)) return z.index;
+        continue;
+      }
       // Ground with height: where the tap meets the ground.
       if (z.ground) {
         if (!under.has(z)) under.set(z, groundUnder(z, X - ax, Y - ay));
         const p = under.get(z);
-        if (p && p[0] >= x0 - (x0 ? 0 : 0.5) && p[1] >= y0 - (y0 ? 0 : 0.5) && p[0] <= x1 && p[1] <= y1) return z.index;
+        if (p && p[0] >= x0 - (x0 ? 0 : 0.5) && p[1] >= y0 - (y0 ? 0 : 0.5) && p[0] <= x1 && p[1] <= y1 && hit(z, z.oz + z.ground(p[0], p[1]))) return z.index;
         continue;
       }
       // Walls down, a room only reaches as high as its walls stand now, so a
       // tap on the street behind a lowered wall lands on the street.
       const top = z.low != null && z.walls ? Math.max(1.5, wallHeight(z, 'left'), wallHeight(z, 'right')) : Math.max(6, z.h);
-      for (let h = 0; h <= top; h += top < 2 ? top : 2) {
+      // (On a map with buildings, rooms are shallow for their height, so the
+      // middle of one's framing is up on its back wall: look finer.)
+      const step = top < 2 ? top : shells ? 0.5 : 2;
+      for (let h = 0; h <= top; h += step) {
         const [lx, ly] = unproject(X - ax, Y - ay + h * ZK);
         if (lx < x0 - (x0 ? 0 : 0.5) || ly < y0 - (y0 ? 0 : 0.5) || lx > x1 || ly > y1) continue;
         if (h > 0 && lx > 1.2 && ly > 1.2) continue; // above the floor only near the back walls
-        return z.index;
+        if (hit(z, z.oz + h)) return z.index;
+        break;
       }
     }
-    return -1;
+    return best;
   }
 
   // The zone a world point is standing in, if any.

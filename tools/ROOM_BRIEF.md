@@ -63,6 +63,15 @@ Some levels are houses (the Manor). Their zones use a few more builder calls:
 - `R.dark(fn)` darkens the whole room: `fn(t)` from 0 (lit) to 1. Keep the one the greybox has, so your room's lights go out with the rest.
 - People on the level's shared clock (its `walkers`) are drawn by the engine in whichever room they're standing in. Don't draw them; you'll see them walk through your doors.
 
+## Buildings seen from outside (houses you open)
+
+Some places are streets of houses seen from outside (Moving Day's triple-deckers): a house is a zone per floor, stacked, and on the overview each floor is closed.
+
+- `R.shell(draw, { box: [x0, y0, x1, y1] })` is the floor's outside: its front, its side, the bay, the roof on the top floor, the windows. It's drawn over everything in the zone while you're elsewhere, and fades away when you step in. `box` is the floor it encloses: standing things outside it (the porch, anyone out on it) are drawn after it.
+- Keep the level's kit function (Moving Day's `apartment()` in `kit.js`) that draws the floor, the walls, the stairs, the porch and the outside; add your furniture and people inside.
+- A find inside can only be tapped from inside the floor. One on the porch is outside: give it `out: true`.
+- Only the floors above the one you're in, in that house, lift away; the houses in front are cut away round it.
+
 ## Finds and the goose
 
 - Exactly three `R.find({ id, label, at: [x, y, z] or (t) => [x, y, z], r })`. The label is how it appears in the checklist, sentence case with an article: "A lost mitten". Objects should be small (0.3 to 1 unit) but clearly visible and not hidden behind anything when the zone is viewed. `at` is the visual center of the object (z included). `r` is the tap radius in units (0.6 to 1.0). Moving finds are great.

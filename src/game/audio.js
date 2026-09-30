@@ -424,6 +424,63 @@ SOUNDS.lap = (a, t0) => {
     src.stop(t0 + at + 0.45);
   }
 };
+// A jet coming in low to land, overhead and gone: a roar of low noise that
+// swells for a few seconds, a whine over it, and falls away (Moving Day's
+// planes on runway 4R). Loud for a cue, still well under a honk.
+SOUNDS.jet = (a, t0) => {
+  const src = a.createBufferSource();
+  src.buffer = rumble(a);
+  const lp = a.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(260, t0);
+  lp.frequency.linearRampToValueAtTime(700, t0 + 2.6);
+  lp.frequency.linearRampToValueAtTime(220, t0 + 6);
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.068, t0 + 2.4);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 6);
+  src.connect(lp);
+  lp.connect(g);
+  g.connect(bus(a));
+  src.start(t0);
+  src.stop(t0 + 6.1);
+  const o = a.createOscillator();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(760, t0);
+  o.frequency.linearRampToValueAtTime(610, t0 + 6);
+  const w = envelope(a, t0 + 1.2, 0.0035, 1.2, 3.2);
+  o.connect(w);
+  w.connect(bus(a));
+  o.start(t0 + 1.2);
+  o.stop(t0 + 6);
+};
+// A truck backing up, down the street: three soft beeps.
+SOUNDS.beep = (a, t0) => {
+  for (let i = 0; i < 3; i++) tone(a, t0 + i * 0.5, 1040, 'square', 0.006, 0.01, 0.22, bus(a));
+};
+// A passing shower on the street, for a few seconds: soft hiss and patter
+// (cued again and again while it rains, so the rain comes and goes with it).
+SOUNDS.shower = (a, t0) => {
+  for (const [hz, q, v, buf] of [[900, 0.7, 0.03, rumble(a)], [3000, 1.1, 0.012, noise(a)]]) {
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const f = a.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = hz;
+    f.Q.value = q;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(v, t0 + 1.5);
+    g.gain.setValueAtTime(v, t0 + 7.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 9.5);
+    src.connect(f);
+    f.connect(g);
+    g.connect(bus(a));
+    src.start(t0);
+    src.stop(t0 + 9.6);
+  }
+};
 // Crickets in the marsh grass after dark: a few quick high trills.
 SOUNDS.crickets = (a, t0) => {
   for (let k = 0; k < 3; k++) {
