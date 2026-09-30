@@ -500,7 +500,7 @@ function drawCar(ctx, t, p, along, sg, water, color, o = {}) {
 // dark, waiting for the bridge in the afternoon.
 const BEACH = [{ board: C.coral }, { bikes: true }, { board: C.mustard }, { rack: true }];
 const beachCars = [
-  [at(7.6), [LOTS.residents[0] + 1.4, 35.2], CARS[1], at(17.4)],
+  [at(7.6), [LOTS.residents[0] + 4.4, 35.2], CARS[1], at(17.4)],
   [at(8.2), [LOTS.private[0] + 1.2, 35.2], CARS[2], at(16.1)],
   [at(8.8), [LOTS.private[0] + 2.8, 35.2], CARS[3], at(18)],
   [at(9.4), [LOTS.point[0] + 3.4, 33.6], CARS[4], at(18.6)],

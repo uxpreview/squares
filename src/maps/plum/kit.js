@@ -237,7 +237,7 @@ export function board(ctx, along, x, y, z, w, h, text, o = {}) {
   // paintText draws on the planes through the corner; move there.
   const [dx, dy] = along === 'x' ? P(0, y, 0) : P(x, 0, 0);
   ctx.translate(dx, dy);
-  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, o.size || h * 0.5, o.ink || C.ink, o.font || '"Rethink Sans"');
+  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, o.size || h * 0.5, o.ink || C.ink, o.font || 'Rethink Sans');
   ctx.restore();
 }
 // A sign on a post (or two), standing on the ground at (x, y): the lettering
