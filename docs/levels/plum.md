@@ -1,9 +1,9 @@
 # Plum Island
 
 > Status: **Greybox** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [ ] · preview [ ]
+> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [ ] (at gate 2 now) · preview [ ]
 >
-> E4 is built (session 5, "E4 as built" below) and there's a first greybox at `#/plum`, but it was built alongside this brief from the earlier draft, so it doesn't match it yet: "The greybox so far" lists what changes before gate 2.
+> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and is waiting on the owner at gate 2.
 >
 > Drafted in the sketchbook session (Sept 2026); finished in session 5 with the owner's answers and ideas (decisions 1 to 17), every real place checked against a real map and current news (see "Real places, checked"), and a build plan for E4. The rough sketch is in [the sketchbook](../sketchbook.html) (open it in a browser; drag the tide). The owner approved it with every recommendation (decisions 25 to 32). Next: build E4, then the greybox.
 
@@ -21,7 +21,7 @@ A light one, like the Block Party's: it runs across the map and never gets in th
 
 **What the player does.** Find the goose and the things in each area. The tide decides some of what you can see: low water uncovers the flats and the creek beds, high water floats other things in. A small tide clock on screen says where the water is and when it turns.
 
-**The ending.** Find every goose and the clock jumps to the king tide, just after midnight. The water has come over the turnpike at the island end, by the drawbridge; the Courier's van has stopped in the middle of it. The camera flies there. The geese paddle out to the van in a line and sign for the parcel. It's a pair of waders. Every King Tide Dave drives past them, windows down, through the flood, as he does every king tide.
+**The ending.** Find every goose and the clock jumps to the king tide, just after midnight. The water has come over the turnpike at the island end, by the drawbridge; the Courier's van has stopped in the middle of it. The camera flies there. The geese paddle out to the van in a line and sign for the parcel. It's greenhead fly spray (decision 34). Every King Tide Dave drives past them, windows down, through the flood, as he does every king tide.
 
 ## Shape
 - **Wide, and on the diagonal.** As in the sketch, the island runs along one axis of the map: from the top left of the screen (Sandy Point, the south tip) to the bottom right (the Point and the river mouth, the north end). The Atlantic runs along the bottom left, the Great Marsh, Plum Island Sound and the Plum Island River along the top right. We're looking southwest from over the ocean, so the sun sets on the right, over the marsh, toward Newburyport.
@@ -91,7 +91,7 @@ Line ink stays the game's navy (`#252D52`). The plate follows the day (the Block
 - **Sound bed:** surf, gulls, wind in the grass, a distant plane, the drawbridge's bell, and at night the water. Well under the honk, measured with `loudness()`.
 
 ## Mechanic
-**The tide.** It runs on the day's clock. The player can't control it. Going out, it drains the marsh and the flats and uncovers finds you can only see at low water; coming back, it covers them and floats other things in. The king tide at the end of the loop floods the road.
+**The tide.** It runs on the day's clock. The player can't slow it or turn it, but a tap on the tide clock skips ahead to the next low or high water (decision 33). Going out, it drains the marsh and the flats and uncovers finds you can only see at low water; coming back, it covers them and floats other things in. The king tide at the end of the loop floods the road.
 
 **The loop:** about six minutes, dawn to dawn, one tide (decision 4). The clock isn't even: it lingers on low water and high water and hurries through the night after the king tide, so each tide window lasts two full minutes (decision 5):
 
@@ -122,7 +122,7 @@ Draft labels, one goose and three things per area (7 geese, 21 things). Final wo
 
 ## Shared universe
 - **The goose** in every area, and on the parcel ("G. Goose, Plum Island").
-- **The Courier**, the story's thread, and his waders.
+- **The Courier**, the story's thread, and his parcel of greenhead spray.
 - **Inspector Pidge**, with the birders.
 - **The fake brand** on the banner plane over the beach (its name is still open in LEVELS.md).
 - **A "Have you seen this goose?" poster** on the clam shack.
@@ -245,25 +245,32 @@ Built in `src/engine/terrain.js`, proven on Plum Island. Where it differs from t
 - **The dial** can skip ahead (open question 1).
 - **Not yet:** walking up the ground with `route()` (walkers take their height from the ground in their own code), the picker's subtitle, the fading of tall things in front instead of the cutaway, QA's speed check at two tide levels, and the playtest tool shooting tide finds inside their window.
 
-## The greybox so far (session 5)
-A first greybox is at `#/plum`, built from the draft brief in a session that ran alongside this one. It proves E4 on the whole island: seven areas on one piece of ground, the tide moving every shoreline, 28 finds (7 only at low tide, high tide or sunset), the Courier and Every King Tide Dave on the clock, and the geese swimming out to the van at the end. QA and the smoke test pass on it. **Before gate 2 it changes to match this brief:**
+## The greybox (session 5b, gate 2)
+The first greybox (session 5) was built from the draft brief; 5b rebuilt it to match this one. At `#/plum` (hidden from the picker until it ships).
 
-- **The layout:** about 112 x 56 (it's 108 x 64), with the areas as the table under Shape has them: the Center with its own beach, the Town Beach north of it with the rows of houses (the greybox has a Front Beach under the Center), the North Point at the right-hand end. Area names: the Sound (it's "The Flats"), the Town Beach.
-- **The paper is the sea** (it's cream paper round a cut diorama now).
-- **The clock:** two minutes of low water and two of high, the king tide just after midnight, the night hurried (it's an even day with the king tide at 8:30pm), so the finale is under the stars.
-- **The turnpike:** the drawbridge (it opens for a sailboat and the road waits; the greybox's bridge is fixed), the airfield on the south side of the road and the clam shack on the north (the greybox has them the other way round), the visitor center at the mainland end, the restaurant deck at the island end, blue greenhead traps, Dave's truck parked at the clam shack all day and driving through the flood past the van (the greybox has him stall halfway).
-- **The Pink House:** three one-second flickers across sunset, with ten seconds around each to tap (the greybox shows it for half a minute).
-- **The refuge:** the gatehouse, "REFUGE FULL", the line of cars on Sunset Drive and the one that keeps trying (the greybox's circling car is in the Center's lot); Sandy Point at the far end; the plover warden, a volunteer, moves the rope (the greybox has the ranger); the finds as listed (a sandcastle inside the rope, the warden's spare stake, a shell collection; the greybox floats a kite, the stake and a bucket instead, since everything on its beach goes under at the king tide).
-- **The Center:** the residents-only lot and the $20 lots, the bait shop's tide board, the ice cream window, the little jetty, the warning signs ("2030 CAME EARLY"), no lifeguard.
-- **The Town Beach:** rows of houses, the stubborn house's stairs, the crowd turning to watch the sunset over the marsh.
-- **The North Point:** the lighthouse on the river side, the lifeguard stands and their chalkboard (the greybox's lifeguard is on the town beach), fishermen at dawn, two or three seals (the greybox has up to seven), the whale watch boat, the Basin, Newburyport's steeples and the Salisbury jetty on the skyline.
-- **The greenhead man** crossing three areas (the greybox's swarm stays on one beach).
-- **The picker's subtitle,** "King Tide".
+**What's there now:**
+- **The layout** as the table under Shape has it, 112 x 58: the Sound and the Turnpike at the back, the Refuge Dunes, the Center, the Town Beach and the North Point on the island, the Refuge Beach and the Center's and Town Beach's sand in front. Sandy Point tapers to nothing at the top left; the jetty and the river mouth are at the bottom right.
+- **The paper is the sea.** Every edge of the map is deep water (or the mainland's marsh at the back), and deep water is printed in exactly the paper's color, so the sea runs on past the map to every edge of the screen, through the day: pale at dawn, bright at noon, gold going to pink and lavender at sunset, navy for the king tide. In the picker, the card is printed on the sea too.
+- **The clock** as the Mechanic table has it: low water 0:25 to 2:45 (140 seconds), high water 3:46 to 5:51 (125 seconds), the road under at its low spot by the drawbridge from 10:35pm to 12:50am, the king tide at 12:15am, the night drained in fifteen seconds. The clock slows for 7 to 9pm, so sunset lasts. The dial skips to noon or to 11pm.
+- **The Turnpike:** the visitor center and the airfield (its plane in and out) south of the road at the mainland end; the Pink House's lot and sign mid-causeway, people stopping for the photo, and the house flickering back three times across sunset (7:55, 8:20, 8:45pm), tappable from 7:40 to 9pm (23 seconds; QA warns that it's short, on purpose); the clam shack across the road with its queue, its poster, and Dave's truck parked facing the road all day; blue greenhead traps; the warning signs; the drawbridge, which lifts for a lobster boat at dawn (the Courier waits) and a sailboat at 4:15pm (the road waits), with its memorial flags; the restaurant deck at the island end, everyone on it turning to the sunset.
+- **The refuge:** the gatehouse and its ranger, "REFUGE FULL" from 9:20am, the line of cars on Sunset Drive all day and the one that keeps trying (up the other side, turned round, back to the end, five times), bikes sailing past into the refuge, Lot 1 and its boardwalk, Hellcat's boardwalk and the tower with the birders and Inspector Pidge. On the beach, the plover warden (a volunteer) moving the rope out a step every hour and the crowd shuffling back, six plovers, and Sandy Point, open, with its own roped nest.
+- **The Center:** the residents-only lot and the $20 lot across the path, the bait shop's tide board, the ice cream window and its line (the goose at the back of it), "KING TIDE TONIGHT" and "2030 CAME EARLY", the beach path, "NO LIFEGUARD ON DUTY", the little jetty.
+- **The Town Beach:** four rows of houses, the front row on pilings behind sandbags, the stubborn house with its porch full of people, its stairs ending above the sand and its owner nailing on another step; umbrellas, surfers, the gull with the fry, and everyone left turning round to face the marsh at sunset.
+- **The North Point:** the lighthouse on the river side, the playground across the road, the Basin, lifeguard stands on both sides with the chalkboard of tides, lobster boats and the whale watch boat, the jetty with two or three seals (the one in sunglasses stays all day) and the fisherman a rock past the last seal at dawn. Newburyport's steeples and the Salisbury jetty, faint, across the water.
+- **The cast on the clock** (`day.js`): the Courier over the turnpike at first light, waiting for the bridge, round the Center's doors, in the refuge's line at noon, asking the lifeguards at 2pm, and off at 10:25pm, straight into the flood; Every King Tide Dave out through it at 12:20am, past the van; beach traffic in and out, waiting for the bridge; the line; the greenhead man, whose swarm finds him in the Center's lot at ten and follows him down the Town Beach, back through the Center, past the line and out along Lot 1's boardwalk, where he stops for the sunset.
+- **The ending:** the clock jumps to 12:15am, the camera flies to the van in the flood by the drawbridge, the geese paddle out from the Center's back shore and round it, the Courier holds up the parcel (greenhead spray), and Dave drives past, windows down.
+- **Engine, on the way:** a land can have no rim (`rim: false`): no cut sides, its deep water printed in the paper's color where the plate ends (`paper(t)`); water whose ink follows the clock (`water.color` as a function); a picker card printed on its plate (`plate.bleed`); a subtitle on the picker card (`subtitle`, "King Tide").
+
+**For the owner at gate 2** (each with a recommendation):
+1. **On a phone**, the overview frames the Center and the Town Beach at full height, and you swipe along the island (decision 16). *Recommend:* keep.
+2. **Stepping into an area** cuts away the areas in front of it, as on the Block Party. The brief left fading tall things instead for this gate. *Recommend:* keep the cutaway; nothing in front is tall enough to need a fade, and the houses on pilings are the only thing that hides much.
+3. **Sunset on the sea:** a sea mixed with gold reads as muddy olive, so the sea goes gold only briefly and then pink and lavender, while the land keeps its colors. *Recommend:* keep, and let the art director tune it.
+4. **Hellcat's tower** sits by the refuge road, since the island is narrow there (about 16 units from the back shore to the dune toe). *Recommend:* keep; the art can stretch the boardwalk along the marsh edge.
+
+**Left for the art (5c):** lights after dark (windows, the lighthouse's lamp and beam, the lifeguard stands' lamps, the deck); the banner plane over the beach and its fake brand; the swarm making people step aside; the drawbridge's bell and the rest of the sound bed; faint seams between the water's pieces, visible on the open sea at sunset; the Salisbury jetty and Newburyport drawn properly.
 
 ## Open questions
-The eight left at the brief were settled at gate 1 (decisions 25 to 32). New ones:
-
-1. **Can you skip the tide?** This brief says the player can't control it (decision 5; the dial "can't be used to change the tide"). Asked again while E4 was being built, the owner picked a tide clock you can tap to jump to the next low or high water, "so nobody waits minutes for a find", and that's what's built: the day runs fast for a second or two and lands at the next turn. *Recommend:* keep the skip. With two-minute windows nobody has to wait long, but on a six-minute loop a player who arrives just after low water still waits four minutes for a low-tide find, and the skip is a moment of its own (the tide rushing in). The windows and the notes in the list stay either way.
+None open. The skip was settled at the start of session 5b (decision 33).
 
 ## Decisions
 
@@ -273,9 +280,9 @@ Gate 1 (the brief), the owner's answers at the start of session 5 (Sept 2026):
 2. **Its own map,** not joined to Newburyport, in inks that pair with Newburyport later (the North Shore inks).
 3. **Geese plus the light story** (the Courier racing the king tide), like the Block Party. No whodunit.
 4. **About a six-minute loop with one tide:** low water around midday, the king tide at the end of the loop.
-5. **Fair tide finds:** a small tide clock on screen, "at low tide" or "at high tide" beside those finds in the list, low water at least two minutes of every loop. The player can't control the tide.
+5. **Fair tide finds:** a small tide clock on screen, "at low tide" or "at high tide" beside those finds in the list, low water at least two minutes of every loop. The player can't control the tide. *(Changed: decision 33, the clock can skip ahead.)*
 6. **July.**
-7. **The parcel is a pair of waders.**
+7. **The parcel is a pair of waders.** *(Changed: decision 34, greenhead fly spray.)*
 8. **"Plum Island"** in the picker, with **"King Tide"** as the card's subtitle.
 9. **Names:** the clam shack on the causeway is a lookalike with no name; the refuge, the lighthouse, the turnpike and the airfield use their real names.
 
@@ -286,7 +293,7 @@ The owner's ideas, folded in above:
 12. **Sunset on the marsh:** at the end of the day everyone on the island turns to watch the sun go down over the marsh, backs to the tide rising behind them.
 13. **Fishermen at dawn** off the point and the jetty, the seals taking their spots as the tide drops.
 14. **The greenheads cross areas:** the same swarm follows one person from the parking lot to the beach to the boardwalk.
-15. **The finale at the flooded turnpike:** the Courier's van stops in the water, the geese paddle out to sign for the waders, and Every King Tide Dave drives past them.
+15. **The finale at the flooded turnpike:** the Courier's van stops in the water, the geese paddle out to sign for the parcel, and Every King Tide Dave drives past them.
 16. **A wide map:** on an upright phone the overview runs the island off the sides, a swipe along it, like the Block Party's streets.
 17. **Animals stay simple** (movers, not a cast system); real animal characters wait for the Catminium.
 
@@ -310,3 +317,9 @@ Gate 1, the open questions, settled by the owner with every recommendation (sess
 30. **The beach house is stubborn, not wrecked:** stairs that end above the sand and a new step every summer, sandbags, a porch full of people ignoring the warning sign. No house anyone could identify.
 31. **Start with the sketch's cells,** drawn as outlined shapes; decide at gate 2 whether the waterline needs diagonal cuts.
 32. **Newburyport's steeples and the Salisbury jetty** on the far bank at the right-hand edge, as a skyline only.
+
+The owner, at the start of session 5b (Sept 2026):
+
+33. **Keep the skip.** A tap on the tide clock runs the day fast to the next low or high water (it lands at noon, or at 11pm as the road goes under). The windows and the notes in the list stay. This replaces "the player can't control the tide" in decision 5.
+34. **The parcel is greenhead fly spray,** not waders: the only thing anyone on the island wants, and it ties the ending to the greenhead swarm. "Could've used that this afternoon."
+

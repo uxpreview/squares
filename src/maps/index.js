@@ -50,6 +50,7 @@ export default [
   {
     id: 'plum',
     name: 'Plum Island',
+    subtitle: 'King Tide',
     tagline: 'A barrier island, a king tide tonight, and nobody taking it seriously.',
     ink: '#3F8FA6',
     // Greyboxed, at gate 2 (docs/levels/plum.md): the first place with ground

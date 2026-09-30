@@ -82,6 +82,9 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     const name = document.createElement('h3');
     name.className = 'place-card-name';
     name.textContent = m.name;
+    // A place can have a subtitle under its name (Plum Island: "King Tide").
+    const sub = m.subtitle ? document.createElement('p') : null;
+    if (sub) { sub.className = 'place-card-sub'; sub.textContent = m.subtitle; }
     const tag = document.createElement('p');
     tag.className = 'place-card-tag';
     tag.textContent = m.tagline;
@@ -92,7 +95,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     const stat = document.createElement('span');
     stat.className = 'place-stat';
     meta.append(badge, stat);
-    body.append(name, tag, meta);
+    body.append(...[name, sub, tag, meta].filter(Boolean));
     b.append(pic, body);
     li.append(b);
 
@@ -114,7 +117,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
           ? (p.done ? `Case closed · ${p.curios}/${w.totals.curiosity} curiosities` : `Case open · ${p.evidence}/${w.totals.evidence} evidence`)
           : `${p.geese}/${w.totalGeese} geese · ${p.things}/${w.totalThings} things`;
         if (p.done) { badge.textContent = w.goal === 'case' ? 'Solved' : 'Complete'; badge.dataset.kind = 'done'; }
-        b.setAttribute('aria-label', `${m.name}. ${m.tagline} ${badge.textContent}, ${stat.textContent}.`);
+        b.setAttribute('aria-label', `${m.name}${m.subtitle ? `: ${m.subtitle}` : ''}. ${m.tagline} ${badge.textContent}, ${stat.textContent}.`);
         drawThumb(pic, m.id, w);
       }).catch(() => {});
     }
