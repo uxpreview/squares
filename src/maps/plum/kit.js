@@ -6,12 +6,12 @@
 import { C, Q, box, disc, face, person, paint, paintText, glow, alpha, shade, tint, mix } from '../../engine/art.js';
 import { ZK } from '../../engine/iso.js';
 import { wade } from '../../engine/terrain.js';
-import { tag, footing } from '../greybox.js';
-import { GREY, HOUSE, INK, LIT, lightsOn } from './style.js';
+import { footing } from '../greybox.js';
+import { TRAP, HOUSE, INK, LIT, lightsOn, dusk, nightPrint } from './style.js';
 import { land, float } from './land.js';
-import { level, nightK } from './tide.js';
+import { level, nightK, sunsetWatch } from './tide.js';
 
-export { footing, tag };
+export { footing };
 
 const P = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
 // A flat shape through world points, filled and outlined.
@@ -111,7 +111,6 @@ export function boat(ctx, x, y, t, o = {}) {
       }
     }
   }
-  if (o.label && Q.detail) tag(ctx, x, y, z + (o.mast ? o.mast + 1.2 : 1.6), o.label, { size: 0.38 });
 }
 
 // ---------- Beach houses ----------
@@ -119,12 +118,12 @@ export function boat(ctx, x, y, t, o = {}) {
 // you can see and a door, a pitched roof, on pilings if it asks, with its
 // windows lit after dark (and a glow) unless it's empty. color: a HOUSE index
 // (or a color). o: { stilts, h, ridge ('x' or 'y'), roof, trim, door, deck,
-// dark (no lights), label }
+// dark (no lights) }
 export function house(R, x, y, w, d, color, o = {}) {
   const i = typeof color === 'number' ? color : 0;
-  const body = typeof color === 'number' ? HOUSE.body[i % HOUSE.body.length] : color;
-  const roof = o.roof || HOUSE.roof[i % HOUSE.roof.length];
-  const trim = o.trim || HOUSE.trim, door = o.door || HOUSE.door[i % HOUSE.door.length];
+  const body0 = typeof color === 'number' ? HOUSE.body[i % HOUSE.body.length] : color;
+  const roof0 = o.roof || HOUSE.roof[i % HOUSE.roof.length];
+  const trim0 = o.trim || HOUSE.trim, door0 = o.door || HOUSE.door[i % HOUSE.door.length];
   const z = footing(R, x, y, w, d), lift = o.stilts || 0, h = o.h || 2.2;
   const z0 = z + lift, top = z0 + h, rise = Math.min(w, d) * 0.45;
   // Windows on each face: [along the face, from the left], 0 to 1.
@@ -141,14 +140,17 @@ export function house(R, x, y, w, d, color, o = {}) {
     }
     for (const k of winR) face(ctx, onR(d * k - 0.26, d * k + 0.26, wz, wz + wh), glass, { lw: 0.035, stroke: frame });
   };
-  R.thing(x + w, y + d, (ctx) => {
+  // Drawn twice: in its day inks, and printed again in dusk inks for the
+  // night (style.js), each a still picture shown in its hours.
+  const draw = (ctx, ink, night = false) => {
+    const body = ink(body0), roof = ink(roof0), trim = ink(trim0), door = ink(door0);
     if (lift) {
       for (const [px, py] of [[x + 0.15, y + 0.15], [x + w - 0.35, y + 0.15], [x + 0.15, y + d - 0.35], [x + w - 0.35, y + d - 0.35], [x + w / 2 - 0.1, y + d - 0.35], [x + w - 0.35, y + d / 2 - 0.1]]) {
-        box(ctx, px, py, z - 0.3, 0.2, 0.2, lift + 0.3, shade(C.wood, 0.15), { flat: true, lw: 0.03 });
+        box(ctx, px, py, z - 0.3, 0.2, 0.2, lift + 0.3, ink(shade(C.wood, 0.15)), { flat: true, lw: 0.03 });
       }
       if (Q.detail) {
         // Cross-bracing between the front pilings.
-        ctx.strokeStyle = shade(C.wood, 0.3); ctx.lineWidth = 0.05; ctx.beginPath();
+        ctx.strokeStyle = ink(shade(C.wood, 0.3)); ctx.lineWidth = 0.05; ctx.beginPath();
         const [a, b] = P(x + 0.25, y + d - 0.25, z + 0.1), [c, e] = P(x + w - 0.25, y + d - 0.25, z0 - 0.1);
         const [f, g] = P(x + 0.25, y + d - 0.25, z0 - 0.1), [m, n] = P(x + w - 0.25, y + d - 0.25, z + 0.1);
         ctx.moveTo(a, b); ctx.lineTo(c, e); ctx.moveTo(f, g); ctx.lineTo(m, n); ctx.stroke();
@@ -164,7 +166,8 @@ export function house(R, x, y, w, d, color, o = {}) {
       }
       ctx.stroke();
     }
-    windows(ctx, HOUSE.glass, trim);
+    // (By night its windows are lit, printed in with it.)
+    windows(ctx, night ? LIT : HOUSE.glass, trim);
     if (doorAt != null) face(ctx, onL(w * doorAt - 0.27, w * doorAt + 0.27, z0, z0 + Math.min(1.5, h * 0.7)), door, { lw: 0.04 });
     // Corner boards, in the trim.
     ctx.strokeStyle = trim; ctx.lineWidth = 0.08; ctx.beginPath();
@@ -183,13 +186,48 @@ export function house(R, x, y, w, d, color, o = {}) {
       shape(ctx, [[x, y + d, top], [x + w, y + d, top], [m, y + d, top + rise]], shade(body, 0.16), { lw, stroke: trim });
       shape(ctx, [[x + w, y, top], [x + w, y + d, top], [m, y + d, top + rise], [m, y, top + rise]], roof, { lw, dots: Q.detail ? shade(roof, 0.4) : null, density: 0.14 });
     }
-    if (o.label && Q.detail) tag(ctx, x + w / 2, y + d / 2, top + rise + 0.6, o.label, { size: 0.4 });
-  });
-  if (o.dark) return;
-  // After dark, the windows lit (a still picture, stamped while the lights
-  // are on) and a glow round the house.
-  R.thing(x + w + 0.01, y + d + 0.01, (ctx) => windows(ctx, LIT, trim), { on: lightsOn });
-  R.light({ at: [x + w * 0.6, y + d * 0.8, wz + wh / 2], r: 2.2, color: LIT, k: (t) => nightK(t) * 0.55 });
+  };
+  const glowAt = [x + w * 0.6, y + d * 0.8, wz + wh / 2];
+  // By night: the dusk ink laid over it (a veil, style.js) and the windows lit.
+  const night = (ctx) => {
+    const m = (o.ridge || 'x') === 'x' ? y + d / 2 : x + w / 2;
+    const roofs = (o.ridge || 'x') === 'x'
+      ? [[[x, y, top], [x + w, y, top], [x + w, m, top + rise], [x, m, top + rise]], [[x + w, y, top], [x + w, y + d, top], [x + w, m, top + rise]], [[x, y + d, top], [x + w, y + d, top], [x + w, m, top + rise], [x, m, top + rise]]]
+      : [[[x, y, top], [x, y + d, top], [m, y + d, top + rise], [m, y, top + rise]], [[x, y + d, top], [x + w, y + d, top], [m, y + d, top + rise]], [[x + w, y, top], [x + w, y + d, top], [m, y + d, top + rise], [m, y, top + rise]]];
+    veil(ctx, [[x, y, z0, w, d, h]], roofs);
+    if (!o.dark) windows(ctx, LIT, dusk(trim0));
+  };
+  if (o.plan) return { draw, night, front: [x + w, y + d], glowAt, dark: !!o.dark };
+  R.thing(x + w, y + d, (ctx) => draw(ctx, (c) => c));
+  R.thing(x + w + 0.001, y + d + 0.001, night, { on: nightPrint });
+  if (o.dark) return null;
+  // After dark, a glow round the house.
+  R.light({ at: glowAt, r: 2.2, color: LIT, k: (t) => nightK(t) * 0.55 });
+  return null;
+}
+
+// A street of houses behind the beach, where nobody walks between them: one
+// still picture per chunk of the area (by day and by night), not one each,
+// so a big town caches quickly, and a glow for every other house. Each is
+// [x, y, w, d, color, o] as for house().
+export function houses(R, list) {
+  const groups = new Map();
+  for (const [x, y, w, d, color, o = {}] of list) {
+    const hs = house(R, x, y, w, d, color, { ...o, plan: true });
+    const key = Math.floor(hs.front[0] / 16) + ',' + Math.floor(hs.front[1] / 16);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(hs);
+  }
+  let n = 0;
+  for (const g of groups.values()) {
+    g.sort((a, b) => a.front[0] + a.front[1] - b.front[0] - b.front[1]);
+    const [fx, fy] = g[0].front;
+    // (A group is printed again in dusk inks by night rather than veiled, so
+    // a lit window behind never shows through the house in front.)
+    R.thing(fx, fy, (ctx) => { for (const hs of g) hs.draw(ctx, (c) => c); }, { on: (t) => !nightPrint(t) });
+    R.thing(fx, fy, (ctx) => { for (const hs of g) hs.draw(ctx, dusk, !hs.dark); }, { on: nightPrint });
+    for (const hs of g) if (!hs.dark && n++ % 2 === 0) R.light({ at: hs.glowAt, r: 2.6, color: LIT, k: (t) => nightK(t) * 0.55 });
+  }
 }
 
 // ---------- Beach things ----------
@@ -217,7 +255,7 @@ export function trap(R, x, y) {
   const z = footing(R, x - 0.4, y - 0.4, 0.8, 0.8);
   R.thing(x, y, (ctx) => {
     for (const [px, py] of [[x - 0.4, y - 0.4], [x + 0.3, y - 0.4], [x - 0.4, y + 0.3], [x + 0.3, y + 0.3]]) box(ctx, px, py, z, 0.1, 0.1, 0.95, C.wood, { flat: true, lw: 0.03 });
-    box(ctx, x - 0.45, y - 0.45, z + 0.9, 0.9, 0.9, 0.62, GREY.trap, { dotsL: shade(GREY.trap, 0.5), lw: 0.04 });
+    box(ctx, x - 0.45, y - 0.45, z + 0.9, 0.9, 0.9, 0.62, TRAP, { dotsL: shade(TRAP, 0.5), lw: 0.04 });
     // The screen on top, where they end up.
     box(ctx, x - 0.3, y - 0.3, z + 1.52, 0.6, 0.6, 0.18, tint(C.grey, 0.4), { flat: true, lw: 0.03 });
   });
@@ -257,13 +295,6 @@ export function signpost(R, x, y, text, o = {}) {
   });
 }
 
-// A name, standing on the ground at a spot: a label for a place in the greybox.
-// (The art replaces these with signposts, or nothing.)
-export function sign(R, x, y, text, h = 2) {
-  const z = footing(R, x, y);
-  R.air((ctx) => { if (Q.detail) tag(ctx, x, y, z + h, text, { size: 0.5, fill: alpha(C.white, 0.9) }); });
-}
-
 // ---------- People ----------
 // Someone standing on the ground at (x, y), or in the water to their waist
 // (wade) when it's over their feet. p: { pose, dir, back, scale } from a walk,
@@ -274,6 +305,126 @@ export function who(ctx, x, y, z, look, name, p = {}, t = 0) {
   const draw = (g) => person(g, x, y, z, { ...look, pose: p.pose || 'stand', dir: p.dir || 'r', back: p.back, ...(p.scale ? { scale: p.scale } : {}) }, t);
   if (L > z + 0.05) wade(ctx, x, y, z, L, draw);
   else draw(ctx);
+}
+
+// Someone who stays put and holds still (standing, sitting, reading,
+// pointing: poses that don't move), drawn once and cached: a still picture
+// in their hours, and turned round to face the marsh at sunset (everyone on
+// the island does). Cheap, so the crowd can be big; keep live
+// people (movers, anim things) for the ones doing something.
+// o: { z, pose, dir, back, hours: (t) => bool, sun: the sunset pose ('stand'
+// or 'point', or false to stay as they are), scale, depth, look extras
+// (arms, hold) }
+export function stay(R, x, y, look, o = {}) {
+  const z = o.z ?? R.ground(x, y);
+  const hours = o.hours || (() => true);
+  const depth = o.depth != null ? { depth: o.depth } : {};
+  const draw = (turned) => (ctx) => person(ctx, x, y, z, turned
+    ? { ...look, pose: o.sun || 'stand', dir: 'r', back: true, arms: undefined, hold: undefined, ...(o.scale ? { scale: o.scale } : {}) }
+    : { ...look, pose: o.pose || 'stand', dir: o.dir || 'r', back: !!o.back, ...(o.arms ? { arms: o.arms } : {}), ...(o.hold ? { hold: o.hold } : {}), ...(o.scale ? { scale: o.scale } : {}) }, 0);
+  if (o.sun === false) { R.thing(x, y, draw(false), { on: hours, ...depth }); return; }
+  R.thing(x, y, draw(false), { on: (t) => hours(t) && !sunsetWatch(t), ...depth });
+  // (Turned round: drawn live for the twenty seconds it lasts, so it isn't
+  // another picture to cache.)
+  R.thing(x, y, draw(true), { anim: true, on: (t) => hours(t) && sunsetWatch(t), ...depth });
+}
+
+// A big standing thing printed twice (the night's answer, style.js): in its
+// day inks, and again in dusk inks after dark, each a still picture.
+// draw(ctx, ink, night): ink(color) gives the color to print with, and night
+// says which print it is (for lamps lit in it). o: { on, depth, veil }
+// o.veil(ctx, v): instead of a second full picture, its silhouette for the
+// dusk veil (v(boxes, polys), see veil()), which is quicker to cache.
+export function printed(R, x, y, draw, o = {}) {
+  const on = o.on || (() => true), depth = o.depth != null ? { depth: o.depth } : {};
+  if (o.veil) {
+    R.thing(x, y, (ctx) => draw(ctx, (c) => c), { on, ...depth });
+    R.thing(x + 0.001, y + 0.001, (ctx) => o.veil(ctx, (boxes, polys) => veil(ctx, boxes, polys)), { on: (t) => on(t) && nightPrint(t), ...(o.depth != null ? { depth: o.depth + 0.001 } : {}) });
+    return;
+  }
+  R.thing(x, y, (ctx) => draw(ctx, (c) => c, false), { on: (t) => on(t) && !nightPrint(t), ...depth });
+  R.thing(x, y, (ctx) => draw(ctx, dusk, true), { on: (t) => on(t) && nightPrint(t), ...depth });
+}
+
+// A row of big things nobody walks between (decks along the front, a wall
+// of sandbags): parts [x, y, draw(ctx, ink, night), group] (group: a tag to
+// keep apart the parts either side of a path), printed as one picture per
+// chunk of the area (sorted by its front-most part), not one each, so the
+// area caches quickly.
+export function printedRow(R, parts) {
+  const groups = new Map();
+  for (const pt of parts) {
+    const key = Math.floor(pt[0] / 16) + ',' + Math.floor(pt[1] / 16) + ',' + (pt[3] ?? '');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(pt);
+  }
+  for (const g of groups.values()) {
+    g.sort((a, b) => a[0] + a[1] - b[0] - b[1]);
+    printed(R, g[0][0], g[0][1], (ctx, ink, night) => { for (const pt of g) pt[2](ctx, ink, night); });
+  }
+}
+
+// The dusk veil: the night ink, at the strength dusk() mixes it, laid over a
+// silhouette once (boxes [x, y, z, w, d, h] and flat polygons of world
+// points), which prints exactly what dusk() would have. All in one path,
+// wound one way, so where the shapes overlap it isn't laid twice.
+const VEIL = alpha(C.night, 0.38);
+export function veil(ctx, boxes = [], polys = []) {
+  ctx.beginPath();
+  const add = (pts) => {
+    const s = pts.map((p) => P(...p));
+    let a = 0;
+    for (let i = 0, j = s.length - 1; i < s.length; j = i++) a += s[j][0] * s[i][1] - s[i][0] * s[j][1];
+    if (a < 0) s.reverse();
+    s.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)));
+    ctx.closePath();
+  };
+  for (const [x, y, z, w, d, h] of boxes) add([[x, y + d, z], [x + w, y + d, z], [x + w, y, z], [x + w, y, z + h], [x, y, z + h], [x, y + d, z + h]]);
+  for (const p of polys) add(p);
+  ctx.fillStyle = VEIL;
+  ctx.fill('nonzero');
+}
+
+// Lettering painted on an upright plane: along x (facing the lower left) or
+// y (the lower right), centred on (x, y, z). (Every area had its own.)
+export function lettering(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
+  if (!Q.detail) return;
+  ctx.save();
+  const [dx, dy] = along === 'x' ? P(0, y, 0) : P(x, 0, 0);
+  ctx.translate(dx, dy);
+  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, size, ink, font);
+  ctx.restore();
+}
+
+// ---------- Birds ----------
+// A herring gull, the island's one gull (every area drew its own): standing
+// (pecking now and then) or flapping past, facing dir (1 or -1, or 'r'/'l').
+// o: { fly, dir, peck, scale, fry (a fry in its beak), phase }
+export function gull(ctx, x, y, z, t, o = {}) {
+  const [X, Y] = P(x, y, z), f = (o.dir === 'l' || o.dir === -1) ? -1 : 1, s = o.scale || 1;
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
+  if (o.fly) {
+    const w = Math.sin(t * 11 + (o.phase || 0)) * 0.22;
+    ctx.beginPath(); ctx.ellipse(0, -0.05, 0.2, 0.08, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+    ctx.beginPath();
+    ctx.moveTo(-0.5, -0.12 - w); ctx.quadraticCurveTo(-0.22, -0.3, -0.02, -0.06);
+    ctx.moveTo(0.5, -0.12 - w); ctx.quadraticCurveTo(0.22, -0.3, 0.02, -0.06);
+    ctx.lineCap = 'round';
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+    ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.06; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0.18, -0.06); ctx.lineTo(0.3, -0.04); ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.04; ctx.stroke();
+  } else {
+    const peck = o.peck && Math.sin(t * 4 + (o.phase || 0)) > 0.6;
+    ctx.strokeStyle = C.coral; ctx.lineWidth = 0.035; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.16); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.16); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, -0.26, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+    ctx.beginPath(); ctx.ellipse(-0.06, -0.29, 0.16, 0.065, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { stroke: false });
+    const hx = peck ? 0.26 : 0.18, hy = peck ? -0.2 : -0.42;
+    ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+    ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
+    if (o.fry) { ctx.beginPath(); ctx.moveTo(hx + 0.12, hy + 0.01); ctx.lineTo(hx + 0.26, hy + 0.14); ctx.strokeStyle = C.butter; ctx.lineWidth = 0.05; ctx.stroke(); }
+  }
+  ctx.restore();
 }
 
 // ---------- Lights after dark ----------

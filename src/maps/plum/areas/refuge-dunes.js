@@ -15,7 +15,7 @@ import { drawLand } from '../../../engine/terrain.js';
 import { land, h, LOTS, GATE, BLVD, TRACK, lineDist } from '../land.js';
 import { LOOP, at, hour, nightK, sunsetWatch } from '../tide.js';
 import { EVENING, INK, LAND, CARS, BRAND, LIT, lightsOn } from '../style.js';
-import { who, trap, car, board, footing, nightGlow } from '../kit.js';
+import { who, trap, car, board, footing, nightGlow, printed } from '../kit.js';
 import { aside } from '../swarm.js';
 import { walkers } from '../day.js';
 
@@ -27,6 +27,7 @@ const TOWER = [18.6, 28.4]; // the observation tower's back corner, at the end o
 // ---------- Inks ----------
 const DECK = mix(C.woodLight, INK.shingle, 0.35); // boardwalk gone silver in the salt
 const POST = shade(mix(C.wood, INK.shingle, 0.3), 0.2);
+const DECK0 = DECK, POST0 = POST;
 const SIGN = mix(C.brown, C.ink, 0.3); // the refuge's brown signs
 const KHAKI = mix(C.woodLight, C.green, 0.25); // birders' vests
 const RANGER = mix(C.green, C.ink, 0.2);
@@ -390,9 +391,10 @@ export default {
     // ---------- The gate ----------
     // The gatehouse: a cedar booth with a window on the road, a green roof.
     const [gx, gy] = [GATE - 1.2, BLVD - 2.6], gw = 1.6, gd = 1.2, gz = footing(R, gx, gy, gw, gd);
-    const booth = mix(C.brown, C.wood, 0.45), roof = mix(C.green, C.ink, 0.3);
+    const booth0 = mix(C.brown, C.wood, 0.45), roof0 = mix(C.green, C.ink, 0.3);
     const boothWin = (ctx, glass) => face(ctx, [[gx + 0.25, gy + gd, gz + 1.0], [gx + 1.35, gy + gd, gz + 1.0], [gx + 1.35, gy + gd, gz + 1.8], [gx + 0.25, gy + gd, gz + 1.8]], glass, { lw: 0.04, stroke: C.white });
-    R.thing(gx + gw, gy + gd, (ctx) => {
+    printed(R, gx + gw, gy + gd, (ctx, ink) => {
+      const booth = ink(booth0), roof = ink(roof0);
       box(ctx, gx, gy, gz, gw, gd, 2.3, booth, { dotsL: shade(booth, 0.5), dens: 0.14, lw: 0.05 });
       if (Q.detail) {
         ctx.beginPath();
@@ -413,7 +415,11 @@ export default {
       letters(ctx, 'x', gx + gw / 2, gy + gd + 0.02, gz + 2.05, ['PAY HERE'], 0.2);
       // The ranger's mug on the sill.
       box(ctx, gx + 1.15, gy + gd + 0.04, gz + 1.0, 0.12, 0.12, 0.14, C.white, { flat: true, lw: 0.02 });
-    });
+    }, { veil: (ctx, v) => {
+      const t0 = gz + 2.3, o = 0.25, top = [gx + gw / 2, gy + gd / 2, t0 + 0.7];
+      const c = [[gx - o, gy - o, t0], [gx + gw + o, gy - o, t0], [gx + gw + o, gy + gd + o, t0], [gx - o, gy + gd + o, t0]];
+      v([[gx, gy, gz, gw, gd, 2.3]], [[c[0], c[1], top], [c[1], c[2], top], [c[3], c[2], top]]);
+    } });
     R.thing(gx + gw + 0.01, gy + gd + 0.01, (ctx) => boothWin(ctx, LIT), { on: lightsOn });
     // Its lamp, on a post behind the booth.
     const [lx, ly] = [GATE - 1.75, BLVD - 2.4], lz = footing(R, lx, ly);
@@ -523,10 +529,12 @@ export default {
     walkway(R, 'y', M1, 43.6, WALK - 0.6, WALK + 0.6, zL);
     const onL = (x, y) => (Math.abs(x - WALK) < 0.6 && y > M1 ? zL(y) : h(x, y));
     // Sand fence along the dune, either side of it.
+    // (Each side one picture, sorted at its back end: nobody walks along it.)
     for (const [x0, x1] of [[34.4, 39.2], [40.9, 44.6]]) {
+      R.thing(x0 + 1.2, 41.3, (ctx) => {
       for (let x = x0; x < x1 - 0.01; x += 1.2) {
         const xb = Math.min(x1, x + 1.2), y = 41.3;
-        R.thing(xb, y, (ctx) => {
+        {
           ctx.beginPath();
           for (let u = x; u <= xb + 0.001; u += 0.2) { const z = h(u, y); line(ctx, [u, y, z], [u, y, z + 0.8]); }
           ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke();
@@ -534,8 +542,9 @@ export default {
           ctx.beginPath();
           for (const k of [0.2, 0.62]) line(ctx, [x, y, h(x, y) + k], [xb, y, h(xb, y) + k]);
           ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
-        });
+        }
       }
+      });
     }
 
     // Two birders on the boardwalk, binoculars up, following the goose a
@@ -619,12 +628,12 @@ export default {
       R.thing(x + 0.5, y + 1, (ctx) => car(ctx, x, y, h(x, y), CARS[(i * 5 + 3) % CARS.length], 'y'), { on: (t) => { const hr = hour(t); return hr >= a && hr < b; } });
     });
     const [ux, uy] = [27.1, 34.25], uz = footing(R, ux, uy, 0.8, 0.8);
-    R.thing(ux + 0.8, uy + 0.8, (ctx) => {
-      box(ctx, ux, uy, uz, 0.8, 0.8, 1.9, C.teal, { dotsL: shade(C.teal, 0.5), lw: 0.045 });
+    printed(R, ux + 0.8, uy + 0.8, (ctx, ink) => {
+      box(ctx, ux, uy, uz, 0.8, 0.8, 1.9, ink(C.teal), { dotsL: ink(shade(C.teal, 0.5)), lw: 0.045 });
       box(ctx, ux - 0.04, uy - 0.04, uz + 1.9, 0.88, 0.88, 0.1, C.white, { flat: true, lw: 0.035 });
-      face(ctx, [[ux + 0.15, uy + 0.8, uz + 0.05], [ux + 0.65, uy + 0.8, uz + 0.05], [ux + 0.65, uy + 0.8, uz + 1.65], [ux + 0.15, uy + 0.8, uz + 1.65]], shade(C.teal, 0.12), { lw: 0.035 });
+      face(ctx, [[ux + 0.15, uy + 0.8, uz + 0.05], [ux + 0.65, uy + 0.8, uz + 0.05], [ux + 0.65, uy + 0.8, uz + 1.65], [ux + 0.15, uy + 0.8, uz + 1.65]], ink(shade(C.teal, 0.12)), { lw: 0.035 });
       face(ctx, [[ux + 0.45, uy + 0.8, uz + 1.3], [ux + 0.6, uy + 0.8, uz + 1.3], [ux + 0.6, uy + 0.8, uz + 1.4], [ux + 0.45, uy + 0.8, uz + 1.4]], C.red, { lw: 0.02 });
-    });
+    }, { veil: (ctx, v) => v([[ux, uy, uz, 0.8, 0.8, 1.9], [ux - 0.04, uy - 0.04, uz + 1.9, 0.88, 0.88, 0.1]]) });
     const waiter = folk(241, { top: C.purple });
     R.mover(() => ({ x: ux + 0.4, y: uy + 1.45 }), (ctx, t, p) => {
       const hr = hour(t);
@@ -636,7 +645,7 @@ export default {
       if (c < 2.4) say(ctx, p.x, p.y, z + 2.9, 'Any day now.');
     });
     sign(R, 29.5, 33.5, ['HELLCAT TRAIL', 'TICKS · IVY · GREENHEADS'], { size: 0.2 });
-    sign(R, 22.9, 35.2, ['KING TIDE TONIGHT', 'NO, REALLY'], { along: 'y', size: 0.2 });
+    sign(R, 22.9, 35.2, ['KING TIDE TONIGHT', 'THE BIRDS KNOW'], { along: 'y', size: 0.2 });
     const hop = route([[21.4, 36.6, 3], [22.4, 37.2, 1.5], [21.8, 37.8, 4], [20.9, 37.1, 2]], { speed: 0.9 });
     R.mover((t) => hop(t), (ctx, t, p) => {
       const z = h(p.x, p.y) + (p.moving ? Math.abs(Math.sin(t * 7)) * 0.25 : 0);
@@ -704,7 +713,8 @@ export default {
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke();
       ctx.strokeStyle = tint(C.wood, 0.15); ctx.lineWidth = 0.07; ctx.stroke();
     };
-    R.thing(tx + 2.4, ty + 2.4, (ctx) => {
+    printed(R, tx + 2.4, ty + 2.4, (ctx, ink) => {
+      const POST = ink(POST0), DECK = ink(DECK0);
       const legs = [[tx, ty], [tx + 2.2, ty], [tx, ty + 2.2], [tx + 2.2, ty + 2.2]];
       for (const [px, py] of legs) box(ctx, px, py, tz - 0.2, 0.22, 0.22, 5.2, POST, { flat: true, lw: 0.035 });
       // Cross-bracing on the two faces you see, in two tiers.

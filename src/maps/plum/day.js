@@ -26,7 +26,7 @@ import { schedule } from '../../engine/actors.js';
 import { PIKE, BLVD, GATE, SHACK, BRIDGE, LOTS, roadZ, h } from './land.js';
 import { LOOP, KING_AT, at, hour, level, nightK, sunsetWatch } from './tide.js';
 import { car, headlights, board, who } from './kit.js';
-import { CARS, LIT, BRAND, lightsOn } from './style.js';
+import { CARS, LIT, lightsOn } from './style.js';
 import { GH, ghWalk } from './swarm.js';
 
 const IN = PIKE + 0.6, OUT = PIKE - 0.6; // the turnpike's lanes: onto the island, and off
@@ -380,11 +380,11 @@ function drawTruck(ctx, x, y, z, along, sg, t, o = {}) {
   const glass = mix(tint(C.sky, 0.25), TRUCK, 0.1);
   const bed = (g) => {
     part(g, W, -hl, -0.28, -hw, hw, z + 0.26, z + 0.92, TRUCK, { dotsL: shade(TRUCK, 0.5), dens: 0.12 });
-    // Open on top: the bed floor, and a Gander Cola cooler in it.
+    // Open on top: the bed floor, and a cooler in it (the Gander Cola one's on his lot).
     face(g, [W(-hl + 0.07, -hw + 0.07, z + 0.92), W(-0.35, -hw + 0.07, z + 0.92), W(-0.35, hw - 0.07, z + 0.92), W(-hl + 0.07, hw - 0.07, z + 0.92)], shade(TRUCK, 0.4), { lw: 0.025 });
     if (Q.detail) {
       part(g, W, -0.95, -0.55, -0.32, 0.12, z + 0.9, z + 1.18, C.white, { flat: true, lw: 0.03 });
-      part(g, W, -0.97, -0.53, -0.34, 0.14, z + 1.18, z + 1.26, BRAND.can, { flat: true, lw: 0.03 });
+      part(g, W, -0.97, -0.53, -0.34, 0.14, z + 1.18, z + 1.26, C.teal, { flat: true, lw: 0.03 });
     }
     if (sg < 0 && Q.detail) end(g, W, -hl, -hw + 0.1, hw - 0.1, z + 0.5, z + 0.78, shade(TRUCK, 0.12));
   };
@@ -435,12 +435,27 @@ const dave = vehicle('dave', 'Every King Tide Dave', C.red, [
 ], (ctx, t, p, along, sg, water) => {
   const s = wrap(t), out = s >= DRIVE_OUT && s < HOME;
   const night = nightK(t) > 0.3;
-  drawTruck(ctx, p.x, p.y, p.z, along, sg, t, { water, moving: p.moving, wave: out && (p.moving || p.say), flash: out && water != null, lights: night && (out || p.moving) });
+  // Parked (all day): the Turnpike draws him as a still picture (parkedDave).
+  if (!daveParked(t)) drawTruck(ctx, p.x, p.y, p.z, along, sg, t, { water, moving: p.moving, wave: out && (p.moving || p.say), flash: out && water != null, lights: night && (out || p.moving) });
   // Parked all day, he'll tell you about it.
   let line = p.say;
   if (!line && !p.moving && !out) { const k = (t + 11) % 46; if (k < 4) line = DAVE_SAYS[Math.floor((t + 11) / 46) % DAVE_SAYS.length]; }
   say(ctx, p.x, p.y, Math.max(p.z, water ?? p.z) + 1.9, line);
 });
+
+// Parked in his spot, dry: nothing about the truck moves (only what he says),
+// so the Turnpike, where he parks, draws it as a still picture, by day and
+// with its lamps lit by night, instead of drawing it fresh every frame.
+const DAVE_Z = roadZ(...DAVE_PARK);
+export function daveParked(t) {
+  const p = dave.at(t);
+  return !p.moving && Math.hypot(p.x - DAVE_PARK[0], p.y - DAVE_PARK[1]) < 0.05 && level(t) <= DAVE_Z + 0.02;
+}
+export function parkedDave(R) {
+  const [x, y] = DAVE_PARK;
+  R.thing(x, y, (ctx) => drawTruck(ctx, x, y, DAVE_Z, 'x', -1, 100), { on: (t) => daveParked(t) && !lightsOn(t) });
+  R.thing(x, y, (ctx) => drawTruck(ctx, x, y, DAVE_Z, 'x', -1, 312), { on: (t) => daveParked(t) && lightsOn(t) });
+}
 
 // ---------- Traffic ----------
 // Cars in the style sheet's inks, with what people bring to a beach on the
@@ -463,11 +478,13 @@ function bikes(ctx, W, z) {
     ctx.strokeStyle = frameInk; ctx.lineWidth = 0.06; ctx.stroke();
   });
 }
-const POOL = ['Is it moving?', 'Any minute now.', 'I can smell the beach.', 'Are we there yet?', 'We could try Crane.', 'Five more minutes.', 'Is that a plover?', 'BEEP BEEP'];
+const POOL = ['Is it moving?', 'We could have walked.', 'I can smell the beach.', 'Are we there yet?', 'We could try Crane.', 'It said OPEN online.', 'Is that a plover?', 'BEEP BEEP'];
 function drawCar(ctx, t, p, along, sg, water, color, o = {}) {
-  const { x, y, z } = p, W = frame(x, y, along, 1);
-  car(ctx, x, y, z, color, along, null, t, water, { board: o.board, rack: o.rack || o.bikes });
-  // The cabin (kit's car sets it 0.1 back along its axis): near side at +0.42.
+  // Its frame faces the way it's going (sg), so the cabin, the kid at the
+  // back window and the driver leaning out all turn with it.
+  const { x, y, z } = p, W = frame(x, y, along, sg);
+  car(ctx, x, y, z, color, along, null, t, water, { board: o.board, rack: o.rack || o.bikes, dir: sg });
+  // The cabin (kit's car sets it 0.1 back from its front): near side at +0.42.
   const cab = (u, v, zz) => W(u - 0.1, v, zz);
   if (o.box) part(ctx, W, -0.55, 0.35, -0.3, 0.3, z + 1.05, z + 1.33, C.white, { flat: true, lw: 0.035, top: tint(C.white, 0.2) });
   if (!Q.detail) return;

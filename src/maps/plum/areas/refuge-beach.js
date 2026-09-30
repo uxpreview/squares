@@ -461,7 +461,9 @@ export default {
     // (The towel floats when the king tide comes up the beach.)
     const SHELLS = [45.2, 44.3];
     const shellInks = [C.white, C.blush, tint(C.coral, 0.3), C.navy, C.butter, tint(C.purple, 0.4), C.white];
-    R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, (ctx, t) => {
+    // (Dry, all but the king tide: a still picture. Afloat, live.)
+    const shellsAfloat = (t) => level(t) > h(SHELLS[0], SHELLS[1]) - 0.02;
+    const shells = (ctx, t) => {
       const [sx, sy] = SHELLS, z = float(sx, sy, t) + (level(t) > h(sx, sy) ? 0.03 * Math.sin(t * 1.7) : 0);
       towel(ctx, sx - 0.65, sy - 0.3, z, 1.3, 0.6, C.sky);
       shellInks.forEach((ink, k) => {
@@ -472,7 +474,9 @@ export default {
         paint(ctx, ink, { lw: 0.025 });
       });
       if (Q.detail) plaque(ctx, 'x', sx + 0.1, sy - 0.25, z + 0.2, 0.6, 0.22, [['SHELL MUSEUM', 0, 0.065]], { board: C.white, edge: 0.02 });
-    }, { anim: true });
+    };
+    R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, (ctx) => shells(ctx, 100), { on: (t) => !shellsAfloat(t) });
+    R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, shells, { anim: true, on: shellsAfloat });
     // Its curator, a kid, walking to the water's edge for more and back.
     const kidLook = folk(88, { scale: 0.7, hat: 'sun', top: C.pink });
     R.mover((t) => {

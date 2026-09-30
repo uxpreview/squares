@@ -22,7 +22,7 @@ import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h, BASIN, BAR, LOTS } from '../land.js';
 import { LOOP, level, hour, lowTide, nightK, sunsetWatch } from '../tide.js';
 import { EVENING, INK, LAND, LIT, BRAND, CARS, lightsOn } from '../style.js';
-import { who, boat, car, house, umbrella, board, footing, nightGlow } from '../kit.js';
+import { who, boat, car, house, umbrella, board, footing, nightGlow, gull, lettering } from '../kit.js';
 
 // ---------- The clock ----------
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -62,14 +62,8 @@ function shoreY(x, L) {
 }
 
 // ---------- Drawing helpers ----------
-// Lettering on an upright plane along x (facing lower left) or y (lower right).
-function write(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
-  ctx.save();
-  const [dx, dy] = along === 'x' ? P(0, y, 0) : P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, size, ink, font);
-  ctx.restore();
-}
+// Lettering on an upright plane (kit's lettering()).
+const write = lettering;
 // A board with lines of lettering: lines [text, size, ink?].
 function notice(ctx, along, x, y, z, w, hgt, lines, o = {}) {
   board(ctx, along, x, y, z, w, hgt, null, o);
@@ -144,7 +138,7 @@ const LURE = (() => { const m = STONES[9].find((st) => st.main); const a = sideA
 // where the water moves, is drawn every frame.
 const CUT = 0.85;
 const splits = (s) => Math.min(...s.tz) > CUT + 0.05;
-function drawStone(ctx, s, z0, z1 = Infinity) {
+function drawStone(ctx, s, z0, z1 = Infinity, cutBelow = false) {
   const { tz, zb } = s;
   if (Math.max(...tz) <= z0 + 0.02) return;
   const lo = Math.max(z0, zb);
@@ -164,12 +158,12 @@ function drawStone(ctx, s, z0, z1 = Infinity) {
   ctx.beginPath();
   const seg = (a, b) => { const [X0, Y0] = P(...a), [X1, Y1] = P(...b); ctx.moveTo(X0, Y0); ctx.lineTo(X1, Y1); };
   for (const i of [1, 2, 3]) seg(side(i, lo), up(i));
-  if (lo > CUT - 0.01 && z0 >= CUT) { /* the cut: no line */ } else { seg(side(1, lo), side(2, lo)); seg(side(2, lo), side(3, lo)); }
+  if (cutBelow) { /* a cut, not the water: no line */ } else { seg(side(1, lo), side(2, lo)); seg(side(2, lo), side(3, lo)); }
   if (z1 === Infinity) { seg(up(1), up(2)); seg(up(2), up(3)); }
   paint(ctx, null, { lw: 0.045 });
   if (z1 === Infinity) face(ctx, [up(0), up(1), up(2), up(3)], tint(GRANITE, 0.18), { lw: 0.045, dots: still && Q.detail ? C.white : null, density: 0.07 });
   // Foam where the water laps it.
-  if (z0 > zb && z0 < CUT && Q.lines) line(ctx, [side(1, lo), side(2, lo), side(3, lo)], alpha(C.white, 0.9), 0.07);
+  if (!cutBelow && z0 > zb && Q.lines) line(ctx, [side(1, lo), side(2, lo), side(3, lo)], alpha(C.white, 0.9), 0.07);
 }
 
 // ---------- Seals ----------
@@ -393,39 +387,6 @@ function wedge(ctx, x, y, z, a, len, w, fill) {
 }
 
 // ---------- Playground, beach and boat bits ----------
-function gull(ctx, x, y, z, t, o = {}) {
-  const [X, Y] = P(x, y, z), f = o.dir === 'l' ? -1 : 1;
-  ctx.save(); ctx.translate(X, Y); ctx.scale(f * 0.8, 0.8);
-  if (o.fly) {
-    const w = Math.sin(t * 9 + (o.phase || 0)) * 0.25;
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.beginPath();
-    ctx.moveTo(-0.45, -0.1 - w); ctx.quadraticCurveTo(-0.2, -0.25 - w, 0, 0); ctx.quadraticCurveTo(0.2, -0.25 - w, 0.45, -0.1 - w); ctx.stroke();
-  } else {
-    const peck = o.peck && Math.sin(t * 4 + (o.phase || 0)) > 0.6;
-    ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(-0.04, -0.15); ctx.lineTo(-0.04, 0); ctx.moveTo(0.05, -0.15); ctx.lineTo(0.05, 0); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(0, -0.24, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
-    ctx.beginPath(); ctx.ellipse(-0.06, -0.28, 0.17, 0.07, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
-    const hx = peck ? 0.26 : 0.2, hy = peck ? -0.18 : -0.4;
-    ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-    ctx.fillStyle = C.mustard; ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.01); ctx.lineTo(hx + 0.2, hy + 0.02); ctx.lineTo(hx + 0.06, hy + 0.04); ctx.fill();
-  }
-  ctx.restore();
-}
-function heron(ctx, x, y, z, t) {
-  const [X, Y] = P(x, y, z);
-  const strike = Math.max(0, Math.sin(t * 0.55)) > 0.96;
-  const grey = mix(C.grey, C.sky, 0.25);
-  ctx.save(); ctx.translate(X, Y);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(-0.04, 0); ctx.lineTo(-0.02, -0.8); ctx.moveTo(0.06, 0); ctx.lineTo(0.04, -0.8); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.95, 0.3, 0.16, -0.35, 0, Math.PI * 2); paint(ctx, grey, { lw: 0.04 });
-  ctx.beginPath(); ctx.moveTo(-0.26, -0.85); ctx.lineTo(-0.5, -0.72); ctx.lineTo(-0.22, -0.8); paint(ctx, shade(grey, 0.2), { lw: 0.03 });
-  const [nx, ny] = strike ? [0.5, -0.45] : [0.16, -1.55];
-  ctx.beginPath(); ctx.moveTo(0.2, -1.0); ctx.quadraticCurveTo(strike ? 0.45 : 0.02, strike ? -0.9 : -1.3, nx, ny);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke(); ctx.strokeStyle = tint(grey, 0.3); ctx.lineWidth = 0.08; ctx.stroke();
-  ctx.beginPath(); ctx.arc(nx, ny, 0.08, 0, Math.PI * 2); paint(ctx, tint(grey, 0.3), { lw: 0.03 });
-  ctx.fillStyle = C.mustard; ctx.beginPath(); ctx.moveTo(nx + 0.05, ny - 0.03); ctx.lineTo(nx + 0.36, ny + (strike ? 0.15 : 0.02)); ctx.lineTo(nx + 0.05, ny + 0.04); ctx.fill();
-  ctx.restore();
-}
 function kayak(ctx, x, y, z, a, color, look, t, paddle) {
   const ca = Math.cos(a), sa = Math.sin(a);
   const W = (u, v, zz) => [x + ca * u - sa * v, y + sa * u + ca * v, zz];
@@ -516,32 +477,9 @@ export default {
         wedge(ctx, lx, ly, GAL + 0.5, a + off, 9, 0.15, alpha(LIT, 0.13 * k));
         wedge(ctx, lx, ly, GAL + 0.5, a + off, 7, 0.05, alpha(LIT, 0.2 * k));
       }
-    }, { on: (t) => nightK(t) > 0.05 });
+    }, { on: (t) => nightK(t) > 0.05 }).area = [lx - 9, ly - 9, lx + 9, ly + 9];
     // Its plaque, by the door.
     R.thing(lx + 0.95, ly + 0.95, (ctx) => notice(ctx, 'x', lx + 0.2, ly + 0.86, lz + 1.9, 0.62, 0.5, [['HARBOR LIGHT', 0.075, C.white], ['1898', 0.09, C.white], ['HAS SEEN WORSE', 0.066, C.butter]], { board: C.navy, edge: 0.03 }));
-    // The painter, painting it all day (it's the lighthouse on the canvas),
-    // turning with everyone at sunset.
-    const painter = folk(331, { top: C.purple, bottom: C.ink, hat: 'sun', style: 'bun' });
-    const cz = h(104.9, 30.5);
-    R.thing(105.3, 30.7, (ctx) => {
-      // The easel, its legs, and the canvas facing us.
-      strut(ctx, [104.55, 30.55, cz], [104.75, 30.45, cz + 1.9], 0.05, C.wood);
-      strut(ctx, [105.25, 30.55, cz], [105.05, 30.45, cz + 1.9], 0.05, C.wood);
-      strut(ctx, [104.9, 30.2, cz], [104.9, 30.45, cz + 1.8], 0.05, C.wood);
-      const Y = 30.5, zc = cz + 1.45;
-      face(ctx, [[104.45, Y, zc - 0.36], [105.35, Y, zc - 0.36], [105.35, Y, zc + 0.36], [104.45, Y, zc + 0.36]], C.white, { lw: 0.04 });
-      face(ctx, [[104.5, Y, zc - 0.05], [105.3, Y, zc - 0.05], [105.3, Y, zc + 0.32], [104.5, Y, zc + 0.32]], tint(C.sky, 0.25), { stroke: false });
-      face(ctx, [[104.5, Y, zc - 0.32], [105.3, Y, zc - 0.32], [105.3, Y, zc - 0.05], [104.5, Y, zc - 0.05]], INK.sea, { stroke: false });
-      face(ctx, [[104.84, Y, zc - 0.12], [104.96, Y, zc - 0.12], [104.94, Y, zc + 0.16], [104.86, Y, zc + 0.16]], C.white, { lw: 0.02 });
-      face(ctx, [[104.84, Y, zc + 0.16], [104.96, Y, zc + 0.16], [104.96, Y, zc + 0.24], [104.84, Y, zc + 0.24]], C.ink, { stroke: false });
-      box(ctx, 104.45, 30.5, zc - 0.42, 0.9, 0.06, 0.06, C.wood, { flat: true, lw: 0.02 });
-    }, { on: during(8, 20.9) });
-    R.thing(104.3, 31.1, (ctx, t) => {
-      const brush = (g) => { g.strokeStyle = C.wood; g.lineWidth = 0.05; g.beginPath(); g.moveTo(0.4, -0.1); g.lineTo(0.75, -0.35); g.stroke(); g.fillStyle = C.coral; g.beginPath(); g.arc(0.78, -0.37, 0.05, 0, Math.PI * 2); g.fill(); };
-      const dab = Math.sin(t * 2.2) > 0.2 ? Math.sin(t * 9) * 0.12 : -0.3;
-      man(ctx, 104.2, 31.0, h(104.2, 31.0), { ...painter, arms: [1.3 + dab, 0.4], hold: brush }, { pose: 'stand', dir: 'r', back: true }, t);
-    }, { anim: true, on: during(8, 20.9) });
-
     // ---------- The beach house on the back ----------
     // The fishermen's rental, with its quarterboard and their rods by the
     // door, and an outdoor shower that's always in use.
@@ -592,9 +530,9 @@ export default {
     };
     const saverOn = during(7.5, 19.8), saverSunset = during(19.8, 20.9);
     R.thing(cx0 + 0.6, cy0 + 0.6, (ctx) => { beachChair(ctx); man(ctx, cx0, cy0, chz + 0.35 - 0.8, saver, { pose: 'sit', dir: 'l' }, 0); }, { on: saverOn });
-    R.thing(cx0 + 0.6, cy0 + 0.6, (ctx) => { beachChair(ctx); man(ctx, cx0, cy0, chz + 0.35 - 0.8, saver, { pose: 'sit', dir: 'r', back: true }, 0); }, { on: saverSunset });
-    const SAVES = ['It\'s for my cousin.', 'He\'s ten minutes out.', 'Still coming.', 'Any minute.'];
-    R.air((ctx, t) => { const s = Math.floor(t / 14); if (t % 14 < 3.5) talk(ctx, cx0, cy0, chz + 2.2, SAVES[s % SAVES.length]); }, { on: saverOn });
+    R.thing(cx0 + 0.6, cy0 + 0.6, (ctx) => { beachChair(ctx); man(ctx, cx0, cy0, chz + 0.35 - 0.8, saver, { pose: 'sit', dir: 'r', back: true }, 0); }, { anim: true, on: saverSunset });
+    const SAVES = ['It\'s for my cousin.', 'He\'s ten minutes out.', 'Still coming.', 'He said he left.'];
+    R.thing(cx0 + 0.62, cy0 + 0.62, (ctx, t) => talk(ctx, cx0, cy0, chz + 2.2, SAVES[Math.floor(t / 14) % SAVES.length]), { anim: true, on: (t) => saverOn(t) && t % 14 < 3.5 });
     // "LOT FULL", on a sawhorse, parked in the first spot since six.
     const sh = h(97.2, 33.6);
     R.thing(97.8, 33.9, (ctx) => {
@@ -667,14 +605,16 @@ export default {
     // A lobster on a spring, and a toddler on the lobster.
     const lrx = 104.4, lry = 37.0, lrz = h(lrx, lry);
     const toddler = folk(307, { top: C.butter, bottom: C.teal, style: 'curly' });
-    R.thing(lrx + 0.5, lry + 0.4, (ctx, t) => {
+    const springer = (ctx, t) => {
       const rock = kids(t) ? Math.sin(t * 5) * 0.14 : 0, x = lrx + rock;
       if (Q.lines) { const pts = []; for (let k = 0; k <= 6; k++) pts.push([lrx + rock * (k / 6) + (k % 2 ? 0.1 : -0.1), lry, lrz + k * 0.08]); line(ctx, pts, C.grey, 0.05); }
       box(ctx, x - 0.4, lry - 0.18, lrz + 0.48, 0.8, 0.36, 0.26, C.coral, { flat: true, lw: 0.035 });
       for (const dy of [-0.2, 0.2]) { disc(ctx, x + 0.55, lry + dy, lrz + 0.62, 0.15, C.coral, { lw: 0.03 }); }
       if (Q.detail) { ctx.fillStyle = C.ink; for (const dy of [-0.08, 0.08]) { const [X, Y] = P(x + 0.4, lry + dy, lrz + 0.85); ctx.beginPath(); ctx.arc(X, Y, 0.04, 0, Math.PI * 2); ctx.fill(); } }
       if (kids(t)) man(ctx, x - 0.05, lry, lrz + 0.75 - 0.8 * 0.55, { ...toddler, arms: [1.3, 1.2] }, { pose: 'sit', dir: 'r', scale: 0.55 }, t);
-    }, { anim: true });
+    };
+    R.thing(lrx + 0.5, lry + 0.4, (ctx) => springer(ctx, 0), { on: (t) => !kids(t) });
+    R.thing(lrx + 0.5, lry + 0.4, springer, { anim: true, on: kids });
     // The bench, and a parent on their phone.
     const bz = h(100.3, 38.3);
     const parent = folk(311, { top: C.sky, bottom: C.navy, style: 'long' });
@@ -698,8 +638,10 @@ export default {
     // a lantern on a post. Legs and ladders only above the water.
     const stand = (x, y, sea) => {
       const z0 = footing(R, x - 0.5, y - 0.5, 1, 1), deck = z0 + 1.9;
-      R.thing(x + 0.62, y + 0.62, (ctx, t) => {
-        const zb = Math.max(z0 - 0.1, level(t) - 0.02), k = clamp((zb - z0) / (deck - z0));
+      // Its legs: a still picture while the water's below them, live when it's round them.
+      const legsDry = (t) => level(t) - 0.02 <= z0 - 0.1;
+      const legs = (ctx, L) => {
+        const zb = Math.max(z0 - 0.1, L - 0.02), k = clamp((zb - z0) / (deck - z0));
         for (const [sx2, sy2] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
           const top = [x + sx2 * 0.42, y + sy2 * 0.42, deck], ft = [x + sx2 * 0.64, y + sy2 * 0.64, z0];
           strut(ctx, [lerp(ft[0], top[0], k), lerp(ft[1], top[1], k), zb], top, 0.1, C.white);
@@ -711,7 +653,9 @@ export default {
           for (const dy of [-0.22, 0.22]) strut(ctx, [lerp(lxx + 0.25, x + 0.5, k), lyy + dy, zb], [x + 0.5, lyy + dy, deck], 0.05, C.white);
           if (Q.lines) for (let r = 1; r < 6; r++) { const zz = z0 + r * 0.32; if (zz > zb) line(ctx, [[lerp(lxx + 0.25, x + 0.5, (zz - z0) / (deck - z0)), lyy - 0.22, zz], [lerp(lxx + 0.25, x + 0.5, (zz - z0) / (deck - z0)), lyy + 0.22, zz]], C.white, 0.04); }
         }
-      }, { anim: true });
+      };
+      R.thing(x + 0.62, y + 0.62, (ctx) => legs(ctx, -9), { on: legsDry });
+      R.thing(x + 0.62, y + 0.62, (ctx, t) => legs(ctx, level(t)), { anim: true, on: (t) => !legsDry(t) });
       R.thing(x + 0.63, y + 0.64, (ctx) => {
         box(ctx, x - 0.52, y - 0.52, deck, 1.04, 1.04, 0.14, C.white, { flat: true, lw: 0.04 });
         box(ctx, x - 0.42, y - 0.3, deck + 0.14, 0.84, 0.5, 0.3, C.white, { flat: true, lw: 0.035 });
@@ -756,16 +700,19 @@ export default {
     const oGuard = folk(101, { top: C.coral, bottom: C.coral, hat: 'cap', style: 'short' });
     const [ox, oy] = OCEAN_STAND;
     const cycle = (t) => (((wrap(t) - 58) % 26) + 26) % 26;
+    // (Sitting watching is a still picture; the whistle and the "Who?" are live.)
+    const whistling = (t) => { const c = cycle(t); return c >= 19 && c < 23.5; };
+    const busy = (t) => whistling(t) || asking(t);
+    R.thing(ox + 0.66, oy + 0.66, (ctx) => man(ctx, ox, oy - 0.05, oDeck + 0.44 - 0.8, { ...oGuard, arms: [0.6, 0.5] }, { pose: 'sit', dir: 'l' }, 0), { on: (t) => guards(t) && !busy(t) });
     R.thing(ox + 0.66, oy + 0.66, (ctx, t) => {
-      const c = cycle(t);
-      if (c >= 19 && c < 23.5) {
+      if (whistling(t)) {
         man(ctx, ox, oy - 0.05, oDeck + 0.44 - 0.8, { ...oGuard, arms: [1.6, 2.7 + Math.sin(t * 10) * 0.2] }, { pose: 'sit', dir: 'l' }, t);
         talk(ctx, ox, oy, oDeck + 2.2, 'TWEET!');
       } else {
         man(ctx, ox, oy - 0.05, oDeck + 0.44 - 0.8, { ...oGuard, arms: [0.6, 0.5] }, { pose: 'sit', dir: 'l' }, t);
-        if (asking(t)) talk(ctx, ox, oy, oDeck + 2.2, 'Who?');
+        talk(ctx, ox, oy, oDeck + 2.2, 'Who?');
       }
-    }, { anim: true, on: guards });
+    }, { anim: true, on: (t) => guards(t) && busy(t) });
     // The river guard, back to us, binoculars on the boats.
     const rGuard = folk(103, { top: C.coral, bottom: C.coral, hat: 'cap', style: 'pony' });
     const [rx0, ry0] = RIVER_STAND;
@@ -862,10 +809,10 @@ export default {
     R.thing(103.6, 33.4, (ctx) => {
       man(ctx, 103.0, 32.9, h(103.0, 32.9), sun1, { pose: 'stand', dir: 'r', back: true }, 0);
       man(ctx, 103.5, 33.2, h(103.5, 33.2), { ...sun2, arms: [2.2, 0.2] }, { pose: 'point', dir: 'r', back: true }, 0);
-    }, { on: during(19.5, 21.2) });
-    R.thing(106.2, 31.6, (ctx) => man(ctx, 106.0, 31.4, h(106.0, 31.4), { ...sun3, arms: [2.4, 2.3], hold: phoneUp }, { pose: 'stand', dir: 'r', back: true }, 0), { on: during(19.5, 21.2) });
+    }, { anim: true, on: during(19.5, 21.2) });
+    R.thing(106.2, 31.6, (ctx) => man(ctx, 106.0, 31.4, h(106.0, 31.4), { ...sun3, arms: [2.4, 2.3], hold: phoneUp }, { pose: 'stand', dir: 'r', back: true }, 0), { anim: true, on: during(19.5, 21.2) });
     // Night: a fisherman with a lantern on the Point's beach, for the king
-    // tide, and two people come to film it ("It's up to the stand!").
+    // tide.
     const nightFish = during(22, 3.5);
     const nFisher = folk(219, { top: C.navy, bottom: C.ink, hat: 'beanie' });
     const [nfx, nfy] = [104.9, 30.0], nfz = h(nfx, nfy);
@@ -874,40 +821,41 @@ export default {
       box(ctx, nfx - 0.5, nfy + 0.2, nfz, 0.22, 0.22, 0.32, LIT, { flat: true, lw: 0.03 });
     }, { anim: true, on: nightFish });
     R.light({ at: [nfx - 0.4, nfy + 0.3, nfz + 0.4], r: 1.6, color: LIT, k: (t) => (nightFish(t) ? 0.85 : 0) });
-    const watchers = [folk(371, { top: C.teal, bottom: C.ink, style: 'curly' }), folk(373, { top: C.mustard, bottom: C.navy, style: 'long' })];
-    const torch = (g) => { g.fillStyle = C.ink; g.fillRect(0.3, -0.35, 0.14, 0.22); g.fillStyle = LIT; g.beginPath(); g.arc(0.37, -0.36, 0.06, 0, Math.PI * 2); g.fill(); };
-    R.thing(103.9, 39.4, (ctx, t) => {
-      man(ctx, 103.2, 38.9, h(103.2, 38.9), { ...watchers[0], arms: [1.4, 0.3], hold: torch }, { pose: 'stand', dir: 'l' }, t);
-      man(ctx, 103.8, 39.2, h(103.8, 39.2), { ...watchers[1], arms: [0.2, 1.3] }, { pose: 'point', dir: 'l' }, t);
-      if (t % 12 < 4) talk(ctx, 103.5, 39, h(103.5, 39) + 2.6, 'It\'s up to the stand!');
-    }, { anim: true, on: during(23.2, 1) });
 
     // ---------- The jetty ----------
     // Rock by rock (each its own thing, so seals and fishermen sort in),
     // drawn only above the water.
+    // Most of the day the water's low, so the rock between LOW_CUT and CUT
+    // is a still picture too, and the live band is only what the water laps.
+    const LOW_CUT = -0.3, low = (t) => level(t) < LOW_CUT - 0.02;
+    const lure = (ctx, t, r) => {
+      const [X, Y] = P(LURE[0], LURE[1], LURE[2]);
+      if (Q.lines) { const [TX, TY] = P(r.x + 0.55, r.y - 0.2, r.top + 0.05); ctx.beginPath(); ctx.moveTo(X - 0.05, Y - 0.1); ctx.quadraticCurveTo(X + 0.2, (Y + TY) / 2, TX, TY); ctx.strokeStyle = alpha(C.ink, 0.75); ctx.lineWidth = 0.025; ctx.stroke(); }
+      ctx.save(); ctx.translate(X, Y); ctx.rotate(0.9 + Math.sin(t * 2) * 0.08);
+      ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.035 });
+      ctx.beginPath(); ctx.ellipse(0.05, 0, 0.22, 0.045, 0, 0, Math.PI * 2); ctx.fillStyle = C.coral; ctx.fill();
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(-0.2, -0.02, 0.035, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-0.3, 0); ctx.lineTo(-0.38, 0.06); ctx.lineTo(-0.32, -0.05); ctx.fillStyle = tint(C.grey, 0.3); ctx.fill();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.beginPath();
+      for (const u of [-0.05, 0.22]) { ctx.moveTo(u, 0.08); ctx.lineTo(u, 0.2); ctx.moveTo(u - 0.06, 0.24); ctx.lineTo(u, 0.2); ctx.lineTo(u + 0.06, 0.24); }
+      ctx.stroke();
+      ctx.restore();
+    };
     ROCKS.forEach((r, i) => {
-      // The band the water moves on, every frame; above it, a still picture.
+      // The band the water moves on, every frame; above it, still pictures.
       const cut = STONES[i].every(splits);
-      R.thing(r.x + 0.7, r.y + 0.7, (ctx, t) => {
+      const band = (top) => (ctx, t) => {
         const L = level(t);
-        for (const s of STONES[i]) drawStone(ctx, s, Math.max(s.zb, L - 0.02), cut ? CUT : Infinity);
+        for (const s of STONES[i]) drawStone(ctx, s, Math.max(s.zb, L - 0.02), top);
         // The lure, snagged on the side of the second-to-last rock, out
         // only at low water.
-        if (i === 9 && L < -0.5) {
-          const [X, Y] = P(LURE[0], LURE[1], LURE[2]);
-          if (Q.lines) { const [TX, TY] = P(r.x + 0.55, r.y - 0.2, r.top + 0.05); ctx.beginPath(); ctx.moveTo(X - 0.05, Y - 0.1); ctx.quadraticCurveTo(X + 0.2, (Y + TY) / 2, TX, TY); ctx.strokeStyle = alpha(C.ink, 0.75); ctx.lineWidth = 0.025; ctx.stroke(); }
-          ctx.save(); ctx.translate(X, Y); ctx.rotate(0.9 + Math.sin(t * 2) * 0.08);
-          ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.035 });
-          ctx.beginPath(); ctx.ellipse(0.05, 0, 0.22, 0.045, 0, 0, Math.PI * 2); ctx.fillStyle = C.coral; ctx.fill();
-          ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(-0.2, -0.02, 0.035, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(-0.3, 0); ctx.lineTo(-0.38, 0.06); ctx.lineTo(-0.32, -0.05); ctx.fillStyle = tint(C.grey, 0.3); ctx.fill();
-          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.beginPath();
-          for (const u of [-0.05, 0.22]) { ctx.moveTo(u, 0.08); ctx.lineTo(u, 0.2); ctx.moveTo(u - 0.06, 0.24); ctx.lineTo(u, 0.2); ctx.lineTo(u + 0.06, 0.24); }
-          ctx.stroke();
-          ctx.restore();
-        }
-      }, { anim: true });
-      if (cut) R.thing(r.x + 0.7, r.y + 0.7, (ctx) => { for (const s of STONES[i]) drawStone(ctx, s, CUT); });
+        if (i === 9 && L < -0.5) lure(ctx, t, r);
+      };
+      if (!cut) { R.thing(r.x + 0.7, r.y + 0.7, band(Infinity), { anim: true }); return; }
+      R.thing(r.x + 0.7, r.y + 0.7, band(CUT), { anim: true, on: (t) => !low(t) });
+      R.thing(r.x + 0.7, r.y + 0.7, band(LOW_CUT), { anim: true, on: low });
+      R.thing(r.x + 0.7, r.y + 0.7, (ctx) => { for (const s of STONES[i]) drawStone(ctx, s, LOW_CUT, CUT, true); }, { on: low });
+      R.thing(r.x + 0.7, r.y + 0.7, (ctx) => { for (const s of STONES[i]) drawStone(ctx, s, CUT, Infinity, true); });
     });
     // The seals.
     SEALS.forEach((sl, n) => {
@@ -974,22 +922,19 @@ export default {
       const ring = (k) => { const pts = []; for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2, r = 1 + 0.12 * Math.sin(3 * a + 1) + 0.07 * Math.sin(5 * a); pts.push([BAR[0] + Math.cos(a) * 3.4 * s * r * k, BAR[1] + Math.sin(a) * 1.5 * s * r * k, L + 0.01]); } return pts; };
       face(ctx, ring(1), mix(LAND.sand, LAND.bed, 0.35), { stroke: alpha(C.white, 0.9), lw: 0.08 });
       if (s > 0.5) face(ctx, ring(0.62), LAND.sand, { stroke: false });
-    }, { anim: true, on: (t) => level(t) < -0.35 });
+    }, { anim: true, on: (t) => level(t) < -0.35 }).area = [BAR[0] - 4, BAR[1] - 2, BAR[0] + 4, BAR[1] + 2];
     const BAR_GULLS = [[-1.6, -0.2, 'r'], [-0.9, 0.4, 'l'], [0.1, -0.3, 'r'], [0.8, 0.3, 'r'], [1.5, -0.1, 'l']];
     R.thing(BAR[0] + 1, BAR[1] + 1, (ctx, t) => {
       const L = level(t);
       BAR_GULLS.forEach(([dx, dy, dir], i) => {
         const up = i === 2 ? Math.max(0, Math.sin(t * 0.5)) : 0;
-        if (up > 0.2) gull(ctx, BAR[0] + dx, BAR[1] + dy, L + up * 2.4, t, { fly: true, dir });
-        else gull(ctx, BAR[0] + dx, BAR[1] + dy, L + 0.01, t, { dir, peck: i % 2 === 0, phase: i });
+        if (up > 0.2) gull(ctx, BAR[0] + dx, BAR[1] + dy, L + up * 2.4, t, { fly: true, dir, scale: 0.8 });
+        else gull(ctx, BAR[0] + dx, BAR[1] + dy, L + 0.01, t, { dir, peck: i % 2 === 0, phase: i, scale: 0.8 });
       });
     }, { anim: true, on: (t) => level(t) < -0.6 });
-    // The Basin: a heron by day, two kayaks pulled up on the bank, out for a
-    // sunset paddle on the evening's water.
-    R.mover(() => ({ x: 101.6, y: 22.9 }), (ctx, t) => {
-      const z = h(101.6, 22.9), L = level(t);
-      wade(ctx, 101.6, 22.9, z, L, (g) => heron(g, 101.6, 22.9, z, t), 0.4);
-    }, { on: during(5.5, 20.4) });
+    // The Basin: two kayaks pulled up on the bank, out for a sunset paddle on
+    // the evening's water. (The island's heron fishes the Turnpike's creek,
+    // and the Sound's channel.)
     const paddle = during(19.65, 20.95);
     const kLooks = [folk(375, { top: C.coral, style: 'pony' }), folk(377, { top: C.teal, style: 'short' })];
     const kCols = [C.mustard, C.coral];

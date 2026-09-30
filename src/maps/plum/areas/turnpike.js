@@ -20,8 +20,8 @@ import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h, roadZ, PIKE, RIVER, BRIDGE, DECK, PINK, SHACK, AIRFIELD, VISITOR, DECK_AT, PANNES, CREEKS } from '../land.js';
 import { hour, level, at, nightK, flicker, pinkWindow, highTide, sunsetWatch, FLICKERS, LOOP } from '../tide.js';
 import { EVENING, LAND, INK, HOUSE, LIT, lightsOn, BRAND } from '../style.js';
-import { bridgeUp, OPENINGS } from '../day.js';
-import { who, trap, boat, footing, nightGlow } from '../kit.js';
+import { bridgeUp, OPENINGS, parkedDave } from '../day.js';
+import { who, trap, boat, footing, nightGlow, stay, gull, lettering, printed } from '../kit.js';
 import { swim } from '../finale.js';
 
 // ---------- Small helpers ----------
@@ -58,16 +58,8 @@ function dot(ctx, x, y, z, r, fill, stroke = true) {
   ctx.arc(X, Y, r, 0, Math.PI * 2);
   paint(ctx, fill, { lw: 0.025, stroke: stroke ? C.ink : false });
 }
-// Lettering painted on an upright plane along x (facing lower left) or y
-// (facing lower right), centred at (x, y, z).
-function words(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = along === 'x' ? P3(0, y, 0) : P3(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, size, ink, font);
-  ctx.restore();
-}
+// Lettering on an upright plane (kit's lettering()).
+const words = lettering;
 // A flat quad on an upright plane: u across (along x or y), z up.
 function pane(ctx, along, x, y, u0, u1, z0, z1, fill, o) {
   const pts = along === 'x'
@@ -109,21 +101,34 @@ function solid(ctx, c, color, colors = {}) {
 // from wherever's higher, the ground or the water, with a ripple ring when
 // it's wet, so the king tide can come up round it. The rest is still.
 function feet(R, posts, top, on = null) {
-  for (const [x, y, w, color] of posts) {
-    const g = R.ground(x, y);
-    R.thing(x + w / 2 - 0.01, y + w / 2 - 0.01, (ctx, t) => {
-      const L = level(t), b = Math.max(g, L);
-      if (b < top) box(ctx, x - w / 2, y - w / 2, b, w, w, top - b, color, { flat: true, lw: 0.03 });
-      if (L > g + 0.02 && Q.detail) {
-        const [X, Y] = P3(x, y, L);
-        ctx.beginPath();
-        ctx.ellipse(X, Y, w * 1.6 + 0.12, w * 0.8 + 0.06, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = alpha(C.white, 0.85);
-        ctx.lineWidth = 0.04;
-        ctx.stroke();
-      }
-    }, { anim: true, ...(on ? { on } : {}) });
-  }
+  const when = on || (() => true);
+  const gs = posts.map(([x, y]) => R.ground(x, y)), gmin = Math.min(...gs), wet = (t) => level(t) > gmin + 0.02;
+  // All the posts of one sign as one item, sorted by the front one.
+  const [fx, fy] = posts.reduce((m, [x, y, w]) => (x + y + w > m[0] + m[1] ? [x + w / 2 - 0.01, y + w / 2 - 0.01] : m), [-1e9, -1e9]);
+  const draw = (ctx, L) => posts.forEach(([x, y, w, color], i) => {
+    const b = Math.max(gs[i], L);
+    if (b < top) box(ctx, x - w / 2, y - w / 2, b, w, w, top - b, color, { flat: true, lw: 0.03 });
+    if (L > gs[i] + 0.02 && Q.detail) {
+      const [X, Y] = P3(x, y, L);
+      ctx.beginPath();
+      ctx.ellipse(X, Y, w * 1.6 + 0.12, w * 0.8 + 0.06, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = alpha(C.white, 0.85);
+      ctx.lineWidth = 0.04;
+      ctx.stroke();
+    }
+  });
+  // Dry (most of the day): a still picture.
+  R.thing(fx, fy, (ctx) => draw(ctx, -9), { on: (t) => when(t) && !wet(t) });
+  R.thing(fx, fy, (ctx, t) => draw(ctx, level(t)), { anim: true, on: (t) => when(t) && wet(t) });
+}
+
+// Something that only moves some of the time (the bridge, its gates and
+// bell): a still picture, drawn as at a quiet noon, while busy(t) is false,
+// and drawn live only while it's true.
+const QUIET = 100;
+function calm(R, x, y, draw, busy, o = {}) {
+  R.thing(x, y, (ctx) => draw(ctx, QUIET), { ...o, on: (t) => !busy(t) });
+  R.thing(x, y, draw, { ...o, depth: o.busyDepth ?? o.depth, anim: true, on: busy });
 }
 
 // Everyone on the island turns to face the marsh at sunset (tide.js).
@@ -132,6 +137,11 @@ const turned = (p, t, pose = 'stand') => (sunsetWatch(t) ? { ...p, pose, dir: 'r
 // o: { z, hours, sun (the sunset pose, or false), depth, after(ctx, t, p, z), scale }
 function extra(R, x, y, look, pose, o = {}) {
   const z = o.z ?? R.ground(x, y);
+  // Holding still: a cached picture (kit's stay()), not drawn every frame.
+  if (typeof pose !== 'function' && !o.after) {
+    stay(R, x, y, o.scale ? { ...look, scale: o.scale } : look, { z, pose: pose.pose, dir: pose.dir, back: pose.back, arms: pose.arms, hours: o.hours, sun: o.sun === false ? false : o.sun || 'stand', depth: o.depth });
+    return;
+  }
   R.thing(x, y, (ctx, t) => {
     if (o.hours && !o.hours(t)) return;
     let p = typeof pose === 'function' ? pose(t) : pose;
@@ -188,38 +198,6 @@ function wader(ctx, x, y, z, t, o) {
   ctx.lineTo(hx + 0.42, hy + 0.04 + k * 0.1);
   ctx.lineTo(hx + 0.06, hy + 0.04);
   paint(ctx, WARN, { lw: 0.025 });
-  ctx.restore();
-}
-// A gull: standing, or flapping past.
-function gull(ctx, x, y, z, t, fly, f = 1, fry = false) {
-  const [X, Y] = P3(x, y, z);
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(f, 1);
-  if (fly) {
-    const w = Math.sin(t * 13) * 0.22;
-    ctx.beginPath();
-    ctx.ellipse(0, -0.05, 0.2, 0.08, 0, 0, Math.PI * 2);
-    paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath();
-    ctx.moveTo(-0.5, -0.12 - w); ctx.quadraticCurveTo(-0.22, -0.3, -0.02, -0.06);
-    ctx.moveTo(0.5, -0.12 - w); ctx.quadraticCurveTo(0.22, -0.3, 0.02, -0.06);
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
-    ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.06; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0.18, -0.06); ctx.lineTo(0.3, -0.04); ctx.strokeStyle = WARN; ctx.lineWidth = 0.04; ctx.stroke();
-  } else {
-    ctx.strokeStyle = C.coral; ctx.lineWidth = 0.035;
-    ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.14); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.14); ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(0, -0.22, 0.22, 0.1, -0.1, 0, Math.PI * 2);
-    paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath();
-    ctx.ellipse(-0.05, -0.23, 0.15, 0.06, -0.1, 0, Math.PI * 2);
-    paint(ctx, C.grey, { stroke: false });
-    ctx.beginPath(); ctx.arc(0.17, -0.34, 0.07, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath(); ctx.moveTo(0.22, -0.34); ctx.lineTo(0.33, -0.32); ctx.strokeStyle = WARN; ctx.lineWidth = 0.035; ctx.stroke();
-  }
-  if (fry) { ctx.beginPath(); ctx.moveTo(0.3, -0.33 - (fly ? -0.27 : 0)); ctx.lineTo(0.42, -0.2 - (fly ? -0.27 : 0)); ctx.strokeStyle = C.butter; ctx.lineWidth = 0.05; ctx.stroke(); }
   ctx.restore();
 }
 // The lobster: tail, body, two claws out front and long feelers, heading
@@ -299,9 +277,10 @@ export default {
 
     // ---------- The refuge's visitor center ----------
     const [vx, vy] = VISITOR, vw = 3, vd = 1.6, vz = footing(R, vx, vy, vw, vd);
-    R.thing(vx + vw + 0.6, vy + vd + 0.7, (ctx) => {
+    printed(R, vx + vw + 0.6, vy + vd + 0.7, (ctx, ink) => {
       const top = vz + 1.8, rise = 0.8, m = vy + vd / 2;
-      box(ctx, vx, vy, vz, vw, vd, 1.8, SHINGLE, { dotsL: shade(SHINGLE, 0.5), dens: 0.14, lw: 0.05 });
+      const SH = ink(SHINGLE);
+      box(ctx, vx, vy, vz, vw, vd, 1.8, SH, { dotsL: shade(SH, 0.5), dens: 0.14, lw: 0.05 });
       if (Q.detail) {
         ctx.strokeStyle = alpha(shade(SHINGLE, 0.35), 0.5); ctx.lineWidth = 0.025; ctx.beginPath();
         for (let z = vz + 0.3; z < top; z += 0.3) { const [a, b] = P3(vx, vy + vd, z), [c, d] = P3(vx + vw, vy + vd, z), [e, f] = P3(vx + vw, vy, z); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.lineTo(e, f); }
@@ -310,9 +289,9 @@ export default {
       for (const u of [vx + 0.5, vx + 2.1]) pane(ctx, 'x', 0, vy + vd, u, u + 0.5, vz + 0.7, vz + 1.35, HOUSE.glass, { lw: 0.035, stroke: C.white });
       pane(ctx, 'x', 0, vy + vd, vx + 1.25, vx + 1.8, vz, vz + 1.4, C.teal, { lw: 0.04 });
       pane(ctx, 'y', vx + vw, 0, vy + 0.5, vy + 1.1, vz + 0.7, vz + 1.35, HOUSE.glass, { lw: 0.035, stroke: C.white });
-      const roof = mix(C.green, INK.shingle, 0.45);
+      const roof = ink(mix(C.green, INK.shingle, 0.45));
       face(ctx, [[vx, vy, top], [vx + vw, vy, top], [vx + vw, m, top + rise], [vx, m, top + rise]], shade(roof, 0.12), { lw: 0.05 });
-      face(ctx, [[vx + vw, vy, top], [vx + vw, vy + vd, top], [vx + vw, m, top + rise]], shade(SHINGLE, 0.06), { lw: 0.05, stroke: C.white });
+      face(ctx, [[vx + vw, vy, top], [vx + vw, vy + vd, top], [vx + vw, m, top + rise]], shade(SH, 0.06), { lw: 0.05, stroke: C.white });
       face(ctx, [[vx - 0.1, vy + vd + 0.1, top], [vx + vw + 0.1, vy + vd + 0.1, top], [vx + vw + 0.1, m, top + rise], [vx - 0.1, m, top + rise]], roof, { lw: 0.05, dots: Q.detail ? shade(roof, 0.4) : null, density: 0.14 });
       // The porch roof, on two posts.
       for (const u of [vx + 0.2, vx + vw - 0.2]) pole(ctx, u, vy + vd + 0.6, vz, 1.3, C.white, 0.05);
@@ -329,13 +308,20 @@ export default {
         ['REFUGE VISITOR CENTER', 0.16, 0.17, C.white],
         ['REFUGE FULL? WE ARE NOT.', -0.14, 0.13, C.butter],
       ], { border: C.white });
-    });
+    }, { veil: (ctx, v) => {
+      const top = vz + 1.8, rise = 0.8, m = vy + vd / 2;
+      v([[vx, vy, vz, vw, vd, 1.8]], [
+        [[vx, vy, top], [vx + vw, vy, top], [vx + vw, m, top + rise], [vx, m, top + rise]], [[vx + vw, vy, top], [vx + vw, vy + vd, top], [vx + vw, m, top + rise]],
+        [[vx - 0.1, vy + vd + 0.1, top], [vx + vw + 0.1, vy + vd + 0.1, top], [vx + vw + 0.1, m, top + rise], [vx - 0.1, m, top + rise]],
+        [[vx, vy + vd, vz + 1.5], [vx + vw, vy + vd, vz + 1.5], [vx + vw, vy + vd + 0.7, vz + 1.3], [vx, vy + vd + 0.7, vz + 1.3]],
+      ]);
+    } });
     // The porch light, after dark.
     R.thing(vx + 1.9, vy + vd + 0.02, (ctx) => dot(ctx, vx + 1.95, vy + vd + 0.01, vz + 1.2, 0.09, LIT), { on: lightsOn });
     R.thing(vx + 1.9, vy + vd + 0.01, (ctx) => dot(ctx, vx + 1.95, vy + vd + 0.01, vz + 1.2, 0.09, C.white));
     nightGlow(R, vx + 1.9, vy + vd + 0.3, vz + 1.2, 2.2, LIT, 0.7);
     // The volunteer on the porch with the maps nobody takes.
-    extra(R, vx + 0.9, vy + vd + 0.45, folk(301, { top: C.green, hat: 'sun', bottom: C.brown }), (t) => ({ pose: mod(t, 9) < 2 ? 'wave' : 'read', dir: 'l' }), { hours: between(8, 17) });
+    extra(R, vx + 0.9, vy + vd + 0.45, folk(301, { top: C.green, hat: 'sun', bottom: C.brown }), { pose: 'read', dir: 'l' }, { hours: between(8, 17) });
 
     // ---------- Plum Island Airport ----------
     const [a0, c0, a1, c1] = AIRFIELD, RY = (c0 + c1) / 2;
@@ -349,8 +335,8 @@ export default {
     }).area = [a0, c0, a1, c1];
     // The hangar, doors open onto the strip, the airport's name on its side.
     const hx = 49.6, hy = 7.6, hw = 3.4, hd = 2, hz = footing(R, hx, hy, hw, hd);
-    R.thing(hx + hw, hy + hd, (ctx) => {
-      const tin = tint(INK.shingle, 0.2), top = hz + 1.6, rise = 0.9, m = hy + hd / 2;
+    printed(R, hx + hw, hy + hd, (ctx, ink) => {
+      const tin = ink(tint(INK.shingle, 0.2)), top = hz + 1.6, rise = 0.9, m = hy + hd / 2;
       box(ctx, hx, hy, hz, hw, hd, 1.6, tin, { dotsL: shade(tin, 0.5), dens: 0.12, lw: 0.05 });
       if (Q.detail) {
         ctx.strokeStyle = alpha(shade(tin, 0.4), 0.5); ctx.lineWidth = 0.025; ctx.beginPath();
@@ -361,15 +347,21 @@ export default {
       pane(ctx, 'y', hx + hw, 0, hy + 0.2, hy + hd - 0.2, hz, hz + 1.5, shade(C.ink, 0.1), { lw: 0.04 });
       pane(ctx, 'y', hx + hw + 0.01, 0, hy + 0.1, hy + 0.55, hz, hz + 1.55, tint(tin, 0.1), { lw: 0.04 });
       pane(ctx, 'y', hx + hw + 0.01, 0, hy + hd - 0.55, hy + hd - 0.1, hz, hz + 1.55, tint(tin, 0.1), { lw: 0.04 });
-      face(ctx, [[hx, hy, top], [hx + hw, hy, top], [hx + hw, m, top + rise], [hx, m, top + rise]], shade(ROOF, 0.1), { lw: 0.05 });
+      face(ctx, [[hx, hy, top], [hx + hw, hy, top], [hx + hw, m, top + rise], [hx, m, top + rise]], ink(shade(ROOF, 0.1)), { lw: 0.05 });
       face(ctx, [[hx + hw, hy, top], [hx + hw, hy + hd, top], [hx + hw, m, top + rise]], shade(tin, 0.08), { lw: 0.05 });
-      face(ctx, [[hx, hy + hd, top], [hx + hw, hy + hd, top], [hx + hw, m, top + rise], [hx, m, top + rise]], mix(ROOF, C.teal, 0.25), { lw: 0.05, dots: Q.detail ? shade(ROOF, 0.4) : null, density: 0.12 });
+      face(ctx, [[hx, hy + hd, top], [hx + hw, hy + hd, top], [hx + hw, m, top + rise], [hx, m, top + rise]], ink(mix(ROOF, C.teal, 0.25)), { lw: 0.05, dots: Q.detail ? shade(ROOF, 0.4) : null, density: 0.12 });
       words(ctx, 'x', hx + hw / 2, hy + hd, hz + 1.1, 'PLUM ISLAND AIRPORT', 0.3, C.navy, 'Bagel Fat One');
       words(ctx, 'x', hx + hw / 2, hy + hd, hz + 0.65, 'FLYING SINCE 1910. MOSTLY.', 0.16, C.navy);
       // The beacon's mast at the back corner.
       pole(ctx, hx + 0.2, hy + 0.2, top, 2, C.white, 0.05);
       box(ctx, hx + 0.05, hy + 0.05, top + 2, 0.3, 0.3, 0.25, STEEL, { flat: true, lw: 0.03 });
-    });
+    }, { veil: (ctx, v) => {
+      const top = hz + 1.6, rise = 0.9, m = hy + hd / 2;
+      v([[hx, hy, hz, hw, hd, 1.6]], [
+        [[hx, hy, top], [hx + hw, hy, top], [hx + hw, m, top + rise], [hx, m, top + rise]], [[hx + hw, hy, top], [hx + hw, hy + hd, top], [hx + hw, m, top + rise]],
+        [[hx, hy + hd, top], [hx + hw, hy + hd, top], [hx + hw, m, top + rise], [hx, m, top + rise]],
+      ]);
+    } });
     // The beacon: white, green, white, green, all night.
     const beacon = [hx + 0.2, hy + 0.2, hz + 1.6 + 2.15];
     R.light({ at: beacon, r: 2.4, color: C.white, k: (t) => nightK(t) * (mod(t, 2.4) < 0.5 ? 0.9 : 0) });
@@ -381,7 +373,7 @@ export default {
     // A yellow Cub parked by the doors, and its owner under the cowling.
     const cub = [54.5, 9.2], cz = R.ground(...cub);
     R.thing(cub[0] + 1, cub[1] + 1.4, (ctx) => plane(ctx, cub[0], cub[1], cz, -1, 0, { color: C.mustard, trim: C.ink }));
-    extra(R, cub[0] - 1.35, cub[1] + 0.5, folk(302, { top: C.navy, bottom: C.navy, hat: 'cap' }), (t) => ({ pose: mod(t, 7) < 3.5 ? 'carry' : 'point', dir: 'r' }), { hours: between(7, 19) });
+    extra(R, cub[0] - 1.35, cub[1] + 0.5, folk(302, { top: C.navy, bottom: C.navy, hat: 'cap' }), { pose: 'carry', dir: 'r' }, { hours: between(7, 19) });
     // A low fence along the road, and the kid who waits all day for the plane.
     R.thing(59.85, 7.6, (ctx) => {
       const fz = 0.9;
@@ -418,7 +410,7 @@ export default {
       const p = planeAt(t), near = !p.gone && Math.abs(p.x - 57) < 5;
       return { pose: near ? 'jump' : 'stand', dir: 'l', back: !near };
     }, { hours: between(7, 19.5), scale: 0.7, sun: 'point' });
-    extra(R, 60.3, 4.9, folk(304, { top: C.blush, bottom: C.navy, hat: 'sun' }), (t) => ({ pose: planeAt(t).z > 1 && !planeAt(t).gone ? 'point' : 'stand', dir: 'l', back: true }), { hours: between(7, 19.5) });
+    extra(R, 60.3, 4.9, folk(304, { top: C.blush, bottom: C.navy, hat: 'sun' }), { pose: 'stand', dir: 'l', back: true }, { hours: between(7, 19.5) });
     // The windsock, blowing the way the plane takes off against.
     const [sx0, sy0] = [a1 - 0.4, c0 - 0.9], sz0 = R.ground(sx0, sy0);
     R.thing(sx0, sy0, (ctx) => pole(ctx, sx0, sy0, sz0, 2.4, C.white, 0.05));
@@ -487,14 +479,17 @@ export default {
       for (let i = 0; i < FLICKERS.length; i++) { const d = s - at(FLICKERS[i]); if (d > 0.4 && d < 2.4) return i; }
       return -1;
     };
+    // (Pointing at the sign all day, a still picture; live only at sunset.)
+    const photoHours = between(6.5, 21);
+    extra(R, 60.15, 12.9, folk(81, { top: C.teal, hat: 'cap' }), { pose: 'point', dir: 'l', back: true }, { hours: (t) => photoHours(t) && !sunsetWatch(t), sun: false });
     extra(R, 60.15, 12.9, folk(81, { top: C.teal, hat: 'cap' }), (t) => {
-      if (sunsetWatch(t)) { const g = glance(t); return g >= 0 ? { pose: 'stand', dir: 'l', back: true, g } : { pose: 'point', dir: 'r', back: true }; }
-      return { pose: 'point', dir: 'l', back: true };
+      const g = glance(t);
+      return g >= 0 ? { pose: 'stand', dir: 'l', back: true, g } : { pose: 'point', dir: 'r', back: true };
     }, {
-      hours: between(6.5, 21), sun: false,
+      hours: (t) => photoHours(t) && sunsetWatch(t), sun: false,
       after: (ctx, t, p, z) => { if (p.g >= 0 && Q.detail) speech(ctx, 60.15, 12.9, z + 2.9, ['Huh.', 'Did you see that?', 'Nope. Nothing.'][p.g], { size: 0.38 }); },
     });
-    extra(R, 60.2, 10.3, folk(83, { top: C.coral, style: 'long' }), (t) => ({ pose: mod(t, 11) < 6 ? 'point' : 'wave', dir: 'r' }), { hours: between(6.5, 21) });
+    extra(R, 60.2, 10.3, folk(83, { top: C.coral, style: 'long' }), { pose: 'point', dir: 'r' }, { hours: between(6.5, 21) });
     extra(R, 60.4, 11.05, folk(84, { top: C.white, bottom: C.teal, hat: 'sun' }), { pose: 'stand', dir: 'r' }, { hours: between(6.5, 21) });
     // The painter, who paints the house anyway. You can see his canvas.
     const [ex, ey] = [56.2, 13.45], ez = R.ground(ex, ey);
@@ -565,8 +560,8 @@ export default {
     // ---------- The clam shack ----------
     const [sx, sy] = SHACK, S0 = sx - 0.4, S1 = S0 + 3, T0 = sy - 2, T1 = T0 + 2.2, sz = footing(R, S0, T0, 3, 2.2);
     const win = [S0 + 0.25, S0 + 1.3, sz + 0.85, sz + 1.6];
-    R.thing(S1, T1, (ctx) => {
-      const top = sz + 2, rise = 0.85, m = (T0 + T1) / 2, body = tint(INK.shingle, 0.45);
+    printed(R, S1, T1, (ctx, ink) => {
+      const top = sz + 2, rise = 0.85, m = (T0 + T1) / 2, body = ink(tint(INK.shingle, 0.45));
       box(ctx, S0, T0, sz, 3, 2.2, 2, body, { dotsL: shade(body, 0.5), dens: 0.14, lw: 0.05 });
       if (Q.detail) {
         ctx.strokeStyle = alpha(shade(body, 0.35), 0.5); ctx.lineWidth = 0.025; ctx.beginPath();
@@ -584,7 +579,7 @@ export default {
       // The awning over the window, striped.
       for (let i = 0; i < 6; i++) {
         const u0 = win[0] - 0.1 + i * 0.217, u1 = u0 + 0.217;
-        face(ctx, [[u0, T1, top - 0.1], [u1, T1, top - 0.1], [u1, T1 + 0.55, top - 0.45], [u0, T1 + 0.55, top - 0.45]], i % 2 ? C.white : C.coral, { lw: 0.03 });
+        face(ctx, [[u0, T1, top - 0.1], [u1, T1, top - 0.1], [u1, T1 + 0.55, top - 0.45], [u0, T1 + 0.55, top - 0.45]], ink(i % 2 ? C.white : C.coral), { lw: 0.03 });
       }
       // Have you seen this goose? On the end the queue faces.
       pane(ctx, 'y', S1 + 0.01, 0, T0 + 0.5, T0 + 1.45, sz + 0.75, sz + 1.75, C.white, { lw: 0.035 });
@@ -601,14 +596,21 @@ export default {
         words(ctx, 'y', S1 + 0.01, T0 + 0.97, sz + 0.84, 'ANSWERS TO: HONK', 0.075, C.red);
       }
       // The roof, and the word on it.
-      face(ctx, [[S0, T0, top], [S1, T0, top], [S1, m, top + rise], [S0, m, top + rise]], shade(C.coral, 0.15), { lw: 0.05 });
+      face(ctx, [[S0, T0, top], [S1, T0, top], [S1, m, top + rise], [S0, m, top + rise]], ink(shade(C.coral, 0.15)), { lw: 0.05 });
       face(ctx, [[S1, T0, top], [S1, T1, top], [S1, m, top + rise]], shade(body, 0.06), { lw: 0.05, stroke: C.white });
-      face(ctx, [[S0 - 0.1, T1 + 0.1, top], [S1 + 0.1, T1 + 0.1, top], [S1 + 0.1, m, top + rise], [S0 - 0.1, m, top + rise]], C.coral, { lw: 0.05, dots: Q.detail ? shade(C.coral, 0.4) : null, density: 0.12 });
+      face(ctx, [[S0 - 0.1, T1 + 0.1, top], [S1 + 0.1, T1 + 0.1, top], [S1 + 0.1, m, top + rise], [S0 - 0.1, m, top + rise]], ink(C.coral), { lw: 0.05, dots: Q.detail ? ink(shade(C.coral, 0.4)) : null, density: 0.12 });
       for (const u of [S0 + 0.8, S0 + 2.2]) pole(ctx, u, m, top + rise - 0.05, 0.45, C.ink, 0.03);
       plaque(ctx, 'x', S0 + 1.5, m, top + rise + 0.7, 1.9, 0.62, C.white, [['CLAMS', 0, 0.44, C.coral, 'Bagel Fat One']], { border: C.coral });
       // Bins round the side, for the gulls.
-      cylinder(ctx, S1 + 0.35, T0 + 0.2, sz, 0.22, 0.6, C.teal);
-    });
+      cylinder(ctx, S1 + 0.35, T0 + 0.2, sz, 0.22, 0.6, ink(C.teal));
+    }, { veil: (ctx, v) => {
+      const top = sz + 2, rise = 0.85, m = (T0 + T1) / 2;
+      v([[S0, T0, sz, 3, 2.2, 2]], [
+        [[S0, T0, top], [S1, T0, top], [S1, m, top + rise], [S0, m, top + rise]], [[S1, T0, top], [S1, T1, top], [S1, m, top + rise]],
+        [[S0 - 0.1, T1 + 0.1, top], [S1 + 0.1, T1 + 0.1, top], [S1 + 0.1, m, top + rise], [S0 - 0.1, m, top + rise]],
+        [[win[0] - 0.1, T1, top - 0.1], [win[0] + 1.2, T1, top - 0.1], [win[0] + 1.2, T1 + 0.55, top - 0.45], [win[0] - 0.1, T1 + 0.55, top - 0.45]],
+      ]);
+    } });
     // The window and the bulbs, lit after dark.
     R.thing(S1 + 0.01, T1 + 0.01, (ctx) => pane(ctx, 'x', 0, T1, win[0], win[1], win[2], win[3], LIT, { lw: 0.04, stroke: C.white }), { on: lightsOn });
     // The cook, in the window, all day.
@@ -637,7 +639,7 @@ export default {
     // The queue, since they opened (and the goose at the end of it).
     const queue = [[66.6, 11.4, 70], [67.6, 11.7, 71], [68.5, 11.6, 72]];
     queue.forEach(([x, y, s], i) => {
-      extra(R, x, y, folk(s), (t) => ({ pose: i === 0 ? (mod(t, 8) < 4 ? 'point' : 'stand') : i === 1 ? 'read' : 'stand', dir: 'l', back: true }), { hours: between(10.5, 20.5) });
+      extra(R, x, y, folk(s), { pose: i === 0 ? 'point' : i === 1 ? 'read' : 'stand', dir: 'l', back: true }, { hours: between(10.5, 20.5) });
     });
     // A picnic table, two people eating clams, and the gull who's next.
     const tb = [64.5, 8.6, 1.3, 0.7], tz = R.ground(65.1, 8.95);
@@ -648,20 +650,23 @@ export default {
       if (!Q.detail) return;
       box(ctx, tb[0] + 0.25, tb[1] + 0.2, tz + 0.83, 0.35, 0.3, 0.1, C.white, { flat: true, lw: 0.02 });
       box(ctx, tb[0] + 0.7, tb[1] + 0.3, tz + 0.83, 0.3, 0.25, 0.1, C.white, { flat: true, lw: 0.02 });
-      cylinder(ctx, tb[0] + 1.12, tb[1] + 0.2, tz + 0.83, 0.05, 0.14, BRAND.can);
+      cylinder(ctx, tb[0] + 1.12, tb[1] + 0.2, tz + 0.83, 0.05, 0.14, C.white);
     });
     extra(R, 65.0, 8.2, folk(93, { top: C.sky }), { pose: 'sit', dir: 'l' }, { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
-    extra(R, 65.3, 9.75, folk(94, { top: C.pink, style: 'bun' }), (t) => ({ pose: 'sit', dir: 'r', back: true, arms: [1.1 + Math.sin(t * 3) * 0.2, 0.3] }), { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
-    // The gull: on the ridge, down to the table, off with a fry, and again.
-    const ridge = [S0 + 2.4, (T0 + T1) / 2, sz + 2.85], grab = [tb[0] + 0.5, tb[1] + 0.35, tz + 0.95];
+    extra(R, 65.3, 9.75, folk(94, { top: C.pink, style: 'bun' }), { pose: 'sit', dir: 'r', back: true, arms: [1.2, 0.3] }, { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
+    // The gull: on the ridge, down to the gulls' bin by the shack, a rummage,
+    // and back up. (The fry thief is the Town Beach's; this one does bins.)
+    const ridge = [S0 + 2.4, (T0 + T1) / 2, sz + 2.85], grab = [S1 + 0.35, T0 + 0.2, sz + 0.62];
     R.mover((t) => {
       const k = mod(t, 16), open = between(11, 20.2)(t);
       if (!open || k < 8) return { x: ridge[0], y: ridge[1], z: ridge[2], fly: false, f: -1 };
-      if (k < 10) { const u = (k - 8) / 2; return { x: ridge[0] + (grab[0] - ridge[0]) * u, y: ridge[1] + (grab[1] - ridge[1]) * u, z: ridge[2] + (grab[2] - ridge[2]) * u + Math.sin(u * Math.PI) * 1.2, fly: true, f: -1 }; }
-      if (k < 11) return { x: grab[0], y: grab[1], z: grab[2], fly: false, f: -1, fry: k > 10.5 };
-      if (k < 13) { const u = (k - 11) / 2; return { x: grab[0] + (ridge[0] - grab[0]) * u, y: grab[1] + (ridge[1] - grab[1]) * u, z: grab[2] + (ridge[2] - grab[2]) * u + Math.sin(u * Math.PI) * 1.2, fly: true, f: 1, fry: true }; }
-      return { x: ridge[0], y: ridge[1], z: ridge[2], fly: false, f: -1, fry: k < 14.5 };
-    }, (ctx, t, p) => gull(ctx, p.x, p.y, p.z, t, p.fly, p.f, p.fry), { bias: 1 });
+      if (k < 10) { const u = (k - 8) / 2; return { x: ridge[0] + (grab[0] - ridge[0]) * u, y: ridge[1] + (grab[1] - ridge[1]) * u, z: ridge[2] + (grab[2] - ridge[2]) * u + Math.sin(u * Math.PI) * 1.2, fly: true, f: 1 }; }
+      if (k < 12) return { x: grab[0], y: grab[1], z: grab[2], fly: false, f: 1, peck: true };
+      if (k < 14) { const u = (k - 12) / 2; return { x: grab[0] + (ridge[0] - grab[0]) * u, y: grab[1] + (ridge[1] - grab[1]) * u, z: grab[2] + (ridge[2] - grab[2]) * u + Math.sin(u * Math.PI) * 1.2, fly: true, f: -1 }; }
+      return { x: ridge[0], y: ridge[1], z: ridge[2], fly: false, f: -1 };
+    }, (ctx, t, p) => gull(ctx, p.x, p.y, p.z, t, { fly: p.fly, dir: p.f, peck: p.peck }), { bias: 1 });
+    // Dave himself, parked (a still picture while he's parked: day.js).
+    parkedDave(R);
     // Dave's lot: his photo board, his chair (reserved), his cooler.
     const [dbx, dby] = [65.3, 12.95], dbz = R.ground(dbx, dby);
     R.thing(dbx + 0.8, dby + 0.1, (ctx) => {
@@ -734,28 +739,30 @@ export default {
       // (flashing) while it's up.
       const tip = pt(BX1, L, 0.1);
       if (k > 0.05) dot(ctx, tip[0], tip[1], tip[2], 0.1, mod(t, 0.8) < 0.4 ? C.red : shade(C.red, 0.4));
-      else if (nightK(t) > 0.3) dot(ctx, tip[0], tip[1], tip[2], 0.1, C.leaf);
     };
-    R.thing(BX0, B0, (ctx, t) => leaf(ctx, t, B0, 1), { anim: true, depth: 79.9 });
-    R.thing(BX0, B1, (ctx, t) => leaf(ctx, t, B1, -1), { anim: true, depth: (t) => (bridgeUp(t) > 0 ? BX1 + B1 : 80.1) });
+    const moving = (t) => bridgeUp(t) > 0;
+    calm(R, BX0, B0, (ctx, t) => leaf(ctx, t, B0, 1), moving, { depth: 79.9 });
+    calm(R, BX0, B1, (ctx, t) => leaf(ctx, t, B1, -1), moving, { depth: 80.1, busyDepth: (t) => (bridgeUp(t) > 0 ? BX1 + B1 : 80.1) });
+    // The green tip lights for the boats, after dark, while it's down.
+    R.thing(BX1, B1 - 0.2, (ctx) => { for (const y of [RIVER - 0.05, RIVER + 0.05]) dot(ctx, BX1, y, DECK + 0.1, 0.1, C.leaf); }, { on: (t) => lightsOn(t) && !moving(t), depth: 80.2 });
     // The tender's hut, on its platform at the mainland end.
     const hutZ = DECK - 0.3, HX0 = 58.6, HX1 = 60.1, HY0 = 19.4, HY1 = 20.4;
-    R.thing(HX1, HY1, (ctx) => {
-      box(ctx, HX0, HY0, hutZ, HX1 - HX0, HY1 - HY0, 1.5, C.white, { dotsL: shade(C.white, 0.35), dens: 0.1, lw: 0.04 });
+    printed(R, HX1, HY1, (ctx, ink) => {
+      box(ctx, HX0, HY0, hutZ, HX1 - HX0, HY1 - HY0, 1.5, ink(C.white), { dotsL: ink(shade(C.white, 0.35)), dens: 0.1, lw: 0.04 });
       pane(ctx, 'x', 0, HY1, HX0 + 0.2, HX0 + 0.7, hutZ + 0.7, hutZ + 1.25, HOUSE.glass, { lw: 0.03, stroke: C.teal });
       pane(ctx, 'y', HX1, 0, HY0 + 0.2, HY1 - 0.2, hutZ + 0.7, hutZ + 1.25, HOUSE.glass, { lw: 0.03, stroke: C.teal });
       pane(ctx, 'x', 0, HY1, HX0 + 0.9, HX0 + 1.35, hutZ, hutZ + 1.2, C.teal, { lw: 0.03 });
-      box(ctx, HX0 - 0.1, HY0 - 0.1, hutZ + 1.5, HX1 - HX0 + 0.2, HY1 - HY0 + 0.2, 0.12, C.teal, { flat: true, lw: 0.04 });
+      box(ctx, HX0 - 0.1, HY0 - 0.1, hutZ + 1.5, HX1 - HX0 + 0.2, HY1 - HY0 + 0.2, 0.12, ink(C.teal), { flat: true, lw: 0.04 });
       pole(ctx, HX0 + 0.75, HY0 + 0.5, hutZ + 1.62, 0.35, C.ink, 0.03);
       if (Q.detail) for (let x = 58.5; x < 60.4; x += 0.45) line(ctx, [[x, 20.95, hutZ], [x, 20.95, hutZ + 0.5]], C.white, 0.035);
       if (Q.detail) line(ctx, [[58.45, 20.95, hutZ + 0.5], [60.35, 20.95, hutZ + 0.5]], C.white, 0.05);
-    });
+    }, { veil: (ctx, v) => v([[HX0, HY0, hutZ, HX1 - HX0, HY1 - HY0, 1.5], [HX0 - 0.1, HY0 - 0.1, hutZ + 1.5, HX1 - HX0 + 0.2, HY1 - HY0 + 0.2, 0.12]]) });
     R.thing(HX1 + 0.01, HY1 + 0.01, (ctx) => {
       pane(ctx, 'x', 0, HY1, HX0 + 0.2, HX0 + 0.7, hutZ + 0.7, hutZ + 1.25, LIT, { lw: 0.03, stroke: C.teal });
       pane(ctx, 'y', HX1, 0, HY0 + 0.2, HY1 - 0.2, hutZ + 0.7, hutZ + 1.25, LIT, { lw: 0.03, stroke: C.teal });
     }, { on: lightsOn });
     // The bell on the roof, swinging while the bridge moves; and it says so.
-    R.thing(HX1 + 0.02, HY1 + 0.02, (ctx, t) => {
+    calm(R, HX1 + 0.02, HY1 + 0.02, (ctx, t) => {
       const k = bridgeUp(t), ring = k > 0 && k < 1;
       const sw = ring ? Math.sin(t * 9) * 0.35 : 0, [X, Y] = P3(HX0 + 0.75, HY0 + 0.5, hutZ + 1.95);
       ctx.save(); ctx.translate(X, Y); ctx.rotate(sw);
@@ -763,14 +770,16 @@ export default {
       paint(ctx, WARN, { lw: 0.03 });
       ctx.restore();
       if (ring && Q.detail && mod(t, 1) < 0.6) label(ctx, HX0 + 0.3, HY0 + 0.2, hutZ + 2.6 + mod(t, 1) * 0.4, 'DING', 0.3, C.ink);
-    }, { anim: true });
+    }, moving);
     // The tender, on his platform. Waves the boat through; waves at the queue.
-    extra(R, 59.3, 20.75, folk(96, { top: C.navy, bottom: C.navy, hat: 'cap' }), (t) => ({ pose: bridgeUp(t) > 0 ? 'wave' : mod(t, 13) < 9 ? 'read' : 'stand', dir: 'r' }), { z: hutZ, depth: HX1 + HY1 + 0.4 });
+    const tender = folk(96, { top: C.navy, bottom: C.navy, hat: 'cap' }), up = (t) => bridgeUp(t) > 0;
+    extra(R, 59.3, 20.75, tender, { pose: 'read', dir: 'r' }, { z: hutZ, depth: HX1 + HY1 + 0.4, hours: (t) => !up(t) });
+    extra(R, 59.3, 20.75, tender, () => ({ pose: 'wave', dir: 'r' }), { z: hutZ, depth: HX1 + HY1 + 0.4, hours: up, sun: false });
     // The gates, down across the road while the bridge is up, lights flashing.
     const gates = [[63.85, 18.35, -1], [60.15, 26.6, 1]];
     for (const [gxx, gyy, dir] of gates) {
       const g0 = roadZ(PIKE, gyy) - 0.1;
-      R.thing(gxx + 0.1, gyy + 0.1, (ctx, t) => {
+      calm(R, gxx + 0.1, gyy + 0.1, (ctx, t) => {
         const k = clamp01(bridgeUp(t) * 4), a = k * Math.PI / 2, len = 2.1, pz = g0 + 0.9;
         pole(ctx, gxx, gyy, g0, 1.2, C.white, 0.07);
         const flash = k > 0 && mod(t, 0.8) < 0.4;
@@ -781,7 +790,7 @@ export default {
           const P = (u) => [gxx + dir * Math.sin(a) * u, gyy, pz + Math.cos(a) * u];
           line(ctx, [P(u0), P(u1)], i % 2 ? C.white : C.red, 0.1);
         }
-      }, { anim: true });
+      }, moving);
     }
     R.light({ at: [PIKE, RIVER, 2.6], r: 3.6, color: C.red, k: (t) => (bridgeUp(t) > 0 && mod(t, 0.8) < 0.4 ? 0.8 : 0) });
     // The memorial flags at the mainland end, south side, and their stone.
@@ -843,17 +852,16 @@ export default {
     });
     // A fisherman on the island bank, casting into the river.
     const fish = [64.6, 26.55], bob = [64.9, 24.1];
-    extra(R, fish[0], fish[1], folk(99, { top: C.green, bottom: C.brown, hat: 'sun' }), { pose: 'point', dir: 'r', back: true }, {
-      hours: between(5, 20.95), sun: 'point',
-      after: (ctx, t, p, z) => {
-        const tip = [fish[0] + 0.3, fish[1] - 1.3, z + 2.9 + Math.sin(t * 1.3) * 0.08];
-        line(ctx, [[fish[0] + 0.2, fish[1] - 0.25, z + 1.3], tip], C.ink, 0.04);
-        if (!Q.detail) return;
-        const L = Math.max(level(t), h(...bob));
-        line(ctx, [tip, [bob[0], bob[1], L + 0.05]], alpha(C.ink, 0.6), 0.015);
-        dot(ctx, bob[0], bob[1], L + 0.08 + Math.sin(t * 2.5) * 0.03, 0.06, C.coral);
-      },
-    });
+    // (He and his rod are a still picture; only the line and the bobber move.)
+    const fishing = between(5, 20.95), fsz = R.ground(...fish), tip = [fish[0] + 0.3, fish[1] - 1.3, fsz + 2.9];
+    extra(R, fish[0], fish[1], folk(99, { top: C.green, bottom: C.brown, hat: 'sun' }), { pose: 'point', dir: 'r', back: true }, { hours: fishing, sun: false });
+    R.thing(fish[0] + 0.01, fish[1] + 0.01, (ctx) => line(ctx, [[fish[0] + 0.2, fish[1] - 0.25, fsz + 1.3], tip], C.ink, 0.04), { on: fishing });
+    R.thing(fish[0] + 0.02, fish[1] + 0.02, (ctx, t) => {
+      if (!Q.detail) return;
+      const L = Math.max(level(t), h(...bob));
+      line(ctx, [tip, [bob[0], bob[1], L + 0.05]], alpha(C.ink, 0.6), 0.015);
+      dot(ctx, bob[0], bob[1], L + 0.08 + Math.sin(t * 2.5) * 0.03, 0.06, C.coral);
+    }, { anim: true, on: fishing });
 
     // ---------- The deck ----------
     // A restaurant deck at the island end, facing the marsh and the sunset,
@@ -861,15 +869,18 @@ export default {
     const [dx, dy] = DECK_AT, X0 = dx - 3.2, X1 = dx + 1.8, Y0 = dy - 1.1, Y1 = dy + 1.1, DZ = 1.25;
     const legs = [];
     for (const x of [X0 + 0.1, X0 + 1.8, dx + 0.2, X1 - 0.2]) for (const y of [Y0 + 0.1, Y1 - 0.2]) legs.push([x, y]);
-    R.thing(X0, Y0, (ctx, t) => {
-      const L = level(t);
+    const legsAt = (ctx, L) => {
       for (const [x, y] of legs) {
         const b = Math.max(h(x, y), L);
         if (b < DZ - 0.15) box(ctx, x, y, b, 0.16, 0.16, DZ - 0.15 - b, shade(C.wood, 0.2), { flat: true, lw: 0.03 });
       }
-    }, { anim: true, depth: X0 + Y0 - 0.2 });
-    R.thing(X0, Y0 + 0.01, (ctx) => {
-      box(ctx, X0, Y0, DZ - 0.18, X1 - X0, Y1 - Y0, 0.18, tint(C.wood, 0.25), { flat: true, lw: 0.04, top: tint(C.woodLight, 0.2) });
+    };
+    // (Dry under the deck most of the day: a still picture.)
+    const legsDry = Math.min(...legs.map(([x, y]) => h(x, y))) - 0.01, dryDeck = (t) => level(t) < legsDry;
+    R.thing(X0, Y0, (ctx) => legsAt(ctx, -9), { depth: X0 + Y0 - 0.2, on: dryDeck });
+    R.thing(X0, Y0, (ctx, t) => legsAt(ctx, level(t)), { anim: true, depth: X0 + Y0 - 0.2, on: (t) => !dryDeck(t) });
+    printed(R, X0, Y0 + 0.01, (ctx, ink) => {
+      box(ctx, X0, Y0, DZ - 0.18, X1 - X0, Y1 - Y0, 0.18, ink(tint(C.wood, 0.25)), { flat: true, lw: 0.04, top: ink(tint(C.woodLight, 0.2)) });
       if (Q.detail) {
         ctx.strokeStyle = alpha(shade(C.wood, 0.3), 0.5); ctx.lineWidth = 0.025; ctx.beginPath();
         for (let x = X0 + 0.35; x < X1; x += 0.35) { const [a, b] = P3(x, Y0, DZ), [c, d] = P3(x, Y1, DZ); ctx.moveTo(a, b); ctx.lineTo(c, d); }
@@ -880,12 +891,12 @@ export default {
       line(ctx, [[X0 + 0.05, Y1 - 0.05, DZ + 0.75], [X0 + 0.05, Y0 + 0.05, DZ + 0.75], [X1 - 0.05, Y0 + 0.05, DZ + 0.75]], C.white, 0.07);
       // The bar at the road end, with its hatch.
       const bw = 1.3;
-      box(ctx, X0, Y0 + 0.2, DZ, bw, Y1 - Y0 - 0.4, 1.9, HOUSE.body[4], { dotsL: shade(HOUSE.body[4], 0.45), dens: 0.12, lw: 0.04 });
-      box(ctx, X0 - 0.1, Y0 + 0.1, DZ + 1.9, bw + 0.2, Y1 - Y0 - 0.2, 0.12, C.teal, { flat: true, lw: 0.04 });
+      box(ctx, X0, Y0 + 0.2, DZ, bw, Y1 - Y0 - 0.4, 1.9, ink(HOUSE.body[4]), { dotsL: ink(shade(HOUSE.body[4], 0.45)), dens: 0.12, lw: 0.04 });
+      box(ctx, X0 - 0.1, Y0 + 0.1, DZ + 1.9, bw + 0.2, Y1 - Y0 - 0.2, 0.12, ink(C.teal), { flat: true, lw: 0.04 });
       pane(ctx, 'y', X0 + bw, 0, Y0 + 0.5, Y1 - 0.5, DZ + 0.8, DZ + 1.5, shade(C.brown, 0.45), { lw: 0.035, stroke: C.white });
       box(ctx, X0 + bw, Y0 + 0.45, DZ + 0.75, 0.2, Y1 - Y0 - 0.9, 0.07, C.white, { flat: true, lw: 0.025 });
       words(ctx, 'y', X0 + bw, dy, DZ + 1.7, 'SUNSET AT 8:20. BOOK NOW.', 0.1, C.ink);
-    });
+    }, { veil: (ctx, v) => v([[X0, Y0, DZ - 0.18, X1 - X0, Y1 - Y0, 0.18], [X0, Y0 + 0.2, DZ, 1.3, Y1 - Y0 - 0.4, 1.9], [X0 - 0.1, Y0 + 0.1, DZ + 1.9, 1.5, Y1 - Y0 - 0.2, 0.12]]) });
     // Its tables and lanterns.
     const tables = [[dx - 0.8, dy - 0.2], [dx + 0.9, dy + 0.2]];
     R.thing(dx - 0.8 + 0.4, dy + 0.2, (ctx) => {
@@ -913,7 +924,7 @@ export default {
     // The diners, who all get up for the sunset, and the waiter.
     const dinerHours = between(11.5, 23);
     [[dx - 1.35, dy - 0.45, 211, 'sit'], [dx - 0.3, dy + 0.1, 213, 'sit'], [dx + 0.5, dy - 0.55, 215, 'stand'], [dx + 1.3, dy + 0.55, 217, 'sit']].forEach(([x, y, s, pose], i) => {
-      extra(R, x, y, folk(s), (t) => ({ pose: pose === 'stand' ? (mod(t + i, 10) < 3 ? 'point' : 'stand') : pose, dir: i % 2 ? 'l' : 'r', back: i === 2 }), { z: DZ, hours: dinerHours, sun: i === 2 ? 'point' : 'stand' });
+      extra(R, x, y, folk(s), { pose: pose === 'stand' ? 'point' : pose, dir: i % 2 ? 'l' : 'r', back: i === 2 }, { z: DZ, hours: dinerHours, sun: i === 2 ? 'point' : 'stand' });
     });
     R.mover((t) => {
       const k = mod(t, 14), u = k < 7 ? k / 7 : 2 - k / 7;
@@ -928,7 +939,7 @@ export default {
     // ---------- The marsh ----------
     // Greenhead traps, blue boxes on legs, and a few of the flies they didn't catch.
     for (const [x, y] of [[53.8, 16.6], [70.5, 4.8], [78.4, 17.2], [86.6, 3.6], [92.2, 12.2], [55.2, 20.6]]) trap(R, x, y);
-    for (const [x, y] of [[70.5, 4.8], [53.8, 16.6]]) {
+    for (const [x, y] of [[70.5, 4.8]]) {
       const z = R.ground(x, y) + 1.9;
       R.thing(x + 0.5, y + 0.5, (ctx, t) => {
         if (!Q.detail || nightK(t) > 0.6) return;
@@ -960,7 +971,7 @@ export default {
     // Gulls wheeling over the marsh.
     for (const [cx, cy, rx, ph] of [[80, 10, 6, 0], [72, 6, 4, 9]]) {
       R.mover((t) => { const a = (t + ph) / 7; return { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * rx * 0.6, z: 6 + Math.sin(a * 2) * 0.5, f: Math.sin(a) > 0 ? -1 : 1 }; },
-        (ctx, t, p) => { if (nightK(t) < 0.8) gull(ctx, p.x, p.y, p.z, t, true, p.f); }, { bias: 20 });
+        (ctx, t, p) => { if (nightK(t) < 0.8) gull(ctx, p.x, p.y, p.z, t, { fly: true, dir: p.f }); }, { bias: 20 });
     }
 
     // The ending: the geese paddle out to the Courier's van (finale.js).

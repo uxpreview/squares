@@ -14,7 +14,7 @@ import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h } from '../land.js';
 import { level, lowTide, highTide, nightK, sunsetWatch, at } from '../tide.js';
 import { EVENING, INK, LAND, LIT, lightsOn, BRAND } from '../style.js';
-import { boat, trap, signpost, board, house } from '../kit.js';
+import { boat, trap, signpost, board, house, gull, lettering } from '../kit.js';
 
 // ---------- Where things are ----------
 const SAIL = [19.4, 21.8]; // the sailboat, aground on the flats south of the channel
@@ -29,6 +29,8 @@ const FONT = 'Rethink Sans';
 
 // ---------- Little helpers ----------
 const lerp = (a, b, k) => a + (b - a) * k;
+// The clock keeps running past the loop; the day's walks read loop seconds.
+const loopT = (t) => ((t % 360) + 360) % 360;
 const dirOf = (dx, dy) => (dx - dy >= 0 ? 'r' : 'l');
 const say = (ctx, x, y, z, text, size = 0.44) => { if (Q.detail) speech(ctx, x, y, z, text, { size }); };
 // A line between two world points, inked, then colored.
@@ -39,15 +41,8 @@ function stick(ctx, a, b, color, w = 0.06) {
   if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.05; ctx.stroke(); }
   ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
 }
-// Lettering on a plane along x (facing lower left), centred on (x, y, z).
-function letters(ctx, x, y, z, text, size, ink = C.ink, font = FONT) {
-  if (!Q.detail) return;
-  ctx.save();
-  const [dx, dy] = P(0, y, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, 'right', x, z, text, size, ink, font);
-  ctx.restore();
-}
+// Lettering on a plane along x, facing the lower left (kit's lettering()).
+const letters = (ctx, x, y, z, text, size, ink = C.ink, font = FONT) => lettering(ctx, 'x', x, y, z, text, size, ink, font);
 // Someone drawn standing (or wading, when the water's over their feet).
 function body(ctx, x, y, z, look, o, t) {
   const L = level(t);
@@ -88,7 +83,8 @@ function plan(t0, start, steps, speed = 1.2) {
       t += dur;
     }
   }
-  const fn = (tt) => {
+  const fn = (t0) => {
+    const tt = loopT(t0);
     for (const g of segs) {
       if (tt < g.t0 || tt >= g.t1) continue;
       const k = (tt - g.t0) / (g.t1 - g.t0);
@@ -141,7 +137,8 @@ function kayakTrip(o) {
   const tl = o.leave + Math.hypot(lx - pr.x, ly - pr.y) / o.speed;
   const te = tl + Math.hypot(ex - lx, ey - ly);
   const outAng = Math.atan2(c0[1] - sy, c0[0] - sx);
-  return (t) => {
+  return (t0) => {
+    const t = loopT(t0);
     if (t < o.appear || t >= te) return { ...away(o.from) };
     if (t < a1) { const k = (t - o.appear) / carry; return { x: lerp(ex, sx, k), y: lerp(ey, sy, k), mode: 'carry', ang: outAng, dir: dirOf(sx - ex, sy - ey), back: true }; }
     if (t < o.float) return { x: sx, y: sy, mode: 'wait', ang: outAng };
@@ -239,20 +236,6 @@ function flier(ctx, x, y, z, t, color, span = 0.5, speed = 7) {
   if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke(); }
   ctx.strokeStyle = color; ctx.lineWidth = 0.08; ctx.stroke();
 }
-// A gull standing (or bobbing): a white body, grey back, yellow bill.
-function gull(ctx, x, y, z, t, dir = 'r', peck = false) {
-  const [X, Y] = P(x, y, z), f = dir === 'l' ? -1 : 1;
-  ctx.save(); ctx.translate(X, Y); ctx.scale(f, 1);
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.04;
-  ctx.beginPath(); ctx.moveTo(-0.03, 0); ctx.lineTo(-0.03, -0.18); ctx.moveTo(0.05, 0); ctx.lineTo(0.05, -0.18); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(0, -0.3, 0.24, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
-  ctx.beginPath(); ctx.ellipse(-0.06, -0.33, 0.17, 0.07, -0.15, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
-  const hy = peck ? -0.22 : -0.46, hx = peck ? 0.26 : 0.18;
-  ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-  ctx.beginPath(); ctx.moveTo(hx + 0.06, hy - 0.02); ctx.lineTo(hx + 0.2, hy + 0.01); ctx.lineTo(hx + 0.06, hy + 0.03); paint(ctx, C.mustard, { lw: 0.02 });
-  ctx.restore();
-}
-
 // ---------- The marsh's own things ----------
 // Salt hay stacked on a staddle: a ring of short posts and a haystack on top,
 // the way they've dried it on the Great Marsh for three hundred years.
@@ -317,7 +300,7 @@ export default {
     // ================= The mainland's marsh, along the back =================
     for (const [x, y] of [[10, 3.2], [24, 3.6], [38, 4.4]]) trap(R, x, y);
     // The greenheads round the traps, by day: the traps work, a bit.
-    for (const [x, y] of [[10, 3.2], [24, 3.6], [38, 4.4]]) {
+    for (const [x, y] of [[24, 3.6]]) {
       R.thing(x + 0.9, y + 0.9, (ctx, t) => {
         if (!Q.detail || nightK(t) > 0.5) return;
         ctx.fillStyle = C.ink;
@@ -348,7 +331,11 @@ export default {
       board(ctx, 'x', 20.7, 4.72, z + 0.75, 1.3, 0.36, 'GONE CLAMMING', { size: 0.18, font: FONT, board: C.butter });
       box(ctx, 20.66, 4.62, z, 0.08, 0.08, 0.6, C.wood, { flat: true, lw: 0.03 });
     }
-    R.thing(21.6, 6, (ctx, t) => boat(ctx, 20.9, 5.7, t, { along: 'y', len: 1.7, wid: 0.75, color: C.white, stripe: C.teal, bob: level(t) > h(20.9, 5.7) }), { anim: true });
+    // (Aground most of the day, a still picture; live once it floats.)
+    const skiffAfloat = (t) => level(t) > h(20.9, 5.7);
+    const skiff = (ctx, t) => boat(ctx, 20.9, 5.7, t, { along: 'y', len: 1.7, wid: 0.75, color: C.white, stripe: C.teal, bob: skiffAfloat(t) });
+    R.thing(21.6, 6, (ctx) => skiff(ctx, 100), { on: (t) => !skiffAfloat(t) });
+    R.thing(21.6, 6, skiff, { anim: true, on: skiffAfloat });
     // The osprey's pole, and its nest, on the marsh.
     function pole(ctx) {
       box(ctx, OS[0] - 0.08, OS[1] - 0.08, OZ - 4.6, 0.16, 0.16, 4.6, shade(C.wood, 0.3), { flat: true, lw: 0.035 });
@@ -427,9 +414,14 @@ export default {
     const owner = folk(52, { top: C.sky, bottom: C.white, hat: 'sun', style: 'long', hair: C.brown });
     const boatZ = (t) => { const g = h(...SAIL), L = level(t); return float(...SAIL, t) - 0.15 + (L > g ? 0.04 * Math.sin(t * 1.7 + SAIL[0]) : 0); };
     const ownerSpot = (t) => [SAIL[0] + 0.95, SAIL[1] + 0.34, boatZ(t) + 0.45 - 0.72];
-    R.thing(SAIL[0] + 1.8, SAIL[1] + 0.7, (ctx, t) => {
+    // Aground (most of the day) the hull, mast and boom are a still picture
+    // and only she, her flag and her mug are live; afloat, all of it is.
+    const aground = (t) => level(t) < h(...SAIL) - 0.05;
+    const sailboat = (ctx, t, part) => {
       const [bx, by] = SAIL, g = h(bx, by), L = level(t), afloat = L > g;
       const z = boatZ(t), deck = z + 0.45;
+      const mx = bx + 0.35;
+      if (part !== 'top') {
       // The tide coming up round the hull: rings on the water.
       if (L > g - 0.05 && L < g + 0.45 && Q.lines) {
         const [X, Y] = P(bx, by, L), k = pulse(t, 2.5);
@@ -442,11 +434,12 @@ export default {
         stick(ctx, [bx + 1.55, by, deck - 0.05], [bx + 2.8, by + 1.2, az + 0.05], C.woodLight, 0.035);
       }
       boat(ctx, bx, by, t, { along: 'x', len: 3.2, wid: 1.2, color: C.white, stripe: C.navy, cabin: tint(C.sky, 0.45), bob: afloat });
-      const mx = bx + 0.35;
       // The boom with its sail rolled up on it, and the mast.
       stick(ctx, [mx, by, deck + 0.95], [bx - 1.35, by, deck + 0.85], C.wood, 0.07);
       if (Q.detail) stick(ctx, [mx - 0.1, by, deck + 1.05], [bx - 1.2, by, deck + 0.95], INK.cream, 0.14);
       box(ctx, mx - 0.05, by - 0.05, deck, 0.1, 0.1, 4.1, C.greyLight, { flat: true, lw: 0.03 });
+      }
+      if (part === 'hull') return;
       // A flag at half-mast, for the day she's having.
       const fz = deck + 2.2, fl = Math.sin(t * 4) * 0.06;
       face(ctx, [[mx, by, fz + 0.3], [mx, by + 0.55, fz + 0.2 + fl], [mx, by + 0.5, fz + 0.02 + fl], [mx, by, fz]], C.coral, { lw: 0.03 });
@@ -486,7 +479,10 @@ export default {
       const w = wardenAsk(t);
       if (w && w.who === 'boat' && w.k > 0.5) say(ctx, ox, oy, oz + 2.4, ASK.boat[1]);
       else if (line) say(ctx, ox, oy, oz + 2.4, line);
-    }, { anim: true });
+    };
+    R.thing(SAIL[0] + 1.8, SAIL[1] + 0.7, (ctx) => sailboat(ctx, 100, 'hull'), { on: aground });
+    R.thing(SAIL[0] + 1.8, SAIL[1] + 0.71, (ctx, t) => sailboat(ctx, t, 'top'), { anim: true, on: aground });
+    R.thing(SAIL[0] + 1.8, SAIL[1] + 0.7, (ctx, t) => sailboat(ctx, t, 'all'), { anim: true, on: (t) => !aground(t) });
     // The towing company's sign on a piling, right off her bow. Ignored.
     const TOP = 0.85;
     R.thing(TOW[0] + 0.2, TOW[1] + 0.2, (ctx, t) => {
@@ -497,7 +493,7 @@ export default {
       box(ctx, TOW[0] - 0.13, TOW[1] - 0.13, TOP, 0.26, 0.26, 2.3, shade(C.wood, 0.3), { flat: true, lw: 0.03 });
       board(ctx, 'x', TOW[0], TOW[1] + 0.16, TOP + 1.7, 1.7, 0.42, 'NEED A TOW?', { size: 0.26, font: 'Bagel Fat One', board: C.mustard });
       board(ctx, 'x', TOW[0], TOW[1] + 0.16, TOP + 1.25, 1.3, 0.34, 'RADIO CH 16', { size: 0.2, font: FONT, board: C.white });
-      gull(ctx, TOW[0], TOW[1], TOP + 2.3, 0, 'l');
+      gull(ctx, TOW[0], TOW[1], TOP + 2.3, 0, { dir: 'l' });
     });
 
     // ================= The flats: clammers, and the warden =================
@@ -588,11 +584,11 @@ export default {
         bucket(ctx, p.x + 0.35 * f, p.y + 0.45, z);
         if (w.k > 0.5) say(ctx, p.x, p.y, z + 2.5, ASK[who][1]);
       } else {
-        const lit = extra && t > 196;
+        const lit = extra && loopT(t) > 196;
         body(ctx, p.x, p.y, z, look, { pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, arms: lit ? [0.9, -0.2] : null, hold: lit ? lantern : pail }, t);
         if (lit) glow(ctx, p.x + 0.35, p.y - 0.35, z + 1.0, 1.7, LIT, 0.35 + 0.6 * nightK(t));
       }
-      if (extra && p.seg.dig && t > 188 && t < 196) say(ctx, p.x, p.y, z + 2.5, 'Five more minutes.');
+      if (extra && p.seg.dig && loopT(t) > 188 && loopT(t) < 196) say(ctx, p.x, p.y, z + 2.5, 'Five more minutes.');
     });
     digger(c1, folk(44, { top: C.teal, bottom: WADERS, shoes: WADERS, hat: 'cap', style: 'bald' }), 1, false);
     digger(c2, folk(47, { top: C.coral, bottom: WADERS, shoes: WADERS, hat: 'beanie', hair: HAIR[4], style: 'curly' }), 2, true);
@@ -622,7 +618,7 @@ export default {
     }
 
     // ================= The back beach =================
-    notice(R, 13.4, 27.2, ['CLAM FLATS', 'PERMIT REQUIRED', 'YES, YOU'], { w: 2.1, size: 0.24, board: C.white, head: C.teal });
+    notice(R, 13.4, 27.2, ['CLAM FLATS', 'PERMIT REQUIRED', 'CLAMS EXEMPT'], { w: 2.1, size: 0.24, board: C.white, head: C.teal });
     // Biscuit, who has been told about the gulls.
     const dogOwner = plan(46, [33.8, 27.9], [{ to: [33.8, 26.4], speed: 1 }, { until: 150, dir: 'r', back: true }, { to: [33.8, 27.9], speed: 1 }]);
     const doLook = folk(58, { top: C.purple, bottom: C.navy, hat: 'cap' });
@@ -631,7 +627,7 @@ export default {
       const o = dogOwner(t);
       if (!o) return { x: 35.6, y: 27.9, gone: true };
       const side = [o.x + 0.7, o.y - 0.3];
-      const k = clamp((t - 50) / 3) * clamp((149 - t) / 3);
+      const k = clamp((loopT(t) - 50) / 3) * clamp((149 - loopT(t)) / 3);
       const [fx, fy] = fig8(t);
       const x = lerp(side[0], fx, k), y = lerp(side[1], fy, k);
       const [nx, ny] = k > 0.5 ? fig8(t + 0.1) : [side[0] + (o.moving ? 0 : 0.01), side[1]];
@@ -665,7 +661,7 @@ export default {
         const d = dogAt(t), near = d.gone ? 0 : clamp((1.9 - Math.hypot(d.x - gx, d.y - gy)) / 0.9);
         const z = float(gx, gy, t);
         if (near > 0.05) { flier(ctx, gx, gy, z + 0.3 + near * 1.6, t, C.white, 0.35, 10); return; }
-        gull(ctx, gx, gy, z + (level(t) > h(gx, gy) ? -0.12 + 0.03 * Math.sin(t * 2 + ph) : 0), t, ph ? 'l' : 'r', pulse(t + ph, 3) < 0.2);
+        gull(ctx, gx, gy, z + (level(t) > h(gx, gy) ? -0.12 + 0.03 * Math.sin(t * 2 + ph) : 0), t, { dir: ph ? 'l' : 'r', peck: true, phase: ph });
       });
     }
     // The sunset couple: chairs out on the beach, backs to everyone, then home.
@@ -695,7 +691,7 @@ export default {
         face(ctx, [[x0, y, z], [x1, y, z], [x1, y + 0.3, z], [x0, y + 0.3, z]], tint(C.woodLight, 0.1), { lw: 0.03 });
       }
     });
-    const launchSign = notice(null, 38.6, 27.6, ['KAYAK LAUNCH', 'HIGH TIDE ONLY', 'NO, REALLY'], { w: 2.1, size: 0.24, board: C.white, head: C.coral });
+    const launchSign = notice(null, 38.6, 27.6, ['KAYAK LAUNCH', 'HIGH TIDE ONLY', 'OTHERWISE, MUD'], { w: 2.1, size: 0.24, board: C.white, head: C.coral });
     R.thing(39.7, 27.7, (ctx) => {
       const z = h(37.6, 27.2);
       for (const [dx, dy] of [[0, 0], [1.6, 0], [0, 0.6], [1.6, 0.6]]) box(ctx, 36.8 + dx, 26.6 + dy, z, 0.1, 0.1, 1.4, C.wood, { flat: true, lw: 0.03 });
@@ -717,13 +713,15 @@ export default {
     const kA = kayakTrip({ appear: 30, from: [40.2, 27.9], spot: [40.6, 23.6], float: 191, center: [38, 12], r: 3.5, ry: 2.1, phase: 1.6, speed: 1.0, leave: 246, land: [40.3, 25.3] });
     const kB = kayakTrip({ appear: 185, from: [41.8, 27.9], spot: [41.8, 23.8], float: 191, center: [21.8, 10.6], r: 3.2, ry: 2.0, phase: 0.2, speed: 1.6, leave: 244, land: [41.6, 25.4] });
     const aLook = folk(60, { top: C.white, bottom: C.teal, hat: 'sun' }), bLook = folk(62, { top: C.teal, hat: 'cap' });
+    // (Sitting on the mud all day is a still picture; only what she says is live.)
+    const kWait = kA(100);
+    R.thing(kWait.x + 0.8, kWait.y + 0.8, (ctx) => drawKayaker(ctx, 100, kWait, aLook, C.coral, C.white), { on: (t) => kA(t).mode === 'wait' });
     R.mover(kA, (ctx, t, p) => {
-      drawKayaker(ctx, t, p, aLook, C.coral, C.white);
-      if (p.mode === 'wait' && !p.gone) {
-        const s = t % 30, z = h(p.x, p.y) + 1.9;
-        if (s < 3) say(ctx, p.x, p.y, z, 'Any minute now.');
-        else if (t > 186) say(ctx, p.x, p.y, z, 'FINALLY.');
-      }
+      if (p.mode !== 'wait') { drawKayaker(ctx, t, p, aLook, C.coral, C.white); return; }
+      if (p.gone) return;
+      const s = t % 30, z = h(p.x, p.y) + 1.9;
+      if (s < 3) say(ctx, p.x, p.y, z, 'Any tide now.');
+      else if (loopT(t) > 186) say(ctx, p.x, p.y, z, 'FINALLY.');
     });
     R.mover(kB, (ctx, t, p) => drawKayaker(ctx, t, p, bLook, C.teal, C.white));
     // Kayaker Three, who pushed off at sunset and only then noticed the
@@ -781,8 +779,7 @@ export default {
 
     // ================= The finds =================
     // A clammer's boot, stuck upright in the mud, next to One Boot (low tide).
-    R.thing(BOOT[0] + 0.3, BOOT[1] + 0.3, (ctx, t) => {
-      if (!lowTide(t)) return;
+    R.thing(BOOT[0] + 0.3, BOOT[1] + 0.3, (ctx) => {
       const [x, y] = BOOT, z = h(x, y);
       disc(ctx, x, y, z + 0.01, 0.36, shade(LAND.mud, 0.2), { stroke: false });
       // A tall rubber boot in profile, tipped over and half sucked down.
@@ -797,11 +794,10 @@ export default {
       ctx.restore();
       // The mud it's stuck in, lapping up over the foot.
       ctx.beginPath(); ctx.ellipse(X + 0.05, Y + 0.02, 0.4, 0.13, 0, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.1), { lw: 0.03 });
-    }, { anim: true });
+    }, { on: lowTide });
     R.find({ id: 'boot', label: 'A clammer\'s lost boot', at: [BOOT[0], BOOT[1], h(...BOOT) + 0.3], r: 0.8, when: lowTide, note: 'low tide' });
     // A message in a bottle, washed up on the far flats (low tide).
-    R.thing(BOTTLE[0] + 0.4, BOTTLE[1] + 0.2, (ctx, t) => {
-      if (!lowTide(t)) return;
+    R.thing(BOTTLE[0] + 0.4, BOTTLE[1] + 0.2, (ctx) => {
       const [x, y] = BOTTLE, z = h(x, y) + 0.1;
       const a = P(x - 0.32, y + 0.12, z), b = P(x + 0.2, y - 0.08, z), n = P(x + 0.42, y - 0.16, z + 0.02);
       const glass = mix(C.teal, C.green, 0.4);
@@ -812,7 +808,7 @@ export default {
       line([lerp(a[0], b[0], 0.2), lerp(a[1], b[1], 0.2)], [lerp(a[0], b[0], 0.8), lerp(a[1], b[1], 0.8)], INK.cream, 0.1);
       if (Q.detail) line([a[0] + 0.05, a[1] - 0.07], [b[0] - 0.05, b[1] - 0.07], alpha(C.white, 0.8), 0.035);
       ctx.beginPath(); ctx.arc(n[0] + 0.05, n[1] - 0.02, 0.06, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.025 });
-    }, { anim: true });
+    }, { on: lowTide });
     R.find({ id: 'bottle', label: 'A message in a bottle', at: [BOTTLE[0], BOTTLE[1], h(...BOTTLE) + 0.2], r: 0.8, when: lowTide, note: 'low tide' });
     // A kayak paddle, drifting on the flood (high tide): Kayaker Three's.
     const paddleAt = (t) => [PADDLE[0] + Math.sin(t / 3) * 0.4, PADDLE[1] + Math.cos(t / 4) * 0.3, float(PADDLE[0], PADDLE[1], t) + 0.1];

@@ -13,14 +13,14 @@
 //
 // World units, like land.js. Speed: whatever only changes with the hour is a
 // still picture shown in its hours (on); only what really moves is anim.
-import { C, Q, P, box, disc, face, poly, paint, paintText, person, folk, speech, label, note, glow, tint, shade, mix, alpha } from '../../../engine/art.js';
+import { C, Q, P, box, disc, face, poly, paint, paintText, person, folk, speech, label, glow, tint, shade, mix, alpha } from '../../../engine/art.js';
 import { drawLand } from '../../../engine/terrain.js';
 import { ZK } from '../../../engine/iso.js';
 import { route, schedule, particles, clamp } from '../../../engine/actors.js';
 import { land, h, PIKE, LOTS } from '../land.js';
 import { LOOP, hour, level, nightK, sunsetWatch } from '../tide.js';
 import { EVENING, INK, HOUSE, CARS, LIT, BRAND, lightsOn } from '../style.js';
-import { who, house, car, umbrella, board, nightGlow } from '../kit.js';
+import { who, house, car, umbrella, board, nightGlow, gull, printed } from '../kit.js';
 import { aside } from '../swarm.js';
 
 const PATH = PIKE; // the beach path, over the dunes from between the lots
@@ -39,8 +39,6 @@ const nq = (t) => Math.round(nightK(t) * 8) / 8;
 // The ground under a spot, just over it (for paint on the road).
 const gz = (x, y) => h(x, y) + 0.01;
 const z0 = (p) => h(p[0], p[1]);
-// Bare legs in the outdoor shower.
-const HAIR_SKIN = tint(C.woodLight, 0.2);
 
 // Cars that stay put: the one with the ticket (a surfer, out all day and
 // all night), the greenhead man's (he gets out of it at ten), a resident's,
@@ -112,37 +110,6 @@ function tuft(ctx, x, y, z, s = 1) {
   ctx.lineCap = 'round';
   ctx.stroke();
 }
-// A gull, standing or flying (k: 0 standing, 1 up and flapping).
-function gull(ctx, x, y, z, t, k = 0, dir = 1) {
-  const [X, Y] = P(x, y, z);
-  ctx.save();
-  ctx.translate(X, Y);
-  ctx.scale(dir, 1);
-  if (k < 0.2) {
-    ctx.beginPath();
-    ctx.ellipse(0, -0.18, 0.22, 0.11, -0.15, 0, Math.PI * 2);
-    paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath();
-    ctx.ellipse(-0.04, -0.18, 0.13, 0.06, -0.15, 0, Math.PI * 2);
-    ctx.fillStyle = C.grey;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(0.19, -0.3, 0.07, 0, Math.PI * 2);
-    paint(ctx, C.white, { lw: 0.03 });
-    ctx.fillStyle = C.mustard;
-    ctx.fillRect(0.25, -0.31, 0.09, 0.03);
-  } else {
-    const f = Math.sin(t * 14) * 0.18;
-    ctx.beginPath();
-    ctx.moveTo(-0.35, -0.1 - f);
-    ctx.quadraticCurveTo(-0.15, -0.22, 0, -0.08);
-    ctx.quadraticCurveTo(0.15, -0.22, 0.35, -0.1 - f);
-    ctx.strokeStyle = C.ink;
-    ctx.lineWidth = 0.06;
-    ctx.stroke();
-  }
-  ctx.restore();
-}
 // Where the sea meets the sand at x, right now.
 function shoreY(x, L) {
   let a = 43.5, b = 57;
@@ -178,7 +145,8 @@ function still(R, x, y, look, o = {}) {
   };
   const depth = x + y + (o.bias || 0);
   R.thing(x, y, (ctx) => { draw(ctx, false); if (o.more) o.more(ctx, z); }, { on: notWatching(o.when || (() => true)), depth });
-  if (o.watch !== false) R.thing(x, y, (ctx) => draw(ctx, true), { on: both(watching, o.watchWhen || o.when || (() => true)), depth });
+  // (Turned round only for the sunset: live then, not another cached picture.)
+  if (o.watch !== false) R.thing(x, y, (ctx) => draw(ctx, true), { anim: true, on: both(watching, o.watchWhen || o.when || (() => true)), depth });
 }
 // Things people carry.
 const cone = (flavor) => (ctx) => {
@@ -279,19 +247,6 @@ export default {
         shape(ctx, [[x, y, zz - 0.15], [x + 0.45, y + 0.04, zz - 0.15], [x + 0.45 + sw * 0.3, y + 0.04 + sw * 0.3, zz - 0.25], [x + sw * 0.3, y + sw * 0.3, zz - 0.25]], C.white, { stroke: false });
       });
     }, { anim: true });
-    // An outdoor shower behind the corner house: feet, steam, a song.
-    R.thing(50.75, 39.4, (ctx, t) => {
-      const x = 50.3, y = 38.95, z = h(x, y);
-      if (busy(t) && hour(t) > 16) {
-        for (const dx of [-0.12, 0.1]) box(ctx, x + dx, y + 0.35, z, 0.1, 0.1, 0.35, HAIR_SKIN, { flat: true, lw: 0.02 });
-      }
-      box(ctx, x - 0.4, y - 0.4, z + 0.35, 0.8, 0.8, 1.6, C.wood, { flat: true, lw: 0.04 });
-      if (Q.detail) for (let k = 1; k < 4; k++) line(ctx, [[x - 0.4 + k * 0.2, y + 0.4, z + 0.36], [x - 0.4 + k * 0.2, y + 0.4, z + 1.94]], shade(C.wood, 0.3), 0.02);
-      if (!(busy(t) && hour(t) > 16) || !Q.detail) return;
-      particles(t, 5, 2.4, (k, r) => disc(ctx, x + (r() - 0.5) * 0.5, y, z + 2 + k * 1.1, 0.12 + k * 0.2, alpha(C.white, 0.6 * (1 - k)), { stroke: false }), 7);
-      if (Math.sin(t * 1.3) > 0.2) note(ctx, x - 0.4, y - 0.3, z + 2.5 + Math.sin(t * 3) * 0.1, C.ink, 0.8);
-    }, { anim: true });
-
     // ---------- The bait shop ----------
     // Clapboard, a teal roof, a lit window after dark (house() does its own),
     // a sign on the ridge and today's tides on the board by the door.
@@ -391,32 +346,32 @@ export default {
     // Open late: a striped awning, a giant cone on the roof, bulbs along the
     // awning that come on at dusk, and a menu nobody finishes reading.
     const IX = 64.8, IY = 28.2, IW = 2.6, ID = 1.6, IZ = h(66, 29);
-    R.thing(IX + IW, IY + ID, (ctx) => {
+    printed(R, IX + IW, IY + ID, (ctx, ink) => {
       const z = IZ;
-      box(ctx, IX, IY, z, IW, ID, 2.0, C.white, { dotsL: shade(C.pink, 0.4), dens: 0.1, lw: 0.05 });
+      box(ctx, IX, IY, z, IW, ID, 2.0, ink(C.white), { dotsL: ink(shade(C.pink, 0.4)), dens: 0.1, lw: 0.05 });
       // The serving window, and the dark inside.
       face(ctx, [[IX + 0.3, IY + ID, z + 0.95], [IX + 1.6, IY + ID, z + 0.95], [IX + 1.6, IY + ID, z + 1.75], [IX + 0.3, IY + ID, z + 1.75]], shade(C.pink, 0.55), { lw: 0.04 });
-      box(ctx, IX - 0.12, IY - 0.12, z + 2.0, IW + 0.24, ID + 0.24, 0.2, C.pink, { flat: true, lw: 0.04 });
+      box(ctx, IX - 0.12, IY - 0.12, z + 2.0, IW + 0.24, ID + 0.24, 0.2, ink(C.pink), { flat: true, lw: 0.04 });
       // The menu, on the side.
       plate(ctx, 'y', IX + IW + 0.01, IY + 0.8, z + 1.15, 1.25, 1.25, [
         ['SOFT SERVE', 0.17, C.coral], ['VANILLA', 0.12], ['PLUM', 0.12], ['LOW TIDE MUD', 0.12], ['GREENHEAD', 0.12], ['CRUNCH*', 0.12], ['*RAISINS', 0.09, C.grey],
-      ], { board: C.white, edge: 0.03, gap: 1.2 });
+      ], { board: ink(C.white), edge: 0.03, gap: 1.2 });
       // The cone on the roof.
       const [cx, cy] = P(IX + IW / 2, IY + ID / 2, z + 2.2);
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - 0.42, cy - 1.3); ctx.lineTo(cx + 0.42, cy - 1.3); ctx.closePath();
-      paint(ctx, C.woodLight, { dots: Q.detail ? C.wood : null, density: 0.35, lw: 0.04 });
+      paint(ctx, ink(C.woodLight), { dots: Q.detail ? ink(C.wood) : null, density: 0.35, lw: 0.04 });
       ctx.beginPath(); ctx.arc(cx, cy - 1.55, 0.5, 0, Math.PI * 2);
-      paint(ctx, C.pink, { lw: 0.04 });
+      paint(ctx, ink(C.pink), { lw: 0.04 });
       ctx.beginPath(); ctx.arc(cx + 0.05, cy - 1.95, 0.35, 0, Math.PI * 2);
-      paint(ctx, tint(C.pink, 0.55), { lw: 0.04 });
+      paint(ctx, ink(tint(C.pink, 0.55)), { lw: 0.04 });
       disc(ctx, IX + IW / 2 + 0.1, IY + ID / 2 - 0.1, z + 2.2 + 2.25, 0.06, C.red, { lw: 0.02 });
       // The awning over the window.
       const a0 = IX + 0.15, a1 = IX + 1.75, n = 6;
       for (let i = 0; i < n; i++) {
         const u0 = a0 + ((a1 - a0) * i) / n, u1 = a0 + ((a1 - a0) * (i + 1)) / n;
-        shape(ctx, [[u0, IY + ID, z + 1.95], [u1, IY + ID, z + 1.95], [u1, IY + ID + 0.6, z + 1.62], [u0, IY + ID + 0.6, z + 1.62]], i % 2 ? C.white : C.pink, { lw: 0.03 });
+        shape(ctx, [[u0, IY + ID, z + 1.95], [u1, IY + ID, z + 1.95], [u1, IY + ID + 0.6, z + 1.62], [u0, IY + ID + 0.6, z + 1.62]], ink(i % 2 ? C.white : C.pink), { lw: 0.03 });
       }
-    }, { depth: IX + IY + ID - 0.2 });
+    }, { depth: IX + IY + ID - 0.2, veil: (ctx, v) => v([[IX, IY, IZ, IW, ID, 2.0], [IX - 0.12, IY - 0.12, IZ + 2.0, IW + 0.24, ID + 0.24, 0.2]], [[[IX + 0.15, IY + ID, IZ + 1.95], [IX + 1.75, IY + ID, IZ + 1.95], [IX + 1.75, IY + ID + 0.6, IZ + 1.62], [IX + 0.15, IY + ID + 0.6, IZ + 1.62]]]) });
     R.thing(IX + IW + 0.02, IY + ID + 0.62, (ctx) => {
       for (let i = 0; i <= 6; i++) disc(ctx, IX + 0.15 + (1.6 * i) / 6, IY + ID + 0.62, IZ + 1.56 - Math.sin((i / 6) * Math.PI) * 0.08, 0.06, LIT, { lw: 0.015 });
       face(ctx, [[IX + 0.3, IY + ID + 0.01, IZ + 0.95], [IX + 1.6, IY + ID + 0.01, IZ + 0.95], [IX + 1.6, IY + ID + 0.01, IZ + 1.75], [IX + 0.3, IY + ID + 0.01, IZ + 1.75]], alpha(LIT, 0.55), { stroke: false });
@@ -600,21 +555,20 @@ export default {
     });
     // No lifeguard on duty, and a gull on top of the sign who disagrees.
     notice(R, 60.1, 43.3, [['NO LIFEGUARD', 0.22, C.red], ['ON DUTY', 0.22, C.red], ['SWIM AT YOUR OWN RISK', 0.1]], { w: 1.9, h: 0.9, board: C.white, post: 1.1 });
-    R.thing(60.3, 43.5, (ctx, t) => {
-      const z = h(60.1, 43.3) + 1.1 + 0.45;
-      gull(ctx, 60.1 + 0.3, 43.36, z, t, 0, Math.sin(t * 0.8) > 0 ? 1 : -1);
-    }, { anim: true });
+    R.thing(60.3, 43.5, (ctx) => gull(ctx, 60.1 + 0.3, 43.36, h(60.1, 43.3) + 1.1 + 0.45, 0, { dir: -1 }));
 
     // ---------- The beach path ----------
     // Boards over the dune, rope rails on posts, and a leash tied to one of
     // them. (The dog is down by the water, having the day of its life.)
-    for (let y = 37.4; y < 43.9; y += 1) {
-      const z = Math.max(h(PATH, y), h(PATH, y + 1)) + 0.1;
-      R.thing(PATH + 0.7, y + 1, (ctx) => {
+    // (The boards are flat: one picture, sorted at the top of the path, so
+    // everyone walking on them is drawn over them.)
+    R.thing(PATH + 0.7, 38.4, (ctx) => {
+      for (let y = 37.4; y < 43.9; y += 1) {
+        const z = Math.max(h(PATH, y), h(PATH, y + 1)) + 0.1;
         box(ctx, PATH - 0.6, y, z, 1.2, 1, 0.12, tint(C.wood, 0.25), { flat: true, lw: 0.035 });
         if (Q.detail) for (let k = 1; k < 4; k++) line(ctx, [[PATH - 0.6, y + k * 0.25, z + 0.12], [PATH + 0.6, y + k * 0.25, z + 0.12]], shade(C.wood, 0.2), 0.02);
-      });
-    }
+      }
+    });
     for (const side of [-0.72, 0.72]) {
       const x = PATH + side;
       for (let y = 37.6; y < 44; y += 1.6) {
@@ -651,9 +605,15 @@ export default {
     fence(64.3, 67.4, 42.7, 42.4);
     fence(67.4, 69.6, 42.4, 42.8);
     const TUFTS = [[49.6, 40.8], [50.8, 39.8], [53.2, 40.3], [54.9, 39.6], [56.4, 40.6], [58.3, 39.5], [59.4, 41.2], [63.8, 39.2], [64.9, 41.6], [69.1, 39.4], [55.3, 37.9], [57.1, 41.6], [63.4, 37.9], [68.8, 42]];
-    TUFTS.forEach(([x, y], i) => R.thing(x + 0.4, y + 0.4, (ctx) => {
-      for (let k = 0; k < 4; k++) tuft(ctx, x + ((k * 37) % 7) * 0.12 - 0.3, y + ((k * 53) % 5) * 0.12 - 0.2, h(x, y), 0.8 + ((i + k) % 3) * 0.15);
-    }));
+    // (Low grass, one picture a chunk: a quicker cache than fourteen.)
+    for (const side of [0, 1]) {
+      const mine = TUFTS.map((p, i) => [...p, i]).filter(([x]) => (x < 64) === !side);
+      if (!mine.length) continue;
+      const [fx, fy] = mine.reduce((m, [x, y]) => (x + y < m[0] + m[1] ? [x, y] : m), [1e9, 1e9]);
+      R.thing(fx + 0.4, fy + 0.4, (ctx) => {
+        for (const [x, y, i] of mine) for (let k = 0; k < 4; k++) tuft(ctx, x + ((k * 37) % 7) * 0.12 - 0.3, y + ((k * 53) % 5) * 0.12 - 0.2, h(x, y), 0.8 + ((i + k) % 3) * 0.15);
+      });
+    }
 
     // People up and down the path all day, out of the way of the greenhead
     // man, and back.
@@ -734,30 +694,12 @@ export default {
       paint(ctx, C.black, { lw: 0.02 });
       ctx.fillStyle = C.mustard; ctx.fillRect(X + 0.08, Y - 0.74, 0.13, 0.03);
     }, { anim: true });
-    // A fisherman out on the rocks at dawn, casting on the falling tide.
-    const rock = JETTY[4];
-    local(R, rock.x, rock.y, folk(411, { top: C.mustard, bottom: C.green, hat: 'beanie' }), {
-      when: during(5, 8.6), z: rock.top - h(rock.x, rock.y), pose: 'point', dir: 'l', watch: false,
-      more: (ctx, t, p, z) => {
-        if (!Q.detail) return;
-        const [hx, hy] = P(p.x, p.y, z + 1.6), cast = (t % 9) / 9;
-        ctx.beginPath(); ctx.moveTo(hx - 0.3, hy); ctx.lineTo(hx - 1.3, hy - 1.1 - Math.sin(t * 2) * 0.05);
-        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(hx - 1.3, hy - 1.1); ctx.quadraticCurveTo(hx - 2.2, hy - 0.8, hx - 2.4 - cast * 0.8, hy + 1.2);
-        ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.015; ctx.stroke();
-      },
-    });
-
     // ---------- The Center's beach ----------
     // Umbrellas while the day's on, towels, a cooler. The two nearest the
     // path are in the greenhead man's way; the rest just read.
     SPOTS.forEach(([x, y], i) => {
       R.thing(x, y + 0.6, (ctx) => {
         umbrella(ctx, x, y, h(x, y), [C.coral, C.mustard, C.teal, C.pink, C.coral][i]);
-        if (i === 1) {
-          const z = h(x + 0.3, y + 0.5);
-          box(ctx, x + 0.25, y + 0.25, z, 0.55, 0.38, 0.4, BRAND.can, { flat: true, lw: 0.03, top: C.white });
-        }
       }, { on: both(busy, dryAt(x, y)) });
       const look = folk(420 + i, { hold: i === 0 ? phone : null });
       const px = x + 0.9, py = y + 0.5;
@@ -789,27 +731,8 @@ export default {
         disc(ctx, DG[0] - k * 0.9 * s, DG[1] - k * 0.2, z + 0.4 + Math.sin(k * Math.PI) * 0.9, 0.05, shade(INK.sand, 0.2), { stroke: false });
       }, 3);
     });
-    // Frisbee, west of the jetty.
-    const FA = [49.8, 46.2], FB = [53.3, 48.1];
-    R.mover((t) => {
-      const k = (t % 3) / 3, leg = Math.floor(t / 3) % 2;
-      const [a, b] = leg ? [FB, FA] : [FA, FB];
-      return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k, k, leg };
-    }, (ctx, t, p) => {
-      if (!during(9, 17.4)(t)) return;
-      const z = h(p.x, p.y) + 1.4 + Math.sin(p.k * Math.PI) * 1.0;
-      disc(ctx, p.x, p.y, z, 0.18, C.coral, { lw: 0.03 });
-    }, { bias: 3 });
-    [[FA, 441, 0], [FB, 442, 1]].forEach(([[x, y], s, side]) => {
-      R.mover(() => ({ x, y }), (ctx, t) => {
-        if (!during(9, 17.4)(t)) return;
-        const k = (t % 3) / 3, leg = Math.floor(t / 3) % 2, catching = leg !== side && k > 0.75;
-        const pose = catching ? 'jump' : leg === side && k < 0.2 ? 'point' : 'stand';
-        who(ctx, x, y, h(x, y), folk(s), null, { pose, dir: side ? 'l' : 'r' }, t);
-      });
-    });
     // The dog, far off down the waterline, having the best day anyone has
-    // ever had, and the gulls it keeps putting up.
+    // ever had. (Biscuit, on the Sound, is the one who chases gulls.)
     const dogAt = (t) => {
       const L = level(t), u = (t % 16) / 16, run = u < 0.5 ? u * 2 : 2 - u * 2;
       const x = 63.4 + run * 6, y = shoreY(x, L) - 0.4 + Math.sin(t * 2.3) * 0.5;
@@ -833,15 +756,6 @@ export default {
       ctx.fillStyle = C.brown; ctx.fillRect(0.28, -0.56, 0.08, 0.14);
       ctx.restore();
     });
-    const GULLS = [[64.6, 0.2], [66.3, -0.3], [68.1, 0.1]];
-    R.mover(() => ({ x: 66.3, y: 48.5 }), (ctx, t) => {
-      if (!during(6, 20.5)(t)) return;
-      const L = level(t), d = dogAt(t);
-      for (const [gx, off] of GULLS) {
-        const gy = shoreY(gx, L) - 0.9 + off, k = clamp(1 - Math.hypot(d.x - gx, d.y - gy) / 2.2);
-        gull(ctx, gx + k * 0.6, gy - k * 0.4, h(gx, gy) + k * 1.6, t + gx, k > 0.15 ? 1 : 0, d.x > gx ? -1 : 1);
-      }
-    }, { bias: 2 });
     // Asleep on a float, drifting out on the afternoon and brought back in
     // by the tide, still asleep. No lifeguard, as the sign says.
     const FX = 53.4;
@@ -861,7 +775,7 @@ export default {
     });
     // Sunset: up on the dune, watching the sun go down over the marsh.
     [[54.2, 39.9, 461], [55.1, 40.2, 462], [66.6, 42.3, 463], [58.9, 40.6, 464]].forEach(([x, y, s]) => {
-      R.thing(x, y, (ctx) => person(ctx, x, y, h(x, y), folk(s, { pose: 'stand', dir: 'r', back: true }), 0), { on: watching });
+      R.thing(x, y, (ctx) => person(ctx, x, y, h(x, y), folk(s, { pose: 'stand', dir: 'r', back: true }), 0), { anim: true, on: watching });
     });
     // The king tide, after dark: two people come down the path to photograph
     // it, flash, flash, as it comes up the beach to meet them.

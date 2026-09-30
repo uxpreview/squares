@@ -18,7 +18,7 @@ import { clamp } from '../../../engine/actors.js';
 import { land, float, h } from '../land.js';
 import { level, hour, at, lowTide, nightK, sunsetWatch, LOOP } from '../tide.js';
 import { EVENING, INK, LIT, lightsOn, BRAND } from '../style.js';
-import { who, umbrella, house, board, signpost, nightGlow, footing } from '../kit.js';
+import { who, umbrella, house, houses, board, signpost, nightGlow, footing, stay, printed, printedRow } from '../kit.js';
 import { aside } from '../swarm.js';
 
 const wrap = (t) => (((t % LOOP) + LOOP) % LOOP);
@@ -230,39 +230,42 @@ export default {
     // Behind the boulevard, two rows in front of it, and the front row up on
     // pilings on the dune, each with a deck out front, towels on the rail and
     // a porch light by the door.
-    for (let i = 0; i < 7; i++) house(R, 71 + i * 3.4, 27.8, 2.4, 1.8, (i + 1), { h: 1.8, ridge: 'x' });
-    for (let i = 0; i < 7; i++) house(R, 70.6 + i * 3.5, 32.6, 2.6, 2.2, i, { ridge: i % 2 ? 'x' : 'y' });
-    for (let i = 0; i < 6; i++) house(R, 72.2 + i * 3.8, 35.8, 2.6, 2.2, (i + 3), { ridge: i % 2 ? 'y' : 'x' });
+    // (The three back rows: nobody walks between them, so each chunk's houses
+    // are one picture; kit's houses().)
+    const back = [];
+    for (let i = 0; i < 7; i++) back.push([71 + i * 3.4, 27.8, 2.4, 1.8, (i + 1), { h: 1.8, ridge: 'x' }]);
+    for (let i = 0; i < 7; i++) back.push([70.6 + i * 3.5, 32.6, 2.6, 2.2, i, { ridge: i % 2 ? 'x' : 'y' }]);
+    for (let i = 0; i < 6; i++) back.push([72.2 + i * 3.8, 35.8, 2.6, 2.2, (i + 3), { ridge: i % 2 ? 'y' : 'x' }]);
+    houses(R, back);
     FRONT.forEach((x, i) => house(R, x, 39, 2.8, 2.2, (i + 2), { stilts: 1.1, ridge: 'y' }));
     const TOWELS = [[C.coral, C.white], [C.teal], [C.mustard, C.pink], null, [C.sky, C.coral], [C.purple], [C.white, C.teal]];
+    // (Decks, sandbags and rip-rap: one picture per chunk each, kit's printedRow().)
+    const decks = [], bags = [], rocksRow = [];
     FRONT.forEach((x, i) => {
       if (x === STUB[0]) return;
       const y = 41.2, z0 = footing(R, x, 39, 2.8, 2.2) + 1.1, gz = footing(R, x, y + 0.7, 2.8, 0);
-      R.thing(x + 2.8, y + 0.72, (ctx) => {
-        for (const px of [x + 0.18, x + 2.62]) post(ctx, px, y + 0.58, gz - 0.2, z0 - 0.1, shade(C.wood, 0.15));
-        const deckC = tint(C.wood, 0.15);
+      decks.push([x + 2.8, y + 0.72, (ctx, ink, night) => {
+        for (const px of [x + 0.18, x + 2.62]) post(ctx, px, y + 0.58, gz - 0.2, z0 - 0.1, ink(shade(C.wood, 0.15)));
+        const deckC = ink(tint(C.wood, 0.15));
         face(ctx, [[x, y + 0.7, z0 - 0.12], [x + 2.8, y + 0.7, z0 - 0.12], [x + 2.8, y + 0.7, z0], [x, y + 0.7, z0]], shade(deckC, 0.2), { lw: 0.035 });
         face(ctx, [[x, y, z0], [x + 2.8, y, z0], [x + 2.8, y + 0.7, z0], [x, y + 0.7, z0]], deckC, { lw: 0.035 });
         // The rail, and its balusters.
         if (Q.detail) {
-          ctx.strokeStyle = shade(C.white, 0.3); ctx.lineWidth = 0.035; ctx.beginPath();
+          ctx.strokeStyle = ink(shade(C.white, 0.3)); ctx.lineWidth = 0.035; ctx.beginPath();
           for (let u = 0.25; u < 2.8; u += 0.28) { const [a, b] = P(x + u, y + 0.7, z0), [c, d] = P(x + u, y + 0.7, z0 + 0.66); ctx.moveTo(a, b); ctx.lineTo(c, d); }
           ctx.stroke();
         }
-        rail(ctx, [x, y + 0.7, z0 + 0.7], [x + 2.8, y + 0.7, z0 + 0.7]);
+        rail(ctx, [x, y + 0.7, z0 + 0.7], [x + 2.8, y + 0.7, z0 + 0.7], ink(C.white));
         // Beach towels drying over it.
         (TOWELS[i] || []).forEach((col, k) => {
           const u = 0.35 + k * 1.2;
-          face(ctx, [[x + u, y + 0.73, z0 + 0.72], [x + u + 0.7, y + 0.73, z0 + 0.72], [x + u + 0.7, y + 0.73, z0 + 0.12], [x + u, y + 0.73, z0 + 0.12]], col, { lw: 0.03 });
-          if (Q.detail) face(ctx, [[x + u, y + 0.74, z0 + 0.3], [x + u + 0.7, y + 0.74, z0 + 0.3], [x + u + 0.7, y + 0.74, z0 + 0.22], [x + u, y + 0.74, z0 + 0.22]], C.white, { stroke: false });
+          face(ctx, [[x + u, y + 0.73, z0 + 0.72], [x + u + 0.7, y + 0.73, z0 + 0.72], [x + u + 0.7, y + 0.73, z0 + 0.12], [x + u, y + 0.73, z0 + 0.12]], ink(col), { lw: 0.03 });
+          if (Q.detail) face(ctx, [[x + u, y + 0.74, z0 + 0.3], [x + u + 0.7, y + 0.74, z0 + 0.3], [x + u + 0.7, y + 0.74, z0 + 0.22], [x + u, y + 0.74, z0 + 0.22]], ink(C.white), { stroke: false });
         });
-        // The porch light by the door, off.
-        face(ctx, [[x + 1.82, y, z0 + 1.2], [x + 1.96, y, z0 + 1.2], [x + 1.96, y, z0 + 1.4], [x + 1.82, y, z0 + 1.4]], C.greyLight, { lw: 0.025 });
-      });
-      R.thing(x + 2.8, y + 0.73, (ctx) => {
-        face(ctx, [[x + 1.82, y, z0 + 1.2], [x + 1.96, y, z0 + 1.2], [x + 1.96, y, z0 + 1.4], [x + 1.82, y, z0 + 1.4]], LIT, { lw: 0.025 });
-        disc(ctx, x + 1.89, y, z0 + 1.3, 0.3, alpha(LIT, 0.3), { stroke: false });
-      }, { on: lightsOn });
+        // The porch light by the door: off by day, on in the night's print.
+        face(ctx, [[x + 1.82, y, z0 + 1.2], [x + 1.96, y, z0 + 1.2], [x + 1.96, y, z0 + 1.4], [x + 1.82, y, z0 + 1.4]], night ? LIT : C.greyLight, { lw: 0.025 });
+        if (night) disc(ctx, x + 1.89, y, z0 + 1.3, 0.3, alpha(LIT, 0.3), { stroke: false });
+      }, x > PATH[0][0] ? 'past the path' : '']);
     });
 
     // Sandbags along the front row's toe, two courses (not under the stairs),
@@ -276,8 +279,8 @@ export default {
         low.push([x, 42.65, z]);
         if (x + 1.4 < 95.4 && !(x + 0.5 > STUB[0] - 1 && x < STUB[0] + 3)) high.push([x + 0.48, 42.6, z + 0.26]);
       }
-      R.thing(x0 + 4.8, 43.2, (ctx) => {
-        for (const [row, col] of [[low, BAG], [high, tint(BAG, 0.08)]]) {
+      bags.push([x0 + 4.8, 43.2, (ctx, ink) => {
+        for (const [row, col] of [[low, ink(BAG)], [high, ink(tint(BAG, 0.08))]]) {
           ctx.beginPath();
           for (const b of row) bagPath(ctx, ...b);
           paint(ctx, col, { dots: shade(col, 0.45), density: 0.14, lw: 0.035 });
@@ -286,8 +289,8 @@ export default {
           for (const b of row) seamPath(ctx, ...b);
           ctx.strokeStyle = tint(col, 0.25); ctx.lineWidth = 0.04; ctx.stroke();
         }
-        if (x0 < 76 && x0 + 4.8 > 76) board(ctx, 'x', 76.6, 43.16, footing(R, 75.4, 42.65, 0.9, 0.5) + 0.14, 1.9, 0.2, 'NICE TRY, OCEAN', { board: BAG, edge: 0.001, ink: C.navy, size: 0.17 });
-      });
+        if (x0 < 76 && x0 + 4.8 > 76) board(ctx, 'x', 76.6, 43.16, footing(R, 75.4, 42.65, 0.9, 0.5) + 0.14, 1.9, 0.2, 'NICE TRY, OCEAN', { board: ink(BAG), edge: 0.001, ink: C.navy, size: 0.17 });
+      }]);
     }
     for (let x0 = 86.2; x0 < 91; x0 += 3) {
       const rocks = [];
@@ -295,8 +298,11 @@ export default {
         const x = x0 + 0.35 + k * 0.72, y = 43.45 + ((k * 5) % 3) * 0.12;
         rocks.push([x, y, footing(R, x - 0.3, y - 0.3, 0.6, 0.6) - 0.05, 0.3 + ((k * 7) % 3) * 0.05, 0.3 + (k % 2) * 0.1, x0 + k]);
       }
-      R.thing(x0 + 3, 43.9, (ctx) => riprap(ctx, rocks, ROCK));
+      rocksRow.push([x0 + 3, 43.9, (ctx, ink) => riprap(ctx, rocks, ink(ROCK))]);
     }
+    printedRow(R, decks);
+    printedRow(R, bags);
+    printedRow(R, rocksRow);
 
     // ---------- The stubborn house: porch, stairs, sign ----------
     const [sx, sy] = STUB, deck = footing(R, sx, sy, 2.8, 2.2) + 1.1;
@@ -306,9 +312,9 @@ export default {
     const NEW_Z = tread(4).z - 0.3;
     const porchG = footing(R, sx, sy + 3.2, 2.8, 0);
     const lampAt = [[sx + 1.75, sy + 2.2, deck + 1.25], [sx + 1.89, sy + 2.2, deck + 1.25], [sx + 1.89, sy + 2.2, deck + 1.45], [sx + 1.75, sy + 2.2, deck + 1.45]];
-    R.thing(sx + 2.8, sy + 3.25, (ctx) => {
-      for (const px of [sx + 0.18, sx + 2.68]) post(ctx, px, sy + 3.08, porchG - 0.2, deck - 0.15, shade(C.wood, 0.15));
-      box(ctx, sx, sy + 2.2, deck - 0.15, 2.8, 1, 0.15, tint(C.wood, 0.2), { flat: true, lw: 0.04 });
+    printed(R, sx + 2.8, sy + 3.25, (ctx, ink) => {
+      for (const px of [sx + 0.18, sx + 2.68]) post(ctx, px, sy + 3.08, porchG - 0.2, deck - 0.15, ink(shade(C.wood, 0.15)));
+      box(ctx, sx, sy + 2.2, deck - 0.15, 2.8, 1, 0.15, ink(tint(C.wood, 0.2)), { flat: true, lw: 0.04 });
       // Its rail, open where the stairs go down.
       for (const [u0, u1] of [[0, 0.8], [1.6, 2.8]]) {
         if (Q.detail) {
@@ -316,12 +322,12 @@ export default {
           for (let u = u0 + 0.12; u < u1; u += 0.26) { const [a, b] = P(sx + u, sy + 3.2, deck), [c, d] = P(sx + u, sy + 3.2, deck + 0.66); ctx.moveTo(a, b); ctx.lineTo(c, d); }
           ctx.stroke();
         }
-        rail(ctx, [sx + u0, sy + 3.2, deck + 0.7], [sx + u1, sy + 3.2, deck + 0.7]);
+        rail(ctx, [sx + u0, sy + 3.2, deck + 0.7], [sx + u1, sy + 3.2, deck + 0.7], ink(C.white));
       }
       // What the owner thinks of it all, on the rail.
-      board(ctx, 'x', sx + 2.35, sy + 3.24, deck + 0.4, 0.85, 0.36, 'STILL HERE', { board: C.white, size: 0.16, ink: C.navy });
+      board(ctx, 'x', sx + 2.35, sy + 3.24, deck + 0.4, 0.85, 0.36, 'STILL HERE', { board: ink(C.white), size: 0.16, ink: C.navy });
       // The porch light, off.
-      face(ctx, lampAt, C.greyLight, { lw: 0.025 });
+      face(ctx, lampAt, ink(C.greyLight), { lw: 0.025 });
     });
     // Three porch chairs, facing the sea (behind whoever sits in them).
     R.thing(sx + 2.6, sy + 2.35, (ctx) => {
@@ -353,22 +359,22 @@ export default {
     // The stairs: stringers, rails, five treads, and posts under all but the
     // last. The tally of summers is painted on the stringer.
     const last = tread(4);
-    R.thing(SX1, last.y + RUN, (ctx) => {
+    printed(R, SX1, last.y + RUN, (ctx, ink) => {
       const str = (x, fill) => face(ctx, [[x, Y0, deck + 0.02], [x, last.y + RUN, last.z + 0.02], [x, last.y + RUN, last.z - 0.28], [x, Y0, deck - 0.3]], fill, { lw: 0.035 });
       for (const k of [1, 3]) {
         const tk = tread(k), g = footing(R, SX0, tk.y + 0.3, 0.8, 0);
         for (const px of [SX0 + 0.08, SX1 - 0.08]) post(ctx, px, tk.y + 0.36, g - 0.2, tk.z - 0.1, shade(C.wood, 0.15), 0.12);
       }
-      str(SX0, shade(WOOD, 0.2));
+      str(SX0, ink(shade(WOOD, 0.2)));
       for (let k = 0; k < 5; k++) {
         const tk = tread(k);
-        box(ctx, SX0, tk.y, tk.z - 0.1, SX1 - SX0, RUN, 0.1, tint(WOOD, 0.15 - k * 0.02), { flat: true, lw: 0.03 });
+        box(ctx, SX0, tk.y, tk.z - 0.1, SX1 - SX0, RUN, 0.1, ink(tint(WOOD, 0.15 - k * 0.02)), { flat: true, lw: 0.03 });
       }
-      str(SX1, WOOD);
+      str(SX1, ink(WOOD));
       // Rails: a post at each end, a rail between.
       for (const x of [SX0, SX1]) {
-        for (const [y, z] of [[Y0 + 0.1, deck], [last.y + RUN - 0.1, last.z]]) post(ctx, x, y, z, z + 0.85, C.white, 0.07);
-        rail(ctx, [x, Y0 + 0.1, deck + 0.85], [x, last.y + RUN - 0.1, last.z + 0.85], C.white, 0.07);
+        for (const [y, z] of [[Y0 + 0.1, deck], [last.y + RUN - 0.1, last.z]]) post(ctx, x, y, z, z + 0.85, ink(C.white), 0.07);
+        rail(ctx, [x, Y0 + 0.1, deck + 0.85], [x, last.y + RUN - 0.1, last.z + 0.85], ink(C.white), 0.07);
       }
       if (Q.detail) {
         // The tally: four strokes and one across, a summer each.
@@ -464,9 +470,12 @@ export default {
     // The porch, full of people ignoring the sign: a reader, a toaster and
     // a waver, from nine till the small hours, up for the sunset.
     // (The middle chair is the owner's, from the evening.)
-    [[sx + 0.52, 253, 'read'], [sx + 2.32, 257, 'sit']].forEach(([x, seed, role], j) => {
-      const i = j ? 2 : 0;
-      const look = folk(seed, i === 0 ? { hat: 'sun' } : {});
+    const porchHours = (t) => between(hour(t), 9, 1.5);
+    stay(R, sx + 0.52, sy + 2.55, folk(253, { hat: 'sun' }), { z: deck - 0.35, pose: 'sit', dir: 'l', arms: [1.0, 1.0], hold: book(C.coral), hours: (t) => porchHours(t) && !sunsetWatch(t), sun: false, depth: sx + sy + 2.55 + 0.52 + porchAhead(sx + 0.52) });
+    stay(R, sx + 0.52, sy + 2.75, folk(253, { hat: 'sun' }), { z: deck, pose: 'stand', dir: 'r', back: true, hours: (t) => porchHours(t) && sunsetWatch(t), sun: false, depth: sx + sy + 2.55 + 0.52 + porchAhead(sx + 0.52) });
+    [[sx + 2.32, 257, 'sit']].forEach(([x, seed, role]) => {
+      const i = 2;
+      const look = folk(seed);
       R.mover(() => ({ x, y: sy + 2.55, ahead: porchAhead(x) }), (ctx, t) => {
         const hr = hour(t);
         if (!between(hr, 9, 1.5)) return;
@@ -479,13 +488,7 @@ export default {
     });
     // And one more, standing at the rail with a drink, all day.
     const toaster = folk(259, { top: C.white, bottom: C.coral });
-    R.mover(() => ({ x: sx + 1.2, y: sy + 3.0, ahead: 2.5 }), (ctx, t) => {
-      const hr = hour(t);
-      if (!between(hr, 10, 23)) return;
-      const x = sx + 0.4, y = sy + 3.0;
-      const watch = sunsetWatch(t);
-      who(ctx, x, y, deck, { ...toaster, hold: mug(C.coral) }, null, { pose: 'stand', dir: watch ? 'r' : 'l', back: watch }, t);
-    });
+    stay(R, sx + 0.4, sy + 3.0, toaster, { z: deck, pose: 'stand', dir: 'l', hold: mug(C.coral), hours: (t) => between(hour(t), 10, 23), depth: sx + 1.2 + sy + 3.0 + 2.5 });
 
     // ---------- The beach ----------
     // Umbrellas, and the families under them.
@@ -502,9 +505,8 @@ export default {
       // The umbrella and its things, while they're set up.
       R.thing(x + 0.2, y + 0.6, (ctx) => {
         if (i === 1) {
-          // A cooler of Gander Cola, the only brand on the beach.
-          box(ctx, x + 0.95, y - 0.35, z, 0.6, 0.4, 0.38, BRAND.can, { flat: true, lw: 0.03, top: C.white });
-          if (Q.detail) board(ctx, 'x', x + 1.25, y + 0.05, z + 0.19, 0.5, 0.16, BRAND.name, { board: BRAND.can, edge: 0.001, ink: BRAND.ink, size: 0.07 });
+          // A cooler (the beach's one Gander Cola is the goose's can).
+          box(ctx, x + 0.95, y - 0.35, z, 0.6, 0.4, 0.38, C.sky, { flat: true, lw: 0.03, top: C.white });
         }
         if (i === 3) {
           // The wagon they hauled it all down in.
@@ -519,9 +521,16 @@ export default {
           face(ctx, [[seat[0] - 0.25, seat[1] - 0.25, z + 0.28], [seat[0] + 0.25, seat[1] - 0.25, z + 0.28], [seat[0] + 0.25, seat[1] - 0.45, z + 0.9], [seat[0] - 0.25, seat[1] - 0.45, z + 0.9]], tint(COLORS[(i + 2) % 8], 0.35), { lw: 0.03 });
         }
       }, { on: (t) => { const s = wrap(t); return s >= set && s < down && level(t) < z - 0.1; } });
+      // Sitting there, with nobody swatting past: a still picture. (The
+      // fries family, who shout at the gull, are always live.)
+      const quiet = (t) => { const s = wrap(t); return i !== 6 && s >= set && s < lS && !(sunsetWatch(t) && LEAVE[i] > 20) && aside(here[0], here[1], t).k === 0; };
+      if (i !== 6) {
+        const sit = pose === 'read' ? 'sit' : pose, pz = z - (pose === 'lie' ? -0.05 : 0.35);
+        R.thing(here[0], here[1], (ctx) => person(ctx, here[0], here[1], pz, { ...look, pose: sit, dir: i % 2 ? 'l' : 'r', ...(pose === 'read' ? { arms: [1.0, 1.0], hold: book(COLORS[(i + 3) % 8]) } : {}) }, 0), { on: quiet, depth: here[0] + here[1] + 0.1 + (lie ? 0.1 : 0) });
+      }
       R.mover((t) => {
         const s = wrap(t);
-        if (s < aS || s >= gone) return { x, y, off: true };
+        if (s < aS || s >= gone || quiet(t)) return { x, y, off: true };
         if (s < set) return { ...trip(s, aS, pts), pose: 'carry', walking: true };
         if (s >= lS) return { ...trip(s, lS, [...pts].reverse()), pose: 'walk', walking: true };
         if (sunsetWatch(t) && LEAVE[i] > 20) return { x: seat[0], y: seat[1], pose: 'stand', dir: 'r', back: true };
