@@ -1,6 +1,6 @@
 # Prompt: area artist
 
-The lead sends one of these per area to parallel agents, four to six at once (ten ran fine on the Manor), after the owner approves the greybox (see [PROCESS.md](../PROCESS.md), step 5). Fill in every `{{BLANK}}` from the level's brief; leave the rest as written. Everything below the line is the prompt.
+The lead sends one of these per area to parallel agents, four to six at once (ten ran fine on the Manor), once the greybox is settled (see [PROCESS.md](../PROCESS.md), steps 4 and 5). Fill in every `{{BLANK}}` from the level's brief; leave the rest as written. Everything below the line is the prompt.
 
 How the lead runs it (learned on the Manor):
 - **Launch each artist in its own git worktree** (the Agent tool's `isolation: "worktree"`). One artist's half-finished file would otherwise break the whole level for everyone else's screenshots. Commit the prep first (style sheet, cast, hooks). The worktree starts from `main`, not your branch (learned on the Block Party), so the prompt's first step copies your `src`, `tools` and `docs` in. When an artist finishes, copy just its files back into the main copy.
