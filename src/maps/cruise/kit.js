@@ -10,7 +10,7 @@ import { C, Q, box, face, person, paint, paintText, alpha, shade, folk, cylinder
 import { ZK } from '../../engine/iso.js';
 import { INK, MAT, queasy, green } from './style.js';
 
-export const P = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
+export const P = (x, y, z = 0) => [x - y, (x + y) / 2 - z * ZK];
 // A flat shape through points, filled and outlined.
 export function shape(ctx, pts, fill, o) {
   ctx.beginPath();

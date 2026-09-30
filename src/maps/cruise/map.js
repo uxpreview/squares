@@ -54,9 +54,10 @@ export default {
     place(theater, 'Promenade'),
     place(buffet, 'Promenade'),
     place(casino, 'Promenade'),
-    place(engineRoom, 'Crew only'),
-    place(crewBar, 'Crew only'),
-    place(sickBay, 'Crew only'),
+    // (The hull's red bottom hangs 2.7 under the crew deck: its pictures reach further.)
+    place(engineRoom, 'Crew only', { reach: 2.2 }),
+    place(crewBar, 'Crew only', { reach: 2.2 }),
+    place(sickBay, 'Crew only', { reach: 2.2 }),
     place(port, 'The port', { fixed: true, h: 3 }),
   ],
   // Prev / next: the crime scene first, then up the ship, then down below.
