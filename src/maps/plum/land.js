@@ -26,7 +26,7 @@
 // marsh, printed without a cut side: the sea runs on into the paper.
 import { makeLand } from '../../engine/terrain.js';
 import { C, shade } from '../../engine/art.js';
-import { level, KING, DIP } from './tide.js';
+import { level, KING, DIP, LOW } from './tide.js';
 import { INK, LAND, seaAt, paperAt } from './style.js';
 
 export const W = 112, D = 58;
@@ -302,7 +302,8 @@ export const land = makeLand({
   // One see-through pass of sea ink, which follows the day (style.js): the
   // bed's own colors under it carry the depth, and over the deep bed it's
   // exactly the paper.
-  water: { color: seaAt, foam: C.white, wet: LAND.wet, side: INK.sea, alpha: 0.55, deepAlpha: 0 },
+  // Below the lowest tide it's printed opaque, so the open sea has no seams.
+  water: { color: seaAt, foam: C.white, wet: LAND.wet, side: INK.sea, alpha: 0.55, deepAlpha: 0, under: LOW - 0.3 },
   side: { soil: LAND.soil, dots: shade(LAND.soil, 0.45) },
 });
 

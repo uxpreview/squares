@@ -371,6 +371,69 @@ SOUNDS.gull = (a, t0, o = {}) => {
   }
 };
 
+// A drawbridge's warning bell, across the marsh: a small electric bell
+// struck fast, a dozen times, bright but far off and quiet.
+SOUNDS.bridgebell = (a, t0) => {
+  const hp = a.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 700;
+  hp.connect(bus(a));
+  for (let i = 0; i < 12; i++) {
+    const t = t0 + i * 0.22;
+    for (const [hz, v] of [[1480, 0.018], [2230, 0.008], [3410, 0.004]]) tone(a, t, hz, 'sine', v, 0.002, 0.2, hp);
+  }
+};
+// A small plane taking off from the airfield, far off: a buzzing prop that
+// swells, climbs a little in pitch and fades.
+SOUNDS.prop = (a, t0) => {
+  const lp = a.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 520;
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.018, t0 + 1.6);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 5);
+  lp.connect(g);
+  g.connect(bus(a));
+  for (const [type, hz] of [['sawtooth', 96], ['square', 97.5]]) {
+    const o = a.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(hz, t0);
+    o.frequency.linearRampToValueAtTime(hz * 1.18, t0 + 2.5);
+    o.frequency.linearRampToValueAtTime(hz * 1.05, t0 + 5);
+    o.connect(lp);
+    o.start(t0);
+    o.stop(t0 + 5.1);
+  }
+};
+// Water lapping at night, against the pilings and the rocks: two or three
+// soft slaps of low noise.
+SOUNDS.lap = (a, t0) => {
+  for (const [at, v] of [[0, 0.05], [0.55, 0.035], [1.3, 0.04]]) {
+    const src = a.createBufferSource();
+    src.buffer = rumble(a);
+    const f = a.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 420;
+    f.Q.value = 1.2;
+    const g = envelope(a, t0 + at, v, 0.04, 0.35);
+    src.connect(f);
+    f.connect(g);
+    g.connect(bus(a));
+    src.start(t0 + at);
+    src.stop(t0 + at + 0.45);
+  }
+};
+// Crickets in the marsh grass after dark: a few quick high trills.
+SOUNDS.crickets = (a, t0) => {
+  for (let k = 0; k < 3; k++) {
+    for (let i = 0; i < 4; i++) {
+      const t = t0 + k * 0.62 + i * 0.045;
+      tone(a, t, 4300 + k * 90, 'sine', 0.006, 0.004, 0.03, bus(a));
+    }
+  }
+};
+
 // Beds: sounds that loop under a place while you're in it. Each returns a stop().
 const BEDS = {
   // Rain on the windows: two bands of soft noise, drifting a little.
@@ -499,6 +562,46 @@ BEDS.surf = (a) => {
     out.gain.setValueAtTime(out.gain.value, t);
     out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
     for (const s of srcs) s.stop(t + 0.7);
+  };
+};
+
+// An island: the surf, and wind in the dune grass over it (a band of soft
+// noise that gusts every half a minute or so). Well under a honk.
+BEDS.island = (a) => {
+  const stopSurf = BEDS.surf(a);
+  const out = a.createGain();
+  out.gain.setValueAtTime(0.0001, a.currentTime);
+  out.gain.exponentialRampToValueAtTime(0.007, a.currentTime + 3);
+  out.connect(bus(a));
+  const wind = a.createBufferSource();
+  wind.buffer = rumble(a);
+  wind.loop = true;
+  wind.playbackRate.value = 2.2;
+  const bp = a.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 380;
+  bp.Q.value = 0.8;
+  const gust = a.createGain();
+  gust.gain.value = 0.6;
+  const lfo = a.createOscillator();
+  lfo.frequency.value = 0.035;
+  const lg = a.createGain();
+  lg.gain.value = 0.4;
+  lfo.connect(lg);
+  lg.connect(gust.gain);
+  wind.connect(bp);
+  bp.connect(gust);
+  gust.connect(out);
+  wind.start();
+  lfo.start();
+  return () => {
+    stopSurf();
+    const t = a.currentTime;
+    out.gain.cancelScheduledValues(t);
+    out.gain.setValueAtTime(out.gain.value, t);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    wind.stop(t + 0.7);
+    lfo.stop(t + 0.7);
   };
 };
 

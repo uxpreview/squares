@@ -16,6 +16,7 @@ import { W, D, AREAS, PIKE, land } from './land.js';
 import { LOOP, KING, KING_AT, at, dial } from './tide.js';
 import { walkers } from './day.js';
 import { backdrop, sky, paperAt } from './ambient.js';
+import { sound as soundBed } from './sound.js';
 
 import sound from './areas/sound.js';
 import turnpike from './areas/turnpike.js';
@@ -56,7 +57,7 @@ export default {
   // The ending: the clock jumps to the king tide, the camera goes to the
   // turnpike, where the Courier's van is stuck in the flood by the drawbridge.
   finale: { at: KING_AT, zone: 'turnpike', near: [PIKE, 16], hold: 9 },
-  sound: { bed: 'surf', cues: [{ at: at(6.2), name: 'gull' }, { at: at(9.7), name: 'gull', n: 2 }, { at: at(13.1), name: 'gull' }, { at: at(16.4), name: 'gull', n: 2 }] },
+  sound: soundBed,
   // On a phone held upright the overview fills the height round the Center
   // and the Town Beach, and the island runs off both sides, a swipe along it
   // (decision 16); on its side and on a big screen, the whole island.
