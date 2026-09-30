@@ -19,7 +19,7 @@ import { schedule } from '../../engine/actors.js';
 import { speech } from '../../engine/art.js';
 import { tag } from '../greybox.js';
 import { DOOR, LIFT, LOOP, DECK } from './plan.js';
-import { CAST, drawCast, readable, at } from './style.js';
+import { CAST, drawCast, readable, at, headroom } from './style.js';
 
 const WALK = 1.6, RIDE = 7;
 const P = DECK.promenade, CB = DECK.cabins, SUN = DECK.sun, CREW = DECK.crew;
@@ -185,7 +185,7 @@ export const walkers = Object.entries(DAYS).map(([id, b]) => {
       if (inLift(atT(t))) return;
       drawCast(ctx, id, p, t);
       if (!readable()) return;
-      const top = p.z + (p.pose === 'sit' ? 2.3 : id === 'iguana' ? 1 : 2.9);
+      const top = p.z + headroom(id, p);
       if (p.say) speech(ctx, p.x, p.y, top + 0.1, p.say, { size: 0.5 });
       else tag(ctx, p.x, p.y, top, c.name, { size: 0.34 });
     },

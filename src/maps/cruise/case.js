@@ -6,7 +6,7 @@
 //
 // Lines are [who, what they say]; who is a cast id (style.js).
 import { C, Q, mix, alpha, setScreen, dots, shade, person } from '../../engine/art.js';
-import { INK, CAST, iguana, queasy, verdict } from './style.js';
+import { INK, CAST, iguana, verdict, dressed, at } from './style.js';
 
 
 const suspects = [
@@ -202,14 +202,15 @@ export default {
       const g = h * 0.5;
       ctx.translate(cx + g * 0.1, cy + g * 0.35);
       ctx.scale(g, g);
-      iguana(ctx, 0, 0, 0, 'r', t);
+      iguana(ctx, 0, 0, 0, 'r', t, { shades: true });
     } else {
       ctx.translate(cx - k * 0.05, cy + k * 1.78);
       ctx.scale(k, k);
-      const look = { ...cast.look, scale: 1 };
-      if (id === 'captain') look.skin = queasy(look.skin, 0.85);
-      if (id === 'gloria') look.skin = queasy(look.skin, 1);
-      person(ctx, 0, 0, 0, { ...look, pose: 'stand', dir: 'r' }, t);
+      // In costume, at the hour they look most suspicious (Gloria in her
+      // mask, Doreen green, Tyler slimed), whatever the clock says.
+      const hour = { doreen: 12, chad: 10, gloria: 8, tyler: 12, brenda: 12, swabb: 17, pidge: 17 }[id] ?? 8;
+      const look = dressed(id, at(hour), { pose: 'stand', dir: 'r' });
+      person(ctx, 0, 0, 0, { ...look, scale: 1 }, t);
     }
     Q.lines = lines;
     Q.detail = detail;

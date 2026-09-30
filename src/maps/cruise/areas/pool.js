@@ -558,37 +558,6 @@ export default {
       disc(ctx, 24.4, 11.5, 0.6, 0.32, C.white, { lw: 0.03 });
       cocktail(ctx, 24.35, 11.5, 0.62);
     });
-    // Its sunglasses, and at the reveal, the towel over it.
-    const ig = R.walkers.find((w) => w.id === 'iguana');
-    if (ig) {
-      R.mover((t) => {
-        const p = ig.at(t);
-        return { x: p.x - ox, y: p.y - oy, z: (p.z || 0) - oz, dir: p.dir, moving: p.moving };
-      }, (ctx, t, p) => {
-        if (p.x < 0 || p.x > R.W || p.y < 0 || p.y > R.D || Math.abs(p.z) > 0.5) return;
-        const [X, Y] = P(p.x, p.y, p.z);
-        const s = p.dir === 'l' ? -1 : 1;
-        ctx.save();
-        ctx.translate(X, Y);
-        ctx.scale(s, 1);
-        ctx.fillStyle = C.ink;
-        ctx.beginPath();
-        ctx.ellipse(0.62, -0.37, 0.07, 0.05, 0, 0, Math.PI * 2);
-        ctx.ellipse(0.76, -0.36, 0.07, 0.05, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillRect(0.5, -0.39, 0.3, 0.02);
-        if (verdict.solved != null && !p.moving) {
-          // A beach towel, over everything but the tail.
-          ctx.beginPath();
-          ctx.moveTo(-0.62, -0.1); ctx.quadraticCurveTo(-0.5, -0.62, 0.2, -0.6);
-          ctx.quadraticCurveTo(0.9, -0.62, 0.95, -0.12); ctx.lineTo(0.7, -0.02); ctx.lineTo(0.3, -0.12); ctx.lineTo(-0.1, -0.02); ctx.lineTo(-0.4, -0.12);
-          ctx.closePath();
-          paint(ctx, INK.flamingo, { lw: 0.03, dots: C.white, density: 0.35 });
-        }
-        ctx.restore();
-      }, { bias: 0.05 });
-    }
-
     // Parasols between the loungers.
     for (const [x, a, b] of [[4.1, INK.flamingo, C.white], [7.3, INK.sunYellow, C.white], [29.3, INK.funnelRed, C.white]]) {
       R.thing(x, 12.3, (ctx) => parasol(ctx, x, 12.3, a, b));
