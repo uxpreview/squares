@@ -118,7 +118,7 @@ export function createCasefile(o) {
       if (typeof items === 'string') dd.textContent = items;
       else {
         const ul = el('ul');
-        for (const c of items) ul.append(el('li', c.found ? 'is-found' : 'is-missing', c.found ? c.says : `Not found yet. It's in the ${c.zone}.`));
+        for (const c of items) ul.append(el('li', c.found ? 'is-found' : 'is-missing', c.found ? c.says : `Not found yet. It's in ${/^the /i.test(c.zone) ? c.zone.replace(/^The /, 'the ') : 'the ' + c.zone}.`));
         dd.append(ul);
       }
       dl.append(dd);

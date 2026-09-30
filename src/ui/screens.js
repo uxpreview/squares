@@ -167,7 +167,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     if (world.goal === 'case') {
       const all = world.totalThings + world.totalGeese;
       el.completeText.textContent = `${world.map.case.reveal.text} ${left > 0
-        ? `You found ${all - left} of the ${all} things in the house.`
+        ? `You found ${all - left} of the ${all} things ${world.map.words?.inside || 'in the house'}.`
         : 'You found everything, too.'}`;
     } else {
       el.completeText.textContent = left > 0

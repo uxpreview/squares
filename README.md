@@ -118,6 +118,15 @@ src/
       kit.js           Shared pieces: cars, boats, beach houses (lit at night), umbrellas, traps, signs, gulls
       ambient.js       Around the island: Newburyport, the Salisbury jetty, sun, moon, stars, the banner plane
       sound.js         The surf and wind bed, and cues on the clock (the bridge's bell, the plane, Dave's horn)
+    cruise/          All-You-Can-Eat: a whodunit on a cruise ship, four decks (hidden until it ships)
+      plan.js          The decks, the areas on them, the doors, the lift, the bow's taper, the waterline
+      style.js         The style sheet: the inks, the sea through the day, the day's clock, who goes green when, the cast
+      ship.js          The deck every area stands on: floor, hull, walls and doors, the lift
+      kit.js           Shared pieces: signs, portholes, loungers, buckets, the Green Mermaid, passengers who go green
+      day.js           Everyone's day, 7am to 7pm, deck to deck in the lift
+      case.js          The case file: who is patient zero?
+      ambient.js       The sea: the wake, the waterline, the sea over the crew deck
+      sound.js         The sea bed, and cues on the clock (the drill, bingo, the port's welcome)
       finale.js        The ending: the geese swim out to the Courier's van
       areas/           One file per area, in the land's own units
 index.html         The page: every screen's markup
@@ -167,6 +176,8 @@ docs/
 | Plum Island's sea through the day (the sunset's pink and lavender) | `SEA` and `paperAt` in `src/maps/plum/style.js` |
 | Who steps aside for the greenhead swarm | `aside(x, y, t)` from `src/maps/plum/swarm.js`, added to where someone stands in their area's file |
 | Plum Island's sounds | `src/maps/plum/sound.js` (when each cue plays); the sounds themselves (`bridgebell`, `prop`, `lap`, `crickets`, the `island` bed) are in `src/game/audio.js` |
+| Who goes green on the cruise ship, and when | `SICK` and `HERRING` in `src/maps/cruise/style.js` (an area's own passengers: `passenger(R, x, y, seed, { sick })` in its file) |
+| The cruise ship's day and the dial's skips | `at()`, `MOMENTS` and `seaAt` in `src/maps/cruise/style.js`; everyone's walk is `src/maps/cruise/day.js` |
 | A flat thing that changes only now and then (the evening's ground) | `step: (t) => n` on it: it's baked into the room's cached floor and baked again when its step changes (see "step" in `src/engine/zone.js`) |
 | Make a find show only some of the time | `when: (t) => true or false` and `note: 'low tide'` on the find (`R.find` or the greybox's `pin`) |
 | How often the other rooms' pictures refresh | `SNAP_BUDGET_MS` in `src/engine/renderer.js`; it shrinks by itself (`snapQ`) when frames are slow |

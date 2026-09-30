@@ -642,6 +642,24 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- All-You-Can-Eat: a whodunit on four decks (docs/levels/cruise.md) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
+  await page.goto(base + '#/cruise');
+  await page.waitForFunction(() => window.__squares.world && window.__squares.world.id === 'cruise', null, { timeout: 20000 });
+  await wait(page, 1200);
+  const ship = await S(page, () => {
+    const w = window.__squares.world;
+    return { storeys: w.storeys.length, on: window.__squares.play.storey && window.__squares.play.storey.id, goal: w.goal, evidence: w.totals.evidence, dial: document.getElementById('dial-label').textContent };
+  });
+  check('the cruise ship opens on the Promenade, four decks, a case with 17 pieces of evidence, the ship\'s clock on the dial',
+    ship.storeys === 4 && ship.on === 'promenade' && ship.goal === 'case' && ship.evidence === 17 && /AM|PM/.test(ship.dial), JSON.stringify(ship));
+  await S(page, () => window.__squares.play.setStorey('sun'));
+  await wait(page, 600);
+  check('the lift takes it to the Sun Deck', (await S(page, () => window.__squares.play.storey.id)) === 'sun');
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();

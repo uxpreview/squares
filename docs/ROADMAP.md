@@ -26,7 +26,7 @@ And for a game that adds levels often: **each level should be cheaper to make th
 - **Places:** The Block Party (the Block, connected: sixteen rooms on streets through a day; it replaced the flat Block under its id, `block`), Gooseworth Manor (a whodunit at night, three floors), and Plum Island (a barrier island on a tide, the first place with ground and water). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** Boston (three real neighborhoods), reusing the water and the Block Party's streets; the owner picks which neighborhood goes first. Then The Block, But Wrong ([LEVELS.md](LEVELS.md)).
+- **Next levels:** Boston's Moving Day and All You Can Eat (the cruise ship), built at the same time in two sessions (PROCESS.md, "Two levels at once"). Then The Block, But Wrong ([LEVELS.md](LEVELS.md)).
 
 ## Engine work
 
@@ -153,16 +153,23 @@ Each is one PR. Order can change; dependencies can't.
   - **It ships:** in the picker after Gooseworth Manor. The night stays printed rather than dimmed.
   - **Checks:** `npm run qa -- plum` and `npm run smoke` pass on the owner's Mac.
 - [ ] **6. Boston.** Three real neighborhoods, one event each: Moving Day (Southie), Beacon and Arlington (a snow day), The Feast (the North End and the Financial District). The owner picks which goes first. Reuses the water (E4) and the Block Party's streets (areas of any shape).
-- [ ] **7. The Block, But Wrong.** The Block Party's layout, flipped; proves the pipeline can turn a level around fast. Also a flip mechanic.
-- [ ] **8. La Dolce Riviera.** The first outdoor showpiece.
-- [ ] **9. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
-- [ ] **10. The campaign and onboarding (G1, G2, G4).**
-- [ ] **11. Polish and performance (P1 to P4, E9).**
+- [ ] **7. All You Can Eat (the cruise ship).** A whodunit on four decks: something from the buffet is going round the ship, and you find patient zero before it docks. Built alongside Boston in its own session, from what exists (storeys and the lift, walkers, the whodunit format, a dial, a plate on the clock); Boston owns engine changes this round. Brief: [levels/cruise.md](levels/cruise.md).
+  - **Built and at gate 3 (the preview):** the brief (gate 1) and the greybox (gate 2) with the lead's calls (cruise.md, decisions 1 to 30), then twelve areas and the cast drawn by artists in their own worktrees, four at a time, and one art direction pass. Hidden at `#/cruise` until the owner approves.
+  - **What it is:** four decks on the Manor's storeys, changed from the ship's lift panel (SUN DECK, CABINS, PROMENADE, CREW ONLY); the ship cut open along its side, the crew deck seen through the sea; thirteen people on a four-minute day, 7am to 7pm, riding the lift; the whodunit format with a new case (patient zero is a stowaway iguana; six suspects, all green for the wrong reason); the ship's clock as a dial that skips to the day's moments; the sea as the paper, turquoise to gold to pink as it docks.
+  - **No engine changes** (Boston owned them this round): storeys, walkers, the case format, the dial, a plate on the clock and a bleeding sea, all as they were. Two small shared UI fixes the playtest found, in their own commit: "It's in the The Buffet" in the case file, and the case-closed card saying "in the house" on a ship (`words.inside`, the Manor unchanged). Learned: on stacked floors, every area has to start on a multiple of 16, or a floor's 16-unit pieces sort after the floor above them (decision 28).
+  - **Checks:** `npm run qa -- cruise` passes (14 passed, 0 failed; speed within budget, slowest the Pool at 52 ms); `npm run smoke` passes, with a check that opens the ship. On the owner's 2017 laptop: the whole ship 40 frames a second, the areas 20 to 33 (the Pool slowest), level with Plum Island and the Block Party. Blind playtest: 25 of 29, the four misses fixed and re-checked (cruise.md 31 to 36). Five questions for the owner in cruise.md ("For the owner at gate 3").
+- [ ] **8. The Block, But Wrong.** The Block Party's layout, flipped; proves the pipeline can turn a level around fast. Also a flip mechanic. *(Moved after the cruise ship, the owner's call, Sept 2026.)*
+- [ ] **9. La Dolce Riviera.** The first outdoor showpiece.
+- [ ] **10. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
+- [ ] **11. The campaign and onboarding (G1, G2, G4).**
+- [ ] **12. Polish and performance (P1 to P4, E9).**
 - Then a level every one or two sessions from [LEVELS.md](LEVELS.md), and the case study (P5) once there are five or six.
 
 ## Decisions
 
 Open, for the owner:
+
+- **All-You-Can-Eat at gate 3** (the preview): five questions with recommendations in [levels/cruise.md](levels/cruise.md), "For the owner at gate 3".
 
 - **Boston: which neighborhood first** (Moving Day in Southie, Beacon and Arlington on a snow day, or The Feast in the North End and the Financial District). The brief session starts with it.
 - **Lag on older laptops, what's next** (the owner's call; sharpness now steps down to 1.5x, 5d): cache the Manor's night backdrop (drawn once, only the rain and lightning live), which only helps the Manor; or a 1.25x step below 1.5x for the slowest machines. What's left on the Block Party and Plum Island is mostly the graphics chip laying the cut sheet down and stamping the other areas' pictures.
@@ -177,6 +184,8 @@ Open, for the owner:
 - **Delete the Walk-Up?** It's hidden now. Delete it once the Catminium ships, or keep it hidden as a test bed.
 
 Made:
+
+- **All-You-Can-Eat goes ahead of The Block, But Wrong,** built alongside Boston in its own session; its brief and greybox are the lead's calls (cruise.md 1 to 30), for the owner to overturn at the preview. On stacked floors every area starts on a multiple of 16 (cruise.md 28). *(Session 7, the owner and the lead)*
 
 - **Plum Island ships** (gate 3) in the picker after the Manor: the dial stops at sunset, the Pink House is its own ghost between flickers, the night stays printed. *(5d, the owner, plum.md 45 to 49)*
 - **Sharpness follows the frame rate** on every place: 3x, 2x, 1.5x while frames stay slow, back up when they're quick; tools keep one sharpness. *(5d, the owner)*
