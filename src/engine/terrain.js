@@ -550,7 +550,9 @@ function paintUnder(ctx, land, pc, P, t, o) {
   if (!pc.under) {
     const U = ink.under, { H } = land;
     if (!land.underF) land.underF = land.layers.map((L) => L.F.map((f, k) => Math.min(f, U - H[k])));
-    const cut = (colors) => ({ ...land, layers: land.layers.map((L, n) => ({ ...L, F: land.underF[n], color: colors[L.id] || L.color, edge: null })) });
+    // (Flat: the ground's shading under deep water barely shows through it,
+    // and every fill here is painted every frame.)
+    const cut = (colors) => ({ ...land, layers: land.layers.map((L, n) => ({ ...L, F: land.underF[n], color: colors[L.id] || L.color, edge: null, flat: true })) });
     const box = under(land, pc);
     const day = ground(cut({}), box, P, {}, pc.front);
     const eve = o.fade && o.inks ? ground(cut(o.inks), box, P, {}, pc.front) : null;
