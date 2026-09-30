@@ -361,7 +361,7 @@ export function createRenderer(canvas, camera, o = {}) {
         // draw them live until then.
         const cache = o.still && !drop && caching;
         const st = cache ? stillsFor(ctx, c, k, dpr) : null;
-        if (cache && backdropFor(ctx, c, k, dpr)) {
+        if (cache && backdropFor(ctx, c, k, dpr, t)) {
           drawBackdrop(ctx, c);
           drawZoneVector(ctx, c, t, true, st);
         } else {

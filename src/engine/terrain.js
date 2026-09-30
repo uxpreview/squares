@@ -261,6 +261,14 @@ export function drawLand(R, land, o = {}) {
     // Drawn by its own chunk and the ones in front (whose patches tuck under it).
     g.area = [x0, y0, x1 + 0.5, y1 + 0.5];
   }
+  // With water printed at the ground's height (water.under), the evening is
+  // baked into the backdrop of the area you're in, in 24 steps of its
+  // strength (see "step" in zone.js): it changes only at dusk and dawn, and
+  // all night it costs nothing.
+  const stepped = land.water.under != null;
+  const fadeOpts = !o.fade ? {} : stepped
+    ? { fade: (t) => Math.round(o.fade(t) * 24) / 24, step: (t) => Math.round(o.fade(t) * 24) }
+    : { fade: o.fade };
   if (o.fade && o.inks) {
     // The same ground in other inks, printed over it as fade(t) rises (and
     // skipped while it's 0, all day).
@@ -270,7 +278,7 @@ export function drawLand(R, land, o = {}) {
       const e = R.floor((ctx) => {
         if (!pc.evening) pc.evening = ground(alt, pc.box, P, o, pc.front);
         paintGround(ctx, pc.evening);
-      }, { fade: o.fade });
+      }, fadeOpts);
       e.area = [x0, y0, x1 + 0.5, y1 + 0.5];
     }
   }
@@ -281,9 +289,11 @@ export function drawLand(R, land, o = {}) {
     // (water.under) is printed like the ground instead: a floor layer, cut
     // to the ground's own patch, the sliver the chunk tucks under the one
     // behind included.
+    // (The water is drawn live every frame. Baking it into the backdrop in
+    // steps, as the evening is, was tried: in a headless browser, which paints
+    // a frame every few seconds, every frame paid for a new bake.)
     const draw = (ctx, t) => paintWater(ctx, land, pc, P, t, o);
-    const wv = land.water.under != null ? R.floor(draw, { anim: true }) : R.rug(draw, { anim: true });
-    wv.area = pc.rect.slice();
+    (stepped ? R.floor(draw, { anim: true }) : R.rug(draw, { anim: true })).area = pc.rect.slice();
   }
 }
 
@@ -416,16 +426,22 @@ function paintGround(ctx, g) {
 // The level moves in steps of STEP_L (too small to see), so a piece's water
 // is traced again only every few frames, not every frame.
 const STEP_L = 0.004;
-function paintWater(ctx, land, pc, P, t, o) {
-  const L = Math.round(land.level(t) / STEP_L) * STEP_L;
+// part: 'all', or 'still' (everything but the surf) or 'surf' (only the
+// waves rolling in).
+function levels(land, t, q) {
+  const L = Math.round(land.level(t) / q) * q;
+  return [L, Math.round((Math.max(L, land.level(t - land.lag)) + 0.08) / q) * q];
+}
+function paintWater(ctx, land, pc, P, t, o, part = 'all') {
+  const [L, Lw] = levels(land, t, STEP_L);
   const ink = land.water;
   const { box, lo, hi } = pc;
   const [i0, j0, i1, j1] = box;
   const { H, W, step } = land;
   const zv = (k) => H[k];
+  const still = part !== 'surf', surf = part !== 'still';
   // Wet sand: between the water and the highest it's been lately.
-  const Lw = Math.round((Math.max(L, land.level(t - land.lag)) + 0.08) / STEP_L) * STEP_L;
-  if (Lw > lo && L < hi) {
+  if (still && Lw > lo && L < hi) {
     const key = Math.round(Lw / STEP_L) * 100000 + Math.round(L / STEP_L);
     if (!pc.wet || pc.wet.key !== key) {
       const p = new Path2D();
@@ -437,7 +453,7 @@ function paintWater(ctx, land, pc, P, t, o) {
     }
   }
   const U = ink.under;
-  if (L > lo) {
+  if (L > lo && still) {
     const key = Math.round(L / STEP_L);
     if (!pc.sea || pc.sea.key !== key) {
       // With a floor that's always under (water.under), the see-through
@@ -479,6 +495,8 @@ function paintWater(ctx, land, pc, P, t, o) {
       ctx.lineWidth = 0.09;
       ctx.stroke(s.foam);
     }
+  }
+  if (L > lo && surf) {
     // Waves coming in: lines of foam that roll up the beach to the shore,
     // only where the beach they roll up is in this piece. Each is the line
     // where the ground is a little under the water, traced once per height
@@ -505,6 +523,9 @@ function paintWater(ctx, land, pc, P, t, o) {
         ctx.restore();
       }
     }
+  }
+  if (L > lo && still) {
+    const s = pc.sea;
     // The water's side, where the plate is cut through it.
     if (land.rim) {
       for (const { p, top, along } of s.sides) {
