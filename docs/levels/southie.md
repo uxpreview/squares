@@ -237,7 +237,8 @@ The lead drew the shared kit first (`kit.js`: the finished triple-decker with it
 ## QA, speed and the playtest (session 6)
 - **QA** (`npm run qa -- southie`, on the owner's 2017 laptop): 15 passed, 0 warnings, 0 failed. Slowest view on the slowed-down phone check: Farragut Road, under the 60 ms budget. The smoke test passes, with checks for houses you open.
 - **Real frames a second** on the 2017 laptop (`node tools/fps.mjs southie`), 1440 x 800 window: at 2x the whole map 40, the apartments 13 to 18, Farragut Road and Marine Park 11, Castle Island 14; as a player gets them, with sharpness stepping down to 1.5x (`--auto`), the apartments about 25, the road and the park 17. A little under Plum Island's areas (12 to 21 at 2x). The drawing code takes 2 to 13 ms a frame, and switching off the cutaway, the skyline or the sky changed little: it's the graphics chip putting the picture on screen, as on the Block Party and Plum Island.
-- **Blind playtest, round 1:** 39 of 48 on the first pass. Four misses were finds that weren't drawn at all (painted over by the counter, table or sofa they stood on: each now sorts after its furniture); the rest were decoys (a lemon painting, a red can by the scanner, white cylinders by the binoculars, a white lens by the logbook), a tag too small, and tap areas too tight (now 0.85 to 1). The tester also asked for the time on the dial ("11:40am · moving out") and for room names that fit the bar: both done.
+- **Blind playtest, round 1:** 39 of 48 on the first pass. Four misses were finds that weren't drawn at all (painted over by the counter, table or sofa they stood on: each now sorts after its furniture); the rest were decoys (a lemon painting, a red can by the scanner, white cylinders by the binoculars, a white lens by the logbook), a tag too small, and tap areas too tight (now 0.85 to 1). - **Blind playtest, round 2** (a new tester, fresh shots): 46 of 48. Both misses were the right objects just outside their tap areas (the name tag by 3px, the lemon's area sat on the bowl beside it): both moved onto their art. Also from its notes: the rain boot redrawn as a boot, the bike's water bottle drawn half again as big, and "A second toaster" relabeled "A toaster on a milk crate" (there are two). Hardest left: the rain boot and the water bottle (4 of 5 before the fix), none never found.
+- The first tester also asked for the time on the dial ("11:40am · moving out") and for room names that fit the bar: both done.
 
 ## For the owner at gate 3
 Each with a recommendation; every earlier call is in Decisions, and any can be overturned.
@@ -296,4 +297,9 @@ The lead's calls in the art (session 6), on the art director's findings:
 34. **Three couches, three jokes:** the hero on the rope, the curb's purple one that goes to Southie Christmas, the audience's plaid one on the lawn. One stray cat on the street; rail pigeons only on the Green House's top porch and Southie Christmas; "Step 1 of 94" belongs to the Overlap.
 35. **The shared street pieces live in the kit** (umbrella, streetlight, bench, pigeon, cat, the held iced coffee), promoted from the areas' copies.
 36. **Dorchester Heights is faint and low, at the far top left,** off a laptop's overview and seen zoomed out or on a wide screen: in this view west is up and to the left, where the title is.
+
+The lead's calls after the playtests (session 6):
+
+37. **"A second toaster" is "A toaster on a milk crate"** (there are two toasters; the label has to pick one). Its id is unchanged, so nothing about saves changes.
+38. **Every find's tap area is 0.85 to 1 unit**, centered on its art, and a find standing on a big single-piece counter or table sorts after it (four were painted over before).
 
