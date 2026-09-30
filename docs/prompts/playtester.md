@@ -46,6 +46,14 @@ If the playtest folder has a `case/` folder, the level is a mystery: you find ev
 - Did the **accusation scene** make you laugh? Which line landed, which didn't?
 - Does the **story hold together** once you've seen the reveal? Anything that doesn't add up?
 
+## Part two, for a place with a clock you can skip: the dial
+
+If `labels.json` gives some things a `when` ("low tide", "high tide", "sunset"), they're only there some of the time; the game prints it beside them. Each area's `dial` is the text on the round button in the corner of its shot.
+- **Before looking further:** in `place.png`, what do you think the round button does? What would you expect a tap to do?
+- Then `place-dial.png`: the same place a moment after tapping it once. What changed? Was that what you expected?
+- Some areas have `<name>-dial.png` (the same view after one tap) or `<name>-later.png` (later in the day, if you wait). Guess the things that weren't there in the first shot in those, under those keys in your guesses file (`"turnpike-1-dial": { "A car key on a float": [x, y] }`). Look in the first shot first.
+- Would a player know **why** a thing isn't there, and **what to do about it**, from the list's note and the dial alone?
+
 ## Report
 
 For each area, a line per find:
@@ -56,4 +64,4 @@ Then, overall:
 - The **three finds most in need of moving or relabeling**, and what you'd change.
 - Anything that was **confusing about the scene itself** (what's going on, where one area ends).
 - The **funniest thing** you noticed, and anything that fell flat.
-- For a whodunit, your answers to part two.
+- For a whodunit or a place with a dial, your answers to part two.

@@ -128,6 +128,7 @@ export function buildZone(def, place = {}) {
     const it = { layer: LAYERS.indexOf(layer), draw, depth: o.depth ?? 0, anim: !!o.anim, order: order++ };
     if (o.fade) it.fade = o.fade;
     if (o.on) it.on = o.on;
+    if (o.step) it.step = o.step;
     items.push(it);
     return it;
   };
@@ -251,10 +252,16 @@ export function buildZone(def, place = {}) {
   // The backdrop cache (the zone you're in) takes the flat things that don't
   // move, up to the first one that does: past it, a still one may sit over a
   // moving one (a curtain over a rainy window), so it's stamped in its turn.
+  // A flat thing that changes only now and then says so with a step (a
+  // number, or anything that compares, for each look it has: the tide's level
+  // rounded, the evening's strength): the backdrop takes it anyway, drawn as
+  // it is right now, and is baked again whenever a step changes, so it costs
+  // a bake now and then instead of a draw every frame. (It's still marked
+  // anim, so it's drawn live whenever the backdrop isn't in use.)
   let moving = false;
   for (const it of items) {
-    if (it.layer < THING && (it.anim || it.fade)) moving = true;
-    it.backdrop = it.layer < THING && !it.anim && !moving;
+    if (it.layer < THING && !it.step && (it.anim || it.fade)) moving = true;
+    it.backdrop = it.layer < THING && (!it.anim || !!it.step) && !moving;
   }
   zone.chunks = chunksOf(zone);
   return zone;
@@ -794,7 +801,16 @@ export function drawSnapshot(ctx, zone) {
 // Those layers sit behind everything that stands up, so caching them keeps depth
 // order; animated items in the same layers are drawn on top of the cache. Like
 // still things (below), it's drawn at the fraction of a pixel it's stamped at.
-function bakeBackdrop(zone, k, fx, fy, dpr) {
+// The steps of the backdrop's items at t, as one key (see "step" in build).
+function stepKey(zone, t) {
+  const list = zone.steps || (zone.steps = zone.items.filter((it) => it.backdrop && it.step));
+  if (!list.length) return '';
+  let key = '';
+  for (const it of list) key += it.step(t) + '|';
+  return key;
+}
+
+function bakeBackdrop(zone, k, fx, fy, dpr, t = 0) {
   const b = zone.flat || zone.bounds;
   const sx = Math.floor(b.x0 * k + fx), sy = Math.floor(b.y0 * k + fy);
   const w = Math.ceil(b.x1 * k + fx) - sx, h = Math.ceil(b.y1 * k + fy) - sy;
@@ -809,8 +825,13 @@ function bakeBackdrop(zone, k, fx, fy, dpr) {
   g.clearRect(0, 0, w, h);
   g.setTransform(k, 0, 0, k, fx - sx, fy - sy);
   setScreen(k, dpr);
-  drawItems(g, zone, 0, baked);
-  zone.bd = { k, fx, fy, sx, sy, wallK: (zone.zone || zone).wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0 };
+  // Drawn at t when anything in it has steps (as it is now); otherwise at 0,
+  // as it always was. (One picture, baked whole: what costs on a slow
+  // graphics chip is how much gets painted each frame, so one stamp beats a
+  // stamp and a layer over it.)
+  const key = stepKey(zone, t);
+  drawItems(g, zone, key ? t : 0, baked);
+  zone.bd = { k, fx, fy, sx, sy, wallK: (zone.zone || zone).wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0, key };
 }
 
 // Where ctx (positioned at the zone's corner, k device px per unit) puts the
@@ -828,13 +849,13 @@ const moved = (c, k, p) => !c || c.k !== k || Math.abs(c.fx - p.fx) > 1e-3 || Ma
 // Whether the backdrop can be stamped this frame (baking it if the scale, the
 // fraction of a pixel or the walls have changed). Only while the camera is
 // still, and not while inside walls are on their way up or down.
-export function backdropFor(ctx, zone, k, dpr) {
+export function backdropFor(ctx, zone, k, dpr, t = 0) {
   const wallK = (zone.zone || zone).wallK;
   if (wallK !== 0 && wallK !== 1) return false;
   const p = pixelSpot(ctx, k);
   if (!p) return false;
-  if (moved(zone.bd, k, p) || zone.bd.wallK !== wallK) {
-    bakeBackdrop(zone, k, p.fx, p.fy, dpr);
+  if (moved(zone.bd, k, p) || zone.bd.wallK !== wallK || zone.bd.key !== stepKey(zone, t)) {
+    bakeBackdrop(zone, k, p.fx, p.fy, dpr, t);
     setScreen(k, dpr);
   }
   zone.bd.X = p.X;

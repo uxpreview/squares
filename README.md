@@ -112,8 +112,12 @@ src/
     plum/            Plum Island (hidden until it ships, #/plum): a barrier island on a tide
       land.js          The island's ground and water: its outline, the dunes, the marsh, the roads
       tide.js          The day, the tide's level, when the flats are out, the dial
-      day.js           The Courier, Every King Tide Dave, beach traffic, on the clock
-      kit.js           Greybox pieces: cars, boats, houses on stilts, umbrellas, traps
+      style.js         The style sheet: the North Shore inks, the sea through the day, the night print, Gander Cola
+      day.js           The Courier and his van, Every King Tide Dave, the traffic, the greenhead man, on the clock
+      swarm.js         The greenhead man's walk, and aside(): anyone near it steps out of the way
+      kit.js           Shared pieces: cars, boats, beach houses (lit at night), umbrellas, traps, signs, gulls
+      ambient.js       Around the island: Newburyport, the Salisbury jetty, sun, moon, stars, the banner plane
+      sound.js         The surf and wind bed, and cues on the clock (the bridge's bell, the plane, Dave's horn)
       finale.js        The ending: the geese swim out to the Courier's van
       areas/           One file per area, in the land's own units
 index.html         The page: every screen's markup
@@ -160,6 +164,10 @@ docs/
 | How the map in front of the room you're in is cut away | "The cut layer" in `src/engine/renderer.js` (drawn on a see-through sheet, the room's outline erased, laid on the picture) |
 | Plum Island's ground: the island's shape, the dunes, the marsh, the roads | `src/maps/plum/land.js` (outline points, heights, and the layers' colors in `style.js`); `npm run qa -- plum` fails ground that climbs toward you too steeply |
 | When the tide's in or out, and when tide-only finds show | `TURNS`, `lowTide`, `highTide` and `SUNSET` in `src/maps/plum/tide.js`; where the dial skips to is its `next` |
+| Plum Island's sea through the day (the sunset's pink and lavender) | `SEA` and `paperAt` in `src/maps/plum/style.js` |
+| Who steps aside for the greenhead swarm | `aside(x, y, t)` from `src/maps/plum/swarm.js`, added to where someone stands in their area's file |
+| Plum Island's sounds | `src/maps/plum/sound.js` (when each cue plays); the sounds themselves (`bridgebell`, `prop`, `lap`, `crickets`, the `island` bed) are in `src/game/audio.js` |
+| A flat thing that changes only now and then (the evening's ground) | `step: (t) => n` on it: it's baked into the room's cached floor and baked again when its step changes (see "step" in `src/engine/zone.js`) |
 | Make a find show only some of the time | `when: (t) => true or false` and `note: 'low tide'` on the find (`R.find` or the greybox's `pin`) |
 | How often the other rooms' pictures refresh | `SNAP_BUDGET_MS` in `src/engine/renderer.js`; it shrinks by itself (`snapQ`) when frames are slow |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |

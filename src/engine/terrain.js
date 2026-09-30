@@ -26,7 +26,7 @@
 // sand shows under the shallows. Deep water takes a second pass.
 
 import { ZK } from './iso.js';
-import { C, Q, dots, alpha, shade, tint } from './art.js';
+import { C, Q, dots, alpha, mix, shade, tint } from './art.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -53,6 +53,14 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 //              the plate ends, it's printed in it)
 // }
 // water.color can be a function of t, for water whose ink follows the day.
+// water.under: a height the water never drops below (under the lowest tide).
+// Ground below it is always under water, so its water is printed opaque, as
+// the ground's own inks mixed with the water's, and every chunk prints a
+// sliver of the ground behind it too. See-through water from chunk to chunk
+// leaves a faint seam where two chunks' edges meet (each edge half covers
+// the pixels along it, and two half coats of a see-through ink are lighter
+// than one full coat); opaque ink overlapping hides it, so the open sea
+// prints in one piece.
 export function makeLand(o) {
   const step = o.step || 0.5;
   const nx = Math.round(o.w / step), ny = Math.round(o.d / step);
@@ -232,7 +240,12 @@ export function drawLand(R, land, o = {}) {
       for (let y = Math.floor(ry0 / 16) * 16; y < ry1 - 1e-6; y += 16) {
         const r = [Math.max(rx0, x), Math.max(ry0, y), Math.min(rx1, x + 16), Math.min(ry1, y + 16)];
         if (r[2] - r[0] < 1e-6 || r[3] - r[1] < 1e-6) continue;
-        pieces.push(piece(land, r, ox, oy));
+        const pc = piece(land, r, ox, oy);
+        // Whether the zone carries on behind the piece's back edges (where
+        // the chunk in front tucks its patch under the one behind).
+        const has = (x, y) => R.shape.some((q) => x >= q[0] && x < q[2] && y >= q[1] && y < q[3]);
+        pc.behind = { x: has(r[0] - 1e-3, (r[1] + r[3]) / 2), y: has((r[0] + r[2]) / 2, r[1] - 1e-3) };
+        pieces.push(pc);
       }
     }
   }
@@ -248,6 +261,14 @@ export function drawLand(R, land, o = {}) {
     // Drawn by its own chunk and the ones in front (whose patches tuck under it).
     g.area = [x0, y0, x1 + 0.5, y1 + 0.5];
   }
+  // With water printed at the ground's height (water.under), the evening is
+  // baked into the backdrop of the area you're in, in 24 steps of its
+  // strength (see "step" in zone.js): it changes only at dusk and dawn, and
+  // all night it costs nothing.
+  const stepped = land.water.under != null;
+  const fadeOpts = !o.fade ? {} : stepped
+    ? { fade: (t) => Math.round(o.fade(t) * 24) / 24, step: (t) => Math.round(o.fade(t) * 24) }
+    : { fade: o.fade };
   if (o.fade && o.inks) {
     // The same ground in other inks, printed over it as fade(t) rises (and
     // skipped while it's 0, all day).
@@ -257,16 +278,22 @@ export function drawLand(R, land, o = {}) {
       const e = R.floor((ctx) => {
         if (!pc.evening) pc.evening = ground(alt, pc.box, P, o, pc.front);
         paintGround(ctx, pc.evening);
-      }, { fade: o.fade });
+      }, fadeOpts);
       e.area = [x0, y0, x1 + 0.5, y1 + 0.5];
     }
   }
   for (const pc of pieces) {
     // The water, over it, drawn by its own chunk only: its patch for water
     // reaches up over its back seams, where the surface stands over the
-    // ground (see "Chunks" in zone.js).
-    const wv = R.rug((ctx, t) => paintWater(ctx, land, pc, P, t, o), { anim: true });
-    wv.area = pc.rect.slice();
+    // ground (see "Chunks" in zone.js). Water printed at the ground's height
+    // (water.under) is printed like the ground instead: a floor layer, cut
+    // to the ground's own patch, the sliver the chunk tucks under the one
+    // behind included.
+    // (The water is drawn live every frame. Baking it into the backdrop in
+    // steps, as the evening is, was tried: in a headless browser, which paints
+    // a frame every few seconds, every frame paid for a new bake.)
+    const draw = (ctx, t) => paintWater(ctx, land, pc, P, t, o);
+    (stepped ? R.floor(draw, { anim: true }) : R.rug(draw, { anim: true })).area = pc.rect.slice();
   }
 }
 
@@ -399,16 +426,22 @@ function paintGround(ctx, g) {
 // The level moves in steps of STEP_L (too small to see), so a piece's water
 // is traced again only every few frames, not every frame.
 const STEP_L = 0.004;
-function paintWater(ctx, land, pc, P, t, o) {
-  const L = Math.round(land.level(t) / STEP_L) * STEP_L;
+// part: 'all', or 'still' (everything but the surf) or 'surf' (only the
+// waves rolling in).
+function levels(land, t, q) {
+  const L = Math.round(land.level(t) / q) * q;
+  return [L, Math.round((Math.max(L, land.level(t - land.lag)) + 0.08) / q) * q];
+}
+function paintWater(ctx, land, pc, P, t, o, part = 'all') {
+  const [L, Lw] = levels(land, t, STEP_L);
   const ink = land.water;
   const { box, lo, hi } = pc;
   const [i0, j0, i1, j1] = box;
   const { H, W, step } = land;
   const zv = (k) => H[k];
+  const still = part !== 'surf', surf = part !== 'still';
   // Wet sand: between the water and the highest it's been lately.
-  const Lw = Math.round((Math.max(L, land.level(t - land.lag)) + 0.08) / STEP_L) * STEP_L;
-  if (Lw > lo && L < hi) {
+  if (still && Lw > lo && L < hi) {
     const key = Math.round(Lw / STEP_L) * 100000 + Math.round(L / STEP_L);
     if (!pc.wet || pc.wet.key !== key) {
       const p = new Path2D();
@@ -419,14 +452,23 @@ function paintWater(ctx, land, pc, P, t, o) {
       ctx.fill(pc.wet.path);
     }
   }
-  if (L > lo) {
+  const U = ink.under;
+  if (L > lo && still) {
     const key = Math.round(L / STEP_L);
     if (!pc.sea || pc.sea.key !== key) {
-      const flat = () => L;
+      // With a floor that's always under (water.under), the see-through
+      // water is printed at the ground's own height, where the opaque part
+      // lines up with it; otherwise on the water's surface.
+      const flat = U != null ? zv : () => L;
       const sea = new Path2D(), deep = new Path2D(), foam = new Path2D();
+      // Printed at the ground's height, it's traced past the piece's edges
+      // (under(), below).
+      const sbox = U != null ? under(land, pc) : box;
       pc.sea = {
         key,
-        sea: fill(sea, land, box, (k) => L - H[k], flat, P) ? sea : null,
+        // (Where the ground is always under, the opaque print covers it: the
+        // see-through water stops a little way past its edge.)
+        sea: fill(sea, land, sbox, U != null ? (k) => Math.min(L - H[k], H[k] - U + 0.12) : (k) => L - H[k], flat, P) ? sea : null,
         deep: ink.deepAlpha > 0 && L - ink.depth > lo && fill(deep, land, box, (k) => L - ink.depth - H[k], flat, P) ? deep : null,
         foam: L < hi && edges(foam, land, box, (k) => L - H[k], flat, P) ? foam : null,
       };
@@ -435,8 +477,9 @@ function paintWater(ctx, land, pc, P, t, o) {
     if (!s.sides) s.sides = waterSides(land, pc, P, L, land.rim ? 0 : 1);
     // Without a rim, everything under the water where the plate ends is
     // printed in the paper's own color (the deep water is the paper), so the
-    // sea runs on past the map with no edge.
-    if (!land.rim && land.paper) {
+    // sea runs on past the map with no edge. (Printed at the ground's height,
+    // the water already covers that band.)
+    if (!land.rim && land.paper && U == null) {
       ctx.fillStyle = land.paper(t);
       for (const { p } of s.sides) ctx.fill(p);
     }
@@ -448,11 +491,14 @@ function paintWater(ctx, land, pc, P, t, o) {
       ctx.fillStyle = alpha(ink.deep, ink.deepAlpha);
       ctx.fill(s.deep);
     }
+    if (U != null && lo < U) paintUnder(ctx, land, pc, P, t, o);
     if (s.foam && Q.lines) {
       ctx.strokeStyle = alpha(ink.foam, 0.95);
       ctx.lineWidth = 0.09;
       ctx.stroke(s.foam);
     }
+  }
+  if (L > lo && surf) {
     // Waves coming in: lines of foam that roll up the beach to the shore,
     // only where the beach they roll up is in this piece. Each is the line
     // where the ground is a little under the water, traced once per height
@@ -479,6 +525,9 @@ function paintWater(ctx, land, pc, P, t, o) {
         ctx.restore();
       }
     }
+  }
+  if (L > lo && still) {
+    const s = pc.sea;
     // The water's side, where the plate is cut through it.
     if (land.rim) {
       for (const { p, top, along } of s.sides) {
@@ -501,6 +550,64 @@ function paintWater(ctx, land, pc, P, t, o) {
     ctx.lineWidth = 0.06;
     ctx.stroke();
   }
+}
+
+// The grid a piece's water printed at the ground's height is traced over:
+// a step past its front edges (so its edge there is its patch's alone: two
+// soft edges on one line thin it to a seam), and a step behind its back
+// edges where the zone carries on, over the sliver its chunk tucks under the
+// one behind (and prints that one's ground in).
+function under(land, pc) {
+  const [i0, j0, i1, j1] = pc.box;
+  return [pc.behind.x ? Math.max(0, i0 - 1) : i0, pc.behind.y ? Math.max(0, j0 - 1) : j0, Math.min(land.nx, i1 + 1), Math.min(land.ny, j1 + 1)];
+}
+
+// The water over ground that's always under it (water.under), printed
+// opaque: the ground's inks (and its evening inks, as far as the evening's
+// in) mixed with the water's at its see-through strength, which is exactly
+// what the see-through ink over that ground would make. Traced once, over
+// the piece and a step of the ground behind its back edges, so it overlaps
+// the chunk behind and the seam between them never shows.
+function paintUnder(ctx, land, pc, P, t, o) {
+  const ink = land.water;
+  if (!pc.under) {
+    const U = ink.under, { H } = land;
+    if (!land.underF) {
+      // Each layer only where no later one covers it (with a little overlap
+      // under the later one's edge), so the open sea is painted once, not
+      // once per layer stacked on it.
+      const F = land.layers.map((L) => L.F.map((f, k) => Math.min(f, U - H[k])));
+      const cover = new Float32Array(H.length).fill(-Infinity);
+      for (let n = F.length - 1; n >= 0; n--) {
+        const f = F[n];
+        for (let k = 0; k < f.length; k++) {
+          const own = f[k];
+          f[k] = Math.min(own, 0.12 - cover[k]);
+          if (own > cover[k]) cover[k] = own;
+        }
+      }
+      land.underF = F;
+    }
+    // (Flat: the ground's shading under deep water barely shows through it,
+    // and every fill here is painted every frame.)
+    const cut = (colors) => ({ ...land, layers: land.layers.map((L, n) => ({ ...L, F: land.underF[n], color: colors[L.id] || L.color, edge: null, flat: true })) });
+    const box = under(land, pc);
+    const day = ground(cut({}), box, P, {}, pc.front);
+    const eve = o.fade && o.inks ? ground(cut(o.inks), box, P, {}, pc.front) : null;
+    pc.under = day.fills.map((f, n) => ({ path: f.path, day: f.color, eve: eve ? eve.fills[n].color : f.color }));
+  }
+  const sea = typeof ink.color === 'function' ? ink.color(t) : ink.color;
+  const k = o.fade && o.inks ? Math.round(o.fade(t) * 64) / 64 : 0;
+  // Each layer over the first is outlined in its own ink too, a device pixel
+  // or so wide: the graphics chip leaves hairline cracks where a layer's
+  // pieces meet along its edge, and the layer under it showed through.
+  const lw = 1 / (Q.pxPerUnit || 20);
+  pc.under.forEach((f, n) => {
+    const c = mix(k ? mix(f.day, f.eve, k) : f.day, sea, ink.alpha);
+    ctx.fillStyle = c;
+    ctx.fill(f.path);
+    if (n) { ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.stroke(f.path); }
+  });
 }
 
 // Where a piece's water is cut by the plate's front edges: a band from the

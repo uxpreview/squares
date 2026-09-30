@@ -1,9 +1,9 @@
 # Plum Island
 
-> Status: **Greybox** · Brief → Greybox → Art → QA → Preview → Shipped
-> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [ ] (at gate 2 now) · preview [ ]
+> Status: **Preview** · Brief → Greybox → Art → QA → Preview → Shipped
+> Owner approvals: brief [x] (with every recommendation, decisions 25 to 32) · greybox [x] (with every recommendation, decisions 35 to 38) · preview [ ]
 >
-> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and is waiting on the owner at gate 2.
+> E4 is built (session 5, "E4 as built" below). The greybox at `#/plum` was rebuilt to match this brief in session 5b ("The greybox" below) and approved at gate 2. Session 5c drew it, QA'd it and blind-playtested it; it's at gate 3 now ("The art" below, and "For the owner at gate 3").
 >
 > Drafted in the sketchbook session (Sept 2026); finished in session 5 with the owner's answers and ideas (decisions 1 to 17), every real place checked against a real map and current news (see "Real places, checked"), and a build plan for E4. The rough sketch is in [the sketchbook](../sketchbook.html) (open it in a browser; drag the tide). The owner approved it with every recommendation (decisions 25 to 32). Next: build E4, then the greybox.
 
@@ -203,7 +203,7 @@ E4 is built first (PROCESS step 3), in its own commits, before the greybox. It's
 ### 5. The camera and the overview
 - **Wide, on a phone** (decision 16): the map's `overview` fills an upright phone's height and runs the island off both sides; on its side, the whole width.
 - **Long areas** (the beaches, the turnpike) are framed a room's worth at a time around where you tap, as the Block Party's streets are (`zoneBox`), and QA frames each find.
-- **No cutaway in front:** it's all outdoors and low, so the areas in front aren't cut away when you step into one. If the greybox shows the dunes or houses hiding the Sound or the marsh behind them, tall things in front fade instead (decided at gate 2).
+- **The cutaway, as everywhere:** stepping into an area cuts away the areas in front of it, as on the Block Party. Fading tall things instead was left for gate 2; the owner kept the cutaway (decision 36).
 
 ### 6. Small pieces outside E4
 - **A subtitle on the picker card** (`subtitle` in `maps/index.js`): "Plum Island", with "King Tide" under it (decision 8).
@@ -261,13 +261,45 @@ The first greybox (session 5) was built from the draft brief; 5b rebuilt it to m
 - **The ending:** the clock jumps to 12:15am, the camera flies to the van in the flood by the drawbridge, the geese paddle out from the Center's back shore and round it, the Courier holds up the parcel (greenhead spray), and Dave drives past, windows down.
 - **Engine, on the way:** a land can have no rim (`rim: false`): no cut sides, its deep water printed in the paper's color where the plate ends (`paper(t)`); water whose ink follows the clock (`water.color` as a function); a picker card printed on its plate (`plate.bleed`); a subtitle on the picker card (`subtitle`, "King Tide").
 
-**For the owner at gate 2** (each with a recommendation):
+**For the owner at gate 2** (each with a recommendation; all four taken, decisions 35 to 38):
 1. **On a phone**, the overview frames the Center and the Town Beach at full height, and you swipe along the island (decision 16). *Recommend:* keep.
 2. **Stepping into an area** cuts away the areas in front of it, as on the Block Party. The brief left fading tall things instead for this gate. *Recommend:* keep the cutaway; nothing in front is tall enough to need a fade, and the houses on pilings are the only thing that hides much.
 3. **Sunset on the sea:** a sea mixed with gold reads as muddy olive, so the sea goes gold only briefly and then pink and lavender, while the land keeps its colors. *Recommend:* keep, and let the art director tune it.
 4. **Hellcat's tower** sits by the refuge road, since the island is narrow there (about 16 units from the back shore to the dune toe). *Recommend:* keep; the art can stretch the boardwalk along the marsh edge.
 
 **Left for the art (5c):** lights after dark (windows, the lighthouse's lamp and beam, the lifeguard stands' lamps, the deck); the banner plane over the beach and its fake brand; the swarm making people step aside; the drawbridge's bell and the rest of the sound bed; faint seams between the water's pieces, visible on the open sea at sunset; the Salisbury jetty and Newburyport drawn properly.
+
+## The art (session 5c, gate 3)
+Drawn by nine artists in parallel, each in their own worktree (the seven areas, the cast on the clock, and what's around the island), then one art director over the whole island. At `#/plum` (still hidden from the picker until gate 3).
+
+**What's there now, area by area:**
+- **The Turnpike:** a real bascule drawbridge with a tender's hut, a swinging bell, gates and tip lights, lifting for the lobster boat at dawn and the sailboat at 4:15pm while the road waits; the Pink House as a proper two-storey pink house fading in three times at sunset, a painter painting the empty lot and a photographer who turns round too late ("Huh."); the clam shack (menu ends "GREENHEAD SPRAY: NO", a goose poster, "ANSWERS TO: HONK"); Dave's lot ("EVERY KING TIDE SINCE 1987" and his photos, a lawn chair marked DAVE); the airport ("FLYING SINCE 1910. MOSTLY.") and its plane with a shadow; the visitor center ("REFUGE FULL? WE ARE NOT."); warnings that change after 11:30pm ("KING TIDE NOW / TOLD YOU."); the deck with string lights; a heron, egrets, traps.
+- **The Sound:** the sailboat's owner reading through the whole tide ("It'll float.", "Told you.", "One more chapter."), clammers, One Boot hopping by the boot, the clam warden, Ern last off the flats, Biscuit the dog, a kayaker who lost her paddle and paddles by hand all night ("Little help?"), an osprey, salt hay on staddles, a camp on stilts.
+- **The Refuge Dunes:** scopes that swing to wherever the goose honked, 2.5 seconds late ("THERE!" / "Gone again."), Inspector Pidge sure a plover is the goose, the ranger's day at the gate (REFUGE FULL at 9:20, "STILL FULL." at the car that keeps trying, OPEN at 5pm as the line gives up), Hellcat's boardwalk along the marsh edge to a viewing platform (decision 38), bikes, a portable toilet queue.
+- **The Refuge Beach:** six plovers and a rope; the warden moves it out on the hour and the crowd shuffles back, a sleeper dragged along on his towel; "PLOVER BEACH / POP. 6", "SYMBOLIC FENCE / REAL FINE"; Sandy Point's roped nest; dark and quiet after sunset.
+- **The Center:** the bait shop ("BAIT · ICE · ADVICE / THE ADVICE IS FREE") and its tide board nobody reads, the ice cream window (GREENHEAD CRUNCH*), the parking officer ("Resident?"), the $20 lot whose price follows the day ($40 king tide viewing), a kid digging to China, a man asleep on an airbed drifting out and back, the family who meets the greenhead man on the path twice ("Not again!").
+- **The Town Beach:** the stubborn house's stairs and the owner's whole day (a plank at 7:30am, hammering, "Nailed it.", "Hm.", the sixth tally mark, "Told you it'd reach." at the king tide); eight families arriving and leaving, volleyball, a metal-detector man who never finds the cooler, sandbags ("NICE TRY, OCEAN"), a fire pit the king tide puts out.
+- **The North Point:** a tumbled granite jetty; the dawn story (the seals take the fishermen's rocks one at a time, "I'm out.", a striper at 8am); the lifeguards and their chalkboard ("SEALS 3 · GREENHEADS: YES"), the lighthouse's beam sweeping at night, a playground ("NO GEESE"), a full lot ("PARKING $25 / SEALS FREE").
+- **The cast:** the Courier's brown van (PARCELS, a goose in a box) and the Courier on foot with the parcel; Dave's red pickup, out through the flood waving at 12:20am; traffic with boards, bikes and kayaks and headlights; the line's drivers leaning out; the car that keeps trying (coral, a white roof box, a kid at the back window); the greenhead man and 16 flies. The ending: a clipboard lowered on a string, a goose signs, "GREENHEAD BE GONE" out of the box. The van now stays in the flood as long as the ending plays.
+- **Around the island:** Newburyport across the river (brick waterfront, four white steeples, windows twinkling at night), the Salisbury jetty with its blinking light and a fisherman, the sun setting behind the steeples, a full moon and its path on the water for the king tide, stars, clouds, gulls, and the banner plane: **Gander Cola**, "TAKE A GANDER".
+- **Everyone** turns to face the marsh at sunset; anyone near the greenhead man's way steps aside and swats (`aside()` in `swarm.js`).
+- **Lights after dark:** every house's windows, porch lights, the lighthouse and its beam, the lifeguard stands' lanterns, the deck, the clam shack, the bait shop, the gatehouse, the drawbridge's lights, headlights, lanterns and headlamps.
+- **The night is printed, not dimmed:** buildings get a dusk print with their windows lit; people and finds keep their day colors, so every find reads at any hour.
+- **The sunset on the sea** (decision 37): gold for about five seconds, then dusty pink, mauve, lavender, indigo and navy for the king tide; the land keeps its colors.
+- **Sound:** surf and wind in the grass under everything, gulls by day, the drawbridge's bell as it lifts, the airfield's plane taking off, Dave's horn in the flood, water lapping and crickets after dark; the bed is about 11 dB under a honk (20 in the honk's range) and every cue peaks at least 4 dB under one.
+- **The open sea has no seams** at sunset: water below the lowest tide is printed opaque (the ground's inks mixed with the sea's), each layer painted once.
+
+**Engine and tools, on the way:** water below the lowest tide printed opaque and water printed at the ground's height cut like the ground (`water.under` in `terrain.js`), so chunk edges no longer thin it into seams; a flat thing that changes only now and then bakes into the room's cached floor in steps (`step` in `zone.js`; the evening's ground uses it, so the night costs nothing once it's in); QA's speed check times a place at its own moments (`qa.speedAt`: noon and 11pm here) with the tapping page stopped; the playtest tool shoots tide finds inside their windows and taps the dial like a player; `speed.mjs --at --eval`.
+
+**Speed, honestly:** in this cloud session QA's speed check reads Plum Island's areas at 44 to 75 ms against the 60 ms budget. It reads the shipped Block Party, unchanged, at 22 to 77 ms in the same session (seven of its rooms over 60; it passed at 43 slowest on the machine it shipped from), and the same view swings by 15 ms between runs. So the cloud can't settle it: `npm run qa -- plum` and `node tools/fps.mjs plum` on the owner's Mac can (the bar: no view slower than the Block Party's, whose streets run at 20 to 24 frames a second and rooms at 21 to 33 on the 2017 laptop).
+
+**The blind playtest** (from screenshots, with the dial): 27 of 28 found the first time. The three it found hardest were moved: the lure was half under the area's name at the bottom of a laptop's frame (now two rocks inshore); the lobster wandered off the road behind the clam shack's roof at noon (now it stays on the asphalt); and the Pink House was never caught, because the shot fell between flickers (now it's faint on its lot all through its window, and in full three times). Two more fresh testers re-checked the Turnpike and the North Point: the second found the lobster and the Pink House, and missed the lure, which in that framing sat under the area's name on screen (the playtest tool now doesn't count a find under a button as in a shot, so it frames it on its own); the third found all eight, none harder than a proper look (the lure 3, the lobster 2, the Pink House 3 out of 5). All 28 finds are now between a quick look and a proper search. Its other notes: a sitting goose, legs tucked, can read as a pool float (that's the game's goose, shared with every place, so left alone); neighbors' geese show at the edges of an area's framing (as on the Block Party); the dial read clearly as a tide control, but jumping from noon to the king tide at 11pm overshoots sunset, so a player who taps it first never sees the Pink House (question 2 below).
+
+**For the owner at gate 3** (each with a recommendation):
+1. **Speed on your Mac.** The cloud can't settle it (above). *Recommend:* run `npm run qa -- plum` (its speed check) and `node tools/fps.mjs plum` on the 2017 laptop, next to the Block Party (`node tools/fps.mjs block`). If an area is clearly slower than the Block Party's streets, the fix that helps every place is the open roadmap item: step sharpness down from 2x to 1.5x when frames stay slow.
+2. **Sunset and the dial.** The dial skips between noon and 11pm (decision 33), so it jumps over sunset and the Pink House. *Recommend:* add a third stop between them: before 7:40pm, a tap says "Skip to sunset" and lands at 7:50pm; after sunset it skips to high tide as now.
+3. **The Pink House's ghost.** Faint on its lot all through sunset (7:40 to 9pm), in full for a moment three times (decision 25, which had it invisible between flickers). *Recommend:* keep; it gives the player something to tap and reads as a memory.
+4. **The night printed in dusk ink** on the buildings, people and finds in their day colors, rather than the whole island dimmed. *Recommend:* keep.
 
 ## Open questions
 None open. The skip was settled at the start of session 5b (decision 33).
@@ -322,4 +354,20 @@ The owner, at the start of session 5b (Sept 2026):
 
 33. **Keep the skip.** A tap on the tide clock runs the day fast to the next low or high water (it lands at noon, or at 11pm as the road goes under). The windows and the notes in the list stay. This replaces "the player can't control the tide" in decision 5.
 34. **The parcel is greenhead fly spray,** not waders: the only thing anyone on the island wants, and it ties the ending to the greenhead swarm. "Could've used that this afternoon."
+
+Gate 2 (the greybox), the owner at the start of session 5c (Sept 2026), taking every recommendation:
+
+35. **The phone framing stays:** on an upright phone the overview frames the Center and the Town Beach at full height, and you swipe along the island.
+36. **The cutaway stays** when you step into an area, rather than fading tall things in front.
+37. **The sunset on the sea stays:** gold briefly, then pink and lavender, with the land keeping its colors. The art director tunes it.
+38. **Hellcat's tower stays by the refuge road;** the art can stretch its boardwalk along the marsh edge.
+
+The lead's calls in session 5c (the owner said to use the lead's recommendations wherever something was open):
+
+39. **The fake brand is Gander Cola** ("Take a gander."): red cans, white lettering; on the banner plane and at most one touch per area, never on a find. For every place from now on (LEVELS.md).
+40. **The banner reads the right way round both ways** (a brand wants to be read), not backwards on its way back.
+41. **The night is printed, not dimmed:** the buildings get a dusk print with their windows lit; people, cars and finds keep their day colors, so every find reads at any hour. `R.dark` was tried and dropped (outdoors it only darkens the ground, which already prints its night inks, and its edge showed).
+42. **The sunset on the sea** (decision 37, tuned): gold for about five seconds, then dusty pink, mauve, lavender, indigo, navy.
+43. **The Courier's van stays in the flood as long as the ending plays** (it used to drive off at 12:50am under the geese).
+44. **The Pink House is faint on its lot all through its window**, in full three times (see question 3 at gate 3).
 
