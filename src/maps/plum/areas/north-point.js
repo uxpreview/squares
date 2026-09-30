@@ -130,9 +130,11 @@ const STONES = ROCKS.map((r, i) => {
   const extra = stone(r.x + (back ? -0.78 : 0.02), r.y + (back ? 0.15 : 0.82), 0.86, 0.74, r.top - 0.3 - rand() * 0.2, rand);
   return back ? [extra, main] : [main, extra];
 });
-// The lure hangs on the right face of the second-to-last rock, half a unit
-// under an ordinary tide (so it's out only at low water).
-const LURE = (() => { const m = STONES[9].find((st) => st.main); const a = sideAt(m, 1, -0.5), b = sideAt(m, 2, -0.5); return [(a[0] + b[0]) / 2 + 0.03, ROCKS[9].y, -0.5]; })();
+// The lure hangs on the right face of the fourth rock from the end, half a
+// unit under an ordinary tide (so it's out only at low water). (It was on
+// the second-to-last, but framed on a laptop that sat under the area's name.)
+const LURE_ROCK = 7;
+const LURE = (() => { const m = STONES[LURE_ROCK].find((st) => st.main); const a = sideAt(m, 1, -0.5), b = sideAt(m, 2, -0.5); return [(a[0] + b[0]) / 2 + 0.03, ROCKS[LURE_ROCK].y, -0.5]; })();
 // A block from z0 up to z1 (Infinity: to its top). The tide never gets above
 // CUT, so what's over it is a still picture and only the band under it,
 // where the water moves, is drawn every frame.
@@ -847,9 +849,8 @@ export default {
       const band = (top) => (ctx, t) => {
         const L = level(t);
         for (const s of STONES[i]) drawStone(ctx, s, Math.max(s.zb, L - 0.02), top);
-        // The lure, snagged on the side of the second-to-last rock, out
-        // only at low water.
-        if (i === 9 && L < -0.5) lure(ctx, t, r);
+        // The lure, snagged on the side of its rock, out only at low water.
+        if (i === LURE_ROCK && L < -0.5) lure(ctx, t, r);
       };
       if (!cut) { R.thing(r.x + 0.7, r.y + 0.7, band(Infinity), { anim: true }); return; }
       R.thing(r.x + 0.7, r.y + 0.7, band(CUT), { anim: true, on: (t) => !low(t) });
@@ -1025,7 +1026,7 @@ export default {
     const buoyX = (t) => 109.6 + Math.sin(t / 2) * 0.2;
     R.mover((t) => ({ x: buoyX(t), y: 30.5 }), (ctx, t, p) => lobsterBuoy(ctx, p.x, 30.5, float(p.x, 30.5, t), t));
     R.find({ id: 'buoy', label: 'A lobster buoy', at: (t) => [buoyX(t), 30.5, float(109.6, 30.5, t) + 0.3], r: 0.8 });
-    // A lure snagged on the side of the second-to-last rock, low enough that
+    // A lure snagged on the side of a rock near the jetty's end, low enough that
     // it's only out at low water.
     R.find({ id: 'lure', label: 'A lure on the jetty', at: LURE, r: 0.8, when: lowTide, note: 'low tide' });
     // The seal in sunglasses, on the middle rock, all day.

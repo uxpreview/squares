@@ -457,7 +457,9 @@ export default {
       for (const v of [D0 + 0.2, (D0 + D1) / 2, D1 - 0.3]) pole(ctx, H1 + 0.7, v, hz0 + 0.3, 1.3, C.white, 0.05);
       if (Q.detail) line(ctx, [[H1 + 0.72, D0 + 0.2, hz0 + 0.75], [H1 + 0.72, D1 - 0.3, hz0 + 0.75]], C.white, 0.06);
       face(ctx, [[H1, D0 + 0.05, hz0 + 1.75], [H1, D1 - 0.05, hz0 + 1.75], [H1 + 0.9, D1 - 0.05, hz0 + 1.55], [H1 + 0.9, D0 + 0.05, hz0 + 1.55]], shade(ROOF, 0.05), { lw: 0.04 });
-    }, { fade: flicker });
+    // Faint all through its window (a memory, and something to tap), back
+    // in full for a moment three times across the sunset.
+    }, { fade: (t) => Math.max(flicker(t), pinkWindow(t) ? 0.16 : 0) });
     // The memorial: a painting of the house on two granite posts, facing the road.
     const mx = 59.6, mz = R.ground(mx, py);
     R.thing(mx + 0.25, py + 0.9, (ctx) => {
@@ -983,7 +985,9 @@ export default {
     const gx0 = sx + 3, gy0 = sy + 1.6, gz0 = h(gx0, gy0);
     R.goose((t) => { const k = mod(t, 12); return { x: gx0, y: gy0, z: gz0, dir: 'l', pose: k < 1 ? 'honk' : k > 8 && k < 9.5 ? 'peck' : 'stand' }; });
     // A lobster crossing the road, very slowly, both ways.
-    const lobAt = (t) => { const x = PIKE + 1.7 * Math.sin(t / 14); return [x, 8.4, float(x, 8.4, t) + 0.2]; };
+    // (Only as far as the road's edges: past them, on the shack's side, the
+    // shack's roof hid it.)
+    const lobAt = (t) => { const x = PIKE + 1.1 * Math.sin(t / 14); return [x, 8.4, float(x, 8.4, t) + 0.2]; };
     R.find({ id: 'lobster', label: 'A lobster crossing the road', at: lobAt, r: 0.8 });
     R.mover((t) => { const [x, y, z] = lobAt(t); return { x, y, z, s: Math.cos(t / 14) >= 0 ? 1 : -1 }; }, (ctx, t, p) => lobster(ctx, p.x, p.y, p.z - 0.18, p.s, t));
     // A car key on a cork float, bobbing in a salt panne when there's water in it.
