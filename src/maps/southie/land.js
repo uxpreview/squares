@@ -9,7 +9,8 @@
 // steeper than 0.8 a unit, so the causeways' bay sides are gentle and the sea
 // wall along Day Boulevard is a thing, not ground.
 import { makeLand } from '../../engine/terrain.js';
-import { C, shade } from '../../engine/art.js';
+import { C, shade, mix } from '../../engine/art.js';
+import { nightK } from './clock.js';
 import { W, D, GROUND, ROAD, ROAD_Y, SHORE_Y, DAY_BLVD, CIRCLE, BROADWAY, PARK_X, BAY, BEACH_X, HEAD_ISLAND, SUGAR_BOWL, EAST_WALK, ISLAND, LOT } from './plan.js';
 import { LAND, INK } from './style.js';
 
@@ -44,7 +45,9 @@ const causeway = (x, y) => Math.max(
 // causeways, the port's apron north of them, and Castle Island.
 const mainland = (x, y) => Math.min(BAY.x0 - 3 - x, (x < PARK_X + 2 ? SHORE_Y : 59.5) - y);
 export const island = (x, y) => ISLAND[2] - Math.hypot(x - ISLAND[0], (y - ISLAND[1]) * 1.15);
-const landness = (x, y) => Math.max(mainland(x, y), causeway(x, y), island(x, y), 2.5 - y);
+// (And the Castle Island lot, at the causeway's end.)
+const lot = (x, y) => Math.min(x - LOT[0], LOT[2] - x, y - LOT[1] + 3, LOT[3] - y);
+const landness = (x, y) => Math.max(mainland(x, y), causeway(x, y), island(x, y), lot(x, y), 2.5 - y);
 
 // The water's floor: Pleasure Bay's shallow bed, the harbor's deeper one.
 const floorOf = (x, y) => DEEP + (BED - DEEP) * smooth(-4, 0, bayIn(x, y));
@@ -108,7 +111,8 @@ export const land = makeLand({
     { id: 'paving', color: LAND.paving, field: (x, y, h) => Math.min(pavingField(x, y), h + 0.25), flat: true, edge: LAND.kerb, lw: 0.05 },
     { id: 'road', color: LAND.road, field: (x, y, h) => Math.min(roadField(x, y), h + 0.25), flat: true, edge: LAND.kerb, lw: 0.06 },
   ],
-  water: { color: INK.harbor, foam: C.white, wet: LAND.wet, side: INK.harbor, alpha: 0.6, deepAlpha: 0.25, depth: 1.2, under: -1.2 },
+  // (The water takes the night, like the paper.)
+  water: { color: (t) => mix(INK.harbor, C.night, Math.round(nightK(t) * 0.6 * 16) / 16), foam: C.white, wet: LAND.wet, side: INK.harbor, alpha: 0.6, deepAlpha: 0.25, depth: 1.2, under: -1.2 },
   side: { soil: LAND.soil, dots: shade(LAND.soil, 0.45) },
 });
 

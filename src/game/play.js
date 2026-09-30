@@ -714,10 +714,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pops.push({ kind: 'call', zone: lastCaller, t0: now });
     debug.calls++;
   }
-  // Over the middle of the room (its first box, for an area of any shape),
-  // about head height, on its ground if it has one.
+  // Over the middle of the room, about head height, on its ground if it has
+  // one. A long area (a street, a park, an island) honks from over its goose,
+  // wherever that is, not from the middle of its box (which can be water).
   const callAt = (z) => {
-    const [x0, y0, x1, y1] = z.rects[0], x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+    let [x0, y0, x1, y1] = z.rects[0], x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+    const gf = world.long(z) && z.finds.find((f) => f.goose);
+    if (gf) [x, y] = findPos(gf, clock());
     const g = z.ground ? Math.max(z.ground(x, y), 0) : 0;
     return [z.anchor[0] + isoX(x, y), z.anchor[1] - (z.lift || 0) + isoY(x, y, g + Math.min(z.h, 6) * 0.6)];
   };
