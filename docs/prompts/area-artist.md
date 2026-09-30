@@ -9,6 +9,8 @@ How the lead runs it (learned on the Manor):
 - **Give exact positions and times** for everyone who passes through the area (a scratch script can sample the level's walkers), and every find's role in the story and what it must show.
 - **Their report is their final message:** agents can't write report files. Ask for it to be short and specific (what changed, new find positions, worries).
 - **While several run, QA's taps and timings are noisy** (every artist runs Chrome at once). Rerun the full QA once they're all back.
+- **In a cloud session, five or six at once.** Plum Island ran nine at once on a 4-core cloud box: it worked, but the load reached about 29 while they screenshotted, and every speed reading any of them took was meaningless. Time the level yourself once they're all back, on a quiet machine.
+- **Draw the shared pieces first** (the kit: cars, houses, signs) so every artist builds on the same finished pieces, and check them: a bug in one (Plum Island's signs ignored their lettering size) spreads to every area. When you fix one mid-run, tell the artists still working.
 - **Decide the room colors in the style sheet before launching** (the Manor's `ROOM` and `MAT`), so parallel artists start from one palette instead of drifting apart.
 
 ---
