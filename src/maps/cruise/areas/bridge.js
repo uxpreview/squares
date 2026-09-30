@@ -669,11 +669,12 @@ export default {
       const [X, Y] = P(10.4, 7.4, 0.2);
       words(ctx, 'FIRE', X, Y + 0.1, 0.13, C.white, 'center', 900);
     });
-    // An ice bucket on a stand, with something fizzy for the couples.
-    S.thing(13.4, 7.0, (ctx) => {
-      for (const [dx, dy] of [[-0.2, -0.1], [0.2, -0.1], [0, 0.2]]) face(ctx, [[13.4 + dx, 7.0 + dy, 0], [13.4, 7.0, 0.9]], null, { lw: 0.05, stroke: MAT.chrome });
-      cylinder(ctx, 13.4, 7.0, 0.9, 0.24, 0.34, MAT.chrome);
-      const [X, Y] = P(13.35, 6.95, 1.2);
+    // An ice bucket on a stand, with something fizzy for the couples, by the
+    // queue for the pose (away from the wheel, so "a bucket by the wheel" is one bucket).
+    S.thing(16.5, 9.5, (ctx) => {
+      for (const [dx, dy] of [[-0.2, -0.1], [0.2, -0.1], [0, 0.2]]) face(ctx, [[16.5 + dx, 9.5 + dy, 0], [16.5, 9.5, 0.9]], null, { lw: 0.05, stroke: MAT.chrome });
+      cylinder(ctx, 16.5, 9.5, 0.9, 0.24, 0.34, MAT.chrome);
+      const [X, Y] = P(16.45, 9.45, 1.2);
       ctx.beginPath(); ctx.moveTo(X - 0.05, Y); ctx.lineTo(X - 0.1, Y - 0.45); ctx.lineTo(X - 0.04, Y - 0.5); ctx.lineTo(X + 0.03, Y - 0.05); ctx.closePath();
       paint(ctx, C.navy, { lw: 0.02 });
       ctx.beginPath(); ctx.rect(X - 0.12, Y - 0.56, 0.08, 0.08); ctx.fillStyle = MAT.brass; ctx.fill();

@@ -80,8 +80,8 @@ function tongs(ctx, x, y, z, o = {}) {
     ctx.beginPath();
     for (let i = 0; i < 7; i++) {
       const a = (i / 7) * Math.PI * 2;
-      ctx.moveTo(SX + Math.cos(a) * 0.09 + 0.05, SY + Math.sin(a) * 0.06);
-      ctx.arc(SX + Math.cos(a) * 0.09, SY + Math.sin(a) * 0.06, 0.05, 0, Math.PI * 2);
+      ctx.moveTo(SX + Math.cos(a) * 0.12 + 0.07, SY + Math.sin(a) * 0.08);
+      ctx.arc(SX + Math.cos(a) * 0.12, SY + Math.sin(a) * 0.08, 0.07, 0, Math.PI * 2);
     }
     paint(ctx, INK.flamingo, { lw: 0.02, dots: shade(INK.flamingo, 0.35), density: 0.3 });
   }
@@ -1017,7 +1017,7 @@ export default {
     crew(R, 31.0, 13.3, 88, { dir: 'l', back: true, arms: [1.2, 1.0] });
 
     // ---------- The finds ----------
-    R.find({ id: 'tongs', label: "Doreen's tongs", at: [15.2, 7.9, 1.25], r: 0.8 });
+    R.find({ id: 'tongs', label: 'Tongs with a pink scrunchie', at: [15.2, 7.9, 1.25], r: 0.8 });
     R.find({ id: 'queue-ticket', label: 'A queue ticket', at: [3.4, 14.4, 0.05], r: 0.8 });
     R.find({ id: 'butter-prints', label: 'Claw prints in the butter', at: [8.5, 9.2, 1.5], r: 0.75 });
     R.find({ id: 'shrimp', label: 'A shrimp on a toothpick', at: [20, 10, 3.3], r: 0.8 });
