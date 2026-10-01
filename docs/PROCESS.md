@@ -44,6 +44,8 @@ One agent per area, four to six at once, each sent [prompts/area-artist.md](prom
 ### 6. Art direction pass
 One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the whole level (the contact sheet first) and fixes consistency: palette, line weight, scale, density, duplicated ideas (the Walk-Up ended up with two goldfish and two party balloons), and whether cross-area gags land.
 
+**Look closer.** Then every area pinched in, the way a player looks: `node tools/tour.mjs <id>/<area> --at=<a few moments>` tiles it 3x zoomed on a phone. The art director looks at every tile, and the lead looks again before gate 3. The owner's review is for taste; finding broken drawing is ours. (Moving Day reached the owner with greybox cars, people inside a bench, heads on car roofs and seams in the harbor, all invisible at the areas' own framing.)
+
 ### 7. QA (repeat until clean)
 **Automated:** `npm run qa -- <id>` (about three minutes; `--quick` for about one):
 - No errors loading the level, or drawing any area (walls up and down) at 48 moments across its loop.
@@ -57,12 +59,20 @@ One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the
 **Playtest:** a fresh agent sent [prompts/playtester.md](prompts/playtester.md) plays from screenshots only (`node tools/playtest.mjs <id> prepare`), guesses where each find is, and scores itself (`check`). Every find should take between 20 and 90 seconds for a fresh player. Too easy or impossible gets moved or relabeled.
 
 ### 8. Preview (gate 3: the owner approves)
-The owner's one review. The pull request's Vercel preview, with a short checklist of what to look at, the lead's calls from gates 1 and 2 (in the brief's Decisions) so any can be overturned, and any questions still open, each with a recommendation. Speed is settled on the owner's 2017 laptop (`npm run qa`, `node tools/fps.mjs`), not in the cloud. The owner plays it on their phone. Feedback goes in the PR or the chat; the lead fixes and re-runs QA.
+Before it goes to the owner, the lead has toured every area pinched in (step 6) and fixed what it found. The owner's one review. The pull request's Vercel preview, with a short checklist of what to look at, the lead's calls from gates 1 and 2 (in the brief's Decisions) so any can be overturned, and any questions still open, each with a recommendation. Speed is settled on the owner's 2017 laptop (`npm run qa`, `node tools/fps.mjs`), not in the cloud. The owner plays it on their phone. Feedback goes in the PR or the chat; the lead fixes and re-runs QA.
 
 ### 9. Ship
 Merge. Update the roadmap (what shipped, what was learned), move the level's status in LEVELS.md, and note which helpers were promoted into the kit.
 
-## Two levels at once
+## One thing per session
+
+One level at a time, and one step of it per session (the owner's call, Oct 2026). Moving Day and All You Can Eat were built side by side, each from brief to finished art in one pull request; both took too long and both reached gate 3 needing more work. Now:
+
+- **A session is one pull request with one goal,** sized to finish: the brief and greybox; the art and the art direction (with the tour); QA, the playtest and gate 3; the owner's notes and ship. Engine work a level needs goes first, in the same session or one before.
+- **A session stops at a gate.** Gate 3 goes to the owner from a session whose only job was getting it there.
+- **The next level starts when the last one ships.**
+
+### If two levels ever run at once again
 
 Two levels can be built at the same time, each in its own session (the owner opens them), on its own branch, with its own PR. Not more than two: the lead of each already runs its artists in parallel, and the owner's laptop is where speed gets settled.
 
