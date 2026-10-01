@@ -6,6 +6,7 @@ Where Squares is going, and the order to build it in. Each session is one pull r
 - The level backlog: [LEVELS.md](LEVELS.md)
 - Level briefs: [levels/](levels/)
 - Reference images and what they teach: [INSPIRATION.md](INSPIRATION.md)
+- The game's name and the goose's (research, not yet decided): [NAMING.md](NAMING.md)
 
 ## The bar
 
