@@ -240,6 +240,17 @@ The lead drew the shared kit first (`kit.js`: the finished triple-decker with it
 - **Blind playtest, round 1:** 39 of 48 on the first pass. Four misses were finds that weren't drawn at all (painted over by the counter, table or sofa they stood on: each now sorts after its furniture); the rest were decoys (a lemon painting, a red can by the scanner, white cylinders by the binoculars, a white lens by the logbook), a tag too small, and tap areas too tight (now 0.85 to 1). - **Blind playtest, round 2** (a new tester, fresh shots): 46 of 48. Both misses were the right objects just outside their tap areas (the name tag by 3px, the lemon's area sat on the bowl beside it): both moved onto their art. Also from its notes: the rain boot redrawn as a boot, the bike's water bottle drawn half again as big, and "A second toaster" relabeled "A toaster on a milk crate" (there are two). Hardest left: the rain boot and the water bottle (4 of 5 before the fix), none never found.
 - The first tester also asked for the time on the dial ("11:40am · moving out") and for room names that fit the bar: both done.
 
+## The owner's first look, and the pinched-in review (session 6b)
+The owner played it on a phone, pinched in, and sent five screenshots: someone drawn inside a bench, heads on car roofs, the noon message on the lease clock, bubbles over faces, a bare fort. The lead then toured every area the same way (`node tools/tour.mjs`, 3x on a phone, morning, rain and night) and found those were patterns, not one-offs. Fixed (decisions 39 to 45):
+- **Cars** were plain blocks with heads stuck on the roof: the kit's car is redrawn (wheels in arches, lights, doors, a raked windscreen, glass you see into) and whoever's in a car sits inside it; the truck's cab got wheels, a grille and headlights, its driver behind the glass.
+- **People on benches** were drawn before the bench and its back painted over them: four sitters sorted after their seats.
+- **The harbor's front edge** was drawn piece by piece and clipped, leaving broken ink lines, seams and a soil strip: the land has no rim, so the sea ends in a clean printed edge.
+- **Roofs** were blank slabs: seams, a hatch, vents, an AC unit, a dish or chairs.
+- **Rain** read as long scratches when pinched in: drops stay short at any zoom and land on the ground.
+- **Crowding:** the open house queue spaced an umbrella apart; Pidge's bubble up and to the right, clear of the stepladder's face; the logbook's ticks after him.
+- **Castle Island:** a back row of parked cars in the bare lot; Conley Terminal's container yard behind the fence, where a third of the area's phone picture was bare paper; Fort Independence redrawn (pointed bastions, dressed granite).
+- **Shared:** the noon message drops below the dial (every place with one); a cap's brim no longer reads as a black bar across the eyes (every place).
+
 ## For the owner at gate 3
 Each with a recommendation; every earlier call is in Decisions, and any can be overturned.
 1. **Play it on your phone** at `#/southie` (hidden from the picker until you approve): tap a house's floor and it opens, the floor above lifts; step out onto the road and the houses close. *Recommend:* approve the houses you open (E11) as the level's mechanic.
@@ -302,4 +313,14 @@ The lead's calls after the playtests (session 6):
 
 37. **"A second toaster" is "A toaster on a milk crate"** (there are two toasters; the label has to pick one). Its id is unchanged, so nothing about saves changes.
 38. **Every find's tap area is 0.85 to 1 unit**, centered on its art, and a find standing on a big single-piece counter or table sorts after it (four were painted over before).
+
+After the owner's first look (session 6b):
+
+39. **Every area is toured pinched in before gate 3** (`tools/tour.mjs`), by the art director and again by the lead; the owner's review is for taste.
+40. **People in a car sit in it,** drawn between its inside and its glass (`riders` on the kit's car, `driver` on the truck), never on its roof.
+41. **Anyone sitting sorts after their seat** (a `depth` past the bench's), or its back covers them.
+42. **The harbor has no rim:** the sea ends in a printed edge on the paper instead of a cut side. (The cut side was drawn piece by piece and its clipping left broken lines in the water.)
+43. **Rain is sized on screen** (22px at most), so it stays rain when you pinch in.
+44. **Conley Terminal's container yard** fills the paper behind Castle Island's fence, fading back toward the cranes.
+45. **Fort Independence is a star fort,** pointed bastions at its corners and dressed granite, not cubes.
 
