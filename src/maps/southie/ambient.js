@@ -414,7 +414,7 @@ export function sky(ctx, t, world, fx) {
       color: alpha(nightK(t) > 0.5 ? C.sky : C.navy, 0.35 * (room < 1 ? 0.7 : 1)),
       skip: indoors,
       // Short drops at any zoom, landing on the ground (or the water).
-      px: 22,
+      px: 16,
       ground: (x, y) => Math.max(LEVEL, land.h(x, y)),
     });
   }

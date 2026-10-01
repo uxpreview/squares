@@ -89,8 +89,8 @@ export function apartment(R, o) {
   // By day, printed again in dusk inks after dark (the night printed, not
   // dimmed), and the windows lit over that.
   const band = { floor: f, top: f === 2, modern: !!o.modern, siding, trim, door: o.door };
-  R.shell((ctx) => outside(ctx, 0, 0, 0, band, (c) => c), { box: [0, 0, BODY, HOUSE_D] });
-  R.shell((ctx) => outside(ctx, 0, 0, 0, band, dusk), { fade: (t) => Math.round(nightK(t) * 8) / 8 });
+  R.shell((ctx) => outside(ctx, 0, 0, 0, band, (c) => c), { box: [0, 0, BODY, HOUSE_D], whole: true });
+  R.shell((ctx) => outside(ctx, 0, 0, 0, band, dusk), { fade: (t) => Math.round(nightK(t) * 8) / 8, whole: true });
   R.shell((ctx) => panes(ctx, 0, 0, 0, band, () => LIT), { fade: (t) => Math.round(nightK(t) * 8) / 8 * (o.lit ? o.lit(t) : 1) });
 }
 
@@ -429,7 +429,9 @@ export function truck(ctx, x, y, z, o = {}) {
   const cabY = dir > 0 ? y1 - cab : y0;
   const orange = INK.truck;
   if (Q.detail) for (const [dx, yy] of [[w / 2 - 0.15, y0 + 1], [w / 2 - 0.15, y1 - 1], [-w / 2 + 0.15, y0 + 1], [-w / 2 + 0.15, y1 - 1]]) box(ctx, x + dx - 0.22, yy - 0.3, z, 0.44, 0.6, 0.5, C.ink, { flat: true, lw: 0.03 });
-  // The cab, then the box.
+  // The chassis under it all (the wheels hung in the air without it), the
+  // cab, then the box.
+  box(ctx, x - w / 2 + 0.25, y0 + 0.3, z + 0.18, w - 0.5, d - 0.6, 0.34, shade(C.ink, 0.1), { flat: true, lw: 0.03 });
   box(ctx, x - w / 2 + 0.1, cabY, z + 0.4, w - 0.2, cab, 1.4, C.white, { flat: true, lw: 0.04 });
   // The cab's glass, with the driver behind it (o.driver: { skin, hair,
   // lift }), not on the roof: the inside first, then the panes over him.
@@ -499,12 +501,24 @@ export function cup(ctx, x, y, z, s = 1) {
 }
 
 // A folding lawn chair, webbing in two colors, facing +x (the row) or -x.
+// o.part: 'under' (legs, seat and back: before whoever sits in it) or
+// 'over' (the armrests and front legs, after them), so a sitter is seen in
+// the chair rather than floating in front of it; both by default.
 export function lawnChair(ctx, x, y, z, color = C.teal, o = {}) {
-  const f = o.face === -1 ? -1 : 1;
-  box(ctx, x - 0.35, y - 0.35, z + 0.4, 0.7, 0.7, 0.06, color, { flat: true, lw: 0.03 });
-  const bx = f > 0 ? x - 0.35 : x + 0.29;
-  box(ctx, bx, y - 0.35, z + 0.46, 0.06, 0.7, 0.75, tint(color, 0.3), { flat: true, lw: 0.03 });
-  if (Q.detail) for (const [dx, dy] of [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]]) lineUp(ctx, [x + dx, y + dy, z], [x + dx * 0.9, y + dy * 0.9, z + 0.4], C.greyLight, 0.05);
+  const f = o.face === -1 ? -1 : 1, frame = shade(C.greyLight, 0.35);
+  if (o.part !== 'over') {
+    if (Q.detail) for (const [dx, dy] of [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]]) lineUp(ctx, [x + dx, y + dy, z], [x + dx * 0.9, y + dy * 0.9, z + 0.4], frame, 0.05);
+    box(ctx, x - 0.35, y - 0.35, z + 0.4, 0.7, 0.7, 0.06, color, { flat: true, lw: 0.03 });
+    const bx = f > 0 ? x - 0.35 : x + 0.29;
+    box(ctx, bx, y - 0.35, z + 0.46, 0.06, 0.7, 0.75, tint(color, 0.3), { flat: true, lw: 0.03 });
+  }
+  if (o.part !== 'under' && Q.detail && o.part) {
+    // The armrests, back to front, and the front legs under them.
+    for (const dy of [-0.36, 0.36]) {
+      lineUp(ctx, [x - 0.33 * f, y + dy, z + 0.75], [x + 0.33 * f, y + dy, z + 0.75], frame, 0.06);
+      lineUp(ctx, [x + 0.33 * f, y + dy, z + 0.75], [x + 0.3 * f, y + dy, z], frame, 0.05);
+    }
+  }
 }
 
 // A mattress on its side, in its recycling bag (the rules since 2022), with

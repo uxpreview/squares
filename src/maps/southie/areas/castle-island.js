@@ -388,7 +388,11 @@ export default {
     // ---------- Paint on the ground ----------
     // A quad that follows the ground's height (the causeway runs down to the
     // water along its south edge).
+    // (Cut at lo..hi in x: see the two halves below.)
+    let lo = -Infinity, hi = Infinity;
     const gquad = (ctx, x0, y0, x1, y1, fill) => {
+      x0 = Math.max(x0, lo); x1 = Math.min(x1, hi);
+      if (x1 <= x0) return;
       const pts = [];
       for (let x = x0; x < x1; x += 1) pts.push([x, y0]);
       for (let y = y0; y < y1; y += 0.5) pts.push([x1, y]);
@@ -402,23 +406,41 @@ export default {
       gquad(ctx, 64.5, 5.0, 80.6, 7.4, ink.road); // the lot
       gquad(ctx, 58, 6.3, 64.5, 7.4, ink.paving); // the south walk, along the rail
       // Kerbs.
-      for (const [a, b, y] of [[58, 64.5, 3.5], [64.5, 80.6, 5.0], [58, 64.5, 6.3]]) face(ctx, [[a, y - 0.06, G + 0.015], [b, y - 0.06, G + 0.015], [b, y + 0.06, G + 0.015], [a, y + 0.06, G + 0.015]], ink.kerb, { stroke: false });
+      for (let [a, b, y] of [[58, 64.5, 3.5], [64.5, 80.6, 5.0], [58, 64.5, 6.3]]) if ((a = Math.max(a, lo)) < (b = Math.min(b, hi))) face(ctx, [[a, y - 0.06, G + 0.015], [b, y - 0.06, G + 0.015], [b, y + 0.06, G + 0.015], [a, y + 0.06, G + 0.015]], ink.kerb, { stroke: false });
       // Day Boulevard's center line, dashed, and the lot's spaces.
-      for (let x = 58.3; x < 64; x += 1.2) face(ctx, [[x, 4.86, G + 0.015], [x + 0.6, 4.86, G + 0.015], [x + 0.6, 4.96, G + 0.015], [x, 4.96, G + 0.015]], ink === LAND ? C.mustard : mix(C.mustard, C.night, 0.55), { stroke: false });
-      for (const x of [64.8, 68.0, 71.2, 74.4, 77.6]) face(ctx, [[x, 6.05, G + 0.015], [x + 0.08, 6.05, G + 0.015], [x + 0.08, 7.2, gz(x, 7.2) + 0.015], [x, 7.2, gz(x, 7.2) + 0.015]], ink.line, { stroke: false });
+      for (let x = 58.3; x < 64; x += 1.2) if (x >= lo && x < hi) face(ctx, [[x, 4.86, G + 0.015], [x + 0.6, 4.86, G + 0.015], [x + 0.6, 4.96, G + 0.015], [x, 4.96, G + 0.015]], ink === LAND ? C.mustard : mix(C.mustard, C.night, 0.55), { stroke: false });
+      for (const x of [64.8, 68.0, 71.2, 74.4, 77.6]) if (x >= lo && x < hi) face(ctx, [[x, 6.05, G + 0.015], [x + 0.08, 6.05, G + 0.015], [x + 0.08, 7.2, gz(x, 7.2) + 0.015], [x, 7.2, gz(x, 7.2) + 0.015]], ink.line, { stroke: false });
     };
-    R.rug(paintGround(LAND));
-    R.rug(paintGround(EVENING), { fade: (t) => q8(nightK(t)), step: (t) => q8(nightK(t)) });
+    // In two halves, each drawn only by the pieces it lies on: drawn whole by
+    // every piece of the island, the piece east of x 64 painted the south walk
+    // over the fishermen standing on it.
+    const halves = (paint, o) => {
+      for (const [x0, x1] of [[58, 64], [64, 81]]) {
+        const it = R.rug((ctx, t) => { lo = x0; hi = x1; paint(ctx, t); lo = -Infinity; hi = Infinity; }, o);
+        it.area = [x0, 2, x1, 8];
+      }
+    };
+    halves(paintGround(LAND));
+    halves(paintGround(EVENING), { fade: (t) => q8(nightK(t)), step: (t) => q8(nightK(t)) });
     // Wet from ten till evening, with puddles that ripple while it rains.
     const PUDDLES = [[73.5, 4.4, 0.7], [67.2, 6.0, 0.8], [61.0, 4.2, 0.6], [78.5, 6.4, 0.6], [79.0, 25.0, 0.5], [70.5, 52.2, 0.55]];
     const wetFade = { fade: (t) => q16(wetK(t)), step: (t) => q16(wetK(t)) };
-    R.rug((ctx) => {
-      gquad(ctx, 58, 2.2, 80.6, 7.4, alpha(C.ink, 0.14));
+    halves((ctx) => {
       for (const [x, y, r] of PUDDLES) {
+        if (x < lo || x >= hi || y > 8) continue;
         disc(ctx, x, y, gz(x, y) + 0.02, r, PUDDLE, { stroke: alpha(C.ink, 0.35), lw: 0.03 });
         if (Q.detail) disc(ctx, x - r * 0.2, y - r * 0.2, gz(x, y) + 0.022, r * 0.3, alpha(C.white, 0.5), { stroke: false });
       }
     }, wetFade);
+    // The puddles out on the walks, each on its own patch.
+    for (const [x, y, r] of PUDDLES) {
+      if (y <= 8) continue;
+      const it = R.rug((ctx) => {
+        disc(ctx, x, y, gz(x, y) + 0.02, r, PUDDLE, { stroke: alpha(C.ink, 0.35), lw: 0.03 });
+        if (Q.detail) disc(ctx, x - r * 0.2, y - r * 0.2, gz(x, y) + 0.022, r * 0.3, alpha(C.white, 0.5), { stroke: false });
+      }, wetFade);
+      it.area = [x - r - 0.5, y - r - 0.5, x + r + 0.5, y + r + 0.5];
+    }
     PUDDLES.forEach(([x, y, r], j) => {
       const it = R.rug((ctx, t) => {
         if (!Q.detail) return;
@@ -788,9 +810,18 @@ export default {
     const s2 = folk(782, { top: C.coral, bottom: C.navy, hat: 'beanie' });
     R.thing(60.2, 2.75, (ctx) => {
       const x = 60.2, y = 2.55;
-      for (const [dx, dy] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) line(ctx, [[x + dx, y + dy, G], [x + dx * 0.5, y + dy * 0.4, G + 0.95]], C.greyLight, 0.06);
-      for (const zz of [0.35, 0.65]) line(ctx, [[x - 0.26, y + 0.22, G + zz], [x + 0.26, y + 0.22, G + zz]], C.greyLight, 0.05);
-      box(ctx, x - 0.25, y - 0.2, G + 0.95, 0.5, 0.4, 0.06, C.greyLight, { flat: true, lw: 0.025 });
+      // Outlined in ink, legs and treads, so it reads as a ladder and its
+      // climber isn't standing on air.
+      const rail = shade(C.greyLight, 0.15);
+      for (const [dx, dy] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) {
+        line(ctx, [[x + dx, y + dy, G], [x + dx * 0.5, y + dy * 0.4, G + 0.95]], C.ink, 0.11);
+        line(ctx, [[x + dx, y + dy, G], [x + dx * 0.5, y + dy * 0.4, G + 0.95]], rail, 0.06);
+      }
+      for (const zz of [0.3, 0.62]) {
+        const k = zz / 0.95, w = 0.3 - 0.15 * k;
+        box(ctx, x - w, y + 0.25 - 0.15 * k - 0.06, G + zz, w * 2, 0.12, 0.05, rail, { flat: true, lw: 0.025 });
+      }
+      box(ctx, x - 0.25, y - 0.2, G + 0.95, 0.5, 0.4, 0.07, rail, { flat: true, lw: 0.03 });
     }, { on: spot, depth: 62.7 });
     stay(R, 60.2, 2.55, s2, { z: G + 1.0, dir: 'l', hours: spot, wet: { wear: poncho }, react: { face: binosUp, arms: [2.3, 2.2] }, depth: 62.8 });
     // The logbook keeper: every plane, a tick.

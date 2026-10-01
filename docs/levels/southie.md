@@ -251,6 +251,17 @@ The owner played it on a phone, pinched in, and sent five screenshots: someone d
 - **Castle Island:** a back row of parked cars in the bare lot; Conley Terminal's container yard behind the fence, where a third of the area's phone picture was bare paper; Fort Independence redrawn (pointed bastions, dressed granite).
 - **Shared:** the noon message drops below the dial (every place with one); a cap's brim no longer reads as a black bar across the eyes (every place).
 
+### Round 2 (the owner's second look)
+Five more screenshots: cars overlapping, the lawn-chair woman floating, the corner house see-through at 7:40pm, "Is that free?" under the clock, the stepladder spotter floating and a grey slab over the fishermen. The lead's first tour had looked at three moments and missed these; this round toured every outdoor area at six moments and every apartment at two, and looked at every tile. Fixed (decisions 46 to 51):
+- **Parked cars** a car's length and 0.8 apart (they overlapped by half a unit).
+- **The lawn chair** in two parts, seat and back before its sitter, armrests and front legs after, so she sits in it.
+- **Dusk:** a house printing its night over its day was drawn shape by shape at part strength, so its back faces showed through its front ones. A solid marked `whole` is now drawn whole first and laid on at its strength (the triple-deckers' outsides and the row's night prints).
+- **Speech bubbles** step sideways out from under the buttons over the picture, or slide down toward their speaker, never under them (every place).
+- **The grey slab** was the causeway's south walk, a flat paint drawn by every piece of the island; the piece east of the fishermen painted it over them. Flat paint on the ground is now cut to each piece's own patch (only water reaches up over its back seam), and Castle Island's ground paint is in two halves.
+- **People at an open area's edge** were cut through when you stood in the area behind them (the audience's umbrellas, sliced by the road's cut). The road, the park and the island are `open`: nothing in front of them is cut away.
+- **The harbor's cut edge** is back, drawn as its own piece so it's continuous (the rimless sea showed the land's layers through the water). The shallow water's bank is printed flat (`water.under` -0.3).
+- **Smaller:** the stepladder outlined in ink with treads; a chassis under the truck; rain sized at the sharpness the game is really drawing at (it read twice as long on slower frames), 16px at most; the grass's outline kept off the roads; the road's wet wash dropped (it stopped at the area's edge), puddles kept.
+
 ## For the owner at gate 3
 Each with a recommendation; every earlier call is in Decisions, and any can be overturned.
 1. **Play it on your phone** at `#/southie` (hidden from the picker until you approve): tap a house's floor and it opens, the floor above lifts; step out onto the road and the houses close. *Recommend:* approve the houses you open (E11) as the level's mechanic.
@@ -319,8 +330,14 @@ After the owner's first look (session 6b):
 39. **Every area is toured pinched in before gate 3** (`tools/tour.mjs`), by the art director and again by the lead; the owner's review is for taste.
 40. **People in a car sit in it,** drawn between its inside and its glass (`riders` on the kit's car, `driver` on the truck), never on its roof.
 41. **Anyone sitting sorts after their seat** (a `depth` past the bench's), or its back covers them.
-42. **The harbor has no rim:** the sea ends in a printed edge on the paper instead of a cut side. (The cut side was drawn piece by piece and its clipping left broken lines in the water.)
+42. *(Reversed by 51.)* **The harbor has no rim:** the sea ends in a printed edge on the paper instead of a cut side. (The cut side was drawn piece by piece and its clipping left broken lines in the water.)
 43. **Rain is sized on screen** (22px at most), so it stays rain when you pinch in.
 44. **Conley Terminal's container yard** fills the paper behind Castle Island's fence, fading back toward the cranes.
 45. **Fort Independence is a star fort,** pointed bastions at its corners and dressed granite, not cubes.
+46. **The tour covers the whole day:** six moments outdoors (7:10am, 9:30am, 1pm in the rain, 4pm, 7:40pm, 10pm), two in the apartments, every tile looked at.
+47. **Flat paint on ground is cut to its piece's own patch;** only water reaches over a back seam (engine, every place with a land; Plum Island's pictures match within a few hundred pixels).
+48. **An open-air area cuts nothing in front of it** (`open` on its place); taps there go to what you see.
+49. **A part-faded solid is laid on whole** (`whole` on an item), so a night print never looks like glass. Marked only where needed: it costs a screen-sized copy each frame it's part faded.
+50. **Speech bubbles keep clear of the buttons over the picture** (every place).
+51. **The harbor keeps its printed cut edge** (decision 42 reversed): drawn as its own piece, it's continuous, and the rimless sea let the land's layers show through.
 

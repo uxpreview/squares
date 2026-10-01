@@ -44,7 +44,7 @@ One agent per area, four to six at once, each sent [prompts/area-artist.md](prom
 ### 6. Art direction pass
 One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the whole level (the contact sheet first) and fixes consistency: palette, line weight, scale, density, duplicated ideas (the Walk-Up ended up with two goldfish and two party balloons), and whether cross-area gags land.
 
-**Look closer.** Then every area pinched in, the way a player looks: `node tools/tour.mjs <id>/<area> --at=<a few moments>` tiles it 3x zoomed on a phone. The art director looks at every tile, and the lead looks again before gate 3. The owner's review is for taste; finding broken drawing is ours. (Moving Day reached the owner with greybox cars, people inside a bench, heads on car roofs and seams in the harbor, all invisible at the areas' own framing.)
+**Look closer.** Then every area pinched in, the way a player looks: `node tools/tour.mjs <id>/<area> --at=<moments>` tiles it 3x zoomed on a phone. Outdoors, tour the whole day (dawn, morning, the busy hour, any weather, dusk, night: Moving Day's dusk had a see-through house the other moments didn't show). The art director looks at every tile, and the lead looks again before gate 3. The owner's review is for taste; finding broken drawing is ours. (Moving Day reached the owner with greybox cars, people inside a bench, heads on car roofs and seams in the harbor, all invisible at the areas' own framing.)
 
 ### 7. QA (repeat until clean)
 **Automated:** `npm run qa -- <id>` (about three minutes; `--quick` for about one):
