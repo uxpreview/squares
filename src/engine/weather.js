@@ -85,7 +85,7 @@ export function rain(ctx, t, o) {
   const n = o.n || 160, top = o.top || 18, v = o.speed || 26, seed = o.seed || 3;
   // o.px: a drop's longest on screen, in CSS pixels. Without it a drop is a
   // fixed length on the ground, so zoomed in it grows into a long scratch.
-  const css = (Q.pxPerUnit || 20) / Math.min(3, globalThis.devicePixelRatio || 1);
+  const css = (Q.pxPerUnit || 20) / (Q.dpr || 1);
   const shrink = o.px ? Math.min(1, o.px / ((o.len || 1.6) * css)) : 1;
   const len = (o.len || 1.6) * shrink, wind = o.wind ?? 0.35;
   // o.ground(x, y): the ground's height, so drops end and splash on it.

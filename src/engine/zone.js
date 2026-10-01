@@ -63,6 +63,9 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //   place.h:      wall height, for framing and cutaways (default WALL)
 //   place.span:   how much height counts as inside it, for walkers (default h + SLAB)
 //   place.fixed:  outdoors; storeys never lift or dim it
+//   place.open:   open air with nothing tall in front of it: while you're in
+//                 it, what's in front isn't cut away (people at its edge
+//                 were sliced through)
 //   place.size:   [w, d], if the map sizes it rather than the zone (default def.size, or S x S)
 //   place.shape:  a list of [x0, y0, x1, y1] boxes, in its own units, for a
 //                 zone that isn't one box (an L of street); default def.shape
@@ -112,6 +115,7 @@ export function buildZone(def, place = {}) {
     ground, lo, hi, base, land,
     span: place.span ?? h + SLAB,
     fixed: !!place.fixed,
+    open: !!place.open,
     anchor: [isoX(ox, oy), isoY(ox, oy, oz)],
     bounds: zoneBounds(w, d, h, place.reach, land ? { hi, base } : null),
     items: [],
@@ -136,6 +140,10 @@ export function buildZone(def, place = {}) {
     if (o.fade) it.fade = o.fade;
     if (o.on) it.on = o.on;
     if (o.step) it.step = o.step;
+    // whole: part faded, drawn whole first and laid on at its opacity (a
+    // solid with faces over faces; see faded()). It costs a screen-sized
+    // copy each frame it's part faded, so only for things that need it.
+    if (o.whole) it.whole = true;
     items.push(it);
     return it;
   };
@@ -681,6 +689,28 @@ function stamp(ctx, st, it, m) {
   return m;
 }
 
+// A part-faded thing drawn live: drawn whole on a sheet first and laid on
+// at its opacity, like a stamp. Drawn shape by shape at the opacity, its
+// back faces showed through its front ones (a house at dusk, half printed
+// in night ink, looked like glass).
+let fadeSheet = null;
+function faded(ctx, it, t, a) {
+  const c = ctx.canvas;
+  if (!fadeSheet) fadeSheet = document.createElement('canvas');
+  if (fadeSheet.width < c.width || fadeSheet.height < c.height) { fadeSheet.width = Math.max(fadeSheet.width, c.width); fadeSheet.height = Math.max(fadeSheet.height, c.height); }
+  const g = fadeSheet.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, c.width, c.height);
+  g.setTransform(ctx.getTransform());
+  fresh(g);
+  it.draw(g, t);
+  const m = ctx.getTransform();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha *= a;
+  ctx.drawImage(fadeSheet, 0, 0, c.width, c.height, 0, 0, c.width, c.height);
+  ctx.setTransform(m);
+}
+
 // How much of an item shows at t: 0 (skip it), up to 1.
 function shown(it, t) {
   if (it.on && !it.on(t)) return 0;
@@ -714,8 +744,8 @@ function drawThings(ctx, list, t, st) {
     if (was) m = was;
     else {
       if (m) { ctx.setTransform(m); m = null; }
-      fresh(ctx);
-      it.draw(ctx, t);
+      if (a < 1 && it.whole) { ctx.globalAlpha = a0; faded(ctx, it, t, a); }
+      else { fresh(ctx); it.draw(ctx, t); }
     }
     ctx.globalAlpha = a0;
   }
@@ -738,7 +768,11 @@ function drawItems(ctx, piece, t, pick, st = null) {
     if (which) { ctx.save(); ctx.clip(piece.cell(which)); }
     celled = which;
   };
-  const cellFor = (it) => (!things ? 'top' : it.layer === RUG_L && zone.ground ? 'water' : 'flat');
+  // (Only water gets the water patch, which reaches up over the piece's back
+  // seams where the surface stands over the ground. Paint on the ground cut
+  // to it was drawn again by the piece in front, over whoever stood just
+  // behind the seam: Castle Island's south walk over its fishermen.)
+  const cellFor = (it) => (!things ? 'top' : it.layer === RUG_L && zone.ground && it.water ? 'water' : 'flat');
   // A building's standing things outside its walls (its porch) go on after
   // its outside, which they stand in front of; the rest before it.
   const box = zone.shellBox;
@@ -776,7 +810,11 @@ function drawItems(ctx, piece, t, pick, st = null) {
     if (a < 1) ctx.globalAlpha = a0 * a;
     const m = !clip && stamp(ctx, st, it, null);
     if (m) ctx.setTransform(m);
-    else {
+    else if (a < 1 && it.whole) {
+      // (A building's outside, part faded, goes on whole: see faded().)
+      ctx.globalAlpha = a0;
+      faded(ctx, it, t, a);
+    } else {
       fresh(ctx);
       it.draw(ctx, t);
     }
