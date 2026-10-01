@@ -727,6 +727,19 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('the lift takes it to the Sun Deck', (await S(page, () => window.__squares.play.storey.id)) === 'sun');
   await page.close();
 }
+{
+  // On a phone the lift and the dial both want the bottom corner.
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    const page = await fresh(viewport, () => localStorage.clear());
+    await page.goto(base + '#/cruise');
+    await page.waitForFunction(() => window.__squares.world && window.__squares.world.id === 'cruise', null, { timeout: 20000 });
+    await wait(page, 1200);
+    const r = await S(page, () => ['dial', 'floors'].map((id) => document.getElementById(id).getBoundingClientRect()).map((b) => [b.left, b.top, b.right, b.bottom]));
+    const [d, l] = r, apart = d[2] <= l[0] || l[2] <= d[0] || d[3] <= l[1] || l[3] <= d[1];
+    check(`on a ${viewport.width} x ${viewport.height} phone the ship's clock and its lift don't overlap`, apart && d[2] > d[0], JSON.stringify(r));
+    await page.close();
+  }
+}
 
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();

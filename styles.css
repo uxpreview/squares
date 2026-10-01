@@ -615,6 +615,11 @@ button.invite:active .invite-card { box-shadow: 1px 1px 0 var(--coral); }
 @media (max-height: 500px) {
   body[data-mode="overview"] .dial { bottom: calc(var(--safe-bottom) + 12px); }
 }
+/* A place with a lift has it in that corner (the cruise ship), so the dial
+   takes the other one. */
+@media (max-width: 899px), (max-height: 500px) {
+  body[data-mode="overview"]:has(#floors:not([hidden])) .dial { right: auto; left: var(--gutter); }
+}
 
 /* ---------- The lift (places with storeys) ---------- */
 /* A lift panel in the corner, in thumb reach: every floor, the top one at the
