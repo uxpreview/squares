@@ -68,20 +68,22 @@ function noise(ctx, x, y, z, text, k, size = 0.36, color = C.ink) {
 // starts up again. The order goes round the deck, so her walks stay short,
 // and puts Gloria at 11, right after her "Ahh. Pink again."
 // at: where the attendant stands; dir/back: which way she faces; via: a
-// corner on the way there, round the furniture; delay: seconds into the hour.
+// corner on the way there, round the furniture; delay: seconds into the hour;
+// bub: where her SHHH! hangs, [sideways, height], picked so it never lands on
+// a face (it's over in a few seconds, but it's big).
 const TARGETS = [
-  { id: 'sauna', at: [1.8, 12.2], dir: 'l', via: [[5.8, 10.8]] }, // 7am
-  { id: 'tub', at: [11.4, 11.3], dir: 'l', via: [[6.4, 9.6], [11.4, 9.6]] }, // 8am
-  { id: 'snorer', at: [16.9, 11.5], dir: 'l' }, // 9am
-  { id: 'chips', at: [19.9, 11.7], dir: 'l' }, // 10am
-  { id: 'gloria', at: [20.3, 9.3], dir: 'l', delay: 8.8 }, // 11am
-  { id: 'bowl', at: [22.8, 11.3], dir: 'r' }, // noon
-  { id: 'phone', at: [21.0, 6.9], dir: 'r', via: [[21.6, 10.6]] }, // 1pm
-  { id: 'gull', at: [13.2, 2.3], dir: 'r', back: true, via: [[20.4, 5.2], [17.2, 5.9], [12.4, 5.9]] }, // 2pm
-  { id: 'speaker', at: [9.3, 2.3], dir: 'r', back: true }, // 3pm
-  { id: 'kids', at: [4.0, 5.0], dir: 'l' }, // 4pm
-  { id: 'seaweed', at: [5.9, 5.5], dir: 'l' }, // 5pm
-  { id: 'massage', at: [6.2, 9.4], dir: 'l' }, // 6pm
+  { id: 'sauna', at: [3.2, 13.0], dir: 'l', back: true, via: [[5.8, 10.8]], bub: [-1.0, 2.9] }, // 7am
+  { id: 'tub', at: [11.4, 11.3], dir: 'l', via: [[6.4, 9.6], [11.4, 9.6]], bub: [1.1, 2.7] }, // 8am
+  { id: 'snorer', at: [16.9, 11.5], dir: 'l', bub: [-0.6, 2.7] }, // 9am
+  { id: 'chips', at: [19.9, 11.7], dir: 'l', bub: [-1.5, 2.7] }, // 10am
+  { id: 'gloria', at: [16.6, 9.6], dir: 'r', delay: 8.8, bub: [-1.7, 2.7] }, // 11am
+  { id: 'bowl', at: [22.8, 11.3], dir: 'r', bub: [1.8, 4.0] }, // noon
+  { id: 'phone', at: [21.6, 7.3], dir: 'r', via: [[21.6, 10.6]], bub: [1.3, 3.4] }, // 1pm
+  { id: 'gull', at: [13.2, 2.3], dir: 'r', back: true, via: [[20.4, 5.2], [17.2, 5.9], [12.4, 5.9]], bub: [-1.1, 2.7] }, // 2pm
+  { id: 'speaker', at: [9.3, 2.3], dir: 'r', back: true, bub: [-1.1, 2.7] }, // 3pm
+  { id: 'kids', at: [4.4, 5.6], dir: 'l', bub: [1.6, 2.7] }, // 4pm
+  { id: 'seaweed', at: [5.9, 5.5], dir: 'l', bub: [1.1, 2.7] }, // 5pm
+  { id: 'massage', at: [6.2, 9.4], dir: 'l', bub: [-1.6, 3.4] }, // 6pm
 ];
 const HOURLEN = LOOP / 12, BRISK = 1.9, SHUSH = 3.6, QUIET = 30;
 // Each hour's walk (from the last target to this one) and when the SHHH comes.
@@ -113,13 +115,13 @@ function attendantAt(t) {
         const [ax, ay] = L.pts[j], [bx, by] = L.pts[j + 1];
         const k = clamp(d / L.lens[j]);
         const dX = (bx - ax) - (by - ay), dY = (bx - ax) + (by - ay);
-        return { x: ax + (bx - ax) * k, y: ay + (by - ay) * k, dir: dX >= 0 ? 'r' : 'l', back: dY < -0.01, moving: true, shush: -1, phase: tt * 9 };
+        return { x: ax + (bx - ax) * k, y: ay + (by - ay) * k, dir: dX >= 0 ? 'r' : 'l', back: dY < -0.01, moving: true, shush: -1, phase: tt * 9, i };
       }
       d -= L.lens[j];
     }
   }
   const k = (tt - L.shush) / SHUSH;
-  return { x: tg.at[0], y: tg.at[1], dir: tg.dir, back: !!tg.back, moving: false, shush: k >= 0 && k < 1 ? k : -1 };
+  return { x: tg.at[0], y: tg.at[1], dir: tg.dir, back: !!tg.back, moving: false, shush: k >= 0 && k < 1 ? k : -1, i };
 }
 
 // ---------- The people who stay here ----------
@@ -440,7 +442,7 @@ export default {
     R.air((ctx, t) => {
       if (hushed('seaweed', t)) return;
       const k = pulse(t, 2.6);
-      noise(ctx, 3.4 - k * 0.3, 6.0, 1.9, k < 0.5 ? 'Z' : 'ZZZ', k, 0.5 + k * 0.3);
+      noise(ctx, 3.0 - k * 0.2, 7.4, 1.9, k < 0.5 ? 'Z' : 'ZZZ', k, 0.5 + k * 0.3); // over her head, clear of the door
     });
     // A stool with candles and hot stones between the tables.
     R.thing(2.4, 8.5, (ctx) => {
@@ -482,11 +484,15 @@ export default {
     });
 
     // The sauna singer: out every half minute for air, lobster red, a towel.
+    // (He steps out toward the robes, clear of the towel lady, and of the
+    // attendant when she comes to shush him; at seven he's inside, so her
+    // SHHH! is aimed at the door.)
+    const SAUNA_AT = 20;
     const SAUNA = (t) => {
-      const s = pulse(t, 30, 6) * 30;
+      const s = pulse(t, 30, SAUNA_AT) * 30;
       if (s > 11) return { x: 0.2, y: 12.2, out: 0 };
       const k = s < 2 ? s / 2 : s < 9 ? 1 : 1 - (s - 9) / 2;
-      return { x: 0.3 + k * 1.4, y: 12.3 + k * 0.4, out: k, moving: s < 2 || s > 9, dir: s > 9 ? 'l' : 'r', back: s > 9 };
+      return { x: 0.3 + k * 1.6, y: 12.0 - k * 1.4, out: k, moving: s < 2 || s > 9, dir: s > 9 ? 'l' : 'r', back: s > 9 };
     };
     const RED = mix(SKIN[0], C.coral, 0.55);
     R.mover(SAUNA, (ctx, t, p) => {
@@ -499,7 +505,7 @@ export default {
     R.air((ctx, t) => {
       if (!Q.detail) return;
       // Steam out of the door, every time.
-      const s = pulse(t, 30, 6) * 30;
+      const s = pulse(t, 30, SAUNA_AT) * 30;
       if (s < 3) {
         particles(s, 5, 3, (k, r) => {
           const [X, Y] = P(0.4 + k * 1.2, 11.8 + r() * 1.2, 1 + r() * 2 + k * 1.4);
@@ -510,7 +516,7 @@ export default {
       // And the singing through it, until she's been over.
       if (!hushed('sauna', t)) {
         const k = pulse(t, 4);
-        noise(ctx, 0.6, 12.2, 3.6, k < 0.5 ? 'LA LA LAAA' : 'O SOLE MIO', k, 0.5, INK.funnelRed);
+        noise(ctx, 0.6, 12.2, 5.1, k < 0.5 ? 'LA LA LAAA' : 'O SOLE MIO', k, 0.5, INK.funnelRed); // over the SAUNA sign, not on it
       }
     });
 
@@ -519,10 +525,11 @@ export default {
     R.mover((t) => {
       const tt = wrap(t), s = SHUSH_AT.kids;
       if (tt < kidsStart || tt > s + 5) return { x: 0.3, y: 3.2, gone: true };
-      if (tt < kidsStart + 1.6) { const k = (tt - kidsStart) / 1.6; return { x: 0.4 + k * 1.8, y: 3.4 + k * 1.1, moving: true, dir: 'r', a: clamp(k * 3) }; }
-      if (tt < s + 2.6) return { x: 2.2, y: 4.5, dir: 'r', a: 1, stand: true };
+      // (They stand off the waiter's way in from the door.)
+      if (tt < kidsStart + 1.6) { const k = (tt - kidsStart) / 1.6; return { x: 0.4 + k * 2.2, y: 3.4 + k * 2.0, moving: true, dir: 'r', a: clamp(k * 3) }; }
+      if (tt < s + 2.6) return { x: 2.6, y: 5.4, dir: 'r', a: 1, stand: true };
       const k = clamp((tt - s - 2.6) / 1.4);
-      return { x: 2.2 - k * 1.9, y: 4.5 - k * 1.3, moving: true, run: true, dir: 'l', back: true, a: clamp((1 - k) * 3) };
+      return { x: 2.6 - k * 2.3, y: 5.4 - k * 2.2, moving: true, run: true, dir: 'l', back: true, a: clamp((1 - k) * 3) };
     }, (ctx, t, p) => {
       if (p.gone) return;
       ctx.save();
@@ -642,9 +649,10 @@ export default {
         }
       });
     }
-    // The reader.
+    // The reader. (Each sitter sorts just after their lounger, x + 14.9, so
+    // they sit on it rather than in it.)
     body(R, 12.5, 13.4, { ...folk(91), ...LOUNGERS[0].look, skin: SKIN[3], hair: HAIR[0] }, {
-      z: -0.28, depth: 26.0,
+      z: -0.28, depth: 27.0,
       pose: () => ({ pose: 'sit', dir: 'l', arms: [1.3, 1.1] }),
       after(ctx) { // the book, upside down
         const [X, Y] = P(12.5, 13.4, -0.28);
@@ -656,7 +664,7 @@ export default {
     });
     // The snorer.
     body(R, 15.5, 13.4, { ...folk(92), ...LOUNGERS[1].look }, {
-      z: -0.28, depth: 29.0, sick: LOUNGERS[1].sick,
+      z: -0.28, depth: 30.0, sick: LOUNGERS[1].sick,
       pose: () => ({ pose: 'sit', dir: 'l', arms: [0.2, 0.1] }),
     });
     R.air((ctx, t) => {
@@ -666,7 +674,7 @@ export default {
     });
     // The chips man, and his bucket once he's green (he's fine, he says).
     body(R, 18.5, 13.4, { ...folk(93), ...LOUNGERS[2].look }, {
-      z: -0.28, depth: 32.0, sick: LOUNGERS[2].sick,
+      z: -0.28, depth: 33.0, sick: LOUNGERS[2].sick,
       pose: (t) => ({ pose: 'sit', dir: 'l', arms: [1.3 + (hushed('chips', t) ? 0 : Math.sin(t * 7) * 0.25), 1.0] }),
       after(ctx, t, e, k) {
         const [X, Y] = P(18.5, 13.4, -0.28);
@@ -754,6 +762,8 @@ export default {
     });
     R.air((ctx, t) => {
       const p = pace(t);
+      // Even Dale stops for a SHHH (anyone's), so the two never overlap.
+      if (attendantAt(t).shush >= 0) return;
       if (hushed('phone', t)) {
         if (since('phone', t) > SHUSH && pulse(t, 5) < 0.5) speech(ctx, p.x, p.y, 2.7, '(buy buy)', { size: 0.26 });
         return;
@@ -764,10 +774,11 @@ export default {
 
     // The zen garden: three stones, a little rake, a man with a singing bowl
     // he hits every eight seconds.
-    R.thing(23.4, 9.1, (ctx) => {
-      for (const [x, y, r, h] of [[23.4, 9.0, 0.38, 0.45], [25.4, 9.9, 0.3, 0.35], [23.0, 10.3, 0.2, 0.22]]) {
-        cylinder(ctx, x, y, 0, r, h, C.grey, { top: tint(C.grey, 0.2) });
-      }
+    // (Each stone sorted on its own: the one past the monk stands in front of him.)
+    for (const [x, y, r, h] of [[23.4, 9.0, 0.38, 0.45], [25.4, 9.9, 0.3, 0.35], [23.0, 10.3, 0.2, 0.22]]) {
+      R.thing(x, y + r, (ctx) => cylinder(ctx, x, y, 0, r, h, C.grey, { top: tint(C.grey, 0.2) }));
+    }
+    R.thing(22.8, 10.9, (ctx) => {
       board(ctx, 'x', 22.8, 10.85, 0.75, 1.3, 0.5, '', { board: C.white });
       lettering(ctx, 'x', 22.8, 10.86, 0.84, 'PLEASE DO NOT RAKE', 0.1, C.ink);
       lettering(ctx, 'x', 22.8, 10.86, 0.66, "YOU'RE DOING IT WRONG", 0.08, INK.funnelRed);
@@ -801,7 +812,7 @@ export default {
     R.air((ctx, t) => {
       if (hushed('bowl', t)) return;
       const k = pulse(t, 8);
-      if (k < 0.3) noise(ctx, 24.0, 10.2, 1.8, 'BONNNNG', k / 0.3, 0.6, shade(MAT.brass, 0.25));
+      if (k < 0.3) noise(ctx, 23.0, 10.6, 2.3, 'BONNNNG', k / 0.3, 0.6, shade(MAT.brass, 0.25)); // off to his side, not on his head
     });
     // A palm at the very point, facing the sea like it paid for it.
     R.thing(29.6, 8.0, (ctx, t) => plant(ctx, 29.6, 8.0, 0, t, { kind: 'palm', scale: 1.1, potColor: INK.flamingo, leaf: C.leaf }), { anim: true });
@@ -827,7 +838,8 @@ export default {
 
     // The waiter, round the deck with a tray of Green Mermaids and a Gander
     // Cola, all day. Crew: never green.
-    const waiter = route([[1.6, 3.6, 2], [10.8, 4.6], [13.6, 11.0, 3], [17.8, 10.6], [20.8, 9.8, 3], [21.3, 6.6], [19.6, 3.0], [10, 2.9]], { speed: 1.3 });
+    // (Round Gloria's table, and clear of Dale's end of the deck.)
+    const waiter = route([[1.6, 3.6, 2], [10.8, 4.6], [13.6, 11.0, 3], [17.8, 10.6], [20.8, 9.8, 3], [20.6, 6.0], [18.9, 3.0], [10, 2.9]], { speed: 1.3 });
     R.mover(waiter, (ctx, t, p) => {
       const look = { ...folk(97), ...CREW_LOOK, skin: SKIN[4], hair: HAIR[6], style: 'short' };
       person(ctx, p.x, p.y, 0, { ...look, pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, arms: [1.55, -0.1], phase: p.phase }, t);
@@ -850,7 +862,7 @@ export default {
       for (const [x, y, c] of [[13.4, 4.2, C.lilac], [15.0, 4.4, INK.sea], [16.6, 4.6, INK.flamingo]]) {
         rect(ctx, x - 0.45, y - 1.1, 0.9, 1.9, 0.01, c, { lw: 0.03, dots: shade(c, 0.3), density: 0.1 });
       }
-      rect(ctx, 14.4, 6.1, 0.9, 1.4, 0.01, C.butter, { lw: 0.03 });
+      rect(ctx, 14.4, 5.55, 0.9, 1.1, 0.01, C.butter, { lw: 0.03 });
     });
     const YOGA = (t) => {
       const s = pulse(t, 15) * 15;
@@ -876,7 +888,8 @@ export default {
       person(ctx, 16.6, 4.6, 0, { ...look, pose: 'stand', dir: 'l', arms: YOGA(t) }, t);
       ctx.restore();
     }, { anim: true });
-    yogi(14.85, 6.8, 104, { dir: 'r', back: true, look: { ...CREW_LOOK, top: C.white, bottom: C.white, style: 'pony', hair: HAIR[7] } });
+    // (The teacher stands back from the path Gloria takes to her lounger.)
+    yogi(14.85, 6.05, 104, { dir: 'r', back: true, look: { ...CREW_LOOK, top: C.white, bottom: C.white, style: 'pony', hair: HAIR[7] } });
 
     // The silent disco, for one: the only quiet guest on the deck. She has
     // never once had to shush him.
@@ -939,36 +952,39 @@ export default {
         inked(ctx, [[hx, hy], [hx - f * 0.02, hy - 0.2]], ATTENDANT.skin, 0.07);
       }
     });
-    // The SHHH!: the biggest thing on the deck. It pops, shakes, and fades.
+    // Last thing at night, the verdict.
     R.air((ctx, t) => {
       const p = attendantAt(t);
-      if (p.shush < 0) {
-        // Last thing at night, the verdict.
-        const tt = wrap(t);
-        if (tt > LEGS[11].shush + SHUSH + 2 && tt < LOOP - 6) speech(ctx, p.x, p.y, 2.8, 'Ahh. Serenity.', { size: 0.34 });
-        return;
-      }
+      const tt = wrap(t);
+      if (p.shush < 0 && tt > LEGS[11].shush + SHUSH + 2 && tt < LOOP - 6) speech(ctx, p.x, p.y, 2.8, 'Ahh. Serenity.', { size: 0.34 });
+    });
+    // The SHHH!: the biggest thing on the deck. It pops, shakes, and fades.
+    // It goes with her as a standing thing sorted in front of everything
+    // (not in the air), so nobody on the other half of the deck (drawn
+    // after this half) is printed over it.
+    R.mover((t) => attendantAt(t), (ctx, t, p) => {
+      if (p.shush < 0) return;
       const k = p.shush;
+      const [ox, z] = TARGETS[p.i].bub;
       const pop = k < 0.12 ? ease(k / 0.12) * 1.15 : k < 0.2 ? 1.15 - ((k - 0.12) / 0.08) * 0.15 : 1;
-      const [X, Y] = P(p.x, p.y, 2.7);
+      const [X, Y] = P(p.x, p.y, z);
       ctx.save();
       ctx.globalAlpha = clamp((1 - k) * 5);
       ctx.translate(X, Y);
       ctx.scale(pop, pop);
       ctx.translate(Math.sin(t * 60) * 0.05, 0);
-      speech(ctx, 0, 0, 0, 'SHHH!', { size: 1.25, fill: C.white, color: INK.funnelRed, dx: p.dir === 'l' ? 1.1 : -1.1 });
+      speech(ctx, 0, 0, 0, 'SHHH!', { size: 1.0, fill: C.white, color: INK.funnelRed, dx: ox });
       // Shock lines round it.
       if (Q.detail) {
         ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.lineCap = 'round';
         for (let i = 0; i < 6; i++) {
           const a = -Math.PI * (0.1 + i * 0.16);
-          const r0 = 2.9, r1 = 3.4 + (i % 2) * 0.3;
-          const ox = p.dir === 'l' ? 1.1 : -1.1;
-          ctx.beginPath(); ctx.moveTo(ox + Math.cos(a) * r0, -1.7 + Math.sin(a) * r0 * 0.55); ctx.lineTo(ox + Math.cos(a) * r1, -1.7 + Math.sin(a) * r1 * 0.55); ctx.stroke();
+          const r0 = 2.35, r1 = 2.75 + (i % 2) * 0.25;
+          ctx.beginPath(); ctx.moveTo(ox + Math.cos(a) * r0, -1.35 + Math.sin(a) * r0 * 0.55); ctx.lineTo(ox + Math.cos(a) * r1, -1.35 + Math.sin(a) * r1 * 0.55); ctx.stroke();
         }
       }
       ctx.restore();
-    });
+    }, { bias: 60 });
 
     R.find({ id: 'dnd-sign', label: 'A sign hung on a hot tub', at: [10.7, 13.6, 1.0], r: 0.8 });
   },

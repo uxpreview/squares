@@ -3,9 +3,11 @@
 // the same on every deck. The greybox draws with it; the art keeps it and
 // dresses over it.
 import { C, Q, face, poly, paint, tiles, alpha, shade, tint, onRight, paintText, box } from '../../engine/art.js';
-import { SLAB } from '../../engine/iso.js';
+import { SLAB, ZK } from '../../engine/iso.js';
 import { DOORS, LIFT, BEAM, BOW, LENGTH, bowHalf } from './plan.js';
 import { DECKS, INK } from './style.js';
+
+const P = (x, y, z = 0) => [x - y, (x + y) / 2 - z * ZK];
 
 // The deck's outline in the area's own units: far side, then round the bow
 // (if it reaches it), then back along the cut side.
@@ -114,10 +116,39 @@ function liftHouse(R) {
   });
 }
 
-// A long, low block with a rounded end: a lifeboat hanging on the far rail.
-export function lifeboat(ctx, x, y, z, len = 4) {
-  box(ctx, x, y, z, len, 1.2, 0.9, INK.sunYellow, { flat: true, top: tint(INK.sunYellow, 0.3) });
-  box(ctx, x + 0.3, y + 0.1, z + 0.9, len - 0.6, 1, 0.35, INK.hullWhite, { flat: true });
+// A lifeboat hanging on the far rail, along x from x to x + len: a pointed
+// hull with a white band and a rope down its side, a canopy with windows.
+// o.rope: false leaves the side clear for a name.
+export function lifeboat(ctx, x, y, z, len = 4, o = {}) {
+  const w = 1.2, ym = y + w / 2, top = z + 0.9;
+  const g = [[x, ym], [x + 0.7, y], [x + len - 0.7, y], [x + len, ym], [x + len - 0.7, y + w], [x + 0.7, y + w]];
+  const k = [[x + 0.6, ym], [x + 1.0, y + 0.3], [x + len - 1.0, y + 0.3], [x + len - 0.6, ym], [x + len - 1.0, y + w - 0.3], [x + 1.0, y + w - 0.3]];
+  // The near side of the hull, in three panels (the bow end, the middle, the stern end).
+  for (const [i, j, col] of [[3, 4, shade(INK.sunYellow, 0.15)], [4, 5, INK.sunYellow], [5, 0, shade(INK.sunYellow, 0.08)]]) {
+    face(ctx, [[g[i][0], g[i][1], top], [g[j][0], g[j][1], top], [k[j][0], k[j][1], z], [k[i][0], k[i][1], z]], col, { dots: shade(INK.sunYellow, 0.4), density: 0.12, lw: 0.03 });
+  }
+  // A white band along the gunwale, and the rope looped down the side.
+  face(ctx, [[g[4][0], g[4][1], top], [g[5][0], g[5][1], top], [g[5][0] + 0.02, g[5][1] - 0.02, top - 0.18], [g[4][0] - 0.02, g[4][1] - 0.02, top - 0.18]], C.white, { lw: 0.02 });
+  if (Q.detail && o.rope !== false) {
+    ctx.beginPath();
+    for (let i = 0; i <= 6; i++) {
+      const u = x + 0.9 + ((len - 1.8) * i) / 6;
+      const [X, Y] = P(u, y + w, top - 0.2);
+      if (i === 0) ctx.moveTo(X, Y);
+      else { const [mx, my] = P(u - (len - 1.8) / 12, y + w, top - 0.45); ctx.quadraticCurveTo(mx, my, X, Y); }
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+  }
+  face(ctx, g.map(([a, b]) => [a, b, top]), shade(INK.sunYellow, 0.3), { lw: 0.03 });
+  // The canopy: white, with a row of little windows.
+  box(ctx, x + 0.6, y + 0.15, top, len - 1.2, w - 0.3, 0.35, INK.hullWhite, { flat: true, lw: 0.03 });
+  if (Q.detail) {
+    for (let i = 0; i < 4; i++) {
+      const u = x + 1.1 + i * ((len - 2.2) / 3);
+      const [X, Y] = P(u, y + w - 0.15, top + 0.2);
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.1, 0.07, 0, 0, Math.PI * 2); paint(ctx, INK.sea, { lw: 0.02 });
+    }
+  }
 }
 
 export { LENGTH };

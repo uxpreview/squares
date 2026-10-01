@@ -428,17 +428,17 @@ function carveryTop(ctx, a, b) {
     face(ctx, [[26.3, 6.2, 1.02], [27.1, 5.9, 1.02]], null, { lw: 0.06, stroke: CHROME });
     face(ctx, [[26.3, 6.2, 1.02], [26.55, 6.1, 1.02]], null, { lw: 0.08, stroke: C.black });
     face(ctx, [[26.5, 5.65, 1.02], [27.2, 5.6, 1.02]], null, { lw: 0.04, stroke: STEEL });
-    // the heat lamps' gantry, over the lot
-    for (const x of [23.65, 27.35]) face(ctx, [[x, 5.55, 1.0], [x, 5.55, 2.9]], null, { lw: 0.08, stroke: STEEL });
-    face(ctx, [[23.65, 5.55, 2.9], [27.35, 5.55, 2.9]], null, { lw: 0.1, stroke: STEEL });
-    for (const x of [24.3, 25.6]) {
-      const [X, Y] = P(x, 5.9, 2.75);
-      glow(ctx, x, 5.9, 1.4, 1.1, INK.funnelRed, 0.45);
-      ctx.beginPath(); ctx.moveTo(X - 0.1, Y - 0.2); ctx.lineTo(X + 0.1, Y - 0.2); ctx.lineTo(X + 0.28, Y + 0.1); ctx.lineTo(X - 0.28, Y + 0.1); ctx.closePath();
+    // The heat lamps' gantry, low over the meat: at chest height on Chef
+    // Gaston behind it, so nothing crosses his face. (Its sign is on the hull.)
+    for (const x of [23.65, 27.35]) face(ctx, [[x, 5.55, 1.0], [x, 5.55, 2.15]], null, { lw: 0.08, stroke: STEEL });
+    face(ctx, [[23.65, 5.55, 2.15], [27.35, 5.55, 2.15]], null, { lw: 0.1, stroke: STEEL });
+    for (const x of [24.3, 25.5]) {
+      const [X, Y] = P(x, 5.9, 2.05);
+      glow(ctx, x, 5.9, 1.25, 0.9, INK.funnelRed, 0.45);
+      ctx.beginPath(); ctx.moveTo(X - 0.1, Y - 0.16); ctx.lineTo(X + 0.1, Y - 0.16); ctx.lineTo(X + 0.24, Y + 0.08); ctx.lineTo(X - 0.24, Y + 0.08); ctx.closePath();
       paint(ctx, INK.funnelRed, { lw: 0.03 });
-      ctx.beginPath(); ctx.ellipse(X, Y + 0.1, 0.24, 0.06, 0, 0, Math.PI * 2); paint(ctx, C.butter, { lw: 0.02 });
+      ctx.beginPath(); ctx.ellipse(X, Y + 0.08, 0.2, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.butter, { lw: 0.02 });
     }
-    board(ctx, 'x', 25.5, 5.55, 3.25, 1.8, 0.45, 'CARVERY', { size: 0.3, board: INK.sunYellow });
   }
 }
 
@@ -600,6 +600,9 @@ export default {
       onRight(ctx, 28.0, 4.0, 3.4, 1.3, shade(C.navy, 0.3));
       paintText(ctx, 'right', 29.7, 5.0, "TODAY'S SPECIAL", 0.26, C.white, 'Rethink Sans');
       paintText(ctx, 'right', 29.7, 4.55, 'MORE', 0.5, INK.sunYellow);
+      // the carvery's sign, on the hull over Chef Gaston's head
+      onRight(ctx, 23.85, 4.25, 1.75, 0.5, INK.sunYellow, { lw: 0.04 });
+      paintText(ctx, 'right', 24.72, 4.5, 'CARVERY', 0.3, C.ink, 'Rethink Sans');
       // the bulkhead: the ticket counter's big display between the doors
       onLeft(ctx, 5.3, 3.4, 4.4, 1.7, C.ink, { lw: 0.05 });
       onLeft(ctx, 5.45, 3.5, 4.1, 1.5, C.black);
@@ -713,7 +716,7 @@ export default {
         box(ctx, cx - 0.3, 2.25, 1.12, 0.6, 0.5, 0.75, juice, { flat: true, lw: 0.03, top: tint(juice, 0.4) });
         box(ctx, cx - 0.3, 2.25, 1.87, 0.6, 0.5, 0.08, STEEL, { flat: true, lw: 0.02 });
         box(ctx, cx - 0.05, 2.75, 1.25, 0.1, 0.12, 0.1, C.ink, { flat: true, stroke: false });
-        lettering(ctx, 'x', cx, 3.12, 0.62, i ? 'GRAPEFRUIT' : 'JUICE', 0.18, C.ink);
+        lettering(ctx, 'x', cx, 3.12, 0.62, i ? 'GRAPEFRUIT' : 'JUICE', i ? 0.13 : 0.18, C.ink);
       } else {
         cylinder(ctx, cx, 2.55, 1.0, 0.3, 0.9, CHROME, { dots: STEEL });
         box(ctx, cx - 0.04, 2.85, 1.2, 0.08, 0.12, 0.1, C.ink, { flat: true, stroke: false });
@@ -874,8 +877,12 @@ export default {
         if (i === 2 && Q.detail) {
           // salt, pepper and a folded newspaper
           rect(c, x + 1.6, 13.8, 0.6, 0.4, 0.915, C.white, { lw: 0.02 });
+          // (flat text is printed at floor level, so lift it to the table top)
+          c.save();
+          c.translate(0, P(0, 0, 0.92)[1]);
           paintText(c, 'floor', x + 1.9, 13.95, 'SHIP FINE', 0.09, C.ink, 'Rethink Sans');
           paintText(c, 'floor', x + 1.9, 14.08, 'says ship', 0.07, C.ink, 'Rethink Sans');
+          c.restore();
         }
       }), { depth: x + 14.4 + 0.6 });
     });
@@ -888,17 +895,17 @@ export default {
     passenger(R, 7.8, 12.25, 92, DINE);
     passenger(R, 13.3, 12.25, 93, { ...DINE, sick: at(10.8) });
     passenger(R, 17.6, 12.25, 94, DINE);
-    passenger(R, 18.8, 15.1, 95, { pose: 'sit', dir: 'r', back: true, sick: at(10.1) });
+    passenger(R, 18.8, 15.3, 95, { pose: 'sit', dir: 'r', back: true, sick: at(10.1) }); // back against her chair's back
     passenger(R, 23.1, 12.25, 96, { ...DINE, sick: at(10.4) });
     passenger(R, 24.3, 12.25, 99, { ...DINE, scale: 0.72 });
     // The bucket that turns up by a green diner, and the food coma at table 3.
-    R.thing(5.5, 12.7, (ctx, t) => {
+    R.thing(5.2, 12.2, (ctx, t) => {
       if (green(t, at(9.6)) < 0.5) return;
-      bucket(ctx, 5.5, 12.5, 0);
+      bucket(ctx, 5.2, 12.0, 0);
     }, { anim: true });
-    R.thing(23.9, 11.3, (ctx, t) => {
+    R.thing(21.2, 13.9, (ctx, t) => {
       if (green(t, at(10.4)) < 0.5) return;
-      bucket(ctx, 23.7, 11.2, 0, { color: shade(C.grey, 0.1) });
+      bucket(ctx, 21.2, 13.7, 0, { color: shade(C.grey, 0.1) });
     }, { anim: true });
     R.air((ctx, t) => {
       if (!Q.detail || hourOf(t) < 13) return;
@@ -915,10 +922,11 @@ export default {
       [0, 3, 3.6, 10.6, { dir: 'r' }],
       [10, 70, 5.4, 4.2, { dir: 'r', back: true, hold: PLATE }],
       [73, 100, 8.9, 4.2, { dir: 'r', back: true, hold: PLATE }],
-      [108, 108, 21.6, 7.8],
+      [108, 108, 21.6, 6.3],
       [112, 112, 28.2, 9.4],
       [115, 222, 27.3, 12.95, { dir: 'r', back: true, hold: PLATE, arms: [1.3, 1.2] }],
-      [224, 224, 25.2, 12.3],
+      [224, 224, 25.0, 11.5],
+      [233, 233, 9.8, 11.5],
       [238, 240, 3.6, 10.6, { dir: 'r' }],
     ]), { sick: at(9.8), look: { top: C.sky, bottom: C.teal } });
     // Muffins into the handbag, one at a time, all day.
@@ -957,16 +965,20 @@ export default {
     };
     extra(R, 84, daily([
       [0, 3, 2.3, 11.8, { dir: 'r' }],
-      [5, 5, 7, 11.3],
+      [5, 5, 7, 11.55],
       [14, 200, 25.3, 11.6, { dir: 'r', arms: (t) => [1.2 + Math.sin(t * 2.5) * 0.35, 0.2] }],
-      [210, 210, 7, 11.3],
+      [210, 210, 7, 11.55],
       [214, 240, 2.3, 11.8, { dir: 'r' }],
     ], 'run'), { scale: 0.68, face: chocFace, look: { top: C.pink, style: 'pony', hat: 'none' } });
     // A selfie with the shrimp tower, flash and all, every few seconds.
     extra(R, 85, daily([
       [0, 3, 4.6, 10.3, { dir: 'r' }],
-      [14, 205, 21.6, 12.2, { dir: 'l', arms: [Math.PI - 0.35, 0.2], selfie: true }],
-      [216, 240, 4.6, 10.3, { dir: 'r' }],
+      [8, 8, 10.5, 11.55],
+      [13, 13, 20.6, 11.6],
+      [15, 205, 21.6, 12.2, { dir: 'l', arms: [Math.PI - 0.35, 0.2], selfie: true }],
+      [207, 207, 20.6, 11.6],
+      [212, 212, 10.5, 11.55],
+      [217, 240, 4.6, 10.3, { dir: 'r' }],
     ]), {
       sick: at(10.9), look: { top: INK.sunYellow, bottom: C.coral, hat: 'sun' },
       after(ctx, t, p) {
@@ -976,7 +988,8 @@ export default {
         ctx.fillRect(X - 0.62, Y - 2.42, 0.16, 0.26);
         const k = pulse(t, 6);
         if (k < 0.06 && Q.detail) {
-          ctx.beginPath(); ctx.arc(X - 0.54, Y - 2.3, 0.5 * (1 - k * 10), 0, Math.PI * 2);
+          // a small burst at the phone, kept off her face
+          ctx.beginPath(); ctx.arc(X - 0.62, Y - 2.36, 0.26 * (1 - k * 10), 0, Math.PI * 2);
           ctx.fillStyle = alpha(C.white, 0.85); ctx.fill();
         }
       },
@@ -984,7 +997,9 @@ export default {
 
     // ---------- The crew ----------
     // A waiter up and down the aisle: orange juice in the morning, buckets
-    // after eleven.
+    // after eleven. The aisle runs behind the diners' chairs and in front of
+    // Doreen's, and he turns at the shrimp tower (past it, a kid and the
+    // chocolate fountain are in the way).
     const trayHold = (ctx, t) => {
       ctx.beginPath(); ctx.ellipse(0.1, -0.4, 0.4, 0.1, 0, 0, Math.PI * 2); paint(ctx, CHROME, { lw: 0.03 });
       if (hourOf(t) < 11) {
@@ -998,7 +1013,7 @@ export default {
     };
     R.mover((t) => {
       const s = pulse(t, 44) * 44;
-      const x0 = 3.5, x1 = 30.5, y = 11.35;
+      const x0 = 3.5, x1 = 20.6, y = 11.55;
       if (s < 19) return { x: x0 + ((x1 - x0) * s) / 19, y, pose: 'walk', dir: 'r' };
       if (s < 22) return { x: x1, y, dir: 'l' };
       if (s < 41) return { x: x1 - ((x1 - x0) * (s - 22)) / 19, y, pose: 'walk', dir: 'l', back: true };

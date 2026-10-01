@@ -110,7 +110,9 @@ export function sky(ctx, t, world, fx) {
     ctx.fill();
     ctx.restore();
   }
-  // The waterline: a wavy line of foam where the sea meets the hull.
+  // The waterline: a wavy line of foam where the sea meets the hull. It
+  // steps aside with the sea when you're down there (it ran across the room).
+  if (below) return birdsOver(ctx, t);
   ctx.save();
   ctx.strokeStyle = tint(sea, 0.75);
   ctx.lineWidth = 0.22;
@@ -127,7 +129,11 @@ export function sky(ctx, t, world, fx) {
   }
   ctx.stroke();
   ctx.restore();
-  // Gulls, following the ship for the buffet.
+  birdsOver(ctx, t);
+}
+
+// Gulls, following the ship for the buffet.
+function birdsOver(ctx, t) {
   birds(ctx, t, 0, 60, 30);
   birds(ctx, t + 17, 1, 60, 34);
 }

@@ -85,7 +85,10 @@ const DOOR = [0.3, 3.2];
 // (she's on the day's clock at (11.5, 6.5)).
 const SLOTS = [
   [14.6, 6.6], [13.55, 6.6], [12.5, 6.6], [11.5, 6.5], [10.45, 6.6], [9.4, 6.6], [8.35, 6.6],
-  [7.3, 6.6], [6.25, 6.6], [5.2, 6.5], [4.25, 6.0], [3.4, 5.2], [2.5, 4.4], [1.5, 3.6],
+  [7.3, 6.6], [6.25, 6.6], [5.2, 6.5], [4.15, 6.6],
+  // Back to the door, zigzagging (in a straight line they'd stand in a column
+  // on screen, each one hidden behind the next).
+  [3.65, 5.55], [2.25, 5.4], [2.05, 4.05],
 ];
 // Who joins the line, and when (hours). Nobody green before half past nine:
 // the first two are here for other reasons.
@@ -783,9 +786,11 @@ export default {
 
     // ---------- The waiting bench, by the door ----------
     R.thing(1.45, 9.9, (ctx) => {
+      box(ctx, 0.55, 5.4, 0, 0.35, 4.6, 1.4, MAT.crewBlue, { flat: true });
       box(ctx, 0.9, 5.4, 0, 0.9, 4.6, 0.55, MAT.crewBlue, { top: tint(MAT.crewBlue, 0.25), dens: 0.15 });
-      box(ctx, 0.2, 5.4, 0.55, 0.3, 4.6, 0.8, MAT.crewBlue, { flat: true });
     });
+    // (The two on it are drawn after the whole bench, or its back hides them.)
+    const ON_BENCH = 1.45 + 9.9 + 0.1;
     // The man who's been waiting since Tuesday: a beard to his knees, and
     // ticket number 4. Not green: he came in for a splinter.
     const BEARD = { ...folk(241), skin: SKIN[1], hair: C.white, style: 'bald', top: C.coral, bottom: C.teal, dress: false,
@@ -802,7 +807,7 @@ export default {
       ctx.beginPath(); ctx.rect(hx - 0.02, hy - 0.2, 0.18, 0.22); paint(ctx, C.white, { lw: 0.015 });
       words(ctx, '4', hx + 0.07, hy - 0.09, 0.14, INK.funnelRed, 'center', 900);
       if (pulse(t, 12, 2) < 0.28) speech(ctx, 1.4, 6.6, 2.4, pulse(t, 24, 2) < 0.5 ? 'Since Tuesday.' : "I'm number 4.", { size: 0.32 });
-    }, { anim: true });
+    }, { anim: true, depth: ON_BENCH });
     // A woman knitting a very long scarf while she waits (it's reached the door).
     const KNIT = { ...folk(242), skin: SKIN[4], hair: HAIR[4], style: 'bun', top: C.lilac, bottom: C.navy, dress: false };
     R.thing(1.4, 8.6, (ctx, t) => {
@@ -813,7 +818,7 @@ export default {
       inked(ctx, [[hx - 0.2, hy - 0.25], [hx + 0.1, hy + 0.05]], MAT.chrome, 0.025);
       inked(ctx, [[hx + 0.15, hy - 0.25], [hx - 0.1, hy + 0.05]], MAT.chrome, 0.025);
       if (k > 0.5) bucket(ctx, 2.2, 9.4, 0, { color: C.grey });
-    }, { anim: true });
+    }, { anim: true, depth: ON_BENCH + 0.05 });
     R.rug((ctx) => {
       // Her scarf, down off the bench and along the floor to the door.
       const s = [[1.9, 8.5, 0.4], [2.4, 8.0, 0.01], [2.6, 6.8, 0.01], [2.2, 5.2, 0.01], [1.4, 4.4, 0.01], [0.6, 4.2, 0.01]];
@@ -941,9 +946,9 @@ export default {
       if (p.look) speech(ctx, p.x, p.y, z + 2.5, p.look === 'up' ? 'A new record!' : 'Zero it is.', { size: 0.32 });
     }, { depth: (t) => { const p = crewAt(t); return p.x + p.y + (p.z ? 0.6 : 0); } });
     // A bucket and a mop bucket, by where he works.
-    R.thing(4.3, 1.4, (ctx) => {
-      cylinder(ctx, 4.3, 1.2, 0, 0.35, 0.5, INK.sunYellow);
-      disc(ctx, 4.3, 1.2, 0.5, 0.27, alpha(C.greyLight, 0.9), { lw: 0.015 });
+    R.thing(3.3, 2.6, (ctx) => {
+      cylinder(ctx, 3.3, 2.4, 0, 0.35, 0.5, INK.sunYellow);
+      disc(ctx, 3.3, 2.4, 0.5, 0.27, alpha(C.greyLight, 0.9), { lw: 0.015 });
     });
     // What Swabb says to that, from wherever he is.
     R.air((ctx, t) => {
@@ -1050,7 +1055,7 @@ export default {
 
     // ---------- The nurse, round the beds ----------
     const NURSE = { ...folk(261), ...CREW_LOOK, skin: SKIN[2], hair: HAIR[6], style: 'bun', top: C.white, bottom: C.white };
-    const round = route([[3.8, 11.0, 3], [7.0, 11.0, 3], [10.2, 11.0, 3], [13.4, 11.0, 3], [16.6, 9.0, 2]], { speed: 1.3, loop: false });
+    const round = route([[2.8, 11.0, 3], [6.0, 11.0, 3], [9.2, 11.0, 3], [12.4, 11.0, 3], [16.6, 9.0, 2]], { speed: 1.3, loop: false });
     R.mover(round, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, { ...NURSE, pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, arms: p.moving ? undefined : [1.2, 1.0], phase: p.phase }, t);
       const f = p.dir === 'l' ? -1 : 1, [X, Y] = P(p.x, p.y, 0);
@@ -1100,11 +1105,13 @@ export default {
     R.thing(24.8, 11.0, (ctx, t) => {
       const k = green(t, at(10.8));
       person(ctx, 24.8, 11.0, 0, { ...CUSTOMER, skin: qz(CUSTOMER.skin, k), dir: 'r', back: true, arms: [0.9, 0.5] }, t);
-      if (Q.detail && pulse(t, 18, 12) < 0.2) speech(ctx, 24.8, 11.0, 2.6, 'Do you have anything else?', { size: 0.28 });
+      if (Q.detail && pulse(t, 18, 12) < 0.2) speech(ctx, 24.8, 11.0, 2.6, 'Do you have anything else?', { size: 0.28, dx: 1.5 });
     }, { anim: true });
     // The bucket reserve, at the very point: running low.
     R.thing(29.2, 8.2, (ctx) => {
       for (let i = 0; i < 6; i++) bucket(ctx, 29.2, 8.0, i * 0.2, { color: i % 2 ? C.grey : tint(C.grey, 0.3) });
+      // The sign's stick, stuck in the top bucket.
+      box(ctx, 29.17, 8.17, 1.3, 0.06, 0.06, 0.8, MAT.teakDark, { flat: true, stroke: false });
       board(ctx, 'x', 29.2, 8.4, 2.3, 1.3, 0.5, '', { board: C.white });
       lettering(ctx, 'x', 29.2, 8.41, 2.42, 'BUCKETS', 0.14, C.ink);
       lettering(ctx, 'x', 29.2, 8.41, 2.22, 'ONE EACH. ONE.', 0.09, INK.funnelRed);

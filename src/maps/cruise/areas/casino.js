@@ -45,7 +45,7 @@ const seatOf = (m) => [m.x + m.w / 2, m.y + m.d + (m.y < 2 ? 0.9 : 0.8)];
 const DOOR_IN = [-0.3, 3.2];
 const HEAD = [2.8, 4.5];
 const GATE = [3.9, 4.7];
-const spot = (i) => (i ? [2.0, 4.9 + i * 0.95] : HEAD);
+const spot = (i) => (i ? [2.0, 4.9 + i * 1.05] : HEAD);
 // The retirees, in queue order: which machine each one makes for.
 const RETIREES = [
   { m: FAR[4], sick: at(9.7), look: { hair: HAIR[4], style: 'curly', top: C.lilac, bottom: C.white } },
@@ -304,7 +304,7 @@ function stool(ctx, x, y) {
 
 // A chandelier hanging from the deck above.
 function chandelier(ctx, x, y) {
-  const top = 7.0, ring = 5.3;
+  const top = 7.0, ring = 6.2; // high, so the ring doesn't hang over anyone's head
   const [A, B] = P(x, y, top), [E, F] = P(x, y, ring + 0.35);
   ctx.beginPath(); ctx.moveTo(A, B); ctx.lineTo(E, F);
   ctx.strokeStyle = MAT.brass; ctx.lineWidth = 0.05; ctx.stroke();
@@ -396,7 +396,7 @@ export default {
       if (Q.detail) {
         ctx.fillStyle = alpha(C.ink, 0.3);
         for (let i = 1; i < 7; i++) for (const dx of [-0.12, 0.12]) {
-          const [X, Y] = P(2.0 + dx, 4.9 + i * 0.95);
+          const [X, Y] = P(2.0 + dx, 4.9 + i * 1.05);
           ctx.beginPath(); ctx.ellipse(X, Y, 0.07, 0.035, 0, 0, Math.PI * 2); ctx.fill();
         }
       }
@@ -514,7 +514,7 @@ export default {
       if (!Q.detail) return;
       CHANDELIERS.forEach(([x, y], j) => particles(t, 3, 1.4, (k, r) => {
         const a = r() * Math.PI * 2;
-        const [X, Y] = P(x + Math.cos(a) * 0.62, y + Math.sin(a) * 0.62, 5.2 + r() * 0.2);
+        const [X, Y] = P(x + Math.cos(a) * 0.62, y + Math.sin(a) * 0.62, 6.1 + r() * 0.2);
         const s = Math.sin(k * Math.PI) * 0.14;
         ctx.strokeStyle = alpha(C.white, 0.95); ctx.lineWidth = 0.03;
         ctx.beginPath(); ctx.moveTo(X - s, Y); ctx.lineTo(X + s, Y); ctx.moveTo(X, Y - s); ctx.lineTo(X, Y + s); ctx.stroke();
@@ -597,7 +597,7 @@ export default {
           return { x: p.x, y: p.y, pose: 'stand', dir: 'r', back: i > 0, queue: true };
         }
         if (w < r.seated) { const p = pour(w); return { ...p, pose: r.run ? 'run' : 'walk' }; }
-        if (w > GREEN_AT + 1 && w < GREEN_AT + 16) return { x: sx, y: sy + 0.05, pose: 'cheer', dir: 'r', back: false };
+        if (w > GREEN_AT + 1 && w < GREEN_AT + 16) return { x: sx, y: sy + 0.65, pose: 'cheer', dir: 'r', back: false }; // up off the stool
         return { x: sx, y: sy + 0.05, pose: 'sit', dir: 'r', back: true, playing: true };
       }, (ctx, t, p) => {
         if (p.hidden) return;
@@ -607,8 +607,8 @@ export default {
         const feed = p.playing ? [1.9 + Math.sin(t * 2.4 + i) * 0.35, 0.5] : undefined;
         const win = r.jackpot && p.playing && pulse(w, 37, 5) < 0.14;
         person(ctx, p.x, p.y, 0, {
-          ...look, skin: qz(look.skin, green(t, r.sick)), pose: win ? 'cheer' : p.pose, dir: p.dir, back: p.back,
-          arms: win ? undefined : feed, speed: p.pose === 'run' ? 9 : 6, phase: i * 1.3,
+          ...look, skin: qz(look.skin, green(t, r.sick)), pose: p.pose, dir: p.dir, back: p.back,
+          arms: win ? [Math.PI - 0.45 + Math.sin(t * 9) * 0.15, -Math.PI + 0.45] : feed, speed: p.pose === 'run' ? 9 : 6, phase: i * 1.3,
           hold: p.pose === 'cheer' || win ? undefined : coinCup,
         }, t);
         ctx.restore();
@@ -746,18 +746,20 @@ export default {
       }
     }, { anim: true });
     // The board by the wheel: how long since green. It ticks up every spin.
-    R.thing(19.3, 10.3, (ctx) => {
-      box(ctx, 19.25, 10.25, 0, 0.1, 0.1, 1.9, MAT.brass, { flat: true, lw: 0.02 });
-      board(ctx, 'x', 19.3, 10.32, 2.4, 1.5, 1.2, '', { board: C.ink });
-      lettering(ctx, 'x', 19.3, 10.33, 2.82, 'SPINS SINCE GREEN', 0.12, C.white);
-      lettering(ctx, 'x', 19.3, 10.33, 1.95, 'MIN $5. MAX: YOUR CABIN.', 0.07, C.white);
+    // It stands off the table's far corner, clear of the croupier behind it.
+    const SB = { x: 19.55, y: 9.8 };
+    R.thing(SB.x, SB.y, (ctx) => {
+      box(ctx, SB.x - 0.05, SB.y - 0.1, 0, 0.1, 0.1, 1.7, MAT.brass, { flat: true, lw: 0.02 });
+      board(ctx, 'x', SB.x, SB.y, 2.2, 1.2, 1.1, '', { board: C.ink });
+      lettering(ctx, 'x', SB.x, SB.y + 0.01, 2.58, 'SPINS SINCE GREEN', 0.1, C.white);
+      lettering(ctx, 'x', SB.x, SB.y + 0.01, 1.8, 'MIN $5. MAX: YOUR CABIN.', 0.07, C.white);
     });
-    R.thing(19.3, 10.34, (ctx, t) => {
+    R.thing(SB.x, SB.y + 0.02, (ctx, t) => {
       const w = wrap(t);
       const sp = spinAt(w);
       let n = 4412 + (sp.idle ? 0 : sp.n + (sp.s >= LAND ? 1 : 0));
       if (sp.green && sp.s >= LAND) n = 0;
-      lettering(ctx, 'x', 19.3, 10.33, 2.4, n.toLocaleString('en-US'), 0.36, n ? INK.sunYellow : C.leaf, 'Bagel Fat One');
+      lettering(ctx, 'x', SB.x, SB.y + 0.01, 2.2, n.toLocaleString('en-US'), 0.34, n ? INK.sunYellow : C.leaf, 'Bagel Fat One');
     }, { anim: true });
 
     // The stools: Ray's (he's on the clock, from 10) and the man's.
@@ -895,7 +897,7 @@ export default {
         }, t);
       }, { anim: true });
     }
-    R.thing(3.0, 12.0, (ctx, t) => { if (wrap(t) > BJP[0].sick + 8) bucket(ctx, 3.0, 11.9, 0); }, { anim: true });
+    R.thing(3.4, 12.4, (ctx, t) => { if (wrap(t) > BJP[0].sick + 8) bucket(ctx, 3.4, 12.3, 0); }, { anim: true });
 
     // ---------- The duty-free ----------
     // A tall shelf of everything, a glass counter, and the clerk behind it.
@@ -956,26 +958,66 @@ export default {
     R.thing(20.2, 8.6, (ctx) => {
       const rows = [[5, 0], [4, 1], [3, 2], [2, 3], [1, 4]];
       for (const [n, r] of rows) for (let i = 0; i < n; i++) can(ctx, 19.55 + (i + r * 0.5) * 0.2, 8.3, r * 0.22);
-      board(ctx, 'x', 20.0, 8.45, 1.55, 1.1, 0.42, '', { board: INK.funnelRed, edge: 0.02 });
-      lettering(ctx, 'x', 20.0, 8.46, 1.6, 'GANDER COLA', 0.12, C.white);
-      lettering(ctx, 'x', 20.0, 8.46, 1.43, 'Take a gander.', 0.09, C.white);
+      // its sign, on a stick behind the stack
+      box(ctx, 19.97, 8.05, 0, 0.06, 0.06, 1.36, MAT.brass, { flat: true, stroke: false });
+      board(ctx, 'x', 20.0, 8.12, 1.55, 1.1, 0.42, '', { board: INK.funnelRed, edge: 0.02 });
+      lettering(ctx, 'x', 20.0, 8.13, 1.6, 'GANDER COLA', 0.12, C.white);
+      lettering(ctx, 'x', 20.0, 8.13, 1.43, 'Take a gander.', 0.09, C.white);
     });
 
     // ---------- The piano bar, in the point of the bow ----------
+    // A white baby grand: the keyboard toward the pianist, the curved case
+    // round to the bow, the lid propped open toward the room.
     R.thing(25.6, 8.6, (ctx) => {
-      for (const [lx, ly] of [[24.8, 7.3], [26.3, 7.4], [25.9, 8.4]]) box(ctx, lx, ly, 0, 0.1, 0.1, 0.8, C.ink, { flat: true, stroke: false });
       const top = [[24.6, 7.1], [26.2, 7.1], [26.7, 7.5], [26.6, 8.4], [25.8, 8.7], [24.6, 8.5]];
-      poly(ctx, top.map(([x, y]) => [x, y, 1.05]).concat(top.slice().reverse().map(([x, y]) => [x, y, 0.8])));
-      poly(ctx, [...top.slice(2).map(([x, y]) => [x, y, 0.8]), ...top.slice(2).reverse().map(([x, y]) => [x, y, 1.05])]);
-      paint(ctx, shade(C.white, 0.15), { lw: 0.03 });
-      poly(ctx, top.map(([x, y]) => [x, y, 1.05]));
+      const zb = 0.55, zt = 1.05;
+      // three legs, on castors
+      for (const [lx, ly] of [[24.8, 7.3], [26.3, 7.4], [25.9, 8.4]]) {
+        box(ctx, lx - 0.06, ly - 0.06, 0, 0.12, 0.12, zb, C.ink, { flat: true, stroke: false });
+        disc(ctx, lx, ly, 0, 0.08, MAT.brass, { stroke: false });
+      }
+      // the case's sides we can see (facing the room), then its rim
+      for (let i = 0; i < top.length; i++) {
+        const [ax, ay] = top[i], [bx, by] = top[(i + 1) % top.length];
+        const nx = by - ay, ny = ax - bx; // the side's outward direction
+        if (nx + ny <= 0) continue;
+        face(ctx, [[ax, ay, zb], [bx, by, zb], [bx, by, zt], [ax, ay, zt]], nx > ny ? shade(C.white, 0.12) : C.white, { lw: 0.03 });
+      }
+      poly(ctx, top.map(([x, y]) => [x, y, zt]));
       paint(ctx, C.white, { lw: 0.03 });
-      // The lid, propped up.
-      face(ctx, [[24.7, 7.15, 1.05], [26.1, 7.15, 1.05], [26.1, 7.3, 2.1], [24.7, 7.4, 1.6]], C.white, { lw: 0.03 });
-      // A tip jar with one button in it.
-      cylinder(ctx, 26.1, 8.2, 1.05, 0.12, 0.28, alpha(MAT.glass, 0.8), { flat: true });
-      label(ctx, 26.1, 8.2, 1.2, 'TIPS', 0.08, C.ink, 'Rethink Sans');
-      disc(ctx, 26.1, 8.2, 1.07, 0.04, C.grey, { stroke: false });
+      // inside: the gold frame and the strings
+      const inset = top.map(([x, y]) => [25.65 + (x - 25.65) * 0.82, 7.9 + (y - 7.9) * 0.82, zt + 0.005]);
+      poly(ctx, inset);
+      paint(ctx, MAT.brass, { lw: 0.02 });
+      if (Q.detail) {
+        ctx.strokeStyle = shade(MAT.brass, 0.35); ctx.lineWidth = 0.012;
+        ctx.beginPath();
+        for (let k = 0; k < 7; k++) { const y = 7.35 + k * 0.17; const [A, B] = P(24.85, y, zt + 0.01), [E, F] = P(26.25 - Math.abs(k - 3) * 0.08, y, zt + 0.01); ctx.moveTo(A, B); ctx.lineTo(E, F); }
+        ctx.stroke();
+      }
+      // the keyboard, sticking out toward the pianist
+      box(ctx, 24.22, 7.25, 0.88, 0.4, 1.1, 0.1, C.ink, { flat: true, lw: 0.02 });
+      rect(ctx, 24.27, 7.3, 0.3, 1.0, 0.985, C.white, { lw: 0.012 });
+      if (Q.detail) {
+        ctx.fillStyle = C.ink;
+        for (let k = 0; k < 9; k++) {
+          if (k % 7 === 2 || k % 7 === 6) continue;
+          const [X, Y] = P(24.38, 7.38 + k * 0.105, 0.99);
+          ctx.fillRect(X - 0.05, Y - 0.025, 0.1, 0.05);
+        }
+      }
+      // the lid, hinged on the straight side and held up on its stick
+      // (It starts behind the keys, so it never crosses the pianist.)
+      const a = 1.2, c = Math.cos(a), sn = Math.sin(a);
+      const lid = top.map(([x, y]) => [Math.max(x, 24.95), 7.1 + (y - 7.1) * c, zt + 0.02 + (y - 7.1) * sn]);
+      const [px, py] = [25.9, 7.1 + (8.2 - 7.1) * c];
+      face(ctx, [[25.9, 8.0, zt], [px, py, zt + (8.2 - 7.1) * sn]], null, { lw: 0.03, stroke: C.ink });
+      poly(ctx, lid);
+      paint(ctx, shade(C.white, 0.08), { lw: 0.03 });
+      // a tip jar with one button in it
+      cylinder(ctx, 26.25, 8.25, zt, 0.12, 0.28, alpha(MAT.glass, 0.8), { flat: true });
+      label(ctx, 26.25, 8.25, zt + 0.15, 'TIPS', 0.08, C.ink, 'Rethink Sans');
+      disc(ctx, 26.25, 8.25, zt + 0.02, 0.04, C.grey, { stroke: false });
     });
     const PIANIST = { x: 24.1, y: 7.8 };
     R.thing(PIANIST.x, PIANIST.y - 0.1, (ctx) => box(ctx, 23.75, 7.35, 0, 0.6, 0.8, 0.66, C.black, { top: shade(C.black, 0.1) }));
@@ -1048,19 +1090,20 @@ export default {
         ...SEC, pose: p.pose === 'read' && look ? 'stand' : p.pose, dir: p.dir, back: p.back, face: secCap,
         hold: p.pose === 'read' && !look ? (c) => { c.beginPath(); c.rect(-0.05, -0.32, 0.36, 0.26); paint(c, C.white, { lw: 0.02 }); c.fillStyle = C.grey; c.fillRect(0.02, -0.26, 0.22, 0.14); } : undefined,
       }, t);
-      if (Q.detail && p.pose === 'point' && w > GREEN_AT + 4 && w < GREEN_AT + 12) speech(ctx, p.x, p.y, 3.0, 'Nobody gets off.', { size: 0.34 });
+      if (Q.detail && p.pose === 'point' && w > GREEN_AT + 4 && w < GREEN_AT + 12) speech(ctx, p.x, p.y, 3.8, 'Nobody gets off.', { size: 0.34 }); // over the gangway's sign
     });
     // The gangway: two brass posts, a sign, and at 6pm, yellow tape.
     for (const x of [14.6, 15.9]) {
       R.thing(x, 15.35, (ctx) => {
         disc(ctx, x, 15.3, 0, 0.18, MAT.brass, { lw: 0.02 });
-        cylinder(ctx, x, 15.3, 0, 0.06, 2.6, MAT.brass, { flat: true, stroke: false });
+        cylinder(ctx, x, 15.3, 0, 0.06, 3.6, MAT.brass, { flat: true, stroke: false });
       });
     }
     R.thing(15.25, 15.4, (ctx, t) => {
-      board(ctx, 'x', 15.25, 15.3, 2.4, 1.5, 0.44, '', { board: C.navy, edge: 0.03 });
-      lettering(ctx, 'x', 15.25, 15.31, 2.48, "ALL ASHORE THAT'S", 0.12, C.white);
-      lettering(ctx, 'x', 15.25, 15.31, 2.32, 'GOING ASHORE', 0.12, C.white);
+      // (High on its posts, over the security officer's cap when he's there.)
+      board(ctx, 'x', 15.25, 15.3, 3.34, 1.5, 0.44, '', { board: C.navy, edge: 0.03 });
+      lettering(ctx, 'x', 15.25, 15.31, 3.42, "ALL ASHORE THAT'S", 0.12, C.white);
+      lettering(ctx, 'x', 15.25, 15.31, 3.26, 'GOING ASHORE', 0.12, C.white);
       if (wrap(t) < SIX) return;
       for (const [za, zb] of [[1.6, 0.5], [0.5, 1.6]]) {
         const [A, B] = P(14.6, 15.3, za), [E, F] = P(15.9, 15.3, zb);
@@ -1095,7 +1138,7 @@ export default {
       }
       c.beginPath(); c.rect(0.5, -0.36, 0.13, 0.24); paint(c, INK.funnelRed, { lw: 0.02 });
     };
-    const waitress = route([[3.9, 7.4, 1], [7, 5.0], [9.5, 5.0, 1.5], [14.5, 5.0, 1.5], [18.6, 5.2, 1], [18.8, 8.4, 2]], { speed: 1.1, loop: false, offset: 5 });
+    const waitress = route([[3.9, 7.4, 1], [7, 5.0], [9.5, 5.0, 1.5], [14.5, 5.0, 1.5], [18.6, 5.2, 1], [19.0, 8.0, 2]], { speed: 1.1, loop: false, offset: 5 });
     R.mover(waitress, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, {
         skin: SKIN[1], hair: HAIR[0], style: 'pony', top: C.black, bottom: C.black, dress: true,

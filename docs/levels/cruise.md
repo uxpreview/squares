@@ -177,13 +177,27 @@ Twelve areas and the cast, each drawn by an artist in its own worktree (four at 
 
 **The blind playtest:** 25 of 29 found, and the story held together (the tester suspected a reptile from the claw prints and the shed skin, was sure once the mystery card listed them, and laughed at Doreen's "number 2" and "Somebody put a towel on that lizard!"). Fixed after it, and re-checked by a second fresh tester: decisions 31 to 36.
 
+## The pinched-in tour (session 7b)
+Moving Day reached the owner with broken drawing that only showed pinched in (decision 39 there), so before the ship goes back, every area was toured the same way: `node tools/tour.mjs`, 3x on a phone, at six moments (7:15am, 10am, noon, 3pm, 5:30pm, 6:15pm), every tile looked at, by six reviewers two areas each, then the lead on everything shared. Over a hundred things fixed, none of them a find moved more than half a unit (the goose and the flip-flop on the funnel nudged with the funnel). The highlights:
+
+- **People and their seats:** sitters on benches, stools, tins, crates and loungers drawn after their seats (the sick bay's bench sitters were hidden behind its back; the engine room's cook was inside his stool); people standing in hammocks, tables, cans and each other moved; Tyler on a beanbag in the theater's front row (the seat backs hid him); Chad sleeps on his bed, not half under it.
+- **Walks:** the buffet's walkers kept off the hot counters, the salad bar and the swan's plinth; Gloria's pool chair moved off the walkway in front of the pool (the iguana and Pidge walked through it); Kelly calls the limbo from behind the bar and Pidge lies clear of the contestants; the pool's waiter, warden, drill passers and mop kept off each other and the furniture; the waterslide's lifeguard round his chair, not through it.
+- **Greybox left over:** the lifeboats (a pointed hull, a band, a canopy with windows; one shared `lifeboat()` in `ship.js` now), the crew's laundry carts, the piano, the officers' deck chairs, the ship's bell.
+- **Words and bubbles:** the SHHH! at Adults Only clear of every face it hushes, the captain's bubbles off the monitor officer, the carvery's heat lamp off Chef Gaston's face, the sanitizer sign the right way up, the casino's ALL ASHORE sign off the security officer's face.
+- **The pools** (the Pool and the Waterslide's splash pool) draw only what you'd see through their opening, so their near edge, "3 FT" and the people in front show.
+- **Shared:** the waterline steps aside with the sea when you're on the crew deck (it ran across every room down there); the wake is two wavy trails of foam (pinched in, its short dashes and ovals read as a stick floating off the stern); the sea's glints are little waves; a lying person's name tag sits on them; a sleeper's z rises from the head (every place); the ship's clock moves to the other corner from the lift on a phone (it was hidden under it on the overview).
+- **Kept:** the red band a crew room's slab shows along its neighbor when you step in is the cut side of the floor, the same as every place's cutaway; without it the cut neighbor left a hole.
+
+**Checks.** `npm run qa -- cruise`: 13 passed, 0 failed but speed, which in the cloud read the Pool at 66 ms. Back to back with the code before this session, the Pool times the same (30 to 40 ms against 35); Adults Only is about 7 ms slower (about 39, from its SHHH! and zen stones becoming separate things), the Crew Bar about 3; all under 60. `npm run smoke` passes (103 checks, two new ones for the clock and the lift). Frames a second on the owner's laptop not re-measured: `npm run qa -- cruise` and `node tools/fps.mjs cruise --only=adults-only,crew-bar,pool` there are the check.
+
 ## For the owner at gate 3
 
 1. **The name is written All-You-Can-Eat** (decision 18): QA keeps a place's name to three words. Recommendation: keep it; the other way is to let QA allow this one name.
 2. **It opens on the Promenade,** the two decks above hovering faint, the buffet in the middle (decision 6). The picker card shows the whole ship from the top. Recommendation: keep; the other choice is opening on the Sun Deck, which shows the whole ship but puts the buffet two decks down.
 3. **The iguana is in plain sight all day** (on its lounger at the pool, walking the ship at breakfast and dinner). The playtester suspected a reptile during the hunt. Recommendation: keep; naming it still takes all six clues, and it sunbathing in plain view is the joke.
 4. **A ship's horn** (the game has none; the port uses the car horn this round, decision 30). Recommendation: add one the next time this level can change `src/game/`.
-5. **Three quieter stretches** the art director noticed (the Bridge's stern half, the back of the Cabins corridor, the Crew Bar's front before 3pm). None hides a find. Recommendation: a small density pass after you've played it, if they read empty to you.
+5. **Three quieter stretches** the art director noticed (the Bridge's stern half, the back of the Cabins corridor, the Crew Bar's front before 3pm). None hides a find. The tour filled the first (a shuffleboard court, the officers' own, taken over by a retired couple). Recommendation: a small density pass after you've played it, if the other two read empty to you.
+6. **The port is small on a phone** (the tour noticed): stepped into it, the island fills under half the screen's width, with sea all round. Recommendation: keep; it's an island in the sea, and pinching in works. The other choice is framing it tighter.
 
 ## Open questions
 See "For the owner at gate 3".
@@ -240,3 +254,9 @@ The art (session 7, the lead's calls):
 34. **No name tag over the iguana:** it's patient zero, and "An iguana" over its head said so.
 35. **Two stewards carry Chad** (the cast artist drew a second under him; the brief always said "the stewards").
 36. **Two small fixes outside the level,** in their own commit: the case file said "It's in the The Buffet" for areas whose names start with The; the case-closed card said "things in the house" on a ship (a map can now say where, `words.inside`; the Manor reads as before).
+
+The pinched-in tour (session 7b, the lead's calls):
+37. **Every area toured pinched in at six moments before gate 3,** as Moving Day's decision 39 set; the owner's review is for taste.
+38. **One lifeboat for the ship,** in `ship.js` (the Bridge's reviewer drew it; the kit's was a block). `rope: false` leaves its side clear for a name.
+39. **On the crew deck the waterline lifts with the sea's ink;** the slab's cut side along a neighbor stays (it's the cutaway).
+40. **Gloria's pool chair is at (29.5, 13.4),** in the gap in the lounger row, off the walkway; Kelly calls the limbo from behind the bar (27, 5.4); Pidge lies past its far stand (26.2, 9.7), his line after hers.

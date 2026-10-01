@@ -20,10 +20,18 @@ const TUB = { x: 28.5, y: 5.5, r: 1.5, base: 0.3, rim: 0.85, water: 0.72 };
 const LOUNGERS = [2, 5.2, 8.4, 11.6, 14.4, 17.4, 20.6, 27.2, 30.4];
 const IGUANA_LOUNGER = [24, 12];
 // The limbo: two stands at x 8.5, y 7 and 9, and its rounds at noon.
-const LIMBO = { x: 8.5, y0: 7, y1: 9, lane: 7.6 };
+// (Kelly leaves the limbo at 1pm on a diagonal past x 8.5, y 9: the stands
+// sit clear of it.)
+const LIMBO = { x: 9.2, y0: 6.7, y1: 8.75, lane: 7.6 };
+const LX = LIMBO.x - 8.5; // the limbo's moves are written for a bar at x 8.5
 const ROUNDS = [102, 109, 116, 123]; // each round is 7 seconds
 const HEIGHTS = [1.8, 1.4, 1.0, 0.65];
 const JACKET = mix(C.coral, C.mustard, 0.3);
+// The sunbather on the deck, by the far rail (where nobody walks).
+const SUNBATHER = [3.6, 2.6];
+// Gloria's canvas chair: she sits at (13.5, 13.4) on the clock (day.js). If her
+// seat there moves, move this with it.
+const GLORIA_CHAIR = [13.5, 13.4];
 
 // A face at k green, in tenths (so the colour mixes stay few).
 const qz = (skin, k) => queasy(skin, Math.round(k * 10) / 10);
@@ -76,11 +84,23 @@ function parasol(ctx, x, y, a, b) {
 const rest = (x, y, u, v) => [x + u, y + 0.1 + 0.4 * v, 0.42 + 0.68 * v];
 
 // A paper note on a lounger's back rest, with a word or two on it.
+// (Big and bold enough to read pinched in; a line break makes two lines.)
 function restNote(ctx, x, y, text, paper = C.white) {
-  face(ctx, [rest(x, y, 0.2, 0.3), rest(x, y, 0.8, 0.3), rest(x, y, 0.8, 0.85), rest(x, y, 0.2, 0.85)], paper, { lw: 0.02 });
+  face(ctx, [rest(x, y, 0.04, 0.18), rest(x, y, 0.96, 0.18), rest(x, y, 0.96, 0.95), rest(x, y, 0.04, 0.95)], paper, { lw: 0.02 });
   if (!Q.detail) return;
-  const [cx, cy, cz] = rest(x, y, 0.5, 0.58);
-  label(ctx, cx, cy, cz, text, 0.11, C.ink, 'Rethink Sans');
+  const lines = text.split('\n');
+  lines.forEach((line, i) => {
+    const [X, Y] = P(...rest(x, y, 0.5, 0.57 + (lines.length - 1) * 0.14 - i * 0.28));
+    ctx.save();
+    ctx.translate(X, Y);
+    ctx.scale(1 / 40, 1 / 40);
+    ctx.font = '700 6.4px "Rethink Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.ink;
+    ctx.fillText(line, 0, 0);
+    ctx.restore();
+  });
 }
 
 // A lounger, saved: towel, and whatever's been left to prove it.
@@ -219,11 +239,17 @@ export default {
         textFloor(ctx, PX1 - 1.8, PY1 + 0.23, 'ALSO 3 FT', 0.26);
         textFloor(ctx, (PX0 + PX1) / 2, PY0 - 0.23, 'NO DIVING. NO BOMBS. NO BUFFET PLATES.', 0.2);
       }
-      // The pool's inside: its two far walls and its floor.
+      // The pool's inside: its two far walls and its floor, seen through the
+      // opening only (sunk below the deck, they'd otherwise spill down the
+      // screen over the near coping).
+      ctx.save();
+      poolHole(ctx);
+      ctx.clip();
       face(ctx, [[PX0, PY0, 0], [PX0, PY1, 0], [PX0, PY1, BED], [PX0, PY0, BED]], tint(MAT.pool, 0.25), { dots: shade(MAT.pool, 0.25), density: 0.25 });
       face(ctx, [[PX0, PY0, 0], [PX1, PY0, 0], [PX1, PY0, BED], [PX0, PY0, BED]], tint(MAT.pool, 0.1), { dots: shade(MAT.pool, 0.25), density: 0.2 });
       rect(ctx, PX0, PY0, PX1 - PX0, PY1 - PY0, BED, MAT.pool, { stroke: false });
       for (const ly of [6.5, 8, 9.5]) face(ctx, [[PX0 + 0.8, ly, BED], [PX1 - 0.8, ly, BED]], null, { lw: 0.16, stroke: alpha(C.navy, 0.35) });
+      ctx.restore();
 
       // Shuffleboard, half worn off.
       if (Q.detail) {
@@ -245,17 +271,22 @@ export default {
         textFloor(ctx, 14.5, 3.2, 'B', 0.6, C.ink);
       }
 
-      // The sunbather's towel, on the floor: no loungers left.
-      rect(ctx, 2.2, 2.75, 2.5, 0.9, 0.01, INK.flamingo, { lw: 0.02, dots: C.white, density: 0.3 });
+      // The sunbather's towel, on the floor: no loungers left. (Laid the way
+      // she lies, across the screen, so she's on it head to toe.)
+      const [tx, ty] = SUNBATHER, u = [0.72, -0.72], v = [0.36, 0.36];
+      const c = [tx - 0.57, ty + 0.18];
+      face(ctx, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [c[0] + a * u[0] + b * v[0], c[1] + a * u[1] + b * v[1], 0.01]), INK.flamingo, { lw: 0.02, dots: C.white, density: 0.3 });
     });
 
     // The water: ripples drifting over it, and a pool noodle nobody claims.
     R.rug((ctx, t) => {
+      ctx.save();
+      poolHole(ctx);
+      ctx.clip();
       poly(ctx, [[PX0, PY0, WZ], [PX1, PY0, WZ], [PX1, PY1, WZ], [PX0, PY1, WZ]]);
       ctx.fillStyle = alpha(C.water, 0.78);
       ctx.fill();
-      if (!Q.detail) return;
-      ctx.save();
+      if (!Q.detail) { ctx.restore(); return; }
       ctx.clip();
       ctx.strokeStyle = alpha(C.white, 0.75);
       ctx.lineWidth = 0.07;
@@ -270,7 +301,6 @@ export default {
         }
         ctx.stroke();
       }
-      ctx.restore();
       // The noodle, drifting along the deep end (also 3 ft).
       const nx = 15.5 + Math.sin(t * 0.13) * 1.2, ny = 10.2 + Math.sin(t * 0.21) * 0.25;
       const [a, b] = P(nx - 0.9, ny + 0.2, WZ + 0.05), [c, d] = P(nx + 0.9, ny - 0.2, WZ + 0.05);
@@ -278,6 +308,7 @@ export default {
       ctx.lineCap = 'round';
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.28; ctx.stroke();
       ctx.strokeStyle = INK.flamingo; ctx.lineWidth = 0.2; ctx.stroke();
+      ctx.restore();
     }, { anim: true });
 
     // ---------- The far rail ----------
@@ -334,9 +365,9 @@ export default {
           const [I, J] = P(x + dx, 0.7, 3.45);
           ctx.beginPath(); ctx.moveTo(G, H); ctx.lineTo(I, J); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
         }
-        lifeboat(ctx, x, 0.1, 2.2, 4.5);
-        lettering(ctx, 'x', x + 2.25, 1.3, 2.6, name, 0.26);
-        lettering(ctx, 'x', x + 2.25, 1.3, 2.35, 'CAPACITY 40 (35 AFTER BUFFET)', 0.12);
+        lifeboat(ctx, x, 0.1, 2.2, 4.5, { rope: false });
+        lettering(ctx, 'x', x + 2.25, 1.16, 2.62, name, 0.26);
+        lettering(ctx, 'x', x + 2.25, 1.08, 2.4, 'CAPACITY 40 (35 AFTER BUFFET)', 0.12);
       });
     }
     // A gull on the second lifeboat, keeping watch.
@@ -501,9 +532,9 @@ export default {
       { towel: C.sky, stripe: C.white, hat: C.butter, flops: INK.sunYellow },
       { towel: INK.sunYellow, stripe: INK.funnelRed, note: 'MINE', animal: 'swan' },
       { towel: C.white, stripe: C.sky, book: INK.funnelRed, flops: C.coral },
-      { towel: INK.flamingo, stripe: INK.sunYellow, note: 'RESERVED 5AM', hat: C.white },
+      { towel: INK.flamingo, stripe: INK.sunYellow, note: 'RESERVED\n5AM', hat: C.white },
       { towel: C.sky, stripe: INK.sunYellow, animal: 'elephant', animalColor: C.white, book: C.teal },
-      { towel: INK.sunYellow, stripe: C.white, note: 'BACK IN 5', flops: C.navy },
+      { towel: INK.sunYellow, stripe: C.white, note: 'BACK\nIN 5', flops: C.navy },
       { towel: C.white, stripe: INK.flamingo, hat: C.butter, book: C.purple },
     ];
     LOUNGERS.forEach((x, i) => {
@@ -522,7 +553,7 @@ export default {
         ctx.fill();
         for (const k of [0.7, 1.5]) rect(ctx, x + 0.08, y + k, 0.84, 0.12, 0.475, tint(C.white, 0.2), { stroke: false });
       }
-      restNote(ctx, x, y, 'RESERVED DAY 1', tint(C.butter, 0.4));
+      restNote(ctx, x, y, 'RESERVED\nDAY 1', tint(C.butter, 0.4));
       if (Q.detail) {
         // Cobwebs, from the back rest to the frame.
         ctx.strokeStyle = alpha(C.white, 0.9);
@@ -553,29 +584,37 @@ export default {
       const [x, y] = IGUANA_LOUNGER;
       saved(ctx, x, y, { towel: C.white, stripe: INK.funnelRed });
     });
-    R.thing(24.4, 11.5, (ctx) => {
-      cylinder(ctx, 24.4, 11.5, 0, 0.05, 0.6, C.ink, { flat: true, stroke: false });
-      disc(ctx, 24.4, 11.5, 0.6, 0.32, C.white, { lw: 0.03 });
-      cocktail(ctx, 24.35, 11.5, 0.62);
+    // (Beside it in the row, not behind it on the walkway.)
+    R.thing(25.6, 12.9, (ctx) => {
+      cylinder(ctx, 25.6, 12.9, 0, 0.05, 0.6, C.ink, { flat: true, stroke: false });
+      disc(ctx, 25.6, 12.9, 0.6, 0.32, C.white, { lw: 0.03 });
+      cocktail(ctx, 25.55, 12.9, 0.62);
     });
     // Parasols between the loungers.
     for (const [x, a, b] of [[4.1, INK.flamingo, C.white], [7.3, INK.sunYellow, C.white], [29.3, INK.funnelRed, C.white]]) {
       R.thing(x, 12.3, (ctx) => parasol(ctx, x, 12.3, a, b));
     }
     // The sign that everyone read, and then saved a lounger anyway.
-    R.thing(1, 12.1, (ctx) => {
-      box(ctx, 0.95, 11.95, 0, 0.1, 0.1, 1.5, C.ink, { flat: true, stroke: false });
-      board(ctx, 'y', 1.05, 12, 1.9, 1.9, 0.8, '', { board: C.white });
-      lettering(ctx, 'y', 1.06, 12, 2.1, 'LOUNGERS MAY NOT', 0.18);
-      lettering(ctx, 'y', 1.06, 12, 1.85, 'BE RESERVED', 0.18);
-      lettering(ctx, 'y', 1.06, 12, 1.63, 'The Management', 0.12);
+    const [sx, sy] = [1.0, 12.0];
+    R.thing(sx, sy + 0.1, (ctx) => {
+      box(ctx, sx - 0.05, sy - 0.05, 0, 0.1, 0.1, 1.5, C.ink, { flat: true, stroke: false });
+      board(ctx, 'y', sx + 0.05, sy, 1.9, 1.9, 0.8, '', { board: C.white });
+      lettering(ctx, 'y', sx + 0.06, sy, 2.1, 'LOUNGERS MAY NOT', 0.18);
+      lettering(ctx, 'y', sx + 0.06, sy, 1.85, 'BE RESERVED', 0.18);
+      lettering(ctx, 'y', sx + 0.06, sy, 1.63, 'The Management', 0.12);
     });
     // Gloria's canvas chair for the afternoon (she's on the clock).
-    R.thing(13.8, 11.7, (ctx) => {
-      for (const [lx, ly] of [[13.5, 11.6], [14.4, 11.6], [13.5, 12.4], [14.4, 12.4]]) box(ctx, lx, ly, 0, 0.07, 0.07, 0.55, MAT.teakDark, { flat: true, stroke: false });
-      face(ctx, [[13.5, 11.6, 0.55], [14.5, 11.6, 0.55], [14.5, 12.45, 0.5], [13.5, 12.45, 0.5]], MAT.canvas, { lw: 0.03 });
-      face(ctx, [[13.5, 11.55, 0.55], [14.5, 11.55, 0.55], [14.5, 11.45, 1.4], [13.5, 11.45, 1.4]], INK.flamingo, { lw: 0.03 });
-    });
+    {
+      const dx = GLORIA_CHAIR[0] - 14, dy = GLORIA_CHAIR[1] - 12;
+      R.thing(13.8 + dx, 11.7 + dy, (ctx) => {
+        ctx.save();
+        ctx.translate(dx - dy, (dx + dy) / 2);
+        for (const [lx, ly] of [[13.5, 11.6], [14.4, 11.6], [13.5, 12.4], [14.4, 12.4]]) box(ctx, lx, ly, 0, 0.07, 0.07, 0.55, MAT.teakDark, { flat: true, stroke: false });
+        face(ctx, [[13.5, 11.6, 0.55], [14.5, 11.6, 0.55], [14.5, 12.45, 0.5], [13.5, 12.45, 0.5]], MAT.canvas, { lw: 0.03 });
+        face(ctx, [[13.5, 11.55, 0.55], [14.5, 11.55, 0.55], [14.5, 11.45, 1.4], [13.5, 11.45, 1.4]], INK.flamingo, { lw: 0.03 });
+        ctx.restore();
+      });
+    }
 
     // ---------- The hot tub ----------
     R.thing(TUB.x, TUB.y + 1.4, (ctx) => {
@@ -626,28 +665,31 @@ export default {
         }, 9);
       }
     }, { anim: true });
-    R.thing(31, 3.4, (ctx) => {
-      box(ctx, 30.95, 3.35, 0, 0.1, 0.1, 1.4, C.ink, { flat: true, stroke: false });
-      board(ctx, 'y', 31.05, 3.4, 1.75, 1.6, 0.75, '', { board: C.white });
-      lettering(ctx, 'y', 31.06, 3.4, 1.95, 'HOT TUB. MAX 6.', 0.17);
-      lettering(ctx, 'y', 31.06, 3.4, 1.7, 'PLEASE DO NOT', 0.15);
-      lettering(ctx, 'y', 31.06, 3.4, 1.5, 'SIMMER.', 0.15);
+    R.thing(31.3, 2.4, (ctx) => {
+      box(ctx, 31.25, 2.35, 0, 0.1, 0.1, 1.4, C.ink, { flat: true, stroke: false });
+      board(ctx, 'y', 31.35, 2.4, 1.75, 1.6, 0.75, '', { board: C.white });
+      lettering(ctx, 'y', 31.36, 2.4, 1.95, 'HOT TUB. MAX 6.', 0.17);
+      lettering(ctx, 'y', 31.36, 2.4, 1.7, 'PLEASE DO NOT', 0.15);
+      lettering(ctx, 'y', 31.36, 2.4, 1.5, 'SIMMER.', 0.15);
     });
 
     // The lifeguard, up on his chair, with one rule nobody keeps.
-    R.thing(29.5, 10.7, (ctx) => {
-      for (const [lx, ly] of [[29.1, 9.9], [29.8, 9.9], [29.1, 10.6], [29.8, 10.6]]) box(ctx, lx, ly, 0, 0.1, 0.1, 2.2, C.white, { flat: true, lw: 0.03 });
-      for (const z of [0.7, 1.4]) face(ctx, [[29.85, 9.9, z], [29.85, 10.7, z]], null, { lw: 0.05 });
-      box(ctx, 29.05, 9.85, 2.2, 0.9, 0.9, 0.12, INK.funnelRed);
-      box(ctx, 29.05, 9.85, 2.32, 0.12, 0.9, 0.9, INK.funnelRed);
+    // (At the pool's deep end, facing the water, clear of the walkway to
+    // the Bridge.)
+    const [gx, gy] = [26.05, 9.45];
+    R.thing(gx + 0.45, gy + 0.85, (ctx) => {
+      for (const [lx, ly] of [[gx + 0.05, gy + 0.05], [gx + 0.75, gy + 0.05], [gx + 0.05, gy + 0.75], [gx + 0.75, gy + 0.75]]) box(ctx, lx, ly, 0, 0.1, 0.1, 2.2, C.white, { flat: true, lw: 0.03 });
+      for (const z of [0.7, 1.4]) face(ctx, [[gx + 0.8, gy + 0.05, z], [gx + 0.8, gy + 0.85, z]], null, { lw: 0.05 });
+      box(ctx, gx, gy, 2.2, 0.9, 0.9, 0.12, INK.funnelRed);
+      box(ctx, gx + 0.78, gy, 2.32, 0.12, 0.9, 0.9, INK.funnelRed);
       // His rescue tube, hung on the leg.
-      face(ctx, [[29.9, 10.7, 0.2], [29.9, 10.7, 1.6]], null, { lw: 0.16, stroke: INK.funnelRed });
+      face(ctx, [[gx + 0.05, gy + 0.85, 0.2], [gx + 0.05, gy + 0.85, 1.6]], null, { lw: 0.16, stroke: INK.funnelRed });
     });
-    R.thing(29.7, 10.9, (ctx, t) => {
+    R.thing(gx + 0.65, gy + 1.05, (ctx, t) => {
       const w = wrap(t);
       const shout = pulse(w, 17, 4) > 0.8;
-      person(ctx, 29.5, 10.3, 1.6, { skin: SKIN[1], hair: HAIR[3], style: 'short', top: INK.funnelRed, bottom: INK.funnelRed, hat: 'sun', pose: shout ? 'point' : 'sit', dir: 'r' }, t);
-      if (shout && Q.detail) speech(ctx, 29.3, 10.1, 4.9, 'Towels are not people!', { size: 0.42 });
+      person(ctx, gx + 0.4, gy + 0.45, 1.6, { skin: SKIN[1], hair: HAIR[3], style: 'short', top: INK.funnelRed, bottom: INK.funnelRed, hat: 'sun', pose: shout ? 'point' : 'sit', dir: 'l' }, t);
+      if (shout && Q.detail) speech(ctx, gx + 0.25, gy + 0.25, 4.9, 'Towels are not people!', { size: 0.42 });
     }, { anim: true });
 
     // ---------- The pool ----------
@@ -692,16 +734,18 @@ export default {
 
     // ---------- People round the deck ----------
     // The towel warden: patrols the loungers, straightens every towel, never
-    // sits down. Not even on the iguana's.
-    const warden = route([[17.9, 11.8, 2.5], [21.1, 11.8, 2], [24.6, 11.6, 3], [27.7, 11.8, 2], [30.9, 11.8, 2.5]], { speed: 0.8, loop: false, offset: 4 });
+    // sits down. Not even on the iguana's. (Along their foot ends, off the
+    // walkway behind them.)
+    const warden = route([[18.0, 15.1, 2.5], [21.1, 15.1, 2], [24.5, 14.65, 3], [27.7, 15.1, 2], [30.9, 15.1, 2.5]], { speed: 0.8, loop: false, offset: 4 });
     const WARDEN = { skin: SKIN[5], hair: HAIR[4], style: 'curly', top: INK.flamingo, bottom: C.white, dress: true, hat: 'sun' };
     R.mover(warden, (ctx, t, p) => {
       const k = green(t, 132);
       person(ctx, p.x, p.y, 0, { ...WARDEN, skin: qz(WARDEN.skin, k), pose: p.moving ? 'walk' : 'point', dir: p.dir, back: false, speed: 5 }, t);
-      if (!p.moving && Q.detail) speech(ctx, p.x, p.y, 3, Math.abs(p.x - 24.6) < 0.3 ? 'That one is taken.' : 'Taken.', { size: 0.4 });
+      if (!p.moving && Q.detail) speech(ctx, p.x, p.y, 3, Math.abs(p.x - 24.5) < 0.3 ? 'That one is taken.' : 'Taken.', { size: 0.4 });
     });
-    // A waiter doing the rounds with a tray of Green Mermaids, the iguana's too.
-    const waiter = route([[25.3, 3.8, 2], [25.3, 8.4], [25.1, 11.4, 2.5], [21, 11.7, 1.5], [25.1, 11.7]], { speed: 1.1, offset: 7 });
+    // A waiter doing the rounds with a tray of Green Mermaids, from the bar
+    // to the iguana's side table and back.
+    const waiter = route([[25.3, 3.3, 2], [25.0, 4.4], [25.0, 8.4], [26.4, 12.7, 2.5]], { speed: 1.1, loop: false, offset: 7 });
     R.mover(waiter, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, {
         ...folk(95), ...CREW_LOOK, skin: SKIN[2], hair: HAIR[1], style: 'short',
@@ -716,7 +760,7 @@ export default {
       }, t);
     });
     // A kid in armbands with a water pistol, circling the hot tub.
-    const kid = orbit(TUB.x, TUB.y, 2.6, 2.6, 11, 0);
+    const kid = orbit(TUB.x, TUB.y, 2.85, 2.85, 11, 0); // (clear of the platform's corners)
     R.mover(kid, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, {
         ...folk(12), scale: 0.7, top: C.sky, bottom: C.coral, hat: 'cap', pose: 'run', dir: p.dir, back: p.back, speed: 12,
@@ -733,25 +777,30 @@ export default {
     }, { bias: 0.1 });
     // The sunbather who came up at 6 and found every lounger taken: on the
     // deck, on a towel, going pinker by the hour.
-    R.thing(3.4, 3.4, (ctx, t) => {
+    R.thing(SUNBATHER[0], SUNBATHER[1] + 0.2, (ctx, t) => {
+      const [sx, sy] = SUNBATHER;
       const k = clamp(wrap(t) / 200);
       const skin = mix(SKIN[5], C.coral, Math.round(k * 12) / 20);
-      person(ctx, 3.4, 3.2, 0.05, { skin, hair: HAIR[3], style: 'long', top: C.teal, bottom: C.teal, pose: 'lie', dir: 'r', arms: [2.8, 0.3] }, t);
+      person(ctx, sx, sy, 0.05, { skin, hair: HAIR[3], style: 'long', top: C.teal, bottom: C.teal, pose: 'lie', dir: 'r', arms: [2.8, 0.3] }, t);
       if (Q.detail) {
-        const [X, Y] = P(4.1, 3.3, 0.35);
-        ctx.fillStyle = C.ink; ctx.fillRect(X - 0.1, Y - 0.06, 0.2, 0.06);
+        // Her sunglasses, over her eyes (she's lying on her back, head left).
+        const [X, Y] = P(sx, sy, 0.05);
+        ctx.beginPath(); ctx.roundRect(X - 1.7, Y - 0.5, 0.15, 0.32, 0.05);
+        ctx.fillStyle = C.ink; ctx.fill();
       }
     }, { anim: true });
 
     // A deckhand mopping the same stretch of deck all day, round a wet floor
     // sign, with a bucket that is only for mopping. Probably.
-    R.thing(5.6, 5.5, (ctx) => {
-      face(ctx, [[5.3, 5.3, 0], [5.9, 5.3, 0], [5.6, 5.4, 0.9]], INK.sunYellow, { lw: 0.03 });
-      face(ctx, [[5.3, 5.5, 0], [5.9, 5.5, 0], [5.6, 5.4, 0.9]], shade(INK.sunYellow, 0.1), { lw: 0.03 });
-      lettering(ctx, 'x', 5.6, 5.52, 0.35, 'WET', 0.13);
-      bucket(ctx, 1.6, 5.9, 0, { color: C.sky });
+    // (Along the far rail, out of the way of everyone coming in from the
+    // Waterslide.)
+    R.thing(8.4, 1.5, (ctx) => {
+      face(ctx, [[8.1, 1.3, 0], [8.7, 1.3, 0], [8.4, 1.4, 0.9]], INK.sunYellow, { lw: 0.03 });
+      face(ctx, [[8.1, 1.5, 0], [8.7, 1.5, 0], [8.4, 1.4, 0.9]], shade(INK.sunYellow, 0.1), { lw: 0.03 });
+      lettering(ctx, 'x', 8.4, 1.52, 0.35, 'WET', 0.13);
     });
-    const mop = route([[2.4, 6.1, 1.5], [9.4, 6.1, 1]], { speed: 0.6, loop: false, offset: 11 });
+    R.thing(10.85, 1.8, (ctx) => bucket(ctx, 10.85, 1.75, 0, { color: C.sky }));
+    const mop = route([[6.6, 2.1, 1.5], [10.1, 2.1, 1]], { speed: 0.6, loop: false, offset: 11 });
     R.mover(mop, (ctx, t, p) => {
       const sw = p.moving ? Math.sin(t * 5) * 0.35 : 0;
       person(ctx, p.x, p.y, 0, {
@@ -776,10 +825,13 @@ export default {
       const x = x0 + Math.sign(x1 - x0) * s * speed;
       return { x, y, dir: x1 > x0 ? 'r' : 'l', a: edgeFade(x) };
     };
+    // (They pass in front of the loungers, the one stretch of deck nobody
+    // else walks: behind the pool Chad and his steward have the bar, and the
+    // walkway in front of it runs through Gloria's chair.)
     const drill = [
-      { at: drift(56, -0.6, 32.6, 4.7, 1.0), seed: 101, pose: 'read', look: { hat: 'sun' } },
-      { at: drift(60, 32.6, -0.6, 12.05, 1.1), seed: 107, pose: 'walk', plate: true },
-      { at: drift(70, 32.6, -0.6, 4.2, 1.1), seed: 113, pose: 'dance', look: { style: 'pony' }, phones: true },
+      { at: drift(56, -0.6, 32.6, 15.65, 1.0), seed: 101, pose: 'read', look: { hat: 'sun' } },
+      { at: drift(63, -0.6, 32.6, 15.65, 1.1), seed: 107, pose: 'walk', plate: true },
+      { at: drift(71, -0.6, 32.6, 15.65, 1.1), seed: 113, pose: 'dance', look: { style: 'pony' }, phones: true },
     ];
     for (const d of drill) {
       const look = { ...folk(d.seed), ...(d.look || {}) };
@@ -799,13 +851,23 @@ export default {
         ctx.restore();
       });
     }
+    // He lies down at the edge of the muster box, off the path behind the
+    // pool (and dozes off before Kelly's even started).
+    const NAP = [[-0.6, 4.4], [12.2, 4.4], [12.9, 3.1]];
+    const napLen = Math.hypot(12.8, 0) + Math.hypot(0.7, 1.3);
+    const napAt = (s) => {
+      const k = Math.min(s, 12.8);
+      if (s <= 12.8) return [NAP[0][0] + k, 4.4, 'r'];
+      const u = (s - 12.8) / (napLen - 12.8);
+      return [12.2 + 0.7 * u, 4.4 - 1.3 * u, 'r'];
+    };
     const sleeper = (t) => {
-      const w = wrap(t);
-      if (w < 50 || w > 101) return { x: 0, y: 4.4, hidden: true };
-      if (w < 58) { const x = -0.6 + (w - 50) * 1.3; return { x, y: 4.4, dir: 'r', pose: 'walk', a: edgeFade(x) }; }
-      if (w < 93) return { x: 9.8, y: 4.4, dir: 'r', pose: 'sleep', a: 1 };
-      const x = 9.8 - (w - 93) * 1.3;
-      return { x, y: 4.4, dir: 'l', pose: 'walk', a: edgeFade(x) };
+      const w = wrap(t), sp = 1.3, go = napLen / sp;
+      if (w < 50 || w > 88 + go) return { x: 0, y: 4.4, hidden: true };
+      if (w < 50 + go) { const [x, y, dir] = napAt((w - 50) * sp); return { x, y, dir, pose: 'walk', a: edgeFade(x) }; }
+      if (w < 88) return { x: 12.9, y: 3.1, dir: 'l', pose: 'sleep', a: 1 };
+      const [x, y] = napAt(napLen - (w - 88) * sp);
+      return { x, y, dir: 'l', pose: 'walk', a: edgeFade(x) };
     };
     const SLEEPY = folk(119, { top: C.purple, style: 'bald' });
     R.mover(sleeper, (ctx, t, p) => {
@@ -821,7 +883,8 @@ export default {
     const gooseAt = (t) => {
       const w = wrap(t);
       const drillOn = w > 60 && w < 90;
-      return { x: 15.5, y: 2.6, z: 0, dir: 'r', pose: drillOn && pulse(w, 5) < 0.14 ? 'honk' : 'stand' };
+      // (At the back of the box: Kelly walks the front of it at 11.)
+      return { x: 15.4, y: 2.1, z: 0, dir: 'r', pose: drillOn && pulse(w, 5) < 0.14 ? 'honk' : 'stand' };
     };
     R.goose(gooseAt, { dir: 'r' });
     R.mover(gooseAt, (ctx, t, p) => {
@@ -875,23 +938,27 @@ export default {
       }
     }, { anim: true });
     // The boombox and its notes, at noon.
-    R.thing(10.4, 10.4, (ctx, t) => {
-      box(ctx, 9.9, 10.1, 0, 0.9, 0.35, 0.5, C.navy, { flat: true, lw: 0.03 });
+    // (Off every path across this end of the deck: Kelly's, the iguana's,
+    // Pidge's, and the way in from the Waterslide.)
+    R.thing(8.45, 5.95, (ctx, t) => {
+      box(ctx, 8.0, 5.6, 0, 0.9, 0.35, 0.5, C.navy, { flat: true, lw: 0.03 });
       for (const dx of [0.2, 0.7]) {
-        const [X, Y] = P(9.9 + dx, 10.45, 0.25);
+        const [X, Y] = P(8.0 + dx, 5.95, 0.25);
         ctx.beginPath(); ctx.ellipse(X, Y, 0.14, 0.14, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
       }
       const w = wrap(t);
       if (w < 96 || w > 134 || !Q.detail) return;
-      particles(t, 3, 2.2, (k, r) => note(ctx, 10.3 + k * 0.6 - r() * 0.5, 10.3 - k * 0.8, 0.8 + k * 1.6, alpha(C.ink, 1 - k), 0.8), 3);
+      particles(t, 3, 2.2, (k, r) => note(ctx, 8.4 + k * 0.6 - r() * 0.5, 5.8 - k * 0.8, 0.8 + k * 1.6, alpha(C.ink, 1 - k), 0.8), 3);
     }, { anim: true });
     // The chalkboard, and the prize.
-    R.thing(3.6, 6.7, (ctx) => {
-      face(ctx, [[3.5, 5.6, 0], [3.5, 5.6, 1.6], [3.5, 6.6, 1.6], [3.5, 6.6, 0]], C.ink, { lw: 0.05 });
-      face(ctx, [[3.52, 5.7, 0.5], [3.52, 5.7, 1.5], [3.52, 6.5, 1.5], [3.52, 6.5, 0.5]], C.navy, { stroke: false });
-      lettering(ctx, 'y', 3.54, 6.1, 1.28, 'LIMBO AT NOON', 0.13, C.white);
-      lettering(ctx, 'y', 3.54, 6.1, 1.05, 'PRIZE:', 0.12, INK.sunYellow);
-      lettering(ctx, 'y', 3.54, 6.1, 0.85, 'A LOUNGER', 0.13, INK.sunYellow);
+    // (Hung on the far rail: anywhere on the deck it stood in front of
+    // somebody, or in their way.)
+    R.decor((ctx) => {
+      face(ctx, [[8.65, 0.05, 0.1], [10.35, 0.05, 0.1], [10.35, 0.05, 1.12], [8.65, 0.05, 1.12]], C.ink, { lw: 0.05 });
+      face(ctx, [[8.75, 0.06, 0.18], [10.25, 0.06, 0.18], [10.25, 0.06, 1.04], [8.75, 0.06, 1.04]], C.navy, { stroke: false });
+      lettering(ctx, 'x', 9.5, 0.07, 0.84, 'LIMBO AT NOON', 0.17, C.white);
+      lettering(ctx, 'x', 9.5, 0.07, 0.56, 'PRIZE: A LOUNGER', 0.15, INK.sunYellow);
+      lettering(ctx, 'x', 9.5, 0.07, 0.33, '(ANY LOUNGER)', 0.11, INK.sunYellow);
     });
     // The contestants: in from the waterslide, queue, lean, fail, watch.
     const LIMBOS = [
@@ -902,8 +969,9 @@ export default {
     ];
     LIMBOS.forEach((c, i) => {
       const look = { ...folk(c.seed), ...c.look };
-      const spot = [10.8, 4.8 + i * 0.9];
-      const q = (idx) => 6.6 - 1.1 * idx;
+      // (Watching from behind the pool's end, clear of the stands and Pidge.)
+      const spot = [[10.8, 3.5], [10.8, 4.2], [10.8, 4.9], [10.0, 4.55]][i];
+      const q = (idx) => 6.6 + LX - 1.1 * idx;
       const pos = (t) => {
         const w = wrap(t);
         if (w < 96 + i * 0.8 || w > 140) return { hidden: true, x: 0, y: LIMBO.lane };
@@ -920,12 +988,12 @@ export default {
         }
         const s = w - S;
         const made = i === 0;
-        if (s < 0.8) return { x: q(0) + (7.4 - q(0)) * (s / 0.8), y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.3 * (s / 0.8) };
-        if (s < 2.8) { const k = (s - 0.8) / 2; return { x: 7.4 + 1.2 * k, y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.3 + (made ? 0.55 : 0.8) * k, slow: true }; }
-        if (made && s < 4.2) { const k = (s - 2.8) / 1.4; return { x: 8.6 + 1.1 * k, y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.85 * (1 - k), slow: true }; }
-        if (!made && s < 5.2) return { x: 8.9, y: LIMBO.lane + 0.2, dir: 'r', pose: 'lie' };
+        if (s < 0.8) return { x: q(0) + (7.4 + LX - q(0)) * (s / 0.8), y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.3 * (s / 0.8) };
+        if (s < 2.8) { const k = (s - 0.8) / 2; return { x: 7.4 + LX + 1.2 * k, y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.3 + (made ? 0.55 : 0.8) * k, slow: true }; }
+        if (made && s < 4.2) { const k = (s - 2.8) / 1.4; return { x: 8.6 + LX + 1.1 * k, y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.85 * (1 - k), slow: true }; }
+        if (!made && s < 5.2) return { x: 8.9 + LX, y: LIMBO.lane + 0.2, dir: 'r', pose: 'lie' };
         // To the spectators, then back out at 1pm.
-        const from = made ? [9.7, LIMBO.lane] : [8.9, LIMBO.lane + 0.2];
+        const from = made ? [9.7 + LX, LIMBO.lane] : [8.9 + LX, LIMBO.lane + 0.2];
         const t0 = S + (made ? 4.2 : 5.2);
         const k = clamp((w - t0) / 1.6);
         if (w < 133) return { x: from[0] + (spot[0] - from[0]) * k, y: from[1] + (spot[1] - from[1]) * k, dir: k < 1 ? 'r' : 'l', pose: k < 1 ? 'walk' : (made ? 'cheer' : 'stand') };
@@ -945,7 +1013,7 @@ export default {
     // The last round: the bar at knee height, and a gull strolls under it.
     R.mover((t) => {
       const w = wrap(t), k = (w - 130) / 4;
-      return k < 0 || k > 1 ? { hidden: true, x: 7, y: 8.2 } : { x: 7 + k * 3.2, y: 8.2 };
+      return k < 0 || k > 1 ? { hidden: true, x: 7 + LX, y: 7.7 } : { x: 7 + LX + k * 3.2, y: 7.7 };
     }, (ctx, t, p) => { if (!p.hidden) gull(ctx, p.x, p.y, 0, t, { dir: 'r', scale: 0.9 }); });
 
     // A gull overhead, circling the pool for chips.
@@ -958,6 +1026,11 @@ export default {
     R.find({ id: 'bar-tab', label: "Chad's bar tab", at: [22.5, 2.6, 1.1], r: 0.8 });
   },
 };
+
+// The pool's opening in the deck, as a path (to see its inside through).
+function poolHole(ctx) {
+  poly(ctx, [[PX0, PY0, 0], [PX1, PY0, 0], [PX1, PY1, 0], [PX0, PY1, 0]]);
+}
 
 // Text painted flat on the deck, centred on (x, y).
 function textFloor(ctx, x, y, text, size, color = alpha(C.navy, 0.75)) {

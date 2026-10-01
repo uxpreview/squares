@@ -476,17 +476,43 @@ function stool(ctx, x, y) {
 
 // ---------- Laundry carts ----------
 function cart(ctx, x, y, towels, fancy) {
-  // a canvas bin on a steel frame, on castors, heaped with towels
-  for (const [cx, cy] of [[x + 0.15, y + 0.15], [x + 1.85, y + 0.15], [x + 0.15, y + 1.25], [x + 1.85, y + 1.25]]) disc(ctx, cx, cy, 0.05, 0.1, C.ink, { stroke: false });
-  box(ctx, x, y, 0.12, 2, 1.4, 0.95, MAT.canvas, { dotsL: shade(MAT.canvas, 0.35), dens: 0.2 });
-  lettering(ctx, 'x', x + 1, y + 1.41, 0.6, 'LAUNDRY', 0.18, MAT.crewBlue);
-  lettering(ctx, 'x', x + 1, y + 1.41, 0.36, 'NOT A SEAT', 0.1, INK.funnelRed);
+  // A canvas bin slung in a steel frame, on castors, with a push handle at the
+  // stern end, heaped with towels. (Pinched in, a plain box read as greybox.)
+  const x2 = x + 2, y2 = y + 1.4;
+  // castors: a fork and a wheel under each corner
+  for (const [cx, cy] of [[x + 0.15, y + 0.15], [x2 - 0.15, y + 0.15], [x + 0.15, y2 - 0.15], [x2 - 0.15, y2 - 0.15]]) {
+    box(ctx, cx - 0.04, cy - 0.04, 0.08, 0.08, 0.08, 0.1, STEEL, { flat: true, lw: 0.015 });
+    const [X, Y] = P(cx, cy, 0.07);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.06, 0.08, 0, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+  }
+  // the frame's bottom rail, then the canvas bin
+  box(ctx, x - 0.04, y - 0.04, 0.16, 2.08, 1.48, 0.05, STEEL, { flat: true, lw: 0.02 });
+  box(ctx, x + 0.04, y + 0.04, 0.21, 1.92, 1.32, 0.84, MAT.canvas, { dotsL: shade(MAT.canvas, 0.35), dens: 0.2 });
+  if (Q.detail) {
+    // seams down the canvas
+    ctx.strokeStyle = shade(MAT.canvas, 0.3); ctx.lineWidth = 0.015;
+    ctx.beginPath();
+    for (const u of [0.5, 1.5]) { const [A, B] = P(x + u, y2 - 0.04, 0.25), [E, F] = P(x + u, y2 - 0.04, 1.0); ctx.moveTo(A, B); ctx.lineTo(E, F); }
+    ctx.stroke();
+  }
+  lettering(ctx, 'x', x + 0.95, y2 - 0.03, 0.66, 'LAUNDRY', 0.18, MAT.crewBlue);
+  lettering(ctx, 'x', x + 0.95, y2 - 0.03, 0.42, 'NOT A SEAT', 0.1, INK.funnelRed);
+  // the frame: corner posts and the top rim
+  for (const [px, py] of [[x - 0.04, y2 - 0.04], [x2 - 0.04, y2 - 0.04], [x2 - 0.04, y - 0.04]]) box(ctx, px, py, 0.16, 0.08, 0.08, 0.95, STEEL, { flat: true, lw: 0.015 });
   box(ctx, x - 0.04, y - 0.04, 1.05, 2.08, 1.48, 0.06, STEEL, { flat: true, lw: 0.03 });
-  for (let k = 0; k < 5; k++) {
-    const [X, Y] = P(x + 0.3 + (k % 3) * 0.7, y + 0.35 + Math.floor(k / 3) * 0.6, 1.08);
-    ctx.beginPath(); ctx.ellipse(X, Y - 0.05, 0.42, 0.18, 0.2 * (k % 2 ? 1 : -1), Math.PI, 0); ctx.closePath();
+  // the towels, heaped over the rim, and one hanging down the front
+  for (let k = 0; k < 7; k++) {
+    const [X, Y] = P(x + 0.3 + (k % 3) * 0.7 + (k > 4 ? 0.35 : 0), y + 0.3 + Math.floor(k / 3) * 0.42, 1.08 + (k > 2 && k < 5 ? 0.08 : 0));
+    ctx.beginPath(); ctx.ellipse(X, Y - 0.05, 0.42, 0.22, 0.2 * (k % 2 ? 1 : -1), Math.PI, 0); ctx.closePath();
     paint(ctx, towels[k % towels.length], { lw: 0.02 });
   }
+  const hang = towels[1];
+  face(ctx, [[x + 1.5, y2 + 0.01, 1.1], [x + 1.86, y2 + 0.01, 1.1], [x + 1.86, y2 + 0.01, 0.72], [x + 1.5, y2 + 0.01, 0.76]], hang, { lw: 0.02 });
+  if (Q.detail) face(ctx, [[x + 1.5, y2 + 0.015, 0.86], [x + 1.86, y2 + 0.015, 0.84]], null, { lw: 0.03, stroke: shade(hang, 0.25) });
+  // the push handle, up off the stern end (the sleeper's head is at the other)
+  for (const py of [y + 0.2, y2 - 0.2]) box(ctx, x - 0.08, py - 0.03, 1.08, 0.06, 0.06, 0.45, STEEL, { flat: true, lw: 0.015 });
+  face(ctx, [[x - 0.05, y + 0.2, 1.53], [x - 0.05, y2 - 0.2, 1.53]], null, { lw: 0.1, stroke: C.ink });
+  face(ctx, [[x - 0.05, y + 0.2, 1.53], [x - 0.05, y2 - 0.2, 1.53]], null, { lw: 0.06, stroke: CHROME });
   if (fancy) {
     // the towel animals nobody upstairs wanted
     towelAnimal(ctx, x + 0.5, y + 0.6, 1.15, 'swan');
@@ -679,7 +705,8 @@ export default {
 
     // ---------- The mess ----------
     R.thing(29, 0.8, messBench, { depth: 20 });
-    R.thing(29, 2.2, messTable, { depth: 31 });
+    // (Sorted after the bench and everyone on it: at 31 the end eater was drawn over the table.)
+    R.thing(29, 2.2, messTable, { depth: 33 });
 
     // ---------- The bar ----------
     R.thing(6, 7.2, backBar);
@@ -789,26 +816,26 @@ export default {
     }, { scale: 1.08 });
     // Breakfast in the mess, then lunch, then more fish fingers.
     const eat = (off) => (t) => [0.9 + Math.max(0, Math.sin(t * 2.4 + off)) * 1.3, 0.4];
-    crew(R, 203, { ...WHITES }, (t) => ({ x: 27.6, y: 0.75, pose: 'sit', dir: 'l', arms: eat(0)(t) }));
-    crew(R, 204, { ...GALLEY }, (t) => ({ x: 30.3, y: 0.75, pose: 'sit', dir: 'l', arms: eat(2)(t) }));
+    crew(R, 203, { ...WHITES }, (t) => ({ x: 27.6, y: 0.75, z: -0.2, pose: 'sit', dir: 'l', arms: eat(0)(t) }));
+    crew(R, 204, { ...GALLEY }, (t) => ({ x: 30.3, y: 0.75, z: -0.2, pose: 'sit', dir: 'l', arms: eat(2)(t) }));
     crew(R, 205, { ...NAVY, style: 'pony' }, (t) => {
       const s = wrap(t);
       if (s < at(12)) return { hide: true, x: 29, y: 0.75 };
-      return { x: 29, y: 0.75, pose: 'sit', dir: 'l', arms: eat(4)(t) };
+      return { x: 29, y: 0.75, z: -0.2, pose: 'sit', dir: 'l', arms: eat(4)(t) };
     }, { wear: bib });
     // On the first laundry cart: asleep on the towels (night shift), up at
     // eleven with a paperback, dancing on it at three.
     crew(R, 206, { ...WHITES, style: 'curly' }, (t) => {
       const s = wrap(t);
       if (s < at(11)) return { x: 13, y: 12.6, z: 1.15, pose: 'sleep', dir: 'l', ahead: 1 };
-      if (s < PARTY + 2) return { x: 13, y: 12.9, z: 0.55, pose: 'read', dir: 'l', ahead: 1, hold: book };
+      if (s < PARTY + 2) return { x: 13, y: 12.9, z: 0.45, pose: 'sit', dir: 'l', ahead: 1, arms: [1.0, 0.9], hold: book };
       return { x: 13, y: 12.8, z: 1.1, pose: 'dance', dir: 'l', ahead: 1 };
     });
     // On the second: sits from half past eleven, dances on it from three.
     crew(R, 207, { ...NAVY }, (t) => {
       const s = wrap(t);
       if (s < at(11.5)) return { hide: true, x: 17.4, y: 13.2 };
-      if (s < PARTY + 3) return { x: 17.3, y: 13.3, z: 0.55, pose: 'sit', dir: 'r', ahead: 1, arms: [0.6 + Math.max(0, Math.sin(t * 2)) * 1.2, 0.5], hold: canHold };
+      if (s < PARTY + 3) return { x: 17.3, y: 13.3, z: 0.45, pose: 'sit', dir: 'r', ahead: 1, arms: [0.6 + Math.max(0, Math.sin(t * 2)) * 1.2, 0.5], hold: canHold };
       return { x: 17.4, y: 13.1, z: 1.1, pose: 'cheer', dir: 'r', ahead: 1 };
     }, { wear: bib });
     // Darts, from nine, a throw every 2.6 seconds.
@@ -816,8 +843,8 @@ export default {
       x: 3.1, y: 13.7, dir: 'l', back: true, arms: (t) => { const k = pulse(t, 2.6); return k < 0.4 ? [2.4 + k, 0.2] : k < 0.58 ? [1.4, 0.2] : [0.6, 0.2]; },
     }), { wear: bib });
     // Two at the bar: from half past nine, and eleven.
-    crew(R, 209, { ...WHITES, style: 'long' }, arrive(at(9.5), [[2.2, 11.8], [4.1, 11.9]], { x: 4.1, y: 11.2, z: 0.25, pose: 'sit', dir: 'r', back: true }));
-    crew(R, 210, { ...GALLEY }, arrive(at(11), [[2.2, 11.8], [7.2, 11.9]], { x: 7.2, y: 11.2, z: 0.25, pose: 'sit', dir: 'l', back: true, arms: [1.6, 0.3], hold: canHold }));
+    crew(R, 209, { ...WHITES, style: 'long' }, arrive(at(9.5), [[2.2, 11.8], [4.1, 11.9]], { x: 4.1, y: 11.2, z: 0.25, pose: 'sit', dir: 'r', back: true, ahead: 0.05 }));
+    crew(R, 210, { ...GALLEY }, arrive(at(11), [[2.2, 11.8], [7.2, 11.9]], { x: 7.2, y: 11.2, z: 0.25, pose: 'sit', dir: 'l', back: true, arms: [1.6, 0.3], hold: canHold, ahead: 0.05 }));
     // The karaoke: one singer from nine, a duet from three.
     const SING = (t) => [2.4, Math.PI - 0.6 + Math.sin(t * 3) * 0.5];
     crew(R, 211, { ...WHITES, style: 'bun' }, arrive(at(9), [[9.8, 5.8], [22, 8], [28.2, 12.3], [27, 10.6]], {
@@ -839,7 +866,7 @@ export default {
       for (let k = 0; k < 5; k++) box(ctx, 7.2 + (k % 3) * 0.15, 13.95 + Math.floor(k / 3) * 0.2, 0.77 + Math.floor(k / 3) * 0.04, 0.3, 0.08, 0.05, C.mustard, { flat: true, lw: 0.012 });
       for (const [x, y] of [[7.9, 14.4], [7.7, 14.6]]) rect(ctx, x, y, 0.16, 0.24, 0.77, C.white, { lw: 0.012 });
     });
-    for (const [x, y] of [[6.3, 14.2], [8.7, 14.4], [7.6, 15.3]]) R.thing(x, y + 0.2, (ctx) => box(ctx, x - 0.3, y - 0.25, 0, 0.6, 0.5, 0.45, C.woodLight, { flat: true, lw: 0.02, top: shade(C.wood, 0.2) }), { depth: x + y - 0.3 });
+    for (const [x, y] of [[6.3, 14.2], [8.7, 14.4], [8.2, 15.2]]) R.thing(x, y + 0.2, (ctx) => box(ctx, x - 0.3, y - 0.25, 0, 0.6, 0.5, 0.45, C.woodLight, { flat: true, lw: 0.02, top: shade(C.wood, 0.2) }), { depth: x + y - 0.3 });
     const cards = (ctx) => {
       for (let k = 0; k < 4; k++) {
         ctx.save(); ctx.translate(0.3, -0.3); ctx.rotate(-0.5 + k * 0.3);
@@ -849,7 +876,7 @@ export default {
     };
     crew(R, 216, { ...NAVY, style: 'short' }, arrive(at(10), [[2.5, 12.8], [5.6, 13.3]], { x: 6.3, y: 14.2, z: -0.2, pose: 'sit', dir: 'r', hold: cards, arms: [1.2, 0.8] }), { wear: bib });
     crew(R, 217, { ...WHITES, style: 'bald' }, arrive(at(10.5), [[2.5, 12.8], [9.4, 13.3]], { x: 8.7, y: 14.4, z: -0.2, pose: 'sit', dir: 'l', hold: cards, arms: [1.2, 0.8] }));
-    crew(R, 218, { ...GALLEY }, arrive(at(13), [[2.5, 12.8], [5.6, 15.8]], { x: 7.6, y: 15.3, z: -0.2, pose: 'sit', dir: 'r', back: true, arms: (t) => [1.1 + Math.max(0, Math.sin(t * 1.3)) * 0.6, 0.6] }));
+    crew(R, 218, { ...GALLEY }, arrive(at(13), [[2.5, 12.8], [5.6, 15.8]], { x: 8.2, y: 15.2, z: -0.2, pose: 'sit', dir: 'r', back: true, arms: (t) => [1.1 + Math.max(0, Math.sin(t * 1.3)) * 0.6, 0.6] }));
 
     // Ping pong, from noon: a table, a net, a ball going back and forth.
     R.thing(22.5, 14.2, (ctx) => {
@@ -880,7 +907,7 @@ export default {
       if (Q.detail) for (let k = 0; k < 3; k++) lettering(ctx, 'x', 28.15 + k * 1.05, 14.91, 0.28, 'LIFE JACKET', 0.07, C.ink);
     }, { depth: 29.2 + 14.3 });
     crew(R, 221, { style: 'long', dress: false, hat: 'none' }, arrive(at(13), [[9.8, 5.8], [26.8, 13.4]], { x: 28.4, y: 14.7, z: -0.1, pose: 'sit', dir: 'l', arms: [1.3, 0.5], hold: canHold, ahead: 0.6 }));
-    crew(R, 222, { ...WHITES }, arrive(at(14.2), [[9.8, 5.8], [26.8, 13.4]], { x: 30.2, y: 14.7, z: 0.7, pose: 'sleep', dir: 'l', ahead: 0.6 }));
+    crew(R, 222, { ...WHITES }, arrive(at(14.2), [[9.8, 5.8], [26.8, 13.4], [29.9, 13.5]], { x: 29.9, y: 14.7, z: 0.7, pose: 'sleep', dir: 'l', ahead: 0.6 }));
 
     // Three o'clock: the off-shift crew, a conga, straight in through the door.
     conga(R);
@@ -930,7 +957,7 @@ function conga(R) {
   LOOKS.forEach(([look, wear], i) => {
     crew(R, 230 + i, look, (t) => {
       const s = wrap(t);
-      const d = (s - t0) * v - i * 0.95;
+      const d = (s - t0) * v - i * 1.15;
       if (s < t0 || d < 0 || d > p.L) return { hide: true, x: -5, y: DOOR_Y };
       const w = p.at(d);
       if (w.x < 0) return { hide: true, x: w.x, y: w.y };
