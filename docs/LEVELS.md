@@ -111,6 +111,7 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Needs:** Terrain.
 
 ### The Block, But Wrong (alternate universe)
+**Dropped (Oct 2026): it doesn't appeal to the owner.**
 - **Spin:** the Block's 16 rooms in a parallel universe. Same layout, everything inverted: the laundromat washes people, the aquarium's fish watch humans in tanks, the library shushes you, the pool is full of jelly. Tap a button to flip between the two Blocks and spot what changed.
 - **Alive:** everything the Block has, wrong.
 - **Shape:** the Block's plate, reused.

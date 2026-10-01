@@ -27,7 +27,7 @@ And for a game that adds levels often: **each level should be cheaper to make th
 - **Places:** The Block Party (the Block, connected: sixteen rooms on streets through a day; it replaced the flat Block under its id, `block`), Gooseworth Manor (a whodunit at night, three floors), Plum Island (a barrier island on a tide, the first place with ground and water), Moving Day (South Boston: houses you step into, the first Boston place) and All-You-Can-Eat (a whodunit on a cruise ship's four decks). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next level:** The Block, But Wrong ([LEVELS.md](LEVELS.md)), one session a step.
+- **Next:** a strategy session before any new level (the prompt: [prompts/strategy.md](prompts/strategy.md)): how the game grows, difficulty, variety, the mystery format, a v2 round, and the name (building on [NAMING.md](NAMING.md)).
 
 ## Engine work
 
@@ -179,7 +179,8 @@ Each is one PR. Order can change; dependencies can't.
   - **Checks:** `npm run qa -- cruise` passes but for cloud speed (the Pool read 66; back to back with the code before, it's unchanged; Adults Only is about 7 ms slower, under budget); `npm run smoke` passes. On the owner's laptop: `npm run qa -- cruise` and `node tools/fps.mjs cruise`.
   - **Gate 3, both levels:** the owner took every recommendation. Moving Day and All-You-Can-Eat ship to the picker (after Plum Island, in that order); the ship's horn is its own sound now (`shiphorn`), about 6 dB under a honk. The smoke test and quick QA pass with both in the picker.
   - **The tools in the cloud:** this box's Chromium is a different build from the pinned Playwright's; a folder of links named for the pinned build (`PLAYWRIGHT_BROWSERS_PATH`) runs them. Nothing in the repo changed for it.
-- [ ] **8. The Block, But Wrong.** The Block Party's layout, flipped; proves the pipeline can turn a level around fast. Also a flip mechanic. *(Moved after the cruise ship, the owner's call, Sept 2026.)*
+- [ ] **8. Strategy.** How the game grows from five places: difficulty (everything is easy to find), variety (every level is the same loop), the mystery format back to the Manor alone, making the five great and a v2 round, and the name (NAMING.md recommends Goose at Large). No code; a strategy, a rewritten roadmap and the next session. Prompt: [prompts/strategy.md](prompts/strategy.md). *(The owner, Oct 2026.)*
+- ~~**The Block, But Wrong.**~~ Dropped: it doesn't appeal to the owner.
 - [ ] **9. La Dolce Riviera.** The first outdoor showpiece.
 - [ ] **10. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
 - [ ] **11. The campaign and onboarding (G1, G2, G4).**
@@ -203,6 +204,7 @@ Open, for the owner:
 
 Made:
 
+- **The Block, But Wrong is dropped,** and a strategy session comes before any new level: the owner worries the loop is repetitive, everything is too easy to find, the mystery should be the Manor's alone, and the name may not fit. *(7b, the owner)*
 - **Moving Day and All-You-Can-Eat ship** (gate 3, every recommendation taken): in the picker after Plum Island, Moving Day then the ship; the ship gets its own horn coming into port; the density pass waits for the owner to find a stretch empty. *(7b, the owner, southie.md 52 to 56, cruise.md 41 to 47)*
 
 - **One level at a time, one step of it per session.** Building two levels side by side, each brief to art in one PR, made both slow and both reached gate 3 needing more work. A session is one PR with one goal and stops at a gate; the next level starts when the last ships. *(6b, the owner)*
