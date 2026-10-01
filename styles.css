@@ -44,6 +44,11 @@ html, body {
   font-family: var(--body);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  /* Lists still scroll, but a pinch never zooms the page itself: started
+     with a finger on a button or the list, Safari zoomed the whole page, and
+     every pinch after that went to the map, so it couldn't be zoomed back
+     out without a reload. The map has its own zoom. */
+  touch-action: pan-x pan-y;
 }
 
 #map {
@@ -1098,7 +1103,7 @@ button.group-head:active { transform: none; }
   border-radius: 0;
   box-shadow: -3px 0 0 rgba(37, 45, 82, 0.1);
 }
-.tray[data-dock="right"] .tray-head { padding: 16px 14px 12px 20px; border-bottom: 2px solid #E4D7BE; touch-action: auto; }
+.tray[data-dock="right"] .tray-head { padding: 16px 14px 12px 20px; border-bottom: 2px solid #E4D7BE; touch-action: pan-x pan-y; }
 .tray[data-dock="right"] .tray-grip,
 .tray[data-dock="right"] #tray-more,
 .tray[data-dock="right"] .chips { display: none; }

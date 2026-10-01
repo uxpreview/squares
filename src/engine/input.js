@@ -39,7 +39,14 @@ export function attachInput(canvas, camera, on) {
 
   canvas.addEventListener('pointerdown', (e) => {
     if (!enabled) return;
-    canvas.setPointerCapture(e.pointerId);
+    // A new touch with no other finger down starts afresh: a finger whose
+    // lift was never reported (a system gesture, a lost capture) would
+    // otherwise still count, and the next drag would pinch against it.
+    if (e.isPrimary) { pointers.clear(); drag = pinch = null; }
+    // (A third finger is ignored: a pinch is two.)
+    if (pointers.size >= 2) return;
+    // (Capture can fail for a pointer the browser has already let go of.)
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* still tracked */ }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     glide = null;
     spring = false;
@@ -108,6 +115,7 @@ export function attachInput(canvas, camera, on) {
   }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('lostpointercapture', endPointer);
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
