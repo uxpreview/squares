@@ -27,6 +27,7 @@ import { INK, MAT, green, queasy } from '../style.js';
 // The tower: its body, the platform on top, and the two flights of stairs
 // on its two sides you can see (B down its right side, A along its front).
 const TW0 = [2, 4], TW1 = [5, 7], TOP = 8.5;
+const CANOPY = 12.2; // the platform's sun canopy (its edge)
 const STEP = 0.53; // every step is this high: 8 to a flight, 4.25 a flight
 const LAND = 4.25; // the landing between the flights, at the front right corner
 // The tube: a corkscrew round a pole, closed at the top and open (a flume)
@@ -42,9 +43,12 @@ const BACK_D = HX + HY - HR, FRONT_D = HX + HY + HR;
 // The splash pool, sunk in the deck.
 const SX0 = 2, SY0 = 9, SX1 = 7, SY1 = 13, WZ = -0.3, BED = -1.2;
 // The funnel: round, raked back toward the stern, on a little white plinth.
-const FX = 9.9, FY = 4.3, FR = 1.75, FZ0 = 0.8, FZ1 = 11, RAKE = 0.45;
+// (Clear of x 12, where everyone walks to and from the lift.)
+const FX = 9.5, FY = 4.3, FR = 1.75, FZ0 = 0.8, FZ1 = 11, RAKE = 0.45;
 // The lifeguard's high chair.
 const LGC = [9.4, 14.2];
+// The slide attendant, up on the platform.
+const ATT = [2.1, 5.9];
 
 // The gag runs on a one-minute cycle; its beats, in seconds into it.
 const CYCLE = 60;
@@ -158,7 +162,7 @@ const RIDERS = Array.from({ length: N }, (_, k) => {
     sick: k % 2 ? 92 + 3 * k : null,
     drink: k === 4 || k === 10,
     spl: [3.2 + (k % 4) * 0.8, 10.1 + ((k * 3) % 5) * 0.45],
-    exit: [4.2 + (k % 4) * 0.75, 12.75],
+    exit: [4.6 + (k % 4) * 0.65, 12.75], // (out past the queue sign's posts)
   };
 });
 // Things said in the queue while he's stuck: [rider, from, to, line].
@@ -235,19 +239,28 @@ function afterChute(r, spl, exit, big) {
 }
 // The big man.
 const BIG_SPL = [4.1, 10.9], BIG_OUT = [2.5, 12.6];
+const BIG_BACK = polyline([[2.5, 13.6], [1.95, 14.35], [1.2, 15.0]]);
 function bigAt(c, riders) {
   if (c < 0.5) return { ...queuePos(0), kind: 'queue' };
   if (c < 3) return { x: 5.0, y: 6.3, z: TOP, kind: 'seat', big: true, dir: 'r' };
   if (c < STUCK_AT) { const k = (c - 3) / (STUCK_AT - 3); return inTube(U_STUCK * (1 - (1 - k) * (1 - k)), 'bulge', true); }
   if (c < POP) return { ...inTube(U_STUCK, 'stuck', true), kind: 'stuck' };
   if (c < POP + 0.8) return inTube(U_STUCK + (1 - U_STUCK) * ((c - POP) / 0.8), 'flume', true);
-  if (c < 47.6) return afterChute(c - POP - 0.8, BIG_SPL, BIG_OUT, true) || { x: 1.5, y: 13.4, z: 0, kind: 'walk', dir: 'l' };
+  const out = afterChute(c - POP - 0.8, BIG_SPL, BIG_OUT, true);
+  if (out) return out;
+  // Out of the pool and round the end of the rope (not over it) to the
+  // corner of the queue.
+  const back = c - (POP + 0.8 + 0.8 + 4.9 + 0.5);
+  if (back < BIG_BACK.len / 2.2) {
+    const p = BIG_BACK.at(back * 2.2);
+    return { x: p.x, y: p.y, z: 0, kind: 'walk', dir: p.tx - p.ty >= 0 ? 'r' : 'l', back: p.tx + p.ty < 0 };
+  }
   // On the end of the queue again, and up it as it goes.
   let left = N;
   for (let j = 0; j < N; j++) left -= gone(j, c);
   const last = riders[N - 1];
   const behind = last.kind === 'queue' ? last.s + SP : 0;
-  const walk = QUEUE.acc[8] + (13.4 - 8.5) - 2.2 * (c - 47.6);
+  const walk = DECK_S + 0.3 - 2.2 * (back - BIG_BACK.len / 2.2);
   const s = Math.max(SP * left, walk, behind);
   const p = queuePos(s);
   p.kind = 'queue';
@@ -266,20 +279,29 @@ function crowd(t) {
 const say = (list, c) => { for (const [a, b, s] of list) if (c >= a && c < b) return s; return null; };
 
 // ---------- The lifeguard ----------
-// Up on his chair; at 24 seconds down he gets, over to the slide, and pokes.
-const POKE = [9.8, 10.3];
+// Up on his chair; at 24 seconds down he gets, over to the slide (round his
+// chair and the iceberg, not through them), and pokes.
+const POKE = [9.5, 9.8];
+const FOOT = [10.15, 14.75]; // where he lands, beside his chair
+const GUARD_WALK = polyline([FOOT, [9.95, 12.6], POKE]);
 function lifeguardAt(t) {
   const c = cyc(t);
   const seat = { x: LGC[0], y: LGC[1], z: 1.45, pose: 'sit', dir: 'l', hold: 'up' };
-  const foot = [9.6, 14.9];
-  const walk = (a, b, k) => ({ x: lerp(a[0], b[0], k), y: lerp(a[1], b[1], k), z: 0, pose: 'walk', dir: (b[0] - a[0]) - (b[1] - a[1]) >= 0 ? 'r' : 'l', back: (b[0] - a[0]) + (b[1] - a[1]) < 0, hold: 'carry' });
+  const walk = (s, back) => {
+    const p = GUARD_WALK.at(s);
+    const tx = back ? -p.tx : p.tx, ty = back ? -p.ty : p.ty;
+    return { x: p.x, y: p.y, z: 0, pose: 'walk', dir: tx - ty >= 0 ? 'r' : 'l', back: tx + ty < 0, hold: 'carry' };
+  };
+  const out = 2.8, home = 2.6, L = GUARD_WALK.len;
   if (c < 24 || c >= 44.6) return seat;
-  if (c < 24.6) return { x: foot[0], y: foot[1], z: 1.4 * (1 - (c - 24) / 0.6), pose: 'jump', dir: 'l', hold: 'carry' };
-  if (c < 27.4) return walk(foot, POKE, (c - 24.6) / 2.8);
+  if (c < 24.6) { const k = (c - 24) / 0.6; return { x: lerp(LGC[0], FOOT[0], k), y: lerp(LGC[1], FOOT[1], k), z: 1.4 * (1 - k), pose: 'jump', dir: 'l', hold: 'carry' }; }
+  if (c < 24.6 + out) return walk((L * (c - 24.6)) / out, false);
   if (c < POP) return { x: POKE[0], y: POKE[1], z: 0, pose: 'stand', dir: 'l', back: true, hold: 'poke' };
-  if (c < 41.4) return { x: POKE[0] + 0.3 * (c - POP), y: POKE[1] + 0.3 * (c - POP), z: 0, pose: 'jump', dir: 'l', hold: 'carry' };
-  if (c < 44) return walk([POKE[0] + 0.27, POKE[1] + 0.27], foot, (c - 41.4) / 2.6);
-  return { x: foot[0], y: foot[1], z: 1.4 * ((c - 44) / 0.6), pose: 'jump', dir: 'l', hold: 'carry' };
+  if (c < 41.4) return { x: POKE[0] + 0.2 * (c - POP), y: POKE[1] + 0.3 * (c - POP), z: 0, pose: 'jump', dir: 'l', hold: 'carry' };
+  const s0 = Math.hypot(0.18, 0.27);
+  if (c < 41.4 + home) return walk(L - s0 - ((L - s0) * (c - 41.4)) / home, true);
+  const k = (c - 41.4 - home) / (44.6 - 41.4 - home);
+  return { x: lerp(FOOT[0], LGC[0], k), y: lerp(FOOT[1], LGC[1], k), z: 1.4 * k, pose: 'jump', dir: 'l', hold: 'carry' };
 }
 
 // ---------- Drawing helpers ----------
@@ -361,6 +383,10 @@ function textFloor(ctx, x, y, text, size, color = alpha(C.navy, 0.75)) {
   ctx.fillStyle = color;
   ctx.fillText(text, 0, 0);
   ctx.restore();
+}
+// The splash pool's opening in the deck, as a path (to see its inside through).
+function splashHole(ctx) {
+  poly(ctx, [[SX0, SY0, 0], [SX1, SY0, 0], [SX1, SY1, 0], [SX0, SY1, 0]]);
 }
 // A lifebuoy flat on the stern rail (the plane x = 0).
 function sternBuoy(ctx, y, z, r = 0.38) {
@@ -499,10 +525,16 @@ export default {
         textFloor(ctx, (SX0 + SX1) / 2, SY1 + 0.23, 'SPLASH ZONE. YOU WILL GET WET.', 0.2);
         textFloor(ctx, SX0 + 1.3, SY0 - 0.23, '2 FT', 0.24);
       }
-      // The pool's inside: its two far walls and its floor.
+      // The pool's inside: its two far walls and its floor, seen through the
+      // opening only (sunk below the deck, they'd otherwise spill down the
+      // screen over the near coping and the lifeguard's chair).
+      ctx.save();
+      splashHole(ctx);
+      ctx.clip();
       face(ctx, [[SX0, SY0, 0], [SX0, SY1, 0], [SX0, SY1, BED], [SX0, SY0, BED]], tint(MAT.pool, 0.25), { dots: shade(MAT.pool, 0.25), density: 0.25 });
       face(ctx, [[SX0, SY0, 0], [SX1, SY0, 0], [SX1, SY0, BED], [SX0, SY0, BED]], tint(MAT.pool, 0.1), { dots: shade(MAT.pool, 0.25), density: 0.2 });
       rect(ctx, SX0, SY0, SX1 - SX0, SY1 - SY0, BED, MAT.pool, { stroke: false });
+      ctx.restore();
       // Wet footprints from the pool out to the Pool.
       if (Q.detail) {
         ctx.fillStyle = alpha(MAT.teakDark, 0.5);
@@ -526,11 +558,13 @@ export default {
     });
     // The water, rippling, and a lost sun hat going round.
     R.rug((ctx, t) => {
+      ctx.save();
+      splashHole(ctx);
+      ctx.clip();
       poly(ctx, [[SX0, SY0, WZ], [SX1, SY0, WZ], [SX1, SY1, WZ], [SX0, SY1, WZ]]);
       ctx.fillStyle = alpha(C.water, 0.78);
       ctx.fill();
-      if (!Q.detail) return;
-      ctx.save();
+      if (!Q.detail) { ctx.restore(); return; }
       ctx.clip();
       ctx.strokeStyle = alpha(C.white, 0.75);
       ctx.lineWidth = 0.07;
@@ -562,9 +596,9 @@ export default {
         const [I, J] = P(x + dx, 0.7, 3.45);
         ctx.beginPath(); ctx.moveTo(G, H); ctx.lineTo(I, J); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
       }
-      lifeboat(ctx, x, 0.1, 2.2, 4.5);
-      lettering(ctx, 'x', 3.3, 1.3, 2.6, 'BOTTOMLESS 1', 0.24);
-      lettering(ctx, 'x', 3.3, 1.3, 2.36, 'HIDING FROM THE IN-LAWS', 0.11);
+      lifeboat(ctx, x, 0.1, 2.2, 4.5, { rope: false });
+      lettering(ctx, 'x', 3.3, 1.16, 2.62, 'BOTTOMLESS 1', 0.24);
+      lettering(ctx, 'x', 3.3, 1.08, 2.4, 'HIDING FROM THE IN-LAWS', 0.11);
     });
     // His head, up out of the cover now and then for a look round.
     R.thing(3.3, 1.35, (ctx, t) => {
@@ -665,7 +699,7 @@ export default {
       const [fx, fy] = funnelPt(0.2 * Math.PI, FZ1, -0.05);
       flipflop(ctx, fx, fy, FZ1 + 0.05, 0.35, 0.78);
     });
-    R.find({ id: 'flip-flop', label: 'A flip-flop on the funnel', at: [10.85, 5.3, 11.1], r: 0.7 });
+    R.find({ id: 'flip-flop', label: 'A flip-flop on the funnel', at: [FX + 0.95, 5.3, 11.1], r: 0.7 });
 
     // Smoke, streaming back over the stern.
     R.air((ctx, t) => {
@@ -890,11 +924,12 @@ export default {
       // (No post where you'd look for what's on the floor.)
       railing(ctx, [1.8, 7.2, TOP], [4.9, 7.2, TOP], [0, 0.35, 0.65]);
       railing(ctx, [5.1, 4.4, TOP], [5.1, 5.7, TOP], [0, 1]);
+      // (Up high enough that it doesn't hide the heads of the people under it.)
       for (const [x, y] of [[1.9, 3.3], [5.0, 3.3], [1.9, 7.1], [5.0, 7.1]]) {
-        face(ctx, [[x, y, TOP], [x, y, 11.0]], null, { lw: 0.08, stroke: C.white });
+        face(ctx, [[x, y, TOP], [x, y, CANOPY]], null, { lw: 0.08, stroke: C.white });
       }
       // The canopy, striped, a little peaked.
-      const z = 11.0, peak = 11.7;
+      const z = CANOPY, peak = CANOPY + 0.7;
       const pts = [[1.7, 3.1], [5.2, 3.1], [5.2, 7.3], [1.7, 7.3]];
       const mid = [3.45, 5.2, peak];
       for (let i = 0; i < 4; i++) {
@@ -924,15 +959,15 @@ export default {
     }, { anim: true, depth: 10.8 });
 
     // The slide attendant up top, whistle ready. Crew: never green.
-    R.thing(2.6, 4.7, (ctx, t) => {
+    // (At the front of the platform, where the canopy doesn't hide him.)
+    R.thing(ATT[0], ATT[1], (ctx, t) => {
       const c = cyc(t);
       const flush = c >= POP + 1.5 && c < GO(N - 1) + 1;
-      person(ctx, 2.6, 4.7, TOP, {
+      person(ctx, ATT[0], ATT[1], TOP, {
         ...CREW_LOOK, skin: SKIN[3], hair: HAIR[0], style: 'pony', top: C.white, bottom: INK.funnelRed, hat: 'cap',
         pose: flush ? 'point' : 'stand', dir: 'r', arms: flush ? [1.5 + Math.sin(t * 8) * 0.3, 0.2] : [0.3, -0.3],
         face(c2, hy, back) { if (!back) { c2.fillStyle = MAT.chrome; c2.fillRect(0.2, hy + 0.1, 0.14, 0.07); } },
       }, t);
-      if (Q.detail && c >= 44 && c < 47.5) speech(ctx, 2.6, 4.7, TOP + 2.5, 'One at a time!', { size: 0.4 });
     }, { anim: true, depth: 9.9 });
 
     // ---------- The queue and the ride ----------
@@ -987,10 +1022,6 @@ export default {
           break;
       }
       ctx.restore();
-      if (Q.detail && p.kind === 'queue' && lines) {
-        const line = say(lines.filter((l) => l[0] === k).map((l) => l.slice(1)), c);
-        if (line) speech(ctx, p.x, p.y, p.z + 2.7 * s, line, { size: 0.4 });
-      }
     };
     RIDERS.forEach((rd, k) => {
       const hold = rd.drink ? (c) => {
@@ -1046,10 +1077,6 @@ export default {
           }
           ctx.restore();
         });
-      }
-      if (Q.detail) {
-        const line = say(BIG_LINES, c);
-        if (line) speech(ctx, p.x, p.y, p.z + (p.kind === 'stuck' ? 1.4 : 3), line, { size: 0.42 });
       }
     });
 
@@ -1150,11 +1177,26 @@ export default {
       } else {
         noodle([p.x - 0.5, p.y + 0.3, 1.2], [p.x + 0.6, p.y - 0.4, 1.7]);
       }
-      if (Q.detail) {
-        const line = say([[28.5, 31, 'Breathe in, sir!'], [35, 38, 'One more poke!'], [42.6, 45, 'Next!']], c);
-        if (line) speech(ctx, p.x, p.y, p.z + (p.pose === 'sit' ? 2.6 : 3), line, { size: 0.42 });
-      }
     }, { bias: 1 });
+
+    // Everything said here, over everything else (the canopy, the tube and
+    // the funnel would otherwise cover the bubbles of the people behind them).
+    R.air((ctx, t) => {
+      if (!Q.detail) return;
+      const c = cyc(t);
+      const { riders, big } = crowd(t);
+      riders.forEach((p, k) => {
+        if (!p || p.hidden || p.kind !== 'queue') return;
+        const line = say(LINES.filter((l) => l[0] === k).map((l) => l.slice(1)), c);
+        if (line) speech(ctx, p.x, p.y, p.z + 2.7 * (RIDERS[k].look.scale || 1), line, { size: 0.4 });
+      });
+      const bl = say(BIG_LINES, c);
+      if (bl && big) speech(ctx, big.x, big.y, big.z + (big.kind === 'stuck' ? 1.4 : 3.2), bl, { size: 0.42 });
+      const g = lifeguardAt(t);
+      const gl = say([[28.5, 31, 'Breathe in, sir!'], [35, 38, 'One more poke!'], [42.6, 45, 'Next!']], c);
+      if (gl) speech(ctx, g.x, g.y, g.z + (g.pose === 'sit' ? 2.6 : 3), gl, { size: 0.42 });
+      if (c >= 44 && c < 47.5) speech(ctx, ATT[0], ATT[1], TOP + 2.6, 'One at a time!', { size: 0.4 });
+    });
 
     // Buckets by the chair, for after.
     R.thing(8.1, 13.1, (ctx) => {
@@ -1165,22 +1207,24 @@ export default {
     // ---------- The signs ----------
     // The queue sign, the wait on it going up as he stays stuck, and the
     // one rule of the Corkscrew.
-    R.thing(3.0, 14.45, (ctx) => {
-      for (const x of [2.1, 3.9]) box(ctx, x - 0.05, 14.4, 0, 0.1, 0.1, 2.3, C.ink, { flat: true, stroke: false });
-      board(ctx, 'x', 3.0, 14.45, 1.95, 2.1, 0.62, '', { board: INK.funnelRed });
-      lettering(ctx, 'x', 3.0, 14.46, 2.1, 'THE CORKSCREW', 0.2, C.white);
-      board(ctx, 'x', 3.0, 14.45, 1.0, 2.1, 0.9, '', { board: C.white });
-      lettering(ctx, 'x', 3.0, 14.46, 1.28, 'RIDERS MUST BE', 0.14);
-      lettering(ctx, 'x', 3.0, 14.46, 1.08, 'THIS WIDE OR LESS', 0.14);
-      face(ctx, [[2.55, 14.46, 0.72], [2.55, 14.46, 0.88]], null, { lw: 0.05, stroke: INK.funnelRed });
-      face(ctx, [[3.45, 14.46, 0.72], [3.45, 14.46, 0.88]], null, { lw: 0.05, stroke: INK.funnelRed });
-      face(ctx, [[2.55, 14.46, 0.8], [3.45, 14.46, 0.8]], null, { lw: 0.02, stroke: INK.funnelRed });
+    // (Up on tall posts, so the queue in front of it doesn't hide it, and
+    // clear of the end of the rope, where the big man comes round.)
+    R.thing(3.4, 14.45, (ctx) => {
+      for (const x of [2.5, 4.3]) box(ctx, x - 0.05, 14.4, 0, 0.1, 0.1, 3.85, C.ink, { flat: true, stroke: false });
+      board(ctx, 'x', 3.4, 14.45, 3.46, 2.1, 0.62, '', { board: INK.funnelRed });
+      lettering(ctx, 'x', 3.4, 14.46, 3.61, 'THE CORKSCREW', 0.2, C.white);
+      board(ctx, 'x', 3.4, 14.45, 2.65, 2.1, 0.9, '', { board: C.white });
+      lettering(ctx, 'x', 3.4, 14.46, 2.93, 'RIDERS MUST BE', 0.14);
+      lettering(ctx, 'x', 3.4, 14.46, 2.73, 'THIS WIDE OR LESS', 0.14);
+      face(ctx, [[2.95, 14.46, 2.37], [2.95, 14.46, 2.53]], null, { lw: 0.05, stroke: INK.funnelRed });
+      face(ctx, [[3.85, 14.46, 2.37], [3.85, 14.46, 2.53]], null, { lw: 0.05, stroke: INK.funnelRed });
+      face(ctx, [[2.95, 14.46, 2.45], [3.85, 14.46, 2.45]], null, { lw: 0.02, stroke: INK.funnelRed });
     });
-    R.thing(3.0, 14.47, (ctx, t) => {
+    R.thing(3.4, 14.47, (ctx, t) => {
       const { riders, c } = crowd(t);
       const n = riders.filter((p) => p.kind === 'queue').length;
       const text = c > STUCK_AT + 20 && c < POP ? 'WAIT: A WHILE' : `WAIT: ${Math.max(1, n * 3)} MIN`;
-      lettering(ctx, 'x', 3.0, 14.47, 1.8, text, 0.17, INK.sunYellow);
+      lettering(ctx, 'x', 3.4, 14.47, 3.31, text, 0.17, INK.sunYellow);
     }, { anim: true });
     // The stern rail's queue line: chrome posts and a sagging red rope.
     R.thing(1.5, 12, (ctx) => {
@@ -1234,10 +1278,13 @@ export default {
       // The toy ship, nose into it.
       box(ctx, cx + 0.5, cy + 0.35, 0.02, 0.9, 0.3, 0.22, INK.hullWhite, { flat: true, lw: 0.02 });
       box(ctx, cx + 0.9, cy + 0.42, 0.24, 0.14, 0.14, 0.22, INK.funnelRed, { flat: true, lw: 0.02 });
-      board(ctx, 'x', cx - 0.5, 10.5, 1.2, 1.4, 0.5, '', { board: C.white });
-      lettering(ctx, 'x', cx - 0.5, 10.5, 1.3, 'HOLE 9: THE ICEBERG', 0.1);
-      lettering(ctx, 'x', cx - 0.5, 10.5, 1.1, 'AIM LEFT', 0.12);
-      face(ctx, [[cx - 0.5, 10.5, 0], [cx - 0.5, 10.5, 0.95]], null, { lw: 0.05 });
+      // (Its sign narrow and to the right: clear of the lifeguard when he
+      // pokes, and of the windmill's roof.)
+      const sx = cx + 0.15;
+      board(ctx, 'x', sx, 10.5, 1.2, 1.1, 0.5, '', { board: C.white });
+      lettering(ctx, 'x', sx, 10.5, 1.3, 'HOLE 9: ICEBERG', 0.11);
+      lettering(ctx, 'x', sx, 10.5, 1.1, 'AIM LEFT', 0.12);
+      face(ctx, [[sx, 10.5, 0], [sx, 10.5, 0.95]], null, { lw: 0.05 });
     });
     // Hole flags.
     for (const [x, y, color] of [[11.1, 13.7, INK.sunYellow], [12.4, 11.1, INK.flamingo]]) {
@@ -1310,10 +1357,11 @@ export default {
       if (g < 2.8) { const k = (g - 2.2) / 0.6; return { x: 12.9 + k * 0.1, y: 16.1 + k * 0.4, z: 0.1 - k * k * 2.2 }; }
       return { x: 12.9, y: 16.5, z: -3, hidden: true };
     }, (ctx, t, p) => { if (!p.hidden) disc(ctx, p.x, p.y, p.z, 0.09, INK.flamingo, { lw: 0.02 }); });
-    R.thing(14.3, 14.62, (ctx) => {
-      board(ctx, 'x', 14.3, 14.62, 0.55, 1.6, 0.5, '', { board: C.white });
-      lettering(ctx, 'x', 14.3, 14.63, 0.66, 'BALLS LOST AT SEA', 0.1);
-      lettering(ctx, 'x', 14.3, 14.63, 0.46, 'THIS CRUISE: 1,207', 0.1);
+    // (Painted on the carpet: a board here stood behind the riders walking
+    // off to the Pool, or beside the Pool's lounger sign.)
+    R.rug((ctx) => {
+      textFloor(ctx, 14.1, 13.6, 'BALLS LOST AT SEA', 0.17, alpha(C.white, 0.85));
+      textFloor(ctx, 14.1, 14.05, 'THIS CRUISE: 1,207', 0.17, alpha(C.white, 0.85));
     });
 
     // A gull overhead, working the stern for chips.

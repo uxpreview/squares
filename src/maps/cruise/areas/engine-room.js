@@ -424,8 +424,10 @@ function beacon(ctx, t) {
 // His hour: tap tap tap tap at the gauge, the alarm, run to the hammock, poke,
 // walk back, stare. Points in his route, and when he's at them.
 const AT_GAUGE = [4.95, 2.0];
-const TO_HAMMOCK = [AT_GAUGE, [11.3, 4.9], [11.75, 10.4], [11.95, 12.05]];
-const LEG = { out: [4.5, 8.0], back: [12.2, 17.5] };
+// He goes round the end of the hammock and pokes the chief's feet from the
+// front (behind it, the hammock hid his legs and he looked stood in it).
+const TO_HAMMOCK = [AT_GAUGE, [11.2, 4.5], [11.6, 10.4], [15.5, 11.4], [15.5, 14.2], [14.35, 14.3]];
+const LEG = { out: [4.5, 8.4], back: [11.4, 17.8] };
 function along(pts, k) {
   const lens = [];
   let total = 0;
@@ -461,8 +463,9 @@ function apprentice(t) {
   if (s < LEG.back[0]) {
     // At the hammock: poking the chief, who doesn't move.
     const poke = Math.max(0, Math.sin((s - LEG.out[1]) * 7));
-    const say = s >= 8.5 && s < 9.9 ? 'Chief?' : s >= 9.9 && s < 11.5 ? 'CHIEF!' : null;
-    return { x: TO_HAMMOCK[3][0], y: TO_HAMMOCK[3][1], dir: 'l', back: false, pose: 'stand', arms: [1.2 + poke * 0.3, 0.3], say };
+    const say = s >= 8.5 && s < 9.9 ? 'Chief?' : s >= 9.9 && s < 11.4 ? 'CHIEF!' : null;
+    const end = TO_HAMMOCK[TO_HAMMOCK.length - 1];
+    return { x: end[0], y: end[1], dir: 'r', back: true, pose: 'stand', arms: [2.0 + poke * 0.3, 0.3], say };
   }
   const p = along(TO_HAMMOCK, 1 - (s - LEG.back[0]) / (LEG.back[1] - LEG.back[0]));
   const q = along(TO_HAMMOCK, 1 - (s - LEG.back[0] - 0.05) / (LEG.back[1] - LEG.back[0]));
@@ -729,7 +732,7 @@ export default {
     // The apprentice, and what he says at the hammock.
     R.mover(apprentice, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, { ...LOOK.apprentice, pose: p.pose, dir: p.dir, back: p.back, arms: p.arms, speed: 11 }, t);
-      if (p.say && readable()) speech(ctx, p.x, p.y, 2.9, p.say, { size: 0.42 });
+      if (p.say && readable()) speech(ctx, p.x, p.y, 3.8, p.say, { size: 0.42 }); // high, over the chief's head not his face
     });
 
     // ---------- The hammock ----------
@@ -794,7 +797,8 @@ export default {
           inked(ctx, [[hx, hy], [X + 0.3, Y - 1.95]], C.red, 0.1);
         }
         const line = PHONE.find(([a, b]) => s >= a && s < b);
-        if (line && readable()) speech(ctx, 13.2, 9.95, 2.6, line[2], { size: 0.42 });
+        // The bubble hangs off to his right, clear of the greaser at the turbos.
+        if (line && readable()) speech(ctx, 13.2, 9.95, 2.6, line[2], { size: 0.42, dx: 2.7 });
       },
     });
 
@@ -833,10 +837,11 @@ export default {
     // ---------- The greaser, oiling the turbos at the forward end ----------
     R.mover((t) => {
       const cycle = 14, s = ((t % cycle) + cycle) % cycle;
-      const Y1 = 8.25, Y2 = 11.25, X = 11.0;
+      // (Y2 stays this side of the hammock: any nearer and it hid his legs.)
+      const Y1 = 8.25, Y2 = 10.7, X = 11.0;
       if (s < 3) return { x: X, y: Y1, dir: 'l', back: true, oil: true };
       if (s < 5) return { x: X, y: Y1 + (Y2 - Y1) * (s - 3) / 2, dir: 'l', back: false, moving: true };
-      if (s < 8) return { x: X, y: Y2, dir: 'l', back: true, oil: true };
+      if (s < 8) return { x: X, y: Y2, dir: 'l', back: false, oil: true };
       if (s < 10) return { x: X, y: Y2 - (Y2 - Y1) * (s - 8) / 2, dir: 'r', back: true, moving: true };
       return { x: X, y: Y1, dir: 'r', back: false, wipe: true };
     }, (ctx, t, p) => {
@@ -874,13 +879,13 @@ export default {
       for (let k = 0; k < 3; k++) { g.save(); g.rotate(-0.4 + k * 0.3); g.beginPath(); g.rect(-0.06, -0.3, 0.14, 0.22); paint(g, C.white, { lw: 0.015 }); g.restore(); }
     };
     body(R, 0.6, CY, LOOK.dealer, {
-      pose: (t) => ({ pose: 'sit', dir: 'r', z: 0, arms: [1.3 + Math.max(0, Math.sin(t * 0.8)) * 0.3, 1.1], hold: cardsIn }),
-      z: 0.2,
+      pose: (t) => ({ pose: 'sit', dir: 'r', arms: [1.3 + Math.max(0, Math.sin(t * 0.8)) * 0.3, 1.1], hold: cardsIn }),
+      z: -0.1, depth: 0.6 + CY + 0.35,
       after(ctx, t) { const s = inHour(t); const l = CARDS.find(([a, b, , w]) => w === 0 && s >= a && s < b); if (l && readable()) speech(ctx, 0.6, CY, 2.7, l[2], { size: 0.4 }); },
     });
     body(R, 2.9, CY, LOOK.player, {
-      pose: (t) => ({ pose: 'sit', dir: 'l', z: 0, arms: [1.2, 1.0], hold: cardsIn }),
-      z: 0.2,
+      pose: (t) => ({ pose: 'sit', dir: 'l', arms: [1.2, 1.0], hold: cardsIn }),
+      z: -0.1, depth: 2.9 + CY + 0.35,
       after(ctx, t) { const s = inHour(t); const l = CARDS.find(([a, b, , w]) => w === 1 && s >= a && s < b); if (l && readable()) speech(ctx, 2.9, CY, 2.7, l[2], { size: 0.4 }); },
     });
 
@@ -946,13 +951,14 @@ export default {
       });
     });
     R.thing(7.8, 14.9, (ctx) => cylinder(ctx, 7.8, 14.6, 0, 0.3, 0.6, C.grey));
+    // Sitting on the stool (sorted after it, so his legs hang over its front).
     body(R, 7.8, 14.6, LOOK.cook, {
-      z: 0.2,
-      pose: (t) => ({ pose: 'sit', dir: 'l', back: true, z: 0.2, arms: [1.6 + Math.max(0, Math.sin(t * 2.2)) * 0.5, 0.5], hold: (g) => {
+      z: -0.1,
+      pose: (t) => ({ pose: 'sit', dir: 'l', back: true, arms: [1.6 + Math.max(0, Math.sin(t * 2.2)) * 0.5, 0.5], hold: (g) => {
         g.beginPath(); g.moveTo(0.1, 0); g.lineTo(0.45, -0.2); g.strokeStyle = C.ink; g.lineWidth = 0.04; g.stroke();
         g.beginPath(); g.rect(0.4, -0.3, 0.18, 0.12); paint(g, MAT.chrome, { lw: 0.015 });
       } }),
-      depth: 7.8 + 14.6,
+      depth: 7.8 + 14.9 + 0.02,
     });
     R.air((ctx, t) => {
       if (!Q.detail) return;

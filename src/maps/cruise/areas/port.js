@@ -76,7 +76,7 @@ function foamLine(ctx, grow, t, i0) {
 // him through the pier and the harbourmaster.) 48 seconds there and back, so
 // five rounds a day.
 const LEG = 20, WAIT = 4, CYCLE = 2 * (LEG + WAIT);
-const A0 = 1.92, A1 = 1.28 + TAU; // the pier's left, round the back, the pier's right
+const A0 = 2.1, A1 = 1.28 + TAU; // the pier's left, round the back, the pier's right
 const ellipse = (a) => [9 + Math.cos(a) * 7.5, 8 + Math.sin(a) * 6.5];
 const tangent = (a) => Math.atan2(6.5 * Math.cos(a), -7.5 * Math.sin(a));
 function tender(t) {
@@ -180,6 +180,27 @@ function drawBoat(ctx, t, p) {
   };
   const motorFirst = mx + my < p.x + p.y;
   if (motorFirst) motor();
+  // The foredeck and the parcel on it: behind the Courier when the boat's
+  // heading away from us (drawn after him, they covered his face).
+  const fore = () => {
+    face(ctx, FORE.map(([u, v]) => W(u, v, FREE)), tint(C.wood, 0.2), { lw: 0.03 });
+    parcel(ctx, ...parcelAt(p));
+  };
+  // The gunwale's rim, a side at a time: the far rim behind him, the near in front.
+  const rim = (near) => {
+    ctx.beginPath();
+    for (const sd of sides) {
+      if (sd.near !== near) continue;
+      const [A, B] = [P(...W(...sd.a, FREE)), P(...W(...sd.b, FREE))];
+      ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
+    }
+    ctx.lineCap = 'round';
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+    ctx.strokeStyle = tint(C.wood, 0.3); ctx.lineWidth = 0.06; ctx.stroke();
+  };
+  rim(false);
+  const bowAway = c + s < 0;
+  if (bowAway) fore();
   // The Courier: sat at the tiller, or up on his feet at the pier, waving the
   // paperwork.
   const [cx, cy] = W(-0.55, 0);
@@ -200,11 +221,8 @@ function drawBoat(ctx, t, p) {
     face(ctx, [W(...sd.a, 0), W(...sd.b, 0), W(...sd.b, FREE), W(...sd.a, FREE)], col, { lw: 0.03, dots: shade(HULL_C, 0.55), density: 0.12 });
     if (Q.detail) face(ctx, [W(...sd.a, 0.26), W(...sd.b, 0.26), W(...sd.b, 0.32), W(...sd.a, 0.32)], C.mustard, { stroke: false });
   }
-  poly(ctx, HULL.map(([u, v]) => W(u, v, FREE)));
-  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
-  ctx.strokeStyle = tint(C.wood, 0.3); ctx.lineWidth = 0.06; ctx.stroke();
-  face(ctx, FORE.map(([u, v]) => W(u, v, FREE)), tint(C.wood, 0.2), { lw: 0.03 });
-  parcel(ctx, ...parcelAt(p));
+  rim(true);
+  if (!bowAway) fore();
   if (!motorFirst) motor();
   // Words at the pier: his, then the harbourmaster's (drawn on the pier).
   if (p.near && p.turn < 0.5 && Q.detail) speech(ctx, cx, cy, p.z + 2.6, COURIER_SAYS[p.pass % COURIER_SAYS.length], { size: 0.36 });
@@ -233,9 +251,9 @@ function harbourFace(glasses) {
   };
 }
 const BAND = [
-  { x: 11.6, y: 9.45, look: { ...folk(201), top: INK.flamingo, bottom: C.white, dress: false, hat: 'none', wear: floral(C.white) } },
-  { x: 12.55, y: 9.6, look: { ...folk(202), top: INK.sunYellow, bottom: C.white, dress: false, hat: 'none', style: 'curly', wear: floral(INK.flamingo) } },
-  { x: 13.3, y: 9.55, look: { ...folk(203), top: C.coral, bottom: C.white, dress: false, hat: 'sun', wear: floral(C.white) } },
+  { x: 11.5, y: 9.7, look: { ...folk(201), top: INK.flamingo, bottom: C.white, dress: false, hat: 'none', wear: floral(C.white) } },
+  { x: 12.55, y: 9.5, look: { ...folk(202), top: INK.sunYellow, bottom: C.white, dress: false, hat: 'none', style: 'curly', wear: floral(INK.flamingo) } },
+  { x: 13.55, y: 9.35, look: { ...folk(203), top: C.coral, bottom: C.white, dress: false, hat: 'sun', wear: floral(C.white) } },
 ];
 // What the band's doing, by the hour: tuning, rehearsing in bursts, the welcome.
 const bandPlaying = (t, i) => {
@@ -379,7 +397,7 @@ function lei(ctx, X, Y, s, ink) {
 const LEI_INKS = [INK.flamingo, C.coral, C.butter, C.pink, C.lilac];
 
 // A tiki torch: a bamboo pole and a flame (lit at sunset).
-const TORCHES = [[7.6, 11.3], [10.4, 8.55]];
+const TORCHES = [[6.6, 9.6], [10.4, 8.55]];
 
 // A crab, scuttling sideways, claws up.
 function crab(ctx, x, y, t, moving) {
@@ -412,6 +430,8 @@ function along(pts, k) {
   return { x: pts[0][0], y: pts[0][1], dir: 'r' };
 }
 
+// The signpost, by the stage.
+const SIGN = [10.9, 10.7];
 // The pier, the flagpole and the banner.
 const PIER = { x0: 8, x1: 9.4, y0: 11.8, y1: 15.9, z: 0.6 };
 const POLE = [8.2, 15.4];
@@ -634,11 +654,11 @@ export default {
     R.thing(12.5, 6.6, (ctx, t) => gull(ctx, 12.5, 6.5, 4.25, t, { dir: 'l', peck: false, scale: 0.9 }), { anim: true, depth: 22.3 });
 
     // ---------- The steel band ----------
-    const PANS = [[11.55, 10.1, 1.0], [12.3, 10.2, 1.0], [12.8, 10.25, 1.0]];
+    const PANS = [[11.6, 10.3, 1.0], [12.55, 10.2, 1.0]];
     for (const [x, y, z] of PANS) R.thing(x, y + 0.35, (ctx) => pan(ctx, x, y, z));
     // The bass: three oil drums, chrome.
-    R.thing(13.75, 10.45, (ctx) => {
-      for (const [x, y] of [[13.65, 9.85], [13.05, 10.25], [13.5, 10.3]]) {
+    R.thing(13.8, 10.55, (ctx) => {
+      for (const [x, y] of [[13.62, 9.92], [13.2, 10.35], [13.62, 10.36]]) {
         cylinder(ctx, x, y, 0.25, 0.22, 0.8, MAT.chrome, { top: tint(MAT.chrome, 0.2) });
         disc(ctx, x, y, 1.05, 0.15, shade(MAT.chrome, 0.12), { lw: 0.015 });
       }
@@ -648,15 +668,15 @@ export default {
         const h = hourOf(t), playing = bandPlaying(t, i);
         let o = { ...b.look, dir: 'l' }, z = 0.25;
         if (i === 2 && h < 12) { // the bass, asleep on a crate till noon
-          box(ctx, b.x - 0.25, b.y - 0.55, 0.25, 0.5, 0.45, 0.45, INK.teak, { dens: 0.2 });
-          person(ctx, b.x, b.y - 0.35, 0.02, { ...o, pose: 'sit' }, t);
+          box(ctx, b.x - 0.25, b.y - 0.5, 0.25, 0.5, 0.42, 0.45, INK.teak, { dens: 0.2 });
+          person(ctx, b.x, b.y - 0.29, -0.12, { ...o, pose: 'sit' }, t);
           if (Q.detail) {
-            const k = (t * 0.5) % 1, [X, Y] = P(b.x - 0.4 * k, b.y - 0.35, 2.3 + k);
+            const k = (t * 0.5) % 1, [X, Y] = P(b.x - 0.4 * k, b.y - 0.29, 2.2 + k);
             ctx.font = `${0.3 + k * 0.2}px "Bagel Fat One", sans-serif`; ctx.fillStyle = alpha(C.ink, 1 - k); ctx.fillText('z', X, Y);
           }
           return;
         }
-        if (i === 2) box(ctx, b.x - 0.25, b.y - 0.9, 0.25, 0.5, 0.45, 0.45, INK.teak, { dens: 0.2 });
+        if (i === 2) box(ctx, b.x - 0.25, b.y - 0.5, 0.25, 0.5, 0.42, 0.45, INK.teak, { dens: 0.2 });
         if (playing) o = { ...o, pose: 'drum', speed: playing === 2 ? 15 : 9 };
         else if (i === 0 && h < 15) o = { ...o, arms: [1.25 + ((t % 1.3) < 0.15 ? 0.35 : 0), 0.3] }; // tapping a note, tuning
         else if (i === 1 && h < 12) o = { ...o, pose: 'read' }; // reading the music
@@ -738,12 +758,14 @@ export default {
     // The sweeper: sweeps the pier all day, rolls out the carpet at five, and
     // cheers the ship in.
     const SWEEPER = { ...folk(230), top: C.teal, bottom: C.white, dress: false, hat: 'sun', wear: floral(C.white) };
-    const sweep = route([[8.45, 12.3, 1], [8.45, 13.3, 1]], { speed: 0.5, loop: false });
+    const sweep = route([[8.45, 11.95, 1], [8.45, 12.55, 1]], { speed: 0.5, loop: false });
     R.mover((t) => {
       const h = hourOf(t);
       if (h < 17) { const p = sweep(t); return { ...p, pose: 'sweep' }; }
-      if (h < 17.4) return { x: 8.45, y: 12.2 + 1.9 * ramp(t, 17, 17.4), dir: 'l', moving: true, pose: 'push' };
-      return { x: 8.45, y: 14.1 - 0.35, dir: 'l', moving: false, pose: h >= 18 ? 'cheer' : 'stand' };
+      if (h < 17.4) return { x: 8.45, y: 12.2 + 1.8 * ramp(t, 17, 17.4), dir: 'l', moving: true, pose: 'push' };
+      // A step back off the carpet, beside the harbourmaster, not behind him.
+      if (h < 17.55) { const k = ramp(t, 17.4, 17.55); return { x: 8.45 + 0.85 * k, y: 14.0 - 0.8 * k, dir: 'r', moving: true, pose: 'stand' }; }
+      return { x: 9.3, y: 13.2, dir: 'l', moving: false, pose: h >= 18 ? 'cheer' : 'stand' };
     }, (ctx, t, p) => {
       const broom = p.pose === 'sweep' || p.pose === 'stand';
       const sw = Math.sin(t * 5) * 0.4;
@@ -775,7 +797,7 @@ export default {
         o = { ...o, arms: [Math.PI - 0.9, 0.1] }; // saluting it in
       }
       person(ctx, HM[0], HM[1], PIER.z, o, t);
-      if (says && Q.detail) speech(ctx, HM[0], HM[1], PIER.z + 2.7, says, { size: 0.38, fill: C.white });
+      if (says && Q.detail) speech(ctx, HM[0], HM[1], PIER.z + 2.7, says, { size: 0.38, fill: C.white, dx: -0.7 });
     }, { anim: true, depth: PIER_D + 0.6 });
     // The flagpole: the island's own flag at the top all day, and the yellow
     // one run up under it at six. Nobody gets off.
@@ -919,10 +941,12 @@ export default {
       });
     }
     // The signpost, pointing everywhere at once.
-    R.thing(10.25, 11.3, (ctx) => {
-      box(ctx, 10.2, 11.2, 0, 0.1, 0.1, 2.5, INK.teak, { flat: true });
+    R.thing(SIGN[0], SIGN[1] + 0.05, (ctx) => {
+      box(ctx, SIGN[0] - 0.05, SIGN[1] - 0.05, 0, 0.1, 0.1, 2.45, INK.teak, { flat: true });
       const arrow = (z, text, fill, along, flip) => {
-        const w = 1.3, hh = 0.3, x = 10.25, y = 11.25;
+        const hh = 0.3, [x, y] = SIGN;
+        // (Shorter toward the band, longer toward the banner's pole: clear of both.)
+        const w = (along === 'x') === (flip > 0) ? 0.95 : 1.1;
         const pts = along === 'x'
           ? [[x, y, z - hh / 2], [x + w * flip, y, z - hh / 2], [x + (w + 0.2) * flip, y, z], [x + w * flip, y, z + hh / 2], [x, y, z + hh / 2]]
           : [[x, y, z - hh / 2], [x, y + w * flip, z - hh / 2], [x, y + (w + 0.2) * flip, z], [x, y + w * flip, z + hh / 2], [x, y, z + hh / 2]];
@@ -973,17 +997,17 @@ export default {
     // The kid, building the ship out of sand, a bit more every few hours;
     // it gets its funnel by three and a flag by half four.
     const KID = { ...folk(210), top: INK.flamingo, bottom: C.teal, dress: false, hat: 'none', style: 'pony', scale: 0.7 };
-    R.thing(5.6, 10.8, (ctx, t) => {
+    R.thing(5.3, 10.0, (ctx, t) => {
       const h = hourOf(t);
       const busy = h < 18;
       const k = Math.sin(t * 6);
-      person(ctx, 5.6, 10.8, 0, { ...KID, dir: h >= 18 ? 'l' : 'r', pose: busy ? 'stand' : 'point', ...(busy ? { arms: [1.3 + k * 0.3, 1.0 - k * 0.3] } : {}) }, t);
+      person(ctx, 5.3, 10.0, 0, { ...KID, dir: h >= 18 ? 'l' : 'r', pose: busy ? 'stand' : 'point', ...(busy ? { arms: [1.3 + k * 0.3, 1.0 - k * 0.3] } : {}) }, t);
     }, { anim: true });
-    R.thing(6.9, 11.5, (ctx, t) => {
+    R.thing(6.6, 10.65, (ctx, t) => {
       const h = hourOf(t);
-      const x = 6.3, y = 11.25, SH = shade(INK.sunYellow, 0.15);
+      const x = 6.0, y = 10.4, SH = shade(INK.sunYellow, 0.15);
       // A bucket and spade.
-      cylinder(ctx, 5.35, 11.55, 0, 0.14, 0.24, C.sky, { flat: true });
+      cylinder(ctx, 5.0, 10.6, 0, 0.14, 0.24, C.sky, { flat: true });
       // The mound, then the hull, then decks, the funnel, a flag.
       if (h < 9) { disc(ctx, x, y, 0.08, 0.4, SH, { lw: 0.025 }); return; }
       box(ctx, x - 0.55, y - 0.22, 0, 1.1, 0.44, 0.22, SH, { lw: 0.025, dens: 0.3 });
@@ -1000,12 +1024,12 @@ export default {
     // The lei maker: a basket that fills all day, and at six, held up to a
     // ship that isn't letting anybody off.
     const LEIS = { ...folk(220), top: C.purple, bottom: C.purple, dress: true, style: 'bun', hair: HAIR[0], wear: floral(INK.flamingo) };
-    R.thing(7.6, 9.45, (ctx, t) => {
+    R.thing(7.3, 9.45, (ctx, t) => {
       const h = hourOf(t);
-      box(ctx, 7.35, 9.0, 0, 0.5, 0.45, 0.42, INK.teak, { dens: 0.2 });
+      box(ctx, 7.05, 8.97, 0, 0.5, 0.45, 0.42, INK.teak, { dens: 0.2 });
       const hold = (g) => lei(g, 0.1, 0, 1, INK.flamingo);
-      if (h >= 18) person(ctx, 7.6, 9.6, 0, { ...LEIS, pose: 'cheer', dir: 'l', hold }, t);
-      else person(ctx, 7.6, 9.25, -0.28, { ...LEIS, pose: 'sit', dir: 'l', arms: [1.2 + Math.sin(t * 3) * 0.2, 1.0], hold }, t);
+      if (h >= 18) person(ctx, 7.3, 9.55, 0, { ...LEIS, pose: 'cheer', dir: 'l', hold }, t);
+      else person(ctx, 7.3, 9.2, -0.28, { ...LEIS, pose: 'sit', dir: 'l', arms: [1.2 + Math.sin(t * 3) * 0.2, 1.0], hold }, t);
     }, { anim: true });
     R.thing(8.3, 10.15, (ctx, t) => {
       cylinder(ctx, 8.2, 9.95, 0, 0.3, 0.3, C.wood, { top: shade(C.wood, 0.3) });
@@ -1016,18 +1040,18 @@ export default {
         lei(ctx, X, Y, 0.9, LEI_INKS[i % LEI_INKS.length]);
       }
     }, { anim: true });
-    R.thing(8.9, 10.5, (ctx) => {
-      box(ctx, 8.85, 10.45, 0, 0.07, 0.07, 0.9, MAT.teakDark, { flat: true, stroke: false });
-      board(ctx, 'x', 8.9, 10.52, 0.85, 1.0, 0.44, '', { board: INK.sunYellow });
-      lettering(ctx, 'x', 8.9, 10.53, 0.93, 'LEIS  $2', 0.14);
-      lettering(ctx, 'x', 8.9, 10.53, 0.75, "GET LEI'D", 0.09, INK.funnelRed);
+    R.thing(8.3, 10.45, (ctx) => {
+      box(ctx, 8.25, 10.35, 0, 0.07, 0.07, 0.9, MAT.teakDark, { flat: true, stroke: false });
+      board(ctx, 'x', 8.3, 10.42, 0.85, 1.0, 0.44, '', { board: INK.sunYellow });
+      lettering(ctx, 'x', 8.3, 10.43, 0.93, 'LEIS  $2', 0.14);
+      lettering(ctx, 'x', 8.3, 10.43, 0.75, "GET LEI'D", 0.09, INK.funnelRed);
     });
 
     // Crabs on the beach, going sideways about their business.
     const crabs = [
-      route([[14.75, 7.6, 1.5], [14.8, 9.7, 0.6]], { speed: 0.6, loop: false }),
-      route([[11.1, 12.75, 2], [12.2, 12.4, 1]], { speed: 0.45, loop: false, offset: 3 }),
-      route([[4.3, 6.2, 1], [5.9, 5.0, 2.5]], { speed: 0.5, loop: false, offset: 7 }),
+      route([[15.0, 8.4, 1.5], [14.8, 9.8, 0.6]], { speed: 0.6, loop: false }),
+      route([[15.0, 5.6, 2], [15.2, 7.0, 1]], { speed: 0.45, loop: false, offset: 3 }),
+      route([[6.5, 4.6, 1], [8.0, 4.2, 2.5]], { speed: 0.5, loop: false, offset: 7 }),
     ];
     crabs.forEach((c) => R.mover(c, (ctx, t, p) => crab(ctx, p.x, p.y, t, p.moving)));
 

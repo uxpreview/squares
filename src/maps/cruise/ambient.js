@@ -34,28 +34,43 @@ export function backdrop(ctx, t, world, fx) {
   const sea = seaAt(t);
   const foam = tint(sea, 0.7);
   const k = way(t);
-  // The wake: two long lines of foam spreading out behind the stern.
+  // The wake: two long wavy arms of foam spreading out behind the stern,
+  // flecks running along them, and the churn behind the propellers. (Short
+  // straight dashes and solid ovals read as sticks floating by, pinched in.)
   if (k > 0.02) {
     ctx.save();
     ctx.lineCap = 'round';
-    for (let i = 0; i < 7; i++) {
-      const d = ((t * 3 + i * 9) % 60);
-      const spread = 1 + d * 0.28;
-      const a = alpha(foam, 0.55 * k * (1 - d / 60));
-      ctx.strokeStyle = a;
-      ctx.lineWidth = 0.35;
-      for (const s of [-1, 1]) {
-        path(ctx, [[-d, BEAM / 2 + s * spread, SEA], [-d - 3, BEAM / 2 + s * (spread + 0.8), SEA]]);
+    ctx.lineJoin = 'round';
+    const arm = (s, d) => [-d, BEAM / 2 + s * (1 + d * 0.28) + Math.sin(d * 0.9 - t * 3) * 0.12, SEA];
+    for (const s of [-1, 1]) {
+      // the arm, in pieces that fade with distance
+      for (let d0 = 0; d0 < 48; d0 += 6) {
+        const pts = [];
+        for (let d = d0; d <= d0 + 6; d += 1) pts.push(arm(s, d));
+        ctx.strokeStyle = alpha(foam, 0.5 * k * (1 - d0 / 48));
+        ctx.lineWidth = 0.2;
+        path(ctx, pts);
+        ctx.stroke();
+      }
+      // flecks of foam running out along it, just outside the arm
+      ctx.lineWidth = 0.14;
+      for (let i = 0; i < 9; i++) {
+        const d = (t * 3 + i * 6.3) % 52;
+        ctx.strokeStyle = alpha(foam, 0.45 * k * (1 - d / 52));
+        const pts = [];
+        for (let e = 0; e <= 1.2; e += 0.4) { const [x, y] = arm(s, d + e); pts.push([x, y + s * (0.35 + 0.1 * Math.sin(i)), SEA]); }
+        path(ctx, pts);
         ctx.stroke();
       }
     }
-    // The churn right behind the propellers.
-    ctx.fillStyle = alpha(foam, 0.5 * k);
-    for (let i = 0; i < 12; i++) {
-      const d = (t * 4 + i * 1.7) % 14;
-      const [X, Y] = P3(-1 - d, BEAM / 2 + Math.sin(i * 2.3) * (1 + d * 0.3), SEA);
+    // The churn right behind the propellers: little bubbles, widening.
+    ctx.fillStyle = alpha(foam, 0.4 * k);
+    for (let i = 0; i < 26; i++) {
+      const d = (t * 4 + i * 0.83) % 16;
+      const [X, Y] = P3(-1 - d, BEAM / 2 + Math.sin(i * 2.3) * (0.6 + d * 0.3), SEA);
+      const r = 0.28 * (1 - d / 22);
       ctx.beginPath();
-      ctx.ellipse(X, Y, 0.5, 0.22, 0, 0, Math.PI * 2);
+      ctx.ellipse(X, Y, r, r * 0.45, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -71,10 +86,12 @@ export function backdrop(ctx, t, world, fx) {
       const gy = ((i * 53.1) % 90) - 30;
       const x = ((gx + 190) % 150) - 40;
       if (x > -2 && x < LENGTH + 2 && gy > -2 && gy < BEAM + 2) continue; // not under the ship
+      // a little wave, not a dash
       const [X, Y] = P3(x, gy, SEA);
       ctx.beginPath();
-      ctx.moveTo(X - 0.5, Y);
-      ctx.lineTo(X + 0.5, Y);
+      ctx.moveTo(X - 0.6, Y);
+      ctx.quadraticCurveTo(X - 0.3, Y - 0.22, X, Y);
+      ctx.quadraticCurveTo(X + 0.3, Y - 0.22, X + 0.6, Y);
       ctx.stroke();
     }
     ctx.restore();
@@ -93,7 +110,9 @@ export function sky(ctx, t, world, fx) {
     ctx.fill();
     ctx.restore();
   }
-  // The waterline: a wavy line of foam where the sea meets the hull.
+  // The waterline: a wavy line of foam where the sea meets the hull. It
+  // steps aside with the sea when you're down there (it ran across the room).
+  if (below) return birdsOver(ctx, t);
   ctx.save();
   ctx.strokeStyle = tint(sea, 0.75);
   ctx.lineWidth = 0.22;
@@ -110,7 +129,11 @@ export function sky(ctx, t, world, fx) {
   }
   ctx.stroke();
   ctx.restore();
-  // Gulls, following the ship for the buffet.
+  birdsOver(ctx, t);
+}
+
+// Gulls, following the ship for the buffet.
+function birdsOver(ctx, t) {
   birds(ctx, t, 0, 60, 30);
   birds(ctx, t + 17, 1, 60, 34);
 }

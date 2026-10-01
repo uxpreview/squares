@@ -1,6 +1,6 @@
 # Moving Day
 
-> Status: **Preview** · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Shipped** · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, session 6, decisions 1 to 24) · greybox [x] (the lead's call, session 6, decisions 25 to 31) · preview [ ] (the owner)
 >
 > Written in session 6 (Sept 2026) from the backlog entry in [LEVELS.md](../LEVELS.md) and the owner's sketch in [the sketchbook](../sketchbook.html) ("Southie: Moving Day"). Every landmark and street was checked against OpenStreetMap and the news to September 2026 before a line of it was written ("Real places, checked"). The owner reviews once, at the preview (PROCESS.md): at the brief and the greybox the lead takes its own recommendations and writes them into Decisions, where the owner can overturn any of them. The id is `southie` (`#/southie`), hidden until it ships.
@@ -263,7 +263,7 @@ Five more screenshots: cars overlapping, the lawn-chair woman floating, the corn
 - **Smaller:** the stepladder outlined in ink with treads; a chassis under the truck; rain sized at the sharpness the game is really drawing at (it read twice as long on slower frames), 16px at most; the grass's outline kept off the roads; the road's wet wash dropped (it stopped at the area's edge), puddles kept.
 
 ## For the owner at gate 3
-Each with a recommendation; every earlier call is in Decisions, and any can be overturned.
+Answered (decisions 52 to 56): every recommendation taken, and it ships. Each with a recommendation; every earlier call is in Decisions, and any can be overturned.
 1. **Play it on your phone** at `#/southie` (hidden from the picker until you approve): tap a house's floor and it opens, the floor above lifts; step out onto the road and the houses close. *Recommend:* approve the houses you open (E11) as the level's mechanic.
 2. **Farragut Road, not a lettered street** (decision 3). *Recommend:* keep; it's the only real street where you can see the row from the air.
 3. **Speed on the 2017 laptop:** about 25 frames a second in the apartments and 17 on the road and in the park, as a player gets them. *Recommend:* ship as is, and take the next step on older laptops (the open roadmap item) for every place at once, rather than for this level.
@@ -341,3 +341,9 @@ After the owner's first look (session 6b):
 50. **Speech bubbles keep clear of the buttons over the picture** (every place).
 51. **The harbor keeps its printed cut edge** (decision 42 reversed): drawn as its own piece, it's continuous, and the rimless sea let the land's layers show through.
 
+Gate 3 (the owner, Oct 2026, every recommendation taken):
+52. **Houses you open (E11) are the level's mechanic.**
+53. **The row stays on Farragut Road.**
+54. **Speed ships as is;** the next step for older laptops is for every place at once (the roadmap's open item), not this level alone.
+55. **Rain from ten till three stays.**
+56. **Moving Day ships** in the picker after Plum Island, "South Boston" under its name.
