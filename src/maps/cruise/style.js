@@ -56,7 +56,7 @@ export const TONE = inks.map((c) => tint(c, 0.55)).concat(inks.map((c) => tint(c
 export const BLOCK = inks.map((c) => shade(c, 0.05));
 
 // ---------- The day ----------
-// 180 seconds, 7am to 7pm, 15 seconds an hour. at(h) is the moment of an hour
+// 240 seconds, 7am to 7pm, 20 seconds an hour. at(h) is the moment of an hour
 // of the day (at(13.5) is 1:30pm); hourOf(t) the other way.
 export const at = (h) => (h - 7) * HOUR;
 export const wrap = (t) => ((t % LOOP) + LOOP) % LOOP;
@@ -197,7 +197,8 @@ export function drawCast(ctx, id, p, t) {
 export function headroom(id, p) {
   if (id === 'iguana') return 1;
   const s = CAST[id].look.scale || 1;
-  return (p.pose === 'sit' ? 2.3 : 2.9) * s + (id === 'chef' ? 0.6 : 0);
+  const down = p.pose === 'sleep' || p.pose === 'lie';
+  return (down ? 1.1 : p.pose === 'sit' ? 2.3 : 2.9) * s + (id === 'chef' ? 0.6 : 0);
 }
 
 // ---------- The iguana ----------

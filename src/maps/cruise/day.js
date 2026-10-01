@@ -2,16 +2,16 @@
 // doors in plan.js and riding the lift between decks. The engine draws each
 // person in whichever area they're standing in (walkers in engine/world.js).
 //
-// The beats (seconds into the loop; 15 seconds an hour):
+// The beats (seconds into the loop; 20 seconds an hour):
 //     0  7am. The buffet opens. Doreen first through the doors (she's number 2),
 //        Pidge questioning the butter swan, the iguana heading up to the pool
-//    30  9am. Ray thrown out of cabin 7 (later, to the roulette wheel)
-//    45  10am. The lifeboat drill on the Sun Deck; the kids' show in the theater
-//    60  11am. Chad carried from the pool bar to his cabin by a steward
-//    75  noon. The limbo at the pool
-//    90  1pm. Dr. Swabb tapes off the salad bar
-//   120  3pm. Bingo in the theater
-//   165  6pm. The port; nobody gets off
+//    40  9am. Ray thrown out of cabin 7 (later, to the roulette wheel)
+//    60  10am. The lifeboat drill on the Sun Deck; the kids' show in the theater
+//    80  11am. Chad carried from the pool bar to his cabin by a steward
+//   100  noon. The limbo at the pool
+//   120  1pm. Dr. Swabb tapes off the salad bar
+//   160  3pm. Bingo in the theater
+//   220  6pm. The port; nobody gets off
 //
 // Who's green, and when, is in style.js (SICK, HERRING).
 // npm run qa checks every walk: through doors, never through walls.
@@ -87,8 +87,9 @@ const DAYS = {
   // front, y 11.8: the water is world x 28 to 40, y 5 to 11.)
   chad: from(38, 4, SUN).until(at(8), { dir: 'r' }).say(at(8), at(8.5), 'Another Green Mermaid!', { dir: 'r' }).until(at(11), { dir: 'r' })
     .speed(1.4).to(22, 4).door('slide-pool').to(12, 5).lift(CB).to(45, 6).to(45, 12.5)
-    .until(at(15.5), { pose: 'sleep' }).speed(WALK)
-    .to(45, 6).to(12, 5).lift(SUN).to(14, 6).door('slide-pool').to(22, 4).to(38, 4).until(LOOP, { dir: 'r' }),
+    // On his bed (cabin 12's is x 44.6 to 47.4, its top at 0.75), as Harold lies on his.
+    .to(46.6, 14, CB + 0.75).until(at(15.5), { pose: 'sleep', dir: 'r', ahead: 0.6 }).speed(WALK)
+    .to(45, 12.5, CB).to(45, 6).to(12, 5).lift(SUN).to(14, 6).door('slide-pool').to(22, 4).to(38, 4).until(LOOP, { dir: 'r' }),
 
   // Carries Chad home, then does the towel animals.
   steward: from(30, 4, CB).until(at(9.2), { dir: 'l' })
@@ -186,9 +187,12 @@ export const walkers = Object.entries(DAYS).map(([id, b]) => {
       drawCast(ctx, id, p, t);
       if (!readable()) return;
       const top = p.z + headroom(id, p);
-      if (p.say) speech(ctx, p.x, p.y, top + 0.1, p.say, { size: 0.5 });
+      // Lying down, the body runs off to the side of the feet: over its middle.
+      const mid = p.pose === 'sleep' || p.pose === 'lie' ? 0.4 * (p.dir === 'l' ? -1 : 1) : 0;
+      const x = p.x - mid, y = p.y + mid;
+      if (p.say) speech(ctx, x, y, top + 0.1, p.say, { size: 0.5 });
       // (No name over the iguana: it's patient zero, and a tag would say so.)
-      else if (id !== 'iguana') tag(ctx, p.x, p.y, top, c.name, { size: 0.34 });
+      else if (id !== 'iguana') tag(ctx, x, y, top, c.name, { size: 0.34 });
     },
   };
 }).filter(Boolean);

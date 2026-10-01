@@ -578,8 +578,9 @@ export function person(ctx, x, y, z, o = {}, t = 0) {
   ctx.restore();
 
   if (pose === 'sleep' && Q.detail) {
-    const k = (t * 0.6) % 1;
-    label(ctx, x - 0.5 * k, y - 0.5 * k, z + 1.2 + k * 1.2, 'z', 0.45 + k * 0.3, alpha(C.ink, 1 - k));
+    // From the head (lying down, it's about 1.5 to the side of the feet), not the feet.
+    const k = (t * 0.6) % 1, hx = 0.75 * f * s;
+    label(ctx, x - hx - 0.4 * k, y + hx - 0.4 * k, z + 0.7 + k * 1.2, 'z', 0.45 + k * 0.3, alpha(C.ink, 1 - k));
   }
 }
 

@@ -289,7 +289,7 @@ const FLY = 1.3;
 const RAYS = [
   { h: 8, kind: 'pillow', name: 'pillow', home: [25.0, 14.6, 0.88], pile: [24.9, 7.4, 0] },
   { h: 9, kind: 'suitcase', name: 'suitcase', home: [25.0, 11.4, 0], pile: [23.9, 6.9, 0] },
-  { h: 9.3, kind: 'lamp', name: 'lamp', home: [24.5, 9.0, 0.9], pile: [25.35, 6.3, 0] },
+  { h: 9.3, kind: 'trophy', name: 'golf trophy', home: [24.5, 9.0, 0.9], pile: [25.35, 6.3, 0] },
   { h: 10, kind: 'photo', name: 'wedding photo', home: [24.95, 9.0, 0.9], pile: [23.2, 7.7, 0] },
   { h: 11, kind: 'shirts', name: 'shirts', home: [24.9, 12.4, 0], pile: [23.9, 6.9, 0.36] },
   { h: 12, kind: 'suitcase2', name: 'other suitcase', home: [25.9, 11.0, 0], pile: [23.85, 6.85, 0.52] },
@@ -306,12 +306,19 @@ function rayThing(ctx, kind, x, y, z, t) {
     case 'pillow': box(ctx, x - 0.32, y - 0.22, z, 0.64, 0.44, 0.18, C.white, { flat: true, lw: 0.03 }); break;
     case 'suitcase': suitcase(ctx, x, y, z, C.navy, z === 0 && y > 10); break;
     case 'suitcase2': suitcase(ctx, x, y, z, INK.funnelRed, z === 0 && y > 10); break;
-    case 'lamp': {
-      cylinder(ctx, x, y, z, 0.13, 0.08, MAT.brass, { flat: true });
-      box(ctx, x - 0.02, y - 0.02, z + 0.08, 0.04, 0.04, 0.6, MAT.brass, { flat: true, stroke: false });
-      const [X, Y] = P(x, y, z + 0.68);
-      ctx.beginPath(); ctx.moveTo(X - 0.16, Y - 0.3); ctx.lineTo(X + 0.16, Y - 0.3); ctx.lineTo(X + 0.26, Y); ctx.lineTo(X - 0.26, Y); ctx.closePath();
-      paint(ctx, INK.sunYellow, { lw: 0.025, dots: shade(INK.sunYellow, 0.3), density: 0.2 });
+    case 'trophy': {
+      // his golf trophy (the lamp went with him: he's hugging it)
+      box(ctx, x - 0.16, y - 0.16, z, 0.32, 0.32, 0.16, MAT.teakDark, { lw: 0.025 });
+      const [X, Y] = P(x, y, z + 0.16);
+      ctx.beginPath(); ctx.moveTo(X - 0.04, Y); ctx.lineTo(X - 0.04, Y - 0.14); ctx.lineTo(X + 0.04, Y - 0.14); ctx.lineTo(X + 0.04, Y); ctx.closePath();
+      paint(ctx, MAT.brass, { lw: 0.02 });
+      ctx.beginPath(); ctx.moveTo(X - 0.18, Y - 0.42); ctx.quadraticCurveTo(X - 0.16, Y - 0.12, X, Y - 0.12); ctx.quadraticCurveTo(X + 0.16, Y - 0.12, X + 0.18, Y - 0.42); ctx.closePath();
+      paint(ctx, MAT.brass, { lw: 0.025 });
+      // the handles, and a golf ball on top
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025;
+      ctx.beginPath(); ctx.arc(X - 0.2, Y - 0.32, 0.06, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X + 0.2, Y - 0.32, 0.06, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X, Y - 0.5, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
       break;
     }
     case 'photo': {
@@ -477,8 +484,8 @@ export default {
         onRight(ctx, x + 0.12, 1.52, 0.1, 0.1, MAT.steel, { lw: 0.02 });
       }
       if (Q.detail) {
-        lettering(ctx, 'x', 4.37, 0.01, 2.4, 'WASH HANDS', 0.16);
-        lettering(ctx, 'x', 4.37, 0.01, 2.62, 'THEN AGAIN', 0.16);
+        lettering(ctx, 'x', 4.37, 0.01, 2.62, 'WASH HANDS', 0.16);
+        lettering(ctx, 'x', 4.37, 0.01, 2.4, 'THEN AGAIN', 0.16);
       }
       // the signs
       board(ctx, 'x', 5.9, 0.02, 2.75, 1.7, 0.45, 'MUSTER B  >', { size: 0.24, board: INK.sunYellow });
@@ -652,9 +659,13 @@ export default {
           const k = ((t * 0.4 + i / 3) % 1);
           const [X, Y] = P(3.3, 9.9, 2.2 + k * 1.6);
           if (ill) {
-            // a worried swirl instead of a heart
-            ctx.beginPath(); ctx.arc(X + Math.sin(k * 6 + i) * 0.2, Y, 0.08 + k * 0.05, 0, Math.PI * 1.5);
-            ctx.strokeStyle = alpha(C.ink, 1 - k); ctx.lineWidth = 0.03; ctx.stroke();
+            // a broken heart instead, gone grey
+            const hx = X + Math.sin(k * 6 + i * 2) * 0.25;
+            ctx.save(); ctx.globalAlpha *= 1 - k;
+            heart(ctx, hx, Y, 0.18, C.grey);
+            ctx.beginPath(); ctx.moveTo(hx, Y - 0.07); ctx.lineTo(hx - 0.04, Y - 0.01); ctx.lineTo(hx + 0.03, Y + 0.02); ctx.lineTo(hx, Y + 0.06);
+            ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+            ctx.restore();
           } else {
             ctx.save(); ctx.globalAlpha *= 1 - k;
             heart(ctx, X + Math.sin(k * 6 + i * 2) * 0.25, Y, 0.18, INK.flamingo);
@@ -717,16 +728,17 @@ export default {
       const [b0, b1] = bedX(4);
       R.thing((b0 + b1) / 2, 14.2, (ctx) => {
         bed(ctx, b0, b1, SPREAD[0]);
-        towel(ctx, b1 - 0.45, 14.3, 0.72, 'elephant');
+        towel(ctx, b1 - 0.35, 15.05, 0.72, 'elephant'); // at the foot, clear of Harold's feet
       });
       extra(R, 14.6, 14.0, 43, {
         pose: 'sleep', z: 0.75, depth: 29.4, look: { style: 'bald', top: C.sky, hair: C.grey },
         say: ['Zzzz. Seconds, please.', 22, 3, 5], sayZ: 1.2,
       });
       R.thing(11.9, 11.6, (ctx) => {
-        // Doreen's chair, in the doorway between her cabin and Tyler's
-        box(ctx, 11.5, 11.4, 0, 0.9, 0.9, 0.62, INK.teak, { lw: 0.035 });
-        box(ctx, 12.3, 11.4, 0, 0.2, 0.9, 1.25, MAT.teakDark, { lw: 0.035 });
+        // Doreen's chair, in the doorway between her cabin and Tyler's; its
+        // back on Tyler's side, behind her, as she sits facing her own cabin
+        box(ctx, 11.35, 11.4, 0, 0.2, 0.9, 1.25, MAT.teakDark, { lw: 0.035 });
+        box(ctx, 11.55, 11.4, 0, 0.9, 0.9, 0.62, INK.teak, { lw: 0.035 });
       }, { depth: 23.2 });
       R.thing(14.6, 9.3, (ctx) => dresser(ctx, 13.7, 15.6, (c) => {
         // the buffet, smuggled home in napkins: a pyramid of rolls, a stack of plates
@@ -839,7 +851,7 @@ export default {
       R.thing(28.7, 9.3, (ctx) => dresser(ctx, 28.2, 29.2, (c) => {
         cocktail(c, 28.5, 9.0, 0.9, { color: INK.sunYellow });
       }));
-      extra(R, 28.75, 11.4, 47, {
+      extra(R, 28.5, 11.4, 47, {
         dir: 'l', look: { top: C.teal, style: 'curly' }, sick: at(11.2),
         arms: (t) => [2.35, 0.2],
         face: (ctx, hy, back, t, arms) => {
@@ -956,14 +968,22 @@ export default {
         towel(ctx, b0 + 1.4, 14.2, 0.72, 'swanOut');
         // a pennant on the spread
         shape(ctx, [[b0 + 0.3, 15.0, 0.73], [b0 + 2.2, 14.8, 0.73], [b0 + 0.3, 15.3, 0.73]], INK.sunYellow, { lw: 0.02 });
-        lettering(ctx, 'x', b0 + 0.95, 15.35, 0.83, 'SPRING BREAK', 0.13, INK.funnelRed);
+        if (Q.detail) {
+          // its lettering, printed flat along it
+          const [X, Y] = P(b0 + 0.95, 15.03, 0.735);
+          ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, -1, 0.5, 0, 0);
+          ctx.rotate(-0.18); ctx.scale(1 / 40, 1 / 40);
+          ctx.font = '700 4.4px "Rethink Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = INK.funnelRed; ctx.fillText('SPRING BREAK', 0, 0);
+          ctx.restore();
+        }
       });
       R.thing(47.1, 9.3, (ctx) => dresser(ctx, 46.4, 47.8, (c) => {
         for (let i = 0; i < 4; i++) cocktail(c, 46.6 + i * 0.3, 9.0 + (i % 2) * 0.2, 0.9);
       }));
-      R.thing(47.3, 11.6, (ctx) => {
-        // an inflatable flamingo, a bit let down
-        const [X, Y] = P(47.3, 11.6, 0);
+      R.thing(47.3, 10.4, (ctx) => {
+        // an inflatable flamingo, a bit let down (clear of where the steward waits)
+        const [X, Y] = P(47.3, 10.4, 0);
         ctx.beginPath(); ctx.ellipse(X, Y - 0.2, 0.55, 0.22, 0, 0, Math.PI * 2); ctx.ellipse(X, Y - 0.2, 0.28, 0.1, 0, 0, Math.PI * 2, true);
         paint(ctx, INK.flamingo, { lw: 0.025 });
         ctx.beginPath(); ctx.moveTo(X + 0.4, Y - 0.3); ctx.quadraticCurveTo(X + 0.7, Y - 0.9, X + 0.45, Y - 1.0);
@@ -1030,7 +1050,9 @@ export default {
     }, { depth: FY + 27.4 });
 
     // A room service waiter up and down the corridor, a cloche held high.
-    const waiter = route([[2.5, 5.0], [46.5, 5.0]], { speed: 1.1, loop: false });
+    // His beat stops short of where the day's people stand about (a steward
+    // at x 6 and 30 and 36, Ray at 27), so he never walks through them.
+    const waiter = route([[8.5, 5.0], [25.2, 5.0]], { speed: 1.1, loop: false });
     R.mover(waiter, (ctx, t, p) => {
       const arms = [Math.PI - 0.35, -0.2];
       person(ctx, p.x, p.y, 0, {
@@ -1066,10 +1088,11 @@ export default {
       },
       say: ['Which end is the front?', 14, 3.5, 1],
     });
-    // A man at the lift, pressing the button, and pressing it.
-    extra(R, 14.9, 2.1, 56, {
+    // A man at the lift, pressing the button, and pressing it (his finger on
+    // it, at x 14.2 on the far wall).
+    extra(R, 14.1, 0.5, 56, {
       dir: 'r', look: { top: INK.teak, bottom: C.navy, style: 'short', hair: C.grey }, sick: at(11.8),
-      arms: (t) => [1.75 + (every(t, 0.5, 0.2) ? 0.2 : 0), 0.1],
+      arms: (t) => [2.35 + (every(t, 0.5, 0.2) ? 0.12 : 0), 0.1],
       say: ['Come ON.', 11, 2.5, 5],
     });
 
@@ -1086,7 +1109,8 @@ export default {
       const [x, y] = s.at;
       R.thing(x, y, (ctx, t) => {
         if (wrap(t) < at(s.from)) return;
-        // a folding chair, its back to the far wall
+        // a folding chair, its back to the far wall: legs, seat, back
+        for (const [lx, ly] of [[x - 0.02, y + 0.3], [x + 0.62, y + 0.3], [x + 0.62, y - 0.37]]) box(ctx, lx, ly, 0, 0.05, 0.05, 0.55, MAT.steelDark, { flat: true, lw: 0.015 });
         box(ctx, x - 0.05, y - 0.4, 0.55, 0.75, 0.75, 0.08, C.navy, { flat: true, lw: 0.03 });
         box(ctx, x + 0.62, y - 0.4, 0.55, 0.08, 0.75, 0.75, C.navy, { flat: true, lw: 0.03 });
         const look = folk(s.seed);

@@ -22,7 +22,9 @@ const ARCH = { x0: 1.05, x1: 1.65, y0: 2.3, y1: 14.8, top: 6.3, under: 5.2 };
 const GARY = [3.5, 7];
 const TABLE = { x0: 3.95, x1: 5.45, y0: 10.95, y1: 12.1, top: 1.55 };
 const ROWS = {
-  A: { x: 10, seats: [5.0, 5.9, 8.1, 9.05, 10.0, 10.95, 11.9, 12.85, 13.8] },
+  // (No seats at A 10 and 11: a beanbag there for Tyler, who sits at 10, 10
+  // all morning and is too small to see over a seat back.)
+  A: { x: 10, seats: [5.0, 5.9, 8.1, 9.05, 11.9, 12.85, 13.8] },
   B: { x: 12, seats: [8.2, 11.9, 12.85, 13.8] },
   C: { x: 14, seats: [5.0, 5.9, 6.8, 7.7, 13.3] },
 };
@@ -671,9 +673,9 @@ export default {
       tub(ctx, 4.72, 11.5, INK.queasyGreen, 'LIME', 'TODAY 10AM');
       // The glue, the spare hat and the wand, round the front.
       bucket(ctx, 5.12, 11.0, TABLE.top, { color: C.white, name: 'GLUE' });
-      box(ctx, 4.2, 11.85, TABLE.top, 0.3, 0.3, 0.03, C.black, { flat: true, lw: 0.02 });
-      cylinder(ctx, 4.35, 12.0, TABLE.top, 0.12, 0.28, C.black, { flat: true });
-      face(ctx, [[4.95, 11.85, TABLE.top + 0.02], [5.35, 11.55, TABLE.top + 0.02]], null, { lw: 0.06 });
+      box(ctx, 5.0, 11.65, TABLE.top, 0.3, 0.3, 0.03, C.black, { flat: true, lw: 0.02 });
+      cylinder(ctx, 5.15, 11.8, TABLE.top, 0.12, 0.28, C.black, { flat: true });
+      face(ctx, [[4.5, 12.0, TABLE.top + 0.02], [4.9, 11.82, TABLE.top + 0.02]], null, { lw: 0.06 });
     });
     R.find({ id: 'slime-kit', label: 'A slime kit', at: [4.72, 11.5, 1.7], r: 0.7 });
 
@@ -710,6 +712,14 @@ export default {
       if (w > KIDS[0] + 18 && w < KIDS[0] + 23) speech(ctx, 3.3, 11.4, ST.h + 3.0, 'Lime! Made fresh at 10!', { size: 0.36 });
     }, { anim: true });
 
+    // Tyler's beanbag, in the front row's gap (day.js sits him at 10, 10).
+    R.thing(10.2, 10, (ctx) => {
+      const [X, Y] = P(10, 10, 0);
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.18, 0.5, 0.34, 0, 0, Math.PI * 2);
+      paint(ctx, C.teal, { lw: 0.03, dots: shade(C.teal, 0.35), density: 0.15 });
+      ctx.beginPath(); ctx.ellipse(X - 0.05, Y - 0.3, 0.3, 0.14, 0, 0, Math.PI * 2);
+      ctx.fillStyle = tint(C.teal, 0.25); ctx.fill();
+    }, { depth: 19.8 });
     // Beanbags in the splash zone, and the kids on them at 10.
     for (const [[x, y], c] of KIDSPOT.map((p, i) => [p, [INK.sunYellow, INK.flamingo, C.sky][i]])) {
       R.thing(x + 0.2, y, (ctx) => {
@@ -719,9 +729,9 @@ export default {
       }, { depth: x + y - 0.2 });
     }
     const KIDSEAT = [
-      { seed: 301, look: { top: C.coral, style: 'bun', hat: 'none' }, sick: null },
-      { seed: 302, look: { top: INK.sunYellow, style: 'pony' }, sick: null, slimed: true },
-      { seed: 303, look: { top: C.teal, style: 'curly' }, sick: at(10.8) },
+      { seed: 301, look: { top: C.coral, style: 'bun', hat: 'none', hair: HAIR[0] }, sick: null },
+      { seed: 302, look: { top: INK.sunYellow, style: 'pony', hair: HAIR[2] }, sick: null, slimed: true },
+      { seed: 303, look: { top: C.teal, style: 'curly', hair: HAIR[3], hat: 'none' }, sick: at(10.8) },
     ];
     KIDSEAT.forEach((k, i) => sitter(R, {
       seat: [KIDSPOT[i][0] - 0.05, KIDSPOT[i][1]], z: -0.2, seed: k.seed, sick: k.sick, from: KIDS[0] + i * 0.8, to: KIDS[1] - i * 0.6,
@@ -784,12 +794,15 @@ export default {
       arms: (t) => [1.1 + Math.sin(t * 8) * 0.12, 0.9 - Math.sin(t * 8) * 0.12],
       prop: (c, t, w) => {
         const [hx, hy] = hand(1.1);
+        // It hangs from the needles to the floor, and the rest runs off
+        // along the floor beside her seat (along y: a unit there is (1, 0.5)
+        // in her mirrored units).
         const len = 0.3 + (w / 240) * 2.2;
         c.lineCap = 'butt';
-        const pts = [[hx, hy], [hx + 0.05, hy + 0.55]];
-        const rest = Math.max(0, len - 0.55);
-        pts.push([hx + 0.05 + Math.min(rest, 1.1), hy + 0.62]);
-        if (rest > 1.1) pts.push([hx + 0.05 + 1.1 - Math.min(rest - 1.1, 1.0), hy + 0.72]);
+        const drop = Math.min(len, -hy);
+        const pts = [[hx, hy], [hx + 0.04, hy + drop]];
+        const rest = (len - drop) / 1.12;
+        if (rest > 0) pts.push([hx + 0.04 + rest, hy + drop + rest * 0.5]);
         c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
         c.strokeStyle = C.ink; c.lineWidth = 0.17; c.stroke();
         c.strokeStyle = INK.funnelRed; c.lineWidth = 0.12; c.stroke();
