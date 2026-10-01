@@ -505,7 +505,7 @@ export default {
       // Folding chairs on the roof rack, and a bumper.
       box(ctx, x - 0.45, y + 0.98, oz + 0.14, 0.9, 0.06, 0.1, C.greyLight, { flat: true, lw: 0.02 });
       if (Q.detail) {
-        box(ctx, x - 0.3, y - 0.45, oz + 1.12, 0.6, 0.9, 0.08, tint(C.coral, 0.4), { flat: true, lw: 0.02 });
+        box(ctx, x - 0.3, y - 0.45, oz + 1.0, 0.6, 0.9, 0.08, tint(C.coral, 0.4), { flat: true, lw: 0.02 });
         for (const [dx, dy, s] of [[0.62, -0.7, 0.8], [0.64, 0.75, 0.7], [-0.4, 1.2, 0.8]]) tuft(ctx, x + dx, y + dy, oz, s);
       }
       // The sticker: faded to nearly nothing, peeling at a corner.
@@ -667,14 +667,28 @@ export default {
     // ---------- The little jetty ----------
     // Granite, the far rocks under at high water (only what's above it is
     // drawn), weed where the tide reaches.
-    JETTY.forEach((r) => {
+    // Each rock a tumbled block, not a cube: its top's corners knocked about
+    // and tilted, its sides splaying out as they go down (the North Point's
+    // jetty, smaller). Pinched in, the cubes read as greybox.
+    JETTY.forEach((r, i) => {
+      const jit = (k) => Math.sin(i * 12.9898 + k * 78.233) * 0.5; // a steady wobble per rock
+      const K = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+      const tops = K.map(([sx, sy], k) => [r.x + sx * (r.w / 2) * 0.82 + jit(k) * 0.22, r.y + sy * 0.5 + jit(k + 4) * 0.2]);
+      const tz = K.map((_, k) => r.top + jit(k + 8) * 0.3);
       R.thing(r.x + 0.6, r.y + 0.6, (ctx, t) => {
         const L = level(t), z0 = Math.max(h(r.x, r.y) - 0.3, L - 0.02);
-        if (z0 >= r.top) return;
-        const w = r.w, col = mix(INK.shingle, C.brown, 0.15);
-        box(ctx, r.x - w / 2, r.y - 0.58, z0, w, 1.16, r.top - z0, col, { dotsL: shade(col, 0.5), dens: 0.18, lw: 0.04, top: tint(col, 0.15) });
-        const weed = Math.min(r.top, 0.45);
-        if (weed > z0 + 0.05 && Q.detail) face(ctx, [[r.x - w / 2, r.y + 0.58, z0], [r.x + w / 2, r.y + 0.58, z0], [r.x + w / 2, r.y + 0.58, weed], [r.x - w / 2, r.y + 0.58, weed]], alpha(C.green, 0.55), { stroke: false });
+        if (z0 >= Math.max(...tz)) return;
+        const col = mix(INK.shingle, C.brown, 0.15);
+        const at = (k, z) => { const d = Math.max(0, tz[k] - z) * 0.25; return [tops[k][0] + K[k][0] * d, tops[k][1] + K[k][1] * d, Math.min(z, tz[k])]; };
+        const up = (k) => at(k, Math.max(tz[k], z0));
+        face(ctx, [at(1, z0), at(2, z0), up(2), up(1)], shade(col, 0.1), { lw: 0.04 });
+        face(ctx, [at(2, z0), at(3, z0), up(3), up(2)], shade(col, 0.26), { lw: 0.04, dots: Q.detail ? shade(col, 0.55) : null, density: 0.18 });
+        const weed = Math.min(Math.min(...tz) - 0.05, 0.45);
+        if (weed > z0 + 0.05 && Q.detail) {
+          face(ctx, [at(1, z0), at(2, z0), at(2, weed), at(1, weed)], alpha(C.green, 0.5), { stroke: false });
+          face(ctx, [at(2, z0), at(3, z0), at(3, weed), at(2, weed)], alpha(C.green, 0.55), { stroke: false });
+        }
+        if (Math.min(...tz) > z0) face(ctx, K.map((_, k) => up(k)), tint(col, 0.15), { lw: 0.04 });
       }, { anim: true });
     });
     // A cormorant on the end rock, drying its wings, until the tide has it.

@@ -521,7 +521,9 @@ export default {
     for (const [x, color, o] of parked) R.thing(x + 0.5, 34.6, (ctx) => car(ctx, x, 33.6, h(x, 33.6), color, 'y', null, 0, null, o));
     // The spot saver, in his beach chair, in the empty spot.
     const saver = folk(321, { top: C.white, bottom: C.teal, hat: 'cap', style: 'bald' });
-    const cx0 = 99.2, cy0 = 33.7, chz = h(cx0, cy0);
+    // (In the space between the Courier's van and the parked car, clear of
+    // both: at 99.2 he sat against the van and looked to be on it.)
+    const cx0 = 99.85, cy0 = 33.7, chz = h(cx0, cy0);
     const beachChair = (ctx) => {
       box(ctx, cx0 - 0.3, cy0 - 0.25, chz + 0.3, 0.6, 0.5, 0.06, C.coral, { flat: true, lw: 0.03 });
       face(ctx, [[cx0 - 0.3, cy0 - 0.25, chz + 0.35], [cx0 + 0.3, cy0 - 0.25, chz + 0.35], [cx0 + 0.3, cy0 - 0.45, chz + 1.1], [cx0 - 0.3, cy0 - 0.45, chz + 1.1]], C.coral, { lw: 0.035, dots: Q.detail ? C.white : null, density: 0.3 });
@@ -626,7 +628,8 @@ export default {
       box(ctx, 99.7, 37.98, bz + 0.58, 1.2, 0.08, 0.45, C.wood, { flat: true, lw: 0.03 });
       for (const x of [99.8, 100.75]) post(ctx, x, 38.45, bz, 0.5, C.ink, 0.06);
     });
-    R.thing(100.6, 38.7, (ctx) => man(ctx, 100.4, 38.3, bz + 0.58 - 0.8, { ...parent, arms: [1.0, 0.9], hold: phone }, { pose: 'sit', dir: 'l' }, 0), { on: kids });
+    // (Sorted after the bench, or its seat covers them.)
+    R.thing(101.01, 38.61, (ctx) => man(ctx, 100.4, 38.3, bz + 0.58 - 0.8, { ...parent, arms: [1.0, 0.9], hold: phone }, { pose: 'sit', dir: 'l' }, 0), { on: kids });
     // The rules.
     const [rbx, rby] = [105.6, 31.8], rz = h(rbx, rby);
     R.thing(rbx + 0.1, rby + 0.1, (ctx) => {
