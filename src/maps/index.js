@@ -52,9 +52,17 @@ export default [
     subtitle: 'South Boston',
     tagline: 'Everyone out by noon, everyone in by night, one truck, and a goose in every apartment.',
     ink: '#E8793A',
-    // The first Boston place (docs/levels/southie.md). Hidden until it ships.
-    hidden: true,
+    // The first Boston place (docs/levels/southie.md).
     load: () => import('./southie/map.js'),
+  },
+  {
+    id: 'cruise',
+    name: 'All-You-Can-Eat',
+    subtitle: 'Day Four',
+    tagline: 'Day four at sea. Something from the buffet is going round, and nobody is getting off.',
+    ink: '#D6473A',
+    // A whodunit on a cruise ship (docs/levels/cruise.md).
+    load: () => import('./cruise/map.js'),
   },
   {
     id: 'crossroads',
@@ -65,15 +73,5 @@ export default [
     // checking engine changes. Opens from #/crossroads.
     hidden: true,
     load: () => import('./crossroads/map.js'),
-  },
-  {
-    id: 'cruise',
-    name: 'All-You-Can-Eat',
-    subtitle: 'Day Four',
-    tagline: 'Day four at sea. Something from the buffet is going round, and nobody is getting off.',
-    ink: '#D6473A',
-    // A whodunit on a cruise ship (docs/levels/cruise.md). Hidden until it ships.
-    hidden: true, // unfinished: out of the picker until it ships (open it at #/cruise)
-    load: () => import('./cruise/map.js'),
   },
 ];

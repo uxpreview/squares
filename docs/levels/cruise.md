@@ -1,6 +1,6 @@
 # All You Can Eat
 
-> Status: **Preview** (gate 3, hidden at `#/cruise`) · Brief → Greybox → Art → QA → Preview → Shipped
+> Status: **Shipped** · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, decisions 1 to 16) · greybox [x] (the lead's call, decisions 17 to 27) · preview [ ] (the owner)
 >
 > Session 7 (Sept 2026), built alongside Boston (Moving Day) in another session. Boston owns engine changes this round (PROCESS.md, "Two levels at once"), so this level is built only from what exists: storeys and the lift (the Manor), walkers on one clock, the whodunit format (`game/case.js`), a place's own dial (Plum Island's tide), and a plate that changes with the clock (the Block Party). It keeps to `src/maps/cruise/`, this brief, and its own lines in shared files.
@@ -191,6 +191,8 @@ Moving Day reached the owner with broken drawing that only showed pinched in (de
 **Checks.** `npm run qa -- cruise`: 13 passed, 0 failed but speed, which in the cloud read the Pool at 66 ms. Back to back with the code before this session, the Pool times the same (30 to 40 ms against 35); Adults Only is about 7 ms slower (about 39, from its SHHH! and zen stones becoming separate things), the Crew Bar about 3; all under 60. `npm run smoke` passes (103 checks, two new ones for the clock and the lift). Frames a second on the owner's laptop not re-measured: `npm run qa -- cruise` and `node tools/fps.mjs cruise --only=adults-only,crew-bar,pool` there are the check.
 
 ## For the owner at gate 3
+Answered (decisions 41 to 47): every recommendation taken, and it ships.
+
 
 1. **The name is written All-You-Can-Eat** (decision 18): QA keeps a place's name to three words. Recommendation: keep it; the other way is to let QA allow this one name.
 2. **It opens on the Promenade,** the two decks above hovering faint, the buffet in the middle (decision 6). The picker card shows the whole ship from the top. Recommendation: keep; the other choice is opening on the Sun Deck, which shows the whole ship but puts the buffet two decks down.
@@ -260,3 +262,12 @@ The pinched-in tour (session 7b, the lead's calls):
 38. **One lifeboat for the ship,** in `ship.js` (the Bridge's reviewer drew it; the kit's was a block). `rope: false` leaves its side clear for a name.
 39. **On the crew deck the waterline lifts with the sea's ink;** the slab's cut side along a neighbor stays (it's the cutaway).
 40. **Gloria's pool chair is at (29.5, 13.4),** in the gap in the lounger row, off the walkway; Kelly calls the limbo from behind the bar (27, 5.4); Pidge lies past its far stand (26.2, 9.7), his line after hers.
+
+Gate 3 (the owner, Oct 2026, every recommendation taken):
+41. **The name stays All-You-Can-Eat,** hyphens and all.
+42. **It opens on the Promenade,** the buffet in the middle.
+43. **The iguana stays in plain sight all day.**
+44. **The ship has its own horn** (`shiphorn` in `src/game/audio.js`): one long, deep blast and a short one, two notes a fifth apart, as it comes into port at 5:48pm. About 6 dB under a honk (the level of Moving Day's jets) and far from its pitch.
+45. **No density pass for now:** the tour filled the Bridge's stern half; the back of the Cabins corridor and the Crew Bar's front before 3pm wait for the owner to say they read empty.
+46. **The port keeps its framing;** pinching in works.
+47. **All-You-Can-Eat ships** in the picker after Moving Day, "Day Four" under its name.

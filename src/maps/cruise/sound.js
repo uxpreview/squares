@@ -1,10 +1,9 @@
 // The ship's sound: the sea washing past the hull under everything (the surf
-// bed), and cues on the day's clock, from sounds the game already has (a
-// ship's own horn is for later; this round the other level owns src/game/):
-// gulls following the ship, the lifeboat drill's alarm (seven short bells and
-// a long one), the limbo's cheers at noon, the bingo caller's ding, the crew
-// party going off at 3, the horn as the ship comes into port, and the island's
-// band playing the welcome to nobody. Every cue sits under a honk (QA checks).
+// bed), and cues on the day's clock: gulls following the ship, the lifeboat
+// drill's alarm (seven short bells and a long one), the limbo's cheers at
+// noon, the bingo caller's ding, the crew party going off at 3, the ship's
+// own horn as it comes into port, and the island's band playing the welcome
+// to nobody. Every cue sits under a honk (QA checks).
 import { at } from './style.js';
 
 const cues = [];
@@ -17,6 +16,6 @@ cues.push({ at: at(12.4), name: 'cheer' }, { at: at(12.9), name: 'cheer' });
 for (const h of [15.05, 15.3, 15.55]) cues.push({ at: at(h), name: 'ding' });
 cues.push({ at: at(15.9), name: 'cheer' }); // the crew party goes off
 // Into port: the horn, then the welcome.
-cues.push({ at: at(17.8), name: 'horn' }, { at: at(18.05), name: 'fanfare' });
+cues.push({ at: at(17.8), name: 'shiphorn' }, { at: at(18.05), name: 'fanfare' });
 
 export const sound = { bed: 'surf', cues };

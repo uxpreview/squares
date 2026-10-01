@@ -454,6 +454,35 @@ SOUNDS.jet = (a, t0) => {
   o.start(t0 + 1.2);
   o.stop(t0 + 6);
 };
+// A ship's horn coming into port, from out on the water: one long, deep
+// blast and a short one, two low notes a fifth apart with a slow swell and a
+// rough edge (All-You-Can-Eat). Big, but well under a honk.
+SOUNDS.shiphorn = (a, t0) => {
+  for (const [at, len] of [[0, 2.4], [2.9, 0.9]]) {
+    const t = t0 + at;
+    const lp = a.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 520;
+    lp.Q.value = 0.9;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.008, t + 0.25);
+    g.gain.setValueAtTime(0.008, t + len - 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    lp.connect(g);
+    g.connect(bus(a));
+    for (const [hz, type] of [[98, 'sawtooth'], [147, 'sawtooth'], [98.6, 'square']]) {
+      const o = a.createOscillator();
+      o.type = type;
+      // It sags a touch as the air runs out.
+      o.frequency.setValueAtTime(hz, t);
+      o.frequency.linearRampToValueAtTime(hz * 0.985, t + len);
+      o.connect(lp);
+      o.start(t);
+      o.stop(t + len + 0.05);
+    }
+  }
+};
 // A truck backing up, down the street: three soft beeps.
 SOUNDS.beep = (a, t0) => {
   for (let i = 0; i < 3; i++) tone(a, t0 + i * 0.5, 1040, 'square', 0.006, 0.01, 0.22, bus(a));
