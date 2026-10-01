@@ -471,6 +471,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let toastTimer = 0;
   function toast(msg) {
     ui.toast.textContent = msg;
+    // Under the dial when it's up top, never over it (Moving Day's noon
+    // message covered the lease clock).
+    const d = !ui.dial.hidden && ui.dial.getBoundingClientRect();
+    ui.toast.style.top = d && d.top < innerHeight / 2 ? `${Math.round(d.bottom + 10)}px` : '';
     ui.toast.hidden = false;
     ui.toast.classList.remove('show');
     void ui.toast.offsetWidth;

@@ -593,8 +593,13 @@ function drawHat(ctx, hat, hy, t) {
   ctx.beginPath();
   if (hat === 'cap') {
     ctx.arc(0.02, hy - 0.08, 0.32, Math.PI, 0);
-    ctx.rect(0.1, hy - 0.1, 0.38, 0.08);
+    ctx.closePath();
     paint(ctx, C.coral);
+    // The brim, at the dome's foot and finely outlined: thick ink on a thin
+    // brim read as a black bar across the eyes.
+    ctx.beginPath();
+    ctx.rect(0.12, hy - 0.15, 0.36, 0.08);
+    paint(ctx, C.coral, { lw: 0.025 });
   } else if (hat === 'beanie') {
     ctx.arc(0.02, hy - 0.06, 0.34, Math.PI, 0);
     paint(ctx, C.mustard);

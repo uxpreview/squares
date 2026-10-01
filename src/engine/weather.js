@@ -83,12 +83,18 @@ export function bolt(ctx, from, to, seed = 1, k = 1) {
 export function rain(ctx, t, o) {
   const [x0, y0, x1, y1] = o.area;
   const n = o.n || 160, top = o.top || 18, v = o.speed || 26, seed = o.seed || 3;
-  const len = o.len || 1.6, wind = o.wind ?? 0.35;
+  // o.px: a drop's longest on screen, in CSS pixels. Without it a drop is a
+  // fixed length on the ground, so zoomed in it grows into a long scratch.
+  const css = (Q.pxPerUnit || 20) / Math.min(3, globalThis.devicePixelRatio || 1);
+  const shrink = o.px ? Math.min(1, o.px / ((o.len || 1.6) * css)) : 1;
+  const len = (o.len || 1.6) * shrink, wind = o.wind ?? 0.35;
+  // o.ground(x, y): the ground's height, so drops end and splash on it.
+  const gnd = o.ground || (() => 0);
   const fall = top / v;
   const splash = [];
   ctx.save();
   ctx.strokeStyle = o.color || alpha(C.sky, 0.55);
-  ctx.lineWidth = o.lw || 0.07;
+  ctx.lineWidth = (o.lw || 0.07) * Math.max(0.4, shrink);
   ctx.lineCap = 'round';
   ctx.beginPath();
   for (let i = 0; i < n; i++) {
@@ -96,21 +102,21 @@ export function rain(ctx, t, o) {
     const cyc = Math.floor(ph), k = ph - cyc;
     const x = x0 + (x1 - x0) * hash(i + seed * 997, cyc), y = y0 + (y1 - y0) * hash(i + seed * 991, cyc + 7);
     if (o.skip && o.skip(x, y)) continue;
-    const z = top * (1 - k);
+    const g = gnd(x, y), z = g + top * (1 - k);
     const X = x - y, Y = (x + y) / 2 - z * ZK;
     ctx.moveTo(X + wind * len, Y - len);
     ctx.lineTo(X, Y);
-    if (k > 0.88) splash.push(X, (x + y) / 2, (k - 0.88) / 0.12);
+    if (k > 0.88) splash.push(X, (x + y) / 2 - g * ZK, (k - 0.88) / 0.12);
   }
   ctx.stroke();
   if (Q.detail && splash.length) {
     ctx.beginPath();
     for (let j = 0; j < splash.length; j += 3) {
-      const r = 0.15 + splash[j + 2] * 0.35;
+      const r = (0.15 + splash[j + 2] * 0.35) * Math.max(0.35, shrink);
       ctx.moveTo(splash[j] + r, splash[j + 1]);
       ctx.ellipse(splash[j], splash[j + 1], r, r * 0.4, 0, 0, Math.PI * 2);
     }
-    ctx.lineWidth = 0.05;
+    ctx.lineWidth = 0.05 * Math.max(0.4, shrink);
     ctx.stroke();
   }
   ctx.restore();
