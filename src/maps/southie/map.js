@@ -45,7 +45,9 @@ const floorOf = (id, y, f) => ({
   span: FH,
   land: false,
 });
-const area = (zone, tag) => ({ zone, at: [0, 0, 0], shape: AREAS[zone.id], tag, h: 3, fixed: true });
+// (Open: nothing tall stands in front of the road, the park or the island,
+// so what's in front of the one you're in isn't cut away.)
+const area = (zone, tag) => ({ zone, at: [0, 0, 0], shape: AREAS[zone.id], tag, h: 3, fixed: true, open: true });
 
 export default {
   id: 'southie',

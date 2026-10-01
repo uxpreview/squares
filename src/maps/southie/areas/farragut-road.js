@@ -357,8 +357,10 @@ const EX = ROAD.park1 - 1.1; // the east side's
 const WWALK = ROAD.walk0 + 1.7; // where people walk, the west sidewalk's curb side
 const EWALK = ROAD.park1 + 0.8; // the east sidewalk
 // Parked cars: [y (middle), color, extra] (clear of the chunk seams at 16, 32, 48).
-const WEST = [[2.4, 0, 'mattress'], [5.6, 4], [8.8, 8, 'rack'], [24.0, 1], [27.2, 6, 'boxes'], [50.4, 7, 'rack'], [53.6, 3]];
-const EAST = [[2.4, 3], [5.6, 6, 'mattress'], [8.8, 0], [26.0, 4], [29.2, 2, 'rack'], [34.2, 5], [50.4, 1], [53.6, 8, 'boxes'], [56.8, 6]];
+// (A car's length and 0.8 apart: closer, the one in front swallowed the end
+// of the one behind.)
+const WEST = [[2.0, 0, 'mattress'], [5.6, 4], [9.2, 8, 'rack'], [23.6, 1], [27.4, 6, 'boxes'], [50.0, 7, 'rack'], [53.8, 3]];
+const EAST = [[2.0, 3], [5.6, 6, 'mattress'], [9.2, 0], [25.8, 4], [29.6, 2, 'rack'], [34.2, 5], [49.6, 1], [53.2, 8, 'boxes'], [56.8, 6]];
 
 export default {
   id: 'farragut-road',
@@ -379,12 +381,11 @@ export default {
       // STOP at the bottom, before Day Boulevard.
       face(ctx, [[ROAD.park0 + 2.3, 57.2, G + 0.01], [TX - 0.2, 57.2, G + 0.01], [TX - 0.2, 57.5, G + 0.01], [ROAD.park0 + 2.3, 57.5, G + 0.01]], alpha(C.white, 0.85), { stroke: false });
     });
-    // The wet road, darker from ten till evening, and its puddles.
+    // Puddles from ten till evening. (The road was darkened wet too, but the
+    // roads on the next areas weren't, so the wet stopped at a line.)
     const PUDDLES = [[18.3, 12.2, 1.0], [23.6, 17.8, 0.8], [20.2, 30.6, 0.7], [25.9, 38.2, 0.6], [21.1, 45.2, 1.1], [18.4, 47.0, 0.7], [23.1, 53.8, 0.9], [19.6, 58.4, 0.8], [7.5, 13.2, 1.0], [27.4, 33.4, 0.55]];
     const wetFade = { fade: (t) => q16(wetK(t)), step: (t) => q16(wetK(t)) };
     R.rug((ctx) => {
-      const road = [[ROAD.park0, 0, ROAD.park1, 60], [0, 10.8, ROAD.park0, 15.2]];
-      for (const [x0, y0, x1, y1] of road) face(ctx, [[x0, y0, G + 0.005], [x1, y0, G + 0.005], [x1, y1, G + 0.005], [x0, y1, G + 0.005]], alpha(C.ink, 0.16), { stroke: false });
       for (const [x, y, r] of PUDDLES) {
         disc(ctx, x, y, G + 0.012, r, PUDDLE, { stroke: alpha(C.ink, 0.35), lw: 0.03 });
         disc(ctx, x + r * 0.5, y - r * 0.3, G + 0.013, r * 0.6, PUDDLE, { stroke: false });
@@ -413,13 +414,13 @@ export default {
     OTHER_HOUSES.forEach((y, i) => {
       const s = SIDING.others[i];
       R.thing(ROW_X0 + 7, y + 4.5, (ctx) => house(ctx, ROW_X0, y, G, s));
-      R.thing(ROW_X0 + 7.01, y + 4.5, (ctx) => house(ctx, ROW_X0, y, G, s, C.white, dusk), byNight);
+      R.thing(ROW_X0 + 7.01, y + 4.5, (ctx) => house(ctx, ROW_X0, y, G, s, C.white, dusk), { ...byNight, whole: true });
       R.thing(ROW_X0 + 7.02, y + 4.5, (ctx) => { for (let f = 0; f < 3; f++) panes(ctx, ROW_X0, y, G + f * FH, { floor: f, top: f === 2 }, () => LIT); }, byNight);
       R.light({ at: [ROW_X0 + 14.6, y + 1, G + 3.1], r: 1.8, color: LIT, k: nightK });
     });
     // On the north house's porch, the old guard in a lawn chair, all day, watching.
     const oldGuard = folk(501, { hair: C.greyLight, style: 'bald', top: C.green, bottom: C.grey });
-    stay(R, 14.3, 5.6, oldGuard, { z: G - 0.3, pose: 'sit', dir: 'r', hold: cupHeld, hours: between(6.5, 21), under: (ctx) => lawnChair(ctx, 14.1, 5.6, G, C.teal) });
+    stay(R, 14.3, 5.6, oldGuard, { z: G - 0.3, pose: 'sit', dir: 'r', hold: cupHeld, hours: between(6.5, 21), under: (ctx) => lawnChair(ctx, 14.1, 5.6, G, C.teal, { part: 'under' }), over: (ctx) => lawnChair(ctx, 14.1, 5.6, G, C.teal, { part: 'over' }) });
     talk(R, 14.3, 5.6, G + 2.4, (t) => (between(6.5, 21)(t) && every(23, 3.5, 0.2)(t) ? (hh(t) < 12 ? 'I\'ve seen worse.' : hh(t) < 16 ? 'Forty-one Moving Days.' : 'Here comes the pizza.') : null));
     // South of the Grey One, a kid selling boxes on the sidewalk.
     R.thing(17.25, 51.9, (ctx) => {
@@ -679,13 +680,10 @@ export default {
     const tries = (t) => stuck(t) && every(9, 1.2, 0.15)(t);
     const truckArt = (ctx, b, wig) => {
       const front = b + TRUCK_L;
-      truck(ctx, TX, b + TRUCK_L / 2 + wig, G, { dir: 1 });
-      // Its one side mirror (the other's in the road), and the driver.
+      // The driver in the cab, and its one side mirror (the other's in the road).
+      truck(ctx, TX, b + TRUCK_L / 2 + wig, G, { dir: 1, driver: { hair: C.red } });
       box(ctx, TX + 1.2, front - 1.55 + wig, G + 1.9, 0.14, 0.12, 0.08, C.ink, { flat: true, stroke: false });
       box(ctx, TX + 1.3, front - 1.6 + wig, G + 1.75, 0.08, 0.28, 0.55, C.ink, { flat: true, lw: 0.02 });
-      const [HX, HY] = P3(TX - 0.45, front - 0.3 + wig, G + 2.15);
-      ctx.beginPath(); ctx.arc(HX, HY, 0.26, 0, Math.PI * 2); paint(ctx, mix(C.brown, C.woodLight, 0.6), { lw: 0.03 });
-      ctx.beginPath(); ctx.arc(HX, HY - 0.05, 0.28, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, C.red, { stroke: false });
     };
     R.mover((t) => { const b = truckBack(t); return b == null || (stuck(t) && !tries(t)) ? HIDE : { x: TX + 1.2, y: b + TRUCK_L, b }; }, (ctx, t, p) => {
       if (p.hide) return;
@@ -776,11 +774,8 @@ export default {
       const [, , color, , , along] = q;
       const X = along === 'x';
       const carArt = (ctx, cx, cy) => {
-        car(ctx, cx, cy, G, color, { dir: 1, along: X ? 'x' : undefined });
-        // The driver.
-        const [HX, HY] = X ? P3(cx + 0.55, cy + 0.25, G + 1.02) : P3(cx - 0.3, cy + 0.55, G + 1.02);
-        ctx.beginPath(); ctx.arc(HX, HY, 0.19, 0, Math.PI * 2); paint(ctx, mix(C.woodLight, C.brown, (i % 3) * 0.3), { lw: 0.025 });
-        ctx.beginPath(); ctx.arc(HX, HY - 0.04, 0.2, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, [C.ink, C.mustard, C.brown, C.grey][i], { stroke: false });
+        // The driver, at the wheel.
+        car(ctx, cx, cy, G, color, { dir: 1, along: X ? 'x' : undefined, riders: [{ front: true, v: X ? 0.3 : -0.3, skin: mix(C.woodLight, C.brown, (i % 3) * 0.3), hair: [C.ink, C.mustard, C.brown, C.grey][i] }] });
       };
       // Moving, it's drawn every frame; stopped in the queue (most of the
       // day), a still picture, and only its horn is animated.

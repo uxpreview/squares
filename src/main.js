@@ -87,6 +87,10 @@ const play = createPlay({
   },
 });
 
+// Safari's own pinch gesture on the page, stopped for the same reason as
+// touch-action in styles.css (older iPhones ignore touch-action for it).
+for (const g of ['gesturestart', 'gesturechange']) document.addEventListener(g, (e) => e.preventDefault(), { passive: false });
+
 const input = attachInput(canvas, camera, {
   down: () => play.down(),
   tap: (x, y) => play.tap(x, y),

@@ -144,6 +144,7 @@ index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/
   shoot.mjs        Screenshot any screen, place or zone, at any moment
+  tour.mjs         An area pinched in on a phone, tile by tile, at chosen moments
   smoke.mjs        The click-through test
   new-level.mjs    Scaffold a new place from its brief
   qa.mjs           Check a place and make its contact sheet

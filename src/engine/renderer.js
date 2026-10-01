@@ -233,7 +233,7 @@ export function createRenderer(canvas, camera, o = {}) {
     const [vx0, vy0] = camera.toWorld(box.x, box.y);
     const [vx1, vy1] = camera.toWorld(box.x + box.w, box.y + box.h);
     const level = o.level ?? world.top;
-    const cut = focus && world.cutaway.front ? cutPath(focus) : null;
+    const cut = focus && world.cutaway.front && !focus.open ? cutPath(focus) : null;
     // A chunk in front of any of the focus zone's chunks is cut away around
     // those (one chunk for a room, so its whole outline).
     // Outdoors (a zone without walls, like a street), the ground carries on

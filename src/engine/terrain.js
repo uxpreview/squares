@@ -293,7 +293,14 @@ export function drawLand(R, land, o = {}) {
     // steps, as the evening is, was tried: in a headless browser, which paints
     // a frame every few seconds, every frame paid for a new bake.)
     const draw = (ctx, t) => paintWater(ctx, land, pc, P, t, o);
-    (stepped ? R.floor(draw, { anim: true }) : R.rug(draw, { anim: true })).area = pc.rect.slice();
+    const it = stepped ? R.floor(draw, { anim: true }) : R.rug(draw, { anim: true });
+    it.area = pc.rect.slice();
+    it.water = true;
+    if (land.rim && (pc.front.x || pc.front.y)) {
+      const side = R.rug((ctx, t) => waterSide(ctx, land, pc, P, t), { anim: true });
+      side.area = pc.rect.slice();
+      side.water = true;
+    }
   }
 }
 
@@ -526,21 +533,8 @@ function paintWater(ctx, land, pc, P, t, o, part = 'all') {
       }
     }
   }
-  if (L > lo && still) {
-    const s = pc.sea;
-    // The water's side, where the plate is cut through it.
-    if (land.rim) {
-      for (const { p, top, along } of s.sides) {
-        ctx.fillStyle = alpha(along === 'y' ? shade(ink.side, 0.15) : ink.side, 0.55);
-        ctx.fill(p);
-        if (Q.lines) {
-          ctx.strokeStyle = C.ink;
-          ctx.lineWidth = 0.06;
-          ctx.stroke(top);
-        }
-      }
-    }
-  }
+  // (The water's side, where the plate is cut through it, is drawn by its own
+  // item: see waterSide.)
   // The plate's back edges: an ink line along the ground, or the water where it's over it.
   if (Q.lines && land.rim && (pc.back.x || pc.back.y)) {
     ctx.beginPath();
@@ -549,6 +543,28 @@ function paintWater(ctx, land, pc, P, t, o, part = 'all') {
     ctx.strokeStyle = C.ink;
     ctx.lineWidth = 0.06;
     ctx.stroke();
+  }
+}
+
+// The water's side, where the plate's front edges cut through it: a band
+// from the ground up to the level, and its top line. Its own item, cut to
+// the water's patch: it stands above the piece's front edge, and cut to the
+// ground's patch its left end was clipped off on every piece (broken lines
+// along the bottom of Moving Day's harbor).
+function waterSide(ctx, land, pc, P, t) {
+  const ink = land.water;
+  const [L] = levels(land, t, STEP_L);
+  if (!(L > pc.lo)) return;
+  const key = Math.round(L / STEP_L);
+  if (!pc.side || pc.side.key !== key) pc.side = { key, sides: waterSides(land, pc, P, L, 0) };
+  for (const { p, top, along } of pc.side.sides) {
+    ctx.fillStyle = alpha(along === 'y' ? shade(ink.side, 0.15) : ink.side, 0.55);
+    ctx.fill(p);
+    if (Q.lines) {
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 0.06;
+      ctx.stroke(top);
+    }
   }
 }
 

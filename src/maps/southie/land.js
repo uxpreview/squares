@@ -106,13 +106,15 @@ export const land = makeLand({
     { id: 'deep', color: LAND.deep, field: (x, y, h) => -2.1 - h, flat: true },
     // The beach: Pleasure Bay Beach, down the park's east side into the bay.
     { id: 'sand', color: LAND.sand, field: (x, y, h) => Math.min(x - BEACH_X, h + 0.9, y - BAY.y0 + 2, BAY.y1 + 3 - y, BAY.x0 + 6 - x) },
-    { id: 'lawn', color: LAND.lawn, field: (x, y, h) => Math.min(x - PARK_X - 0.01, BEACH_X - x, h - 0.2, 59 - y, y - 3), edge: shade(LAND.lawn, 0.3), lw: 0.04 },
+    // (Not under the roads: its outline is drawn after the road over it, and
+    // showed as a stray line across Day Boulevard.)
+    { id: 'lawn', color: LAND.lawn, field: (x, y, h) => Math.min(x - PARK_X - 0.01, BEACH_X - x, h - 0.2, 59 - y, y - 3, -roadField(x, y)), edge: shade(LAND.lawn, 0.3), lw: 0.04 },
     { id: 'island', color: LAND.lawn, field: (x, y, h) => Math.min(island(x, y) - 1.2, h - 0.35), edge: shade(LAND.lawn, 0.3), lw: 0.04 },
     { id: 'paving', color: LAND.paving, field: (x, y, h) => Math.min(pavingField(x, y), h + 0.25), flat: true, edge: LAND.kerb, lw: 0.05 },
     { id: 'road', color: LAND.road, field: (x, y, h) => Math.min(roadField(x, y), h + 0.25), flat: true, edge: LAND.kerb, lw: 0.06 },
   ],
   // (The water takes the night, like the paper.)
-  water: { color: (t) => mix(INK.harbor, C.night, Math.round(nightK(t) * 0.6 * 16) / 16), foam: C.white, wet: LAND.wet, side: INK.harbor, alpha: 0.6, deepAlpha: 0.25, depth: 1.2, under: -1.2 },
+  water: { color: (t) => mix(INK.harbor, C.night, Math.round(nightK(t) * 0.6 * 16) / 16), foam: C.white, wet: LAND.wet, side: INK.harbor, alpha: 0.6, deepAlpha: 0.25, depth: 1.2, under: -0.3 },
   side: { soil: LAND.soil, dots: shade(LAND.soil, 0.45) },
 });
 

@@ -229,7 +229,7 @@ function stay(R, x, y, look, o = {}) {
 }
 // A speech bubble now and then: say(t) returns the words, or null.
 function talk(R, x, y, z, say, o = {}) {
-  R.thing(x, y, (ctx, t) => { const s = say(t); if (s && Q.detail) speech(ctx, x, y, z, s, { size: o.size || 0.44 }); }, { anim: true, depth: x + y + 6, on: (t) => !!say(t) });
+  R.thing(x, y, (ctx, t) => { const s = say(t); if (s && Q.detail) speech(ctx, x, y, z, s, { size: o.size || 0.44, dx: o.dx || 0 }); }, { anim: true, depth: x + y + 6, on: (t) => !!say(t) });
 }
 
 // ---------- Street furniture (the kit's) ----------
@@ -388,7 +388,11 @@ export default {
     // ---------- Paint on the ground ----------
     // A quad that follows the ground's height (the causeway runs down to the
     // water along its south edge).
+    // (Cut at lo..hi in x: see the two halves below.)
+    let lo = -Infinity, hi = Infinity;
     const gquad = (ctx, x0, y0, x1, y1, fill) => {
+      x0 = Math.max(x0, lo); x1 = Math.min(x1, hi);
+      if (x1 <= x0) return;
       const pts = [];
       for (let x = x0; x < x1; x += 1) pts.push([x, y0]);
       for (let y = y0; y < y1; y += 0.5) pts.push([x1, y]);
@@ -402,23 +406,41 @@ export default {
       gquad(ctx, 64.5, 5.0, 80.6, 7.4, ink.road); // the lot
       gquad(ctx, 58, 6.3, 64.5, 7.4, ink.paving); // the south walk, along the rail
       // Kerbs.
-      for (const [a, b, y] of [[58, 64.5, 3.5], [64.5, 80.6, 5.0], [58, 64.5, 6.3]]) face(ctx, [[a, y - 0.06, G + 0.015], [b, y - 0.06, G + 0.015], [b, y + 0.06, G + 0.015], [a, y + 0.06, G + 0.015]], ink.kerb, { stroke: false });
+      for (let [a, b, y] of [[58, 64.5, 3.5], [64.5, 80.6, 5.0], [58, 64.5, 6.3]]) if ((a = Math.max(a, lo)) < (b = Math.min(b, hi))) face(ctx, [[a, y - 0.06, G + 0.015], [b, y - 0.06, G + 0.015], [b, y + 0.06, G + 0.015], [a, y + 0.06, G + 0.015]], ink.kerb, { stroke: false });
       // Day Boulevard's center line, dashed, and the lot's spaces.
-      for (let x = 58.3; x < 64; x += 1.2) face(ctx, [[x, 4.86, G + 0.015], [x + 0.6, 4.86, G + 0.015], [x + 0.6, 4.96, G + 0.015], [x, 4.96, G + 0.015]], ink === LAND ? C.mustard : mix(C.mustard, C.night, 0.55), { stroke: false });
-      for (const x of [64.8, 68.0, 71.2, 74.4, 77.6]) face(ctx, [[x, 6.05, G + 0.015], [x + 0.08, 6.05, G + 0.015], [x + 0.08, 7.2, gz(x, 7.2) + 0.015], [x, 7.2, gz(x, 7.2) + 0.015]], ink.line, { stroke: false });
+      for (let x = 58.3; x < 64; x += 1.2) if (x >= lo && x < hi) face(ctx, [[x, 4.86, G + 0.015], [x + 0.6, 4.86, G + 0.015], [x + 0.6, 4.96, G + 0.015], [x, 4.96, G + 0.015]], ink === LAND ? C.mustard : mix(C.mustard, C.night, 0.55), { stroke: false });
+      for (const x of [64.8, 68.0, 71.2, 74.4, 77.6]) if (x >= lo && x < hi) face(ctx, [[x, 6.05, G + 0.015], [x + 0.08, 6.05, G + 0.015], [x + 0.08, 7.2, gz(x, 7.2) + 0.015], [x, 7.2, gz(x, 7.2) + 0.015]], ink.line, { stroke: false });
     };
-    R.rug(paintGround(LAND));
-    R.rug(paintGround(EVENING), { fade: (t) => q8(nightK(t)), step: (t) => q8(nightK(t)) });
+    // In two halves, each drawn only by the pieces it lies on: drawn whole by
+    // every piece of the island, the piece east of x 64 painted the south walk
+    // over the fishermen standing on it.
+    const halves = (paint, o) => {
+      for (const [x0, x1] of [[58, 64], [64, 81]]) {
+        const it = R.rug((ctx, t) => { lo = x0; hi = x1; paint(ctx, t); lo = -Infinity; hi = Infinity; }, o);
+        it.area = [x0, 2, x1, 8];
+      }
+    };
+    halves(paintGround(LAND));
+    halves(paintGround(EVENING), { fade: (t) => q8(nightK(t)), step: (t) => q8(nightK(t)) });
     // Wet from ten till evening, with puddles that ripple while it rains.
     const PUDDLES = [[73.5, 4.4, 0.7], [67.2, 6.0, 0.8], [61.0, 4.2, 0.6], [78.5, 6.4, 0.6], [79.0, 25.0, 0.5], [70.5, 52.2, 0.55]];
     const wetFade = { fade: (t) => q16(wetK(t)), step: (t) => q16(wetK(t)) };
-    R.rug((ctx) => {
-      gquad(ctx, 58, 2.2, 80.6, 7.4, alpha(C.ink, 0.14));
+    halves((ctx) => {
       for (const [x, y, r] of PUDDLES) {
+        if (x < lo || x >= hi || y > 8) continue;
         disc(ctx, x, y, gz(x, y) + 0.02, r, PUDDLE, { stroke: alpha(C.ink, 0.35), lw: 0.03 });
         if (Q.detail) disc(ctx, x - r * 0.2, y - r * 0.2, gz(x, y) + 0.022, r * 0.3, alpha(C.white, 0.5), { stroke: false });
       }
     }, wetFade);
+    // The puddles out on the walks, each on its own patch.
+    for (const [x, y, r] of PUDDLES) {
+      if (y <= 8) continue;
+      const it = R.rug((ctx) => {
+        disc(ctx, x, y, gz(x, y) + 0.02, r, PUDDLE, { stroke: alpha(C.ink, 0.35), lw: 0.03 });
+        if (Q.detail) disc(ctx, x - r * 0.2, y - r * 0.2, gz(x, y) + 0.022, r * 0.3, alpha(C.white, 0.5), { stroke: false });
+      }, wetFade);
+      it.area = [x - r - 0.5, y - r - 0.5, x + r + 0.5, y + r + 0.5];
+    }
     PUDDLES.forEach(([x, y, r], j) => {
       const it = R.rug((ctx, t) => {
         if (!Q.detail) return;
@@ -788,15 +810,25 @@ export default {
     const s2 = folk(782, { top: C.coral, bottom: C.navy, hat: 'beanie' });
     R.thing(60.2, 2.75, (ctx) => {
       const x = 60.2, y = 2.55;
-      for (const [dx, dy] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) line(ctx, [[x + dx, y + dy, G], [x + dx * 0.5, y + dy * 0.4, G + 0.95]], C.greyLight, 0.06);
-      for (const zz of [0.35, 0.65]) line(ctx, [[x - 0.26, y + 0.22, G + zz], [x + 0.26, y + 0.22, G + zz]], C.greyLight, 0.05);
-      box(ctx, x - 0.25, y - 0.2, G + 0.95, 0.5, 0.4, 0.06, C.greyLight, { flat: true, lw: 0.025 });
+      // Outlined in ink, legs and treads, so it reads as a ladder and its
+      // climber isn't standing on air.
+      const rail = shade(C.greyLight, 0.15);
+      for (const [dx, dy] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) {
+        line(ctx, [[x + dx, y + dy, G], [x + dx * 0.5, y + dy * 0.4, G + 0.95]], C.ink, 0.11);
+        line(ctx, [[x + dx, y + dy, G], [x + dx * 0.5, y + dy * 0.4, G + 0.95]], rail, 0.06);
+      }
+      for (const zz of [0.3, 0.62]) {
+        const k = zz / 0.95, w = 0.3 - 0.15 * k;
+        box(ctx, x - w, y + 0.25 - 0.15 * k - 0.06, G + zz, w * 2, 0.12, 0.05, rail, { flat: true, lw: 0.025 });
+      }
+      box(ctx, x - 0.25, y - 0.2, G + 0.95, 0.5, 0.4, 0.07, rail, { flat: true, lw: 0.03 });
     }, { on: spot, depth: 62.7 });
     stay(R, 60.2, 2.55, s2, { z: G + 1.0, dir: 'l', hours: spot, wet: { wear: poncho }, react: { face: binosUp, arms: [2.3, 2.2] }, depth: 62.8 });
     // The logbook keeper: every plane, a tick.
     const s3 = folk(783, { top: C.sky, bottom: C.ink, style: 'bald', hair: C.greyLight });
     stay(R, 62.5, 2.8, s3, { dir: 'l', pose: 'read', hold: pencilHeld, hours: spot, umb: C.teal, react: { pose: 'read', arms: [1.3, 1.2] } });
-    talk(R, 62.5, 2.8, G + 2.8, (t) => (spot(t) && PL(t) > 8.2 && PL(t) < 10.6 ? 'Tick.' : spot(t) && PL(t) > 13 && PL(t) < 15.5 && frac(t / 114) < 0.5 ? 'A321. Nice.' : null), { size: 0.4 });
+    // (After Pidge has had his say, never over it.)
+    talk(R, 62.5, 2.8, G + 2.8, (t) => (spot(t) && PL(t) > 11.3 && PL(t) < 13.4 ? 'Tick.' : spot(t) && PL(t) > 19 && PL(t) < 21.5 && frac(t / 114) < 0.5 ? 'A321. Nice.' : null), { size: 0.4 });
     // A radio on the cooler, listening to the tower.
     R.thing(58.3, 3.3, (ctx) => {
       box(ctx, 57.95 + 0.1, 2.95, G, 0.75, 0.5, 0.5, C.red, { flat: true, lw: 0.03, top: shade(C.red, 0.25) });
@@ -834,14 +866,16 @@ export default {
       },
     });
     stay(R, 61.35, 2.85, pidge, { dir: 'l', hold: glassHeld, hours: spot, react: { pose: 'point', arms: [2.5, -0.2] } });
-    talk(R, 61.35, 2.85, G + 2.9, (t) => {
+    // His bubble up over the umbrellas and off to the right, clear of the
+    // stepladder's face beside him.
+    talk(R, 61.35, 2.85, G + 3.3, (t) => {
       if (!spot(t)) return null;
       const k = PL(t);
       if (k > 6 && k < 11) return 'That one. Definitely a goose.';
       if (k > 15 && k < 18.5) return frac(t / 171) < 0.34 ? 'It got away.' : frac(t / 171) < 0.67 ? 'Disguised as a plane.' : 'Next one. Trust me.';
       if (k > 36 && k < 39) return 'Suspicious gull.';
       return null;
-    }, { size: 0.4 });
+    }, { size: 0.4, dx: 2.7 });
 
     // ---------- The logbook, dropped by the fence ----------
     // Open on the walk a step from his feet: a navy spiral notebook, cream
@@ -924,20 +958,19 @@ export default {
     // ---------- The lot ----------
     PARKED.forEach(({ x, color, who, dog: hasDog }, ci) => {
       const y = LOT_Y, z = gz(x, y + 0.3);
-      R.thing(x + 1.4, y + 0.75, (ctx) => car(ctx, x, y, z, color, { along: 'x', dir: 1 }));
+      const inCar = (t) => who.some(([, , a, b]) => { const hr = hh(t); return hr >= a && hr < b; });
+      // Empty, a still picture; with people in it (lunch in the car, looking
+      // at the planes), drawn live with them inside.
+      R.thing(x + 1.4, y + 0.75, (ctx) => car(ctx, x, y, z, color, { along: 'x', dir: 1 }), who.length ? { on: (t) => !inCar(t) } : {});
       R.thing(x + 1.401, y + 0.751, (ctx) => veil(ctx, [boxPts(x - 1.4, y - 0.75, z, 2.8, 1.5, 0.82), boxPts(x - 0.93, y - 0.63, z + 0.82, 1.5, 1.26, 0.5)]), byNight);
       if (!who.length) return;
-      const inCar = (t) => who.some(([, , a, b]) => { const hr = hh(t); return hr >= a && hr < b; });
       R.thing(x + 1.402, y + 0.752, (ctx, t) => {
         const hr = hh(t), cx = x - 0.18;
-        who.forEach(([dx, dy, a, b], i) => {
-          if (hr < a || hr >= b) return;
-          const [HX, HY] = P3(cx + dx, y + dy, z + 1.05);
-          const up = overhead(t) ? -0.04 : 0;
-          ctx.beginPath(); ctx.arc(HX, HY + up, 0.19, 0, TAU); paint(ctx, mix(C.woodLight, C.brown, ((ci + i) % 3) * 0.3), { lw: 0.025 });
-          ctx.beginPath(); ctx.arc(HX, HY - 0.04 + up, 0.2, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, [C.ink, C.mustard, C.brown][(ci + i) % 3], { stroke: false });
-          if (i === 0 && Q.detail) { ctx.save(); ctx.translate(HX + 0.3, HY + 0.15); ctx.scale(0.7, 0.7); dogShape(ctx, 0.8); ctx.restore(); }
-        });
+        const riders = who.filter(([, , a, b]) => hr >= a && hr < b).map(([dx, dy], i) => ({
+          front: dx > 0, v: dy, lift: overhead(t) ? 0.05 : 0,
+          skin: mix(C.woodLight, C.brown, ((ci + i) % 3) * 0.3), hair: [C.ink, C.mustard, C.brown][(ci + i) % 3], top: [C.navy, C.red, C.teal][(ci + i) % 3],
+        }));
+        car(ctx, x, y, z, color, { along: 'x', dir: 1, riders });
         if (hasDog && Q.detail) {
           // A dog with its head out of the back window.
           const [DX, DY] = P3(cx - 0.45, y + 0.7, z + 1.1);
@@ -959,6 +992,16 @@ export default {
       }, { anim: true, on: inCar });
       R.light({ at: [x + 2.4, y, z + 0.4], r: 1.8, color: LIT, k: (t) => (inCar(t) ? nightK(t) * 0.9 : 0) });
     });
+    // The lot's back row, parked nose out, one space empty but for a puddle
+    // (the lot was a bare slab up close).
+    for (const [x, ci] of [[73.1, 3], [74.9, 8], [76.7, 0]]) {
+      const y = 11.7, z = gz(x, y);
+      R.thing(x + 0.75, y + 1.4, (ctx) => car(ctx, x, y, z, CARS[ci], { dir: 1 }));
+      R.thing(x + 0.751, y + 1.401, (ctx) => veil(ctx, [boxPts(x - 0.75, y - 1.4, z, 1.5, 2.8, 0.82), boxPts(x - 0.63, y - 1.0, z + 0.82, 1.26, 1.5, 0.5)]), byNight);
+    }
+    R.rug((ctx) => { const [X, Y] = P3(78.5, 11.9, G + 0.01); ctx.beginPath(); ctx.ellipse(X, Y, 0.9, 0.4, 0, 0, TAU); ctx.fillStyle = alpha(tint(C.sky, 0.4), 0.55); ctx.fill(); }, { on: (t) => hh(t) > 10 && hh(t) < 21 });
+    // Its painted lines.
+    R.rug((ctx) => { for (const x of [72.2, 74.0, 75.8, 77.6, 79.4]) line(ctx, [[x, 10.4, G + 0.01], [x, 13.2, G + 0.01]], alpha(C.white, 0.8), 0.06); });
     // A lamp at the plaza, one at the lot's end, and the sign.
     lamp(R, 74.6, 4.95);
     lamp(R, 81.4, 7.3);
@@ -1128,77 +1171,155 @@ export default {
     R.find({ id: 'earbud', label: 'A lost earbud', at: [BUD[0], BUD[1], gz(...BUD) + 0.15], r: 0.9 });
 
     // ---------- Fort Independence ----------
-    const out = FANG.map((_, i) => fv(FR, i)), inn = FANG.map((_, i) => fv(FRI, i));
-    const base = out.map(([x, y]) => gz(x, y) - 0.2);
-    const TOP = G + FTOP;
-    const fortPts = [...out.map(([x, y], i) => [x, y, base[i]]), ...out.map(([x, y]) => [x, y, TOP + 0.3])];
-    R.thing(FC[0] + 2, FC[1] + 1, (ctx) => {
-      // The outer walls you can see.
-      for (let i = 0; i < 5; i++) {
-        const j = (i + 1) % 5, A = out[i], B = out[j];
-        const nx = B[1] - A[1], ny = -(B[0] - A[0]);
-        if (nx + ny <= 0) continue;
-        const fill = ny > nx ? shade(GRANITE, 0.2) : shade(GRANITE, 0.06);
-        face(ctx, [[A[0], A[1], base[i]], [B[0], B[1], base[j]], [B[0], B[1], TOP], [A[0], A[1], TOP]], fill, { lw: 0.045, dots: shade(GRANITE, 0.5), density: 0.14 });
-        if (!Q.detail) continue;
-        // Courses of granite block, and a row of embrasures along the top.
-        ctx.save(); ctx.globalAlpha *= 0.3;
-        for (let zz = Math.max(base[i], base[j]) + 0.3; zz < TOP - 0.1; zz += 0.42) line(ctx, [[A[0], A[1], zz], [B[0], B[1], zz]], C.ink, 0.02);
-        ctx.restore();
-        const L = Math.hypot(B[0] - A[0], B[1] - A[1]), n = Math.floor(L / 1.1);
-        for (let k = 1; k < n; k++) {
-          const u = k / n, mx = A[0] + (B[0] - A[0]) * u, du = 0.14 / L;
-          const p = (uu, zz) => [A[0] + (B[0] - A[0]) * uu, A[1] + (B[1] - A[1]) * uu, zz];
-          if (i === 0 && Math.abs(mx - DOOR_X) < 1.3) continue;
-          face(ctx, [p(u - du, TOP - 0.95), p(u + du, TOP - 0.95), p(u + du, TOP - 0.55), p(u - du, TOP - 0.55)], shade(GRANITE, 0.65), { lw: 0.02 });
-        }
-      }
-      // The top of the walls, then the parade ground inside and the inner
-      // faces of the far walls.
+    // The 1851 fort: five granite curtain walls and an arrowhead bastion at
+    // each corner (two faces meeting at a point, two short flanks back to the
+    // curtain), all one height, grass on the ramparts behind a granite
+    // parapet, the parade ground sunk inside.
+    const V = FANG.map((_, i) => fv(FR, i)), inn = FANG.map((_, i) => fv(FRI, i));
+    const TOP = G + FTOP, TT = TOP - 0.2; // the parapet's top, the rampart grass
+    const dir = (a, b) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]); return [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; };
+    const add = (p, v, k) => [p[0] + v[0] * k, p[1] + v[1] * k];
+    // A bastion's gorge along each curtain, its flanks, and how far its point
+    // stands out from the corner.
+    const BG = 1.0, BF = 0.5, BS = 1.2;
+    // The outline, corner by corner, the same way round as FANG: where it
+    // leaves the curtain, the flank's shoulder, the point, the other shoulder,
+    // back to the next curtain. kind says what the wall from each point is.
+    const OUT = [], KIND = [];
+    V.forEach((v, i) => {
+      const up = dir(v, V[(i + 4) % 5]), un = dir(v, V[(i + 1) % 5]);
+      const np = [-up[1], up[0]], nn = [un[1], -un[0]]; // the curtains' outsides
+      const cp = add(v, up, BG), cn = add(v, un, BG);
+      OUT.push(cp, add(cp, np, BF), add(v, [Math.cos(FANG[i]), Math.sin(FANG[i])], BS), add(cn, nn, BF), cn);
+      KIND.push('flank', 'face', 'face', 'flank', i === 0 ? 'front' : 'curtain');
+    });
+    const foot = OUT.map(([x, y]) => gz(x, y) - 0.2);
+    // The same outline brought in by w (mitred), for the parapet's inside.
+    const inset = (pts, w) => pts.map((p, k) => {
+      const a = pts[(k + pts.length - 1) % pts.length], b = pts[(k + 1) % pts.length];
+      const d0 = dir(a, p), d1 = dir(p, b), n0 = [d0[1], -d0[0]], n1 = [d1[1], -d1[0]];
+      const m = 1 + n0[0] * n1[0] + n0[1] * n1[1];
+      return [p[0] - (w * (n0[0] + n1[0])) / m, p[1] - (w * (n0[1] + n1[1])) / m];
+    });
+    const RIM = inset(OUT, 0.32);
+    const ring = (ctx, a, b, z) => {
       ctx.beginPath();
-      out.forEach(([x, y], i) => { const [X, Y] = P3(x, y, TOP); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      a.forEach(([x, y], i) => { const [X, Y] = P3(x, y, z); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
       ctx.closePath();
-      inn.slice().reverse().forEach(([x, y], i) => { const [X, Y] = P3(x, y, TOP); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      b.slice().reverse().forEach(([x, y], i) => { const [X, Y] = P3(x, y, z); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
       ctx.closePath();
-      paint(ctx, tint(GRANITE, 0.25), { lw: 0.04 });
+    };
+    const rnd = (a, b) => frac(Math.sin(a * 127.1 + b * 311.7) * 43758.5453);
+    const STONE = shade(GRANITE, 0.55), MOSS = [shade(mix(C.green, GRANITE, 0.25), 0.12), mix(C.leaf, C.green, 0.45)];
+    const DARK = shade(GRANITE, 0.8);
+
+    // One wall of dressed granite from A to B (seen from outside), its foot
+    // at za and zb: block courses with staggered joints, a few stones a shade
+    // off, weathering and moss at the foot, rain streaks, the coping band.
+    const ashlar = (ctx, A, B, za, zb, fill, seed, gunsAt = []) => {
+      const L = Math.hypot(B[0] - A[0], B[1] - A[1]);
+      const p = (u, z) => [A[0] + ((B[0] - A[0]) * u) / L, A[1] + ((B[1] - A[1]) * u) / L, z];
+      const zf = (u) => za + ((zb - za) * u) / L;
+      // Where the grass meets it (the mound bulges above the foot's line).
+      const zg = (u) => { const [x, y] = p(u, 0); return Math.max(zf(u), gz(x, y) - 0.04); };
+      const level = (f, u0 = 0, u1 = L) => { const pts = []; for (let u = u0; u < u1; u += 0.2) pts.push(p(u, f(u))); pts.push(p(u1, f(u1))); return pts; };
+      const quad = (u0, u1, z0, z1) => [p(u0, z0), p(u1, z0), p(u1, z1), p(u0, z1)];
+      const path = (pts) => pts.forEach((q, i) => { const [X, Y] = P3(...q); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      face(ctx, [p(0, za), p(L, zb), p(L, TOP), p(0, TOP)], fill, { lw: 0.045, dots: STONE, density: 0.06 });
+      if (!Q.detail) return;
+      const fine = Q.pxPerUnit >= 14; // the joints only once you're close enough to see them
       ctx.save();
-      ctx.beginPath();
-      inn.forEach(([x, y], i) => { const [X, Y] = P3(x, y, TOP); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
-      ctx.closePath();
+      ctx.beginPath(); path([p(0, za), p(L, zb), p(L, TOP), p(0, TOP)]); ctx.closePath();
       ctx.clip();
-      face(ctx, inn.map(([x, y]) => [x, y, G + PARADE]), LAND.lawn, { lw: 0.03, dots: shade(LAND.lawn, 0.4), density: 0.18 });
-      for (let i = 0; i < 5; i++) {
-        const j = (i + 1) % 5, A = inn[i], B = inn[j];
-        const nx = -(B[1] - A[1]), ny = B[0] - A[0];
-        if (nx + ny <= 0) continue;
-        face(ctx, [[A[0], A[1], G + PARADE], [B[0], B[1], G + PARADE], [B[0], B[1], TOP], [A[0], A[1], TOP]], ny > nx ? shade(GRANITE, 0.3) : shade(GRANITE, 0.16), { lw: 0.03, dots: shade(GRANITE, 0.55), density: 0.12 });
-        if (Q.detail) {
-          // Casemate doors along the inside of the walls.
-          for (const u of [0.25, 0.5, 0.75]) {
-            const p = (uu, zz) => [A[0] + (B[0] - A[0]) * uu, A[1] + (B[1] - A[1]) * uu, zz];
-            face(ctx, [p(u - 0.05, G + PARADE), p(u + 0.05, G + PARADE), p(u + 0.05, G + PARADE + 1.1), p(u - 0.05, G + PARADE + 1.1)], shade(GRANITE, 0.7), { lw: 0.02 });
-          }
+      // Courses from the coping down, 0.34 high; blocks 0.55 to 0.95 long,
+      // each course starting half a block over from the last; a few stones a
+      // shade lighter or darker (dressed granite is never one grey).
+      const CH = 0.34, lo = Math.min(za, zb), light = [], dark = [], joints = [];
+      for (let k = 0, z1 = TOP - 0.2; z1 > lo; k++, z1 -= CH) {
+        const z0 = z1 - CH;
+        let u = -(k % 2) * 0.38 - rnd(seed, k) * 0.2;
+        for (let j = 0; u < L; j++) {
+          const w = 0.55 + rnd(seed + j, k * 7) * 0.4, r = rnd(seed * 3 + k, j);
+          if (r < 0.14) light.push(quad(Math.max(0, u), Math.min(L, u + w), z0, z1));
+          else if (r > 0.88) dark.push(quad(Math.max(0, u), Math.min(L, u + w), z0, z1));
+          u += w;
+          if (fine && u > 0.05 && u < L - 0.05) joints.push([p(u, z0), p(u, z1)]);
         }
+        joints.push([p(0, z0), p(L, z0)]);
       }
-      // A path across the parade, and the flagpole.
-      if (Q.detail) line(ctx, [[FC[0], FC[1] + 2.4, G + PARADE + 0.01], [FC[0], FC[1] - 2, G + PARADE + 0.01]], tint(LAND.paving, 0.2), 0.3);
+      for (const [list, ink] of [[light, tint(fill, 0.14)], [dark, shade(fill, 0.08)]]) {
+        ctx.beginPath();
+        for (const q of list) { path(q); ctx.closePath(); }
+        ctx.fillStyle = ink; ctx.fill();
+      }
+      ctx.beginPath();
+      for (const sg of joints) path(sg);
+      ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.02; ctx.stroke();
+      // Rain streaks down from the coping, and the damp at the foot.
+      ctx.fillStyle = alpha(C.ink, 0.1);
+      ctx.beginPath();
+      for (let s = 0; s < L / 0.9; s++) {
+        const u = (s + 0.2 + rnd(seed, s + 40) * 0.6) * 0.9, w = 0.06 + rnd(seed, s + 50) * 0.1;
+        if (u + w > L) break;
+        path(quad(u, u + w, TOP - 0.6 - rnd(seed, s + 60) * 1.2, TOP - 0.2)); ctx.closePath();
+      }
+      for (const u of gunsAt) { path(quad(u - 0.06, u + 0.06, zf(u) + 0.3, zf(u) + 1.1)); ctx.closePath(); }
+      ctx.fill();
+      for (const up of [0.75, 0.38]) {
+        ctx.beginPath(); path([p(0, za), p(L, zb), ...level((u) => zg(u) + up).reverse()]); ctx.closePath();
+        ctx.fillStyle = alpha(C.ink, 0.1); ctx.fill();
+      }
+      // Moss along the foot: a ragged fringe in patches, darker underneath,
+      // with lighter clumps where it's thickest.
+      const mossH = (u) => Math.max(0, Math.sin(u * 2.3 + seed) * 0.6 + Math.sin(u * 5.1 + seed * 0.7) * 0.4 + 0.1) * 0.3;
+      const fringe = [p(0, za), p(L, zb)];
+      for (let u = L; u > -0.1; u -= 0.1) fringe.push(p(Math.max(0, u), zg(Math.max(0, u)) + 0.06 + mossH(u) * 1.2));
+      ctx.beginPath(); path(fringe); ctx.closePath();
+      ctx.fillStyle = MOSS[0]; ctx.fill();
+      ctx.beginPath();
+      for (let u = 0.1; u < L; u += 0.22) {
+        const m = mossH(u);
+        if (m < 0.1) continue;
+        const r = 0.05 + m * 0.3 + rnd(seed, u * 10) * 0.03;
+        const [X, Y] = P3(...p(u + (rnd(seed, u * 10 + 1) - 0.5) * 0.1, zg(u) + 0.06 + m * 1.1));
+        ctx.moveTo(X + r * 1.5, Y); ctx.ellipse(X, Y, r * 1.5, r, 0, 0, TAU);
+      }
+      ctx.fillStyle = MOSS[1]; ctx.fill();
       ctx.restore();
-      line(ctx, [[FC[0], FC[1], G + PARADE], [FC[0], FC[1], G + PARADE + 6.4]], C.ink, 0.1);
-      line(ctx, [[FC[0], FC[1], G + PARADE], [FC[0], FC[1], G + PARADE + 6.4]], C.white, 0.05);
-      disc(ctx, FC[0], FC[1], G + PARADE + 6.45, 0.09, C.mustard, { lw: 0.02 });
-      // Bastions at the three corners you can see, a step higher.
-      for (const i of [0, 1, 4]) {
-        const [x, y] = out[i];
-        box(ctx, x - 0.7, y - 0.7, base[i], 1.4, 1.4, TOP + 0.15 - base[i], GRANITE, { lw: 0.04, dens: 0.14, top: tint(GRANITE, 0.3) });
+      // Gun embrasures: a dressed surround, the dark slot, its sill.
+      for (const u of gunsAt) {
+        const z = zf(u) + 1.15;
+        face(ctx, quad(u - 0.2, u + 0.2, z - 0.05, z + 0.5), tint(fill, 0.18), { lw: 0.025 });
+        face(ctx, quad(u - 0.09, u + 0.09, z + 0.05, z + 0.4), DARK, { lw: 0.02 });
+        face(ctx, quad(u - 0.24, u + 0.24, z - 0.1, z - 0.03), tint(fill, 0.1), { lw: 0.02 });
       }
-      // The sally port: an arch in the front face, the doors shut.
+      // The coping along the top, standing a little proud, with its shadow.
+      ctx.beginPath(); path(quad(0, L, TOP - 0.27, TOP - 0.2)); ctx.closePath();
+      ctx.fillStyle = alpha(C.ink, 0.18); ctx.fill();
+      face(ctx, quad(0, L, TOP - 0.2, TOP), tint(fill, 0.22), { lw: 0.03 });
+      if (fine) for (let u = 0.7 + rnd(seed, 99) * 0.4; u < L - 0.2; u += 1.1) line(ctx, [p(u, TOP - 0.2), p(u, TOP)], alpha(C.ink, 0.45), 0.018);
+    };
+
+    // The sally port: an arch in the front curtain, the doors shut, and the
+    // fort's name on a tablet over it.
+    const sallyPort = (ctx) => {
       const fy = FRONT_Y + 0.01, dz = gz(DOOR_X, FRONT_Y + 0.3) - 0.05;
-      const arch = (w, top, n = 10) => {
+      const arch = (w, top, n = 12) => {
         const pts = [[DOOR_X - w, fy, dz], [DOOR_X + w, fy, dz]];
         for (let k = 0; k <= n; k++) { const a = (k / n) * Math.PI; pts.push([DOOR_X + Math.cos(a) * w, fy, top + Math.sin(a) * w * 0.9]); }
         return pts;
       };
-      face(ctx, arch(0.85, dz + 1.45), tint(GRANITE, 0.35), { lw: 0.04 });
+      face(ctx, arch(0.85, dz + 1.45), tint(GRANITE, 0.32), { lw: 0.04 });
+      if (Q.detail) {
+        // Voussoirs round the arch.
+        ctx.beginPath();
+        for (let k = 1; k < 9; k++) {
+          const a = (k / 9) * Math.PI, c = Math.cos(a), s = Math.sin(a) * 0.9;
+          const [X0, Y0] = P3(DOOR_X + c * 0.62, fy, dz + 1.35 + s * 0.62), [X1, Y1] = P3(DOOR_X + c * 0.85, fy, dz + 1.45 + s * 0.85);
+          ctx.moveTo(X0, Y0); ctx.lineTo(X1, Y1);
+        }
+        ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.02; ctx.stroke();
+      }
       face(ctx, arch(0.62, dz + 1.35), shade(C.brown, 0.15), { lw: 0.035 });
       line(ctx, [[DOOR_X, fy + 0.005, dz], [DOOR_X, fy + 0.005, dz + 1.9]], shade(C.brown, 0.5), 0.03);
       if (Q.detail) for (const u of [-0.4, -0.2, 0.2, 0.4]) for (const zz of [0.4, 0.9, 1.4]) disc(ctx, DOOR_X + u, fy + 0.01, dz + zz, 0.025, C.ink, { stroke: false });
@@ -1206,10 +1327,100 @@ export default {
       lettering(ctx, 'x', DOOR_X, fy + 0.03, dz + 1.12, 'CLOSED TUESDAYS', 0.065, C.red, 'Bagel Fat One');
       lettering(ctx, 'x', DOOR_X, fy + 0.03, dz + 0.97, 'tours sat & sun', 0.06, C.ink);
       // Its name over the door.
-      lettering(ctx, 'x', DOOR_X, fy + 0.01, TOP - 0.3, 'FORT INDEPENDENCE', 0.3, shade(GRANITE, 0.6), 'Bagel Fat One');
-      lettering(ctx, 'x', DOOR_X, fy + 0.01, TOP - 0.62, '1851', 0.18, shade(GRANITE, 0.6), 'Bagel Fat One');
+      // (A little left of the door: the near bastion hides the curtain's right end.)
+      const NX = DOOR_X - 0.2;
+      panel(ctx, 'x', NX, fy + 0.005, TOP - 0.6, 2.15, 0.56, tint(GRANITE, 0.3), { lw: 0.03 });
+      lettering(ctx, 'x', NX, fy + 0.01, TOP - 0.5, 'FORT INDEPENDENCE', 0.16, shade(GRANITE, 0.62), 'Bagel Fat One');
+      lettering(ctx, 'x', NX, fy + 0.01, TOP - 0.74, '1851', 0.14, shade(GRANITE, 0.62), 'Bagel Fat One');
+    };
+    R.thing(FC[0] + 2, FC[1] + 1, (ctx) => {
+      // The outer walls you can see, back to front.
+      const walls = [];
+      for (let k = 0; k < OUT.length; k++) {
+        const j = (k + 1) % OUT.length, A = OUT[k], B = OUT[j];
+        const nx = B[1] - A[1], ny = -(B[0] - A[0]), n = Math.hypot(nx, ny);
+        if (nx + ny <= 0.001) continue;
+        walls.push({ k, j, A, B, d: A[0] + A[1] + B[0] + B[1], lean: (ny - nx) / n });
+      }
+      walls.sort((a, b) => a.d - b.d);
+      for (const { k, j, A, B, lean } of walls) {
+        // Darker the more it faces the lower left, in a few steps.
+        const fill = shade(GRANITE, Math.round((0.05 + 0.17 * clamp01((lean + 1) / 2)) * 25) / 25);
+        const L = Math.hypot(B[0] - A[0], B[1] - A[1]);
+        const kind = KIND[k];
+        const guns = kind === 'flank' ? [L / 2] : kind === 'curtain' ? [L * 0.22, L * 0.5, L * 0.78] : [];
+        ashlar(ctx, A, B, foot[k], foot[j], fill, k * 13 + 5, guns);
+        if (kind === 'front') sallyPort(ctx);
+      }
+
+      // The ramparts' grass, behind the parapet.
+      ring(ctx, RIM, inn, TT);
+      paint(ctx, mix(LAND.lawn, GRANITE, 0.12), { lw: 0.03, dots: shade(LAND.lawn, 0.35), density: 0.14 });
+      // The parade ground inside and the inner faces of the far walls.
+      ctx.save();
+      ctx.beginPath();
+      inn.forEach(([x, y], i) => { const [X, Y] = P3(x, y, TT); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      ctx.closePath();
+      ctx.clip();
+      face(ctx, inn.map(([x, y]) => [x, y, G + PARADE]), LAND.lawn, { lw: 0.03, dots: shade(LAND.lawn, 0.4), density: 0.18 });
+      if (Q.detail) line(ctx, [[FC[0], FC[1] + 2.4, G + PARADE + 0.01], [FC[0], FC[1] - 2, G + PARADE + 0.01]], tint(LAND.paving, 0.2), 0.3);
+      for (let i = 0; i < 5; i++) {
+        const j = (i + 1) % 5, A = inn[i], B = inn[j];
+        const nx = -(B[1] - A[1]), ny = B[0] - A[0];
+        if (nx + ny <= 0) continue;
+        const p = (uu, zz) => [A[0] + (B[0] - A[0]) * uu, A[1] + (B[1] - A[1]) * uu, zz];
+        const fill = ny > nx ? shade(GRANITE, 0.28) : shade(GRANITE, 0.14);
+        face(ctx, [p(0, G + PARADE), p(1, G + PARADE), p(1, TT), p(0, TT)], fill, { lw: 0.03, dots: STONE, density: 0.08 });
+        if (!Q.detail) continue;
+        ctx.save(); ctx.globalAlpha *= 0.4;
+        for (let zz = G + PARADE + 0.34; zz < TT - 0.1; zz += 0.34) line(ctx, [p(0, zz), p(1, zz)], C.ink, 0.018);
+        ctx.restore();
+        face(ctx, [p(0, TT - 0.18), p(1, TT - 0.18), p(1, TT), p(0, TT)], tint(fill, 0.2), { lw: 0.02 });
+        // Casemate doors and their windows along the inside of the walls.
+        for (const u of [0.2, 0.4, 0.6, 0.8]) {
+          const door = u === 0.4 || u === 0.8;
+          face(ctx, [p(u - 0.05, G + PARADE + (door ? 0 : 0.5)), p(u + 0.05, G + PARADE + (door ? 0 : 0.5)), p(u + 0.05, G + PARADE + 1.1), p(u - 0.05, G + PARADE + 1.1)], DARK, { lw: 0.02 });
+        }
+      }
+      // The flagpole's foot (the near rampart hides the rest of it).
+      line(ctx, [[FC[0], FC[1], G + PARADE], [FC[0], FC[1], TT]], C.ink, 0.1);
+      line(ctx, [[FC[0], FC[1], G + PARADE], [FC[0], FC[1], TT]], C.white, 0.05);
+      ctx.restore();
+      // The parapet: its inside on the far walls, then its top all round.
+      const rim = [];
+      for (let k = 0; k < RIM.length; k++) {
+        const A = RIM[k], B = RIM[(k + 1) % RIM.length];
+        if (-(B[1] - A[1]) + (B[0] - A[0]) <= 0) continue;
+        rim.push({ A, B, d: A[0] + A[1] + B[0] + B[1] });
+      }
+      rim.sort((a, b) => a.d - b.d);
+      for (const { A, B } of rim) face(ctx, [[A[0], A[1], TT], [B[0], B[1], TT], [B[0], B[1], TOP], [A[0], A[1], TOP]], shade(GRANITE, 0.24), { lw: 0.025 });
+      ring(ctx, OUT, RIM, TOP);
+      paint(ctx, tint(GRANITE, 0.28), { lw: 0.04 });
+      if (Q.detail && Q.pxPerUnit >= 14) {
+        // Joints across the parapet's top.
+        ctx.beginPath();
+        OUT.forEach((A, k) => {
+          const B = OUT[(k + 1) % OUT.length], a = RIM[k], b = RIM[(k + 1) % RIM.length];
+          const n = Math.floor(Math.hypot(B[0] - A[0], B[1] - A[1]) / 0.8);
+          for (let s = 1; s < n; s++) {
+            const u = s / n, [X0, Y0] = P3(lerp(A[0], B[0], u), lerp(A[1], B[1], u), TOP), [X1, Y1] = P3(lerp(a[0], b[0], u), lerp(a[1], b[1], u), TOP);
+            ctx.moveTo(X0, Y0); ctx.lineTo(X1, Y1);
+          }
+        });
+        ctx.strokeStyle = alpha(C.ink, 0.35); ctx.lineWidth = 0.018; ctx.stroke();
+      }
+      // The flagpole, above the walls.
+      line(ctx, [[FC[0], FC[1], TT], [FC[0], FC[1], G + PARADE + 6.4]], C.ink, 0.1);
+      line(ctx, [[FC[0], FC[1], TT], [FC[0], FC[1], G + PARADE + 6.4]], C.white, 0.05);
+      disc(ctx, FC[0], FC[1], G + PARADE + 6.45, 0.09, C.mustard, { lw: 0.02 });
     }, { depth: 99 });
-    R.thing(FC[0] + 2.001, FC[1] + 1, (ctx) => veil(ctx, [fortPts, boxPts(FC[0] - 0.1, FC[1] - 0.1, G + PARADE, 0.2, 0.2, 6.5), ...[0, 1, 4].map((i) => boxPts(out[i][0] - 0.7, out[i][1] - 0.7, base[i], 1.4, 1.4, TOP + 0.15 - base[i]))]), { ...byNight, depth: 99.001 });
+    // Night ink over the curtains, each bastion and the flagpole.
+    R.thing(FC[0] + 2.001, FC[1] + 1, (ctx) => veil(ctx, [
+      [...V.map(([x, y]) => [x, y, gz(x, y) - 0.2]), ...V.map(([x, y]) => [x, y, TOP])],
+      ...V.map((_, i) => { const pts = OUT.slice(i * 5, i * 5 + 5), zs = foot.slice(i * 5, i * 5 + 5); return [...pts.map(([x, y], k) => [x, y, zs[k]]), ...pts.map(([x, y]) => [x, y, TOP])]; }),
+      boxPts(FC[0] - 0.1, FC[1] - 0.1, G + PARADE, 0.2, 0.2, 6.5),
+    ]), { ...byNight, depth: 99.001 });
     R.light({ at: [FC[0], FRONT_Y + 2.5, G + 2.2], r: 5, color: LIT, k: (t) => nightK(t) * 0.55 });
     // The flag, in the wind off the harbor.
     R.thing(FC[0], FC[1], (ctx, t) => {

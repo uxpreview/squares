@@ -20,7 +20,10 @@ npm run qa -- {{LEVEL_ID}}        # the contact sheet: qa-out/{{LEVEL_ID}}/conta
 node tools/shoot.mjs {{LEVEL_ID}} out.png
 node tools/shoot.mjs {{LEVEL_ID}} out.png --mobile
 node tools/shoot.mjs {{LEVEL_ID}}/<area> out.png --at=<seconds>
+node tools/tour.mjs {{LEVEL_ID}}/<area> --at=<morning>,<busiest>,<night>   # pinched in, tile by tile
 ```
+
+**Look closer, every area.** The contact sheet and an area's own framing hide a lot. A player pinches in two or three times and looks around, so `tools/tour.mjs` does the same: it tiles each area zoomed in 3x on a phone at the moments you give it. Look at every tile. Moving Day went to the owner with cars that were plain blocks, people drawn inside a bench, heads on car roofs, seams in the water and a fort in greybox, all invisible at the area's own framing and obvious pinched in.
 
 {{EXTRA_VIEWS}}
 
@@ -32,6 +35,7 @@ node tools/shoot.mjs {{LEVEL_ID}}/<area> out.png --at=<seconds>
 - **Density.** Areas that feel empty next to their neighbors, or so busy the finds get lost.
 - **Repeats.** The same idea used twice (the Walk-Up ended up with two goldfish and two party balloons). Keep the better one and change the other.
 - **Crossovers.** The gags that are meant to cross between areas: do they land from both sides?
+- **Up close** (the tour). Anything still in greybox (plain blocks where a car, a fort or a crane should be), someone drawn inside or behind the thing they sit or stand on, people standing inside each other, speech bubbles over faces or over each other, umbrellas merging, seams or stray lines in water and ground, big empty stretches.
 - **The whole picture.** The silhouette, the hero, the thumbnail in the picker (it's on the contact sheet). You should recognize the place from the thumbnail alone.
 
 ## Rules

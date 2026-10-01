@@ -77,6 +77,7 @@ node tools/shoot.mjs {{LEVEL_ID}}/{{AREA_ID}} out.png --at=20             # desk
 node tools/shoot.mjs {{LEVEL_ID}}/{{AREA_ID}} out.png --at={{KEY_MOMENT}}  # {{KEY_MOMENT_WHAT}}
 node tools/shoot.mjs {{LEVEL_ID}}/{{AREA_ID}} out.png --mobile --finds     # phone, with every find ringed
 node tools/shoot.mjs {{LEVEL_ID}}/{{AREA_ID}} out.png --zoom=2.2           # close up
+node tools/tour.mjs {{LEVEL_ID}}/{{AREA_ID}} --at=20,{{KEY_MOMENT}}          # pinched in 3x, tile by tile, like a player
 node tools/shoot.mjs {{LEVEL_ID}}/{{AREA_ID}} out.png --at=30.4 --freeze   # an exact moment, clock stopped (a flash)
 node tools/shoot.mjs {{LEVEL_ID}} out.png                                    # the whole level, to see how you sit in it
 npm run qa -- {{LEVEL_ID}} --quick                                           # the machine checks
@@ -84,7 +85,7 @@ npm run qa -- {{LEVEL_ID}} --quick                                           # t
 
 `--eval="<js>"` runs some JavaScript in the page before the shot, to set up a state (the Manor's dining room used it to show the solved case).
 
-There must be no console errors from your area, and no `FAIL` lines about it in QA.
+There must be no console errors from your area, and no `FAIL` lines about it in QA. Look at every tile of the tour before you report: nothing in plain blocks, nobody drawn inside the bench they sit on (give them a `depth` after it), no bubbles over faces.
 
 ## Report
 

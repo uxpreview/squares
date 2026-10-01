@@ -22,7 +22,7 @@
 // for a second or two. A find can be there only some of the time (f.when).
 
 import { isoX, isoY } from '../engine/iso.js';
-import { C, alpha } from '../engine/art.js';
+import { C, Q, alpha } from '../engine/art.js';
 import { findPos } from '../engine/zone.js';
 import { createTray } from '../ui/tray.js';
 import { createCasefile } from '../ui/casefile.js';
@@ -471,6 +471,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let toastTimer = 0;
   function toast(msg) {
     ui.toast.textContent = msg;
+    // Under the dial when it's up top, never over it (Moving Day's noon
+    // message covered the lease clock).
+    const d = !ui.dial.hidden && ui.dial.getBoundingClientRect();
+    ui.toast.style.top = d && d.top < innerHeight / 2 ? `${Math.round(d.bottom + 10)}px` : '';
     ui.toast.hidden = false;
     ui.toast.classList.remove('show');
     void ui.toast.offsetWidth;
@@ -759,9 +763,26 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // Sounds on the place's clock (thunder after lightning), heard between one
   // frame and the next. A jump in the clock (a tool, the reveal) plays nothing.
   let lastTick = null;
+  // Speech bubbles keep clear of the buttons over the top of the picture
+  // (see speech() in art.js): their boxes, in the canvas's own pixels.
+  const mapCanvas = document.getElementById('map');
+  function keepBubblesClear() {
+    if (!active || !mapCanvas) { Q.keepClear = null; return; }
+    const r = mapCanvas.getBoundingClientRect();
+    if (!r.height) return;
+    const k = mapCanvas.height / r.height, rects = [];
+    for (const el of [ui.places, ui.dial, document.querySelector('.tally')]) {
+      if (!el || el.hidden || !el.getClientRects().length) continue;
+      const b = el.getBoundingClientRect();
+      if (b.top < r.top + r.height / 3) rects.push([(b.left - r.left) * k, (b.top - r.top) * k, (b.right - r.left) * k, (b.bottom - r.top) * k]);
+    }
+    Q.keepClear = { w: mapCanvas.width, h: mapCanvas.height, rects };
+  }
+
   function tick(t) {
     skipStep();
     renderDial(t);
+    keepBubblesClear();
     placeInvite();
     if (world && world.map.plate && world.map.plate.at && Math.abs(t - plateAtT) > 0.4) printPlate(t);
     // (The open list is measured as it would rest; that's a style change, so
@@ -915,7 +936,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const [X, Y] = camera.toWorld(sx, sy);
     // In a room, whatever's in front of it is cut away round it, so a tap
     // there is the room's (the house in front's upper floors, on a street of houses).
-    if (mode === 'zone' && current >= 0 && world.cutaway.front && world.zoneAt(X, Y, (z) => z.index !== current) === current) return current;
+    if (mode === 'zone' && current >= 0 && world.cutaway.front && !world.zones[current].open && world.zoneAt(X, Y, (z) => z.index !== current) === current) return current;
     if (skipLifted) return world.zoneAt(X, Y, lifted);
     if (hasStoreys()) {
       const i = world.zoneAt(X, Y, lifted);

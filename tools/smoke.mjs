@@ -102,6 +102,30 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   if (h !== '#/block') { await page.keyboard.press('Escape'); await wait(page, 1600); }
   check('Escape goes back up to the whole map', (await S(page, () => location.hash)) === '#/block' && await S(page, () => document.body.dataset.mode) === 'overview');
 
+  // Touch: a pinch zooms; a finger whose lift was never reported doesn't
+  // turn the next drag into a pinch (the map got stuck on a phone).
+  const touch = (type, id, x, y, primary) => S(page, ([type, id, x, y, primary]) => {
+    document.getElementById('map').dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, isPrimary: primary, pointerType: 'touch', bubbles: true }));
+  }, [type, id, x, y, primary]);
+  const camNow = () => S(page, () => ({ ...window.__squares.cam }));
+  let c0 = await camNow();
+  await touch('pointerdown', 11, 500, 300, true);
+  await touch('pointerdown', 12, 700, 300, false);
+  await touch('pointermove', 12, 800, 300, false);
+  await touch('pointerup', 12, 800, 300, false);
+  await touch('pointerup', 11, 500, 300, true);
+  let c1 = await camNow();
+  check('a pinch zooms the map', c1.z > c0.z * 1.05, `${c0.z.toFixed(2)} to ${c1.z.toFixed(2)}`);
+  await touch('pointerdown', 21, 400, 300, true); // its lift never comes
+  await touch('pointerdown', 22, 600, 400, true); // a new touch, on its own
+  await touch('pointermove', 22, 520, 400, true);
+  await touch('pointermove', 22, 440, 400, true);
+  await touch('pointerup', 22, 440, 400, true);
+  const c2 = await camNow();
+  check("a lost finger doesn't turn the next drag into a pinch", Math.abs(c2.z - c1.z) < 1e-6 && Math.abs(c2.x - c1.x) > 0.5, `zoom ${c1.z.toFixed(2)} to ${c2.z.toFixed(2)}, moved ${(c2.x - c1.x).toFixed(2)}`);
+  check('a pinch on the page never zooms the page', await S(page, () => getComputedStyle(document.body).touchAction.includes('pan')));
+  await wait(page, 600);
+
   await page.click('#to-places');
   await wait(page, 400);
   check('Places button returns to the picker', (await S(page, () => location.hash)) === '#/maps');

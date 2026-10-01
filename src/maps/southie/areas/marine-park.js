@@ -503,7 +503,7 @@ export default {
         ctx.beginPath(); ctx.moveTo(X - 0.3, Y + 0.1); ctx.lineTo(X + 0.3, Y + 0.1); ctx.lineTo(X + 0.2, Y - 0.35); ctx.lineTo(X - 0.2, Y - 0.35); ctx.closePath(); paint(ctx, C.butter, { lw: 0.03, dots: C.mustard, density: 0.2 });
       }, { on: between(7, 18.5) });
       const rider = folk(641, { top: C.purple, style: 'bun', bottom: C.ink });
-      stay(R, x + 0.55, y + 1.2, rider, { z: gz(x, y + 1.2) + 0.53 - 0.71, pose: 'sit', dir: 'r', hours: between(7, 18.5), umb: C.teal });
+      stay(R, x + 0.55, y + 1.2, rider, { z: gz(x, y + 1.2) + 0.53 - 0.71, pose: 'sit', dir: 'r', hours: between(7, 18.5), umb: C.teal, depth: x + y + 3.11 });
       talk(R, x + 0.55, y + 1.2, z + 2.6, (t) => (between(7, 18.5)(t) ? lines(['It said four minutes.', 'Still four minutes.', 'The lamp gets the window seat.'], 18, 3.2, 0.5)(t) : null), { size: 0.38 });
     }
 
@@ -934,7 +934,7 @@ export default {
         carton(ctx, bx + 1.1, by - 0.2, bz, 0.7, 0.6, 0.6);
       }, { on: within(9.7, 15.6) });
       const guard = folk(670, { top: C.teal, bottom: C.navy, hat: 'beanie' });
-      stay(R, bx + 1.45, by + 0.1, guard, { z: bz + 0.6 - 0.71, pose: 'sit', dir: 'r', hold: sandwichHeld, hours: within(9.75, 15.6) });
+      stay(R, bx + 1.45, by + 0.1, guard, { z: bz + 0.6 - 0.71, pose: 'sit', dir: 'r', hold: sandwichHeld, hours: within(9.75, 15.6), depth: bx + by + 2.51 });
       talk(R, bx + 1.45, by + 0.1, bz + 2.4, (t) => (within(9.75, 15.4)(t) ? lines(["Truck's stuck.", "They're coming back for these.", 'Probably.'], 21, 3.2, 0.3)(t) : null), { size: 0.4 });
       talk(R, bx + 1.45, by + 0.1, bz + 2.4, (t) => (within(15.4, 15.6)(t) ? 'FREE!' : null), { size: 0.5 });
     }
@@ -1042,7 +1042,7 @@ export default {
       // A bench by the chips, a parent on it, on the phone.
       const nx = PG[0] + 5.2, ny = PG[1] + 3.2, nz = gz(nx, ny);
       R.thing(nx + 0.6, ny + 1.7, (ctx) => bench(ctx, nx, ny, nz));
-      stay(R, nx + 0.3, ny + 0.9, folk(697, { top: C.white, style: 'long' }), { z: nz + 0.53 - 0.71, pose: 'sit', dir: 'r', hold: (c) => { c.beginPath(); c.rect(-0.02, -0.34, 0.18, 0.28); paint(c, C.black, { lw: 0.02 }); }, hours: KIDS });
+      stay(R, nx + 0.3, ny + 0.9, folk(697, { top: C.white, style: 'long' }), { z: nz + 0.53 - 0.71, pose: 'sit', dir: 'r', depth: nx + ny + 2.31, hold: (c) => { c.beginPath(); c.rect(-0.02, -0.34, 0.18, 0.28); paint(c, C.black, { lw: 0.02 }); }, hours: KIDS });
     }
 
     // ---------- Day Boulevard: a car with a mattress on the roof, now and then ----------
@@ -1084,7 +1084,8 @@ export default {
         box(ctx, bx, by - 0.05, bz + 0.53, 1.7, 0.08, 0.5, C.wood, { flat: true, lw: 0.03 });
       });
       const couple = [folk(700, { top: C.lilac, hair: C.greyLight, style: 'bun', dress: true }), folk(701, { top: C.brown, hair: C.greyLight, style: 'bald', hat: 'cap' })];
-      couple.forEach((lk, j) => stay(R, bx + 0.5 + j * 0.7, by + 0.3, lk, { z: bz + 0.53 - 0.71, pose: 'sit', dir: j ? 'l' : 'r', hours: within(8, 19.2), umb: j ? null : C.navy }));
+      // (Sorted after the bench they sit on, or its back covers them.)
+      couple.forEach((lk, j) => stay(R, bx + 0.5 + j * 0.7, by + 0.3, lk, { z: bz + 0.53 - 0.71, pose: 'sit', dir: j ? 'l' : 'r', hours: within(8, 19.2), umb: j ? null : C.navy, depth: bx + by + 2.31 + j * 0.01 }));
       talk(R, bx + 0.9, by + 0.3, bz + 2.6, (t) => (within(8, 19.2)(t) ? lines(['Forty years we lived on P Street.', 'We moved once. Never again.', 'Here comes another plane.'], 26, 3.4, 0.7)(t) : null), { size: 0.38 });
       R.thing(55.8, 54.9, (ctx) => bench(ctx, 55.2, 54.0, gz(55.5, 54.8)));
     }

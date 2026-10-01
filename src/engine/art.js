@@ -103,6 +103,7 @@ let patScale = 0;
 // works out the dot size here; each screen picks it up when it's next used.
 export function setScreen(pxPerUnit, dpr = 1) {
   Q.pxPerUnit = pxPerUnit;
+  Q.dpr = dpr;
   const spacingUnits = Math.max((3.2 * dpr) / pxPerUnit, 0.34);
   const s = spacingUnits / TILE;
   if (s === patScale) return;
@@ -299,12 +300,39 @@ export function speech(ctx, x, y, z, text, o = {}) {
   ctx.font = `${size * k}px "Bagel Fat One", "Arial Black", sans-serif`;
   const w = ctx.measureText(text).width + size * k * 0.9;
   const h = size * k * 1.5;
-  const bx = -w / 2 + (o.dx || 0) * k, by = -h - size * k * 0.6;
+  let bx = -w / 2 + (o.dx || 0) * k;
+  let by = -h - size * k * 0.6;
+  // Clear of the buttons over the picture (Q.keepClear: their boxes, in the
+  // screen's pixels): stepped sideways out from under one where there's
+  // room, else slid down past the point it hangs from, at most to the top of
+  // the speaker's head (about half a unit under it).
+  const keep = Q.keepClear;
+  if (keep && ctx.canvas.width === keep.w && ctx.canvas.height === keep.h) {
+    const m = ctx.getTransform();
+    const sx = (u) => m.a * u + m.e, sy = (v) => m.d * v + m.f;
+    const hits = (d = 0) => keep.rects.filter((r) => sx(bx) + d < r[2] && sx(bx + w) + d > r[0] && sy(by) < r[3] && sy(by + h) > r[1]);
+    if (hits().length) {
+      // The smallest step sideways that clears every button, on screen.
+      const steps = keep.rects.flatMap((r) => [r[0] - 6 - sx(bx + w), r[2] + 6 - sx(bx)])
+        .filter((d) => sx(bx) + d >= 4 && sx(bx + w) + d <= keep.w - 4 && Math.abs(d) < (sx(bx + w) - sx(bx)) * 0.8 && !hits(d).length)
+        .sort((p, q) => Math.abs(p) - Math.abs(q));
+      if (steps.length) bx += steps[0] / m.a;
+    }
+    const still = hits();
+    if (still.length) {
+      const low = Math.max(...still.map((r) => r[3])) + 6;
+      by += Math.max(0, Math.min((low - sy(by)) / m.d, -by - h + 0.5 * k));
+    }
+  }
   ctx.beginPath();
   ctx.roundRect(bx, by, w, h, h / 2);
-  ctx.moveTo(-size * k * 0.25, by + h);
-  ctx.lineTo(0, 0);
-  ctx.lineTo(size * k * 0.35, by + h);
+  if (by + h < -size * k * 0.2) {
+    // The tail, from wherever the bubble ended up.
+    const tx = Math.max(bx + h * 0.6, Math.min(bx + w - h * 0.6, 0));
+    ctx.moveTo(tx - size * k * 0.25, by + h);
+    ctx.lineTo(0, 0);
+    ctx.lineTo(tx + size * k * 0.35, by + h);
+  }
   ctx.fillStyle = o.fill || C.white;
   ctx.fill();
   ctx.lineWidth = LW * k;
@@ -593,8 +621,13 @@ function drawHat(ctx, hat, hy, t) {
   ctx.beginPath();
   if (hat === 'cap') {
     ctx.arc(0.02, hy - 0.08, 0.32, Math.PI, 0);
-    ctx.rect(0.1, hy - 0.1, 0.38, 0.08);
+    ctx.closePath();
     paint(ctx, C.coral);
+    // The brim, at the dome's foot and finely outlined: thick ink on a thin
+    // brim read as a black bar across the eyes.
+    ctx.beginPath();
+    ctx.rect(0.12, hy - 0.15, 0.36, 0.08);
+    paint(ctx, C.coral, { lw: 0.025 });
   } else if (hat === 'beanie') {
     ctx.arc(0.02, hy - 0.06, 0.34, Math.PI, 0);
     paint(ctx, C.mustard);
