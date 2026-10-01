@@ -378,3 +378,11 @@ Gate 3 (the preview), the owner at the start of session 5d (Sept 2026):
 47. **The ghost is the Pink House.** The owner: "It would be cool if the ghost was the pink house." Between its three flickers, the faint house on the lot is now a proper ghost of it: the same house drawn in pale pink with light lines, see-through, floating a little off the ground, swaying, with a pink glow. At each flicker the real house is back in full.
 48. **The night stays printed,** not dimmed (decision 41 kept).
 49. **It ships:** in the picker after Gooseworth Manor.
+
+After it shipped, the owner's look on a phone, pinched in (Oct 2026):
+
+50. **Stepping into an area cuts nothing in front of it** (`open`, as on Moving Day's outdoors), overturning decision 36: the cutaway sliced the Sound's observation tower, the dune houses and people at the area's edges in half when pinched in.
+51. **Cars are the shared sedan** (`src/maps/cars.js`, Moving Day's, at Plum Island's 1 by 2): wheels in arches, doors, lights, glass you see into, instead of boxes. Roof loads sit on the new roof.
+52. **The refuge line's cars are 2.6 apart,** not 2.2: nose to tail, they read as a pile-up.
+53. **The Center's little jetty is tumbled rock,** its tops knocked about and its sides splayed like the North Point's, not cubes.
+54. **Small fixes:** the tree swallows over the dunes have bodies (two strokes each read as stray ticks on the grass); the spot saver sits in the empty space, clear of the van; the parent on the playground bench sorts after it.

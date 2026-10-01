@@ -798,13 +798,18 @@ export default {
     R.air((ctx, t) => {
       const hr = hour(t);
       if (!Q.detail || hr < 6 || hr > 20.4) return;
-      ctx.beginPath();
+      // Each a navy bird with a white belly and swept wings, so pinched in
+      // they read as swallows, not stray ink ticks on the grass.
       for (let i = 0; i < 7; i++) {
         const a = t * (0.45 + (i % 3) * 0.12) + i * 0.9, [X, Y] = P(30 + Math.cos(a) * (4 + (i % 3) * 1.6), 36 + Math.sin(a * 1.3) * 2.6, 6 + Math.sin(a * 2 + i) * 0.8);
         const f = 0.16 + 0.08 * Math.sin(t * 14 + i);
-        ctx.moveTo(X - 0.26, Y - f); ctx.quadraticCurveTo(X - 0.1, Y - 0.02, X, Y + 0.03); ctx.quadraticCurveTo(X + 0.1, Y - 0.02, X + 0.26, Y - f);
+        ctx.beginPath();
+        ctx.moveTo(X - 0.34, Y - f); ctx.quadraticCurveTo(X - 0.12, Y - 0.1, X, Y - 0.02); ctx.quadraticCurveTo(X + 0.12, Y - 0.1, X + 0.34, Y - f);
+        ctx.quadraticCurveTo(X + 0.12, Y - 0.02, X, Y + 0.05); ctx.quadraticCurveTo(X - 0.12, Y - 0.02, X - 0.34, Y - f);
+        ctx.fillStyle = C.navy; ctx.fill();
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(X, Y + 0.02, 0.07, 0.05, 0, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
       }
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke();
     });
 
     // ---------- After dark ----------

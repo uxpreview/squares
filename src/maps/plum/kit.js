@@ -7,6 +7,7 @@ import { C, Q, box, disc, face, person, paint, paintText, glow, alpha, shade, ti
 import { ZK } from '../../engine/iso.js';
 import { wade } from '../../engine/terrain.js';
 import { footing } from '../greybox.js';
+import { sedan } from '../cars.js';
 import { TRAP, HOUSE, INK, LIT, lightsOn, dusk, nightPrint } from './style.js';
 import { land, float } from './land.js';
 import { level, nightK, sunsetWatch } from './tide.js';
@@ -30,33 +31,10 @@ function shape(ctx, pts, fill, o) {
 // or +y, the default; -1 the other way) }
 export function car(ctx, x, y, z, color, along = 'y', label = null, t = 0, water = null, o = {}) {
   const X = along === 'x';
-  const [w, d] = X ? [2, 1] : [1, 2];
+  // The shared sedan at this map's size (they were plain boxes up close).
   const draw = (g) => {
-    // Wheels: dark stubs at the four corners, under the body.
-    if (Q.detail) {
-      const wh = X ? [[-0.62, 0.42], [0.62, 0.42], [-0.62, -0.42], [0.62, -0.42]] : [[0.42, -0.62], [0.42, 0.62], [-0.42, -0.62], [-0.42, 0.62]];
-      for (const [dx, dy] of wh) box(g, x + dx - 0.13, y + dy - 0.13, z, 0.26, 0.26, 0.28, C.ink, { flat: true, lw: 0.03 });
-    }
-    box(g, x - w / 2, y - d / 2, z + 0.16, w, d, 0.48, color, { flat: true, lw: 0.045 });
-    // The cabin, set back a little from the front, glass all round.
-    const back = 0.1 * (o.dir || 1); // the cabin sits back from the bonnet
-    const [cw, cd, cx, cy] = X ? [1.05, 0.84, x - back, y] : [0.84, 1.05, x, y - back];
-    const glass = mix(tint(C.sky, 0.25), color, 0.12);
-    box(g, cx - cw / 2, cy - cd / 2, z + 0.64, cw, cd, 0.4, glass, { flat: true, top: tint(color, 0.08), left: shade(glass, 0.12), right: glass, lw: 0.04 });
-    // Pillars between the windows, so it reads as a cabin, not a box.
-    if (Q.detail) {
-      g.strokeStyle = tint(color, 0.05);
-      g.lineWidth = 0.07;
-      g.beginPath();
-      if (X) {
-        for (const u of [cx - cw / 2 + 0.04, cx + 0.05, cx + cw / 2 - 0.04]) { const [a, b] = P(u, cy + cd / 2, z + 0.66), [c, e] = P(u, cy + cd / 2, z + 1.02); g.moveTo(a, b); g.lineTo(c, e); }
-      } else {
-        for (const v of [cy - cd / 2 + 0.04, cy + 0.05, cy + cd / 2 - 0.04]) { const [a, b] = P(cx + cw / 2, v, z + 0.66), [c, e] = P(cx + cw / 2, v, z + 1.02); g.moveTo(a, b); g.lineTo(c, e); }
-      }
-      g.stroke();
-    }
-    if (o.board) box(g, cx - (X ? 0.9 : 0.16), cy - (X ? 0.16 : 0.9), z + 1.06, X ? 1.8 : 0.32, X ? 0.32 : 1.8, 0.08, o.board, { flat: true, lw: 0.03 });
-    else if (o.rack) box(g, cx - cw / 2 + 0.1, cy - cd / 2 + 0.1, z + 1.05, cw - 0.2, cd - 0.2, 0.06, C.ink, { flat: true, stroke: false });
+    sedan(g, x, y, z, color, { along: X ? 'x' : 'y', dir: o.dir || 1, L: 2, W: 1, rack: o.rack && !o.board, riders: o.riders });
+    if (o.board) box(g, x - (X ? 0.9 : 0.16), y - (X ? 0.16 : 0.9), z + 0.96, X ? 1.8 : 0.32, X ? 0.32 : 1.8, 0.08, o.board, { flat: true, lw: 0.03 });
   };
   if (water != null) wade(ctx, x, y, z, water, draw, 1.2);
   else draw(ctx);

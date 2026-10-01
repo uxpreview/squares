@@ -26,7 +26,9 @@ import center from './areas/center.js';
 import refugeBeach from './areas/refuge-beach.js';
 import townBeach from './areas/town-beach.js';
 
-const place = (zone, tag) => ({ zone, at: [0, 0, 0], shape: [AREAS[zone.id]], tag, h: 3 });
+// (Open: stepping into an area cuts nothing in front of it. The cutaway
+// sliced the Sound's tower, the dune houses and people in half; plum.md 50.)
+const place = (zone, tag) => ({ zone, at: [0, 0, 0], shape: [AREAS[zone.id]], tag, h: 3, open: true });
 
 export default {
   id: 'plum',

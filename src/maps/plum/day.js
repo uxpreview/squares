@@ -486,9 +486,10 @@ function drawCar(ctx, t, p, along, sg, water, color, o = {}) {
   car(ctx, x, y, z, color, along, null, t, water, { board: o.board, rack: o.rack || o.bikes, dir: sg });
   // The cabin (kit's car sets it 0.1 back from its front): near side at +0.42.
   const cab = (u, v, zz) => W(u - 0.1, v, zz);
-  if (o.box) part(ctx, W, -0.55, 0.35, -0.3, 0.3, z + 1.05, z + 1.33, C.white, { flat: true, lw: 0.035, top: tint(C.white, 0.2) });
+  // (On the roof: the shared sedan's is at 0.93.)
+  if (o.box) part(ctx, W, -0.55, 0.35, -0.3, 0.3, z + 0.95, z + 1.23, C.white, { flat: true, lw: 0.035, top: tint(C.white, 0.2) });
   if (!Q.detail) return;
-  if (o.bikes && water == null) bikes(ctx, W, z + 1.05);
+  if (o.bikes && water == null) bikes(ctx, W, z + 0.95);
   if (o.kid) {
     // The kid in the back window, face pressed to it, every single time.
     head(ctx, ...cab(-0.34, 0.44, z + 0.84), { skin: SKIN[3], hair: HAIR[3], r: 0.13 });
@@ -531,7 +532,8 @@ const beachCars = [
 // The refuge's line: the lots fill by mid-morning and the gate closes, and
 // the line waits on Sunset Drive all day. (The Courier joins the end of it
 // at eleven.)
-export const LINE = [GATE + 2.2, GATE + 4.4, GATE + 6.6, GATE + 8.8, GATE + 11];
+// (2.6 apart: at 2.2 the cars, 2 long, sat nose to tail and read as a pile.)
+export const LINE = [GATE + 2.2, GATE + 4.8, GATE + 7.4, GATE + 10, GATE + 12.6];
 const LINE_LOOK = [
   [CARS[5], { board: C.white }],
   [CARS[3], { rack: true }],
