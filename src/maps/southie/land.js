@@ -114,6 +114,7 @@ export const land = makeLand({
   // (The water takes the night, like the paper.)
   water: { color: (t) => mix(INK.harbor, C.night, Math.round(nightK(t) * 0.6 * 16) / 16), foam: C.white, wet: LAND.wet, side: INK.harbor, alpha: 0.6, deepAlpha: 0.25, depth: 1.2, under: -1.2 },
   side: { soil: LAND.soil, dots: shade(LAND.soil, 0.45) },
+  rim: false,
 });
 
 export const h = land.h;

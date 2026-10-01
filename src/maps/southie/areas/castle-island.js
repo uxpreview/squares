@@ -229,7 +229,7 @@ function stay(R, x, y, look, o = {}) {
 }
 // A speech bubble now and then: say(t) returns the words, or null.
 function talk(R, x, y, z, say, o = {}) {
-  R.thing(x, y, (ctx, t) => { const s = say(t); if (s && Q.detail) speech(ctx, x, y, z, s, { size: o.size || 0.44 }); }, { anim: true, depth: x + y + 6, on: (t) => !!say(t) });
+  R.thing(x, y, (ctx, t) => { const s = say(t); if (s && Q.detail) speech(ctx, x, y, z, s, { size: o.size || 0.44, dx: o.dx || 0 }); }, { anim: true, depth: x + y + 6, on: (t) => !!say(t) });
 }
 
 // ---------- Street furniture (the kit's) ----------
@@ -796,7 +796,8 @@ export default {
     // The logbook keeper: every plane, a tick.
     const s3 = folk(783, { top: C.sky, bottom: C.ink, style: 'bald', hair: C.greyLight });
     stay(R, 62.5, 2.8, s3, { dir: 'l', pose: 'read', hold: pencilHeld, hours: spot, umb: C.teal, react: { pose: 'read', arms: [1.3, 1.2] } });
-    talk(R, 62.5, 2.8, G + 2.8, (t) => (spot(t) && PL(t) > 8.2 && PL(t) < 10.6 ? 'Tick.' : spot(t) && PL(t) > 13 && PL(t) < 15.5 && frac(t / 114) < 0.5 ? 'A321. Nice.' : null), { size: 0.4 });
+    // (After Pidge has had his say, never over it.)
+    talk(R, 62.5, 2.8, G + 2.8, (t) => (spot(t) && PL(t) > 11.3 && PL(t) < 13.4 ? 'Tick.' : spot(t) && PL(t) > 19 && PL(t) < 21.5 && frac(t / 114) < 0.5 ? 'A321. Nice.' : null), { size: 0.4 });
     // A radio on the cooler, listening to the tower.
     R.thing(58.3, 3.3, (ctx) => {
       box(ctx, 57.95 + 0.1, 2.95, G, 0.75, 0.5, 0.5, C.red, { flat: true, lw: 0.03, top: shade(C.red, 0.25) });
@@ -834,14 +835,16 @@ export default {
       },
     });
     stay(R, 61.35, 2.85, pidge, { dir: 'l', hold: glassHeld, hours: spot, react: { pose: 'point', arms: [2.5, -0.2] } });
-    talk(R, 61.35, 2.85, G + 2.9, (t) => {
+    // His bubble up over the umbrellas and off to the right, clear of the
+    // stepladder's face beside him.
+    talk(R, 61.35, 2.85, G + 3.3, (t) => {
       if (!spot(t)) return null;
       const k = PL(t);
       if (k > 6 && k < 11) return 'That one. Definitely a goose.';
       if (k > 15 && k < 18.5) return frac(t / 171) < 0.34 ? 'It got away.' : frac(t / 171) < 0.67 ? 'Disguised as a plane.' : 'Next one. Trust me.';
       if (k > 36 && k < 39) return 'Suspicious gull.';
       return null;
-    }, { size: 0.4 });
+    }, { size: 0.4, dx: 2.7 });
 
     // ---------- The logbook, dropped by the fence ----------
     // Open on the walk a step from his feet: a navy spiral notebook, cream
@@ -924,20 +927,19 @@ export default {
     // ---------- The lot ----------
     PARKED.forEach(({ x, color, who, dog: hasDog }, ci) => {
       const y = LOT_Y, z = gz(x, y + 0.3);
-      R.thing(x + 1.4, y + 0.75, (ctx) => car(ctx, x, y, z, color, { along: 'x', dir: 1 }));
+      const inCar = (t) => who.some(([, , a, b]) => { const hr = hh(t); return hr >= a && hr < b; });
+      // Empty, a still picture; with people in it (lunch in the car, looking
+      // at the planes), drawn live with them inside.
+      R.thing(x + 1.4, y + 0.75, (ctx) => car(ctx, x, y, z, color, { along: 'x', dir: 1 }), who.length ? { on: (t) => !inCar(t) } : {});
       R.thing(x + 1.401, y + 0.751, (ctx) => veil(ctx, [boxPts(x - 1.4, y - 0.75, z, 2.8, 1.5, 0.82), boxPts(x - 0.93, y - 0.63, z + 0.82, 1.5, 1.26, 0.5)]), byNight);
       if (!who.length) return;
-      const inCar = (t) => who.some(([, , a, b]) => { const hr = hh(t); return hr >= a && hr < b; });
       R.thing(x + 1.402, y + 0.752, (ctx, t) => {
         const hr = hh(t), cx = x - 0.18;
-        who.forEach(([dx, dy, a, b], i) => {
-          if (hr < a || hr >= b) return;
-          const [HX, HY] = P3(cx + dx, y + dy, z + 1.05);
-          const up = overhead(t) ? -0.04 : 0;
-          ctx.beginPath(); ctx.arc(HX, HY + up, 0.19, 0, TAU); paint(ctx, mix(C.woodLight, C.brown, ((ci + i) % 3) * 0.3), { lw: 0.025 });
-          ctx.beginPath(); ctx.arc(HX, HY - 0.04 + up, 0.2, Math.PI * 1.05, Math.PI * 1.95); paint(ctx, [C.ink, C.mustard, C.brown][(ci + i) % 3], { stroke: false });
-          if (i === 0 && Q.detail) { ctx.save(); ctx.translate(HX + 0.3, HY + 0.15); ctx.scale(0.7, 0.7); dogShape(ctx, 0.8); ctx.restore(); }
-        });
+        const riders = who.filter(([, , a, b]) => hr >= a && hr < b).map(([dx, dy], i) => ({
+          front: dx > 0, v: dy, lift: overhead(t) ? 0.05 : 0,
+          skin: mix(C.woodLight, C.brown, ((ci + i) % 3) * 0.3), hair: [C.ink, C.mustard, C.brown][(ci + i) % 3], top: [C.navy, C.red, C.teal][(ci + i) % 3],
+        }));
+        car(ctx, x, y, z, color, { along: 'x', dir: 1, riders });
         if (hasDog && Q.detail) {
           // A dog with its head out of the back window.
           const [DX, DY] = P3(cx - 0.45, y + 0.7, z + 1.1);
@@ -959,6 +961,16 @@ export default {
       }, { anim: true, on: inCar });
       R.light({ at: [x + 2.4, y, z + 0.4], r: 1.8, color: LIT, k: (t) => (inCar(t) ? nightK(t) * 0.9 : 0) });
     });
+    // The lot's back row, parked nose out, one space empty but for a puddle
+    // (the lot was a bare slab up close).
+    for (const [x, ci] of [[73.1, 3], [74.9, 8], [76.7, 0]]) {
+      const y = 11.7, z = gz(x, y);
+      R.thing(x + 0.75, y + 1.4, (ctx) => car(ctx, x, y, z, CARS[ci], { dir: 1 }));
+      R.thing(x + 0.751, y + 1.401, (ctx) => veil(ctx, [boxPts(x - 0.75, y - 1.4, z, 1.5, 2.8, 0.82), boxPts(x - 0.63, y - 1.0, z + 0.82, 1.26, 1.5, 0.5)]), byNight);
+    }
+    R.rug((ctx) => { const [X, Y] = P3(78.5, 11.9, G + 0.01); ctx.beginPath(); ctx.ellipse(X, Y, 0.9, 0.4, 0, 0, TAU); ctx.fillStyle = alpha(tint(C.sky, 0.4), 0.55); ctx.fill(); }, { on: (t) => hh(t) > 10 && hh(t) < 21 });
+    // Its painted lines.
+    R.rug((ctx) => { for (const x of [72.2, 74.0, 75.8, 77.6, 79.4]) line(ctx, [[x, 10.4, G + 0.01], [x, 13.2, G + 0.01]], alpha(C.white, 0.8), 0.06); });
     // A lamp at the plaza, one at the lot's end, and the sign.
     lamp(R, 74.6, 4.95);
     lamp(R, 81.4, 7.3);

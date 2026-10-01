@@ -44,7 +44,8 @@ const SPOTS = [
   [6.3, 4.4, 'tape', 'l'],
   [11.3, 6.1, 'look', 'l'],
 ];
-const QUEUE = [[13.3, 2.6], [13.8, 3.4], [14.2, 4.0]];
+// (An umbrella apart, so three umbrellas in the rain don't merge into one.)
+const QUEUE = [[12.95, 1.9], [13.6, 3.0], [14.2, 4.1]];
 const DOOR_IN = [[14.2, 4.0], [13.4, 1.4], [12.1, 1.0], [11.9, 2.4]];
 const SPEED = 1.7;
 function pathLen(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; }

@@ -19,6 +19,7 @@ import { W, D, HOUSES, HOUSE_D, ROW_X0, ROW_X1 } from './plan.js';
 import { rainK, nightK, hour, SUNSET } from './clock.js';
 import { paperAt, INK, SIDING, LIT, LAND } from './style.js';
 import { follow } from './finale.js';
+import { land, LEVEL } from './land.js';
 
 export { paperAt };
 const PX = (x, y) => x - y;
@@ -67,6 +68,7 @@ const HEIGHTS = { x: -52, y: 22 };
 const SEAPORT = [[-36, -66, 7, 6, 30], [-26, -74, 6, 7, 42], [-15, -68, 8, 6, 34], [-4, -78, 7, 7, 48], [7, -70, 6, 6, 28], [16, -76, 7, 6, 38], [-44, -74, 6, 6, 24]];
 // The port's container cranes behind Castle Island, booms up.
 const CRANES = [58, 67, 76];
+const YARD_INKS = [C.coral, C.teal, C.mustard, C.navy, C.green, C.red];
 
 let GEO = null;
 function geo() {
@@ -78,6 +80,9 @@ function geo() {
     towerE: P(), towerS: P(), towerT: P(), cupola: P(),
     seaE: P(), seaS: P(), seaT: P(), seaGrid: P(),
     crane: P(), craneW: P(), quayE: P(), quayS: P(), quayT: P(),
+    // Conley Terminal's container yard, behind Castle Island's fence: two
+    // depths (nearer, then further into the paper), a group per color.
+    yardT: [P(), P()], yard: [0, 1].map(() => YARD_INKS.map(() => ({ e: P(), s: P(), t: P() }))),
   };
   const r = rng(7);
   // P Street's backs.
@@ -115,6 +120,24 @@ function geo() {
   for (const [x, y, w, d, h] of SEAPORT) {
     boxInto(g.seaE, g.seaS, g.seaT, x, y, 0, w, d, h);
     for (let z = 3; z < h - 1; z += 2.4) poly(g.seaGrid, [[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + 0.12], [x + w, y, z + 0.12]]);
+  }
+  // The container yard: its paving, then stacks of one to three in rows
+  // from the fence back to the cranes' quay, some gaps for the straddle
+  // carriers. (Behind Castle Island this was bare paper, a third of the
+  // area's picture on a phone.)
+  const yr = rng(31);
+  for (const [k, y0, y1] of [[0, -9.5, 0], [1, -19, -9.5]]) {
+    poly(g.yardT[k], [[52, y0, 0.4], [104, y0, 0.4], [104, y1, 0.4], [52, y1, 0.4]]);
+    for (let y = y1 - 2.2; y > y0 + 0.2; y -= 2.3) {
+      for (let x = 54 + yr() * 2; x < 100; x += 6.6) {
+        if (yr() < 0.18) continue;
+        const n = 1 + Math.floor(yr() * 3);
+        for (let j = 0; j < n; j++) {
+          const c = g.yard[k][Math.floor(yr() * YARD_INKS.length)];
+          boxInto(c.e, c.s, c.t, x, y, 0.4 + j * 1.45, 6.1, 1.9, 1.45);
+        }
+      }
+    }
   }
   // Cranes: two legs and a cross beam each side, a machinery house on top,
   // the boom raised and pointing north over the channel.
@@ -194,6 +217,19 @@ export function backdrop(ctx, t, world, fx) {
     fill(g.crane, tone(C.coral, t, 0.68), tone(C.ink, t, 0.74), 0.04);
     fill(g.craneW, tone(C.white, t, 0.68), tone(C.ink, t, 0.74), 0.04);
     if (n > 0.3) for (const x of CRANES) glow(ctx, x + 1.3, -29, 14.2, 0.8, C.red, n * (0.6 + 0.4 * Math.sin(t * 3 + x)));
+  }
+  // The container yard, nearer than the cranes and fading back.
+  if (inView(fx, 45, 0, 125, 56)) {
+    for (const k of [1, 0]) {
+      const back = k ? 0.62 : 0.48;
+      fill(g.yardT[k], tone(LAND.paving, t, back));
+      YARD_INKS.forEach((c, i) => {
+        const p = g.yard[k][i];
+        fill(p.s, tone(shade(c, 0.25), t, back));
+        fill(p.e, tone(shade(c, 0.08), t, back), tone(C.ink, t, back + 0.1), 0.03);
+        fill(p.t, tone(tint(c, 0.15), t, back), tone(C.ink, t, back + 0.1), 0.03);
+      });
+    }
   }
   // Rooftops west of the row, fading back row by row, with Dorchester
   // Heights (and the sun going down behind it) between the last two.
@@ -377,6 +413,9 @@ export function sky(ctx, t, world, fx) {
       speed: 24,
       color: alpha(nightK(t) > 0.5 ? C.sky : C.navy, 0.35 * (room < 1 ? 0.7 : 1)),
       skip: indoors,
+      // Short drops at any zoom, landing on the ground (or the water).
+      px: 22,
+      ground: (x, y) => Math.max(LEVEL, land.h(x, y)),
     });
   }
   const p = planeAt(t);
