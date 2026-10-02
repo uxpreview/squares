@@ -1,6 +1,6 @@
 # Strategy
 
-Session 8, October 2026. How the game grows from five places. The owner signed off on the calls marked *(the owner)*; the rest are the lead's recommendations, open to overturn. The plan that follows from it is in [ROADMAP.md](ROADMAP.md). The name research is in [NAMING.md](NAMING.md) and isn't repeated here.
+Session 8, October 2026. How the game grows from five places. The owner made the calls marked *(the owner)* and took every one of the lead's recommendations for the rest. The plan that follows from it is in [ROADMAP.md](ROADMAP.md). The name research is in [NAMING.md](NAMING.md) and isn't repeated here.
 
 How to read it: **[K]** means we know it (played it, measured it, found a source). **[A]** means it's an assumption to test.
 
@@ -42,7 +42,7 @@ The owner is right: it's too easy. Here's why, from the code and the playtests. 
 **The proposal.** Hard, but never a trick.
 - **Three kinds of find in every area.** About half **spot** (seen with a good look, plainly labeled), a third **poke** (hidden inside or behind something that opens or moves when you tap it: a drawer, a dryer door, a bush, a sleeping man's newspaper), and one or two **hard** (tiny, camouflaged, only there at one time of day, or labeled with a riddle). The goose is never a spot find. This is the spread the hidden-object games that last use (a Hidden Folks reviewer counted about half easy, then tap-to-reveal, then hard). [K]
 - **Decoys for the goose.** Every place gets white lookalikes that are funny to find: a swan, a gull, a goose-shaped lamp, a man in a goose costume, a goose on a poster. A tap on one answers back ("That's a swan. Rude."). This is the single cheapest lever: the goose stops being the white thing in the room. [A: cheapest; it's drawing, not engine]
-- **Labels stop giving the location** for poke and hard finds ("A cat", not "A cat on the dryers"); hard finds get a one-line riddle that says roughly where, the way Hidden Folks says the golfers saw the ball fly over the hedge. Spot finds keep plain labels. *(The owner didn't pick "make labels riddles" as a cut; this is a lighter version, for the hard third only. Overturn it if you want every label plain.)*
+- **Labels stop giving the location** for poke and hard finds ("A cat", not "A cat on the dryers"); hard finds get a one-line riddle that says roughly where, the way Hidden Folks says the golfers saw the ball fly over the hedge. Spot finds keep plain labels. *(The lead's call, for the harder finds only; the owner deferred to it.)*
 - **Hints are earned, in two steps** *(the owner: cut free unlimited hints)*. You start a place with 3 and earn one every few finds. The first step of a hint is a sentence ("Something under the folding table is waiting for its other half"); the second is a smaller ring, offset, so you still have to find it. Hints are counted in the save (a version bump), so a "no hints" medal is possible later.
 - **Finish at most, not all.** A place's card comes when you've found the goose and most of its things; every last one is a medal. Hidden Folks and Hidden Through Time both ask for most to move on, so nobody gets stuck on one pixel. [K]
 - **Taps stay 44px** (the touch-target rule), but a hard find counts only when you've pinched in close enough to see it. [A: test it; it may feel unfair]

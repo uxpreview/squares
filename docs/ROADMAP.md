@@ -223,10 +223,11 @@ Made:
 
 - **The goals, in order:** an Awwwards Site of the Day, then players, then press, then revenue. Web first; an app only if players show up. *(8, the owner)*
 - **No new places for a round: v2 makes the five great** (difficulty, a verb per place, the rename, the first minute, sound), ending in the Awwwards submission; then a daily goose; then new places, each picked for a verb no other place has. Rejected: a place every session (it's why every place is the same loop), the mysteries as the main event, the app stores now. *(8, the owner and the lead, STRATEGY.md)*
-- **Finding gets harder, never a trick:** spot, poke and hard finds in every area, decoys for the goose, labels that stop giving the location for the harder two, and the playtest scores a spread instead of fixing every miss. *(8, the lead; the owner can overturn the labels)*
+- **Finding gets harder, never a trick:** spot, poke and hard finds in every area, decoys for the goose, labels that stop giving the location for the harder two, and the playtest scores a spread instead of fixing every miss. *(8, the lead; the owner took it)*
 - **Hints are earned, not free** (3 to start, more as you find things, a sentence before a ring). *(8, the owner)*
 - **The whodunit is the Manor's alone.** All-You-Can-Eat becomes a chase: the iguana's trail deck to deck, a new format (G7) that the goose's trail between places reuses. The lead argued against a plain goose place: losing the mystery without a new verb would make the game more same-y. *(8, the owner)*
 - **The game is Goose at Large, and the goose is Geraldine,** renamed soon (session 11), before share images, the daily or the Awwwards submission carry the old name. The owner registers the domains first. *(8, the owner; NAMING.md)*
+- **The owner takes every recommendation in STRATEGY.md,** including the one they hadn't picked (labels that stop saying where, for the harder finds). *(8, the owner)*
 - **The owner works a few sessions a day, in small steps.** The limit is the owner's review time, so each retune ends with the owner playing one place on a phone. *(8, the owner)*
 
 - **The Block, But Wrong is dropped,** and a strategy session comes before any new level: the owner worries the loop is repetitive, everything is too easy to find, the mystery should be the Manor's alone, and the name may not fit. *(7b, the owner)*
