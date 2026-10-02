@@ -3,7 +3,9 @@
 //
 // Retuned for the difficulty rules (session 9): the goose is a hard find now,
 // queueing behind a man in a goose costume (a decoy) under a cake topped with
-// sugar swans (another); ticket number one is under the day-old bread (poke).
+// sugar swans (another), with a concrete porch goose by the door (another);
+// ticket number one is under the day-old bread (poke); the rolling pin lies
+// on the kneading table, wood on wood (hard).
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN, goose,
@@ -130,14 +132,14 @@ function flourPuff(ctx, X, Y, q, n = 8, size = 1) {
 function costumeHead(ctx, x, y, dir, back) {
   const [X, Y] = P(x, y, 0);
   const f = dir === 'l' ? -1 : 1;
-  ctx.beginPath(); ctx.arc(X, Y - 2.02, 0.3, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
+  ctx.beginPath(); ctx.arc(X, Y - 2.02, 0.32, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
   if (!back) {
+    // (a full hood: from the front only a slit to see out of)
+    ctx.beginPath(); ctx.moveTo(X - 0.12, Y - 1.95); ctx.lineTo(X + 0.12, Y - 1.95); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(X + f * 0.22, Y - 2.06); ctx.lineTo(X + f * 0.52, Y - 1.98); ctx.lineTo(X + f * 0.22, Y - 1.9); ctx.closePath();
     paint(ctx, C.coral, { lw: 0.03 });
     ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X + f * 0.1, Y - 2.1, 0.035, 0, Math.PI * 2); ctx.fill();
   }
-  // the zip, and his own face peering out
-  ctx.beginPath(); ctx.arc(X + f * 0.02, Y - 1.98, 0.13, 0, Math.PI * 2); paint(ctx, SKIN[2], { lw: 0.03 });
 }
 
 // ---------- layout ----------
@@ -146,6 +148,7 @@ const MOUTH = { y0: 1.9, y1: 3.9, z0: 0.9, z1: 1.9, arch: 0.6 };
 const DC_Y0 = 10.0, DC_Y1 = 11.0, DC_X0 = 3.6, DC_X1 = 12.8; // display counter
 const QT = 6; // queue beat, and the NOW SERVING tick
 const CAKE = [13.5, 8.2];
+const PG = [4.9, 15.0]; // the porch goose
 
 export default {
   id: 'bakery',
@@ -805,24 +808,37 @@ export default {
     });
 
     // ---------- finds ----------
-    // A rolling pin that has rolled out into the shop and is still rocking.
-    R.mover(() => ({ x: 8.0, y: 12.8 }), (ctx, t) => {
-      const d = Math.sin(t * 1.3) * 0.15;
-      const [X, Y] = P(8.0 + d, 12.8 - d, 0.14);
+    // A rolling pin on the kneading table, wood on wood, rocking a little
+    // every time the table gets a thump (a hard find).
+    const pin = (t) => [8.55 + Math.sin(t * 5) * 0.05, 7.25, 1.2];
+    R.mover(() => ({ x: 8.55, y: 7.25 }), (ctx, t) => {
+      const [x, y, z] = pin(t);
+      const [X, Y] = P(x, y, z);
       ctx.save();
       ctx.translate(X, Y);
       ctx.rotate(0.46);
       ctx.beginPath(); ctx.roundRect(-0.38, -0.12, 0.76, 0.24, 0.1); paint(ctx, C.woodLight, { dots: C.wood, density: 0.2, lw: 0.035 });
-      for (const s of [-1, 1]) { ctx.beginPath(); ctx.roundRect(s > 0 ? 0.38 : -0.6, -0.05, 0.22, 0.1, 0.05); paint(ctx, C.wood, { lw: 0.03 }); }
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.roundRect(sd > 0 ? 0.38 : -0.6, -0.05, 0.22, 0.1, 0.05); paint(ctx, C.wood, { lw: 0.03 }); }
       ctx.restore();
-    });
-    R.find({ id: 'rollingpin', label: 'A rolling pin', r: 0.8, at: (t) => { const d = Math.sin(t * 1.3) * 0.15; return [8.0 + d, 12.8 - d, 0.15]; } });
+    }, { depth: 9.5 + 7.9 + 0.2 });
+    R.find({ id: 'rollingpin', label: 'A rolling pin', kind: 'hard', r: 0.7, at: (t) => pin(t), riddle: 'Hiding in plain sight, wood on wood.', hint: 'Where the dough gets its beating. It matches the table.' });
     // A dropped croissant on the floor near the door.
     R.rug((ctx) => {
       croissant(ctx, ...P(2.2, 15.5, 0.02), 1.0);
       if (Q.detail) { ctx.fillStyle = C.mustard; for (const [dx, dy] of [[0.4, 0.1], [-0.35, 0.15], [0.2, 0.2]]) { const [X, Y] = P(2.2 + dx, 15.5 + dy, 0.01); ctx.fillRect(X, Y, 0.06, 0.05); } }
     });
     R.find({ id: 'croissant', label: 'A dropped croissant', at: [2.2, 15.5, 0.12], r: 0.7 });
+
+    // A concrete porch goose in a baker's hat, the shop's mascot (a decoy).
+    R.thing(PG[0] + 0.5, PG[1] + 0.5, (ctx) => {
+      box(ctx, PG[0] - 0.45, PG[1] - 0.45, 0, 0.9, 0.9, 0.15, C.grey, { top: C.greyLight });
+      goose(ctx, PG[0], PG[1], 0.15, 0, { pose: 'stand', dir: 'r' });
+      // the hat
+      const [X, Y] = P(PG[0], PG[1], 0.15);
+      ctx.beginPath(); ctx.roundRect(X + 0.12, Y - 1.25, 0.24, 0.14, 0.03); paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.arc(X + 0.24, Y - 1.31, 0.15, Math.PI, 0); paint(ctx, C.white, { lw: 0.03 });
+    });
+    R.decoy({ id: 'porch', at: [PG[0], PG[1], 0.8], r: 0.8, say: ['A concrete goose. In a hat.', 'Still concrete.', 'It came with the shop.'] });
 
     // plants and a bread basket by the door
     R.thing(15.4, 10.6, (ctx, t) => plant(ctx, 15.4, 10.6, 0, t, { kind: 'leafy', scale: 1.4, potColor: C.teal }), { anim: true });

@@ -61,6 +61,8 @@ function porthole(ctx, plane, x, y, z, r, t, speed, colors, o = {}) {
 
 // The lucky coin, at the edge of machine three's suds.
 const COIN = [7.3, 3.45];
+// Brass buttons washed out with the suds, round the coin.
+const BUTTONS = [[6.2, 3.8], [8.4, 3.75], [7.9, 4.25], [5.6, 3.1]];
 const WASHERS = [0, 1, 2, 3, 4].map((i) => ({ x: 1.0 + i * 2.2, w: 2.0 }));
 // Two stacks: the street door is in this wall at y 11.4 to 13.6.
 const DRYERS = [];
@@ -129,6 +131,7 @@ export default {
       box(ctx, 1.0, 0, 3.55, 10.6, 0.6, 0.1, C.white);
       const bottles = [C.coral, C.teal, C.mustard, C.pink, C.white, C.purple, C.sky, C.coral, C.green, C.mustard, C.teal, C.blush];
       bottles.forEach((c, i) => {
+        if (i === 8) return; // the cat's spot
         const x = 1.3 + i * 0.85;
         box(ctx, x, 0.1, 3.65, 0.42, 0.4, 0.55 + (i % 3) * 0.12, c, { lw: 0.03 });
         box(ctx, x + 0.13, 0.22, 4.2 + (i % 3) * 0.12, 0.16, 0.16, 0.12, C.white, { flat: true, lw: 0.02 });
@@ -150,9 +153,19 @@ export default {
         label(ctx, x + 0.55, 1.62, 2.0, String(i + 1), 0.35, C.ink);
         const speed = i === 2 ? 5 : i === 4 ? 0 : 2.5 + i * 0.4;
         porthole(ctx, 'y', x + w / 2, 1.6, 1.05, 0.66, t, speed, LOADS[i], { foam: i === 2 });
+        if (i === 3) {
+          // a goose plushie going round on delicates (a decoy)
+          const [X, Y] = P(x + w / 2, 1.62, 1.05);
+          ctx.save();
+          ctx.translate(X, Y);
+          ctx.rotate(t * speed * 0.6);
+          goose(ctx, 0, 0, -0.25, 0, { pose: 'sit', dir: 'r', scale: 0.5 });
+          ctx.restore();
+        }
       }, { anim: true });
     });
 
+    R.decoy({ id: 'plushie', at: [WASHERS[3].x + 1, 1.6, 1.05], r: 0.9, say: ['A goose plushie. On delicates.', 'Still on delicates.'] });
     // Machine three answers back.
     R.poke({ id: 'three', at: [WASHERS[2].x + 1, 1.6, 1.05], r: 1.0, sound: 'clunk', say: ['Do NOT open.', 'Seriously.', 'It knows what it did.'] });
 
@@ -211,8 +224,8 @@ export default {
       if (Q.detail && k > 0.7 && k < 0.95) speech(ctx, 13.4, 2.9, 3.0, 'YES!', { size: 0.5, fill: C.butter });
     });
 
-    // Dryers stacked along the left wall. The bottom one at the back is out
-    // of order, door shut on a teddy bear: tap it and the door swings open.
+    // Dryers stacked along the left wall. The bottom one at the back has
+    // stopped, door shut on a teddy bear: tap it and the door swings open.
     const broke = R.poke({ id: 'dryer', at: [1.8, 8.15, 1.05], r: 1.0, sound: 'clunk' });
     DRYERS.forEach(({ y, z }, i) => {
       R.thing(0.9, y + 1.15 + z * 0.01, (ctx, t) => {
@@ -238,36 +251,37 @@ export default {
       }, { anim: true });
     });
 
-    R.find({ id: 'teddy', label: 'A teddy bear', kind: 'poke', inside: broke, at: [1.75, 8.15, 0.85], r: 0.7, hint: "Somebody's teddy is sitting out a very long spin. It's out of order." });
+    R.find({ id: 'teddy', label: 'A teddy bear', kind: 'poke', inside: broke, at: [1.75, 8.15, 0.85], r: 0.7, hint: "Somebody's teddy is sitting out a very long spin. One of the dryers has stopped." });
 
-    // Cat asleep on top of the dryers, tail going
-    R.thing(1.2, 11.2, (ctx, t) => {
-      const [X, Y] = P(0.9, 10.8, 4.3);
+    // A cat asleep on the detergent shelf, curled up between the bottles and
+    // much the same color as the one beside it, tail going.
+    R.thing(8.3, 0.7, (ctx, t) => {
+      const [X, Y] = P(8.3, 0.3, 3.68);
       ctx.save();
       ctx.translate(X, Y);
+      ctx.scale(0.72, 0.72);
       ctx.beginPath();
       ctx.ellipse(0, -0.28, 0.62, 0.3, 0, 0, Math.PI * 2);
       paint(ctx, C.mustard, { dots: shade(C.mustard, 0.5), density: 0.3 });
       ctx.beginPath();
-      ctx.arc(0.5, -0.36, 0.24, 0, Math.PI * 2);
+      ctx.arc(0.45, -0.3, 0.24, 0, Math.PI * 2);
       paint(ctx, C.mustard);
       ctx.beginPath();
-      ctx.moveTo(0.36, -0.55); ctx.lineTo(0.42, -0.72); ctx.lineTo(0.52, -0.58);
-      ctx.moveTo(0.56, -0.58); ctx.lineTo(0.66, -0.72); ctx.lineTo(0.7, -0.52);
+      ctx.moveTo(0.31, -0.49); ctx.lineTo(0.37, -0.66); ctx.lineTo(0.47, -0.52);
+      ctx.moveTo(0.51, -0.52); ctx.lineTo(0.61, -0.66); ctx.lineTo(0.65, -0.46);
       paint(ctx, C.mustard);
-      const sw = Math.sin(t * 2.2) * 0.25;
+      const sw = Math.sin(t * 2.2) * 0.12;
       ctx.beginPath();
-      ctx.moveTo(-0.55, -0.25);
-      ctx.quadraticCurveTo(-0.95, -0.1 + sw, -1.0, 0.1 + sw);
+      ctx.moveTo(-0.55, -0.2);
+      ctx.quadraticCurveTo(-0.8, 0.0 + sw, -0.75, 0.2 + sw);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.16; ctx.lineCap = 'round'; ctx.stroke();
       ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.09; ctx.stroke();
       ctx.restore();
-      if (Q.detail) {
-        const k = (t * 0.5) % 1;
-        label(ctx, 0.9 - k * 0.4, 10.4 - k * 0.4, 5.1 + k, 'z', 0.35 + k * 0.2, alpha(C.ink, 1 - k));
-      }
+      // a bottle of the same yellow, in front of its middle
+      box(ctx, 7.85, 0.18, 3.65, 0.42, 0.4, 0.67, C.mustard, { lw: 0.03 });
+      box(ctx, 7.98, 0.3, 4.32, 0.16, 0.16, 0.12, C.white, { flat: true, lw: 0.02 });
     }, { anim: true });
-    R.find({ id: 'cat', label: 'A cat on the dryers', at: [0.9, 10.8, 4.6], r: 0.9 });
+    R.find({ id: 'cat', label: 'A cat having a nap', kind: 'hard', at: [8.3, 0.3, 3.85], r: 0.7, riddle: 'Sleeping it off with the soap.', hint: 'Look up. Something on the shelf of soap is breathing.' });
 
     // Plastic chairs under the window, with a sleeper, a reader and a head-bobber
     [1.3, 2.6, 3.9, 5.2].forEach((y, i) => R.thing(1.0, y + 0.4, (ctx) => chair(ctx, 0.6, y, 0, [C.coral, C.mustard, C.teal, C.coral][i], 'r')));
@@ -375,7 +389,17 @@ export default {
       const b = Math.sin(t * 1.3) * 0.05;
       disc(ctx, COIN[0] - 0.12 + b, COIN[1] - 0.1, 0.06, 0.15, C.white, { dots: C.tealLight, density: 0.25, lw: 0.03 });
     }, { anim: true });
-    R.find({ id: 'coin', label: 'A lucky coin', kind: 'hard', at: [COIN[0], COIN[1], 0.05], r: 0.6, riddle: "Somebody's luck is all washed up.", hint: 'Machine three has been foaming all night. Look in what it spat out.' });
+    // Brass buttons off somebody's coat, washed out with the suds: the coin
+    // hides among them, and they answer a tap.
+    for (const [bx, by] of BUTTONS) {
+      R.rug((ctx) => {
+        disc(ctx, bx, by, 0.03, 0.12, C.mustard, { lw: 0.03 });
+        ctx.fillStyle = C.ink;
+        for (const d of [-0.03, 0.03]) { const [X, Y] = P(bx + d, by - d, 0.04); ctx.fillRect(X - 0.012, Y - 0.012, 0.024, 0.024); }
+      });
+    }
+    R.poke({ id: 'buttons', at: [BUTTONS[1][0], BUTTONS[1][1], 0.05], r: 0.6, sound: 'tick', say: ['A button. Not lucky.', 'Another button.'] });
+    R.find({ id: 'coin', label: 'A lucky coin', kind: 'hard', at: [COIN[0], COIN[1], 0.05], r: 0.6, riddle: "Somebody's luck is all washed up.", hint: 'Machine three has been foaming all night. Look in what it spat out. Not every gold thing is a coin.' });
 
     // The vending machine answers a tap, if not the way you'd like.
     R.poke({ id: 'snax', at: [13.3, 1.4, 2.2], r: 1.1, sound: 'clunk', say: ['Out of crisps.', 'Still out of crisps.', 'Try a kick.'] });
@@ -420,11 +444,17 @@ export default {
     // breathes, and an orange foot sticks out. A tap throws the laundry off,
     // and up it sits, honking now and then.
     const heap = R.poke({ id: 'heap', at: [3.45, 6.4, 1.3], r: 1.0, say: 'HONK?' });
+    // ...and another heap in a basket by the table that's just washing.
+    const heap2 = R.poke({ id: 'washing', at: [12.6, 8.0, 1.3], r: 1.0, say: ['Just washing.', 'Still just washing.'] });
+    R.thing(12.7, 8.5, (ctx, t) => {
+      box(ctx, 11.9, 7.3, 0, 1.5, 1.4, 0.75, C.sky, { dotsL: C.navy, dens: 0.35 });
+      laundryHeap(ctx, t, heap2.k(), 12.6 - 3.45, 8.0 - 6.4, false);
+    }, { anim: true });
     R.goose((t) => {
       const k = heap.k();
       return { x: 3.4, y: 6.4, z: 0.1 + 0.62 * k, dir: 'r', hidden: k < 0.3, pose: k > 0.5 && pulse(t, 9) > 0.85 ? 'honk' : 'sit' };
-    }, { bias: 0.4, kind: 'poke', inside: heap, hint: 'That pile of washing in the pink basket is breathing.' });
-    R.thing(3.5, 6.9, (ctx, t) => laundryHeap(ctx, t, heap.k()), { anim: true, depth: 3.4 + 6.4 + 0.6 });
+    }, { bias: 0.4, kind: 'poke', inside: heap, hint: 'Two heaps of washing, and one of them is breathing.' });
+    R.thing(3.5, 6.9, (ctx, t) => laundryHeap(ctx, t, heap.k(), 0, 0, true), { anim: true, depth: 3.4 + 6.4 + 0.6 });
     R.thing(3.5, 6.9, (ctx) => {
       // the basket the goose has claimed
       box(ctx, 2.7, 5.7, 0, 1.5, 1.4, 0.75, C.pink, { dotsL: C.coral, dens: 0.35 });
@@ -438,8 +468,8 @@ export default {
   },
 };
 
-// The out-of-order dryer: door shut and a sign taped on (k 0), or swung open
-// on a teddy bear sitting in the drum (k 1).
+// The stopped dryer: door shut with a paw caught in its seal (k 0), or swung
+// open on a teddy bear sitting in the drum (k 1).
 function brokenDryer(ctx, y, z, k) {
   const cy = y + 1.15, cz = z + 1.05;
   onPlane(ctx, 'x', 1.8, cy, cz, (g) => {
@@ -474,28 +504,13 @@ function brokenDryer(ctx, y, z, k) {
     paint(g, alpha(C.sky, 0.6), { lw: 0.03 });
   });
   if (k < 0.5) {
-    // a brown ear and paw caught in the door's seal: someone's in there
+    // a brown ear and paw caught in the door's seal: someone's in there (no sign: it's just a stopped dryer)
     const [px, py] = P(1.82, cy - 0.62, cz - 0.35);
     ctx.beginPath(); ctx.ellipse(px, py, 0.22, 0.15, 0.5, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.035 });
     ctx.fillStyle = C.brown;
     for (const d of [-0.09, 0.0, 0.09]) { ctx.beginPath(); ctx.arc(px + d, py + 0.06, 0.035, 0, Math.PI * 2); ctx.fill(); }
     const [ex, ey] = P(1.82, cy - 0.5, cz + 0.6);
     ctx.beginPath(); ctx.arc(ex, ey, 0.15, Math.PI * 0.9, Math.PI * 2.1); ctx.closePath(); paint(ctx, C.wood, { lw: 0.035 });
-    // OUT OF ORDER, on masking tape
-    onPlane(ctx, 'x', 1.81, cy, cz + 0.05, (g) => {
-      g.save();
-      g.rotate(-0.12);
-      g.beginPath();
-      g.rect(-0.62, -0.17, 1.24, 0.34);
-      paint(g, C.butter, { lw: 0.025 });
-      g.scale(-1, -1);
-      g.font = '0.19px "Bagel Fat One", "Arial Black", sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillStyle = C.coral;
-      g.fillText('OUT OF ORDER', 0, 0.01);
-      g.restore();
-    });
   }
   const [lx, ly] = P(1.81, y + 0.3, z + 1.8);
   ctx.fillStyle = C.red;
@@ -530,27 +545,14 @@ function cloth(ctx, x, y, z, r, c, seed, flat) {
   ctx.beginPath(); ctx.moveTo(a0, b0); ctx.lineTo(a1, b1);
   ctx.strokeStyle = alpha(C.ink, 0.6); ctx.lineWidth = 0.03; ctx.stroke();
 }
-function laundryHeap(ctx, t, k) {
-  const breathe = k < 0.5 ? (Math.sin(t * 2.4) + 1) * 0.06 : 0;
+// (dx, dy: where this heap is from the goose's; breathes: the goose's heap,
+// gently, as something under it breathes.)
+function laundryHeap(ctx, t, k, dx = 0, dy = 0, breathes = false) {
+  const breathe = breathes && k < 0.5 ? (Math.sin(t * 2.4) + 1) * 0.035 : 0;
   for (const [c, [hx, hy, hz], [fx, fy], seed] of PIECES) {
-    const x = hx + (fx - hx) * k, y = hy + (fy - hy) * k;
+    const x = hx + dx + (fx - hx) * k, y = hy + dy + (fy - hy) * k;
     const z = hz * (1 - k) + 0.03 * k + Math.sin(k * Math.PI) * 1.4 + breathe * (hz - 0.8);
-    cloth(ctx, x, y, z, 0.48, c, seed, k);
-  }
-  if (k < 0.5) {
-    // an orange foot sticking out of the side, and a tail feather
-    const [X, Y] = P(4.15, 6.9, 0.85);
-    ctx.beginPath();
-    ctx.moveTo(X - 0.05, Y - 0.04);
-    ctx.lineTo(X + 0.3, Y - 0.14);
-    ctx.lineTo(X + 0.24, Y + 0.0);
-    ctx.lineTo(X + 0.32, Y + 0.1);
-    ctx.closePath();
-    paint(ctx, C.coral, { lw: 0.03 });
-    const [tx, ty] = P(2.8, 6.2, 1.2);
-    ctx.beginPath();
-    ctx.moveTo(tx, ty); ctx.quadraticCurveTo(tx - 0.3, ty - 0.25, tx - 0.18, ty - 0.45); ctx.quadraticCurveTo(tx - 0.05, ty - 0.2, tx + 0.12, ty - 0.05);
-    paint(ctx, C.white, { lw: 0.03 });
+    cloth(ctx, x, y, z, 0.48, c, seed + (dx ? 3 : 0), k);
   }
 }
 
