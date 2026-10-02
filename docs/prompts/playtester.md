@@ -17,6 +17,7 @@ The level is **{{LEVEL_NAME}}**. {{ONE_LINE}}
 
 1. **Screenshots only.** Don't open anything under `src/`, don't read `answers.json`, don't run the game's code other than the two commands here. You're a player, not a developer.
 2. For each area, look at its screenshot and find each thing on its list. Note where it is as pixel coordinates `[x, y]` in that screenshot. If you can't find something, use `null`. No guessing at random: only give a spot you'd actually tap.
+   - **You can look closer:** crop and enlarge part of a shot, the way a player pinches in on a phone. Give your coordinates in the full shot.
    - **Some things are hidden inside other things** that open when you tap them: a cupboard, a heap, a door. You can't see those in the shot. If you think something's inside something, give the spot you'd tap to open it.
    - A line under a thing's name in `labels.json` (`riddle`) is printed under it on the list: a clue to roughly where.
    - **Some things that look like the goose aren't.** Only one is the goose.

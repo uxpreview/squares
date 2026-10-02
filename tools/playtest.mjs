@@ -16,8 +16,9 @@
 //       (<key>-later). The whole place is shot before and after the tap too
 //       (place.png, place-dial.png), for questions about the dial.
 //
-//       Shots are a phone's (390 x 844) at each area's own framing, the way
-//       most players meet it; --desktop takes them on a laptop's screen.
+//       Shots are a phone's (390 x 844, at 3x) at each area's own framing,
+//       the way most players meet it; --desktop takes them on a laptop's
+//       screen. (check needs the same flag as prepare.)
 //       A hard find's riddle goes in labels.json with its label, as the list
 //       shows it.
 //
@@ -43,8 +44,9 @@ import { chromium } from 'playwright';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const [level, mode, guessFile] = process.argv.slice(2);
 const dir = path.join(root, 'qa-out', level || '', 'playtest');
-const SCALE = 2; // shots are taken at 2x: pixels in the .png are half a CSS pixel
 const DESKTOP = process.argv.includes('--desktop');
+// Pixels in the .png per CSS pixel: a phone's screen is 3x (an iPhone's), a laptop's 2x.
+const SCALE = DESKTOP ? 2 : 3;
 const VIEW = DESKTOP ? { width: 1400, height: 1000 } : { width: 390, height: 844 };
 // How hard each kind of find should feel, 1 (jumped out) to 5 (never found).
 const BANDS = { spot: [1, 3], poke: [2, 4], hard: [3, 5] };
