@@ -1,5 +1,7 @@
 # All You Can Eat
 
+**October 2026 (session 8): the ship stops being a whodunit.** The mystery is the Manor's alone; in v2 the ship becomes a chase, the iguana's trail deck to deck (STRATEGY.md, ROADMAP.md session 12). This brief records the whodunit as built and shipped.
+
 > Status: **Shipped** · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, decisions 1 to 16) · greybox [x] (the lead's call, decisions 17 to 27) · preview [ ] (the owner)
 >

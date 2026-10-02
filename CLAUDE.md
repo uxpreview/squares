@@ -6,6 +6,7 @@ The owner is a designer who vibe codes. Explain changes in plain language, say w
 
 ## Plans
 
+- `docs/STRATEGY.md`: where the game is going and why (session 8): the goals in order, v2 before new places, a verb per place, the difficulty proposal, the rename to Goose at Large. Read it before planning a session.
 - `docs/ROADMAP.md`: what's being built and in what order, one PR per session. Read it at the start of a session; update it at the end (tick what shipped, record decisions).
 - `docs/PROCESS.md`: how a level gets made (brief, greybox, parallel area art, art direction, QA, preview), who does what, and the quality bar. Follow it for every new level.
 - `docs/levels/<id>.md`: each level's brief, the single source of truth for that level. Read it before touching the level; write decisions back into it.
