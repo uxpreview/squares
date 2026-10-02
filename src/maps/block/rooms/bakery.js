@@ -1,8 +1,14 @@
 // Bakery at 5am: a roaring brick oven, a wedding cake that wobbles at every
 // sneeze, a queue that never ends and one goose with a ticket.
+//
+// Retuned for the difficulty rules (session 9): the goose is a hard find now,
+// queueing behind a man in a goose costume (a decoy) under a cake topped with
+// sugar swans (another), with a concrete porch goose by the door (another);
+// ticket number one is under the day-old bread (poke); the rolling pin lies
+// with the baguettes on the far cooling rack (hard).
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
-  speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN,
+  speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN, goose,
 } from '../../../engine/art.js';
 import { particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -122,12 +128,38 @@ function flourPuff(ctx, X, Y, q, n = 8, size = 1) {
   }
 }
 
+// Gary's goose costume: a white hood with a beak, over his head.
+function costumeHead(ctx, x, y, dir, back) {
+  const [X, Y] = P(x, y, 0);
+  const f = dir === 'l' ? -1 : 1;
+  ctx.beginPath(); ctx.arc(X, Y - 2.02, 0.32, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
+  if (!back) {
+    // (a full hood: from the front only a slit to see out of)
+    ctx.beginPath(); ctx.moveTo(X - 0.12, Y - 1.95); ctx.lineTo(X + 0.12, Y - 1.95); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X + f * 0.22, Y - 2.06); ctx.lineTo(X + f * 0.52, Y - 1.98); ctx.lineTo(X + f * 0.22, Y - 1.9); ctx.closePath();
+    paint(ctx, C.coral, { lw: 0.03 });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X + f * 0.1, Y - 2.1, 0.035, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// A rolling pin, the length of a baguette, drawn where one would be.
+function rollingPin(ctx, s = 1) {
+  ctx.save();
+  ctx.scale(s, s);
+  ctx.beginPath(); ctx.roundRect(-0.36, -0.19, 0.72, 0.18, 0.08); paint(ctx, C.mustard, { dots: C.brown, density: 0.2, lw: 0.035 });
+  for (const sd of [-1, 1]) { ctx.beginPath(); ctx.roundRect(sd > 0 ? 0.36 : -0.56, -0.14, 0.2, 0.08, 0.04); paint(ctx, C.wood, { lw: 0.03 }); }
+  ctx.restore();
+}
+
 // ---------- layout ----------
 const OX1 = 5.0, OY0 = 0.2, OY1 = 5.2, OH = 3.4; // brick oven block
 const MOUTH = { y0: 1.9, y1: 3.9, z0: 0.9, z1: 1.9, arch: 0.6 };
 const DC_Y0 = 10.0, DC_Y1 = 11.0, DC_X0 = 3.6, DC_X1 = 12.8; // display counter
 const QT = 6; // queue beat, and the NOW SERVING tick
 const CAKE = [13.5, 8.2];
+const PG = [4.9, 15.0]; // the porch goose
+// The rolling pin: which rack (its x), which shelf, which baguette along it, and where that is.
+const PIN = [12.2, 2, 3, 12.2 + 0.4 + 0.55 * 3];
 
 export default {
   id: 'bakery',
@@ -369,9 +401,13 @@ export default {
           // loaves
           const kind = i === 2 ? 1 : i === 4 ? 2 : r() < 0.5 ? 0 : 2;
           const step = kind === 1 ? 0.55 : kind === 2 ? 0.38 : 0.72;
-          for (let x = x0 + 0.4; x < x0 + w - 0.2; x += step) {
+          for (let x = x0 + 0.4, n = 0; x < x0 + w - 0.2; x += step, n++) {
             const [X, Y] = P(x, 0.8, z + 0.05);
-            ctx.save(); ctx.translate(X, Y); if (kind === 1) ctx.rotate(-0.46); loaf(ctx, kind, kind === 1 ? 0.8 : 1); ctx.restore();
+            ctx.save(); ctx.translate(X, Y); if (kind === 1) ctx.rotate(-0.46);
+            // one of the baguettes on the far rack is the rolling pin (a hard find)
+            if (x0 === PIN[0] && i === PIN[1] && n === PIN[2]) rollingPin(ctx, 0.8);
+            else loaf(ctx, kind, kind === 1 ? 0.8 : 1);
+            ctx.restore();
           }
         }
       });
@@ -501,8 +537,13 @@ export default {
         ctx.restore();
         z += h;
       });
+      // two sugar swans on top (a decoy), wobbling with the top tier
+      ctx.rotate(a * 2.5);
+      goose(ctx, -0.14, 0.14, z, 0, { pose: 'swim', dir: 'r', scale: 0.38 });
+      goose(ctx, 0.14, -0.14, z, 0, { pose: 'swim', dir: 'l', scale: 0.38 });
       ctx.restore();
     }, { anim: true, depth: CAKE[0] + CAKE[1] + 2.05 });
+    R.decoy({ id: 'swans', at: [CAKE[0], CAKE[1], 4.3], r: 0.7, say: ['Sugar swans. Hands off the cake.', 'Still sugar. Still swans.'] });
     // pastry chef on a step stool, the topper, the panic
     const PC = [15.35, 7.9];
     R.thing(PC[0] + 0.4, PC[1] + 0.4, (ctx) => {
@@ -563,6 +604,7 @@ export default {
     R.mover(() => ({ x: 2.2, y: 8.3 }), (ctx, t) => {
       person(ctx, 2.2, 8.2, 0.9, folk(301, { pose: 'sleep', dir: 'r', top: C.white, bottom: C.navy, hat: 'chef' }), t);
     }, { bias: 2.5 });
+    R.poke({ id: 'apprentice', at: [2.2, 8.2, 1.4], r: 1.0, sound: 'tick', say: ['Five more minutes.', 'Zzz.', 'I am UP. I am up.'] });
 
     // A stack of trays being carried out, wobbling.
     const appr = track([[12.4, 2.3], [11.2, 4.4], [10.9, 8.9], [10.3, 9.3, 1.6], [10.9, 8.9], [11.2, 4.4], [12.4, 2.3, 1.2]], 1.1);
@@ -670,7 +712,10 @@ export default {
       folk(311, { top: C.navy, hat: 'beanie' }), folk(312, { top: C.green, style: 'long' }), folk(313, { top: C.purple, style: 'bald' }),
       folk(314, { top: C.coral, hat: 'cap', scale: 0.72 }), folk(315, { top: C.teal, style: 'bun' }),
     ];
-    const lines = ['TWO BAGELS', 'ONE OF EVERYTHING', 'CROISSANT PLEASE', 'IS IT READY?', 'THE USUAL'];
+    const lines = ['TWO BAGELS', 'ONE OF EVERYTHING', 'CROISSANT PLEASE', 'IS IT READY?', 'BREADCRUMBS. FOR A FRIEND.'];
+    // Gary, in a goose costume (a decoy), queueing just ahead of the real one.
+    const COSTUME = 4;
+    R.decoy({ id: 'gary', at: (t) => { const p = queuePos(5, false)(t); return [p.x, p.y, 1.7]; }, r: 1.0, say: ['Just Gary, in a goose suit.', 'Gary. Still Gary.', 'Honk, says Gary. Unconvincingly.'] });
     for (let i = 0; i < NQ; i++) {
       if (i === 3) continue; // the goose takes this spot
       const qi = i < 3 ? i : i - 1;
@@ -680,10 +725,13 @@ export default {
         ctx.save();
         ctx.globalAlpha = p.fade;
         const yawn = !p.moving && !p.front && pulse(t, 9, i * 2) < 0.2;
+        const suit = qi === COSTUME;
         person(ctx, p.x, p.y, 0, {
-          ...qStyles[qi], dir: p.dir, back: p.back, pose: p.moving ? 'walk' : yawn ? 'cheer' : 'stand', speed: yawn ? 1 : 7,
+          ...qStyles[qi], ...(suit ? { top: C.white, bottom: C.white, hat: null, style: 'bald' } : {}),
+          dir: p.dir, back: p.back, pose: p.moving ? 'walk' : yawn ? 'cheer' : 'stand', speed: yawn ? 1 : 7,
           hold: p.bag ? (c) => { c.beginPath(); c.rect(-0.1, -0.05, 0.38, 0.5); paint(c, C.paperDeep, { lw: 0.03 }); c.beginPath(); c.roundRect(0.0, -0.25, 0.1, 0.3, 0.05); paint(c, C.mustard, { lw: 0.02 }); } : null,
         }, t);
+        if (suit) costumeHead(ctx, p.x, p.y, p.dir, p.back);
         ctx.restore();
         if (!Q.detail) return;
         if (p.front && p.f > 0.2 && p.f < 0.55) speech(ctx, p.x, p.y, 2.9, lines[qi], { size: 0.36 });
@@ -695,17 +743,18 @@ export default {
     R.goose((t) => {
       const p = gq(t);
       return { x: p.x, y: p.y, z: 0, dir: p.dir, pose: p.moving ? 'walk' : p.front && p.f > 0.12 && p.f < 0.35 ? 'honk' : p.bag && !p.moving ? 'peck' : 'stand', moving: p.moving };
-    }, { bias: 0.05 });
+    }, { bias: 0.05, kind: 'hard', hint: "It has a ticket and it's waiting its turn like everybody else. Not everything white in here is a goose." });
     R.mover(gq, (ctx, t, p) => {
       if (!Q.detail) return;
       // a paper ticket on a string round its neck, and the croissant once served
       const [X, Y] = P(p.x, p.y, 0);
       const f = p.dir === 'l' ? -1 : 1;
       if (!p.bag) {
-        ctx.beginPath(); ctx.rect(X + f * 0.2 - 0.12, Y - 0.72, 0.24, 0.18); paint(ctx, C.white, { lw: 0.025 });
+        // (low on its chest: up by the beak the red number read as a gull's spot)
+        ctx.beginPath(); ctx.rect(X + f * 0.2 - 0.12, Y - 0.56, 0.24, 0.18); paint(ctx, C.white, { lw: 0.025 });
         const k = Math.floor(t / QT), st = (k + 3) % NQ;
-        label(ctx, p.x + f * 0.1, p.y - f * 0.1, 0.57, String(40 + ((k + (NQ - st) % NQ) % 60)), 0.12, C.red);
-      } else if (p.moving || pulse(t, 0.8) < 0.5) {
+        label(ctx, p.x + f * 0.1, p.y - f * 0.1, 0.43, String(40 + ((k + (NQ - st) % NQ) % 60)), 0.12, C.red);
+      } else if (p.moving) {
         croissant(ctx, X + f * 0.55, Y - 0.95, 0.55);
       }
       if (p.front && p.f > 0.12 && p.f < 0.35) speech(ctx, p.x, p.y, 1.9, 'HONK', { size: 0.34 });
@@ -774,18 +823,8 @@ export default {
     });
 
     // ---------- finds ----------
-    // A rolling pin that has rolled out into the shop and is still rocking.
-    R.mover(() => ({ x: 8.0, y: 12.8 }), (ctx, t) => {
-      const d = Math.sin(t * 1.3) * 0.15;
-      const [X, Y] = P(8.0 + d, 12.8 - d, 0.14);
-      ctx.save();
-      ctx.translate(X, Y);
-      ctx.rotate(0.46);
-      ctx.beginPath(); ctx.roundRect(-0.38, -0.12, 0.76, 0.24, 0.1); paint(ctx, C.woodLight, { dots: C.wood, density: 0.2, lw: 0.035 });
-      for (const s of [-1, 1]) { ctx.beginPath(); ctx.roundRect(s > 0 ? 0.38 : -0.6, -0.05, 0.22, 0.1, 0.05); paint(ctx, C.wood, { lw: 0.03 }); }
-      ctx.restore();
-    });
-    R.find({ id: 'rollingpin', label: 'A rolling pin', r: 0.8, at: (t) => { const d = Math.sin(t * 1.3) * 0.15; return [8.0 + d, 12.8 - d, 0.15]; } });
+    // The rolling pin, lying with the baguettes on the far cooling rack (drawn by the rack).
+    R.find({ id: 'rollingpin', label: 'A rolling pin', kind: 'hard', r: 0.6, at: [PIN[3], 0.8, 2.45], riddle: 'Lying low with the loaves.', hint: 'One of the baguettes on the cooling racks has handles.' });
     // A dropped croissant on the floor near the door.
     R.rug((ctx) => {
       croissant(ctx, ...P(2.2, 15.5, 0.02), 1.0);
@@ -793,16 +832,49 @@ export default {
     });
     R.find({ id: 'croissant', label: 'A dropped croissant', at: [2.2, 15.5, 0.12], r: 0.7 });
 
+    // A concrete porch goose in a baker's hat, the shop's mascot (a decoy).
+    R.thing(PG[0] + 0.5, PG[1] + 0.5, (ctx) => {
+      box(ctx, PG[0] - 0.45, PG[1] - 0.45, 0, 0.9, 0.9, 0.15, C.grey, { top: C.greyLight });
+      goose(ctx, PG[0], PG[1], 0.15, 0, { pose: 'stand', dir: 'r' });
+      // the hat
+      const [X, Y] = P(PG[0], PG[1], 0.15);
+      ctx.beginPath(); ctx.roundRect(X + 0.12, Y - 1.25, 0.24, 0.14, 0.03); paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.arc(X + 0.24, Y - 1.31, 0.15, Math.PI, 0); paint(ctx, C.white, { lw: 0.03 });
+    });
+    R.decoy({ id: 'porch', at: [PG[0], PG[1], 0.8], r: 0.8, say: ['A concrete goose. In a hat.', 'Still concrete.', 'It came with the shop.'] });
+
     // plants and a bread basket by the door
     R.thing(15.4, 10.6, (ctx, t) => plant(ctx, 15.4, 10.6, 0, t, { kind: 'leafy', scale: 1.4, potColor: C.teal }), { anim: true });
     R.thing(0.9, 15.3, (ctx, t) => plant(ctx, 0.9, 15.3, 0, t, { kind: 'bush', scale: 1.1, potColor: C.coral }), { anim: true });
+    // The day-old bread basket: a tap and the loaves hop up, and under them
+    // is ticket number one, the one they've been calling since the day it opened.
+    const basket = R.poke({ id: 'basket', at: [1.3, 10.5, 1.2], r: 1.0 });
     R.thing(1.4, 10.6, (ctx) => {
       box(ctx, 0.5, 9.8, 0, 1.6, 1.4, 1.0, C.wood, { top: C.brown });
+      const k = basket.k();
+      if (k <= 0.3) {
+        // the ticket's corner, poking out from under the loaves
+        const [X, Y] = P(1.95, 10.95, 1.02);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.35);
+        ctx.beginPath(); ctx.rect(-0.02, -0.08, 0.26, 0.17); paint(ctx, C.white, { lw: 0.025 });
+        ctx.fillStyle = C.red; ctx.fillRect(0.12, -0.04, 0.05, 0.09);
+        ctx.restore();
+      }
+      if (k > 0.3) {
+        // the ticket, on the basket's bed
+        const [X, Y] = P(1.3, 10.5, 1.01);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(0.25);
+        ctx.beginPath(); ctx.rect(-0.2, -0.13, 0.4, 0.26); paint(ctx, C.white, { lw: 0.025 });
+        ctx.restore();
+        label(ctx, 1.3, 10.5, 1.06, '1', 0.2, C.red);
+      }
       for (let i = 0; i < 4; i++) {
-        const [X, Y] = P(1.0 + (i % 2) * 0.6, 10.2 + Math.floor(i / 2) * 0.5, 1.0);
-        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.8); loaf(ctx, 1, 0.8); ctx.restore();
+        const side = i % 2 ? 1 : -1;
+        const [X, Y] = P(1.0 + (i % 2) * 0.6 + side * 0.5 * k, 10.2 + Math.floor(i / 2) * 0.5 - side * 0.3 * k, 1.0 + Math.sin(k * Math.PI) * 0.7 + 0.1 * k);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.8 + side * 0.6 * k); loaf(ctx, 1, 0.8); ctx.restore();
       }
       label(ctx, 1.3, 11.2, 0.5, 'DAY OLD', 0.22, C.butter);
-    });
+    }, { anim: true });
+    R.find({ id: 'ticket', label: 'Ticket number one', kind: 'poke', inside: basket, at: [1.3, 10.5, 1.05], r: 0.6, hint: "NOW SERVING has been waiting years for number one. Try under yesterday's bread." });
   },
 };

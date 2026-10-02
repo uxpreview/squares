@@ -28,10 +28,10 @@ Paper color and six inks (hex), and any special treatment (night, weather). The 
 Everything that moves: people's routines, machines, weather, light, particles, sound bed.
 
 ## Mechanic
-The one thing only this level does (optional, but the best levels have one).
+The verb only this level has (the tide, the lightning, a chase). A place isn't picked until it has one.
 
 ## Finds
-The list, with label, area and where it is. Say which ones are story evidence and which are just for fun. Every label unique across the level.
+The list, with label, area, kind and where it is. Every area has a spread (about half spot, a third poke, one or two hard; the goose never spot), two or three things that answer a tap, and a goose decoy. Poke finds name what they're inside; hard finds get their riddle. Say which ones are story evidence and which are just for fun. Every label unique across the level.
 
 ## Shared universe
 Where the goose is, and which recurring characters and brands appear.

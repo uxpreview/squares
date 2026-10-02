@@ -51,12 +51,13 @@ One agent, sent [prompts/art-director.md](prompts/art-director.md), looks at the
 - No errors loading the level, or drawing any area (walls up and down) at 48 moments across its loop.
 - People on the level's clock go through doors, never walls, never faster than a run.
 - Performance: every view holds its frame budget with the CPU slowed 4x (a mid-range phone). The budget is set by The Block.
-- Every find is on screen when its area is framed on a phone and a desktop, clear of the find list and buttons, not crowding another find, and a real tap finds it. (Whether it's hidden behind something, or its tap area has drifted off its art, is for eyes: the contact sheet rings every find, and the playtest scores taps against the art.)
+- Every find is on screen when its area is framed on a phone and a desktop, clear of the find list and buttons, not crowding another find, and a real tap finds it (opening what it's inside first, as a player would).
+- The mix: in every tuned area, the goose isn't a spot find, there's at least one poke find and one spot find, spot finds are at most 60%, poke and hard labels don't say where, hard finds have a riddle; every decoy answers back; the place has decoys. (Whether it's hidden behind something, or its tap area has drifted off its art, is for eyes: the contact sheet rings every find, and the playtest scores taps against the art.)
 - Find labels are unique across the level and follow the style (sentence case, "A lost mitten").
 - Copy rules: no em dashes, names 1 to 3 words, blurbs one or two sentences, no placeholders left. Colors come from `C` or the style sheet.
 - A contact sheet for eyeballing, and a report, in `qa-out/<id>/`.
 
-**Playtest:** a fresh agent sent [prompts/playtester.md](prompts/playtester.md) plays from screenshots only (`node tools/playtest.mjs <id> prepare`), guesses where each find is, and scores itself (`check`). Every find should take between 20 and 90 seconds for a fresh player. Too easy or impossible gets moved or relabeled.
+**Playtest:** a fresh agent sent [prompts/playtester.md](prompts/playtester.md) plays from screenshots only (`node tools/playtest.mjs <id> prepare`, a phone's view at each area's framing), guesses where each find is, rates how hard each was from 1 (jumped out) to 5 (never found), and scores itself (`check`). It scores a spread, not a hit rate: each kind of find has its band (spot 1 to 3, poke 2 to 4, hard 3 to 5), and anything off its band gets fixed, **either way**. A hard find rated 1 gets made harder exactly as a spot find rated 5 gets made easier. (Before session 9 the playtest only fixed misses, and about 36 fixes made finds easier against 2 harder: that's how every place drifted easy.)
 
 ### 8. Preview (gate 3: the owner approves)
 Before it goes to the owner, the lead has toured every area pinched in (step 6) and fixed what it found. The owner's one review. The pull request's Vercel preview, with a short checklist of what to look at, the lead's calls from gates 1 and 2 (in the brief's Decisions) so any can be overturned, and any questions still open, each with a recommendation. Speed is settled on the owner's 2017 laptop (`npm run qa`, `node tools/fps.mjs`), not in the cloud. The owner plays it on their phone. Feedback goes in the PR or the chat; the lead fixes and re-runs QA.
@@ -90,7 +91,8 @@ A level is done when all of these are true:
 - **Life:** nothing in view is still for long. Every area has people doing specific things, at least one loop that plays out as a little story, and ambient motion (weather, light, particles).
 - **Laughs:** every area has a joke you get without reading the blurb. Signs are jokes. At least one gag crosses between areas.
 - **Story:** the level's mystery or event makes sense, and the finds help you piece it together.
-- **Finds:** fair (20 to 90 seconds each), unambiguous labels, never hidden behind anything, tappable on a phone.
+- **Finds:** a spread in every area: about half spot (seen with a good look), a third poke (inside something that opens on a tap), one or two hard (tiny, camouflaged or only there now and then, with a riddle). The goose is never the easiest thing in its room, and every area has a goose decoy that answers back. Hard, but never a trick: labels are unambiguous, nothing is invisible, everything's tappable on a phone, and the playtest puts each find on its kind's band.
+- **Answers back:** two or three things in every area do something when tapped, so tapping around is rewarded.
 - **Feel:** smooth on a mid-range phone, works at 390px wide and in landscape, no errors.
 - **Words:** plain, funny where it fits, no em dashes.
 - **Universe:** the goose, and at least one recurring character or brand.

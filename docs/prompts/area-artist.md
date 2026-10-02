@@ -40,7 +40,7 @@ The other areas in your copy are still greyboxes; other artists are drawing them
 ## What's fixed
 
 - **Walls and doors.** Keep the `R.walls({...})` call and its `doors`. People walk through those doors on the level's shared clock, so a moved door strands them.
-- **The finds.** Keep every find's `id` and label. Replace each numbered pin with the real object at the same spot; you can nudge one by a unit or so if the art needs it (say so in your report). Finds must be visible, never behind anything, 0.3 to 1 unit across, with a tap radius `r` of 0.6 to 1.0.
+- **The finds.** Keep every find's `id`, label and kind (spot, poke, hard: see `tools/ROOM_BRIEF.md`). Replace each numbered pin with the real object at the same spot; you can nudge one by a unit or so if the art needs it (say so in your report). Spot finds are visible, never behind anything; poke finds sit inside the thing that opens (`R.poke`), and that thing invites a tap; hard finds are small or camouflaged, never invisible. 0.3 to 1 unit across, with a tap radius `r` of 0.6 to 1.0. Draw the area's decoys (`R.decoy`) as carefully as the goose: they have to fool someone for a second.
 - **The layout.** The hero and the big furniture stay where the greybox put them, at about the same size, drawn properly.
 - **The shared cast.** People on the level's clock ({{WALKERS_FILE}}) are drawn by the engine in whichever room they're in; don't draw them yourself. Extras who stay in your area are yours.
 - **The level's hooks.** Keep any shared calls the greybox makes, such as `R.dark(...)` (so your room goes dark with the rest) and the style sheet's lights (`lamp`, `candle`, `fire`) or weather.

@@ -171,9 +171,11 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
         : 'You found everything, too.'}`;
     } else {
       el.completeText.textContent = left > 0
-        ? `Every goose, found. ${left} hidden ${left === 1 ? 'thing is' : 'things are'} still out there if you want the full set.`
+        ? `Every goose, found. ${left} hidden ${left === 1 ? 'thing is' : 'things are'} still out there, for the stubborn.`
         : 'Every goose and every hidden thing. Nothing left but the view.';
     }
+    // Hints are counted (a medal for none, later).
+    el.completeText.textContent += p.hintsUsed ? ` ${p.hintsUsed} ${p.hintsUsed === 1 ? 'hint' : 'hints'} used.` : ' And not one hint.';
     el.complete.hidden = false;
     if (!reduceMotion) el.complete.animate([{ opacity: 0, transform: 'translateY(16px) scale(0.96)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2, 1.3, .4, 1)' });
     el.completeNext.focus({ preventScroll: true });

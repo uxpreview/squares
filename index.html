@@ -22,7 +22,7 @@
     var plates = { manor: '#1F2749' };
     var id = location.hash.replace(/^#\/?/, '').split('/')[0];
     if (!id || id === 'maps') {
-      try { id = JSON.parse(localStorage.getItem('squares.save.v3')).last.map; } catch (e) { id = ''; }
+      try { id = JSON.parse(localStorage.getItem('squares.save.v4') || localStorage.getItem('squares.save.v3')).last.map; } catch (e) { id = ''; }
     }
     var p = plates[id];
     if (!p) return;
@@ -89,13 +89,14 @@
   </header>
 
   <div class="tally" aria-live="polite">
-    <span class="tally-item" title="Geese found">
+    <span class="tally-item" id="tally-geese-pill" title="Geese found">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17c0-4 3-6 7-6h2c0-3 1-6 4-6 1.6 0 2.5 1 2.5 2l2 .8-2 .8c0 2-1 3-2 4 1 2 .5 5-2 6.5-3 1.6-9 1.2-11.5-2.1z" fill="currentColor"/></svg>
       <span class="sr-only">Geese found: </span><span id="tally-geese">0/0</span>
     </span>
-    <span class="tally-item" id="tally-things-pill" title="Hidden things circled">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12c0-4.5 3.8-7.5 8.5-7.5S21 7.3 21 11.5 17 19 12 19s-8-2.5-8-6.5c0-2 1-3.6 2.4-4.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-      <span class="sr-only">Things found: </span><span id="tally-things">0/0</span>
+    <!-- Hints left to spend (earned by finding things). -->
+    <span class="tally-item tally-hints" id="tally-hints-pill" role="img" title="Hints left">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3.5z" fill="currentColor"/><path d="M9.8 19h4.4M10.6 21.2h2.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="tally-hints" aria-hidden="true">3</span>
     </span>
     <!-- Whodunits: the case file, with how much evidence you've found. -->
     <button id="tally-case" class="tally-item tally-case" type="button" hidden>
@@ -155,17 +156,27 @@
     <div class="tray-head">
       <button id="tray-grip" class="tray-grip" type="button" tabindex="-1" aria-hidden="true"></button>
       <div class="tray-title">
-        <p class="tray-kicker">Find and tap</p>
-        <p class="tray-count" id="tray-count" aria-live="polite">0 of 4 found</p>
+        <p class="tray-count" id="tray-count" aria-live="polite">0 of 4 found here</p>
+        <p class="tray-place" id="tray-place"></p>
       </div>
-      <button id="tray-hint" class="tray-hint" type="button" hidden>Hint</button>
+      <button id="tray-hint" class="tray-hint" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3.5z" fill="currentColor"/><path d="M9.8 19h4.4M10.6 21.2h2.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="tray-hint-label">Hint</span>
+        <span id="tray-hint-count" class="tray-hint-count" aria-hidden="true">3</span>
+      </button>
+      <!-- (Side dock only: tuck the panel away. On a phone, swipe the list down.) -->
       <button id="tray-hide" class="icon-btn" type="button" aria-label="Hide the list">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <button id="tray-more" class="icon-btn" type="button" aria-label="Show the whole list" aria-expanded="false" aria-controls="tray-full">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
+    <!-- A hint's line (or a hard find's riddle), for the thing picked on the list. -->
+    <p id="tray-note" class="tray-note" aria-live="polite" hidden>
+      <span id="tray-note-text"></span>
+      <button id="tray-note-btn" class="tray-note-btn" type="button" hidden>Show me</button>
+    </p>
     <ul id="tray-chips" class="chips"></ul>
     <div id="tray-full" class="tray-full"></div>
     <button id="tray-pill" class="tray-pill" type="button" aria-label="Show the list">

@@ -13,12 +13,17 @@ const EASE = 'cubic-bezier(.2, .8, .2, 1)';
 
 export function createTray(o) {
   // o: { isFound(room, f), foundAge(room, f), label(room, f), onHint(room, f),
-  //      onGoRoom(i), onStateChange(prev, next), reduceMotion }
+  //      hintStep(room, f) 0..2, hintLine(room, f), placeLine(), hintsLeft(),
+  //      onNoPick(), onGoRoom(i), onStateChange(prev, next), reduceMotion }
+  // A hint goes in two steps (see rules.js): its line shows on the list, by
+  // the thing it's for (the note over the chips, and under its row); the
+  // next press rings it in the room.
   // A "room" here is any zone of the current map.
   const $ = (id) => document.getElementById(id);
   const el = {
     tray: $('tray'), head: document.querySelector('.tray-head'), chips: $('tray-chips'), full: $('tray-full'),
-    count: $('tray-count'), hint: $('tray-hint'), hide: $('tray-hide'), more: $('tray-more'), grip: $('tray-grip'),
+    count: $('tray-count'), place: $('tray-place'), hint: $('tray-hint'), hintCount: $('tray-hint-count'),
+    note: $('tray-note'), noteText: $('tray-note-text'), noteBtn: $('tray-note-btn'), hide: $('tray-hide'), more: $('tray-more'), grip: $('tray-grip'),
     pill: $('tray-pill'), pips: $('tray-pips'), left: $('tray-left'), frac: $('tray-frac'),
   };
 
@@ -31,6 +36,7 @@ export function createTray(o) {
 
   let shown = -1; // the room the tray is showing
   let sel = null; // the chip picked for a hint, as "room:find"
+  let lastHint = null; // the last find a hint was asked for, as "room:find"
   const dock = () => (RIGHT_DOCK.matches ? 'right' : 'bottom');
   const key = (room, f) => room.id + ':' + f.id;
 
@@ -94,6 +100,14 @@ export function createTray(o) {
     const t = document.createElement('span');
     t.className = 'row-label';
     t.textContent = o.label(room, f);
+    // A hard find's riddle, or a hint's line once you've had it, under its name.
+    const sub = !found && lineOf(room, f);
+    if (sub) {
+      const u = document.createElement('span');
+      u.className = 'row-sub' + (o.hintStep(room, f) ? ' is-hint' : '');
+      u.textContent = sub;
+      t.append(u);
+    }
     li.append(mark(f, found), t);
     if (f.note && !found) {
       li.append(noteOf(f));
@@ -116,14 +130,20 @@ export function createTray(o) {
     } else {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'row-hint';
-      b.innerHTML = '<span class="hint-long">Hint</span><span class="hint-short" aria-hidden="true">?</span>';
-      b.setAttribute('aria-label', 'Hint for ' + o.label(room, f));
+      const step = o.hintStep(room, f);
+      b.className = 'row-hint' + (step ? ' is-ring' : '');
+      b.innerHTML = step ? '<span class="hint-long">Show me</span><span class="hint-short" aria-hidden="true">◎</span>'
+        : '<span class="hint-long">Hint</span><span class="hint-short" aria-hidden="true">?</span>';
+      b.setAttribute('aria-label', (step ? 'Show where, for ' : 'Hint for ') + o.label(room, f));
       b.addEventListener('click', () => o.onHint(room, f));
       li.append(b);
     }
     return li;
   }
+
+  // What shows under a find's name: its hint's line once asked for, else a
+  // hard find's riddle.
+  const lineOf = (room, f) => (o.hintStep(room, f) ? o.hintLine(room, f) : f.riddle || '');
 
   const rank = (f) => (f.goose ? 0 : f.group === 'evidence' ? 1 : 2);
   const sortFinds = (room) => room.finds.slice().sort((a, b) => rank(a) - rank(b));
@@ -166,7 +186,11 @@ export function createTray(o) {
     const finds = sortFinds(room);
     const got = finds.filter((f) => o.isFound(room, f)).length;
     const all = got === finds.length;
-    el.count.textContent = `${got} of ${finds.length} found`;
+    el.count.textContent = `${got} of ${finds.length} found here`;
+    el.place.textContent = o.placeLine();
+    const left = o.hintsLeft();
+    el.hintCount.textContent = String(left);
+    el.hint.classList.toggle('is-empty', left < 1);
     el.left.textContent = all ? 'All found here' : `${finds.length - got} left to find`;
     el.frac.textContent = `${got}/${finds.length}`;
     el.pill.setAttribute('aria-label', `Show the list, ${got} of ${finds.length} found`);
@@ -179,14 +203,35 @@ export function createTray(o) {
     }));
 
     // Chips: what's left first (the goose leads), found ones at the end.
-    const left = finds.filter((f) => !o.isFound(room, f));
+    const open = finds.filter((f) => !o.isFound(room, f));
     const done = finds.filter((f) => o.isFound(room, f));
-    el.chips.replaceChildren(...left.concat(done).map((f) => chip(room, f)));
+    el.chips.replaceChildren(...open.concat(done).map((f) => chip(room, f)));
+    // The picked chip in view (a hint can pick one off the end of the row).
+    const on = el.chips.querySelector('.is-selected');
+    if (on && !swapped) {
+      const li = on.parentElement, w = el.chips.clientWidth;
+      if (li.offsetLeft < el.chips.scrollLeft || li.offsetLeft + li.offsetWidth > el.chips.scrollLeft + w - 28) el.chips.scrollLeft = li.offsetLeft - 16;
+    }
 
-    const picked = left.find((f) => key(room, f) === sel);
+    const picked = open.find((f) => key(room, f) === sel);
     if (!picked && sel && sel.startsWith(room.id + ':')) sel = null;
-    el.hint.hidden = !picked;
-    if (picked) el.hint.setAttribute('aria-label', 'Hint for ' + o.label(room, picked));
+    const step = picked ? o.hintStep(room, picked) : 0;
+    el.hint.setAttribute('aria-label', picked
+      ? `${step ? 'Show where, for' : 'Hint for'} ${o.label(room, picked)}. ${left} ${left === 1 ? 'hint' : 'hints'} left.`
+      : `Hint. ${left} ${left === 1 ? 'hint' : 'hints'} left. Pick something on the list first.`);
+
+    // The note over the chips: the picked find's line (its hint, or its
+    // riddle), else the last one you asked a hint for.
+    const noteFor = picked || open.find((f) => key(room, f) === lastHint);
+    const line = noteFor && lineOf(room, noteFor);
+    el.note.hidden = !line;
+    if (line) {
+      el.noteText.textContent = line;
+      const st = o.hintStep(room, noteFor);
+      el.noteBtn.hidden = !st;
+      el.noteBtn.onclick = () => o.onHint(room, noteFor);
+      el.noteBtn.setAttribute('aria-label', 'Show where, for ' + o.label(room, noteFor));
+    }
 
     // The whole list: this zone first, then the rest in the map's order. A
     // place with grouped finds says what the marks mean.
@@ -218,8 +263,12 @@ export function createTray(o) {
 
   el.hint.addEventListener('click', () => {
     const room = o.rooms[shown];
-    const f = room && room.finds.find((x) => key(room, x) === sel);
+    const f = room && room.finds.find((x) => key(room, x) === sel && !o.isFound(room, x));
     if (f) o.onHint(room, f);
+    else {
+      o.onNoPick();
+      if (!o.reduceMotion) el.chips.animate([{ transform: 'none' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 420, easing: EASE });
+    }
   });
 
   // ---------- States ----------
@@ -255,14 +304,15 @@ export function createTray(o) {
     setState(state === 'open' ? 'peek' : 'open');
   });
 
-  // Swipe the tray's top row (or the pill) up for more, down for less.
+  // Swipe the tray's top row (or the pill) up for more, down for less. (The
+  // lift is heard anywhere: a mouse that drags off the row lets go elsewhere.)
   for (const target of [el.head, el.pill]) {
     let sw = null;
     target.addEventListener('pointerdown', (e) => {
       if (dock() !== 'bottom' || e.target.closest('.tray-head button:not(.tray-grip)')) return;
       sw = { x: e.clientX, y: e.clientY, id: e.pointerId };
     });
-    target.addEventListener('pointerup', (e) => {
+    window.addEventListener('pointerup', (e) => {
       if (!sw || e.pointerId !== sw.id) return;
       const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
       sw = null;
@@ -271,7 +321,7 @@ export function createTray(o) {
         if (dy < 0) up(); else down();
       }
     });
-    target.addEventListener('pointercancel', () => { sw = null; });
+    window.addEventListener('pointercancel', (e) => { if (sw && e.pointerId === sw.id) sw = null; });
   }
 
   // The tray's box in a given state, measured without showing it. Its layout
@@ -294,9 +344,11 @@ export function createTray(o) {
       o.rooms = rooms;
       o.order = order;
       shown = -1;
-      sel = null;
+      sel = lastHint = null;
     },
     render,
+    // Pick a find (a hint was asked for it): its chip lit, its line in the note.
+    pick(room, f) { sel = lastHint = key(room, f); },
     setState,
     rectFor,
     dock,

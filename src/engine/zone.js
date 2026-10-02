@@ -121,6 +121,7 @@ export function buildZone(def, place = {}) {
     items: [],
     anim: [],
     finds: [],
+    pokes: [], // things that answer a tap (R.poke, R.decoy)
     walls: null, // what R.walls asked for
     doors: [], // openings in those walls, in zone units
     inner: { left: false, right: false }, // walls with a room right behind them (set by the world)
@@ -194,15 +195,70 @@ export function buildZone(def, place = {}) {
     // note: a word for the list on when to look ("low tide").
     // out: in a zone with an outside (R.shell), a find that's outside it (on a
     // porch), so it can be tapped while the house is closed.
-    find: ({ id, label, at, r = 0.9, when, note, out }) => finds.push({ id, label, at, r, ...(when ? { when } : {}), ...(note ? { note } : {}), ...(out ? { out } : {}) }),
+    // kind: how it's hidden ('spot': seen with a good look; 'poke': inside or
+    // behind something that opens when tapped, see R.poke; 'hard': tiny,
+    // camouflaged or only there now and then). hint: a sentence that points
+    // without giving it away (the first step of a hint). riddle: a hard find's
+    // line under its label, saying roughly where. inside: the poke it's in
+    // (it can only be tapped while that's open).
+    find: ({ id, label, at, r = 0.9, when, note, out, kind, hint, riddle, inside }) => finds.push({
+      id, label, at, r, kind: kind || 'spot',
+      ...(when ? { when } : {}), ...(note ? { note } : {}), ...(out ? { out } : {}),
+      ...(hint ? { hint } : {}), ...(riddle ? { riddle } : {}), ...(inside ? { inside } : {}),
+    }),
     // The loose goose. pos: [x, y, z?] or (t) => ({ x, y, z?, dir, pose })
     goose: (pos, o = {}) => {
       const fn = typeof pos === 'function' ? pos : () => ({ x: pos[0], y: pos[1], z: pos[2] || 0, ...o });
       const at = R.mover(fn, (ctx, t, p) => {
+        // (p.hidden: tucked out of sight, under something you have to poke.)
+        if (p.hidden) return;
         drawGoose(ctx, p.x, p.y, p.z || 0, t, { dir: p.dir || o.dir, pose: p.pose || o.pose || (p.moving ? 'walk' : 'stand'), scale: o.scale });
       }, { bias: o.bias || 0 });
-      finds.push({ id: 'goose', label: 'The goose', goose: true, r: 1.1, at: (t) => { const p = at(t); return [p.x, p.y, (p.z || 0) + 0.5]; } });
+      finds.push({
+        id: 'goose', label: 'The goose', goose: true, r: 1.1, kind: o.kind || 'spot',
+        at: (t) => { const p = at(t); return [p.x, p.y, (p.z || 0) + 0.5]; },
+        ...(o.hint ? { hint: o.hint } : {}), ...(o.inside ? { inside: o.inside } : {}),
+      });
     },
+    // Something that answers a tap: a dryer door that swings open, a heap of
+    // laundry that flies up, a vending machine that drops a snack. Returns the
+    // poke: draw with poke.k() (0 shut, 1 open; anything drawn with it must be
+    // anim). A find inside it (R.find's inside) can only be tapped while it's
+    // open, and keeps it open once found.
+    // o: { id, at: [x, y, z] or (t) => [x, y, z], r: tap radius in units,
+    //      say: a line it answers with (or a list, taken in turn),
+    //      sound: what it plays (default 'pop'), hold: seconds it stays open
+    //      (default: until tapped again), decoy: true for a goose lookalike }
+    // This is the one thing in a zone that isn't a pure function of t: it
+    // follows the player's taps, on the page's own clock.
+    poke: (o) => {
+      const p = {
+        id: o.id, at: o.at, r: o.r ?? 0.9, say: o.say || null, sound: o.sound ?? 'pop', hold: o.hold || 0,
+        decoy: !!o.decoy, open: false, since: -1e9, pinned: false, taps: 0,
+        // Open (true) or shut (false), from a tap or a tool.
+        set(v) {
+          const now = performance.now();
+          if (p.hold && p.open && now - p.since > p.hold * 1000) { p.open = false; p.since = p.since + p.hold * 1000; }
+          if (v === p.open) return;
+          p.open = v;
+          p.since = now;
+        },
+        // How open it is now, 0..1, easing over a quarter of a second.
+        k() {
+          if (p.pinned) return 1;
+          let open = p.open, since = p.since;
+          const now = performance.now();
+          if (open && p.hold && now - since > p.hold * 1000) { open = false; since += p.hold * 1000; }
+          const e = Math.min(1, (now - since) / 250), s = 1 - Math.pow(1 - e, 3);
+          return open ? s : 1 - s;
+        },
+      };
+      zone.pokes.push(p);
+      return p;
+    },
+    // A goose lookalike (a swan, a pool float, a goose on a poster): a tap on
+    // it isn't a find, it answers back. o: as R.poke, with say.
+    decoy: (o) => R.poke({ sound: 'nope', ...o, decoy: true }),
     // The two back walls, drawn by the engine so a map can cut them down.
     // o: { h, left, right: inside face colors (false: no wall on that side),
     //      cap: the top edge, cut: the top edge when cut down (a dark section line),
@@ -1096,6 +1152,7 @@ export function dropStills(zone) {
   }
 }
 
+// Where a find or a poke is at t.
 export function findPos(f, t) {
   return typeof f.at === 'function' ? f.at(t) : f.at;
 }

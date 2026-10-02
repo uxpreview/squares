@@ -27,6 +27,8 @@
 //     onSolved(at), onOpen(),                    // tell the map's art (the goose takes the chair)
 //   }
 
+import { need } from './rules.js';
+
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
 // Work out a world's format once it's built: its goal, and each find's group.
@@ -34,6 +36,16 @@ export function setUp(world) {
   const c = world.map.case;
   world.goal = c ? 'case' : 'geese';
   world.totals = { evidence: 0, curiosity: 0 };
+  // The things that finish it, with every goose (a whodunit finishes at the case).
+  world.need = need(world.totalThings);
+  // A find inside a poke can name it by id.
+  for (const z of world.zones) for (const f of z.finds) {
+    if (typeof f.inside === 'string') {
+      const p = z.pokes.find((q) => q.id === f.inside);
+      if (!p) throw new Error(`${z.id}: the find "${f.id}" is inside "${f.inside}", which isn't one of its pokes.`);
+      f.inside = p;
+    }
+  }
   if (!c) return world;
   const byKey = new Map();
   for (const z of world.zones) for (const f of z.finds) byKey.set(keyOf(z, f), { zone: z, f });

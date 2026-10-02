@@ -1,27 +1,48 @@
 // Saved progress and settings, in the browser's localStorage.
 //
-// Shape (version 3):
+// Shape (version 4):
 //   {
-//     v: 3,
+//     v: 4,
 //     found: { [mapId]: ['zoneId:findId', ...] },
 //     cases: { [mapId]: { accused: ['suspectId', ...], solved: false } },  // whodunits
+//     hints: { [mapId]: { used: 2, on: { 'zoneId:findId': 1 } } },  // hints spent, and how far
+//                                                                   // each find's went (1 the line, 2 the ring)
+//     finished: { [mapId]: true },                  // places whose card has come
+//     oldRules: ['mapId', ...],                     // (from v3) places to check against the old
+//                                                   // rule, every goose, once
 //     settings: { sound: true },
 //     last: { map: 'block', zone: 'laundromat' },   // where you left off
 //   }
 //
 // To change the shape later, bump V, and teach migrate() to upgrade older saves.
 
-const KEY = 'squares.save.v3';
-const V = 3;
+import { HINTS } from './rules.js';
+
+const KEY = 'squares.save.v4';
+const V = 4;
 
 function blank() {
-  return { v: V, found: {}, cases: {}, settings: { sound: true }, last: null };
+  return { v: V, found: {}, cases: {}, hints: {}, finished: {}, settings: { sound: true }, last: null };
 }
 
 // Older versions of the game, upgraded in place. The old keys are left alone,
 // so going back to an older build still finds its save.
 function migrate() {
   const data = blank();
+  try {
+    // v3 had no hints to count (they were free) and nothing finished: a place
+    // was done at its last goose. A place done then stays done.
+    const v3 = JSON.parse(localStorage.getItem('squares.save.v3') || 'null');
+    if (v3 && v3.v === 3) {
+      data.found = v3.found || {};
+      data.cases = v3.cases || {};
+      data.settings = { ...data.settings, ...v3.settings };
+      data.last = v3.last || null;
+      // (Checked against each place's geese the first time it's loaded: see progress.)
+      data.oldRules = Object.keys(data.found);
+      return data;
+    }
+  } catch {}
   try {
     // v2 had no cases (the first whodunit came with v3); everything else carries over.
     const v2 = JSON.parse(localStorage.getItem('squares.save.v2') || 'null');
@@ -79,6 +100,7 @@ export function createStore() {
     try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
   };
   const caseOf = (mapId) => data.cases[mapId] || { accused: [], solved: false };
+  const hintsOf = (mapId) => data.hints[mapId] || { used: 0, on: {} };
 
   return {
     isFound: (mapId, key) => setFor(mapId).has(key),
@@ -90,8 +112,10 @@ export function createStore() {
       return true;
     },
     // How much of a map is found (needs its world for totals). done: the place's
-    // goal is met (every goose, or the case solved). all: that, and every find.
-    // Places with grouped finds (a whodunit) also count evidence and curiosities.
+    // goal is met (every goose and most of its things, or the case solved), or
+    // was when it was finished. all: every find. Places with grouped finds (a
+    // whodunit) also count evidence and curiosities. hints: how many are left
+    // to spend (see HINTS in rules.js).
     progress(world) {
       const s = setFor(world.id);
       let geese = 0, things = 0, evidence = 0, curios = 0;
@@ -103,8 +127,45 @@ export function createStore() {
           else if (f.group === 'curiosity') curios++;
         }
       }
-      const done = world.goal === 'case' ? caseOf(world.id).solved : world.totalGeese > 0 && geese === world.totalGeese;
-      return { geese, things, evidence, curios, done, all: done && things === world.totalThings && geese === world.totalGeese };
+      if (data.oldRules && data.oldRules.includes(world.id)) {
+        data.oldRules = data.oldRules.filter((id) => id !== world.id);
+        if (world.goal !== 'case' && world.totalGeese > 0 && geese === world.totalGeese) data.finished[world.id] = true;
+        save();
+      }
+      const met = world.goal === 'case' ? caseOf(world.id).solved
+        : world.totalGeese > 0 && geese === world.totalGeese && things >= world.need;
+      const done = met || !!data.finished[world.id];
+      const h = hintsOf(world.id), earned = HINTS.start + Math.floor((geese + things) / HINTS.every);
+      return {
+        geese, things, evidence, curios, done, met,
+        all: geese === world.totalGeese && things === world.totalThings,
+        hints: Math.max(0, earned - h.used), hintsUsed: h.used,
+        // finds until the next hint comes
+        toHint: HINTS.every - ((geese + things) % HINTS.every),
+      };
+    },
+    // The card has come: the place stays done, whatever the rules become.
+    finish(mapId) {
+      if (data.finished[mapId]) return false;
+      data.finished[mapId] = true;
+      save();
+      return true;
+    },
+    // A hint on a find: how far it has gone (0 none, 1 its line, 2 its ring).
+    hintStep: (mapId, key) => hintsOf(mapId).on[key] || 0,
+    // Take a hint one step further. The line costs a hint; the ring after it
+    // is free. Returns the step reached, or 0 if there's no hint to spend.
+    useHint(world, key) {
+      const h = data.hints[world.id] = hintsOf(world.id);
+      const step = h.on[key] || 0;
+      if (step >= 2) return 2;
+      if (step === 0) {
+        if (this.progress(world).hints < 1) return 0;
+        h.used++;
+      }
+      h.on = { ...h.on, [key]: step + 1 };
+      save();
+      return step + 1;
     },
     // Rough counts without building the map: how many keys are saved, and how many are geese.
     count(mapId) {
@@ -133,6 +194,8 @@ export function createStore() {
     resetMap(mapId) {
       sets.set(mapId, new Set());
       delete data.cases[mapId];
+      delete data.hints[mapId];
+      delete data.finished[mapId];
       save();
     },
     get settings() { return data.settings; },

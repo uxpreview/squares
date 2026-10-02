@@ -11,32 +11,40 @@ The level is **{{LEVEL_NAME}}**. {{ONE_LINE}}
 ## What you have
 
 - `qa-out/{{LEVEL_ID}}/playtest/labels.json`: for each area, its name, its screenshot, and the list of things to find there, exactly as a player sees them.
-- The screenshots in the same folder, one per area, as a player sees the area on a laptop.
+- The screenshots in the same folder, one per area, as a player sees the area on a phone.
 
 ## The rules
 
 1. **Screenshots only.** Don't open anything under `src/`, don't read `answers.json`, don't run the game's code other than the two commands here. You're a player, not a developer.
 2. For each area, look at its screenshot and find each thing on its list. Note where it is as pixel coordinates `[x, y]` in that screenshot. If you can't find something, use `null`. No guessing at random: only give a spot you'd actually tap.
+   - **You can look closer:** crop and enlarge part of a shot, the way a player pinches in on a phone. Give your coordinates in the full shot.
+   - **Some things are hidden inside other things** that open when you tap them: a cupboard, a heap, a door. You can't see those in the shot. If you think something's inside something, give the spot you'd tap to open it.
+   - A line under a thing's name in `labels.json` (`riddle`) is printed under it on the list: a clue to roughly where.
+   - **Some things that look like the goose aren't.** Only one is the goose.
 3. Keep honest notes as you go: which things jumped out, which took a long look, which you never found, and any label that made you look for the wrong thing.
 
 ## Score yourself
 
-Write your answers to a file, for example `guesses.json`:
+Write your answers to a file, for example `guesses.json`, with how hard each one was (1 jumped out, 2 a quick look, 3 a proper search, 4 a long hunt, 5 never found it):
 
 ```json
 {
   "library": { "A pill bottle with beak marks": [812, 604], "Goose feathers on the rug": null },
-  "kitchen": { "A kitchen timer": [1320, 710] }
+  "kitchen": { "A kitchen timer": [1320, 710] },
+  "ratings": {
+    "library": { "A pill bottle with beak marks": 3, "Goose feathers on the rug": 5 },
+    "kitchen": { "A kitchen timer": 1 }
+  }
 }
 ```
 
-(area ids are the keys of `labels.json`; labels exactly as listed). Then run:
+(area ids are the keys of `labels.json`; labels exactly as listed). Rate honestly before you score: the game wants a spread, some easy and some hard, so a 1 is as useful as a 4. Then run:
 
 ```
 node tools/playtest.mjs {{LEVEL_ID}} check guesses.json
 ```
 
-It tells you which you found. Don't change your answers after seeing the score; report them as they were.
+It tells you which you found, and how each one's difficulty compares with what it's meant to be. Don't change your answers or ratings after seeing the score; report them as they were.
 
 ## Part two, for a whodunit: the case
 
@@ -57,11 +65,12 @@ If `labels.json` gives some things a `when` ("low tide", "high tide", "sunset"),
 ## Report
 
 For each area, a line per find:
-- **Found or not**, and **how hard** it was: 1 (jumped out), 2 (a quick look), 3 (a proper search, about the 20 to 90 seconds a find should take), 4 (a long hunt), 5 (never found it).
+- **Found or not**, and **how hard** it was: 1 (jumped out), 2 (a quick look), 3 (a proper search), 4 (a long hunt), 5 (never found it).
 - **Why**, when it was hard: too small, hidden, too dark, lost in clutter, a label that points the wrong way.
 
 Then, overall:
-- The **three finds most in need of moving or relabeling**, and what you'd change.
+- The **three finds most in need of moving or relabeling**, and what you'd change. Too easy counts as much as too hard.
+- Which **goose lookalikes** fooled you, even for a second, and which you saw through at once.
 - Anything that was **confusing about the scene itself** (what's going on, where one area ends).
 - The **funniest thing** you noticed, and anything that fell flat.
 - For a whodunit or a place with a dial, your answers to part two.

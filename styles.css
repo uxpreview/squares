@@ -450,6 +450,11 @@ body[data-mode="zone"] .place-tagline { display: none; }
   100% { transform: scale(1); }
 }
 .icon-btn.tally-sound { width: 36px; height: 36px; }
+/* Hints left: a bulb and a number. Empty, it greys out until the next is earned. */
+.tally-hints svg { color: var(--mustard); }
+.tally-hints.is-empty { color: var(--ink-soft); }
+.tally-hints.is-empty svg { color: #CFC3AD; }
+.tally-hints.nudge { animation: nudge 1.1s cubic-bezier(.3, 1.6, .5, 1) 1; }
 /* A whodunit's case file: the one tally you can press. */
 button.tally-case {
   min-height: 40px;
@@ -822,7 +827,7 @@ button.lift-floor[aria-current]:hover .lift-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 18px 12px 0 16px;
+  padding: 16px 12px 0 16px;
   touch-action: none; /* vertical swipes on the head grow or shrink the tray */
 }
 button.tray-grip {
@@ -843,7 +848,7 @@ button.tray-grip {
   content: "";
   position: absolute;
   left: 50%;
-  top: 7px;
+  top: 6px;
   width: 36px;
   height: 4px;
   margin-left: -18px;
@@ -854,30 +859,81 @@ button.tray-grip {
 button.tray-grip:hover { background: none; }
 button.tray-grip:active { transform: none; }
 .tray-title { flex: 1; min-width: 0; }
-.tray-kicker {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--coral);
-}
 .tray-count {
-  margin: 1px 0 0;
+  margin: 0;
   font-size: 15px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+/* How the whole place is going: what's left to finish it. */
+.tray-place {
+  margin: 1px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Hint, with how many are left on a little badge. */
 .tray-hint {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   min-height: 40px;
-  padding: 0 16px;
+  padding: 0 8px 0 10px;
   background: var(--mustard);
   font-size: 14px;
   font-weight: 700;
 }
+.tray-hint svg { width: 18px; height: 18px; color: var(--ink); }
 .tray-hint:hover { background: var(--butter, #F7DD8E); }
+.tray-hint-count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--card);
+  font-size: 12.5px;
+  line-height: 22px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.tray-hint.is-empty { background: var(--paper); }
+.tray-hint.is-empty .tray-hint-count { background: #CFC3AD; }
+#tray-more svg { transition: transform 0.3s cubic-bezier(.2, .8, .2, 1); }
 #tray-more[aria-expanded="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
+#tray-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+/* On a phone the list tucks away with a swipe down; one round button, not two. */
+.tray[data-dock="bottom"] #tray-hide { display: none; }
+
+/* A hint's line, or a hard find's riddle, for what's picked on the list. */
+.tray-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 16px 0;
+  padding: 8px 8px 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--butter, #F7DD8E);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.tray-note[hidden] { display: none; }
+.tray-note span { flex: 1; min-width: 0; }
+.tray-note-btn {
+  flex: none;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.tray[data-state="hidden"] .tray-note,
+.tray[data-dock="bottom"][data-state="open"] .tray-note { display: none; }
 
 /* Chips: one row you can scroll sideways, so a level can hold any number of things. */
 .chips {
@@ -1027,7 +1083,17 @@ button.group-head:active { transform: none; }
   font-weight: 600;
   line-height: 1.25;
 }
-.row-label { flex: 1; min-width: 0; }
+.row-label { flex: 1; min-width: 0; padding: 4px 0; }
+/* Under a find's name: a hard find's riddle, or its hint's line. */
+.row-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.row-sub.is-hint::before { content: "Hint: "; font-weight: 700; color: var(--ink); }
+.row-hint.is-ring { background: var(--mustard); }
 .row-hint {
   flex: none;
   min-width: 30px;
@@ -1113,7 +1179,9 @@ button.group-head:active { transform: none; }
 .tray[data-dock="right"] #tray-more,
 .tray[data-dock="right"] .chips { display: none; }
 .tray[data-dock="right"] #tray-hide svg { transform: rotate(-90deg); }
-.tray[data-dock="right"] .tray-count { font-family: var(--display); font-weight: 400; font-size: 22px; }
+.tray[data-dock="right"] .tray-count { font-family: var(--display); font-weight: 400; font-size: 18px; }
+.tray[data-dock="right"] .tray-place { white-space: normal; }
+.tray[data-dock="right"] .tray-note { margin: 12px 16px 4px 20px; }
 .tray[data-dock="right"] .tray-full { display: block; flex: 1; height: auto; padding: 4px 20px 16px; }
 .tray[data-dock="right"][data-state="hidden"] {
   width: 76px;

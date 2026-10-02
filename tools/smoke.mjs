@@ -34,6 +34,9 @@ async function fresh(viewport, init) {
   return page;
 }
 
+// The things tally (it lives on the find list now): "found/total" for the place.
+const things = (page) => S(page, () => { const s = window.__squares, p = s.store.progress(s.world); return `${p.things}/${s.world.totalThings}`; });
+
 // Where a find is on screen right now.
 const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const s = window.__squares;
@@ -73,7 +76,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
   check('a card opens its place', (await S(page, () => location.hash)) === '#/block' && await page.isVisible('.tally'));
-  check('tallies count the old save, on the Block Party', (await page.textContent('#tally-geese')) === '1/16' && (await page.textContent('#tally-things')) === '1/58');
+  check('tallies count the old save, on the Block Party', (await page.textContent('#tally-geese')) === '1/16' && (await things(page)) === '1/60');
 
   // Tap the laundromat's floor to go in.
   const [lx, ly] = await S(page, () => {
@@ -88,7 +91,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const [fx, fy] = await findOnScreen(page, 'laundromat', 'coin');
   await page.mouse.click(fx, fy);
   await wait(page, 300);
-  check('tapping a hidden thing circles it', (await page.textContent('#tally-things')) === '2/58');
+  check('tapping a hidden thing circles it', (await things(page)) === '2/60');
 
   await page.keyboard.press('ArrowRight');
   await wait(page, 1500);
@@ -139,11 +142,11 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 400);
   check('title offers to continue where you were', (await page.textContent('#title-play-label')) === 'Continue');
 
-  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')));
-  check('progress saved in the v3 format', saved && saved.v === 3 && saved.found.block.includes('laundromat:coin'));
+  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')));
+  check('progress saved in the v4 format', saved && saved.v === 4 && saved.found.block.includes('laundromat:coin') && saved.hints && saved.finished);
 
   await page.click('.title .sound-btn');
-  check('sound toggle remembers', (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')).settings.sound)) === false);
+  check('sound toggle remembers', (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).settings.sound)) === false);
   await page.close();
 }
 
@@ -186,12 +189,12 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#title-play');
   await wait(page, 2000);
   check('continue lands where the preview was left, on the Block Party', (await S(page, () => location.hash)) === '#/block/bakery' &&
-    (await page.textContent('#tally-geese')) === '2/16' && (await page.textContent('#tally-things')) === '2/58');
+    (await page.textContent('#tally-geese')) === '2/16' && (await things(page)) === '2/60');
   await page.goto(base + '#/blockparty/pool');
   await ready(page);
   await wait(page, 1200);
   check('the preview\'s address goes to the Block Party', (await S(page, () => location.hash)) === '#/block/pool');
-  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')));
+  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')));
   check('the merged save is written under block, once', !saved.found.blockparty && saved.found.block.length === 4, JSON.stringify(saved.found));
   await page.close();
 }
@@ -209,7 +212,12 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     const bar = document.getElementById('roombar').getBoundingClientRect(), t = document.getElementById('tray');
     return Math.round((t.dataset.state === 'hidden' ? document.getElementById('tray-pill') : t).getBoundingClientRect().top - bar.bottom);
   });
-  await page.click('#tray-hide');
+  // (On a phone the list tucks away with a swipe down its head.)
+  const head = await page.$eval('.tray-head', (el) => { const r = el.getBoundingClientRect(); return [r.x + 40, r.y + 20]; });
+  await page.mouse.move(head[0], head[1]);
+  await page.mouse.down();
+  await page.mouse.move(head[0], head[1] + 60, { steps: 4 });
+  await page.mouse.up();
   await wait(page, 700);
   const tucked = await barGap();
   await page.click('#tray-pill');
@@ -243,10 +251,10 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const back = await S(page, () => window.__squares.world.zones.map((z) => z.veil));
   check('floors settle back in the overview', back.every((v) => v < 0.05), back.join(','));
 
-  // Find every goose in the building.
+  // Find everything in the building.
   await S(page, () => {
     const s = window.__squares;
-    for (const z of s.world.zones) s.play.markFound(z, z.finds.find((f) => f.goose));
+    for (const z of s.world.zones) for (const f of z.finds) s.play.markFound(z, f);
   });
   await wait(page, 5200);
   check('finishing a place shows the complete card', await page.isVisible('#complete'));
@@ -293,10 +301,23 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 1400);
   const after = await offBy();
   check('dragged past its edge the map gives, and springs back', past > 1 && after < 0.01, `past ${past.toFixed(1)}, after ${after.toFixed(3)}`);
+  // Every goose isn't the end: a place finishes at every goose and most of its things.
   await S(page, () => {
     const s = window.__squares;
     for (const z of s.world.zones) { const g = z.finds.find((f) => f.goose); if (g) s.play.markFound(z, g); }
   });
+  await wait(page, 2600);
+  check('every goose but too few things: not finished yet, and it says how many to go', !(await page.isVisible('#complete')) &&
+    /more things? to finish/.test(await page.textContent('#toast')), await page.textContent('#toast'));
+  // Most of the things (rules.js), short of all of them, finishes it.
+  const most = await S(page, () => {
+    const s = window.__squares, w = s.world;
+    let n = s.store.progress(w).things;
+    for (const z of w.zones) for (const f of z.finds) if (!f.goose && n < w.need && !s.store.isFound(w.id, z.id + ':' + f.id)) { s.play.markFound(z, f); n++; }
+    const p = s.store.progress(w);
+    return { things: p.things, need: w.need, total: w.totalThings, done: p.done, all: p.all };
+  });
+  check('most of the things (not all) finishes the place', most.done && !most.all && most.things === most.need && most.need < most.total, JSON.stringify(most));
   // (The party plays for a while before the card: the finale.)
   await page.waitForSelector('#complete:not([hidden])', { timeout: 20000 }).catch(() => {});
   await page.click('#complete-next');
@@ -378,8 +399,8 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   // ---------- 4. A whodunit: evidence, the case file, accusing, the reveal ----------
   await page.click('#floors [data-storey="ground"]');
   await wait(page, 1200);
-  check('a whodunit shows a Case button instead of the things tally',
-    await page.isVisible('#tally-case') && !(await page.isVisible('#tally-things-pill')) && (await page.textContent('#tally-case-count')) === '0/17');
+  check('a whodunit shows a Case button instead of the geese tally',
+    await page.isVisible('#tally-case') && !(await page.isVisible('#tally-geese-pill')) && (await page.textContent('#tally-case-count')) === '0/17');
   await S(page, () => window.__squares.play.enterZone('library', { dur: 0.01 }));
   await wait(page, 900);
   check('the find list marks evidence', (await page.$$('#tray .find-mark.is-evidence')).length >= 3);
@@ -403,14 +424,14 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('.case-accuse');
   await speak();
   check('a wrong accusation plays their alibi and clears them', await page.isVisible('.scene-end .stamp.is-cleared') &&
-    (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')).cases.manor.accused)).includes('jenkins'));
+    (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).cases.manor.accused)).includes('jenkins'));
   await page.click('.scene-end .big-btn');
   await wait(page, 500);
   await page.click('.suspect >> text=Someone else?');
   await wait(page, 500);
   await page.click('.case-accuse');
   await speak();
-  check("the culprit can't be named without the clues", (await page.$$('.scene-end .stamp')).length === 0 && !(await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')).cases.manor.solved)));
+  check("the culprit can't be named without the clues", (await page.$$('.scene-end .stamp')).length === 0 && !(await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).cases.manor.solved)));
   await page.click('.scene-end .big-btn');
   await wait(page, 400);
   await S(page, () => {
@@ -433,7 +454,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('the reveal cuts to the dining room and closes the case',
     (await S(page, () => location.hash)) === '#/manor/dining-room' && await page.isVisible('#complete') &&
     (await page.textContent('.complete-kicker')) === 'Case closed' &&
-    (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v3')).cases.manor.solved)) === true);
+    (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).cases.manor.solved)) === true);
   await page.reload();
   await ready(page);
   await wait(page, 800);
@@ -559,12 +580,12 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return doors.size;
   });
   check('the Courier knocks on every door on the block', people === 15, people + ' doors');
-  // The ending: the last goose starts the party (the clock jumps to it) and
-  // the geese conga down Main Street.
-  await S(page, () => { const s = window.__squares; s.clock.set(30); for (const z of s.world.zones) { const g = z.finds.find((f) => f.goose); if (g) s.play.markFound(z, g); } });
+  // The ending: finishing the place (every goose and most things) starts the
+  // party (the clock jumps to it) and the geese conga down Main Street.
+  await S(page, () => { const s = window.__squares; s.clock.set(30); for (const z of s.world.zones) for (const f of z.finds) s.play.markFound(z, f); });
   await wait(page, 2600);
   const party = await S(page, () => { const s = window.__squares, h = (5 + (s.clock.now() % 360) / 15) % 24; return { h: Math.round(h * 10) / 10, parade: s.play.fx(performance.now()).parade > 0 }; });
-  check('finding every goose starts the party: the clock jumps to it and the geese conga', party.h >= 19.5 && party.h < 21 && party.parade, JSON.stringify(party));
+  check('finishing the place starts the party: the clock jumps to it and the geese conga', party.h >= 19.5 && party.h < 21 && party.parade, JSON.stringify(party));
   await page.close();
 }
 
@@ -653,16 +674,16 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('from low tide the dial stops at sunset, then high tide', Math.abs(dusk.hour - 19.83) < 0.3 && Math.abs(high.hour - 23) < 0.3 && /low tide/.test(high.next), JSON.stringify({ dusk, high }));
   const cached = await S(page, () => window.__squares.play.focus.chunks.map((c) => !!(c.bd && c.stills)));
   check('in an area with ground, every piece of it is cached', cached.length > 1 && cached.every(Boolean), JSON.stringify(cached));
-  // The ending: every goose found, the clock jumps to the king tide, and the
+  // The ending: the place finished, the clock jumps to the king tide, and the
   // Courier's van is out on the turnpike, under water to its wheels.
-  await S(page, () => { const s = window.__squares; for (const z of s.world.zones) { const g = z.finds.find((f) => f.goose); if (g) s.play.markFound(z, g); } });
+  await S(page, () => { const s = window.__squares; for (const z of s.world.zones) for (const f of z.finds) s.play.markFound(z, f); });
   await wait(page, 3200);
   const end = await S(page, async () => {
     const { level, hour } = await import('/src/maps/plum/tide.js');
     const s = window.__squares, t = s.clock.now(), van = s.world.walkers.find((k) => k.id === 'van').at(t);
     return { hour: Math.round(hour(t) * 10) / 10, under: level(t) > van.z, x: Math.round(van.x), y: Math.round(van.y), parade: s.play.fx(performance.now()).parade > 0 };
   });
-  check('finding every goose brings in the king tide after midnight, with the Courier\'s van stuck in it', end.hour < 1 && end.under && end.parade && end.y > 12 && end.y < 19, JSON.stringify(end));
+  check('finishing the place brings in the king tide after midnight, with the Courier\'s van stuck in it', end.hour < 1 && end.under && end.parade && end.y > 12 && end.y < 19, JSON.stringify(end));
   await page.close();
 }
 
@@ -739,6 +760,62 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     check(`on a ${viewport.width} x ${viewport.height} phone the ship's clock and its lift don't overlap`, apart && d[2] > d[0], JSON.stringify(r));
     await page.close();
   }
+}
+
+// ---------- 6. The rules of finding: pokes, decoys, earned hints (phone) ----------
+{
+  const page = await fresh({ width: 390, height: 844 }, () => localStorage.clear());
+  await page.goto(base + '#/block/laundromat');
+  await ready(page);
+  await wait(page, 1600);
+  await S(page, () => { document.getElementById('story').hidden = true; });
+  const tapAt = async (zoneId, kind, id, dz = 0) => {
+    const [x, y] = await S(page, ([z, kind, id, dz]) => {
+      const s = window.__squares, zone = s.world.zones.find((q) => q.id === z);
+      const o = (kind === 'find' ? zone.finds : zone.pokes).find((q) => q.id === id);
+      const [a, b, h] = typeof o.at === 'function' ? o.at(performance.now() / 1000) : o.at;
+      return s.camera.toScreen(zone.anchor[0] + (a - b), zone.anchor[1] + (a + b) / 2 - (h + dz) * 1.12);
+    }, [zoneId, kind, id, dz]);
+    await page.mouse.click(x, y);
+    await wait(page, 380);
+  };
+  const isFound = (key) => S(page, (k) => window.__squares.store.isFound('block', k), key);
+  // The goose is under the laundry: tapping where it is opens the heap, it isn't found yet.
+  await tapAt('laundromat', 'find', 'goose');
+  check('a find inside something can\'t be tapped until it opens; the tap opens it',
+    !(await isFound('laundromat:goose')) && (await S(page, () => window.__squares.world.zones.find((z) => z.id === 'laundromat').pokes.find((p) => p.id === 'heap').open)));
+  await tapAt('laundromat', 'find', 'goose');
+  check('open, the find inside is there to tap', await isFound('laundromat:goose'));
+  // A decoy answers back and counts as nothing.
+  const before = await S(page, () => window.__squares.store.progress(window.__squares.world).things);
+  await S(page, () => window.__squares.play.poke('laundromat', 'float'));
+  const dec = await S(page, () => ({ n: window.__squares.play.debug.decoys, things: window.__squares.store.progress(window.__squares.world).things }));
+  check('a decoy answers back, and finds nothing', dec.n === 1 && dec.things === before, JSON.stringify(dec));
+  // Hints: three to start, a line first (it costs one), then a ring (free).
+  const left = () => S(page, () => window.__squares.store.progress(window.__squares.world).hints);
+  check('a place starts with three hints', (await left()) === 3 && (await page.textContent('#tally-hints')) === '3');
+  await page.click('#tray-hint');
+  await wait(page, 200);
+  check('Hint with nothing picked asks you to pick', (await page.textContent('#toast')).includes('Pick something') && (await left()) === 3);
+  await page.click('#tray-chips .chip >> text=A teddy bear');
+  await page.click('#tray-hint');
+  await wait(page, 300);
+  check('the first step of a hint is its line, on the list, for one hint', (await left()) === 2 && await page.isVisible('#tray-note') &&
+    (await page.textContent('#tray-note-text')).includes('teddy'), await page.textContent('#tray-note-text'));
+  await page.click('#tray-note-btn');
+  await wait(page, 200);
+  check('the second step rings it, free', (await left()) === 2 && (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).hints.block.on['laundromat:teddy'])) === 2);
+  // Spend the rest, and find things to earn another.
+  await S(page, () => { window.__squares.play.hint('laundromat', 'cat'); window.__squares.play.hint('laundromat', 'sock'); });
+  check('hints run out', (await left()) === 0 && (await page.textContent('#tally-hints')) === '0');
+  await S(page, () => window.__squares.play.hint('laundromat', 'coin'));
+  check('with none left, a hint says how to earn one', /No hints left/.test(await page.textContent('#toast')) && (await left()) === 0);
+  await S(page, () => {
+    const s = window.__squares, z = s.world.zones.find((q) => q.id === 'laundromat');
+    for (const id of ['cat', 'sock']) s.play.markFound(z, z.finds.find((f) => f.id === id));
+  });
+  check('every three finds earns a hint', (await left()) === 1 && (await page.textContent('#toast')).includes('hint earned'), await page.textContent('#toast'));
+  await page.close();
 }
 
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
