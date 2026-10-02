@@ -5,7 +5,7 @@
 // queueing behind a man in a goose costume (a decoy) under a cake topped with
 // sugar swans (another), with a concrete porch goose by the door (another);
 // ticket number one is under the day-old bread (poke); the rolling pin lies
-// on the kneading table, wood on wood (hard).
+// with the baguettes on the far cooling rack (hard).
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN, goose,
@@ -142,6 +142,15 @@ function costumeHead(ctx, x, y, dir, back) {
   }
 }
 
+// A rolling pin, the length of a baguette, drawn where one would be.
+function rollingPin(ctx, s = 1) {
+  ctx.save();
+  ctx.scale(s, s);
+  ctx.beginPath(); ctx.roundRect(-0.36, -0.19, 0.72, 0.18, 0.08); paint(ctx, C.mustard, { dots: C.brown, density: 0.2, lw: 0.035 });
+  for (const sd of [-1, 1]) { ctx.beginPath(); ctx.roundRect(sd > 0 ? 0.36 : -0.56, -0.14, 0.2, 0.08, 0.04); paint(ctx, C.wood, { lw: 0.03 }); }
+  ctx.restore();
+}
+
 // ---------- layout ----------
 const OX1 = 5.0, OY0 = 0.2, OY1 = 5.2, OH = 3.4; // brick oven block
 const MOUTH = { y0: 1.9, y1: 3.9, z0: 0.9, z1: 1.9, arch: 0.6 };
@@ -149,6 +158,8 @@ const DC_Y0 = 10.0, DC_Y1 = 11.0, DC_X0 = 3.6, DC_X1 = 12.8; // display counter
 const QT = 6; // queue beat, and the NOW SERVING tick
 const CAKE = [13.5, 8.2];
 const PG = [4.9, 15.0]; // the porch goose
+// The rolling pin: which rack (its x), which shelf, which baguette along it, and where that is.
+const PIN = [12.2, 2, 3, 12.2 + 0.4 + 0.55 * 3];
 
 export default {
   id: 'bakery',
@@ -390,9 +401,13 @@ export default {
           // loaves
           const kind = i === 2 ? 1 : i === 4 ? 2 : r() < 0.5 ? 0 : 2;
           const step = kind === 1 ? 0.55 : kind === 2 ? 0.38 : 0.72;
-          for (let x = x0 + 0.4; x < x0 + w - 0.2; x += step) {
+          for (let x = x0 + 0.4, n = 0; x < x0 + w - 0.2; x += step, n++) {
             const [X, Y] = P(x, 0.8, z + 0.05);
-            ctx.save(); ctx.translate(X, Y); if (kind === 1) ctx.rotate(-0.46); loaf(ctx, kind, kind === 1 ? 0.8 : 1); ctx.restore();
+            ctx.save(); ctx.translate(X, Y); if (kind === 1) ctx.rotate(-0.46);
+            // one of the baguettes on the far rack is the rolling pin (a hard find)
+            if (x0 === PIN[0] && i === PIN[1] && n === PIN[2]) rollingPin(ctx, 0.8);
+            else loaf(ctx, kind, kind === 1 ? 0.8 : 1);
+            ctx.restore();
           }
         }
       });
@@ -808,20 +823,8 @@ export default {
     });
 
     // ---------- finds ----------
-    // A rolling pin on the kneading table, wood on wood, rocking a little
-    // every time the table gets a thump (a hard find).
-    const pin = (t) => [8.55 + Math.sin(t * 5) * 0.05, 7.25, 1.2];
-    R.mover(() => ({ x: 8.55, y: 7.25 }), (ctx, t) => {
-      const [x, y, z] = pin(t);
-      const [X, Y] = P(x, y, z);
-      ctx.save();
-      ctx.translate(X, Y);
-      ctx.rotate(0.46);
-      ctx.beginPath(); ctx.roundRect(-0.38, -0.12, 0.76, 0.24, 0.1); paint(ctx, C.woodLight, { dots: C.wood, density: 0.2, lw: 0.035 });
-      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.roundRect(sd > 0 ? 0.38 : -0.6, -0.05, 0.22, 0.1, 0.05); paint(ctx, C.wood, { lw: 0.03 }); }
-      ctx.restore();
-    }, { depth: 9.5 + 7.9 + 0.2 });
-    R.find({ id: 'rollingpin', label: 'A rolling pin', kind: 'hard', r: 0.7, at: (t) => pin(t), riddle: 'Hiding in plain sight, wood on wood.', hint: 'Where the dough gets its beating. It matches the table.' });
+    // The rolling pin, lying with the baguettes on the far cooling rack (drawn by the rack).
+    R.find({ id: 'rollingpin', label: 'A rolling pin', kind: 'hard', r: 0.6, at: [PIN[3], 0.8, 2.45], riddle: 'Lying low with the loaves.', hint: 'One of the baguettes on the cooling racks has handles.' });
     // A dropped croissant on the floor near the door.
     R.rug((ctx) => {
       croissant(ctx, ...P(2.2, 15.5, 0.02), 1.0);
