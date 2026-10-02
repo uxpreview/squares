@@ -287,7 +287,11 @@ const guesses = JSON.parse(fs.readFileSync(path.resolve(guessFile), 'utf8'));
 const ratings = guesses.ratings || {};
 const rows = [];
 let hits = 0, total = 0, off = 0;
+// Only the areas the tester was asked about, if their guesses name some.
+const asked = Object.keys(guesses).filter((k) => k !== 'ratings');
+const tested = (id) => !asked.length || asked.some((a) => id === a || id.startsWith(a + '-'));
 for (const [id, finds] of Object.entries(answers)) {
+  if (!tested(id)) continue;
   for (const f of finds) {
     total++;
     const g = guesses[id] && guesses[id][f.label];

@@ -732,10 +732,11 @@ export default {
       const [X, Y] = P(p.x, p.y, 0);
       const f = p.dir === 'l' ? -1 : 1;
       if (!p.bag) {
-        ctx.beginPath(); ctx.rect(X + f * 0.2 - 0.12, Y - 0.72, 0.24, 0.18); paint(ctx, C.white, { lw: 0.025 });
+        // (low on its chest: up by the beak the red number read as a gull's spot)
+        ctx.beginPath(); ctx.rect(X + f * 0.2 - 0.12, Y - 0.56, 0.24, 0.18); paint(ctx, C.white, { lw: 0.025 });
         const k = Math.floor(t / QT), st = (k + 3) % NQ;
-        label(ctx, p.x + f * 0.1, p.y - f * 0.1, 0.57, String(40 + ((k + (NQ - st) % NQ) % 60)), 0.12, C.red);
-      } else if (p.moving || pulse(t, 0.8) < 0.5) {
+        label(ctx, p.x + f * 0.1, p.y - f * 0.1, 0.43, String(40 + ((k + (NQ - st) % NQ) % 60)), 0.12, C.red);
+      } else if (p.moving) {
         croissant(ctx, X + f * 0.55, Y - 0.95, 0.55);
       }
       if (p.front && p.f > 0.12 && p.f < 0.35) speech(ctx, p.x, p.y, 1.9, 'HONK', { size: 0.34 });
@@ -832,6 +833,14 @@ export default {
     R.thing(1.4, 10.6, (ctx) => {
       box(ctx, 0.5, 9.8, 0, 1.6, 1.4, 1.0, C.wood, { top: C.brown });
       const k = basket.k();
+      if (k <= 0.3) {
+        // the ticket's corner, poking out from under the loaves
+        const [X, Y] = P(1.95, 10.95, 1.02);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.35);
+        ctx.beginPath(); ctx.rect(-0.02, -0.08, 0.26, 0.17); paint(ctx, C.white, { lw: 0.025 });
+        ctx.fillStyle = C.red; ctx.fillRect(0.12, -0.04, 0.05, 0.09);
+        ctx.restore();
+      }
       if (k > 0.3) {
         // the ticket, on the basket's bed
         const [X, Y] = P(1.3, 10.5, 1.01);

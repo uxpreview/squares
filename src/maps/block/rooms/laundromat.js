@@ -474,6 +474,13 @@ function brokenDryer(ctx, y, z, k) {
     paint(g, alpha(C.sky, 0.6), { lw: 0.03 });
   });
   if (k < 0.5) {
+    // a brown ear and paw caught in the door's seal: someone's in there
+    const [px, py] = P(1.82, cy - 0.62, cz - 0.35);
+    ctx.beginPath(); ctx.ellipse(px, py, 0.22, 0.15, 0.5, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.035 });
+    ctx.fillStyle = C.brown;
+    for (const d of [-0.09, 0.0, 0.09]) { ctx.beginPath(); ctx.arc(px + d, py + 0.06, 0.035, 0, Math.PI * 2); ctx.fill(); }
+    const [ex, ey] = P(1.82, cy - 0.5, cz + 0.6);
+    ctx.beginPath(); ctx.arc(ex, ey, 0.15, Math.PI * 0.9, Math.PI * 2.1); ctx.closePath(); paint(ctx, C.wood, { lw: 0.035 });
     // OUT OF ORDER, on masking tape
     onPlane(ctx, 'x', 1.81, cy, cz + 0.05, (g) => {
       g.save();
