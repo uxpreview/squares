@@ -4,6 +4,22 @@ Pitches for future places. The owner adds ideas; each gets a spin that makes it 
 
 When a level is picked, it gets a full brief (see ROADMAP.md, "How a new place gets made").
 
+## Verb first (session 8)
+
+No new places during v2 (ROADMAP.md, phase 1). When places start again, **a pitch isn't picked until it has a verb no other place has**: something you do there that only makes sense there, not just a new look. The brief names it at gate 1. See [STRATEGY.md](STRATEGY.md), "Variety".
+
+The five, and their verbs in v2:
+
+| Place | Verb | v2 session |
+|---|---|---|
+| The Block Party | **Poke:** everything answers a tap; the place that teaches it | 10 |
+| Gooseworth Manor | **Deduce:** the whodunit, the Manor's alone; the lightning shows the past | 15 |
+| Plum Island | **Wait for the tide:** finds marked by tide, the dial front and center | 14 |
+| Moving Day | **Before and after:** finds that are what changed between moving out and moving in | 13 |
+| All-You-Can-Eat | **Chase:** the iguana's trail deck to deck through the day | 12 |
+
+Candidate verbs for the pitches below (to settle at each brief): Split, **above and below** (the town on top, the palace's cellars underneath); The Feast, the same cut under the Greenway; Beacon and Arlington, **dig** (things under the snow); the Catminium, **follow** (a cat leads you to its find); The Crossing, **one in the herd** (a goose among the wildebeest); Departures, **match** (a bag to its owner). La Dolce Riviera's is open: it leads phase 3 only if it finds one.
+
 Rough isometric sketches of the Sept 2026 picks (outline, hero, connections, numbered jokes) are in [sketchbook.html](sketchbook.html): open it in a browser (the owner's published copy: https://claude.ai/artifact/CihrNwU7bQcTQojt1pyArf, private). Each place's **Layout (sketch)** line below says where things sit in it. They were drawn from memory: check every real landmark against a real map before a brief.
 
 ## Real places
@@ -22,7 +38,7 @@ The owner's direction: many places should be real, recognizable places, because 
 ## From the owner's list
 
 ### Death at Gooseworth Manor (murder mystery)
-**Status: shipped (PR #9). Full brief in [levels/manor.md](levels/manor.md).**
+**Status: shipped (PR #9). Full brief in [levels/manor.md](levels/manor.md). v2: the only whodunit (session 15).**
 - **Spin:** a dinner party in a cutaway country house on a stormy night. The host is dead in the library, every guest has a motive, and the finds are **evidence** (the poison bottle, the torn will, the muddy boots). Find it all and the game names the killer.
 - **Alive:** guests drift from room to room on a loop, candles gutter, lightning flashes light up rooms for a second (and shows who was where), secret passages behind the bookcases.
 - **Dark humor:** the body keeps getting moved by guests who each think they did it. The butler is already packing.
@@ -31,7 +47,7 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Status:** shipped (session 3; brief in [levels/manor.md](levels/manor.md)).
 
 ### The Block Party (the Block, connected: a city block)
-**Status: built, at gate 3 (the preview), `#/blockparty`. Full brief in [levels/block.md](levels/block.md).**
+**Status: shipped (session 4e). Full brief in [levels/block.md](levels/block.md). v2: the poke place (session 10).**
 - **Spin:** the Block's sixteen rooms, opened onto real streets, on the day of the Block Party. The Courier goes door to door all day with a parcel for "G. Goose, The Block", and every door has a goose behind it.
 - **Alive:** the neighbors carry the party into the street (the cake, the banner, the amps), the octopus escapes down the alley, a queue forms that nobody can explain; a whole day on a loop, each room busiest at its hour.
 - **Shape:** the Block's square, with Main Street crossing the middle and alleys between the rest.
@@ -39,7 +55,7 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Status:** shipped (session 4e). It took over The Block's id, `block`, so saves carried over; brief in [levels/block.md](levels/block.md).
 
 ### Plum Island (Newbury, Massachusetts)
-**At gate 3: brief (gate 1) and greybox (gate 2) approved, drawn and playtested in session 5c (hidden, `#/plum`). Replaces Low Tide (Cape Cod):** same beach and tide, moved to a real place. **Brief: [levels/plum.md](levels/plum.md).** The brief corrects this sketch's geography (the lifeguards, the erosion, the refuge gate, the lighthouse's side of the point); where they differ, the brief wins.
+**Shipped (session 5d), after the Manor in the picker. v2 (session 14): the tide, louder. Replaces Low Tide (Cape Cod):** same beach and tide, moved to a real place. **Brief: [levels/plum.md](levels/plum.md).** The brief corrects this sketch's geography (the lifeguards, the erosion, the refuge gate, the lighthouse's side of the point); where they differ, the brief wins.
 - **Spin:** a barrier island through a summer day on a loop, the Great Marsh behind it and the Atlantic in front, joined to the mainland by one low road. The tide runs on the day's clock: going out, it drains the marsh creeks and the flats and uncovers finds you can only reach at low water; coming back, it floods them again. At a king tide it takes the road too (it really does).
 - **Heroes and jokes:** the Pink House's memorial sign in the marsh (the house was demolished in 2025; see the brief); the turnpike flooding while someone tries it anyway; beach houses that met the ocean; the plover closure (miles of beach for six birds); greenhead fly traps (the flies are winning); the lighthouse at the north end, seals on the jetty; the refuge boardwalk and its observation tower full of birders; the little airfield on the marsh.
 - **Alive:** the tide itself, all day; the beach filling by noon and emptying at sunset; boats in the river mouth, kayaks on the Sound.
@@ -73,6 +89,7 @@ The owner's direction: many places should be real, recognizable places, because 
 
 ### All You Can Eat (cruise ship)
 **Shipped (session 7b), after Moving Day in the picker. Brief: [levels/cruise.md](levels/cruise.md) (session 7, built alongside Boston).** The brief settles the story (patient zero is a stowaway iguana), the four decks and the port; where it differs from this sketch, the brief wins.
+**v2 (session 12): not a whodunit any more.** The mystery is the Manor's alone (the owner, session 8). The ship becomes a chase: the iguana is loose, each sighting through the day unlocks the next, the case file becomes a sightings log and the suspects witnesses. The art, decks and cast stay.
 - **Spin:** a cruise ship cut open from bow to stern on day four. Something at the buffet has started spreading deck to deck. Find patient zero (the green one) before the ship docks at a port nobody gets off at.
 - **Alive:** waterslide, pool, a lifeboat drill nobody is listening to, a limbo contest, a man being carried back to his cabin at 11 a.m.
 - **Adult humor:** the adults-only deck, a divorce playing out in cabin 7, the casino open at 9 a.m., and below the waterline, the crew having a better party.
@@ -82,6 +99,7 @@ The owner's direction: many places should be real, recognizable places, because 
 
 ### Moving Day (South Boston)
 **Shipped (session 7b), after Plum Island in the picker. Brief: [levels/southie.md](levels/southie.md).** The real-map check moved it from a lettered street to Farragut Road, where the row faces Marine Park, Pleasure Bay and Castle Island across open ground (decision 3); where the sketch and the brief differ, the brief wins.
+**v2 (session 13): before and after.** Some finds are what changed between moving out and moving in.
 **Boston is three places now,** each one real neighborhood with one event, instead of a panorama of landmarks (which reads as a postcard, with nothing to explore). Replaces Wicked Pissah.
 - **Spin:** September 1st, when most leases in the city turn over at once. A lettered street of cut-open triple-deckers where everyone moves on the same day: the old neighbors out, the new condo people in, and everyone's stuff in the wrong apartment.
 - **Heroes and jokes:** a moving truck on a street built for horses, cars parked on both sides (Storrow Drive isn't in Southie, so the famous stuck truck can't be the hero); a couch going up to the third floor on one rope (pivot); the new glass condo moving in a Peloton and a dog stroller; curb furniture, help yourself; Dorchester Heights watching over it; Castle Island and the hot dog line at the end of the causeway; the Seaport's towers a little closer every year; a plane landing at Logan, rattling every window.

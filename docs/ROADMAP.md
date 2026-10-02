@@ -6,7 +6,8 @@ Where Squares is going, and the order to build it in. Each session is one pull r
 - The level backlog: [LEVELS.md](LEVELS.md)
 - Level briefs: [levels/](levels/)
 - Reference images and what they teach: [INSPIRATION.md](INSPIRATION.md)
-- The game's name and the goose's (research, not yet decided): [NAMING.md](NAMING.md)
+- The strategy (session 8): [STRATEGY.md](STRATEGY.md)
+- The game's name and the goose's (research): [NAMING.md](NAMING.md). Decided in session 8: **Goose at Large**, and the goose is **Geraldine**.
 
 ## The bar
 
@@ -14,7 +15,7 @@ The goal is a game good enough for an Awwwards Site of the Day. Awwwards scores 
 
 - **Design:** every place looks like a different printed plate from the same studio, recognizable from its thumbnail alone.
 - **Usability:** a first-time visitor on a phone finds their first goose inside 60 seconds, without reading anything.
-- **Creativity:** every place is a new story to investigate, and the best have a mechanic that only makes sense there (lightning that shows the past).
+- **Creativity:** every place is a new story to investigate, with a verb that only makes sense there (lightning that shows the past, the tide, a chase). Since session 8, every place has one.
 - **Content:** every corner has a joke. Places reference each other.
 
 And for a game that adds levels often: **each level should be cheaper to make than the last**, at the same quality.
@@ -27,7 +28,7 @@ And for a game that adds levels often: **each level should be cheaper to make th
 - **Places:** The Block Party (the Block, connected: sixteen rooms on streets through a day; it replaced the flat Block under its id, `block`), Gooseworth Manor (a whodunit at night, three floors), Plum Island (a barrier island on a tide, the first place with ground and water), Moving Day (South Boston: houses you step into, the first Boston place) and All-You-Can-Eat (a whodunit on a cruise ship's four decks). The Walk-Up is retired from the picker (too close to the Block) but kept as the test bed for stacked floors; the Crossroads (hidden, `#/crossroads`) is the test bed for areas of any shape.
 - **Process:** the pipeline ([PROCESS.md](PROCESS.md)) and its tools: `npm run new-level`, the greybox kit, style sheets, `npm run qa` with a contact sheet, a scored blind playtest, and prompts for the area artists, the art director and the playtester ([prompts/](prompts/)).
 - **Formats:** a place can be a whodunit (evidence and curiosities, a case file, accusations, a reveal). Saves are v3.
-- **Next:** a strategy session before any new level (the prompt: [prompts/strategy.md](prompts/strategy.md)): how the game grows, difficulty, variety, the mystery format, a v2 round, and the name (building on [NAMING.md](NAMING.md)).
+- **Next:** v2, making the five great ([STRATEGY.md](STRATEGY.md)): no new places for a round. Finding gets a real difficulty curve, hints are earned, every place gets its own verb, the ship becomes a chase, the game becomes Goose at Large, and the first minute gets fast and smooth. Then players (a daily goose), then new places again. First up: session 9, the difficulty rules.
 
 ## Engine work
 
@@ -42,7 +43,7 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 - [x] **E11. Buildings you step into.** *Session 6, on Moving Day: a zone can have an outside (`R.shell`: a house's front, porches and roof), shown on the overview and faded away when you step in, with whatever stands outside it (a porch) drawn after it; only the floors above you in your own building lift (`cutaway.above: 'column'`), and everything in front is cut at every height; taps on a closed building land on the floor whose front you tapped (the nearest along the line of sight); finds inside can't be tapped from outside (`out` for a porch's); a building stands on a land without printing it (`land: false`); a floor is always drawn after the one it stands on. Next used by the cruise ship's hull, the Catminium, Departures and Newburyport.*
 - **E6. Casts and scale.** Animals and other species alongside people; a character scale per place. *The Catminium, the zoo, the Mara, Egypt.*
 - **E7. Camera shapes.** Tall and wide places that scroll; framing for areas of any shape. *Started in 4b: a long area is framed a room's worth at a time, around where you tap it (`zoneBox(zone, near)` in `world.js`; QA frames it around each find).*
-- **E8. Mechanic hooks.** A place can add its own rules: run every frame, draw over the scene, decide whether a find is visible right now, take input.
+- **E8. Mechanic hooks.** A place can add its own rules: run every frame, draw over the scene, decide whether a find is visible right now, take input. *Starts in session 9, sized down: things that answer a tap (open, move, say a line), finds inside them (poke finds), and decoys (a tap target that isn't a find).*
 - **E9. Crowds and performance.** Hundreds of people at 60 fps on a mid-range phone: bake the still ones, animate a few, less detail far away. *Started in 5d: sharpness steps 3x, 2x, 1.5x while frames stay slow, and back up when they're quick.*
 - **E10. Small fixes.** `route()` ignores a pause on the last waypoint of a there-and-back route (fixing it shifts timing in some Block rooms). `paintText` only paints on the two back walls. The goose can't wear hats or carry things. People on a map's clock are only drawn inside an area (someone walking up a drive beyond the last area would vanish; since E5, cover the ground with areas of any shape). A find can only belong to one area, so the goose can't roam the house (the Manor wants that; E3). QA can't tell whether a find is hidden behind something: the contact sheet rings every find for eyes. (Moving Day found the common case: a small find standing on a big single-piece counter or table sorts before it, by its far corner, and is painted over; four finds were invisible until given a `depth`. A QA check could draw each find's spot with and without the find and fail one that changes nothing.) Fix whenever a session touches that code.
 
@@ -53,6 +54,8 @@ What upcoming levels need that the engine can't do yet. The level that first nee
 - **G3. Modes.** Explore (today), and later an optional daily goose to find. No timers or scores on the main places (see Decisions).
 - **G4. Onboarding.** First visit: the game shows you one goose, you tap it, you're playing. No text walls.
 - **G5. Accessibility.** Find list usable by keyboard and screen reader, a "describe this room" text for each area, reduced motion everywhere.
+- **G6. Difficulty.** Three kinds of find in every area (spot, poke, hard), decoys for the goose, labels that stop giving the location for the harder two, hints earned and given in two steps, a place finished at most rather than all, hints counted in the save (v4). The playtest scores a spread, not a hit rate. *Session 9 (the rules), then each place's retune. STRATEGY.md, "Difficulty".*
+- **G7. The trail.** A format beside the whodunit: a chain of sightings, each find unlocking the next, the last one the ending. *All-You-Can-Eat's chase first; the goose's trail between places (G1) reuses it.*
 
 ## Polish (the Awwwards layer)
 
@@ -179,30 +182,52 @@ Each is one PR. Order can change; dependencies can't.
   - **Checks:** `npm run qa -- cruise` passes but for cloud speed (the Pool read 66; back to back with the code before, it's unchanged; Adults Only is about 7 ms slower, under budget); `npm run smoke` passes. On the owner's laptop: `npm run qa -- cruise` and `node tools/fps.mjs cruise`.
   - **Gate 3, both levels:** the owner took every recommendation. Moving Day and All-You-Can-Eat ship to the picker (after Plum Island, in that order); the ship's horn is its own sound now (`shiphorn`), about 6 dB under a honk. The smoke test and quick QA pass with both in the picker.
   - **The tools in the cloud:** this box's Chromium is a different build from the pinned Playwright's; a folder of links named for the pinned build (`PLAYWRIGHT_BROWSERS_PATH`) runs them. Nothing in the repo changed for it.
-- [ ] **8. Strategy.** How the game grows from five places: difficulty (everything is easy to find), variety (every level is the same loop), the mystery format back to the Manor alone, making the five great and a v2 round, and the name (NAMING.md recommends Goose at Large). No code; a strategy, a rewritten roadmap and the next session. Prompt: [prompts/strategy.md](prompts/strategy.md). *(The owner, Oct 2026.)*
+- [x] **8. Strategy.** How the game grows from five places. No code: [STRATEGY.md](STRATEGY.md), this plan rewritten, LEVELS.md updated. Prompt: [prompts/strategy.md](prompts/strategy.md). *(The owner, Oct 2026.)*
+  - **Played and measured:** every place on a phone and a desktop, the find list, hints and taps read in the code, every playtest in the briefs counted. Finding is easy for five reasons: the goose is the only white goose shape in its room, usually in the open; labels say where ("A cat on the dryers"); hints are free, endless and ring the answer; a tap hits anything within 44px; and the playtest only ever fixes misses (about 36 fixes made finds easier, 2 harder; every other harder change was the owner's).
+  - **Researched:** Hidden Folks, Hidden Through Time, Golden Idol and Obra Dinn, Wordle and Neal.fun, and what Awwwards scores and rewards (STRATEGY.md, "Research").
+  - **The owner's calls** are in Decisions below: the goals in order, web first, no new places for a round, the mystery the Manor's alone with the ship a chase, earned hints, Goose at Large soon.
 - ~~**The Block, But Wrong.**~~ Dropped: it doesn't appeal to the owner.
-- [ ] **9. La Dolce Riviera.** The first outdoor showpiece.
-- [ ] **10. Casts (E6) and the Catminium.** Cats own the building; replaces the Walk-Up for good.
-- [ ] **11. The campaign and onboarding (G1, G2, G4).**
-- [ ] **12. Polish and performance (P1 to P4, E9).**
-- Then a level every one or two sessions from [LEVELS.md](LEVELS.md), and the case study (P5) once there are five or six.
+
+### Phase 1, v2: make the five great
+
+No new places. One PR per session, sized to finish; each retune ends with the owner playing that place on a phone. STRATEGY.md has the why for each.
+
+- [ ] **9. Difficulty: the rules (G6, the start of E8).** Three kinds of find on `R.find` (spot, poke, hard); poke finds inside things that open or move on a tap; decoys that answer back ("That's a swan. Rude."); hints earned (3 to start, one more every few finds) and given in two steps (a sentence, then a smaller offset ring); a place finished at the goose and most of its things, every last one a medal later; hints counted in the save (v4, migrated). The top bar and find list redesigned around hints left, which takes in three of 3d's leftovers (the counter, the two round buttons, the 100px header). The playtest scores a spread (spot rated 1 to 3, poke 2 to 4, hard 3 to 5; off its band gets fixed either way) from a phone-sized view at the area's framing; QA checks every area's mix and every place's decoys; PROCESS.md's quality bar rewritten. Proven on two Block Party rooms (the Laundromat and one more). Smoke checks for a poke, a decoy, an earned hint and finishing at most.
+- [ ] **10. The Block Party retune: poke.** Every room and street gets its spread and a goose decoy, and the place teaches the game's first verb in its first minute. Pinched-in tour, the playtest on the new bands, the owner plays it.
+- [ ] **11. The rename: Goose at Large.** Before it, the owner registers the domains, runs the trademark search and claims the handles (NAMING.md, "Next steps for you"); if those aren't done, 12 goes first. The title, meta, share image, manifest and config; the saves' keys moved so nobody loses a goose (a version bump); the repo, package, README, CLAUDE.md and docs; Geraldine by name in the copy; the new domain on Vercel with the old address redirecting.
+- [ ] **12. All-You-Can-Eat becomes a chase (G7).** The trail format; the iguana's sightings through the day, each unlocking the next, the last one the ending; the case file becomes a sightings log, the suspects witnesses, the green jokes decoys. Its spread of finds, the deferred density pass (the Cabins' back corridor, the Crew Bar before 3pm), frames a second on the owner's laptop.
+- [ ] **13. Moving Day retune: before and after.** Some finds are what changed between moving out and moving in; its spread and decoys.
+- [ ] **14. Plum Island retune: the tide, louder.** Finds marked by tide on the list, the dial front and center; its spread and decoys.
+- [ ] **15. The Manor's pass: deduce.** Its spread (all 17 clues already sit among lookalikes); the overview shows which rooms still hold evidence; the staircase instead of the lift, and the monocle reveal without the parcel (manor.md); the night backdrop cached for older laptops.
+- [ ] **16. The first minute, and speed (P1, P3, E9).** The picker card zooms into its place in one motion; the title in under a second on 4G; places load while you're on the picker (the ship is the biggest, 194 KB zipped); double-tap to zoom; the crosshairs dropped on phones; a 1.25x sharpness step for the slowest machines; the Pool's frame time. Two QA checks for the tour's worst repeats: a find painted over by its furniture, a person inside a solid thing.
+- [ ] **17. Sound (P2).** A sound bed per place, mixed under the honk.
+- [ ] **18. Awwwards, and v2 ships.** The Developer Award's list (accessibility, G5; markup and metadata; a share image per place), the case study page for ryankm.com (P5), and the submission.
+
+### Phase 2, players
+
+- [ ] **19. The daily goose (G3).** One goose a day in one of the places, the same for everyone, from hand-placed daily spots; a share line that doesn't spoil it ("Goose at Large #12. Found her at the Town Beach in 1:42, no hints."). The no-timers rule stays for the main places.
+- [ ] **20. Medals and the goose's trail (G2, G1).** All geese, all things, no hints; each place ends with where Geraldine went next (the trail format, place to place). Check the first visit against G4.
+- [ ] **21. Installable and offline (P4).** Then the press push.
+
+### Phase 3, grow
+
+New places again, verb first: a pitch isn't picked until it has a verb no other place has (LEVELS.md). The Catminium (E6, follow a cat; it retires the Walk-Up) leads, and La Dolce Riviera if it finds a verb. Revenue (an app, paid places) once there are players to ask. Later, a maker mode: hide your own goose in a room, Hidden Through Time style.
 
 ## Decisions
 
 Open, for the owner:
 
-- **Lag on older laptops, what's next** (the owner's call; sharpness now steps down to 1.5x, 5d): cache the Manor's night backdrop (drawn once, only the rain and lightning live), which only helps the Manor; or a 1.25x step below 1.5x for the slowest machines. What's left on the Block Party and Plum Island is mostly the graphics chip laying the cut sheet down and stamping the other areas' pictures.
-- **The review's leftovers** (3d found these and left them for the owner's call):
-  - The Block's registration crosshairs, top and bottom center on a phone, look like a recenter button (the blind check read them that way). Keep them as print marks, make them fainter on phones, or drop them there.
-  - The things counter ("0/48", a circle) means nothing until your first find; there isn't room on a 390px phone to add the words "geese" and "things". It teaches itself once you find something ("Found: a lucky coin (1/48)").
-  - The find list's two round buttons (a chevron to tuck it away, three lines for the whole list) are hard to read at a glance, and its header takes about 100px before the first chip.
-  - No double-tap to zoom, which people try on maps.
-  - The overview of a whodunit doesn't show which rooms still hold evidence (the Block's honks do that for geese).
-
-- **Casts beyond people:** the Catminium and the zoo need animals as characters. Assumed yes.
-- **Delete the Walk-Up?** It's hidden now. Delete it once the Catminium ships, or keep it hidden as a test bed.
+Nothing. Session 8 folded every open item into the plan or closed it (STRATEGY.md, "The leftovers"): older laptops into 15 and 16; the crosshairs (dropped on phones), double-tap to zoom into 16; the things counter and the find list's buttons and header into 9; the whodunit's overview into 15; casts beyond people stay with the Catminium and the zoo; the Walk-Up stays hidden as a test bed until the Catminium ships.
 
 Made:
+
+- **The goals, in order:** an Awwwards Site of the Day, then players, then press, then revenue. Web first; an app only if players show up. *(8, the owner)*
+- **No new places for a round: v2 makes the five great** (difficulty, a verb per place, the rename, the first minute, sound), ending in the Awwwards submission; then a daily goose; then new places, each picked for a verb no other place has. Rejected: a place every session (it's why every place is the same loop), the mysteries as the main event, the app stores now. *(8, the owner and the lead, STRATEGY.md)*
+- **Finding gets harder, never a trick:** spot, poke and hard finds in every area, decoys for the goose, labels that stop giving the location for the harder two, and the playtest scores a spread instead of fixing every miss. *(8, the lead; the owner can overturn the labels)*
+- **Hints are earned, not free** (3 to start, more as you find things, a sentence before a ring). *(8, the owner)*
+- **The whodunit is the Manor's alone.** All-You-Can-Eat becomes a chase: the iguana's trail deck to deck, a new format (G7) that the goose's trail between places reuses. The lead argued against a plain goose place: losing the mystery without a new verb would make the game more same-y. *(8, the owner)*
+- **The game is Goose at Large, and the goose is Geraldine,** renamed soon (session 11), before share images, the daily or the Awwwards submission carry the old name. The owner registers the domains first. *(8, the owner; NAMING.md)*
+- **The owner works a few sessions a day, in small steps.** The limit is the owner's review time, so each retune ends with the owner playing one place on a phone. *(8, the owner)*
 
 - **The Block, But Wrong is dropped,** and a strategy session comes before any new level: the owner worries the loop is repetitive, everything is too easy to find, the mystery should be the Manor's alone, and the name may not fit. *(7b, the owner)*
 - **Moving Day and All-You-Can-Eat ship** (gate 3, every recommendation taken): in the picker after Plum Island, Moving Day then the ship; the ship gets its own horn coming into port; the density pass waits for the owner to find a stretch empty. *(7b, the owner, southie.md 52 to 56, cruise.md 41 to 47)*
