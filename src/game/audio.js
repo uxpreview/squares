@@ -197,6 +197,43 @@ const SOUNDS = {
     src.start(t0);
     src.stop(t0 + 0.4);
   },
+  // Something answering a tap (a door, a drawer, a heap of laundry): a
+  // round little bloop that rises.
+  pop(a, t0) {
+    const o = a.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(320, t0);
+    o.frequency.exponentialRampToValueAtTime(760, t0 + 0.09);
+    const g = envelope(a, t0, 0.12, 0.006, 0.14);
+    o.connect(g);
+    g.connect(a.destination);
+    o.start(t0);
+    o.stop(t0 + 0.18);
+  },
+  // Not the goose (a decoy), or no hint to give: two falling kazoo notes.
+  nope(a, t0) {
+    for (const [dt, hz] of [[0, 330], [0.13, 247]]) {
+      const o = a.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(hz, t0 + dt);
+      o.frequency.exponentialRampToValueAtTime(hz * 0.94, t0 + dt + 0.11);
+      const f = a.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 900;
+      f.Q.value = 3;
+      const g = envelope(a, t0 + dt, 0.07, 0.01, 0.1);
+      o.connect(f);
+      f.connect(g);
+      g.connect(a.destination);
+      o.start(t0 + dt);
+      o.stop(t0 + dt + 0.14);
+    }
+  },
+  // A hint: a little two-note chime, up.
+  hint(a, t0) {
+    tone(a, t0, 880, 'triangle', 0.06, 0.005, 0.25);
+    tone(a, t0 + 0.08, 1320, 'triangle', 0.05, 0.005, 0.35);
+  },
   // A soft wooden tick for buttons.
   tick(a, t0) {
     const o = a.createOscillator();

@@ -1,6 +1,6 @@
 # Squares: brief for drawing a zone
 
-Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on the Block Party, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three objects the player taps to circle with a pen.
+Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on the Block Party, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three or four objects the player taps to circle with a pen, some in plain sight, some inside things that open when tapped, one or two hard.
 
 Everything is drawn in code on a canvas. Nothing is static: every zone should be crawling with life.
 
@@ -74,8 +74,15 @@ Some places are streets of houses seen from outside (Moving Day's triple-deckers
 
 ## Finds and the goose
 
-- Exactly three `R.find({ id, label, at: [x, y, z] or (t) => [x, y, z], r })`. The label is how it appears in the checklist, sentence case with an article: "A lost mitten". Objects should be small (0.3 to 1 unit) but clearly visible and not hidden behind anything when the zone is viewed. `at` is the visual center of the object (z included). `r` is the tap radius in units (0.6 to 1.0). Moving finds are great.
-- Exactly one `R.goose(pos, opts)`. `pos` is `[x, y, z]` or a function returning `{ x, y, z, dir, pose, moving }` (poses: walk, stand, honk, swim, sit, peck). Give the goose a funny role in the scene. It should be findable but not the first thing you see.
+- Three or four `R.find({ id, label, kind, at: [x, y, z] or (t) => [x, y, z], r, hint, riddle, inside })`. The label is how it appears in the checklist, sentence case with an article: "A lost mitten". Objects should be small (0.3 to 1 unit). `at` is the visual center of the object (z included). `r` is the tap radius in units (0.6 to 1.0). Moving finds are great.
+- **Kinds of find** (`kind`, see `src/game/rules.js`): every area has a spread, about half `spot`, a third `poke`, one or two `hard`, and the goose is never `spot`. Finding is hard, but never a trick.
+  - `spot`: seen with a good look, never behind anything. Its label can say where ("A cat on the dryers").
+  - `poke`: inside or behind something that opens when tapped (a dryer door, a heap of washing, a drawer, a newspaper). Make the thing itself say "tap me": a sign, a foot sticking out, something breathing. The label doesn't say where ("A teddy bear").
+  - `hard`: tiny, camouflaged, or only there now and then. Give it a `riddle`: one line under its label that says roughly where ("Somebody's luck is all washed up."). The label doesn't say where.
+  - `hint`: a line for the first step of a hint, pointing without giving it away. Every poke and hard find has one; without it the game says where it is, roughly.
+- **Things that answer a tap:** `const door = R.poke({ id, at, r, say, sound, hold })` returns something you draw with `door.k()` (0 shut, 1 open; anything drawn with it must be `anim: true`). A find `inside: door` can only be tapped while it's open. A poke with no find inside is just fun: give it a `say` ("Do NOT open."). Once one thing answers back, players expect everything to, so give each area two or three.
+- **Decoys:** `R.decoy({ id, at, r, say })`, a goose lookalike that answers back ("A swan float. Not a goose."): a swan, a gull, a man in a goose suit, a goose on a poster. Every area wants one, so the goose stops being the only white goose shape in the room.
+- Exactly one `R.goose(pos, { kind, hint, inside })`. `pos` is `[x, y, z]` or a function returning `{ x, y, z, dir, pose, moving, hidden }` (poses: walk, stand, honk, swim, sit, peck; `hidden` while it's tucked out of sight under something). Give the goose a funny role in the scene. It's never the easiest thing in the room.
 
 ## Density and life (this is the important part)
 
@@ -96,6 +103,6 @@ node tools/shoot.mjs <map>/<zoneId> <out.png> --mobile                     # pho
 node tools/shoot.mjs <map> <out.png>                                        # the whole place
 ```
 
-For example `node tools/shoot.mjs block/pool out.png` or `node tools/shoot.mjs tower/lobby out.png`. The script prints console errors. There must be none from your zone (a Google Fonts error is expected in a sandbox without internet and is fine). Check several `--t` values so moving things look right at different moments. Also make sure the three finds and the goose are visible and sensible.
+For example `node tools/shoot.mjs block/pool out.png` or `node tools/shoot.mjs tower/lobby out.png`. The script prints console errors. There must be none from your zone (a Google Fonts error is expected in a sandbox without internet and is fine). Check several `--t` values so moving things look right at different moments. Also make sure the finds and the goose are where they should be: spot finds visible, poke finds inside what opens (`--eval` can open them: `z.pokes.forEach((p) => p.set(true))`).
 
 When done, report: the zone names and blurbs, the finds, where the goose is, and anything in shared code you had to work around.

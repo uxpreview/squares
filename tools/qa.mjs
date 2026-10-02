@@ -148,8 +148,12 @@ try {
             const len = Math.min(best[0], n);
             window = { mid: best[1] >= 0 ? (((best[1] - len / 2 + 0.5) / n) * loop) % loop : null, secs: (total / n) * loop, note: f.note || '' };
           }
-          return { id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null, window };
+          return {
+            id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null, window,
+            kind: f.kind || 'spot', inside: f.inside ? f.inside.id : null, riddle: f.riddle || '', hint: f.hint || '',
+          };
         }),
+        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, say: [].concat(p.say || []) })),
       })),
       // A whodunit's case file (src/game/case.js): its suspects and their lines.
       case: m.case ? {
@@ -225,6 +229,43 @@ try {
     for (const f of z.finds) if (f.r < 0.5 || f.r > 1.3) warn('finds', `${z.name}: "${f.label}" has a tap radius of ${f.r}; 0.6 to 1.0 is usual.`);
   }
   const things = info.zones.reduce((n, z) => n + z.finds.filter((f) => !f.goose).length, 0);
+
+  // ---------- The mix (rules.js): kinds of find, and decoys ----------
+  // An area with any kind set is tuned, and must have the spread: the goose
+  // never a spot find, at least one poke, spot finds at most 60%, one or two
+  // hard. Areas not tuned yet are counted (each place's retune session tunes them).
+  {
+    let mixOk = true, tuned = 0;
+    const where = /\b(on|in|under|behind|inside|beside|by|near) the\b/i;
+    for (const z of info.zones) {
+      const ks = z.finds.map((f) => f.kind);
+      if (ks.every((k) => k === 'spot')) continue;
+      tuned++;
+      const n = (k) => ks.filter((x) => x === k).length;
+      const goose = z.finds.find((f) => f.goose);
+      if (goose && goose.kind === 'spot') { mixOk = false; fail('mix', `${z.name}: the goose is a spot find; it should never be the easiest thing in the room (poke or hard).`); }
+      if (n('poke') < 1) { mixOk = false; fail('mix', `${z.name}: no poke finds; every area needs at least one thing hidden in something that opens.`); }
+      if (n('spot') < 1) { mixOk = false; fail('mix', `${z.name}: no spot finds; every area needs a few you can see with a good look.`); }
+      if (n('spot') > Math.ceil(ks.length * 0.6)) { mixOk = false; fail('mix', `${z.name}: ${n('spot')} of ${ks.length} finds are spot finds; about half is the aim.`); }
+      if (n('hard') > 2) warn('mix', `${z.name}: ${n('hard')} hard finds; one or two is the aim.`);
+      if (n('hard') < 1 && ks.length >= 4) warn('mix', `${z.name}: no hard find.`);
+      for (const f of z.finds) {
+        if (f.inside == null && f.kind === 'poke' && !f.goose) warn('mix', `${z.name}: "${f.label}" is a poke find but isn't inside anything (R.find's inside).`);
+        if (f.kind !== 'spot' && !f.goose && where.test(f.label)) warn('mix', `${z.name}: "${f.label}" says where it is; a ${f.kind} find's label shouldn't (a hint or riddle can).`);
+        if (f.kind === 'hard' && !f.goose && !f.riddle) warn('mix', `${z.name}: "${f.label}" is hard but has no riddle (a line that says roughly where).`);
+        if (f.kind !== 'spot' && !f.hint) warn('mix', `${z.name}: "${f.goose ? 'The goose' : f.label}" has no hint line of its own, so its hint says where it is, roughly.`);
+        if (f.riddle && f.riddle.length > 60) warn('mix', `${z.name}: the riddle for "${f.label}" is ${f.riddle.length} characters; under 60 fits the list.`);
+      }
+      for (const p of z.pokes) for (const line of p.say) if (line.length > 40) warn('mix', `${z.name}: "${line}" (${p.id}) is long for a bubble; under 40.`);
+    }
+    const decoys = info.zones.reduce((n, z) => n + z.pokes.filter((p) => p.decoy).length, 0);
+    const pokes = info.zones.reduce((n, z) => n + z.pokes.filter((p) => !p.decoy).length, 0);
+    if (!decoys) warn('mix', 'The place has no decoys (R.decoy): nothing that looks like the goose but isn\'t.');
+    for (const z of info.zones) for (const p of z.pokes) if (p.decoy && !p.say.length) { mixOk = false; fail('mix', `${z.name}: the decoy "${p.id}" says nothing; a decoy answers back.`); }
+    if (tuned < info.zones.length) warn('mix', `${info.zones.length - tuned} of ${info.zones.length} areas have no kinds of find yet (all spot); their place's retune gives them their spread.`);
+    if (mixOk) pass('mix', `${tuned} of ${info.zones.length} areas tuned, ${pokes} things that answer a tap, ${decoys} ${decoys === 1 ? 'decoy' : 'decoys'}.`);
+  }
+
   if (findsOk) pass('finds', `${things} things and ${geese} ${geese === 1 ? 'goose' : 'geese'} across ${info.zones.length} areas.`);
   // Finds that are only there some of the time: there long enough to find,
   // and saying when in the list.
@@ -721,6 +762,13 @@ async function frameZone(p, id, near = null) {
 
 // Tap a find where it is right now, the way a finger would.
 async function tapFind(p, zoneId, findId) {
+  // A find inside something (a poke) is tapped with it open, the way a player gets to it.
+  const inside = await p.evaluate(({ zoneId, findId }) => {
+    const s = window.__squares, z = s.world.zones.find((x) => x.id === zoneId), f = z.finds.find((x) => x.id === findId);
+    if (f.inside && !f.inside.open) { f.inside.set(true); return true; }
+    return false;
+  }, { zoneId, findId });
+  if (inside) await p.waitForTimeout(320);
   const [sx, sy] = await p.evaluate(({ zoneId, findId }) => {
     const s = window.__squares, z = s.world.zones.find((x) => x.id === zoneId), f = z.finds.find((x) => x.id === findId);
     const [x, y, h] = typeof f.at === 'function' ? f.at(s.clock.now() + 0.05) : f.at;

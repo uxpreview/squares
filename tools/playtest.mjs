@@ -16,12 +16,22 @@
 //       (<key>-later). The whole place is shot before and after the tap too
 //       (place.png, place-dial.png), for questions about the dial.
 //
+//       Shots are a phone's (390 x 844) at each area's own framing, the way
+//       most players meet it; --desktop takes them on a laptop's screen.
+//       A hard find's riddle goes in labels.json with its label, as the list
+//       shows it.
+//
 //   node tools/playtest.mjs <level> check <guesses.json>
 //       Scores a playtester's guesses. guesses.json:
-//         { "<area id>": { "<label>": [x, y] or null, ... }, ... }
+//         { "<area id>": { "<label>": [x, y] or null, ... }, ...,
+//           "ratings": { "<area id>": { "<label>": 1..5, ... }, ... } }
 //       x, y are pixels in that area's shot (the .png as saved); null means
 //       "couldn't find it". A guess counts if it lands within the find's tap
-//       area. Prints a table and writes score.md next to the shots.
+//       area, or, for a find inside something that opens on a tap (a poke),
+//       on that thing. Each find is scored against its kind's band (the
+//       spread, rules.js): spot 1 to 3, poke 2 to 4, hard 3 to 5, from the
+//       tester's rating (a miss counts as 5). Off its band, either way, gets
+//       fixed. Prints a table and writes score.md next to the shots.
 //
 // The playtester reads labels.json and looks at the shots; it never needs the
 // code. Where the finds really are is kept in answers.json: don't give it to them.
@@ -34,7 +44,10 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const [level, mode, guessFile] = process.argv.slice(2);
 const dir = path.join(root, 'qa-out', level || '', 'playtest');
 const SCALE = 2; // shots are taken at 2x: pixels in the .png are half a CSS pixel
-const VIEW = { width: 1400, height: 1000 };
+const DESKTOP = process.argv.includes('--desktop');
+const VIEW = DESKTOP ? { width: 1400, height: 1000 } : { width: 390, height: 844 };
+// How hard each kind of find should feel, 1 (jumped out) to 5 (never found).
+const BANDS = { spot: [1, 3], poke: [2, 4], hard: [3, 5] };
 
 if (!level || !['prepare', 'check'].includes(mode)) {
   console.log('Usage: node tools/playtest.mjs <level> prepare\n       node tools/playtest.mjs <level> check <guesses.json>');
@@ -47,7 +60,7 @@ if (mode === 'prepare') {
   const server = await createServer({ root, logLevel: 'error', server: { port: 0, hmr: false } });
   await server.listen();
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: SCALE });
+  const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: SCALE, ...(DESKTOP ? {} : { isMobile: true, hasTouch: true }) });
   // The list tucked away, as a player hunting would have it.
   await ctx.addInitScript(() => { try { localStorage.clear(); localStorage.setItem('squares.tray.v1', 'hidden'); } catch {} });
   const page = await ctx.newPage();
@@ -107,7 +120,14 @@ if (mode === 'prepare') {
       return zone.finds.filter((f) => !skip.includes(f.id) && (!only || only.includes(f.id))).map((f) => {
         const [x, y, h] = typeof f.at === 'function' ? f.at(t) : f.at;
         const [sx, sy] = s.camera.toScreen(zone.anchor[0] + x - y, zone.anchor[1] - zone.lift + (x + y) / 2 - h * 1.12);
-        return { id: f.id, label: f.goose ? 'The goose' : f.label, note: f.note || null, here: !f.when || !!f.when(t), dial: dial && !dial.hidden ? dial.innerText.replace(/\s+/g, ' ').trim() : null, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight && !under(sx, sy) };
+        // A find inside something: where that is, and its tap area (a tap there opens it).
+        let poke = null;
+        if (f.inside) {
+          const [px, py, ph] = typeof f.inside.at === 'function' ? f.inside.at(t) : f.inside.at;
+          const [qx, qy] = s.camera.toScreen(zone.anchor[0] + px - py, zone.anchor[1] - zone.lift + (px + py) / 2 - ph * 1.12);
+          poke = { sx: qx, sy: qy, r: Math.max(f.inside.r * s.cam.z, 22) };
+        }
+        return { id: f.id, label: f.goose ? 'The goose' : f.label, kind: f.kind || 'spot', riddle: f.riddle || null, poke, note: f.note || null, here: !f.when || !!f.when(t), dial: dial && !dial.hidden ? dial.innerText.replace(/\s+/g, ' ').trim() : null, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight && !under(sx, sy) };
       });
     }, { id: z.id, skip, only });
     await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
@@ -115,9 +135,10 @@ if (mode === 'prepare') {
     await page.evaluate(() => window.__squares.clock.set(window.__squares.clock.now()));
     const mine = near ? found.filter((f) => f.seen) : found;
     const notes = Object.fromEntries(mine.filter((f) => f.note).map((f) => [f.label, f.note]));
-    labels[key] = { name: z.name, shot: `${key}.png`, find: mine.map((f) => f.label), ...(Object.keys(notes).length ? { when: notes } : {}), ...(found[0] && found[0].dial ? { dial: found[0].dial } : {}), ...extra };
+    const riddles = Object.fromEntries(mine.filter((f) => f.riddle).map((f) => [f.label, f.riddle]));
+    labels[key] = { name: z.name, shot: `${key}.png`, find: mine.map((f) => f.label), ...(Object.keys(riddles).length ? { riddle: riddles } : {}), ...(Object.keys(notes).length ? { when: notes } : {}), ...(found[0] && found[0].dial ? { dial: found[0].dial } : {}), ...extra };
     // Only what's there right now can be found in this shot.
-    answers[key] = mine.filter((f) => f.here).map(({ id, seen, here, note, dial, ...f }) => f);
+    answers[key] = mine.filter((f) => f.here).map(({ id, seen, here, note, dial, riddle, ...f }) => f);
     return mine.map((f) => f.id);
   };
   const keys = {}; // each area's shot keys, and the finds framed in each
@@ -261,23 +282,37 @@ if (mode === 'prepare') {
 // check
 const answers = JSON.parse(fs.readFileSync(path.join(dir, 'answers.json'), 'utf8'));
 const guesses = JSON.parse(fs.readFileSync(path.resolve(guessFile), 'utf8'));
+const ratings = guesses.ratings || {};
 const rows = [];
-let hits = 0, total = 0;
+let hits = 0, total = 0, off = 0;
 for (const [id, finds] of Object.entries(answers)) {
   for (const f of finds) {
     total++;
     const g = guesses[id] && guesses[id][f.label];
-    let result = 'not found';
+    let result = 'not found', hit = false;
     if (Array.isArray(g)) {
-      const d = Math.hypot(g[0] / SCALE - f.sx, g[1] / SCALE - f.sy);
-      result = d <= f.r ? 'found' : `missed by ${Math.round(d - f.r)}px`;
-      if (d <= f.r) hits++;
+      const gx = g[0] / SCALE, gy = g[1] / SCALE;
+      const d = Math.hypot(gx - f.sx, gy - f.sy);
+      // (Tapping the thing it's inside opens it: that's finding it.)
+      const dp = f.poke ? Math.hypot(gx - f.poke.sx, gy - f.poke.sy) : Infinity;
+      hit = d <= f.r || (f.poke && dp <= f.poke.r);
+      result = hit ? (d <= f.r ? 'found' : 'found (by opening it)') : `missed by ${Math.round(Math.min(d - f.r, f.poke ? dp - f.poke.r : Infinity))}px`;
+      if (hit) hits++;
     }
-    rows.push([id, f.label, result]);
+    // Its rating against its kind's band (a miss is a 5).
+    const kind = f.kind || 'spot', band = BANDS[kind] || BANDS.spot;
+    const rated = hit ? (ratings[id] && ratings[id][f.label]) : 5;
+    let fit = '';
+    if (rated == null) fit = 'no rating';
+    else if (rated < band[0]) { fit = 'too easy'; off++; }
+    else if (rated > band[1]) { fit = 'too hard'; off++; }
+    else fit = 'on its band';
+    rows.push([id, f.label, kind, result, rated ?? '', fit]);
   }
 }
-const md = [`# Playtest score: ${level}`, '', `${hits} of ${total} found.`, '', '| Area | Find | Result |', '| --- | --- | --- |',
-  ...rows.map((r) => `| ${r[0]} | ${r[1]} | ${r[2]} |`), ''].join('\n');
+const md = [`# Playtest score: ${level}`, '', `${hits} of ${total} found. ${off} off their band (spot 1 to 3, poke 2 to 4, hard 3 to 5): fix those, either way.`, '',
+  '| Area | Find | Kind | Result | Rating | Band |', '| --- | --- | --- | --- | --- | --- |',
+  ...rows.map((r) => `| ${r.join(' | ')} |`), ''].join('\n');
 fs.writeFileSync(path.join(dir, 'score.md'), md);
-for (const r of rows) console.log(`${r[2] === 'found' ? 'FOUND ' : 'MISSED'}  ${r[0].padEnd(16)} ${r[1]}  ${r[2] === 'found' ? '' : '(' + r[2] + ')'}`);
-console.log(`\n${hits} of ${total} found. Written to ${path.relative(root, path.join(dir, 'score.md'))}`);
+for (const r of rows) console.log(`${r[3].startsWith('found') ? 'FOUND ' : 'MISSED'}  ${r[0].padEnd(16)} ${r[1].padEnd(30)} ${r[2].padEnd(5)} ${String(r[4]).padStart(2)}  ${r[5]}${r[3].startsWith('found') ? '' : '  (' + r[3] + ')'}`);
+console.log(`\n${hits} of ${total} found, ${off} off their band. Written to ${path.relative(root, path.join(dir, 'score.md'))}`);

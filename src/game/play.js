@@ -16,6 +16,12 @@
 // when you accuse the right suspect: a flash of lightning, and the camera cuts
 // to the reveal.
 //
+// Finding is the game's rules (rules.js): finds come in kinds (spot, poke,
+// hard); some sit inside things that open on a tap (a poke), and some
+// things only look like the goose (a decoy, which answers back). Hints are
+// earned and go in two steps, a line and then a ring. A place is finished
+// at every goose and most of its things.
+//
 // A place whose clock matters (the tide at Plum Island, where some finds only
 // show at low or high water) has a dial (map.dial): it says what the clock
 // says now, and a tap skips ahead to the next turn, the scene running fast
@@ -28,6 +34,7 @@ import { createTray } from '../ui/tray.js';
 import { createCasefile } from '../ui/casefile.js';
 import { play as sound, bed, wake } from './audio.js';
 import { caseState, accuse as accuseIn } from './case.js';
+import { whereIs } from './rules.js';
 
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
@@ -40,11 +47,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const ui = {
     hud: $('hud'), place: $('place'), placeName: $('place-name'), placeTag: $('place-tagline'),
     invite: $('invite'), inviteTitle: $('invite-title'), inviteText: $('invite-text'), ring: $('invite-ring'), safe: $('safe'),
-    toast: $('toast'), geese: $('tally-geese'), things: $('tally-things'),
+    toast: $('toast'), geese: $('tally-geese'), hintsLeft: $('tally-hints'), hintsPill: $('tally-hints-pill'),
     roombar: $('roombar'), prev: $('prev'), next: $('next'),
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
     places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
-    thingsPill: $('tally-things-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
+    geesePill: $('tally-geese-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
     dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'),
   };
 
@@ -63,12 +70,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const hints = []; // pulsing "look around here" rings
   const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
   const seenStory = new Set();
-  const debug = { finds: false, calls: 0 }; // QA: ring every find that's still hidden; tests: honks so far
+  const debug = { finds: false, calls: 0, pokes: 0, decoys: 0 }; // QA: ring every find that's still hidden; tests: honks, pokes and decoys so far
   const hasStoreys = () => !!(world && world.map.storeys && world.storeys.length > 1);
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
   // Is a find there to be found at t? (Some only show at low tide.)
   const here = (f, t) => !f.when || f.when(t);
+  // Can it be tapped at t? There, and if it's inside something, that's open.
+  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6);
   const words = () => ({ zone: 'room', invite: '', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
@@ -398,11 +407,24 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     isFound: (zone, f) => isFound(zone, f),
     foundAge: (zone, f) => { const at = foundAt.get(world.id + '/' + keyOf(zone, f)); return at ? performance.now() - at : Infinity; },
     label: (zone, f) => (f.goose ? 'The goose' : f.label),
+    hintStep: (zone, f) => store.hintStep(world.id, keyOf(zone, f)),
+    hintLine: (zone, f) => hintLine(zone, f),
+    hintsLeft: () => store.progress(world).hints,
+    // How the whole place is going, toward finishing it.
+    placeLine: () => {
+      const p = store.progress(world);
+      if (isCase()) return `${p.evidence} of ${world.totals.evidence} pieces of evidence`;
+      if (p.done) return p.all ? 'Every last thing, found.' : `Finished. ${world.totalThings - p.things} things still out there.`;
+      const geese = world.totalGeese - p.geese, things = Math.max(0, world.need - p.things);
+      const g = geese ? `${geese} ${geese === 1 ? 'goose' : 'geese'}` : '', t = things ? `${things} ${things === 1 ? 'thing' : 'things'}` : '';
+      return `${[g, t].filter(Boolean).join(', ')} to finish`;
+    },
     onHint: (zone, f) => {
-      // On a phone the open sheet would cover the nudge; drop it back to the chips.
-      if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
+      // On a phone the open sheet would cover the ring; drop it back to the chips.
+      if (tray.dock() === 'bottom' && tray.state === 'open' && store.hintStep(world.id, keyOf(zone, f)) >= 1) tray.setState('peek');
       showHint(zone, f);
     },
+    onNoPick: () => toast('Pick something on the list for a hint.'),
     onGoRoom: (i) => {
       userAct();
       if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
@@ -442,15 +464,20 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function renderTally() {
     const p = store.progress(world);
     bumpText(ui.geese, `${p.geese}/${world.totalGeese}`);
-    // A whodunit counts its evidence on the Case button instead of things.
-    ui.thingsPill.hidden = isCase();
+    // Hints left to spend; the things count lives on the list, toward finishing.
+    bumpText(ui.hintsLeft, String(p.hints));
+    ui.hintsPill.classList.toggle('is-empty', p.hints < 1);
+    ui.hintsPill.setAttribute('aria-label', `${p.hints} ${p.hints === 1 ? 'hint' : 'hints'} left. Find ${p.toHint} more for another.`);
+    ui.hintsPill.title = `Hints left. Find ${p.toHint} more for another.`;
+    // A whodunit's geese aren't the point: the Case button takes their place.
+    ui.geesePill.hidden = isCase();
     ui.caseBtn.hidden = !isCase();
     if (isCase()) {
       const solved = store.caseOf(world.id).solved;
       bumpText(ui.caseCount, solved ? 'Solved' : `${p.evidence}/${world.totals.evidence}`);
       ui.caseBtn.classList.toggle('is-solved', solved);
       ui.caseBtn.setAttribute('aria-label', solved ? 'The case file. Case closed.' : `The case file: ${p.evidence} of ${world.totals.evidence} pieces of evidence found. Accuse someone.`);
-    } else bumpText(ui.things, `${p.things}/${world.totalThings}`);
+    }
     return p;
   }
 
@@ -483,68 +510,146 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     toastTimer = setTimeout(() => { ui.toast.hidden = true; }, 2600);
   }
 
+  // A hint's first step: a line that points. A find's own (hint in R.find),
+  // or where it is in the room, roughly.
+  function hintLine(zone, f) {
+    if (f.hint) return f.hint;
+    const t = clock();
+    return whereIs(zone, f, findPos(f, t));
+  }
+
+  // A hint, a step at a time: the line first (it costs a hint), then a ring
+  // near the thing (free once you've had the line), as often as you like.
   function showHint(zone, f) {
     const i = zone.index;
+    if (isFound(zone, f)) return;
+    const key = keyOf(zone, f);
+    const had = store.hintStep(world.id, key);
+    const step = store.useHint(world, key);
+    if (!step) {
+      const p = store.progress(world);
+      toast(`No hints left. Find ${p.toHint} more ${p.toHint === 1 ? 'thing' : 'things'} to earn one.`);
+      nudge(ui.hintsPill);
+      sound('nope');
+      return;
+    }
     if (current !== i || mode !== 'zone') enterZone(i);
+    renderTally();
+    tray.pick(zone, f);
+    tray.render(i);
+    sound('hint');
+    if (step === 1 && had === 0) {
+      // The line shows on the list, by the thing it's for.
+      if (tray.state === 'hidden') tray.setState('peek');
+      return;
+    }
     // Not there right now (under the tide): say when, and where to skip.
     if (!here(f, clock())) {
       const d = world.map.dial;
       toast(`${f.label} only shows at ${f.note || 'another time'}.${d ? ` Tap ${d.name || 'the dial'} to skip there.` : ''}`);
       nudge(ui.dial);
     }
-    // A ring near the thing, offset a bit so it's a nudge rather than the answer.
-    const seed = (f.id.length * 31) % 7;
-    hints.push({ zone, f, t0: performance.now(), dx: (seed - 3) * 0.35, dy: ((seed * 3) % 5 - 2) * 0.35 });
+    // A small ring near the thing, off to one side: close, not the answer.
+    const seed = (f.id.length * 31 + f.id.charCodeAt(0)) % 8;
+    const a = (seed / 8) * Math.PI * 2;
+    hints.push({ zone, f, t0: performance.now(), dx: Math.cos(a) * 0.9, dy: Math.sin(a) * 0.9 });
   }
 
   function markFound(zone, f) {
     const before = isCase() ? theCase() : null;
+    const was = store.progress(world);
     if (!store.markFound(world.id, keyOf(zone, f))) return;
     const now = performance.now();
     foundAt.set(world.id + '/' + keyOf(zone, f), now);
     pops.push({ zone, f, t0: now, kind: 'burst' });
+    // Whatever it was inside stays open now.
+    if (f.inside) f.inside.pinned = true;
     try { navigator.vibrate && navigator.vibrate(f.goose ? [18, 40, 18] : 12); } catch {}
     const p = renderTally();
     renderInvite();
     if (mode === 'zone' && current >= 0) tray.render(current);
     const zoneDone = zone.finds.every((x) => isFound(zone, x));
-    if (isCase()) { caseFound(zone, f, before, p, zoneDone); return; }
+    // Every few finds earns a hint.
+    const earned = p.hints > was.hints ? ' A hint earned.' : '';
+    if (earned) nudge(ui.hintsPill);
+    if (isCase()) { caseFound(zone, f, before, p, zoneDone, earned); return; }
+    // Finished: every goose and most of the things (see rules.js).
+    const finished = !was.done && p.met;
+    if (finished) finish();
     const allGeese = p.geese === world.totalGeese;
+    const short = world.need - p.things;
     if (f.goose) {
       pops.push({ zone, f, t0: now, kind: 'honk' });
       sound('honk');
-      if (allGeese) {
-        parade = now;
-        // Let the last honk land, pull back to the whole place, then say so.
-        // Skip it if the player has already left this place.
-        const w = world;
-        const still = () => active && world === w;
-        setTimeout(() => {
-          if (!still()) return;
-          sound('fanfare');
-          // A place with a finale jumps its clock there (the Block Party's
-          // party) and frames where it plays for a while before the card.
-          const fin = w.map.finale;
-          // (A skip on the dial still running gives way to it.)
-          if (fin && fin.at != null) { skipping = null; ui.dial.classList.remove('is-skipping'); setClock(fin.at); }
-          const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
-          if (fz >= 0) {
-            showOverviewUI();
-            camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), clearOfCard(), 0.5)), 2.5);
-          } else toOverview({ dur: 2.5 });
-          setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
-        }, 1800);
-      }
-      toast(allGeese ? words().complete : `HONK. Goose ${p.geese} of ${world.totalGeese}.${zoneDone ? ` ${zone.name}, all found.` : ''}`);
+      toast(finished ? words().complete
+        : allGeese && short > 0 ? `HONK. That's every goose! ${short} more ${short === 1 ? 'thing' : 'things'} to finish.`
+        : `HONK. Goose ${p.geese} of ${world.totalGeese}.${zoneDone ? ` ${zone.name}, all found.` : ''}${earned}`);
     } else {
       sound('pen');
-      toast(zoneDone ? `${zone.name}, all found.` : `Found: ${f.label.toLowerCase()} (${p.things}/${world.totalThings})`);
+      toast(finished ? words().complete
+        : zoneDone ? `${zone.name}, all found.${earned}`
+        : `Found: ${lower(f.label)}.${earned}`);
+    }
+  }
+
+  // The place is finished: let the last find land, pull back to the whole
+  // place (or its finale), then the card. Skipped if the player has left.
+  function finish() {
+    const w = world;
+    store.finish(w.id);
+    parade = performance.now();
+    const still = () => active && world === w;
+    setTimeout(() => {
+      if (!still()) return;
+      sound('fanfare');
+      // A place with a finale jumps its clock there (the Block Party's
+      // party) and frames where it plays for a while before the card.
+      const fin = w.map.finale;
+      // (A skip on the dial still running gives way to it.)
+      if (fin && fin.at != null) { skipping = null; ui.dial.classList.remove('is-skipping'); setClock(fin.at); }
+      const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
+      if (fz >= 0) {
+        showOverviewUI();
+        camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), clearOfCard(), 0.5)), 2.5);
+      } else toOverview({ dur: 2.5 });
+      setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
+    }, 1800);
+  }
+
+  // ---------- Pokes and decoys ----------
+  // Something that answers a tap: it opens (or shuts), and maybe says a line.
+  // A decoy (a swan, say) only answers back.
+  function poke(zone, pk) {
+    const lines = pk.say ? [].concat(pk.say) : [];
+    const line = lines.length ? lines[pk.taps % lines.length] : '';
+    pk.taps++;
+    if (pk.decoy) debug.decoys++;
+    else {
+      debug.pokes++;
+      // A find inside keeps it open once found; otherwise a tap opens it, and
+      // the next shuts it (unless it shuts on its own: hold).
+      if (!pk.pinned) pk.set(pk.hold ? true : !pk.open);
+    }
+    if (pk.sound) sound(pk.sound);
+    try { navigator.vibrate && navigator.vibrate(pk.decoy ? [8, 30, 8] : 8); } catch {}
+    if (line) {
+      // (One bubble per thing at a time.)
+      for (let i = pops.length - 1; i >= 0; i--) if (pops[i].kind === 'say' && pops[i].poke === pk) pops.splice(i, 1);
+      pops.push({ kind: 'say', zone, poke: pk, text: line, t0: performance.now() });
+    }
+  }
+
+  // After loading a place: whatever holds a find already found stays open.
+  function pinPokes() {
+    for (const z of world.zones) {
+      for (const pk of z.pokes) { pk.pinned = false; pk.open = false; pk.since = -1e9; pk.taps = 0; }
+      for (const f of z.finds) if (f.inside && isFound(z, f)) f.inside.pinned = true;
     }
   }
 
   // ---------- Whodunits ----------
   // A find in a whodunit: say what it means for the case.
-  function caseFound(zone, f, before, p, zoneDone) {
+  function caseFound(zone, f, before, p, zoneDone, earned = '') {
     const after = theCase();
     const was = (id) => before.suspects.find((s) => s.id === id);
     const newSuspect = after.suspects.find((s) => s.culprit && s.ready && !was(s.id).ready);
@@ -562,7 +667,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     else if (first) msg = 'Evidence! Tap Case to see who it points at.';
     else if (f.group === 'evidence') msg = `Evidence: ${lower(f.label)} (${p.evidence}/${world.totals.evidence})`;
     else msg = zoneDone ? `${zone.name}, all found.` : `Found: ${lower(f.label)}`;
-    toast(msg);
+    toast(msg + (newSuspect || cleared || first ? '' : earned));
     if (f.group === 'evidence' || newSuspect) nudgeCase(!!newSuspect || first);
     casefile.refresh();
   }
@@ -731,7 +836,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
 
   // A little "HONK!" in a speech bubble, like the signs in the rooms, sized in
   // screen pixels so it reads at any zoom.
-  function callBubble(ctx, X, Y, age) {
+  function callBubble(ctx, X, Y, age, text = 'HONK!', size = 14) {
     const u = 1 / cam.z;
     const grow = reduceMotion ? 1 : 1 - Math.pow(1 - Math.min(1, age / 0.22), 3);
     const fade = Math.min(1, (1.5 - age) / 0.35);
@@ -739,8 +844,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ctx.globalAlpha = Math.max(0, fade);
     ctx.translate(X, Y - age * 10 * u);
     ctx.scale(grow, grow);
-    ctx.font = `${14 * u}px "Bagel Fat One", "Arial Black", sans-serif`;
-    const text = 'HONK!';
+    ctx.font = `${size * u}px "Bagel Fat One", "Arial Black", sans-serif`;
     const w = ctx.measureText(text).width + 18 * u, h = 26 * u, by = -h - 9 * u;
     ctx.beginPath();
     ctx.roundRect(-w / 2, by, w, h, h / 2);
@@ -825,6 +929,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         ctx.lineWidth = 2 / cam.z;
         ctx.stroke();
       }
+      // Pokes in teal, decoys in ink.
+      for (const pk of zone.pokes) {
+        const [x, y, z] = findPos(pk, t);
+        ctx.beginPath();
+        ctx.arc(isoX(x, y), isoY(x, y, z), Math.max(pk.r, 22 / cam.z), 0, Math.PI * 2);
+        ctx.strokeStyle = pk.decoy ? C.ink : C.teal;
+        ctx.lineWidth = 1.5 / cam.z;
+        ctx.stroke();
+      }
       ctx.restore();
     }
     for (const f of zone.finds) {
@@ -845,7 +958,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const X = isoX(x + h.dx, y + h.dy), Y = isoY(x + h.dx, y + h.dy, z);
       const pulse = (age * 1.4) % 1;
       ctx.beginPath();
-      ctx.arc(X, Y, 2.2 + pulse * 1.6, 0, Math.PI * 2);
+      ctx.arc(X, Y, 1.5 + pulse * 0.5, 0, Math.PI * 2);
       ctx.strokeStyle = alpha(C.mustard, 1 - pulse);
       ctx.lineWidth = 4 / cam.z;
       ctx.stroke();
@@ -878,8 +991,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     for (let i = pops.length - 1; i >= 0; i--) {
       const p = pops[i];
       const age = (now - p.t0) / 1000;
-      if (age > (p.kind === 'honk' ? 1.6 : p.kind === 'call' ? 1.5 : p.kind === 'burst' ? 0.7 : 0.5)) { pops.splice(i, 1); continue; }
-      if (p.kind === 'call') {
+      if (age > (p.kind === 'honk' ? 1.6 : p.kind === 'call' ? 1.5 : p.kind === 'say' ? 2.6 : p.kind === 'burst' ? 0.7 : 0.5)) { pops.splice(i, 1); continue; }
+      if (p.kind === 'say') {
+        // What a poke or a decoy says, over it.
+        const [ax, ay] = p.zone.anchor;
+        const [x, y, z] = findPos(p.poke, t);
+        if (!lifted(p.zone)) callBubble(ctx, ax + isoX(x, y), ay + isoY(x, y, z + 0.6), age * (1.5 / 2.6), p.text, 13);
+      } else if (p.kind === 'call') {
         // (Gone if you've stepped into a room or left the place meanwhile.)
         if (active && mode === 'overview' && !lifted(p.zone)) callBubble(ctx, ...callAt(p.zone), age);
       } else if (p.kind === 'burst') {
@@ -960,12 +1078,31 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       // (A closed building's finds are inside it, out of reach, bar any on its porch.)
       const shut = zone.shelled && zone.shellK > 0.5;
       for (const f of zone.finds) {
-        if (isFound(zone, f) || !here(f, t) || (shut && !f.out)) continue;
-        const [x, y, z] = findPos(f, t);
-        const [px, py] = camera.toScreen(ax + isoX(x, y), ay + isoY(x, y, z));
-        const d = Math.hypot(px - sx, py - sy);
+        if (isFound(zone, f) || !reach(f, t) || (shut && !f.out)) continue;
+        const d = screenGap(zone, f, sx, sy, t);
         const r = Math.max(f.r * cam.z, 22);
         if (d < r && d < bestD) { best = { zone, f }; bestD = d; }
+      }
+    }
+    return best;
+  }
+
+  // How far a find or a poke is from a screen point, in px.
+  function screenGap(zone, o, sx, sy, t) {
+    const [x, y, z] = findPos(o, t);
+    const [px, py] = camera.toScreen(zone.anchor[0] + isoX(x, y), zone.anchor[1] + isoY(x, y, z));
+    return Math.hypot(px - sx, py - sy);
+  }
+
+  // The poke (or decoy) under a screen point, if any: the nearest, in the
+  // room you're in or one you can see into.
+  function pokeAtScreen(sx, sy, t) {
+    let best = null, bestD = Infinity;
+    for (const zone of world.zones) {
+      if (lifted(zone) || !zone.pokes.length || (zone.shelled && zone.shellK > 0.5)) continue;
+      for (const pk of zone.pokes) {
+        const d = screenGap(zone, pk, sx, sy, t);
+        if (d < Math.max(pk.r * cam.z, 22) && d < bestD) { best = { zone, pk }; bestD = d; }
       }
     }
     return best;
@@ -977,11 +1114,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const zoomedIn = cam.z >= zoneModeZ();
     if (zoomedIn) {
       const hit = findAtScreen(sx, sy, t);
-      if (hit) {
-        markFound(hit.zone, hit.f);
-        if (hit.zone.index !== current || mode !== 'zone') {
-          showZoneUI(hit.zone.index);
-          near = world.long(hit.zone) ? floorAt(hit.zone, sx, sy) : null;
+      // (A find wins over the thing it's in, or next to.)
+      const pk = hit ? null : pokeAtScreen(sx, sy, t);
+      const at = hit || pk;
+      if (at) {
+        if (hit) markFound(hit.zone, hit.f);
+        else poke(pk.zone, pk.pk);
+        if (at.zone.index !== current || mode !== 'zone') {
+          showZoneUI(at.zone.index);
+          near = world.long(at.zone) ? floorAt(at.zone, sx, sy) : null;
         }
         return;
       }
@@ -1124,7 +1265,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     tray.use({ rooms: world.zones, order: world.order });
     setPlaceTitle(world.map.name, world.map.tagline);
     ui.geese.dataset.set = '';
-    ui.things.dataset.set = '';
+    ui.hintsLeft.dataset.set = '';
     ui.caseCount.dataset.set = '';
     // A whodunit's art needs to know if the case was solved on an earlier visit.
     if (isCase()) {
@@ -1132,8 +1273,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       else world.map.case.onOpen();
       if (world.map.case.ink) document.body.style.setProperty('--case-ink', world.map.case.ink);
     }
+    pinPokes();
     const p = renderTally();
-    parade = !isCase() && p.geese === world.totalGeese && world.totalGeese > 0 ? performance.now() : 0;
+    parade = !isCase() && p.done ? performance.now() : 0;
   }
 
   // Start playing the loaded map, at its overview or straight into a zone.
@@ -1215,10 +1357,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     reset() {
       store.resetMap(world.id);
       if (isCase()) world.map.case.onOpen();
+      pinPokes();
       renderTally();
       if (mode === 'zone' && current >= 0) tray.render(current);
     },
     markFound,
+    // Tap a poke or a decoy by its ids, or ask for a hint (tests).
+    poke: (zoneId, id) => { const z = world.zones[world.indexOf(zoneId)]; const pk = z && z.pokes.find((q) => q.id === id); if (pk) poke(z, pk); return pk; },
+    hint: (zoneId, id) => { const z = world.zones[world.indexOf(zoneId)]; const f = z && z.finds.find((q) => q.id === id); if (f) showHint(z, f); },
     skipAhead,
     get skipping() { return !!skipping; },
     enterZone: (i, o) => enterZone(typeof i === 'string' ? world.indexOf(i) : i, o),
