@@ -783,6 +783,11 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('the next sighting only shows in its hours', !(await seen('cabins')));
   await tapIguana('cabins', 9.5);
   check('in its hours, the next sighting is found with a tap', await seen('cabins'));
+  // Missed it? At 4pm, with the drill's sighting next, the ship's clock offers the drill, not 5pm.
+  await S(page, () => window.__squares.clock.set((16 - 7) * 20));
+  await wait(page, 400);
+  const skip = await S(page, () => document.getElementById('dial-next').textContent);
+  check('the ship\'s clock skips straight to the next sighting\'s hour', skip === 'Skip to the drill', skip);
   await page.click('#tally-case');
   await wait(page, 500);
   const log = await S(page, () => ({ open: !document.getElementById('case').hidden, found: document.querySelectorAll('.sighting.is-found').length, next: document.querySelectorAll('.sighting.is-next').length, later: document.querySelectorAll('.sighting.is-later').length }));

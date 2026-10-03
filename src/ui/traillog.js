@@ -64,7 +64,7 @@ export function createTrailLog(o) {
       const text = el('div', 'sighting-text');
       text.append(where, p);
       if (s.found && s.seen) text.append(el('p', 'sighting-seen', s.seen));
-      if (s.next) text.append(el('p', 'sighting-seen is-next', `Last seen here. Go and look.`));
+      if (s.next) text.append(el('p', 'sighting-seen is-next', `Heading here${s.note ? `, at ${s.note}` : ''}. It only shows up at the next sighting, at its time: it's always one step ahead.`));
       li.append(n, portrait(s.who), text);
       if (s.found) li.append(el('span', 'stamp is-cleared', 'Seen'));
       li.setAttribute('aria-label', `Sighting ${i + 1}, ${s.zone}${s.note ? `, ${s.note}` : ''}. ${s.name}: ${s.says}${s.found ? ' Seen.' : ' The next one.'}`);
@@ -72,7 +72,7 @@ export function createTrailLog(o) {
     });
     frag.append(head, ol, el('p', 'case-foot', st.done
       ? `${st.quarry} is caught. Nobody gets off.`
-      : `${st.quarry} is always one step ahead: it only shows up at the next sighting, at its time. The ship's clock skips ahead.`));
+      : 'The ship\'s clock skips ahead to the next sighting\'s time.'));
     return frag;
   }
 

@@ -15,7 +15,7 @@ import { INK, CAST, iguana, dressed, at, chase } from './style.js';
 const sightings = [
   { find: 'buffet:iguana', who: 'pidge', says: 'The camera saw it in the salad bar at 6:52.', seen: 'In the salad bar at breakfast, under the lettuce.' },
   { find: 'cabins:iguana', who: 'doreen', says: 'It beat me to the melon, then took the lift up.', seen: 'Posing as a towel animal on the honeymoon bed, a flower in its mouth.' },
-  { find: 'waterslide:iguana', who: 'steward', says: 'A towel animal walked up to the sun deck.', seen: 'Clinging to the Corkscrew\'s pole, shedding, then down the slide.' },
+  { find: 'waterslide:iguana', who: 'steward', says: 'A towel animal walked up to the Sun Deck.', seen: 'Clinging to the Corkscrew\'s pole, shedding, then down the slide.' },
   { find: 'pool:iguana', who: 'tyler', says: 'It came down the slide and went to the big pool.', seen: 'At the limbo at noon. It won.' },
   { find: 'adults-only:iguana', who: 'kelly', says: 'Our limbo champion! Then it wanted somewhere quiet.', seen: 'At the spa, under a seaweed wrap, cucumbers on its eyes.' },
   { find: 'crew-bar:iguana', who: 'gloria', says: 'It took my cucumbers and went to a party below.', seen: 'Buried in the laundry at the crew party, the only green thing below the waterline.' },

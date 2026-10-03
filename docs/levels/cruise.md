@@ -19,16 +19,16 @@
 
 | # | Area | Hours | Witness (the line that points there) | Where it hides | Kind |
 | --- | --- | --- | --- | --- | --- |
-| 1 | The Buffet | 7 to 9am (breakfast) | Pidge: "The camera saw it in the salad bar at 6:52." | In the salad bar, under the lettuce: lift the lettuce | poke |
-| 2 | The Cabins | 8:45 to 10:30am (9am) | Doreen: "It beat me to the melon, then took the lift up." | The honeymoon suite, posing as one of the towel animals, eating the flowers | hard |
-| 3 | The Waterslide | 10am to noon (the drill) | The steward: "A towel animal walked up to the sun deck." | Up the waterslide tower, shedding its skin | hard |
-| 4 | The Pool | 11:45am to 1:30pm (noon) | Tyler: "It came down the slide and went to the big pool." | Winning the limbo | spot |
-| 5 | Adults Only | 1:30 to 3pm (2pm) | Kelly: "Our limbo champion! Then it wanted somewhere quiet." | At the spa, under a seaweed wrap, cucumbers on its eyes | poke |
-| 6 | The Crew Bar | 3 to 4:45pm (the crew party) | Gloria: "It took my cucumbers and went to a party below." | At the crew party, the only green thing below the waterline | hard |
-| 7 | The Engine Room | 4:45 to 6pm (5pm) | Chef Gaston: "It ate my plastic shrimp. Now it needs a nap." | Napping somewhere warm | poke |
-| 8 | The Casino | 5:45 to 7pm (docking) | The captain: "It'll try the gangway. Nobody gets off." | At the gangway, trying to get off at the port | poke |
+| 1 | The Buffet | 7 to 9am (breakfast) | Pidge: "The camera saw it in the salad bar at 6:52." | Under one of two lettuce heaps on the salad bar, its tail over the counter's edge | poke |
+| 2 | The Cabins | 8:45 to 10:30am (9am) | Doreen: "It beat me to the melon, then took the lift up." | On the honeymoon bed, posing as a towel animal, a green snout, a blinking eye and a tail tip showing | hard |
+| 3 | The Waterslide | 10am to noon (the drill) | The steward: "A towel animal walked up to the Sun Deck." | Clinging to the Corkscrew's centre pole between two turns of the tube, shedding | hard |
+| 4 | The Pool | 11:45am to 1:30pm (noon) | Tyler: "It came down the slide and went to the big pool." | Under the limbo bar at noon, in a winner's rosette | spot |
+| 5 | Adults Only | 1:30 to 3pm (2pm) | Kelly: "Our limbo champion! Then it wanted somewhere quiet." | In a seaweed wrap next to Gerald's, its tail out of the end; cucumbers on its eyes | poke |
+| 6 | The Crew Bar | 3 to 4:45pm (the crew party) | Gloria: "It took my cucumbers and went to a party below." | In the one laundry cart nobody is dancing on, crest and tail showing | hard |
+| 7 | The Engine Room | 4:45 to 6pm (5pm) | Chef Gaston: "It ate my plastic shrimp. Now it needs a nap." | Asleep under one of two tarps on the warm engines, its tail hanging out | poke |
+| 8 | The Casino | 5:45 to 7pm (docking) | The captain: "It'll try the gangway. Nobody gets off." | In one of two suitcases queueing to go ashore, its tail out of the zip | poke |
 
-The ending: in the Casino, from the moment it's caught, the iguana is under a towel at the gangway desk and the clicker says 2,400 again. Exact hiding places are the area artists' (what they drew is in "The chase, as drawn" below).
+The ending: in the Casino, from the moment it's caught, the iguana is under a striped towel on the gangway desk, the clicker says 2,400 again, and the security officer says "2,400. Nobody gets off." The lift goes to the Promenade and the camera frames the desk close. Found, each sighting runs off (down the whole slide, across the dance floor, into the lift).
 
 **Witnesses.** The old suspects and the cast say where they saw it go (the ship's six suspects all appear, as witnesses now). Their line is on the list under the next sighting, in the toast when the one before is found, and in the log. Tapping a person to ask them isn't built (people on the clock aren't tappable; E8 later).
 
@@ -304,3 +304,16 @@ Gate 3 (the owner, Oct 2026, every recommendation taken):
 45. **No density pass for now:** the tour filled the Bridge's stern half; the back of the Cabins corridor and the Crew Bar's front before 3pm wait for the owner to say they read empty.
 46. **The port keeps its framing;** pinching in works.
 47. **All-You-Can-Eat ships** in the picker after Moving Day, "Day Four" under its name.
+
+The chase (session 12, the lead's calls; the owner plays it on a phone next):
+48. **The ship is a chase, in a new format** (G7, `src/game/trail.js`): a trail of sightings, found in order, each pointing to the next through a witness; the last ends the place with the map's finale. It replaces the case. The goose's trail between places (phase 2) reuses it.
+49. **The iguana is always one step ahead:** it's drawn only at the sighting the player is on, in its hours, so nobody stumbles on the last sighting first and every iguana you see is the one to tap. The art reads the chase from `chase` in `style.js` (as the Manor's art reads its verdict); it's the second thing in a zone, after pokes, that isn't a pure function of time. It isn't on the day's clock any more.
+50. **Eight sightings, deck to deck, forward through the day** (the table above), in overlapping hours of 25 to 40 seconds. Every sighting's hours hold one of the dial's moments, which are now eight (breakfast, 9am, the drill, noon, 2pm, the crew party, 5pm, docking), and **while the next sighting's hours aren't now, the ship's clock skips straight to them** (the playtester at 4pm with noon next would have tapped six times).
+51. **Witnesses, not suspects:** the six suspects and two of the crew each say where they saw it go. The line is under the sighting on the list (as a hard find's riddle), in the toast with the time to look ("Next, at noon."), and in the log. People on the clock can't be tapped to ask them (E8, later).
+52. **Saves carry over without a version bump:** sightings are finds, and the case's evidence keeps its ids as ordinary things; a solved case stays finished.
+53. **Every area retuned to the rules of finding** (six artists, two areas each, by deck): 12 decoys, all iguana lookalikes, one joke each (a cucumber lizard, Gary's rubber lizard, a LUCKY LIZARD slot mascot, a carved souvenir, a towel crocodile, Gerald in his wrap, an inflatable croc, a dinosaur float, a pickle in a party hat, a rubber glove, a stress gecko, a lizard hot-water bottle); 58 things that answer a tap; a teach poke in every area. The goose is in the LIFE JACKETS (1 LEFT) locker, its beak out of the door.
+54. **The Bridge's Lizard Cam:** a monitor with a plan of the ship and a green dot on the next sighting's area ("IT'S IN: THE POOL" in its hours, "HEADED FOR" otherwise; CAUGHT at the end). An in-world hint for players who look.
+55. **The density pass the owner deferred is done:** a tower of room service trays outside the honeymoon suite, a tray more every hour, and a do-not-disturb war at the stern end of the Cabins; laundry cart time trials and the balloons going up at the Crew Bar's front before 3pm.
+56. **The finale takes the lift to its floor and can frame one spot** (`finale.span` round `near`): won from the crew deck, the ending played under the decks lifted above it, and a room's worth round the desk was wider than a phone's overview.
+57. **The blind playtest** (a phone's view, every area, each at its sighting's time): 33 of 37 found, all eight sightings among them; the lookalikes fooled the tester as meant. Fixed after it: the hibiscus in the iguana's mouth read as the garland (now melon rind, the garland's tell plainer), the iguana's old lounger print read as the goose (gone), the camera still's tap was 3px off, the lab slip's corner was too small, the bar tab and the wrench were too easy, the pudding's thermometer too hard among cups with spoons. In the chase: the toast now says when to look next, the log says "Heading here", the toast steps aside for the log, and the card says the gangway, not the port.
+

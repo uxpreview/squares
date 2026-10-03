@@ -7,7 +7,7 @@
 // day. The brief is docs/levels/cruise.md; the layout is plan.js.
 import { AREAS, STOREY, DECK, LOOP, LENGTH, BEAM } from './plan.js';
 import { walkers } from './day.js';
-import { seaAt, clockLabel, wrap, at, MOMENTS, LIFT_COLORS } from './style.js';
+import { seaAt, clockLabel, wrap, at, MOMENTS, LIFT_COLORS, CHASE, chase, chaseOpen, caught } from './style.js';
 import { backdrop, sky } from './ambient.js';
 import trail from './trail.js';
 import { sound } from './sound.js';
@@ -27,14 +27,18 @@ import port from './areas/port.js';
 
 const place = (zone, tag, o = {}) => ({ zone, at: AREAS[zone.id].at, size: AREAS[zone.id].size, tag, ...o });
 
-// The dial: the ship's clock, and a tap skips to the day's next moment.
+// The dial: the ship's clock, and a tap skips to the day's next moment. On
+// the chase, while the next sighting's hours aren't now, straight to them
+// (its moment: every sighting's note is a moment's label), so a player who
+// missed noon isn't six taps from it.
 const dial = {
   name: "the ship's clock",
   label: clockLabel,
   level: (t) => wrap(t) / LOOP,
   next(t) {
     const w = wrap(t);
-    const m = MOMENTS.find((x) => x.at > w + 5) || MOMENTS[0];
+    const want = !caught() && !chaseOpen(chase.step, t) && MOMENTS.find((x) => x.label === CHASE[chase.step].note);
+    const m = want || MOMENTS.find((x) => x.at > w + 5) || MOMENTS[0];
     let when = t - w + m.at;
     while (when < t + 5) when += LOOP;
     return { at: when, label: m.label, say: m.say };
@@ -109,7 +113,7 @@ export default {
     hint: 'Patient zero is loose. Follow it.',
     whole: 'The whole ship',
     inside: 'on the ship', // the card: "You found 20 of the 37 things on the ship."
-    complete: 'Patient zero was a stowaway iguana. It tried to get off at the port. Nobody gets off.',
+    complete: 'Patient zero was a stowaway iguana. It tried to get off at the gangway. Nobody gets off.',
   },
   loop: LOOP,
   qa: {

@@ -106,6 +106,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function tellTrail() {
     if (!isTrail() || !world.map.trail.onStep) return;
     world.map.trail.onStep(stepNow(), world.sightings.map((s) => sightedAt.get(world.id + '/' + s.find) ?? null));
+    dialText = ''; // (the dial's next skip can follow the trail: say it again)
   }
 
   // ---------- Framing ----------
@@ -749,11 +750,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       sound('honk');
       const next = world.sightings[f.step + 1];
       if (!was.done && p.met) {
-        toast(words().complete);
+        toast(words().complete, 7000);
         finish();
       } else if (next) {
+        // Where it went (the next witness) and when to look.
         const tr = world.map.trail, who = (tr.names && tr.names[next.who]) || next.who;
-        toast(`Sighting ${f.step + 1} of ${world.sightings.length}! It got away. ${who}: "${next.says}"`, 5200);
+        toast(`${f.step + 1} of ${world.sightings.length}! It got away.${next.f.note ? ` Next, at ${next.f.note}.` : ''} ${who}: "${next.says}"`, 6000);
         nudgeCase(true);
       }
       if (mode === 'zone' && current >= 0) tray.render(current);
@@ -811,6 +813,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (!active || (!isCase() && !isTrail())) return;
     userAct();
     sound('tick');
+    ui.toast.hidden = true; // (it would sit over the sheet's top)
     if (isTrail()) traillog.open();
     else casefile.open();
   });
