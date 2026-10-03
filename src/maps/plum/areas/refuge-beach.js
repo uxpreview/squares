@@ -66,7 +66,7 @@ function edge(x, L) {
 const PLOVER = mix(INK.sand, C.grey, 0.5);
 const CHALK = shade(C.green, 0.55);
 const STAKE = tint(C.woodLight, 0.25);
-const SANDPILE = shade(INK.sand, 0.12);
+const SANDPILE = shade(INK.sand, 0.22);
 const WETSAND = mix(INK.sand, C.brown, 0.18);
 
 // ---------- Small pieces ----------
@@ -404,17 +404,21 @@ export default {
       }, { depth: (t) => rope(t) + y1 });
     }
 
-    // The warden's spare stake: a fresh one, lying on the sand by the rope's
-    // top end with its coral flag, a coil of rope beside it. It moves up with
-    // the rope, and floats when the king tide gets to it.
-    const stakeAt = (t) => { const x = rope(t) - 1.2, y = 44.5; return [x, y, float(x, y, t)]; };
-    R.mover((t) => { const [x, y] = stakeAt(t); return { x: x + 0.5, y }; }, (ctx, t) => {
+    // The warden's spare stake: a fresh one, dropped on its own patch of sand
+    // inside the rope, well clear of the warden and the rope's posts, with a
+    // coral flag tied on and a coil of rope beside it. It floats when the king
+    // tide gets to it.
+    const STK = [31, 49.4];
+    const stakeAt = (t) => { const [x, y] = STK; return [x, y, float(x, y, t)]; };
+    R.thing(STK[0] + 0.7, STK[1] + 0.3, (ctx, t) => {
       const [x, y, z] = stakeAt(t);
-      if (Q.detail) { const [X, Y] = P(x + 0.4, y + 0.25, z); ctx.beginPath(); ctx.ellipse(X, Y, 0.26, 0.12, 0, 0, Math.PI * 2); ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05; ctx.stroke(); ctx.beginPath(); ctx.ellipse(X, Y, 0.15, 0.07, 0, 0, Math.PI * 2); ctx.stroke(); }
-      box(ctx, x - 0.45, y - 0.06, z, 0.9, 0.12, 0.12, STAKE, { flat: true, lw: 0.03 });
-      shape(ctx, [[x - 0.45, y - 0.06, z], [x - 0.45, y + 0.06, z], [x - 0.62, y, z + 0.06]], shade(STAKE, 0.15), { lw: 0.03 });
-      box(ctx, x + 0.28, y - 0.08, z, 0.1, 0.16, 0.14, C.coral, { flat: true, lw: 0.025 });
-    });
+      if (Q.detail) { const [X, Y] = P(x + 0.35, y + 0.4, z); ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.14, 0, 0, Math.PI * 2); ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05; ctx.stroke(); ctx.beginPath(); ctx.ellipse(X, Y, 0.17, 0.08, 0, 0, Math.PI * 2); ctx.stroke(); }
+      box(ctx, x - 0.6, y - 0.07, z, 1.2, 0.14, 0.14, STAKE, { flat: true, lw: 0.03 });
+      shape(ctx, [[x - 0.6, y - 0.07, z], [x - 0.6, y + 0.07, z], [x - 0.8, y, z + 0.07]], shade(STAKE, 0.15), { lw: 0.03 });
+      // The flag, tied near the top end, lying out on the sand.
+      shape(ctx, [[x + 0.36, y + 0.07, z + 0.03], [x + 0.68, y + 0.07, z + 0.03], [x + 0.58, y + 0.8, z + 0.02]], C.coral, { lw: 0.03 });
+      box(ctx, x + 0.4, y - 0.09, z, 0.12, 0.18, 0.16, C.coral, { flat: true, lw: 0.025 });
+    }, { anim: true });
 
     // The plover warden, a volunteer in a vest with a clipboard: in down the
     // boardwalk at 6:15, then all day on the rope. At the top of each hour she
@@ -515,7 +519,8 @@ export default {
     // tide comes up the beach.)
     const SHELLS = [45.2, 44.3];
     const shellInks = [C.white, C.blush, tint(C.coral, 0.3), C.navy, C.butter];
-    const museum = R.poke({ id: 'museum', at: [SHELLS[0] - 0.35, SHELLS[1], h(...SHELLS) + 0.25], r: 0.55, sound: 'clunk' });
+    const BOX = mix(C.wood, C.white, 0.35); // a cardboard shoebox, so the white lid reads
+    const museum = R.poke({ id: 'museum', at: [SHELLS[0] - 0.35, SHELLS[1], h(...SHELLS) + 0.25], r: 0.65, sound: 'clunk' });
     const lunch = R.poke({ id: 'lunchbox', at: [SHELLS[0] + 0.42, SHELLS[1], h(...SHELLS) + 0.25], r: 0.45, hold: 2, sound: 'clunk', say: ['Sandwiches. Sandier than planned.', 'Still sandwiches.'] });
     // A box with a lid hinged at the back: shut, the lid is its top; open, it
     // stands up behind, and what's in it shows.
@@ -526,17 +531,34 @@ export default {
       const open = () => { shape(ctx, [[x0, y0, top], [x1, y0, top], [x1, y1, top], [x0, y1, top]], shade(color, 0.55), { lw: 0.02 }); if (k > 0.3) inside(top); };
       if (k < 0.5) { open(); lid(); } else { lid(); open(); }
     };
+    // A scallop: a fan with ribs and a little hinge, standing in what holds it.
+    const scallop = (ctx, X, Y, sz, ink) => {
+      ctx.beginPath(); ctx.moveTo(X, Y); ctx.arc(X, Y, sz, Math.PI * 1.1, Math.PI * 1.9); ctx.closePath();
+      paint(ctx, ink, { lw: 0.022 });
+      if (Q.detail) {
+        ctx.beginPath();
+        for (let i = 1; i < 5; i++) { const a = Math.PI * (1.1 + 0.16 * i); ctx.moveTo(X, Y); ctx.lineTo(X + Math.cos(a) * sz * 0.9, Y + Math.sin(a) * sz * 0.9); }
+        ctx.strokeStyle = shade(ink, 0.35); ctx.lineWidth = 0.014; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.rect(X - sz * 0.25, Y - 0.01, sz * 0.5, sz * 0.22); paint(ctx, ink, { lw: 0.018 });
+    };
     R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, (ctx, t) => {
       const [sx, sy] = SHELLS, z = float(sx, sy, t) + (level(t) > h(sx, sy) ? 0.03 * Math.sin(t * 1.7) : 0);
-      towel(ctx, sx - 0.65, sy - 0.3, z, 1.3, 0.6, C.sky);
-      if (Q.detail) plaque(ctx, 'x', sx - 0.35, sy - 0.27, z + 0.42, 0.62, 0.2, [['SHELL MUSEUM', 0, 0.065]], { board: C.white, edge: 0.02 });
-      lidBox(ctx, sx - 0.6, sy - 0.17, z, 0.5, 0.34, 0.2, C.white, C.white, museum.k(), (top) => {
-        shellInks.forEach((ink, k) => {
-          const [X, Y] = P(sx - 0.52 + k * 0.085, sy - 0.02 + (k % 2) * 0.08, top);
-          ctx.beginPath(); ctx.moveTo(X - 0.06, Y); ctx.lineTo(X, Y - 0.08); ctx.lineTo(X + 0.06, Y); ctx.quadraticCurveTo(X, Y + 0.04, X - 0.06, Y);
-          paint(ctx, ink, { lw: 0.018 });
+      towel(ctx, sx - 0.75, sy - 0.35, z, 1.5, 0.75, C.sky);
+      // The card, propped behind the box: big enough to read pinched in.
+      plaque(ctx, 'x', sx - 0.35, sy - 0.3, z + 0.55, 1.1, 0.42, [['SHELL', 0.08, 0.17, C.red], ['MUSEUM', -0.11, 0.14]], { board: C.white, edge: 0.025, font: 'Bagel Fat One' });
+      // The shoebox, its lid left ajar on a shell, so it looks like it opens
+      // and there's something in it. Tap it and the lid comes right up.
+      const k = museum.k(), lidK = 0.32 + 0.68 * k;
+      const [bx, by, bw, bd, bh] = [sx - 0.68, sy - 0.2, 0.66, 0.4, 0.26];
+      lidBox(ctx, bx, by, z, bw, bd, bh, BOX, C.white, lidK, (top) => {
+        shellInks.forEach((ink, i) => {
+          const [X, Y] = P(bx + 0.1 + i * 0.11, by + 0.14 + (i % 2) * 0.12, top);
+          scallop(ctx, X, Y, 0.09, ink);
         });
       });
+      // The shell holding the lid up, poking out over the front rim.
+      if (k < 0.5) { const [X, Y] = P(bx + bw * 0.55, by + bd * 0.72, z + bh + 0.08); scallop(ctx, X, Y, 0.13, tint(C.coral, 0.3)); }
       lidBox(ctx, sx + 0.25, sy - 0.12, z, 0.34, 0.24, 0.18, C.red, C.red, lunch.k(), (top) => {
         const [X, Y] = P(sx + 0.42, sy, top);
         ctx.beginPath(); ctx.moveTo(X - 0.1, Y + 0.02); ctx.lineTo(X + 0.1, Y + 0.02); ctx.lineTo(X, Y - 0.08); ctx.closePath();
@@ -604,7 +626,15 @@ export default {
         const kx = p.x + 0.7, ky = p.y + 1.05;
         if (!p.moving) {
           disc(ctx, kx - 0.35, ky - 0.1, h(kx, ky) + 0.01, 0.22, shade(INK.sand, 0.3), { lw: 0.025 });
-          { const [X, Y] = P(kx + 0.42, ky - 0.08, h(kx, ky)); ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.2, 0, Math.PI, 0); ctx.closePath(); paint(ctx, SANDPILE, { lw: 0.025 }); }
+          {
+            // A lumpy pile, flecked like the sand it came from (a smooth white
+            // dome here read as a half-shell, next to the shell museum).
+            const [X, Y] = P(kx + 0.42, ky - 0.08, h(kx, ky));
+            ctx.beginPath(); ctx.moveTo(X - 0.34, Y);
+            ctx.quadraticCurveTo(X - 0.26, Y - 0.16, X - 0.1, Y - 0.12); ctx.quadraticCurveTo(X, Y - 0.2, X + 0.12, Y - 0.1);
+            ctx.quadraticCurveTo(X + 0.26, Y - 0.1, X + 0.34, Y); ctx.closePath();
+            paint(ctx, SANDPILE, { lw: 0.025, dots: Q.detail ? shade(SANDPILE, 0.35) : null, density: 0.3 });
+          }
         }
         if (p.moving) {
           guy(ctx, p.x + 1.1, p.y + 0.1, z, dad, { pose: 'walk', arms: [1.3, 1.2], dir: 'r' }, t);
@@ -891,8 +921,8 @@ export default {
 
     // ================= The finds =================
     R.find({ id: 'sandcastle', label: 'A sandcastle inside the rope', at: [CASTLE[0], CASTLE[1], h(CASTLE[0], CASTLE[1]) + 0.35], r: 0.8 });
-    R.find({ id: 'stake', label: 'The warden\'s spare stake', at: (t) => { const [x, y, z] = stakeAt(t); return [x, y, z + 0.1]; }, r: 0.8 });
-    R.find({ id: 'shells', label: 'A shell collection', kind: 'poke', inside: museum, at: [SHELLS[0] - 0.35, SHELLS[1], h(SHELLS[0], SHELLS[1]) + 0.22], r: 0.6, hint: 'A kid has been collecting all day. The exhibit is shut between visitors.' });
+    R.find({ id: 'stake', label: 'The warden\'s spare stake', at: (t) => { const [x, y, z] = stakeAt(t); return [x, y + 0.1, z + 0.1]; }, r: 0.8 });
+    R.find({ id: 'shells', label: 'A shell collection', kind: 'poke', inside: museum, at: [SHELLS[0] - 0.35, SHELLS[1], h(SHELLS[0], SHELLS[1]) + 0.22], r: 0.65, hint: 'A kid has been collecting all day. The exhibit is shut between visitors.' });
     R.find({ id: 'sanddollar', label: 'A sand dollar', kind: 'hard', when: lowTide, note: 'low tide', at: [SD[0], SD[1], sdz + 0.05], r: 0.6, riddle: 'Small change, out where the sea was.', hint: 'When the water is all the way out, something round and pale is lying on the wet sand. It is worth nothing.' });
   },
 };

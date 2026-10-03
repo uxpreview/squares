@@ -283,11 +283,12 @@ function bike(ctx, x, y, z, dir, color, look, t, scale = 1) {
 }
 
 // A white-tailed deer, side on, ears up, half in the grass; the tail flicks.
+// (Kept at life size, so the scrub in front of it hides all but its head.)
 function deer(ctx, x, y, z, t) {
   const [X, Y] = P(x, y, z);
   ctx.save();
   ctx.translate(X, Y);
-  ctx.scale(-1.3, 1.3); // facing the Sound's end of the island
+  ctx.scale(-1, 1); // facing the Sound's end of the island
   const leg = (x0, x1) => { ctx.moveTo(x0, -0.95); ctx.lineTo(x1, -0.45); ctx.lineTo(x1 - 0.02, 0); };
   ctx.beginPath(); leg(-0.42, -0.46); leg(-0.26, -0.28); leg(0.32, 0.34); leg(0.46, 0.5);
   ctx.lineCap = 'round';
@@ -383,9 +384,11 @@ export default {
     for (const [x, y, s] of [[6.5, 33.8, 0.9], [9.6, 31.9, 1.05], [6.9, 37.6, 0.8]]) R.thing(x + 0.1, y + 0.1, (ctx) => pine(ctx, x, y, h(x, y), s));
     // The deer, in the grass by the scrub, ears up, watching you back.
     const [dx, dy] = [10.5, 35.6];
-    // (A hard find: two bushes in front of it, so what shows is ears, a head,
-    // a back, and now and then the white flag of its tail.)
-    R.thing(dx, dy, (ctx, t) => deer(ctx, dx, dy, h(dx, dy), t), { anim: true });
+    // (A hard find: it's small and stands right behind two big bushes, so all
+    // that shows is ears and the top of a head. DZ sinks it lower if it ever
+    // jumps out again.)
+    const DZ = 0;
+    R.thing(dx, dy, (ctx, t) => deer(ctx, dx, dy, h(dx, dy) + DZ, t), { anim: true });
     R.thing(dx + 0.7, dy + 0.7, (ctx) => {
       bush(ctx, dx - 0.2, dy + 0.8, h(dx, dy + 0.7), 1.3, BUSH[0]);
       bush(ctx, dx + 0.8, dy + 0.6, h(dx + 0.7, dy + 0.5), 1.2, BUSH[1]);
@@ -947,8 +950,8 @@ export default {
       ctx.beginPath(); ctx.arc(X + 0.02 + sw, Y + 0.36, 0.05, 0, TAU); ctx.lineWidth = 0.025; ctx.stroke();
     }, { anim: true, depth: LF[0] + LF[1] + 0.8 });
     R.find({ id: 'lens-cap', label: 'A birder\'s lens cap', kind: 'poke', inside: lostFound, at: [LF[0] - 0.05, LF[1], lfTop], r: 0.6, hint: 'Somebody found it and handed it in. Lot 1 keeps a box for that.' });
-    // The deer, behind its scrub: ears, a head and a back over the bushes.
-    R.find({ id: 'deer', label: 'A deer', kind: 'hard', at: [dx, dy, h(dx, dy) + 1.9], r: 0.9, riddle: 'Ears up, watching you back.', hint: 'Toward Sandy Point, a bush with ears. It\'s been watching you this whole time.' });
+    // The deer, behind its scrub: ears and the top of a head over the bushes.
+    R.find({ id: 'deer', label: 'A deer', kind: 'hard', at: [dx - 0.36, dy + 0.36, h(dx, dy) + DZ + 1.64], r: 0.8, riddle: 'Ears up, watching you back.', hint: 'Toward Sandy Point, a bush with ears. It\'s been watching you this whole time.' });
     // A horseshoe crab, out on the wet sand at the Sandy Point end when the
     // Sound drains away at low water; the water's over it the rest of the day.
     const HC = [6.4, 30.0];
@@ -969,7 +972,7 @@ export default {
         ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X - 0.2, Y - 0.08, 0.025, 0, TAU); ctx.arc(X - 0.02, Y - 0.12, 0.025, 0, TAU); ctx.fill();
       }
     }, { on: lowTide });
-    R.find({ id: 'horseshoe-crab', label: 'A horseshoe crab', at: [HC[0], HC[1], h(...HC) + 0.1], r: 0.8, when: lowTide, note: 'low tide' });
+    R.find({ id: 'horseshoe-crab', label: 'A horseshoe crab', at: [HC[0] + 0.03, HC[1] - 0.03, h(...HC) + 0.08], r: 0.9, when: lowTide, note: 'low tide' });
     // A checklist on a clipboard, dropped at the foot of the tower stairs:
     // every bird ticked but one, and that one struck out ("GOOSE?").
     const [kx, ky] = [22.2, 30], kz = zH(kx) + 0.02;
