@@ -1281,7 +1281,7 @@ export default {
     R.thing(BG.x + 0.6, BG.y + 0.6, (ctx, t) => balloonGoose(ctx, t), { anim: true });
     R.decoy({ id: 'balloon-goose', at: (t) => [BG.x, BG.y, 0.95 + Math.sin(t * 1.1) * 0.07], r: 0.8, say: ['A balloon goose. Full of hot air.', 'Still a balloon.', 'Do not pop the goose.'] });
 
-    R.find({ id: 'courier-map', label: 'The Courier\'s map', kind: 'hard', at: [mx, my, 0.05], r: 0.75, riddle: 'He should have looked both ways.', hint: 'One of the white stripes on a crossing is folded in four.' });
+    R.find({ id: 'courier-map', label: 'The Courier\'s map', kind: 'hard', at: [mx, my, 0.05], r: 0.75, riddle: 'Hiding in plain stripes.', hint: 'One of the white stripes on a crossing is folded in four.' });
     R.find({ id: 'delivery-slip', label: 'A signed delivery slip', at: [sx, sy, 0.05], r: 0.8 });
     R.find({ id: 'bunting', label: 'A roll of bunting', kind: 'poke', inside: partyLid, at: [42.8, 25.25, 1.1], r: 0.75, hint: 'Two crates of party stuff up the back road. A tail of flags is caught in one lid.' });
     R.find({ id: 'lunch', label: 'The Courier\'s lunch', at: [lx, ly, 0.3], r: 0.8 });

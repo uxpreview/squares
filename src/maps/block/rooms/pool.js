@@ -2,10 +2,10 @@
 // a flamingo float, and a lifeguard who has seen enough running today.
 //
 // Retuned in session 10: the goose is in one of two changing huts (poke:
-// orange webbed feet under its curtain; the other hut's feet are a person's,
-// and it's OCCUPIED). The flip-flop is in the lost property box (poke), the
-// sunglasses are on the bottom of the pool (hard), the duck stays a spot
-// find. A towel swan on the empty lounger is the decoy, and the sunbather is
+// big orange webbed feet under its curtain; the other hut's feet are a
+// person's, and it's OCCUPIED). The flip-flop is in the lost property box
+// (poke), the sunglasses are on the bottom of the pool half under a lane line
+// (hard), the duck bobs in the pool's front corner (spot). A towel swan on the empty lounger is the decoy, and the sunbather is
 // the first thing to tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, plant, slab, planks,
@@ -103,11 +103,24 @@ function curtain(ctx, y, color, k, t, feet) {
   if (k < 0.6) {
     const sh = Math.sin(t * 3) * 0.04;
     if (feet === 'goose') {
-      for (const [fy, ph] of [[y0 + 0.3, 0], [y0 + 0.58, 1.6]]) {
+      // two big orange webbed feet, toes out past the curtain onto the deck
+      for (const [fy, ph] of [[y0 + 0.12, 0], [y0 + 0.62, 1.6]]) {
         const lift = Math.max(0, Math.sin(t * 2.2 + ph)) * 0.05;
-        const [X, Y] = P(x + 0.12, fy + sh, 0.02 + lift);
-        ctx.beginPath(); ctx.moveTo(X - 0.02, Y - 0.06); ctx.lineTo(X + 0.2, Y + 0.04); ctx.lineTo(X + 0.05, Y + 0.1); ctx.lineTo(X - 0.1, Y + 0.05); ctx.closePath();
-        paint(ctx, C.coral, { lw: 0.03 });
+        const [X0, Y0] = P(x + 0.05, fy + sh, 0.02 + lift);
+        ctx.save();
+        ctx.translate(X0, Y0); ctx.scale(1.4, 1.4); ctx.translate(-X0, -Y0);
+        const X = X0, Y = Y0;
+        ctx.beginPath();
+        ctx.moveTo(X - 0.08, Y - 0.08);
+        ctx.lineTo(X + 0.36, Y + 0.02);
+        ctx.quadraticCurveTo(X + 0.33, Y + 0.08, X + 0.38, Y + 0.13);
+        ctx.quadraticCurveTo(X + 0.3, Y + 0.15, X + 0.28, Y + 0.24);
+        ctx.lineTo(X - 0.12, Y + 0.06);
+        ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.035 });
+        ctx.beginPath(); ctx.moveTo(X - 0.04, Y - 0.01); ctx.lineTo(X + 0.32, Y + 0.08); ctx.moveTo(X - 0.06, Y + 0.02); ctx.lineTo(X + 0.24, Y + 0.18);
+        ctx.strokeStyle = shade(C.coral, 0.35); ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.restore();
       }
     } else {
       for (const [fy, ph] of [[y0 + 0.28, 0], [y0 + 0.6, 2]]) {
@@ -180,6 +193,33 @@ function towelSwan(ctx, x, y, z) {
   ctx.beginPath(); ctx.arc(X + 0.22, Y - 0.32, 0.06, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.02 });
 }
 
+// The lost sunglasses on the pool floor, drawn inside the water so a lane
+// line runs across them: small, dark lenses, the faintest glint.
+const SHADES = [10.4, 10.47, -1.18];
+const DEEP = alpha(C.navy, 0.22);
+function sunglasses(ctx) {
+  const [X, Y] = P(...SHADES);
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.translate(X, Y); ctx.scale(0.6, 0.6); ctx.translate(-X, -Y);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.05;
+  ctx.beginPath(); // the arms, folded back
+  ctx.moveTo(X - 0.46, Y - 0.1); ctx.lineTo(X - 0.3, Y - 0.26);
+  ctx.moveTo(X + 0.46, Y - 0.1); ctx.lineTo(X + 0.3, Y - 0.26);
+  ctx.moveTo(X - 0.06, Y - 0.1); ctx.quadraticCurveTo(X, Y - 0.17, X + 0.06, Y - 0.1);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(X - 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
+  ctx.ellipse(X + 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  ctx.fillStyle = C.white; // the glint
+  ctx.globalAlpha = 0.4;
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.26 - 0.08, Y - 0.12, 0.05, 0.025, -0.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
 // The sky by the hour: navy night, a blush dawn, day blue, the party's pink
 // sunset, a purple dusk (steps of a twentieth keep the color mixes few).
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
@@ -236,7 +276,10 @@ export default {
       poly(ctx, [[PX0, PY0, WATER_Z], [PX1, PY0, WATER_Z], [PX1, PY1, WATER_Z], [PX0, PY1, WATER_Z]]);
       ctx.fillStyle = alpha(C.water, 0.92);
       ctx.fill();
+      // the lost sunglasses, drawn under the water's speckle and a lane line
+      sunglasses(ctx);
       if (!Q.detail) return;
+      poly(ctx, [[PX0, PY0, WATER_Z], [PX1, PY0, WATER_Z], [PX1, PY1, WATER_Z], [PX0, PY1, WATER_Z]]);
       ctx.save();
       ctx.clip();
       ctx.fillStyle = dots(C.teal, 0.25);
@@ -401,10 +444,14 @@ export default {
       paint(ctx, C.ink);
     });
 
-    // Rubber duck, drifting in a slow circle (a find)
-    const duck = orbit(6, 7.4, 0.9, 0.7, 20, 5);
+    // Rubber duck, bobbing in a small circle in the front corner of the pool,
+    // clear of the swimmers' lanes and the flamingo's round (a find)
+    const duck = orbit(5.3, 11.7, 0.35, 0.25, 20, 5);
     R.mover(duck, (ctx, t, p) => {
-      const [X, Y] = P(p.x, p.y, WATER_Z + Math.sin(t * 2) * 0.03);
+      const [X0, Y0] = P(p.x, p.y, WATER_Z + Math.sin(t * 2) * 0.03);
+      ctx.save();
+      ctx.translate(X0, Y0); ctx.scale(1.35, 1.35); ctx.translate(-X0, -Y0);
+      const X = X0, Y = Y0;
       ctx.beginPath();
       ctx.ellipse(X, Y - 0.12, 0.26, 0.15, 0, 0, Math.PI * 2);
       ctx.arc(X + 0.14, Y - 0.34, 0.12, 0, Math.PI * 2);
@@ -413,8 +460,10 @@ export default {
       ctx.moveTo(X + 0.24, Y - 0.34); ctx.lineTo(X + 0.36, Y - 0.3); ctx.lineTo(X + 0.24, Y - 0.28);
       ctx.fillStyle = C.coral;
       ctx.fill();
+      ctx.beginPath(); ctx.arc(X + 0.16, Y - 0.37, 0.025, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+      ctx.restore();
     });
-    R.find({ id: 'duck', label: 'A rubber duck', r: 0.8, at: (t) => { const p = duck(t); return [p.x, p.y, WATER_Z + 0.2]; } });
+    R.find({ id: 'duck', label: 'A rubber duck', r: 0.8, at: (t) => { const p = duck(t); return [p.x, p.y, WATER_Z + 0.3]; } });
 
     // Loungers, parasols and sunbathers on the left deck
     // The front sunbather is the first thing to tap: up they sit.
@@ -443,37 +492,20 @@ export default {
       rect(ctx, 9.6, 13.3, 1.4, 2.2, 0.02, C.mustard, { dots: C.coral, density: 0.25 });
       flipflop(ctx, 6.1, 15.1, 0.03);
     });
-    const lost = R.poke({ id: 'lost', at: [LOST[0] + 0.55, LOST[1] + 0.4, 0.6], r: 0.7, sound: 'clunk' });
+    // (its tap area covers the whole box, flaps and all)
+    const lost = R.poke({ id: 'lost', at: [LOST[0] + 0.55, LOST[1] + 0.4, 0.35], r: 1.15, sound: 'clunk' });
     R.thing(LOST[0] + 1.1, LOST[1] + 0.8, (ctx, t) => lostBox(ctx, t, lost.k()), { anim: true });
     R.find({ id: 'flipflop', label: 'One lost flip-flop', kind: 'poke', inside: lost, at: [LOST[0] + 0.55, LOST[1] + 0.5, 0.75], r: 0.6, hint: 'Its twin is lying on a towel. Somebody handed the other one in.' });
 
-    // Sunglasses on the bottom of the pool (a hard find), lying on a lane
-    // line, dark on dark, with the water wobbling over them.
-    const SHADES = [10.4, 10.5, -1.18];
+    // Sunglasses on the bottom of the pool (a hard find): small, dark on
+    // dark, half under a lane line (drawn with the water, above), in the
+    // shadow of deeper water, with a ripple wobbling over them.
     R.rug((ctx, t) => {
-      const [X, Y] = P(...SHADES);
-      ctx.save();
-      ctx.globalAlpha = 0.62;
-      ctx.translate(X, Y); ctx.scale(0.8, 0.8); ctx.translate(-X, -Y);
-      ctx.strokeStyle = C.ink;
-      ctx.lineWidth = 0.05;
-      ctx.beginPath(); // the arms, folded back along the parapet
-      ctx.moveTo(X - 0.46, Y - 0.1); ctx.lineTo(X - 0.3, Y - 0.26);
-      ctx.moveTo(X + 0.46, Y - 0.1); ctx.lineTo(X + 0.3, Y - 0.26);
-      ctx.moveTo(X - 0.06, Y - 0.1); ctx.quadraticCurveTo(X, Y - 0.17, X + 0.06, Y - 0.1);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(X - 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
-      ctx.ellipse(X + 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
-      ctx.fillStyle = C.ink;
-      ctx.fill();
-      ctx.strokeStyle = C.coral;
-      ctx.lineWidth = 0.04;
-      ctx.stroke();
-      ctx.fillStyle = C.white; // the glint
-      for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.26 - 0.08, Y - 0.12, 0.06, 0.03, -0.5, 0, Math.PI * 2); ctx.fill(); }
-      ctx.restore();
       if (!Q.detail) return;
+      // the deep patch: a little darker water over them
+      const [X, Y] = P(...SHADES);
+      ctx.beginPath(); ctx.ellipse(X - 0.1, Y + 0.05, 0.95, 0.42, 0, 0, Math.PI * 2);
+      ctx.fillStyle = DEEP; ctx.fill();
       // a ripple drifting over them
       const d = Math.sin(t * 0.7) * 0.25;
       ctx.beginPath();
@@ -483,7 +515,7 @@ export default {
       }
       ctx.strokeStyle = alpha(C.white, 0.7); ctx.lineWidth = 0.06; ctx.lineCap = 'round'; ctx.stroke();
     }, { anim: true });
-    R.find({ id: 'shades', label: 'A pair of sunglasses', kind: 'hard', at: [SHADES[0], SHADES[1], -1.0], r: 0.6, riddle: 'Went for a dip and never came up.', hint: 'Look down through the water, along the lane lines.' });
+    R.find({ id: 'shades', label: 'A pair of sunglasses', kind: 'hard', at: [SHADES[0], SHADES[1], -1.1], r: 0.6, riddle: 'Went for a dip and never came up.', hint: 'Look down through the water, along the lane lines.' });
 
     // Lifeguard tower
     R.thing(14.6, 5.4, (ctx, t) => {

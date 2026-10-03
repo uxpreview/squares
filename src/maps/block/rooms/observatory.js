@@ -4,9 +4,10 @@
 // stars one second too late.
 //
 // Retuned in session 10: the goose has shut itself in the dome with the big
-// telescope (poke: a feather in the door's seal; tap the door). Saturn's ring
-// is in one of the orrery's two drawers (poke), the cocoa on the ledge (spot),
-// the tiny alien bobs up at the window now and then (hard). Cygnus on the
+// telescope (poke: a tail tip in the door's gap and a foot under it; tap the
+// door). Saturn's ring is in one of the orrery's two drawers (poke), the cocoa
+// on the ledge (spot), the tiny alien peeks over the window sill now and then
+// (hard). Cygnus on the
 // star chart is the decoy, and the projector is the room's first thing to tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, planks,
@@ -120,24 +121,32 @@ function drawDome(ctx, t, door = 0) {
   const wa = 0.9;
   const wc = cyl(wa, 2.05, DR + 0.08);
   const tang = [-Math.sin(wa), Math.cos(wa), 0];
-  const wr = 0.34;
+  // a grey steel wheel, thick spokes running out past the rim to handles, so
+  // nobody takes it for Saturn's ring
+  const wr = 0.3;
   const spin = a * 14;
+  const wp = (b, r) => P(wc[0] + tang[0] * Math.cos(b) * r, wc[1] + tang[1] * Math.cos(b) * r, wc[2] + Math.sin(b) * r);
+  const p0 = P(...wc);
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  for (let i = 0; i <= 20; i++) {
-    const b = (i / 20) * Math.PI * 2;
-    const p = P(wc[0] + tang[0] * Math.cos(b) * wr, wc[1] + tang[1] * Math.cos(b) * wr, wc[2] + Math.sin(b) * wr);
-    i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
-  }
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.14; ctx.stroke();
-  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.08; ctx.stroke();
-  ctx.beginPath();
-  for (let i = 0; i < 3; i++) {
-    const b = spin + (i / 3) * Math.PI * 2;
-    const p0 = P(...wc);
-    const p = P(wc[0] + tang[0] * Math.cos(b) * wr, wc[1] + tang[1] * Math.cos(b) * wr, wc[2] + Math.sin(b) * wr);
+  for (let i = 0; i < 6; i++) {
+    const p = wp(spin + (i / 6) * Math.PI * 2, wr + 0.12);
     ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p[0], p[1]);
   }
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.strokeStyle = C.grey; ctx.lineWidth = 0.05; ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i <= 20; i++) {
+    const p = wp((i / 20) * Math.PI * 2, wr);
+    i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
+  }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.strokeStyle = C.grey; ctx.lineWidth = 0.05; ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    const p = wp(spin + (i / 6) * Math.PI * 2, wr + 0.12);
+    ctx.beginPath(); ctx.arc(p[0], p[1], 0.05, 0, Math.PI * 2); paint(ctx, C.ink, { stroke: false });
+  }
+  ctx.beginPath(); ctx.arc(p0[0], p0[1], 0.08, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.03 });
 
   // hemisphere
   domePath(ctx);
@@ -206,7 +215,7 @@ function drawDome(ctx, t, door = 0) {
   mug(ctx, 8.7, 5.0, DH, t);
 }
 
-// The dome's door: shut, with a white feather caught in its seal (k 0), or
+// The dome's door: shut, with a tail and a foot showing (k 0), or
 // swung out on its hinge (the left edge) onto the dark inside (k 1).
 const DOOR_A = [1.72, 2.12];
 function domeDoor(ctx, k) {
@@ -215,17 +224,23 @@ function domeDoor(ctx, k) {
     cylBand(ctx, 1.8, 2.04, 1.3, 1.75, C.butter, { lw: 0.03 });
     const [kx, ky] = P(...cyl(1.79, 1.0, DR + 0.02));
     ctx.beginPath(); ctx.arc(kx, ky, 0.07, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
-    // somebody in there is moulting
-    const [fx, fy] = P(...cyl(1.735, 0.42, DR + 0.03));
+    // somebody in there: the tip of a white tail caught in the door's gap,
+    // and an orange webbed foot sticking out under it (there in any still)
+    const [fx, fy] = P(...cyl(DOOR_A[0] + 0.01, 0.75, DR + 0.03));
     ctx.save();
-    ctx.translate(fx, fy);
-    ctx.rotate(-0.5);
+    ctx.translate(fx, fy); ctx.scale(1.35, 1.35);
     ctx.beginPath();
-    ctx.moveTo(0, 0.12); ctx.quadraticCurveTo(0.2, -0.05, 0.08, -0.32); ctx.quadraticCurveTo(-0.08, -0.08, 0, 0.12);
-    paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath(); ctx.moveTo(0, 0.14); ctx.lineTo(0.07, -0.25);
-    ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.02; ctx.stroke();
+    ctx.moveTo(0, -0.2);
+    ctx.quadraticCurveTo(0.3, -0.24, 0.48, -0.42);
+    ctx.quadraticCurveTo(0.4, -0.08, 0.06, 0.12);
+    ctx.closePath();
+    paint(ctx, C.white, { lw: 0.035 });
+    ctx.beginPath(); ctx.moveTo(0.08, -0.06); ctx.quadraticCurveTo(0.26, -0.14, 0.38, -0.3);
+    ctx.strokeStyle = C.grey; ctx.lineWidth = 0.025; ctx.stroke();
     ctx.restore();
+    // the foot, out on the floor past the door's foot
+    const [kx2, ky2] = P(...cyl(1.84, 0, DR + 0.12));
+    webFoot(ctx, kx2, ky2, 1.6);
     return;
   }
   // the doorway: dark inside, the big telescope's pier in the gloom
@@ -241,6 +256,24 @@ function domeDoor(ctx, k) {
   const at = (u, z) => [H[0] + d[0] * w * u, H[1] + d[1] * w * u, z];
   face(ctx, [at(0, 0), at(1, 0), at(1, 1.95), at(0, 1.95)], C.coral, { dots: shade(C.coral, 0.4), density: 0.2 });
   face(ctx, [at(0.2, 1.3), at(0.8, 1.3), at(0.8, 1.75), at(0.2, 1.75)], C.butter, { lw: 0.03 });
+}
+
+// A goose's webbed foot in screen space, toes pointing left and a little
+// toward you, its heel at (X, Y).
+function webFoot(ctx, X, Y, s = 1) {
+  ctx.save();
+  ctx.translate(X, Y); ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(0.04, -0.05);
+  ctx.lineTo(-0.3, -0.06);
+  ctx.quadraticCurveTo(-0.27, 0.0, -0.33, 0.05);
+  ctx.quadraticCurveTo(-0.26, 0.08, -0.27, 0.15);
+  ctx.lineTo(0.04, 0.05);
+  ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(0.0, 0.0); ctx.lineTo(-0.26, 0.0); ctx.moveTo(0.0, 0.02); ctx.lineTo(-0.22, 0.1);
+  ctx.strokeStyle = shade(C.coral, 0.35); ctx.lineWidth = 0.02; ctx.stroke();
+  ctx.restore();
 }
 
 function mug(ctx, x, y, z, t) {
@@ -380,7 +413,10 @@ function alien(ctx, t) {
   ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.lineTo(...D); ctx.lineTo(...E); ctx.closePath();
   ctx.clip();
   const sway = Math.sin(t * 0.8) * 0.12;
-  const [X, Y] = P(ALIEN.x + sway, 0.01, ALIEN.z - 0.3 + k * 0.55);
+  const [X0, Y0] = P(ALIEN.x + sway, 0.01, ALIEN.z - 0.2 + k * 0.28);
+  // small, and only up to its eyes: the sill hides the rest
+  ctx.translate(X0, Y0); ctx.scale(0.72, 0.72); ctx.translate(-X0, -Y0);
+  const X = X0, Y = Y0;
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035;
   ctx.beginPath(); ctx.moveTo(X - 0.08, Y - 0.18); ctx.lineTo(X - 0.15, Y - 0.38); ctx.moveTo(X + 0.08, Y - 0.18); ctx.lineTo(X + 0.16, Y - 0.36); ctx.stroke();
   ctx.beginPath(); ctx.arc(X - 0.15, Y - 0.4, 0.045, 0, Math.PI * 2); ctx.arc(X + 0.16, Y - 0.38, 0.045, 0, Math.PI * 2);
@@ -393,13 +429,6 @@ function alien(ctx, t) {
   ctx.fillStyle = C.ink;
   ctx.beginPath(); ctx.arc(X - 0.075 + look, Y - 0.01, 0.032, 0, Math.PI * 2); ctx.arc(X + 0.08 + look, Y - 0.01, 0.032, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
-  // little fingers on the sill
-  if (k > 0.6) {
-    for (const dx of [-0.22, 0.22]) {
-      const [fx, fy] = P(ALIEN.x + sway + dx, 0.02, ALIEN.z + 0.02);
-      ctx.beginPath(); ctx.arc(fx, fy, 0.06, 0, Math.PI * 2); paint(ctx, C.leaf, { lw: 0.025 });
-    }
-  }
 }
 
 const PROJ = [4.4, 12.2, 1.55];
@@ -418,7 +447,7 @@ function ringShape(ctx, X, Y, s = 1) {
 // A drawer pulled out k of the way. 'ring': Saturn's ring is in it, so when
 // shut it sits a little proud with a gold edge showing; 'moons': spare moons.
 function drawer(ctx, x, y, k, what) {
-  const out = (what === 'ring' ? 0.1 : 0) + k * 0.65;
+  const out = (what === 'ring' ? 0.16 : 0) + k * 0.65;
   if (out > 0.05) {
     // the tray: its floor, contents, then its side and front
     face(ctx, [[x + 0.05, y, 0.48], [x + 0.85, y, 0.48], [x + 0.85, y + out, 0.48], [x + 0.05, y + out, 0.48]], shade(C.wood, 0.3), { lw: 0.02 });
@@ -437,10 +466,13 @@ function drawer(ctx, x, y, k, what) {
   ctx.beginPath(); ctx.ellipse(hx, hy, 0.12, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
   if (what === 'ring' && k <= 0.3) {
     // shut, or nearly: the ring's gold edge sticks up over the drawer front
-    const [X, Y] = P(x + 0.5, y + out, 0.9);
-    ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.09, 0, Math.PI * 1.05, Math.PI * 1.95);
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
-    ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.06; ctx.stroke();
+    const [X, Y] = P(x + 0.45, y + out * 0.5, 0.86);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.4, 0.15, 0, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.16; ctx.stroke();
+    ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.1; ctx.stroke();
+    // a glint on it
+    sparkle(ctx, X + 0.12, Y - 0.15, 0.12, C.white);
   }
 }
 
@@ -544,7 +576,7 @@ export default {
     R.decor((ctx, t) => alien(ctx, t), { anim: true });
     R.find({
       id: 'alien', label: 'A tiny alien', kind: 'hard', r: 0.6, when: (t) => alienUp(t) > 0.5, note: 'now and then',
-      at: (t) => [ALIEN.x + Math.sin(t * 0.8) * 0.12, 0.05, ALIEN.z + 0.25],
+      at: (t) => [ALIEN.x + Math.sin(t * 0.8) * 0.12, 0.05, ALIEN.z + 0.12],
       riddle: 'Someone out there is watching the watchers.',
       hint: 'Keep an eye on the window. Something out there keeps ducking.',
     });
@@ -639,7 +671,7 @@ export default {
     // The dome, the telescope, the crank wheel and the forgotten cocoa.
     // Tap the door and it swings open on the goose, who has had the big
     // telescope to itself all night.
-    const door = R.poke({ id: 'dome', at: cyl(1.92, 1.0, DR + 0.1), r: 0.9, sound: 'clunk', say: 'HONK!' });
+    const door = R.poke({ id: 'dome', at: cyl(1.92, 0.9, DR + 0.1), r: 1.1, sound: 'clunk', say: 'HONK!' });
     R.thing(DX + 1, DY + 1, (ctx, t) => drawDome(ctx, t, door.k()), { anim: true });
     R.find({ id: 'cocoa', label: 'A mug of cocoa', at: [8.7, 5.0, DH + 0.2], r: 0.7 });
     const GZ = cyl(1.92, 0, DR + 0.05);
@@ -805,8 +837,8 @@ export default {
     // Two drawers in the table's front. Spare moons in one; in the other,
     // Saturn's ring, too big for it: the drawer won't shut and a gold edge
     // shows at the top.
-    const moons = R.poke({ id: 'moons', at: [DRAW[0].x + 0.45, OY + 1.3, 0.65], r: 0.55, sound: 'clunk', say: ['Spare moons. No rings.', 'Still moons.', 'Moon count: correct.'] });
-    const ringDrawer = R.poke({ id: 'drawer', at: [DRAW[1].x + 0.45, OY + 1.3, 0.65], r: 0.55, sound: 'clunk' });
+    const moons = R.poke({ id: 'moons', at: [DRAW[0].x + 0.45, OY + 1.3, 0.65], r: 0.65, sound: 'clunk', say: ['Spare moons. No rings.', 'Still moons.', 'Moon count: correct.'] });
+    const ringDrawer = R.poke({ id: 'drawer', at: [DRAW[1].x + 0.45, OY + 1.3, 0.7], r: 0.65, sound: 'clunk' });
     R.thing(OX + 1.2, OY + 1.2, (ctx) => {
       box(ctx, OX - 1.2, OY - 1.2, 0, 2.4, 2.4, 1.05, C.brown, { top: C.wood });
       box(ctx, OX - 1.25, OY - 1.25, 1.05, 2.5, 2.5, 0.12, C.wood);

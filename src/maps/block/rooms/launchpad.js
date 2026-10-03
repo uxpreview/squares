@@ -3,9 +3,10 @@
 // and up it goes. By dawn the mechanic has wheeled out a new one.
 //
 // Retuned in session 10: the goose is shut in the spare capsule on top of the
-// gantry (poke: it rocks; tap the hatch), so it's still up there at 8:48pm
-// when the rocket goes. The wrench is in one of two toolboxes (poke), the
-// tiny flag is planted in a hot dog (hard), the dog stays a spot find. A
+// gantry (poke: it rocks, and a beak pokes out of its porthole; tap the
+// hatch), so it's still up there at 8:48pm when the rocket goes. The wrench
+// is in one of two toolboxes (poke), the tiny flag is planted in a hot dog
+// (hard), the dog patrols the front of the lot (spot). A
 // crash test goose is the decoy; the big red button is the first thing to tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, tiles, onLeft,
@@ -123,11 +124,16 @@ function capsule(ctx, t, k) {
   paint(ctx, k > 0.02 ? C.night : C.greyLight, { lw: 0.04 });
   const w = 0.24 * (1 - k * 0.75);
   ctx.beginPath(); ctx.ellipse(hx + k * 0.42, hy, w, 0.27, 0, 0, Math.PI * 2);
-  paint(ctx, C.coral, { lw: 0.04, dots: shade(C.coral, 0.4), density: 0.2 });
+  // (a navy hatch, so the orange beak at its porthole stands out)
+  paint(ctx, C.navy, { lw: 0.04, dots: C.ink, density: 0.2 });
   if (k < 0.3) {
-    // its porthole, steamed up from the inside
-    ctx.beginPath(); ctx.arc(hx, hy - 0.04, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath(); ctx.moveTo(hx + 0.12, hy + 0.12); ctx.lineTo(hx + 0.2, hy + 0.12); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+    // its porthole, with somebody looking out of it: an eye, and an orange
+    // beak pressed out through the gap (there in any still, rocking or not)
+    ctx.beginPath(); ctx.moveTo(hx + 0.08, hy - 0.17); ctx.lineTo(hx + 0.54, hy - 0.04); ctx.lineTo(hx + 0.08, hy + 0.08); ctx.closePath();
+    paint(ctx, C.coral, { lw: 0.035 });
+    ctx.beginPath(); ctx.arc(hx, hy - 0.04, 0.14, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+    ctx.beginPath(); ctx.arc(hx + 0.03, hy - 0.06, 0.045, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx + 0.12, hy + 0.15); ctx.lineTo(hx + 0.2, hy + 0.15); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
   }
   ctx.restore();
 }
@@ -192,7 +198,7 @@ function dog(ctx, x, y, z, t, dir, moving) {
   const f = dir === 'l' ? -1 : 1;
   ctx.save();
   ctx.translate(X, Y);
-  ctx.scale(f * 0.9, 0.9);
+  ctx.scale(f * 1.2, 1.2);
   if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.45, 0.15, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.18); ctx.fill(); }
   const ph = t * 12;
   ctx.strokeStyle = C.brown; ctx.lineWidth = 0.1; ctx.lineCap = 'round';
@@ -213,11 +219,12 @@ function dog(ctx, x, y, z, t, dir, moving) {
   ctx.beginPath(); ctx.ellipse(0.33, -0.7, 0.07, 0.14, 0.3, 0, Math.PI * 2); ctx.fillStyle = C.brown; ctx.fill();
   ctx.beginPath(); ctx.arc(0.58, -0.7, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
   ctx.beginPath(); ctx.arc(0.47, -0.76, 0.025, 0, Math.PI * 2); ctx.fill();
-  // helmet
-  ctx.beginPath(); ctx.arc(0.43, -0.73, 0.3, 0, Math.PI * 2);
-  ctx.fillStyle = alpha(C.sky, 0.35); ctx.fill();
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0.43, -0.73, 0.22, -2.4, -1.6); ctx.strokeStyle = C.white; ctx.lineWidth = 0.05; ctx.stroke();
+  // helmet: a glassy bubble with a white rim and a big shine, so it reads
+  ctx.beginPath(); ctx.arc(0.43, -0.73, 0.32, 0, Math.PI * 2);
+  ctx.fillStyle = alpha(C.sky, 0.45); ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.03; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0.43, -0.73, 0.23, -2.6, -1.5); ctx.strokeStyle = C.white; ctx.lineWidth = 0.07; ctx.lineCap = 'round'; ctx.stroke();
   ctx.beginPath(); ctx.ellipse(0.43, -0.46, 0.28, 0.07, 0, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
   ctx.restore();
 }
@@ -912,10 +919,11 @@ export default {
       ctx.beginPath(); ctx.rect(X - 0.18, Y - 0.5, 0.36, 0.12); ctx.fillStyle = C.white; ctx.fill();
     });
 
-    // Dog in a space helmet, on patrol.
-    const dogRoute = route([[4.6, 11.2, 1], [7.2, 11.4], [7.2, 15.2, 1.5], [4.4, 15.2]], { speed: 1.4 });
+    // Dog in a space helmet, on patrol along the front of the lot, in front
+    // of where the countdown crowd stands, so nobody is ever in front of it.
+    const dogRoute = route([[4.6, 15.3, 1.5], [6.4, 15.4, 1.5]], { speed: 1.2, loop: false });
     R.mover(dogRoute, (ctx, t, p) => dog(ctx, p.x, p.y, 0, t, p.dir, p.moving));
-    R.find({ id: 'dog', label: 'A dog in a space helmet', at: (t) => { const p = dogRoute(t); return [p.x, p.y, 0.5]; }, r: 0.8 });
+    R.find({ id: 'dog', label: 'A dog in a space helmet', at: (t) => { const p = dogRoute(t); return [p.x, p.y, 0.6]; }, r: 0.9 });
 
     // The goose, shut in the spare capsule at the top of the gantry. Open the
     // hatch and it's sat in the hatchway, running the show from up there
