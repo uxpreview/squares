@@ -24,7 +24,7 @@ Right now that file is a **greybox**: plain blocks, labels and numbered pins sho
 You're working in your own copy of the repository (a git worktree), so your half-finished work never breaks anyone else's screenshots, and theirs never break yours.
 
 1. Run `pwd`. It must **not** be the lead's copy ({{LEAD_REPO}}); if it is, stop and say so in your report.
-2. Bring your copy up to date with the lead's (it may start from an older commit): `cp -R {{LEAD_REPO}}/src/. ./src/ && cp -R {{LEAD_REPO}}/tools/. ./tools/ && cp -R {{LEAD_REPO}}/docs/. ./docs/`. Then copy the dependencies in: `cp -r {{LEAD_REPO}}/node_modules ./node_modules` (they're not in git; a symlink stops the fonts loading in the tools' browser).
+2. Bring your copy up to date with the lead's (it may start from an older commit): `cp -R {{LEAD_REPO}}/src/. ./src/ && cp -R {{LEAD_REPO}}/tools/. ./tools/ && cp -R {{LEAD_REPO}}/docs/. ./docs/ && cp {{LEAD_REPO}}/index.html {{LEAD_REPO}}/styles.css ./` (the page too: a lead's change to the game can need its markup, and without it every shot comes out blank). Then copy the dependencies in: `cp -r {{LEAD_REPO}}/node_modules ./node_modules` (they're not in git; a symlink stops the fonts loading in the tools' browser).
 3. Keep your screenshots in `qa-out/art/` (ignored by git).
 
 The other areas in your copy are still greyboxes; other artists are drawing them right now, in their own copies. That's expected.
