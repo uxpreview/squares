@@ -450,8 +450,8 @@ export default {
 
     // Two bins by the ice cream window, for everybody's dropped cones. The
     // goose has climbed into the one at the back of the line and is working
-    // through them: its lid won't sit flat, and a tail tip sticks out under
-    // it. Tap a bin and the lid flips up; the other is just napkins.
+    // through them: its lid won't sit flat, a tail fans out from under it,
+    // and a foot hangs over the rim. Tap a bin and the lid flips up; the other is just napkins.
     const BIN_A = [69.3, 29.75], BIN_B = [63.95, 29.45];
     const binA = R.poke({ id: 'bin', at: [BIN_A[0], BIN_A[1], z0(BIN_A) + 0.75], r: 0.7, sound: 'clunk', say: 'HONK?' });
     const binB = R.poke({ id: 'bin2', at: [BIN_B[0], BIN_B[1], z0(BIN_B) + 0.75], r: 0.7, hold: 2.2, sound: 'clunk', say: ['Napkins. Sticky ones.', 'Still napkins.', 'A cone. Already licked.'] });
@@ -486,13 +486,39 @@ export default {
     const binFront = (bin, poke, crooked, tell) => R.thing(bin[0], bin[1], (ctx) => {
       const [X, Y] = P(bin[0], bin[1], z0(bin)), k = poke.k();
       binSide(ctx, X, Y);
-      if (k < 0.05) { binLid(ctx, X, Y, 0, crooked); if (tell) tell(ctx, X, Y - BH); }
+      // (The tell in two parts: what pokes out from under the lid, then what
+      // hangs over the rim in front of it.)
+      if (k < 0.05) { if (tell) tell.under(ctx, X, Y - BH); binLid(ctx, X, Y, 0, crooked); if (tell) tell.over(ctx, X, Y - BH); }
     }, { anim: true, depth: bin[0] + bin[1] + 0.3 });
     binBack(BIN_A, binA);
-    binFront(BIN_A, binA, true, (ctx, X, Yt) => {
-      // The tell: a white tail tip out from under the back of the lid.
-      ctx.beginPath(); ctx.moveTo(X + 0.12, Yt - 0.12); ctx.quadraticCurveTo(X + 0.34, Yt - 0.2, X + 0.52, Yt - 0.42); ctx.quadraticCurveTo(X + 0.46, Yt - 0.12, X + 0.28, Yt - 0.02); ctx.closePath();
-      paint(ctx, C.white, { lw: 0.035 });
+    binFront(BIN_A, binA, true, {
+      // The tell, big enough to read on a phone: a white tail fanned up out
+      // from under the back of the crooked lid...
+      under: (ctx, X, Yt) => {
+        const ox = X + 0.12, oy = Yt - 0.14;
+        ctx.beginPath(); ctx.moveTo(ox - 0.1, oy + 0.04);
+        for (let i = 0; i <= 4; i++) {
+          const a = -1.75 + i * 0.32, r = 0.78 - Math.abs(i - 2) * 0.06;
+          const b = a + 0.16, rb = r - 0.12;
+          ctx.lineTo(ox + Math.cos(a) * r, oy + Math.sin(a) * r);
+          if (i < 4) ctx.lineTo(ox + Math.cos(b) * rb, oy + Math.sin(b) * rb);
+        }
+        ctx.lineTo(ox + 0.12, oy + 0.06); ctx.closePath();
+        paint(ctx, C.white, { lw: 0.04 });
+        if (!Q.detail) return;
+        ctx.beginPath();
+        for (let i = 1; i < 4; i++) { const a = -1.75 + i * 0.32; ctx.moveTo(ox, oy); ctx.lineTo(ox + Math.cos(a) * 0.55, oy + Math.sin(a) * 0.55); }
+        ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.035; ctx.stroke();
+      },
+      // ...and an orange foot hanging over the front rim.
+      over: (ctx, X, Yt) => {
+        const fx = X - 0.16, fy = Yt + 0.16;
+        ctx.beginPath(); ctx.moveTo(fx, fy - 0.06); ctx.lineTo(fx - 0.02, fy + 0.22);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.07; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx - 0.02, fy + 0.2); ctx.lineTo(fx - 0.27, fy + 0.52); ctx.lineTo(fx - 0.1, fy + 0.45); ctx.lineTo(fx - 0.02, fy + 0.58); ctx.lineTo(fx + 0.06, fy + 0.45); ctx.lineTo(fx + 0.23, fy + 0.52); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.035 });
+      },
     });
     binBack(BIN_B, binB, (ctx, X, Yt) => {
       for (const [dx, dy] of [[-0.15, 0], [0.05, -0.04], [0.18, 0.03], [-0.02, 0.07]]) { ctx.beginPath(); ctx.arc(X + dx, Yt + dy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 }); }
@@ -527,19 +553,24 @@ export default {
     // ---------- The lots ----------
     // Residents only, and everyone else gets a ticket.
     notice(R, 60.9, 33.0, [['RESIDENTS ONLY', 0.24, C.white], ['EVERYONE ELSE: TICKETED,', 0.12, C.white], ['TOWED AND JUDGED', 0.12, C.white]], { w: 2.0, h: 0.8, board: C.red, post: 1.35 });
-    R.thing(TICKET_CAR[0] + 0.5, TICKET_CAR[1] + 1, (ctx) => car(ctx, ...TICKET_CAR, h(...TICKET_CAR), CARS[0], 'y', null, 0, null, { board: C.butter }));
+    R.thing(TICKET_CAR[0] + 0.5, TICKET_CAR[1] + 1, (ctx) => car(ctx, ...TICKET_CAR, h(...TICKET_CAR), CARS[1], 'y', null, 0, null, { board: C.butter }));
     // (The third space is beach traffic's, day.js: in at 8:20am, out by six.)
     R.thing(GH_CAR[0] + 0.5, GH_CAR[1] + 1, (ctx) => car(ctx, ...GH_CAR, h(...GH_CAR), CARS[6], 'y'), { on: during(9.4, 22) });
-    // The ticket, under the wiper, flapping.
+    // The ticket: a bright orange envelope under the wiper, flapping, on a
+    // teal car so it can't hide in the paint.
     const tz = h(...TICKET_CAR);
     R.thing(TICKET_CAR[0] + 0.52, TICKET_CAR[1] + 1.02, (ctx, t) => {
-      const x = TICKET_CAR[0], y = TICKET_CAR[1] + 0.44, f = Q.detail ? Math.sin(t * 7) * 0.06 + 0.05 : 0.05;
-      shape(ctx, [[x - 0.32, y, tz + 0.66], [x + 0.28, y, tz + 0.66], [x + 0.28, y + f, tz + 1.02], [x - 0.32, y + f, tz + 1.02]], C.white, { lw: 0.03 });
-      shape(ctx, [[x - 0.32, y + f * 0.8, tz + 0.93], [x + 0.28, y + f * 0.8, tz + 0.93], [x + 0.28, y + f, tz + 1.02], [x - 0.32, y + f, tz + 1.02]], C.mustard, { stroke: false });
-      if (Q.detail) for (const zz of [0.74, 0.8, 0.86]) line(ctx, [[x - 0.2, y + f * ((zz - 0.66) / 0.34), tz + zz], [x + 0.1, y + f * ((zz - 0.66) / 0.34), tz + zz]], C.grey, 0.02);
-      line(ctx, [[x - 0.34, y + 0.02, tz + 0.7], [x + 0.28, y + 0.02, tz + 0.66]], C.ink, 0.04);
+      const x = TICKET_CAR[0], y = TICKET_CAR[1] + 0.44, f = Q.detail ? Math.sin(t * 7) * 0.06 + 0.06 : 0.06;
+      const x0 = x - 0.4, x1 = x + 0.36, zb = tz + 0.6, zt = tz + 1.12;
+      shape(ctx, [[x0, y, zb], [x1, y, zb], [x1, y + f, zt], [x0, y + f, zt]], C.coral, { lw: 0.035 });
+      // The envelope's flap, and its little window.
+      const fm = (zz) => y + f * ((zz - zb) / (zt - zb));
+      line(ctx, [[x0, fm(zt), zt], [(x0 + x1) / 2, fm(zt - 0.2), zt - 0.2], [x1, fm(zt), zt]], shade(C.coral, 0.35), 0.03);
+      if (Q.detail) shape(ctx, [[x0 + 0.1, fm(zb + 0.1), zb + 0.1], [x0 + 0.42, fm(zb + 0.1), zb + 0.1], [x0 + 0.42, fm(zb + 0.24), zb + 0.24], [x0 + 0.1, fm(zb + 0.24), zb + 0.24]], C.white, { lw: 0.02 });
+      // The wiper, across it.
+      line(ctx, [[x0 - 0.04, y + 0.03, tz + 0.7], [x1 + 0.02, y + 0.03, tz + 0.64]], C.ink, 0.05);
     }, { anim: true });
-    R.find({ id: 'ticket', label: 'A parking ticket', at: [TICKET_CAR[0], TICKET_CAR[1] + 0.46, tz + 0.83], r: 0.8 });
+    R.find({ id: 'ticket', label: 'A parking ticket', at: [TICKET_CAR[0], TICKET_CAR[1] + 0.46, tz + 0.86], r: 0.85 });
     // The parking officer, on a slow loop behind the cars, writing, writing.
     const officerLook = folk(361, { top: C.navy, bottom: C.navy, hat: 'cap', hold: pad });
     const beat = route([[55.3, 33.25], [55.9, 33.25, 7], [57.2, 33.25, 5], [58.6, 33.25, 6], [59.9, 33.25, 2], [60.5, 33.25], [60.5, 37.3, 3]], { speed: 0.55, loop: false });
@@ -582,8 +613,9 @@ export default {
       const ax = hx - Math.sin(Math.PI - 0.6 + s * 0.5) * 0.7, ay = hy - 0.6 - Math.cos(Math.PI - 0.6 + s * 0.5) * 0.35;
       ctx.beginPath(); ctx.moveTo(hx - 0.2, hy - 0.3); ctx.lineTo(ax - 0.3, ay - 0.9);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(ax - 0.3, ay - 0.9); ctx.lineTo(ax - 0.95, ay - 0.75 + s * 0.12); ctx.lineTo(ax - 0.9, ay - 0.35 + s * 0.12); ctx.lineTo(ax - 0.27, ay - 0.5); ctx.closePath();
-      paint(ctx, C.mustard, { lw: 0.03 });
+      // (A teal pennant: a yellow square here read as the ticket.)
+      ctx.beginPath(); ctx.moveTo(ax - 0.3, ay - 0.9); ctx.lineTo(ax - 1.0, ay - 0.6 + s * 0.12); ctx.lineTo(ax - 0.27, ay - 0.45); ctx.closePath();
+      paint(ctx, C.teal, { lw: 0.03 });
     });
     // The wagon that has been in the $20 lot since 1998: faded, wood panels,
     // sand in the wheel arches, the grass growing up round it.
@@ -599,34 +631,46 @@ export default {
         box(ctx, x - 0.3, y - 0.45, oz + 1.12, 0.6, 0.9, 0.08, tint(C.coral, 0.4), { flat: true, lw: 0.02 });
         for (const [dx, dy, s] of [[0.62, -0.7, 0.8], [0.64, 0.75, 0.7], [-0.4, 1.2, 0.8]]) tuft(ctx, x + dx, y + dy, oz, s);
       }
-      // The sticker: faded to nearly nothing, peeling at a corner.
-      const sy = y + 1.045, s0 = x - 0.36, s1 = x + 0.36, z0 = oz + 0.27, z1 = oz + 0.52;
-      shape(ctx, [[s0, sy, z0], [s1, sy, z0], [s1, sy, z1], [s0, sy, z1]], tint(C.sky, 0.55), { lw: 0.025, stroke: shade(C.sky, 0.25) });
+      // The sticker: the bright old print, peeling at a corner. Its bottom
+      // part (a coral and mustard stripe) shows under the towel all day.
+      const sy = y + 1.045, s0 = x - 0.4, s1 = x + 0.4, z0 = oz + 0.25, z1 = oz + 0.62;
+      shape(ctx, [[s0, sy, z0], [s1, sy, z0], [s1, sy, z1], [s0, sy, z1]], C.white, { lw: 0.03 });
+      shape(ctx, [[s0, sy, z0], [s1, sy, z0], [s1, sy, z0 + 0.09], [s0, sy, z0 + 0.09]], C.coral, { stroke: false });
+      shape(ctx, [[s0, sy, z0 + 0.09], [s1, sy, z0 + 0.09], [s1, sy, z0 + 0.16], [s0, sy, z0 + 0.16]], C.mustard, { stroke: false });
       shape(ctx, [[s1 - 0.12, sy, z1], [s1, sy, z1], [s1, sy, z1 - 0.1]], body, { stroke: false });
       shape(ctx, [[s1 - 0.12, sy + 0.02, z1], [s1, sy + 0.05, z1 - 0.1], [s1 - 0.1, sy + 0.05, z1 - 0.12]], C.white, { lw: 0.015 });
       if (Q.detail) {
         ctx.save();
         ctx.translate(...P(0, sy + 0.005, 0));
-        paintText(ctx, 'right', x - 0.04, oz + 0.43, 'PLUM ISLAND', 0.1, tint(C.navy, 0.45), 'Rethink Sans');
-        paintText(ctx, 'right', x - 0.04, oz + 0.33, "BEACH '98", 0.09, tint(C.coral, 0.4), 'Rethink Sans');
+        paintText(ctx, 'right', x - 0.04, oz + 0.54, 'PLUM ISLAND', 0.1, C.navy, 'Rethink Sans');
+        paintText(ctx, 'right', x - 0.04, oz + 0.45, "BEACH '98", 0.09, C.coral, 'Rethink Sans');
         ctx.restore();
       }
     });
     // A beach towel drying over the wagon's tailgate, hiding the proof: tap
-    // it and it rolls up onto the rack. (A thin blue edge of the sticker
-    // shows under it all along.)
-    const towel = R.poke({ id: 'towel', at: [OLD_CAR[0], OLD_CAR[1] + 1.07, oz + 0.62], r: 0.7, sound: 'pop' });
+    // it and it rolls up onto the rack. It hangs short, so the sticker's
+    // bright bottom shows under its fringe, and one corner is turned
+    // back (its pale underside) the way a towel you could lift looks.
+    const towel = R.poke({ id: 'towel', at: [OLD_CAR[0], OLD_CAR[1] + 1.07, oz + 0.6], r: 0.75, sound: 'pop' });
     R.thing(OLD_CAR[0] + 0.52, OLD_CAR[1] + 1.02, (ctx, t) => {
-      const k = towel.k(), [x, y] = OLD_CAR, ty = y + 1.075, x0 = x - 0.42, x1 = x + 0.42;
-      const zt = oz + 1.12, zb = oz + 0.33 + 0.62 * k, sway = Q.detail ? Math.sin(t * 2.2) * 0.02 * (1 - k) : 0;
-      shape(ctx, [[x0, ty, zt], [x1, ty, zt], [x1, ty + sway, zb], [x0, ty + sway, zb]], C.pink, { lw: 0.03 });
+      const k = towel.k(), [x, y] = OLD_CAR, ty = y + 1.075, x0 = x - 0.44, x1 = x + 0.44;
+      const zt = oz + 1.12, zb = oz + 0.44 + 0.54 * k, sway = Q.detail ? Math.sin(t * 2.2) * 0.02 * (1 - k) : 0;
+      // Turned back at the near corner: the towel's edge runs up to it.
+      const c = 0.24 * (1 - k);
+      shape(ctx, [[x0, ty, zt], [x1, ty, zt], [x1, ty + sway, zb + c], [x1 - c, ty + sway, zb], [x0, ty + sway, zb]], C.pink, { lw: 0.035 });
       if (Q.detail) for (const zz of [0.25, 0.6]) {
         const a = zt - (zt - zb) * zz;
         shape(ctx, [[x0, ty + sway * zz, a], [x1, ty + sway * zz, a], [x1, ty + sway * zz, a - 0.07], [x0, ty + sway * zz, a - 0.07]], C.white, { stroke: false });
       }
+      if (k < 0.1) {
+        // The fold: the corner flipped up over the front, pale side out.
+        shape(ctx, [[x1 - c, ty + sway + 0.02, zb], [x1, ty + sway + 0.02, zb + c], [x1 - c * 0.9, ty + sway + 0.04, zb + c * 1.1]], tint(C.pink, 0.55), { lw: 0.03 });
+        // A fringe along the bottom.
+        if (Q.detail) for (let u = x0 + 0.06; u < x1 - c; u += 0.09) line(ctx, [[u, ty + sway + 0.01, zb], [u, ty + sway + 0.01, zb - 0.05]], shade(C.pink, 0.2), 0.02);
+      }
       if (k > 0.1) line(ctx, [[x0, ty + 0.03, zb], [x1, ty + 0.03, zb]], shade(C.pink, 0.2), 0.12 * k);
     }, { anim: true });
-    R.find({ id: 'sticker', label: 'A beach sticker from 1998', kind: 'poke', inside: towel, at: [OLD_CAR[0], OLD_CAR[1] + 1.05, oz + 0.4], r: 0.7, hint: 'The oldest car in the $20 lot can prove it. Something is drying over the proof.' });
+    R.find({ id: 'sticker', label: 'A beach sticker from 1998', kind: 'poke', inside: towel, at: [OLD_CAR[0], OLD_CAR[1] + 1.05, oz + 0.42], r: 0.7, hint: 'The oldest car in the $20 lot can prove it. Something is drying over the proof.' });
 
     // ---------- The warnings ----------
     // The town's message board by the path, blinking its news at nobody.

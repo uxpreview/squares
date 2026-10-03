@@ -613,7 +613,12 @@ export default {
       box(ctx, x - 0.15, y - 0.15, z + 0.35, 0.3, 0.3, 0.55, tint(sand, 0.12), { flat: true, lw: 0.03 });
       box(ctx, x - 0.01, y - 0.01, z + 0.9, 0.02, 0.02, 0.4, C.ink, { flat: true, stroke: false });
       face(ctx, [[x, y, z + 1.3], [x + 0.3, y, z + 1.2], [x, y, z + 1.1]], C.coral, { lw: 0.02 });
-      box(ctx, x + 0.6, y + 0.3, z, 0.22, 0.22, 0.2, C.mustard, { flat: true, lw: 0.025 });
+      // The bucket: round and teal (a yellow square here read as the tape
+      // measure's case).
+      const [bx, by] = P(x + 0.7, y + 0.4, z), bh = 0.24;
+      ctx.beginPath(); ctx.moveTo(bx - 0.13, by - bh); ctx.lineTo(bx - 0.1, by); ctx.ellipse(bx, by, 0.1, 0.05, 0, Math.PI, 0, true); ctx.lineTo(bx + 0.13, by - bh); ctx.closePath();
+      paint(ctx, C.teal, { lw: 0.025 });
+      ctx.beginPath(); ctx.ellipse(bx, by - bh, 0.13, 0.065, 0, 0, Math.PI * 2); paint(ctx, shade(C.teal, 0.4), { lw: 0.025 });
     }, { on: (t) => { const s = wrap(t); return s >= at(9.8) && level(t) < castleZ - 0.02; } });
     const kidA = folk(321, { top: C.pink }), kidB = folk(323, { top: C.mustard, bottom: C.teal });
     const kids = (t) => between(hour(t), 9.8, 18.4) && level(t) < castleZ - 0.02;
@@ -657,8 +662,29 @@ export default {
     });
 
     // Surfers, just past the break, wherever it is.
-    for (const [x, ph, col] of [[76, 0, C.coral], [84, 2.2, C.white], [91, 4, C.mustard]]) {
+    // (Two surfers and, between them, a kid in a rubber ring: a third board
+    // out here, a white one, read as the boogie board on the list.)
+    for (const [x, ph, col] of [[76, 0, C.tealLight], [84, 2.2, null], [91, 4, C.mustard]]) {
       const look = folk(130 + ph * 3, { top: C.navy, bottom: C.navy });
+      if (!col) {
+        const kid = folk(140, { top: C.pink });
+        R.mover((t) => {
+          const L = level(t);
+          return { x: x + Math.sin(t / 7 + ph) * 1.2, y: Math.min(56, shore(L) + 1.6 + Math.sin(t / 3 + ph) * 0.5), on: between(hour(t), 9.5, 18.5) };
+        }, (ctx, t, p) => {
+          if (!p.on) return;
+          const z = level(t) + 0.03 * Math.sin(t * 1.6);
+          // The ring behind him, the kid, then the ring's near half over him.
+          const [X, Y] = P(p.x, p.y, z + 0.08);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.5, 0.25, 0, Math.PI, 0); ctx.ellipse(X, Y, 0.28, 0.13, 0, 0, Math.PI, true); ctx.closePath();
+          paint(ctx, C.teal, { lw: 0.035 });
+          who(ctx, p.x, p.y, z - 0.75, kid, null, { pose: 'swim', scale: 0.7 }, t);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.5, 0.25, 0, 0, Math.PI); ctx.ellipse(X, Y, 0.28, 0.13, 0, Math.PI, 0, true); ctx.closePath();
+          paint(ctx, C.teal, { lw: 0.035 });
+          if (Q.detail) for (const a of [0.6, 1.6, 2.6]) { ctx.beginPath(); ctx.arc(X + Math.cos(a) * 0.39, Y + Math.sin(a) * 0.19, 0.07, 0, Math.PI * 2); paint(ctx, C.white, { stroke: false }); }
+        });
+        continue;
+      }
       R.mover((t) => {
         const L = level(t), y = Math.min(56, shore(L) + 2.4 + Math.sin(t / 3 + ph) * 1);
         return { x: x + Math.sin(t / 7 + ph) * 1.5, y, surfing: Math.sin(t / 3 + ph) < -0.3, on: between(hour(t), 5.8, 19.6) };
@@ -888,8 +914,13 @@ export default {
         ctx.beginPath(); ctx.rect(X + 0.1, Y + 0.06, 0.18, 0.05); paint(ctx, tint(C.butter, 0.3), { lw: 0.02 });
       }
       if (k <= 0.5) lid();
-      // The handle, while it's shut.
+      // The handle, while it's shut, and the tell: the tape's yellow tongue
+      // hanging out under the lid and down the front, its hook at the end.
       if (k < 0.05) {
+        const tx = TB[0] + 0.08, ty = y0 + d + 0.005;
+        face(ctx, [[tx, ty, tbTop + 0.04], [tx + 0.1, ty, tbTop + 0.04], [tx + 0.1, ty + 0.02, tbz + 0.06], [tx, ty + 0.02, tbz + 0.06]], C.mustard, { lw: 0.02 });
+        if (Q.detail) for (let u = 0.08; u < 0.3; u += 0.06) face(ctx, [[tx, ty + 0.01, tbTop - u], [tx + 0.05, ty + 0.01, tbTop - u]], null, { lw: 0.015, stroke: C.ink });
+        face(ctx, [[tx - 0.02, ty + 0.025, tbz + 0.09], [tx + 0.12, ty + 0.025, tbz + 0.09], [tx + 0.12, ty + 0.025, tbz + 0.03], [tx - 0.02, ty + 0.025, tbz + 0.03]], C.grey, { lw: 0.015 });
         const [a1, b1] = P(TB[0] - 0.12, TB[1], tbTop + 0.07), [c1, d1] = P(TB[0] + 0.12, TB[1], tbTop + 0.07);
         ctx.beginPath(); ctx.moveTo(a1, b1); ctx.quadraticCurveTo((a1 + c1) / 2, b1 - 0.2, c1, d1); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
       }
@@ -924,21 +955,29 @@ export default {
     // The fry, in the gull's beak.
     R.find({ id: 'fry', label: 'A stolen french fry', at: fryAt, r: 0.9 });
 
-    // A boogie board, left on the sand by the umbrellas (it floats off when
-    // the tide comes up the beach). Nudged half a unit left, clear of the pole.
-    const BB = [75.9, 44.1];
+    // A boogie board, left on its own patch of open sand below the umbrellas
+    // (it floats off when the tide comes up the beach): short, wide, bright,
+    // a rounded nose, and its coiled wrist leash beside it. Nothing else on
+    // the sand near it is a board.
+    const BB = [81.2, 46.9];
     R.mover((t) => ({ x: BB[0], y: BB[1], z: float(BB[0], BB[1], t) + (level(t) > h(...BB) ? 0.03 * Math.sin(t * 1.7) : 0) }), (ctx, t, p) => {
-      const { x, y, z } = p, c = [[x - 0.28, y - 0.45], [x + 0.28, y - 0.45], [x + 0.3, y + 0.38], [x + 0.18, y + 0.47], [x - 0.18, y + 0.47], [x - 0.3, y + 0.38]];
-      face(ctx, c.map(([a, b]) => [a, b, z + 0.02]), shade(C.navy, 0.1), { lw: 0.03 });
-      face(ctx, c.map(([a, b]) => [a, b, z + 0.08]), C.sky, { lw: 0.04 });
-      if (Q.detail) {
-        face(ctx, [[x - 0.2, y - 0.3, z + 0.085], [x + 0.2, y - 0.3, z + 0.085], [x + 0.2, y - 0.18, z + 0.085], [x - 0.2, y - 0.18, z + 0.085]], C.coral, { stroke: false });
-        // Its leash, curled on the sand.
-        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.beginPath();
-        const [a, b] = P(x + 0.2, y + 0.47, z + 0.06); ctx.moveTo(a, b);
-        for (let k = 1; k <= 8; k++) { const [m, n] = P(x + 0.35 + Math.sin(k) * 0.15, y + 0.5 + k * 0.05, z + 0.03); ctx.lineTo(m, n); }
-        ctx.stroke();
+      const { x, y, z } = p, hw = 0.42, c = [[x - hw, y - 0.42], [x - hw + 0.12, y - 0.55], [x + hw - 0.12, y - 0.55], [x + hw, y - 0.42], [x + hw, y + 0.5], [x + hw - 0.2, y + 0.58], [x - hw + 0.2, y + 0.58], [x - hw, y + 0.5]];
+      face(ctx, c.map(([a, b]) => [a, b, z + 0.02]), C.navy, { lw: 0.03 });
+      face(ctx, c.map(([a, b]) => [a, b, z + 0.1]), C.coral, { lw: 0.04 });
+      face(ctx, [[x - hw + 0.04, y - 0.3, z + 0.105], [x + hw - 0.04, y - 0.3, z + 0.105], [x + hw - 0.04, y - 0.16, z + 0.105], [x - hw + 0.04, y - 0.16, z + 0.105]], C.white, { stroke: false });
+      if (Q.detail) face(ctx, [[x - 0.12, y + 0.1, z + 0.105], [x + 0.12, y + 0.1, z + 0.105], [x + 0.12, y + 0.34, z + 0.105], [x - 0.12, y + 0.34, z + 0.105]], C.butter, { stroke: false });
+      // Its leash: a coiled cord from the tail to a teal wrist strap.
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.beginPath();
+      const [a, b] = P(x, y + 0.58, z + 0.08); ctx.moveTo(a, b);
+      for (let k = 1; k <= 24; k++) {
+        const u = k / 24, ang = k * 1.4;
+        const [m, n] = P(x + 0.15 * u + Math.cos(ang) * 0.06, y + 0.6 + u * 0.55 + Math.sin(ang) * 0.06, h(x, y + 0.9) + 0.04 + Math.sin(ang) * 0.03);
+        ctx.lineTo(m, n);
       }
+      ctx.stroke();
+      const [sx, sy] = P(x + 0.2, y + 1.25, h(x, y + 1.25) + 0.02);
+      ctx.beginPath(); ctx.ellipse(sx, sy, 0.17, 0.09, 0, 0, Math.PI * 2); ctx.ellipse(sx, sy, 0.09, 0.045, 0, 0, Math.PI * 2, true);
+      paint(ctx, C.teal, { lw: 0.025 });
     }, { bias: -0.2 });
     R.find({ id: 'board', label: 'A boogie board', at: (t) => [BB[0], BB[1], float(BB[0], BB[1], t) + 0.1], r: 0.8 });
   },
