@@ -14,7 +14,7 @@ import { INK, CAST, iguana, dressed, at, chase } from './style.js';
 // it's been seen.
 const sightings = [
   { find: 'buffet:iguana', who: 'pidge', says: 'The camera saw it in the salad bar at 6:52.', seen: 'In the salad bar at breakfast, under the lettuce.' },
-  { find: 'cabins:iguana', who: 'doreen', says: 'It beat me to the melon, then took the lift up.', seen: 'In the honeymoon suite, posing as a towel animal, eating the flowers.' },
+  { find: 'cabins:iguana', who: 'doreen', says: 'It beat me to the melon, then took the lift up.', seen: 'Posing as a towel animal on the honeymoon bed, a flower in its mouth.' },
   { find: 'waterslide:iguana', who: 'steward', says: 'A towel animal walked off. Up to the sun deck.', seen: 'At the top of the waterslide, shedding its skin.' },
   { find: 'pool:iguana', who: 'tyler', says: 'It came down the slide and went to the big pool.', seen: 'At the limbo at noon. It won.' },
   { find: 'adults-only:iguana', who: 'kelly', says: 'Our limbo champion! Then it wanted somewhere quiet.', seen: 'At the spa, under a seaweed wrap, cucumbers on its eyes.' },

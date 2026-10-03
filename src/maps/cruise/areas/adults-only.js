@@ -16,7 +16,7 @@ import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js'
 import { ZK } from '../../../engine/iso.js';
 import { deck, outline } from '../ship.js';
 import { LOOP } from '../plan.js';
-import { INK, MAT, at, wrap, green, queasy } from '../style.js';
+import { INK, MAT, at, wrap, green, queasy, chase, chaseOpen, iguana } from '../style.js';
 import { P, lettering, board, porthole, lounger, cocktail, bucket, gull, CREW_LOOK, onY, onBow, farY, words, inked, sighting } from '../kit.js';
 
 // ---------- Little drawing helpers (in this area's own units) ----------
@@ -198,6 +198,95 @@ function massageTable(ctx, x, y) {
   box(ctx, x, y, 0.72, 2.2, 1.0, 0.18, C.white, { top: tint(INK.flamingo, 0.55) });
   // A folded towel at the foot, and the face hole's ring at the head.
   box(ctx, x + 1.75, y + 0.2, 0.9, 0.35, 0.6, 0.08, C.white, { flat: true, lw: 0.02 });
+}
+
+// A treatment bed running along y (the spa's third, by the door): steel legs,
+// a padded top, a rolled towel for a pillow at the far end.
+const BED3 = { x: 6.9, y: 5.9, w: 1.0, d: 2.2 };
+function treatmentBed(ctx) {
+  const { x, y, w, d } = BED3;
+  for (const [dx, dy] of [[0.1, 0.15], [0.8, 0.15], [0.1, 1.95], [0.8, 1.95]]) box(ctx, x + dx, y + dy, 0, 0.1, 0.1, 0.72, MAT.chrome, { flat: true, lw: 0.02 });
+  box(ctx, x + 0.4, y + 0.1, 0.3, 0.2, 2.0, 0.05, MAT.chrome, { flat: true, lw: 0.02 });
+  box(ctx, x, y, 0.72, w, d, 0.18, C.white, { top: tint(INK.flamingo, 0.55) });
+}
+
+// The seaweed wrap on it: a fat green roll along the bed, done up with a
+// towel band. k (0 rolled, 1 unrolled) rolls it back to its foot, leaving
+// the sheet flat. In: the iguana is under it (sighting 5), so the tip of its
+// tail hangs out of the foot of the roll the whole time; open, there it is,
+// cucumber slices on its eyes.
+const WRAP = { x: 7.4, y: 6.9, z: 0.95 };
+const SEA = shade(C.green, 0.25), SEA_D = shade(C.green, 0.5);
+function seaweedWrap(ctx, t, k, inside) {
+  const { x, y, z } = WRAP;
+  // the sheet, flat on the bed under everything
+  face(ctx, [[x - 0.42, y - 0.85, z - 0.02], [x + 0.42, y - 0.85, z - 0.02], [x + 0.42, y + 1.05, z - 0.02], [x - 0.42, y + 1.05, z - 0.02]], SEA, { lw: 0.025, dots: SEA_D, density: 0.15 });
+  if (inside) {
+    iguana(ctx, x, y, z, 'r', t, { lounge: true });
+    // cucumber slices over its eyes (and its sunglasses)
+    const [X, Y] = P(x, y, z);
+    ctx.save();
+    ctx.translate(X, Y); ctx.rotate(-0.46); ctx.translate(0, 0.06); ctx.rotate(-0.08);
+    slice(ctx, 0.335, -0.37, 0.075, false);
+    slice(ctx, 0.475, -0.355, 0.09, false);
+    ctx.restore();
+  }
+  // the roll: from the foot (u -0.46) to the head end, shorter as it opens
+  const [X, Y] = P(x, y, z);
+  const u0 = -0.46, u1 = 0.76 - k * 1.1, v0 = -0.58, v1 = 0.14;
+  ctx.save();
+  ctx.translate(X, Y); ctx.rotate(-0.46);
+  ctx.beginPath(); ctx.roundRect(u0, v0, u1 - u0, v1 - v0, 0.3);
+  paint(ctx, SEA, { lw: 0.03, dots: SEA_D, density: 0.2 });
+  if (Q.detail) {
+    // the wrap's layers, and a towel band round its middle
+    ctx.strokeStyle = SEA_D; ctx.lineWidth = 0.02;
+    for (let u = u0 + 0.25; u < u1 - 0.1; u += 0.28) { ctx.beginPath(); ctx.moveTo(u, v0 + 0.05); ctx.quadraticCurveTo(u + 0.06, (v0 + v1) / 2, u, v1 - 0.03); ctx.stroke(); }
+  }
+  if (u1 - u0 > 0.6) {
+    const bu = (u0 + u1) / 2;
+    ctx.beginPath(); ctx.rect(bu - 0.09, v0 - 0.01, 0.18, v1 - v0 + 0.02); paint(ctx, C.white, { lw: 0.02 });
+  }
+  // the rolled end, where it'll unroll from
+  ctx.beginPath(); ctx.ellipse(u1 - 0.04, (v0 + v1) / 2, 0.1, (v1 - v0) / 2, 0, -Math.PI / 2, Math.PI / 2);
+  paint(ctx, shade(SEA, 0.1), { lw: 0.025 });
+  if (Q.detail) { ctx.beginPath(); ctx.arc(u1 - 0.04, (v0 + v1) / 2, 0.06, -1.2, 1.2); ctx.strokeStyle = SEA_D; ctx.lineWidth = 0.02; ctx.stroke(); }
+  ctx.restore();
+}
+
+// The gong: for the silent meditation class, on a teak stand, with a sign
+// asking you not to. Tapped, it rings (k) and the deck hears about it.
+const GONG = { x: 15.0, y: 9.3 };
+function gong(ctx, t, k) {
+  const { x, y } = GONG, x0 = x - 0.95, x1 = x + 0.95, H = 2.7;
+  for (const px of [x0, x1 - 0.14]) box(ctx, px, y - 0.07, 0, 0.14, 0.14, H, INK.teak, { lw: 0.03 });
+  box(ctx, x0 - 0.1, y - 0.08, H, x1 - x0 + 0.2, 0.16, 0.16, MAT.teakDark, { lw: 0.03 });
+  for (const px of [x0, x1 - 0.14]) box(ctx, px - 0.2, y - 0.3, 0, 0.54, 0.6, 0.1, MAT.teakDark, { flat: true, lw: 0.02 });
+  // the cords, and the gong swinging (and shaking) on them
+  const sw = Math.sin(t * 2.1) * 0.02 + k * Math.sin(t * 40) * 0.06;
+  onY(ctx, x0 + 0.14, y, H, (g) => {
+    g.strokeStyle = C.ink; g.lineWidth = 0.03;
+    g.beginPath(); g.moveTo(0.55, 0); g.lineTo(0.62 + sw, 0.42); g.moveTo(1.12, 0); g.lineTo(1.05 + sw, 0.42); g.stroke();
+    g.save(); g.translate(0.835 + sw, 1.05);
+    g.beginPath(); g.arc(0, 0, 0.66, 0, Math.PI * 2); paint(g, MAT.brass, { lw: 0.04, dots: shade(MAT.brass, 0.3), density: 0.15 });
+    g.beginPath(); g.arc(0, 0, 0.5, 0, Math.PI * 2); paint(g, null, { lw: 0.02, stroke: shade(MAT.brass, 0.35) });
+    g.beginPath(); g.arc(0, 0, 0.2, 0, Math.PI * 2); paint(g, tint(MAT.brass, 0.25), { lw: 0.02 });
+    if (Q.detail) { g.beginPath(); g.ellipse(-0.25, -0.3, 0.14, 0.07, -0.6, 0, Math.PI * 2); g.fillStyle = alpha(C.white, 0.55); g.fill(); }
+    g.restore();
+    // the sign at its foot
+    g.beginPath(); g.rect(0.25, 2.05, 1.2, 0.5); paint(g, C.white, { lw: 0.025 });
+    words(g, 'SILENT GONG', 0.85, 2.22, 0.12, C.ink, 'center', 900);
+    words(g, 'DO NOT RING', 0.85, 2.4, 0.1, INK.funnelRed, 'center', 800);
+  });
+  if (k > 0.05 && Q.detail) {
+    // the ring going out
+    const [X, Y] = P(x, y, H - 1.05);
+    for (let i = 0; i < 3; i++) {
+      const q = (t * 1.6 + i / 3) % 1;
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.8 + q * 1.2, (0.8 + q * 1.2) * 0.9, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = alpha(MAT.brass, k * (1 - q)); ctx.lineWidth = 0.05; ctx.stroke();
+    }
+  }
 }
 
 // ---------- The zone ----------
@@ -423,9 +512,26 @@ export default {
       }, 11);
     });
 
-    // Massage table one: the seaweed wrap, asleep, snoring.
+    // Massage table one: Gerald, in his seaweed wrap, asleep, snoring. Green
+    // from head to foot, so he answers a tap (the decoy: two wraps, side by
+    // side, and only the other one has a tail).
     R.thing(4.1, 7.0, (ctx) => {
       massageTable(ctx, 3.0, 6.0);
+    });
+    R.decoy({ id: 'gerald', at: [4.6, 6.45, 1.3], r: 0.9, say: ['Just Gerald. Wrapped since Tuesday.', 'Still Gerald.', 'ZZZ. Mmm, kelp.'] });
+
+    // The third bed, by the door: a seaweed wrap with nobody in it. Or with
+    // the iguana in it, from half past one (sighting 5): the tip of its tail
+    // hangs out of the foot. A tap unrolls it.
+    R.thing(BED3.x + 0.5, BED3.y + 1.1, (ctx) => treatmentBed(ctx));
+    const wrapped = R.poke({ id: 'wrap', at: [WRAP.x, WRAP.y, 1.25], r: 0.95, sound: 'pop', say: ['Ahh. Seaweed.', 'Rolled back up.'] });
+    const hiding = (t) => chase.step === 4 && chaseOpen(4, t);
+    R.thing(WRAP.x, WRAP.y, (ctx, t) => { if (!hiding(t)) seaweedWrap(ctx, t, wrapped.k(), false); }, { anim: true, depth: WRAP.x + WRAP.y + 1.3 });
+    sighting(R, 4, {
+      at: [WRAP.x, WRAP.y, WRAP.z], kind: 'poke', inside: wrapped, depth: WRAP.x + WRAP.y + 1.3,
+      hint: 'Two seaweed wraps in the spa, and one of them has a tail.',
+      draw: (ctx, t) => seaweedWrap(ctx, t, wrapped.k(), true),
+      run: [[6.4, 5.5, 0], [0.5, 3.2, 0]],
     });
     body(R, 5.0, 6.45, { skin: SKIN[5], hair: HAIR[2], style: 'short', top: C.green, bottom: C.green, face: (ctx, hy, back) => { turban(ctx, hy); cucumberEyes(ctx, hy, back); } }, {
       z: 0.9, depth: 11.7,
@@ -743,9 +849,11 @@ export default {
       card(19.38, 6.78, 0.5, ['MANICURE', '3 TO 4'], false);
       card(19.6, 6.4, 0.1, ['GLORIA', 'CUCUMBER MASK', '6 TO 11'], true);
     });
-    // The chase: sighting 5 (greybox; the area's artist hides it).
-    sighting(R, 4, { at: [17, 7, 0] });
-    R.find({ id: 'spa-card', label: "Gloria's spa card", at: [19.6, 6.4, 0.7], r: 0.8 });
+    R.find({
+      id: 'spa-card', label: "Gloria's spa card", kind: 'hard', at: [19.6, 6.4, 0.7], r: 0.8,
+      riddle: 'One of the cards by her lounger has a doodle.',
+      hint: "Gloria's table is covered in spa cards. Hers has a cucumber on it.",
+    });
 
     // ---------- The loud end ----------
     // The man on the phone, pacing under the NO PHONES sign. After she's been
@@ -988,6 +1096,17 @@ export default {
       ctx.restore();
     }, { bias: 60 });
 
-    R.find({ id: 'dnd-sign', label: 'A sign hung on a hot tub', at: [10.7, 13.6, 1.0], r: 0.8 });
+    R.find({ id: 'dnd-sign', label: 'A sign hung on a hot tub', kind: 'spot', at: [10.7, 13.6, 1.0], r: 0.8 });
+
+    // ---------- Things that answer a tap ----------
+    // The silent gong (the area's big "tap me"), in the middle of the deck.
+    const bong = R.poke({ id: 'gong', at: [GONG.x, GONG.y, 1.7], r: 1.2, teach: true, hold: 1.6, sound: 'clunk', say: ['BWONNNG.', 'Sorry. SORRY.', 'It says do not ring.'] });
+    R.thing(GONG.x, GONG.y + 0.3, (ctx, t) => gong(ctx, t, bong.k()), { anim: true });
+    // The attendant, wherever she is: tap her and she shushes you.
+    R.poke({ id: 'attendant', at: (t) => { const p = attendantAt(t); return [p.x, p.y, 1.5]; }, r: 0.8, sound: 'tick', say: ['Shh.', 'SHHH!', 'Inside voice. INSIDE VOICE.'] });
+    // The sauna door, and the singer behind it.
+    R.poke({ id: 'sauna', at: [0.2, 12.1, 1.6], r: 0.9, sound: 'tick', say: ['Ninety degrees in here.', 'O SOLE MIO!', 'Phones melt. Do not ask.'] });
+    // The hot tub couple, who got in on day one.
+    R.poke({ id: 'tub', at: [8.5, 11.2, 1.3], r: 0.9, sound: 'tick', say: ['Day four. Lovely.', "We're fine. We're pruney.", 'Is it still Tuesday?'] });
   },
 };
