@@ -12,7 +12,7 @@ import { route, particles, pulse, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { deck, outline } from '../ship.js';
 import { board, lettering, porthole, bucket, P, CREW_LOOK, sighting } from '../kit.js';
-import { INK, MAT, at, wrap, green, queasy, hourOf } from '../style.js';
+import { INK, MAT, at, wrap, green, queasy, hourOf, chase, chaseOpen, caught, iguana } from '../style.js';
 
 // ---------- The day in here ----------
 const OPEN = at(9); // the doors open (40s)
@@ -30,13 +30,13 @@ const qz = (skin, k) => queasy(skin, Math.round(k * 10) / 10);
 // The slot machines: a bank against the far wall (x 7 to 16) and a bank in
 // the middle (x 11 to 16) with an aisle through it where Ray walks back to
 // the door at 4pm. Their screens face the cut side (+y).
-const TOPPERS = ['SEVEN SEAS', 'LUCKY CLOVER', 'GOLDEN GANDER', 'SHIP HAPPENS', 'LUCKY CLOVER', 'DEEP POCKETS', 'ALL YOU CAN WIN', 'LUCKY CLOVER', 'MAN OVERBOARD'];
+const TOPPERS = ['SEVEN SEAS', 'LUCKY LIZARD', 'GOLDEN GANDER', 'SHIP HAPPENS', 'LUCKY CLOVER', 'DEEP POCKETS', 'ALL YOU CAN WIN', 'LUCKY CLOVER', 'MAN OVERBOARD'];
 const BODIES = [INK.funnelRed, C.navy, C.purple, C.teal];
 const FAR = TOPPERS.map((name, i) => ({ x: 7 + i, y: 1.0, w: 0.95, d: 0.8, name, body: BODIES[i % 4], clover: name === 'LUCKY CLOVER' }));
 const FRONT = [
   { x: 10.95, y: 6.6, w: 0.9, d: 0.8, name: 'LUCKY CLOVER', body: C.purple, clover: true, lever: true },
   { x: 13.25, y: 6.6, w: 0.9, d: 0.8, name: 'LUCKY CLOVER', body: C.navy, clover: true, prints: true },
-  { x: 14.15, y: 6.6, w: 0.9, d: 0.8, name: 'BUFFET BONANZA', body: INK.funnelRed },
+  { x: 14.15, y: 6.6, w: 0.9, d: 0.8, name: 'BUFFET BONANZA', body: INK.funnelRed, pull: true }, // its lever answers a tap
   { x: 15.05, y: 6.6, w: 0.9, d: 0.8, name: 'LUCKY CLOVER', body: C.teal, clover: true, lever: true },
 ];
 const seatOf = (m) => [m.x + m.w / 2, m.y + m.d + (m.y < 2 ? 0.9 : 0.8)];
@@ -196,15 +196,22 @@ function slot(ctx, m) {
     }
     lettering(ctx, 'x', x + w / 2, y1 + 0.005, 0.57, m.clover ? '4 LEAF' : 'JACKPOT', 0.09, C.white);
   }
-  if (m.lever) {
-    const [A, B] = P(x1 + 0.06, y + 0.45, 1.1), [E, F] = P(x1 + 0.06, y + 0.45, 1.95);
-    ctx.beginPath(); ctx.moveTo(A, B); ctx.lineTo(E, F);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
-    ctx.strokeStyle = MAT.chrome; ctx.lineWidth = 0.05; ctx.stroke();
-    ctx.beginPath(); ctx.arc(E, F, 0.09, 0, Math.PI * 2); paint(ctx, INK.funnelRed, { lw: 0.025 });
-  }
+  if (m.lever) lever(ctx, x1 + 0.06, y + 0.45, 0);
 }
+// A slot machine's lever on its right side, k pulled (0 up, 1 down and
+// toward you).
+function lever(ctx, x, y, k) {
+  const a = k * 1.25;
+  const [A, B] = P(x, y, 1.1), [E, F] = P(x, y + Math.sin(a) * 0.85, 1.1 + Math.cos(a) * 0.85);
+  ctx.beginPath(); ctx.moveTo(A, B); ctx.lineTo(E, F);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.strokeStyle = MAT.chrome; ctx.lineWidth = 0.05; ctx.stroke();
+  ctx.beginPath(); ctx.arc(E, F, 0.09, 0, Math.PI * 2); paint(ctx, INK.funnelRed, { lw: 0.025 });
+}
+// What the lever lands on, tap by tap (the poke's lines say the same).
+const PULLS = [[5, 5, 5], [1, 1, 5], [3, 3, 3]];
+const PULL_SAYS = ['Three shrimp. You win a shrimp.', 'Lemon, lemon, shrimp. So close.', 'Three bars. Of soap.'];
 
 // What's on a slot machine's screen, and its topper lights: reels (spinning
 // while someone plays), clover stickers on some, and on one, small green
@@ -219,8 +226,15 @@ function slotLive(ctx, t, m, playing) {
     ctx.fillStyle = on ? C.white : shade(INK.sunYellow, 0.3);
     ctx.beginPath(); ctx.arc(X, Y, 0.035, 0, Math.PI * 2); ctx.fill();
   }
+  // The machine whose lever answers a tap: the lever comes down, the reels
+  // spin a second, and land on whatever the line says.
+  const pk = m.pk;
+  const since = pk && pk.taps ? (performance.now() - pk.since) / 1000 : 1e9;
+  const pulled = since < 1.1;
+  const result = since < 5 ? PULLS[(pk.taps - 1) % PULLS.length] : null;
+  if (m.pull) lever(ctx, x + w + 0.06, y + 0.45, pk ? pk.k() : 0);
   if (!Q.detail) return;
-  const spinning = playing && pulse(t + x * 1.7, 3.4) < 0.35;
+  const spinning = (playing && pulse(t + x * 1.7, 3.4) < 0.35) || pulled;
   const n = Math.floor((t + x * 1.7) / 3.4);
   onY(ctx, y1 + 0.005, () => {
     for (let j = 0; j < 3; j++) {
@@ -232,7 +246,7 @@ function slotLive(ctx, t, m, playing) {
         ctx.fillStyle = alpha(C.grey, 0.8);
         for (let k = 0; k < 3; k++) ctx.fillRect(u0 + 0.02, 1.33 + ((t * 3 + k * 0.13 + j * 0.07) % 0.34), u1 - u0 - 0.04, 0.03);
       } else {
-        const s = Math.floor(hash(Math.floor(x * 10) + j * 31, n) * 5);
+        const s = result ? result[j] : Math.floor(hash(Math.floor(x * 10) + j * 31, n) * 5);
         symbol(ctx, s, cu, 1.49);
       }
     }
@@ -271,8 +285,14 @@ function symbol(ctx, s, u, v) {
     ctx.strokeStyle = INK.funnelRed; ctx.lineWidth = 0.035; ctx.stroke();
   } else if (s === 3) {
     ctx.fillStyle = C.ink; ctx.fillRect(u - 0.07, v - 0.03, 0.14, 0.06);
-  } else {
+  } else if (s === 4) {
     ctx.beginPath(); ctx.arc(u, v, 0.055, 0, Math.PI); ctx.lineTo(u - 0.055, v); ctx.fillStyle = MAT.brass; ctx.fill();
+  } else {
+    // A shrimp: a pink curl with a tail fan (BUFFET BONANZA's jackpot).
+    ctx.beginPath(); ctx.arc(u, v, 0.05, -0.3, Math.PI + 0.9);
+    ctx.strokeStyle = INK.flamingo; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(u + 0.045, v - 0.02); ctx.lineTo(u + 0.09, v - 0.06); ctx.lineTo(u + 0.09, v + 0.01); ctx.closePath();
+    ctx.fillStyle = INK.flamingo; ctx.fill();
   }
 }
 // A four-leaf clover sticker (leaf green, not the clue colour).
@@ -402,6 +422,8 @@ export default {
       }
       textFlat(ctx, 2.0, 11.6, 0.006, 'QUEUE HERE', 0.26, alpha(C.ink, 0.55));
       textFlat(ctx, 2.0, 12.0, 0.006, '(SINCE 7AM)', 0.18, alpha(C.ink, 0.55));
+      // And the bags' own queue, to the gangway.
+      textFlat(ctx, 12.9, 15.72, 0.006, 'QUEUE TO GO ASHORE', 0.17, alpha(C.ink, 0.5));
     });
 
     // ---------- The walls ----------
@@ -627,11 +649,19 @@ export default {
       if (!r || w < r.seated || (w > GREEN_AT + 1 && w < GREEN_AT + 16)) return false;
       return r.jackpot ? 'jackpot' : true;
     };
+    // BUFFET BONANZA's lever answers a tap (slotLive draws it pulled).
+    const bonanza = FRONT[2];
+    bonanza.pk = R.poke({ id: 'lever', at: [bonanza.x + bonanza.w + 0.06, bonanza.y + 0.6, 1.6], r: 0.7, hold: 2.5, sound: 'clunk', say: PULL_SAYS });
     for (const m of [...FAR, ...FRONT]) {
       const cx = m.x + m.w / 2, cy = m.y + m.d;
       R.thing(cx, cy, (ctx) => slot(ctx, m));
       R.thing(cx, cy + 0.01, (ctx, t) => slotLive(ctx, t, m, playing(m, wrap(t))), { anim: true });
     }
+    // The LUCKY LIZARD machine's mascot, up on its topper: green plastic,
+    // shiny, and not the iguana (the decoy).
+    const LZ = FAR[1];
+    R.thing(LZ.x + LZ.w / 2, LZ.y + LZ.d + 0.02, (ctx) => luckyLizard(ctx, LZ.x + LZ.w / 2 - 0.05, LZ.y + 0.4, 2.49));
+    R.decoy({ id: 'mascot', at: [LZ.x + LZ.w / 2, LZ.y + 0.4, 2.75], r: 0.7, say: ['A lucky lizard. Plastic.', 'Still plastic. Still lucky.', 'It has never paid out.'] });
     // Stools at the machines nobody's claimed.
     for (const m of [FRONT[1], FRONT[2], FAR[1], FAR[3], FAR[6]]) {
       const [sx, sy] = seatOf(m);
@@ -650,6 +680,7 @@ export default {
         label(ctx, zx - 0.3 - 0.4 * k, zy - 0.4 * k, 2.4 + k, 'z', 0.35 + k * 0.2, alpha(C.ink, 1 - k));
       }
     }, { anim: true });
+    R.poke({ id: 'sleeper', at: [zx, zy, 1.7], r: 0.7, sound: 'tick', say: ['Zzz. Five more spins.', 'Is it 9 yet?', 'Zzz. Green, please.'] });
 
     // Someone at the ATM, whose card it has decided to keep.
     const ATM = { x: 5.6, y: 1.55, look: { skin: SKIN[0], hair: HAIR[2], style: 'pony', top: C.sky, bottom: C.navy } };
@@ -694,11 +725,19 @@ export default {
       // The house's chips, racked by the wheel.
       for (let i = 0; i < 4; i++) cylinder(ctx, 17.7, 10.25 + i * 0.2, h, 0.07, 0.12, [INK.funnelRed, C.white, C.navy, INK.sunYellow][i], { flat: true, lw: 0.012 });
     });
+    // A tap gives the wheel a flick (the room's teach: nothing in it, and
+    // the croupier minds). Two extra turns a tap, slowing over 2.5 seconds.
+    const flickPk = R.poke({ id: 'wheel', at: [WHEEL.x, WHEEL.y, WHEEL.z + 0.1], r: 0.8, teach: true, sound: 'tick', say: ['Sir. Please.', 'No touching the wheel.', 'That is not how roulette works.'] });
+    const flick = () => {
+      if (!flickPk.taps) return 0;
+      const k = Math.min(1, (performance.now() - flickPk.since) / 2500);
+      return Math.PI * 4 * (flickPk.taps - 1 + (1 - (1 - k) * (1 - k)));
+    };
     // The wheel, its ball, the man's chips on zero, and the pile at 6pm.
     R.thing(TABLE.x1 - 0.2, TABLE.y1 + 0.02, (ctx, t) => {
       const w = wrap(t);
       const sp = spinAt(w);
-      const th = wheelAngle(sp);
+      const th = wheelAngle(sp) + flick();
       const z = TABLE.h + 0.09;
       if (!Q.detail) { disc(ctx, WHEEL.x, WHEEL.y, z, WHEEL.r, MAT.teakDark); return; }
       onZ(ctx, z, () => {
@@ -1052,19 +1091,21 @@ export default {
         textFlat(ctx, 12.45, 13.97, z + 0.001, '2400. END', 0.07, C.ink);
       }
       // A rubber stamp, a stapler, a pen, a stack of passports, a radio, a mug.
+      // (The front of the desk past the clicker is kept clear: that's where
+      // the iguana ends up.)
       disc(ctx, 11.1, 13.5, z, 0.12, C.ink, { lw: 0.015 });
       cylinder(ctx, 11.1, 13.5, z, 0.05, 0.22, C.brown, { flat: true, lw: 0.015 });
       disc(ctx, 11.1, 13.5, z + 0.24, 0.08, C.brown, { lw: 0.015 });
       box(ctx, 10.7, 13.95, z, 0.36, 0.12, 0.1, MAT.chrome, { flat: true, lw: 0.015 });
       box(ctx, 10.7, 13.95, z + 0.1, 0.36, 0.12, 0.04, INK.funnelRed, { flat: true, lw: 0.012 });
-      face(ctx, [[12.85, 14.1, z + 0.01], [13.25, 13.9, z + 0.01]], null, { lw: 0.04, stroke: C.navy });
-      for (let i = 0; i < 5; i++) box(ctx, 12.9, 13.35, z + i * 0.05, 0.3, 0.4, 0.05, i % 2 ? C.navy : shade(C.navy, 0.2), { flat: true, lw: 0.01 });
+      face(ctx, [[12.8, 13.45, z + 0.01], [12.9, 13.9, z + 0.01]], null, { lw: 0.04, stroke: C.navy });
+      for (let i = 0; i < 5; i++) box(ctx, 10.6, 13.3, z + i * 0.05, 0.3, 0.4, 0.05, i % 2 ? C.navy : shade(C.navy, 0.2), { flat: true, lw: 0.01 });
       box(ctx, 11.0, 13.85, z, 0.16, 0.12, 0.3, C.black, { flat: true, lw: 0.015 });
       face(ctx, [[11.12, 13.9, z + 0.3], [11.12, 13.9, z + 0.55]], null, { lw: 0.025, stroke: C.black });
-      cylinder(ctx, 13.3, 14.15, z, 0.08, 0.16, C.white, { flat: true, lw: 0.015 });
+      cylinder(ctx, 11.45, 14.2, z, 0.08, 0.16, C.white, { flat: true, lw: 0.015 });
       // The tally counter: steel, a ring for your finger, a button on top,
       // and four digits in the window.
-      const cx = 11.8, cy = 13.7;
+      const cx = 11.55, cy = 13.6;
       box(ctx, cx - 0.16, cy - 0.06, z, 0.32, 0.12, 0.2, MAT.chrome, { flat: true, lw: 0.018 });
       cylinder(ctx, cx + 0.06, cy, z + 0.2, 0.04, 0.05, MAT.steel, { flat: true, lw: 0.012 });
       const [RX, RY] = P(cx - 0.2, cy, z + 0.1);
@@ -1072,12 +1113,28 @@ export default {
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke();
       ctx.strokeStyle = MAT.steel; ctx.lineWidth = 0.02; ctx.stroke();
       face(ctx, [[cx - 0.12, cy + 0.061, z + 0.05], [cx + 0.12, cy + 0.061, z + 0.05], [cx + 0.12, cy + 0.061, z + 0.15], [cx - 0.12, cy + 0.061, z + 0.15]], C.white, { lw: 0.012 });
-      lettering(ctx, 'x', cx, cy + 0.065, z + 0.1, '2401', 0.085, C.ink);
     });
+    // The clicker's count, and the ending: from the moment it's caught, the
+    // iguana sits on the desk's end under a beach towel, and the count is
+    // right again. (Its own item, so it can change when the chase does.)
+    R.thing(12.6, DESK.y1 + 0.02, (ctx, t) => {
+      const z = DESK.h + 0.06, done = caught();
+      lettering(ctx, 'x', 11.55, 13.665, z + 0.1, done ? '2400' : '2401', 0.085, C.ink);
+      // (Not while it's still making its dash here, just found.)
+      const f = chase.found[7];
+      if (!done || (f != null && performance.now() - f < 1500)) return;
+      // (At the desk's front, between the clicker and the gangway's post, and
+      // a size up, so it reads when the camera comes here at the end.)
+      const [X, Y] = P(12.6, 14.25, z);
+      ctx.save();
+      ctx.translate(X, Y); ctx.scale(1.35, 1.35); ctx.translate(-X, -Y);
+      iguana(ctx, 12.6, 14.25, z, 'r', t, { towel: true });
+      ctx.restore();
+    }, { anim: true });
     // The security officer: a puzzle book all day, and at 6pm, at the
     // gangway, stopping anyone from getting off.
     const SEC = { skin: SKIN[3], hair: HAIR[1], style: 'short', top: C.navy, bottom: C.navy };
-    const toGangway = walk([[12.1, 12.55], [14.2, 12.7], [14.9, 14.4]], SIX - 2, 1.6);
+    const toGangway = walk([[12.1, 12.55], [14.2, 12.7], [15.2, 14.5]], SIX - 2, 1.6);
     R.mover((t) => {
       const w = wrap(t);
       if (w < SIX - 2) return { x: 12.1, y: 12.55, dir: 'l', pose: 'read' };
@@ -1090,7 +1147,11 @@ export default {
         ...SEC, pose: p.pose === 'read' && look ? 'stand' : p.pose, dir: p.dir, back: p.back, face: secCap,
         hold: p.pose === 'read' && !look ? (c) => { c.beginPath(); c.rect(-0.05, -0.32, 0.36, 0.26); paint(c, C.white, { lw: 0.02 }); c.fillStyle = C.grey; c.fillRect(0.02, -0.26, 0.22, 0.14); } : undefined,
       }, t);
-      if (Q.detail && p.pose === 'point' && w > GREEN_AT + 4 && w < GREEN_AT + 12) speech(ctx, p.x, p.y, 3.8, 'Nobody gets off.', { size: 0.34 }); // over the gangway's sign
+      if (!Q.detail) return;
+      // Caught: the count's right again, and he says so now and then.
+      const done = caught();
+      if (p.pose === 'point' && w > GREEN_AT + (done ? 3 : 4) && w < GREEN_AT + (done ? 14 : 12)) speech(ctx, p.x, p.y, 3.8, done ? '2,400. Nobody gets off.' : 'Nobody gets off.', { size: 0.34 }); // over the gangway's sign
+      else if (done && p.pose === 'read' && look) speech(ctx, p.x, p.y, 2.9, '2,400. Nobody gets off.', { size: 0.32 });
     });
     // The gangway: two brass posts, a sign, and at 6pm, yellow tape.
     for (const x of [14.6, 15.9]) {
@@ -1162,13 +1223,40 @@ export default {
       }, t);
     });
 
+    // ---------- The ALL ASHORE queue ----------
+    // Two matching suitcases in front of the desk, queueing for the gangway
+    // since breakfast (like the retirees). Nobody gets off, bags included.
+    // At docking one of them has a tail out of its zip, and twitches.
+    const hiding = (t) => chase.step === 7 && chaseOpen(7, t);
+    let inNow = false; // is the iguana in case B, as last drawn (for its line)
+    const CASE_A = { x: 11.55, y: 14.75, w: 1.0, d: 0.7, h: 0.4 };
+    const CASE_B = { x: 13.0, y: 14.7, w: 1.0, d: 0.7, h: 0.4 };
+    const caseA = R.poke({ id: 'case', at: [CASE_A.x + 0.5, CASE_A.y + 0.35, 0.3], r: 0.7, sound: 'clunk', say: ['Just flip-flops.', 'Flip-flops and a snorkel.'] });
+    const caseB = R.poke({ id: 'case2', at: [CASE_B.x + 0.5, CASE_B.y + 0.35, 0.3], r: 0.7, sound: 'clunk' });
+    // (Its line depends on what's in it.)
+    Object.defineProperty(caseB, 'say', { get: () => (inNow ? ['Hiss.'] : ['Just socks.', 'Socks. Sand. More socks.']) });
+    R.thing(CASE_A.x + 0.5, CASE_A.y + CASE_A.d, (ctx, t) => suitcase(ctx, t, CASE_A, caseA.k(), 'flops'), { anim: true });
+    R.thing(CASE_B.x + 0.5, CASE_B.y + CASE_B.d, (ctx, t) => {
+      inNow = hiding(t);
+      suitcase(ctx, t, CASE_B, caseB.k(), 'socks', inNow);
+    }, { anim: true });
+
     // ---------- The finds ----------
+    // The chase's last sighting: in case B, trying to get off at the port.
+    // Found, it makes a dash for it along the desk, and that's where it ends.
+    sighting(R, 7, {
+      at: [CASE_B.x + 0.5, CASE_B.y + 0.35, 0], kind: 'poke', inside: caseB,
+      hint: 'Two cases are queueing to go ashore. One has a tail.',
+      draw: () => {}, // (the suitcase draws it hiding)
+      run: [[13.65, 14.6, 0], [13.3, 14.15, DESK.h + 0.06], [12.6, 14.25, DESK.h + 0.06]],
+    });
     // The gangway clicker: 2401, beside a manifest that ends at 2400.
-    // The chase: sighting 8 (greybox; the area's artist hides it).
-    sighting(R, 7, { at: [10.5, 12.5, 0] });
-    R.find({ id: 'clicker', label: 'The gangway clicker', at: [11.8, 13.7, 1.3], r: 0.8 });
+    R.find({ id: 'clicker', label: 'The gangway clicker', kind: 'spot', at: [11.55, 13.6, 1.3], r: 0.8 });
     // Tyler's hands, on the glass of the second machine in the middle bank.
-    R.find({ id: 'handprints', label: 'Sticky handprints on a slot machine', at: [13.75, 7.4, 1.55], r: 0.8 });
+    R.find({
+      id: 'handprints', label: 'Sticky handprints', kind: 'hard', at: [13.75, 7.4, 1.55], r: 0.8,
+      riddle: 'Someone small tried their luck.', hint: 'Someone with green hands played the slots. Look low on the glass.',
+    });
   },
 };
 
@@ -1181,4 +1269,117 @@ function onLeft0(ctx, y, z, w, h, fill) {
 function shadesUp(c, hy) {
   c.fillStyle = C.black;
   c.beginPath(); c.ellipse(-0.08, hy - 0.26, 0.11, 0.055, 0, 0, Math.PI * 2); c.ellipse(0.16, hy - 0.26, 0.11, 0.055, 0, 0, Math.PI * 2); c.fill();
+}
+
+// ---------- The ALL ASHORE queue's suitcases ----------
+// A hard-shell case lying flat, c: { x, y, w, d, h }, k open (0 shut, 1 the
+// lid up past straight). what: what's packed in it. ig: the iguana's in it
+// (the last sighting): its tail hangs out of the zip, the case hops now and
+// then, and opened, its head comes up out of the socks.
+const CASE_INK = INK.flamingo;
+const LINING = tint(C.navy, 0.35);
+function suitcase(ctx, t, c, k, what, ig = false) {
+  const { x, y, w, d, h } = c, x1 = x + w, y1 = y + d;
+  const zs = h * 0.55; // the zip, round the middle
+  ctx.save();
+  if (ig && k < 0.5) {
+    // A hop, twice, every few seconds: something in there wants off.
+    const ph = (t * 0.45) % 1;
+    if (ph < 0.14) { const j = Math.sin((ph / 0.14) * Math.PI * 2); ctx.translate(j * 0.035, -Math.abs(j) * 0.07); }
+  }
+  if (Q.detail) { // its shadow on the marble
+    const [X, Y] = P(x + w / 2 + 0.08, y + d / 2 + 0.08, 0);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.85, 0.32, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.ink, 0.12); ctx.fill();
+  }
+  if (k <= 0.01) {
+    box(ctx, x, y, 0, w, d, h, CASE_INK, { dens: 0.12 });
+    caseBits(ctx, t, c, zs, ig);
+  } else {
+    const a = k * 1.9, ca = Math.cos(a), sa = Math.sin(a);
+    // The lid, hinged along the far edge: its shell, its rim, its lining.
+    const th = h - zs;
+    const lid = () => {
+      const out = (yy, zz) => [yy - sa * th, zz + ca * th];
+      const [oy0, oz0] = out(y, zs), [oy1, oz1] = out(y + d * ca, zs + d * sa);
+      face(ctx, [[x, oy0, oz0], [x1, oy0, oz0], [x1, oy1, oz1], [x, oy1, oz1]], shade(CASE_INK, 0.15), { lw: 0.025 });
+      face(ctx, [[x, y + d * ca, zs + d * sa], [x1, y + d * ca, zs + d * sa], [x1, oy1, oz1], [x, oy1, oz1]], CASE_INK, { lw: 0.02 });
+      if (a > 0.8) face(ctx, [[x + 0.05, y, zs], [x1 - 0.05, y, zs], [x1 - 0.05, y + (d - 0.05) * ca, zs + (d - 0.05) * sa], [x + 0.05, y + (d - 0.05) * ca, zs + (d - 0.05) * sa]], LINING, { lw: 0.02 });
+    };
+    if (a > Math.PI / 2) lid();
+    box(ctx, x, y, 0, w, d, zs, CASE_INK, { dens: 0.12, top: LINING });
+    // What's packed.
+    const z = zs + 0.005;
+    if (what === 'flops') {
+      for (const fx of [x + 0.12, x + 0.38]) rect(ctx, fx, y + 0.12, 0.2, 0.42, z, INK.sunYellow, { lw: 0.015 });
+      rect(ctx, x + 0.68, y + 0.1, 0.14, 0.5, z, C.sky, { lw: 0.015 });
+    } else {
+      for (let i = 0; i < 4; i++) rect(ctx, x + 0.1 + i * 0.21, y + 0.12 + (i % 2) * 0.12, 0.17, 0.38, z, i % 2 ? C.white : C.butter, { lw: 0.015 });
+    }
+    if (ig) {
+      // Its head and front up out of the socks; the case's front hides the rest.
+      const [DX, DY] = P(x, y1, zs), [CX, CY] = P(x1, y1, zs), [BX, BY] = P(x1, y, zs);
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(DX, DY); ctx.lineTo(CX, CY); ctx.lineTo(BX, BY); ctx.lineTo(BX, BY - 3); ctx.lineTo(DX, DY - 3); ctx.closePath();
+      ctx.clip();
+      iguana(ctx, x + 0.5, y + 0.4, zs - 0.3 + 0.18 * k, 'r', t);
+      ctx.restore();
+      hangTail(ctx, t, x + 0.25, y1, zs);
+    }
+    if (a <= Math.PI / 2) lid();
+  }
+  ctx.restore();
+}
+// The shut case's zip, handle and tag (both cases match), and the tail out
+// of the zip when the iguana's in it.
+function caseBits(ctx, t, c, zs, ig) {
+  const { x, y, w, d, h } = c, x1 = x + w, y1 = y + d;
+  face(ctx, [[x, y1, zs], [x1, y1, zs], [x1, y, zs]], null, { lw: 0.025, stroke: shade(CASE_INK, 0.45) });
+  if (Q.detail) {
+    // Ridges on the lid, the handle on the front, a luggage tag.
+    for (const u of [0.3, 0.5, 0.7]) face(ctx, [[x + u * w, y + 0.08, h + 0.001], [x + u * w, y1 - 0.08, h + 0.001]], null, { lw: 0.02, stroke: shade(CASE_INK, 0.25) });
+    const [HX, HY] = P(x + w * 0.62, y1 + 0.01, zs - 0.08);
+    ctx.beginPath(); ctx.arc(HX, HY, 0.1, Math.PI, 0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(HX + 0.08, HY); ctx.lineTo(HX + 0.16, HY + 0.12); ctx.lineWidth = 0.015; ctx.stroke();
+    ctx.beginPath(); ctx.rect(HX + 0.1, HY + 0.1, 0.16, 0.1); paint(ctx, C.white, { lw: 0.012 });
+    // The zip's pull, and where the iguana's undone it a crack.
+    const [ZX, ZY] = P(x + 0.25, y1 + 0.005, zs);
+    if (ig) { ctx.beginPath(); ctx.ellipse(ZX, ZY, 0.12, 0.035, 0.45, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill(); }
+    ctx.fillStyle = MAT.chrome; ctx.fillRect(ZX + 0.12, ZY - 0.02, 0.07, 0.09);
+  }
+  if (ig) hangTail(ctx, t, x + 0.25, y1, zs);
+}
+// The iguana's tail, out of a zip at (x, y, z) on a case's front, down to
+// the floor and curled; the tip flicks.
+function hangTail(ctx, t, x, y, z) {
+  const flick = Math.sin(t * 2.2) * 0.06;
+  const pts = [P(x, y, z), P(x - 0.02, y + 0.2, 0.05), P(x - 0.3, y + 0.42, 0.02), P(x - 0.62 + flick, y + 0.42, 0.12)];
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  ctx.quadraticCurveTo(pts[1][0], pts[1][1], (pts[1][0] + pts[2][0]) / 2, (pts[1][1] + pts[2][1]) / 2);
+  ctx.quadraticCurveTo(pts[2][0], pts[2][1], pts[3][0], pts[3][1]);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke(); }
+  ctx.strokeStyle = INK.queasyGreen; ctx.lineWidth = 0.08; ctx.stroke();
+  if (Q.detail) {
+    // Dark bands down it, like the rest of it.
+    ctx.setLineDash([0.05, 0.09]);
+    ctx.strokeStyle = shade(INK.queasyGreen, 0.35); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// The LUCKY LIZARD's mascot: a green plastic lizard on a brass stand, a coin
+// in its mouth, shiny where a real one isn't.
+function luckyLizard(ctx, x, y, z) {
+  cylinder(ctx, x, y, z, 0.3, 0.07, MAT.brass, { flat: true, lw: 0.02 });
+  const [X, Y] = P(x, y, z + 0.07);
+  ctx.save();
+  ctx.translate(X, Y); ctx.scale(0.85, 0.85); ctx.translate(-X, -Y);
+  iguana(ctx, x, y, z + 0.07, 'r', 1);
+  ctx.restore();
+  if (!Q.detail) return;
+  ctx.strokeStyle = alpha(C.white, 0.85); ctx.lineWidth = 0.035; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(X - 0.22, Y - 0.3); ctx.quadraticCurveTo(X - 0.08, Y - 0.38, X + 0.08, Y - 0.34); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(X + 0.56, Y - 0.22, 0.06, 0.075, 0, 0, Math.PI * 2); paint(ctx, MAT.brass, { lw: 0.015 });
 }

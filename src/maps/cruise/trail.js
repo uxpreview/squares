@@ -20,7 +20,7 @@ const sightings = [
   { find: 'adults-only:iguana', who: 'kelly', says: 'Our limbo champion! Then it wanted somewhere quiet.', seen: 'At the spa, under a seaweed wrap, cucumbers on its eyes.' },
   { find: 'crew-bar:iguana', who: 'gloria', says: 'It took my cucumbers and went to a party below.', seen: 'At the crew party, where nobody is green but it.' },
   { find: 'engine-room:iguana', who: 'chef', says: 'It ate my plastic shrimp. Now it needs a nap.', seen: 'Asleep in the hammock, with the chief.' },
-  { find: 'casino:iguana', who: 'captain', says: "It'll try the gangway. Nobody gets off.", seen: 'At the gangway as the ship docked. Cornered.' },
+  { find: 'casino:iguana', who: 'captain', says: "It'll try the gangway. Nobody gets off.", seen: 'In a suitcase in the queue to go ashore, tail out of the zip. Cornered.' },
 ];
 
 export default {

@@ -82,8 +82,9 @@ export default {
   // to the picker card's edges too.
   plate: { at: (t) => ({ paper: seaAt(t), kind: 'night' }), bleed: true },
   dial,
-  // A first visit starts where it started: the salad bar.
-  invite: { zone: 'buffet', at: [14, 6, 1.2] },
+  // A first visit starts where it started: the lettuce on the salad bar,
+  // where the first sighting hides.
+  invite: { zone: 'buffet', at: [13.1, 8.0, 1.6] },
   // The whole ship on a wide screen; on an upright phone, the middle of the
   // ship to its full height, bow and stern running off the sides; on a phone
   // on its side, the decks filling the height.

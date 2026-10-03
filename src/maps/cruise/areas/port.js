@@ -8,11 +8,11 @@
 // all day with a parcel, and is waved off every time it gets near the pier.
 // Keep the id.
 import {
-  C, Q, box, disc, cylinder, face, poly, paint, person, folk, speech, shade, tint, mix, alpha, dots, SKIN, HAIR,
+  C, Q, box, disc, cylinder, face, poly, paint, person, folk, speech, label, shade, tint, mix, alpha, dots, SKIN, HAIR,
 } from '../../../engine/art.js';
 import { route, clamp } from '../../../engine/actors.js';
 import { board, lettering, gull, P } from '../kit.js';
-import { INK, MAT, hourOf, COSTUME } from '../style.js';
+import { INK, MAT, hourOf, COSTUME, iguana } from '../style.js';
 
 const TAU = Math.PI * 2;
 // How far through an hour span we are (0 to 1), on the day's clock.
@@ -520,25 +520,23 @@ export default {
       R.thing(pm.x, pm.y, (ctx) => palmTrunk(ctx, pm.x, pm.y, pm.h, pm.lx, pm.ly));
       R.thing(pm.x, pm.y, (ctx, t) => palmCrown(ctx, top, t, pm.seed, pm.n, pm.len), { anim: true, depth: pm.x + pm.y + 0.01 });
     }
-    // Coconuts fallen under the palms. Under the front palm, a pile, and one
-    // of them has had a face painted on it.
+    // Coconuts fallen under the palms, and a pile under the front palm. (The
+    // one with a face is keeping cool in the cooler, by the shop.)
     R.thing(4.4, 7.7, (ctx) => {
       coconut(ctx, 3.9, 7.3, 0.2); coconut(ctx, 4.3, 7.6, 0.2, { tilt: 0.5 });
     });
-    const FACE = [13.05, 11.75, 0.56];
     R.thing(13.5, 12.0, (ctx) => {
       coconut(ctx, 12.7, 11.55, 0.2);
       coconut(ctx, 13.15, 11.4, 0.2, { tilt: 0.4 });
       coconut(ctx, 13.35, 11.85, 0.2, { tilt: -0.3 });
       coconut(ctx, 12.9, 12.0, 0.2);
-      coconut(ctx, ...FACE, { face: true, s: 1.35 });
+      coconut(ctx, 13.05, 11.75, 0.45, { tilt: 0.2 });
       // Half a husk, emptied.
       const [X, Y] = P(13.8, 12.3, 0.1);
       ctx.beginPath(); ctx.ellipse(X, Y, 0.22, 0.12, 0, 0, Math.PI); ctx.closePath();
       paint(ctx, C.brown, { lw: 0.02 });
       ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.08, 0, 0, TAU); ctx.fillStyle = C.white; ctx.fill();
     });
-    R.find({ id: 'coconut', label: 'A coconut with a face', at: FACE, r: 0.75 });
 
     // ---------- The gift shop ----------
     R.thing(SHOP.x1, SHOP.y1, (ctx) => {
@@ -596,11 +594,19 @@ export default {
       lettering(ctx, 'x', 12.3, y1 + E + 0.07, 2.86, 'souvenirs of a place you never went', 0.1, C.white);
     });
     // The serving window: shuttered, BACK AT 3, until three; then the shutter
-    // rolls up on the shopkeeper and everything nobody will buy.
+    // rolls up on the shopkeeper and everything nobody will buy. A tap rattles
+    // the shutter (it gives a little) or, once it's up, gets a price.
+    let shopOpen = false; // as last drawn (for the shutter's line)
+    const shutter = R.poke({ id: 'shutter', at: [SHOP.x1 + 0.05, 6.5, 1.5], r: 0.85, hold: 0.9, sound: 'clunk' });
+    Object.defineProperty(shutter, 'say', {
+      get: () => (shopOpen ? ['Everything is $5.', 'Except the coconut. $40.', 'No refunds. No ship.'] : ['Back at 3. Probably.', 'Still not 3.', 'Knock louder?']),
+    });
     R.thing(SHOP.x1 + 0.05, SHOP.y1 - 0.2, (ctx, t) => {
       const x = SHOP.x1 + 0.01, { y0, y1, z0, z1 } = WIN;
       const h = hourOf(t);
-      const open = ramp(t, 14.98, 15.08); // the shutter's roll, 0 shut to 1 up
+      const up = ramp(t, 14.98, 15.08); // the shutter's roll, 0 shut to 1 up
+      shopOpen = up >= 1;
+      const open = up < 1 ? Math.max(up, 0.2 * shutter.k()) : 1; // (a tap lifts it a crack)
       const win = [[x, y0, z0], [x, y1, z0], [x, y1, z1], [x, y0, z1]];
       if (open > 0) {
         face(ctx, win, shade(INK.teak, 0.7), { lw: 0.03 });
@@ -615,11 +621,13 @@ export default {
           }
         }
         // The shopkeeper, waving at nobody when the ship's in.
-        person(ctx, 13.45, 6.55, -0.55, { ...KEEPER, dir: 'r', pose: h >= 18 ? 'wave' : 'stand' }, t);
+        // (Rattled before three, there's nobody in: he's asleep under the palm.)
+        if (up > 0) person(ctx, 13.45, 6.55, -0.55, { ...KEEPER, dir: 'r', pose: h >= 18 ? 'wave' : 'stand' }, t);
         ctx.restore();
-        // On the counter: a coconut in sunglasses, snow globes, folded shirts.
-        coconut(ctx, SHOP.x1 + 0.2, 5.75, 1.18);
-        if (Q.detail) { const [X, Y] = P(SHOP.x1 + 0.2, 5.75, 1.18); ctx.fillStyle = C.ink; ctx.fillRect(X - 0.13, Y - 0.08, 0.26, 0.06); }
+      }
+      if (up > 0) {
+        // On the counter: a coconut ($5, no face), snow globes, folded shirts.
+        coconut(ctx, SHOP.x1 + 0.2, 6.05, 1.18);
         for (const [yy, ink] of [[6.3, C.sky], [6.6, INK.flamingo]]) {
           cylinder(ctx, SHOP.x1 + 0.18, yy, 1.0, 0.1, 0.05, C.wood, { flat: true });
           const [X, Y] = P(SHOP.x1 + 0.18, yy, 1.17);
@@ -635,7 +643,7 @@ export default {
         if (Q.detail) {
           ctx.strokeStyle = shade(INK.teak, 0.3); ctx.lineWidth = 0.02;
           for (let z = zb + 0.12; z < z1; z += 0.12) face(ctx, [[x, y0, z], [x, y1, z]], null, { lw: 0.02, stroke: shade(INK.teak, 0.3) });
-          if (open === 0) {
+          if (up === 0) {
             board(ctx, 'y', x + 0.02, 6.5, 1.5, 1.2, 0.4, '', { board: C.white });
             lettering(ctx, 'y', x + 0.03, 6.5, 1.56, 'BACK AT 3', 0.16);
             lettering(ctx, 'y', x + 0.03, 6.5, 1.39, '(PROBABLY)', 0.09);
@@ -645,12 +653,19 @@ export default {
       // The roll of shutter, up top.
       face(ctx, [[x + 0.08, y0, z1 - 0.02], [x + 0.08, y1, z1 - 0.02], [x + 0.08, y1, z1 + 0.14], [x + 0.08, y0, z1 + 0.14]], shade(INK.teak, 0.1), { lw: 0.03 });
     }, { anim: true, depth: SHOP.x1 + SHOP.y1 + 0.05 });
-    // Gander Cola's cooler, by the window, and a gull on the ridge.
-    R.thing(14.9, 8.1, (ctx) => {
-      box(ctx, 14.25, 7.55, 0, 0.65, 0.5, 0.6, INK.funnelRed, { top: tint(INK.funnelRed, 0.2) });
-      lettering(ctx, 'x', 14.57, 8.06, 0.4, 'GANDER', 0.15, C.white, 'Bagel Fat One');
-      lettering(ctx, 'x', 14.57, 8.06, 0.22, 'Take a gander.', 0.07, C.white);
-    }, { depth: 22.4 });
+    // Gander Cola's cooler, by the window, and a gull on the ridge. Its lid
+    // won't quite shut: the coconut with a face is keeping cool in there,
+    // watching you through the crack. A tap opens it.
+    const cooler = R.poke({ id: 'cooler', at: [14.57, 7.8, 0.6], r: 0.7, sound: 'clunk', say: ['Brr.'] });
+    R.thing(14.9, 8.1, (ctx, t) => drawCooler(ctx, t, cooler.k()), { anim: true, depth: 22.4 });
+    R.find({
+      id: 'coconut', label: 'A coconut with a face', kind: 'poke', inside: cooler, at: [14.6, 7.9, 0.75], r: 0.8,
+      hint: 'Something by the shop is keeping cool, and watching you.',
+    });
+    // The souvenir on the shop's counter, there all day: an iguana carved
+    // out of wood and painted green (the decoy).
+    R.thing(14.2, 5.7, (ctx) => carving(ctx, 14.2, 5.62, 1.0), { depth: SHOP.x1 + SHOP.y1 + 0.1 });
+    R.decoy({ id: 'carving', at: [14.2, 5.62, 1.35], r: 0.7, say: ['Carved wood. Not an iguana.', 'Hand painted. Still wood.', '$25. No iguanas were harmed.'] });
     R.thing(12.5, 6.6, (ctx, t) => gull(ctx, 12.5, 6.5, 4.25, t, { dir: 'l', peck: false, scale: 0.9 }), { anim: true, depth: 22.3 });
 
     // ---------- The steel band ----------
@@ -663,6 +678,8 @@ export default {
         disc(ctx, x, y, 1.05, 0.15, shade(MAT.chrome, 0.12), { lw: 0.015 });
       }
     });
+    // The bass drums answer a tap (the place's teach: nothing in them).
+    const bong = R.poke({ id: 'drum', at: [13.45, 10.2, 1.05], r: 0.8, teach: true, hold: 1.2, sound: 'ding', say: ['BONG.', 'Save it for six.', 'Okay, one more. BONG.'] });
     BAND.forEach((b, i) => {
       R.thing(b.x, b.y, (ctx, t) => {
         const h = hourOf(t), playing = bandPlaying(t, i);
@@ -696,6 +713,18 @@ export default {
     R.air((ctx, t) => {
       if (!Q.detail) return;
       const h = hourOf(t);
+      // A tapped drum: a ring on its top, and three notes up off it.
+      const since = bong.taps ? (performance.now() - bong.since) / 1000 : 9;
+      if (since < 1.2) {
+        const k = since / 1.2;
+        const [RX, RY] = P(13.62, 9.92, 1.05);
+        ctx.beginPath(); ctx.ellipse(RX, RY, 0.2 + k * 0.4, 0.1 + k * 0.2, 0, 0, TAU);
+        ctx.strokeStyle = alpha(C.white, 0.9 * (1 - k)); ctx.lineWidth = 0.04; ctx.stroke();
+        for (let j = 0; j < 3; j++) {
+          const [X, Y] = P(13.5, 10.1, 1.3 + k * 1.8 + j * 0.3);
+          note(ctx, X + (j - 1) * 0.35 + Math.sin(k * 6 + j) * 0.1, Y, 0.9, alpha(j % 2 ? INK.funnelRed : C.ink, 1 - k));
+        }
+      }
       if (h < 15 && !bandPlaying(t, 0)) {
         const k = (t % 1.3) / 1.3;
         const [X, Y] = P(11.55, 10.1, 1.4 + k * 1.3);
@@ -799,6 +828,7 @@ export default {
       person(ctx, HM[0], HM[1], PIER.z, o, t);
       if (says && Q.detail) speech(ctx, HM[0], HM[1], PIER.z + 2.7, says, { size: 0.38, fill: C.white, dx: -0.7 });
     }, { anim: true, depth: PIER_D + 0.6 });
+    R.poke({ id: 'harbourmaster', at: [HM[0], HM[1], PIER.z + 1.5], r: 0.7, sound: 'tick', say: ['Nobody gets off.', 'Or on.', 'Lovely day for it.'] });
     // The flagpole: the island's own flag at the top all day, and the yellow
     // one run up under it at six. Nobody gets off.
     R.thing(POLE[0], POLE[1], (ctx) => {
@@ -1106,4 +1136,55 @@ export default {
 function shapeBow(ctx, x, y, fill) {
   face(ctx, [[x, y - 0.22, 0.22], [x + 0.35, y, 0.22], [x, y + 0.22, 0.22]], tint(fill, 0.15), { lw: 0.02 });
   face(ctx, [[x, y + 0.22, 0], [x + 0.35, y, 0], [x + 0.35, y, 0.22], [x, y + 0.22, 0.22]], shade(fill, 0.2), { lw: 0.02 });
+}
+
+// Gander Cola's cooler: a red box, its lid hinged at the back, k open. Shut,
+// the lid won't sit down: the coconut with a face is in there, on the ice,
+// and its eyes show through the crack.
+function drawCooler(ctx, t, k) {
+  const x = 14.25, y = 7.55, w = 0.65, d = 0.5, h = 0.5, th = 0.1;
+  const x1 = x + w, y1 = y + d;
+  const a = 0.34 + k * 1.6, ca = Math.cos(a), sa = Math.sin(a);
+  const lid = () => {
+    const out = (yy, zz) => [yy - sa * th, zz + ca * th];
+    const fy = y + d * ca, fz = h + d * sa;
+    const [oy0, oz0] = out(y, h), [oy1, oz1] = out(fy, fz);
+    if (a > 1) face(ctx, [[x + 0.04, y, h], [x1 - 0.04, y, h], [x1 - 0.04, fy, fz], [x + 0.04, fy, fz]], C.white, { lw: 0.02 });
+    face(ctx, [[x1, y, h], [x1, fy, fz], [x1, oy1, oz1], [x1, oy0, oz0]], shade(INK.funnelRed, 0.15), { lw: 0.02 });
+    face(ctx, [[x, oy0, oz0], [x1, oy0, oz0], [x1, oy1, oz1], [x, oy1, oz1]], tint(INK.funnelRed, 0.2), { lw: 0.025 });
+    face(ctx, [[x, fy, fz], [x1, fy, fz], [x1, oy1, oz1], [x, oy1, oz1]], INK.funnelRed, { lw: 0.02 });
+  };
+  if (a > Math.PI / 2) lid();
+  box(ctx, x, y, 0, w, d, h, INK.funnelRed, { top: tint(C.sky, 0.6) });
+  // Inside: ice, a can, and the coconut (the cooler's front hides its bottom).
+  const [DX, DY] = P(x, y1, h), [CX, CY] = P(x1, y1, h), [BX, BY] = P(x1, y, h);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(DX, DY); ctx.lineTo(CX, CY); ctx.lineTo(BX, BY); ctx.lineTo(BX, BY - 2); ctx.lineTo(DX, DY - 2); ctx.closePath();
+  ctx.clip();
+  cylinder(ctx, 14.38, 7.68, h - 0.12, 0.08, 0.2, INK.funnelRed, { top: MAT.chrome, lw: 0.015 });
+  coconut(ctx, 14.6, 7.9, h + 0.04, { face: true, s: 1.3 });
+  ctx.restore();
+  if (a <= Math.PI / 2) lid();
+  lettering(ctx, 'x', 14.57, 8.06, 0.33, 'GANDER', 0.15, C.white, 'Bagel Fat One');
+  lettering(ctx, 'x', 14.57, 8.06, 0.15, 'Take a gander.', 0.07, C.white);
+}
+
+// The souvenir on the shop's counter: an iguana carved out of wood, on its
+// own carved base, painted green, with a price on a string.
+function carving(ctx, x, y, z) {
+  box(ctx, x - 0.17, y - 0.3, z, 0.34, 0.6, 0.1, INK.teak, { top: tint(INK.teak, 0.3), lw: 0.02 });
+  const [X, Y] = P(x, y, z + 0.1);
+  ctx.save();
+  ctx.translate(X, Y); ctx.scale(0.8, 0.8); ctx.translate(-X, -Y);
+  iguana(ctx, x, y, z + 0.1, 'r', 1);
+  ctx.restore();
+  if (!Q.detail) return;
+  // Chisel marks down its side, and the price tag hanging off the base.
+  ctx.strokeStyle = alpha(shade(INK.queasyGreen, 0.5), 0.7); ctx.lineWidth = 0.015;
+  for (const dx of [-0.15, -0.05, 0.05]) { ctx.beginPath(); ctx.moveTo(X + dx, Y - 0.26); ctx.lineTo(X + dx + 0.04, Y - 0.14); ctx.stroke(); }
+  const [TX, TY] = P(x + 0.17, y + 0.2, z + 0.02);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012;
+  ctx.beginPath(); ctx.moveTo(TX, TY); ctx.lineTo(TX + 0.02, TY + 0.12); ctx.stroke();
+  ctx.beginPath(); ctx.rect(TX - 0.11, TY + 0.12, 0.26, 0.15); paint(ctx, C.white, { lw: 0.015 });
+  label(ctx, x + 0.17, y + 0.2, z - 0.15, '$25', 0.08, C.ink, 'Rethink Sans');
 }
