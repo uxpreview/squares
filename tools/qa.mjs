@@ -582,6 +582,7 @@ try {
         const at = (o) => { const [x, y, h] = typeof o.at === 'function' ? o.at(t) : o.at; return s.camera.toScreen(z.anchor[0] + x - y, z.anchor[1] - z.lift + (x + y) / 2 - h * 1.12); };
         const out = [];
         for (const pk of z.pokes) {
+          if (pk.when && !pk.when(t)) continue;
           const [px, py] = at(pk);
           if (px < 0 || py < 0 || px > innerWidth || py > innerHeight) continue;
           for (const f of z.finds) {

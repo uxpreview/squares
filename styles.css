@@ -605,6 +605,25 @@ button.invite:active .invite-card { box-shadow: 1px 1px 0 var(--coral); }
   background: var(--teal);
   border-top: 2px solid var(--card);
 }
+/* How many things to find the next skip brings back, on the gauge's shoulder. */
+.dial-badge {
+  position: absolute;
+  top: -6px;
+  left: 26px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--card);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.dial-badge[hidden] { display: none; }
 .dial-text { display: flex; flex-direction: column; line-height: 1.2; }
 .dial-label { font-weight: 700; font-size: 13px; white-space: nowrap; }
 .dial-next { font-size: 11px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
@@ -992,6 +1011,28 @@ button.tray-grip:active { transform: none; }
   white-space: nowrap;
 }
 .row .find-note { margin-right: 8px; }
+/* Here now: lit, with a dot that breathes. Away (under the tide): pale, and
+   the thing's name goes soft with it. */
+.find-note.is-now { background: var(--teal); box-shadow: 0 0 0 2px #fff8; }
+.find-note.is-now::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 5px 1px 0;
+  border-radius: 50%;
+  background: var(--butter, #F7DD8E);
+  vertical-align: middle;
+  animation: tide-dot 1.6s ease-in-out infinite alternate;
+}
+@keyframes tide-dot { from { opacity: 1; } to { opacity: 0.35; } }
+.find-note.is-away { background: transparent; color: var(--teal); box-shadow: inset 0 0 0 1.5px var(--teal); }
+.chip.is-away:not(.is-selected) .chip-label,
+.row.is-away .row-label { color: var(--ink-soft); }
+button.find-note.is-skip { min-height: 28px; padding: 0 10px; font: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; border: 0; }
+button.find-note.is-skip::after { content: " \203A\203A"; }
+button.find-note.is-skip:hover { background: var(--teal); color: var(--card); }
+.chip.is-selected .find-note.is-away { color: var(--card); box-shadow: inset 0 0 0 1.5px var(--card); }
 
 .find-mark {
   flex: none;
