@@ -5,6 +5,9 @@
 // sighting corners it, and that's the ending. All-You-Can-Eat's iguana is the
 // first; the goose's trail from place to place reuses it later.
 //
+// The ending is the map's finale (map.finale: the clock jumps, the camera
+// flies to where it's cornered, the card waits), as at the Block Party.
+//
 // A sighting is an ordinary find (R.find in its zone), so saves need nothing
 // new: how far along the trail you are is how many sightings are found. The
 // art draws the quarry only at the sighting you're on (the map's onStep tells
@@ -19,7 +22,6 @@
 //       who, says,                         // the witness line that points to it (who: a cast id)
 //       seen,                              // once found, what the log says about it
 //     }],
-//     end: { zone, at, lines: [[who, line], ...] },  // the ending: where and when it's cornered
 //     names: { [who]: 'Name' },            // everyone who speaks
 //     portrait(ctx, id, w, h, t, dpr),     // draws a witness, framed
 //     onStep(step, found),                 // tell the map's art which sighting is next

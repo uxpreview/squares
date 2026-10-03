@@ -6,7 +6,9 @@
 //       labels per area, and nothing about where they are. A whodunit also
 //       gets case/: the case file as a player meets it (the suspects, one
 //       suspect up close, a wrong accusation, the mystery suspect half-way,
-//       and the reveal), for the second part of the test.
+//       and the reveal), for the second part of the test. A trail gets trail/:
+//       a sighting found, the log, the ending and the card. Each area is shot
+//       with the trail held at its own sighting, as a player on it sees it.
 //
 //       A place with finds that are only there some of the time (the tide)
 //       starts at its QA moment (map.qa.at), and each find says when it's
@@ -87,6 +89,10 @@ if (mode === 'prepare') {
   const shoot = async (z, key, near, skip, only = null, extra = {}) => {
     await page.evaluate(({ id, near }) => {
       const s = window.__squares, zone = s.world.zones.find((x) => x.id === id);
+      // A trail's sighting shows only while it's the one a player is on: hold
+      // the trail at this area's, as if the ones before were found.
+      const sighting = zone.finds.find((x) => x.step != null);
+      if (s.world.goal === 'trail') s.play.trailTo(sighting ? sighting.step : null);
       const f = near && zone.finds.find((x) => x.id === near);
       const at = f && (typeof f.at === 'function' ? f.at(s.clock.now()) : f.at);
       s.play.enterZone(id, { dur: 0.01, near: at ? [zone.ox + at[0], zone.oy + at[1]] : null });
@@ -218,6 +224,21 @@ if (mode === 'prepare') {
   }
   fs.writeFileSync(path.join(dir, 'labels.json'), JSON.stringify(labels, null, 2));
   fs.writeFileSync(path.join(dir, 'answers.json'), JSON.stringify(answers, null, 2));
+
+  // A trail: the log partway along, and the ending.
+  if (await page.evaluate(() => window.__squares.world.goal === 'trail')) {
+    const tdir = path.join(dir, 'trail');
+    fs.mkdirSync(tdir, { recursive: true });
+    const snap = async (name, ms = 700) => { await page.waitForTimeout(ms); await page.screenshot({ path: path.join(tdir, name + '.png') }); };
+    await page.evaluate(() => { const s = window.__squares; s.play.trailTo(null); s.play.reset(); s.play.toOverview({ dur: 0.01 }); });
+    await page.evaluate(() => { const s = window.__squares; for (const x of s.world.sightings.slice(0, 3)) s.play.markFound(x.zone, x.f); });
+    await snap('1-a-sighting-found');
+    await page.click('#tally-case');
+    await snap('2-the-log');
+    await page.evaluate(() => { const s = window.__squares; s.play.traillog.close(); for (const x of s.world.sightings.slice(3)) s.play.markFound(x.zone, x.f); });
+    await snap('3-caught', 4600);
+    await snap('4-the-card', 6000);
+  }
 
   // A whodunit: the case file, step by step, as a player would see it.
   const hasCase = await page.evaluate(() => window.__squares.world.goal === 'case');
