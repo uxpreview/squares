@@ -18,8 +18,8 @@ const sightings = [
   { find: 'waterslide:iguana', who: 'steward', says: 'A towel animal walked up to the sun deck.', seen: 'Clinging to the Corkscrew\'s pole, shedding, then down the slide.' },
   { find: 'pool:iguana', who: 'tyler', says: 'It came down the slide and went to the big pool.', seen: 'At the limbo at noon. It won.' },
   { find: 'adults-only:iguana', who: 'kelly', says: 'Our limbo champion! Then it wanted somewhere quiet.', seen: 'At the spa, under a seaweed wrap, cucumbers on its eyes.' },
-  { find: 'crew-bar:iguana', who: 'gloria', says: 'It took my cucumbers and went to a party below.', seen: 'At the crew party, where nobody is green but it.' },
-  { find: 'engine-room:iguana', who: 'chef', says: 'It ate my plastic shrimp. Now it needs a nap.', seen: 'Asleep in the hammock, with the chief.' },
+  { find: 'crew-bar:iguana', who: 'gloria', says: 'It took my cucumbers and went to a party below.', seen: 'Buried in the laundry at the crew party, the only green thing below the waterline.' },
+  { find: 'engine-room:iguana', who: 'chef', says: 'It ate my plastic shrimp. Now it needs a nap.', seen: 'Asleep under a tarp on the warm engine.' },
   { find: 'casino:iguana', who: 'captain', says: "It'll try the gangway. Nobody gets off.", seen: 'In a suitcase in the queue to go ashore, tail out of the zip. Cornered.' },
 ];
 

@@ -8,7 +8,15 @@
 // at 3pm the off-shift crew pour in through the door in a conga line and it
 // goes off (dancing on the laundry carts, a duet, bubbles). Every so often a
 // waiter comes in, drops his customer smile, dances, puts the smile back on
-// and goes back up.
+// and goes back up. Before three the front is getting ready: laundry cart
+// time trials with a chequered flag, and a steward blowing up the balloons.
+//
+// The chase (sighting 6, the crew party): the iguana hides in the parked race
+// cart's towels, the only cart nobody's dancing on; its crest, head and tail
+// show. Its lookalike is a pickle in a party hat on the bar. Things that
+// answer a tap: the karaoke machine (the teach), the two lidded crates
+// (KETCHUP, and DISPLAY ONLY with the plastic shrimp), the fridge, the
+// balloons, the pickle.
 //
 // Units are the area's own: x from the stern end (0) to the bow end (32), y
 // from the hull (0) to the cut side (16). The engine cuts the area in two at
@@ -22,7 +30,7 @@ import {
 } from '../../../engine/art.js';
 import { particles, clamp, pulse } from '../../../engine/actors.js';
 import { deck } from '../ship.js';
-import { INK, MAT, at, wrap, readable } from '../style.js';
+import { INK, MAT, at, wrap, readable, iguana } from '../style.js';
 import { porthole, lettering, board, lifebuoy, towelAnimal, CREW_LOOK, shape, sighting } from '../kit.js';
 
 const STEEL = MAT.steel, CHROME = MAT.chrome;
@@ -225,16 +233,6 @@ function plasticShrimp(ctx, X, Y, a, s = 1) {
   }
   ctx.restore();
 }
-const plastic = (ctx, x, y0, y1, z, w) => {
-  for (let i = 0; i < 3; i++) {
-    const [X, Y] = P(x + 0.15 + i * 0.16, y0 + 0.2 + (i % 2) * 0.15, z + 0.04);
-    plasticShrimp(ctx, X, Y, 0.3 + i * 0.9, 0.9);
-  }
-  // the one over the lip, hanging down the front
-  const [X, Y] = P(x + w * 0.62, y1 + 0.02, z - 0.02);
-  plasticShrimp(ctx, X, Y, 2.1, 1.25);
-};
-
 // Each piece's shelves, bottom to top: what's on them.
 function stock(ctx, a, b, i) {
   if (i === 0) {
@@ -271,9 +269,8 @@ function stock(ctx, a, b, i) {
     for (let k = 0; k < 2; k++) cylinder(ctx, a + 0.55 + k * 1.1, 0.9, BOARDS[0] + 0.06, 0.38, 0.62, STEEL, { lw: 0.02 });
     lettering(ctx, 'x', a + 0.55, 1.31, BOARDS[0] + 0.3, 'OIL', 0.1, C.ink);
     tins(ctx, a, b, BOARDS[1] + 0.06, C.mustard, C.brown);
-    crate(ctx, a + 0.1, BOARDS[2] + 0.06, 'KETCHUP', lumps(C.red, 4));
-    crate(ctx, 21.19, BOARDS[2] + 0.06, 'DISPLAY ONLY', plastic, { ink: INK.funnelRed });
-    crate(ctx, a + 1.62, BOARDS[2] + 0.06, 'TINS', lumps(C.greyLight, 4));
+    // (KETCHUP and DISPLAY ONLY, lids nailed on, are drawn on their own: they open.)
+    crate(ctx, a + 1.52, BOARDS[2] + 0.06, 'TINS', lumps(C.greyLight, 4));
     bottles(ctx, a, b, BOARDS[3] + 0.06, C.butter, C.ink);
   }
 }
@@ -285,6 +282,61 @@ function shelfPiece(ctx, a, b, i) {
   }
   stock(ctx, a, b, i);
   for (const x of [a, b - 0.08]) box(ctx, x, SHELF_Y1 - 0.08, 0, 0.08, 0.08, 3.06, shade(STEEL, 0.2), { flat: true, lw: 0.02 });
+}
+
+// ---------- The two crates with lids ----------
+// On the bottom right shelf, KETCHUP and the chef's DISPLAY ONLY have their
+// lids nailed on, and a front that drops open when tapped (k: 0 shut, 1 open).
+// One pink tail is caught under the DISPLAY ONLY lid: the tell.
+const LID = { y0: 0.7, y1: 1.32, h: 0.36, w: 0.62, z: BOARDS[2] + 0.06 };
+const KETCHUP_X = 20.78, SHRIMP_X = 21.5;
+function lidCrate(ctx, x, k, name, ink, inside, tell) {
+  const { y0, y1, h, w, z } = LID;
+  box(ctx, x, y0, z, w, y1 - y0, h, C.woodLight, { flat: true, lw: 0.025, top: shade(C.wood, 0.15) });
+  if (Q.detail) {
+    // the lid's planks
+    ctx.strokeStyle = shade(C.wood, 0.35); ctx.lineWidth = 0.012;
+    ctx.beginPath();
+    for (const u of [0.21, 0.42]) { const [A, B] = P(x, y0 + u, z + h), [E, F] = P(x + w, y0 + u, z + h); ctx.moveTo(A, B); ctx.lineTo(E, F); }
+    ctx.stroke();
+  }
+  if (k < 0.02) {
+    if (Q.detail) {
+      ctx.strokeStyle = shade(C.wood, 0.35); ctx.lineWidth = 0.012;
+      ctx.beginPath();
+      for (const dz of [0.12, 0.24]) { const [A, B] = P(x, y1, z + dz), [E, F] = P(x + w, y1, z + dz); ctx.moveTo(A, B); ctx.lineTo(E, F); }
+      ctx.stroke();
+    }
+    face(ctx, [[x + 0.08, y1 + 0.005, z + 0.1], [x + w - 0.08, y1 + 0.005, z + 0.1], [x + w - 0.08, y1 + 0.005, z + 0.27], [x + 0.08, y1 + 0.005, z + 0.27]], C.white, { lw: 0.012 });
+    lettering(ctx, 'x', x + w / 2, y1 + 0.01, z + 0.185, name, 0.07, ink);
+    if (tell) tell(ctx, x, z + h);
+    return;
+  }
+  // Open: the dark inside, what's in it, and the front lying out over the shelf's edge.
+  face(ctx, [[x + 0.03, y1, z + 0.02], [x + w - 0.03, y1, z + 0.02], [x + w - 0.03, y1, z + h - 0.03], [x + 0.03, y1, z + h - 0.03]], shade(C.wood, 0.6), { lw: 0.015 });
+  inside(ctx, x, z);
+  const a = k * Math.PI * 0.5, hy = h * Math.sin(a), hz = h * Math.cos(a);
+  face(ctx, [[x, y1, z], [x + w, y1, z], [x + w, y1 + hy, z + hz], [x, y1 + hy, z + hz]], C.woodLight, { lw: 0.02 });
+  if (k > 0.6) face(ctx, [[x + 0.08, y1 + hy * 0.28, z + hz * 0.28], [x + w - 0.08, y1 + hy * 0.28, z + hz * 0.28], [x + w - 0.08, y1 + hy * 0.75, z + hz * 0.75], [x + 0.08, y1 + hy * 0.75, z + hz * 0.75]], C.white, { lw: 0.012 });
+}
+// What's in them, seen through the open front.
+function shrimpInside(ctx, x, z) {
+  for (let i = 0; i < 5; i++) {
+    const [X, Y] = P(x + 0.12 + i * 0.095, LID.y1 - 0.06, z + 0.09 + (i % 2) * 0.1);
+    plasticShrimp(ctx, X, Y, 0.4 + i * 1.1, 0.8);
+  }
+}
+function ketchupInside(ctx, x, z) {
+  for (let i = 0; i < 4; i++) {
+    const [X, Y] = P(x + 0.13 + i * 0.12, LID.y1 - 0.06, z + 0.03);
+    ctx.beginPath(); ctx.roundRect(X - 0.045, Y - 0.24, 0.09, 0.24, 0.03); paint(ctx, C.red, { lw: 0.012 });
+    ctx.fillStyle = C.white; ctx.fillRect(X - 0.025, Y - 0.29, 0.05, 0.05);
+  }
+}
+// The tell: one pink tail curled out from under the lid, over its side.
+function shrimpTell(ctx, x, z) {
+  const [X, Y] = P(x + LID.w + 0.01, LID.y0 + 0.4, z - 0.02);
+  plasticShrimp(ctx, X + 0.04, Y + 0.02, 1.2, 0.85);
 }
 
 // ---------- The disco ball ----------
@@ -401,12 +453,18 @@ function stage(ctx) {
   // steps up at the front corner
   box(ctx, 28, 11.2, 0, 0.5, 0.8, 0.3, shade(INK.flamingo, 0.15), { flat: true, lw: 0.03 });
 }
-function screen(ctx, t) {
+function screen(ctx, t, song) {
   // the screen on its stand, off stage right
   box(ctx, 28.95, 9.55, 0, 0.1, 0.1, 1.6, C.ink, { flat: true, stroke: false });
   face(ctx, [[28.1, 9.7, 1.5], [29.9, 9.7, 1.5], [29.9, 9.7, 2.6], [28.1, 9.7, 2.6]], C.black, { lw: 0.05 });
   face(ctx, [[28.2, 9.72, 1.6], [29.8, 9.72, 1.6], [29.8, 9.72, 2.5], [28.2, 9.72, 2.5]], MAT.crewBlue, { stroke: false });
   if (!Q.detail) return;
+  if (song) {
+    // the machine's just been tapped: what's on next
+    lettering(ctx, 'x', 29, 9.74, 2.25, 'NOW PLAYING', 0.1, INK.sunYellow);
+    lettering(ctx, 'x', 29, 9.74, 1.95, song, 0.09, C.white);
+    return;
+  }
   const i = Math.floor(wrap(t) / 6) % LYRICS.length;
   const k = (wrap(t) % 6) / 6;
   lettering(ctx, 'x', 29, 9.74, 2.15, LYRICS[i], 0.085, C.white);
@@ -421,6 +479,185 @@ const mic = (a) => (ctx) => {
   ctx.strokeStyle = C.black; ctx.lineWidth = 0.06; ctx.stroke();
   ctx.beginPath(); ctx.arc(hx - 0.03, hy - 0.24, 0.07, 0, Math.PI * 2); paint(ctx, STEEL, { lw: 0.02 });
 };
+
+// The karaoke machine, on the stage's front corner: a black box with a
+// speaker, two knobs and a song book. Tapped, it lights up and plays the
+// next song (the screen says which).
+const SONGS = ['MY HEART WILL GO ON', 'ROCK THE BOAT', 'SLOOP JOHN B', 'FISH FINGERS (REMIX)'];
+const KARAOKE = { x: 24.3, y: 11.05, z: 0.6, w: 0.75, d: 0.7, h: 0.62 };
+function machine(ctx, t, k) {
+  const { x, y, z, w, d, h } = KARAOKE;
+  box(ctx, x, y, z, w, d, h, C.black, { lw: 0.03, top: shade(STEEL, 0.45) });
+  // the speaker on its front, pumping when it plays
+  const [X, Y] = P(x + w / 2, y + d + 0.01, z + h * 0.42);
+  const pump = k > 0 ? 1 + Math.abs(Math.sin(t * 14)) * 0.12 * k : 1;
+  ctx.beginPath(); ctx.ellipse(X, Y, 0.2 * pump, 0.2 * pump, 0, 0, Math.PI * 2); paint(ctx, shade(STEEL, 0.35), { lw: 0.02 });
+  ctx.beginPath(); ctx.arc(X, Y, 0.07, 0, Math.PI * 2); paint(ctx, C.black, { lw: 0.015 });
+  lettering(ctx, 'x', x + w / 2, y + d + 0.01, z + h * 0.88, 'SING-O-MATIC', 0.07, INK.sunYellow);
+  // on top: two knobs, the slot for the songs, a song book
+  for (const u of [0.18, 0.36]) disc(ctx, x + u, y + 0.2, z + h, 0.06, C.white, { lw: 0.015 });
+  box(ctx, x + 0.45, y + 0.12, z + h, 0.22, 0.42, 0.06, INK.flamingo, { flat: true, lw: 0.015 });
+  // its lamps: off, or chasing round when it plays
+  if (!Q.detail) return;
+  for (let i = 0; i < 4; i++) {
+    const on = k > 0.5 && Math.floor(t * 8 + i) % 2 === 0;
+    const [LX, LY] = P(x + 0.1 + i * 0.18, y + d + 0.01, z + h * 0.08);
+    ctx.beginPath(); ctx.arc(LX, LY, 0.035, 0, Math.PI * 2);
+    ctx.fillStyle = on ? BULBS[i] : shade(BULBS[i], 0.5); ctx.fill();
+  }
+}
+
+// ---------- The time trials ----------
+// Before the party the front of the bar is a racetrack: a deckhand pushes a
+// laundry cart, a steward rides it, and a cook with a chequered flag at the
+// finish times them. A run every 30 seconds from 7am (on your marks, the
+// dash, the flag, the walk back) until half past two; at three the cart's
+// parked at the start, its towels piled up, and the team goes dancing. It
+// all keeps right of x 16, where the area is cut in two.
+const LANE = { x0: 18.6, x1: 25, y: 14.4 };
+const LAP = 30, LAST = at(14.5);
+function race(t) {
+  const s = wrap(t), n = Math.floor(s / LAP);
+  if (s >= LAST) return { x: LANE.x0, phase: s >= PARTY ? 'party' : 'parked', n, c: s - LAST };
+  const c = s % LAP;
+  if (c < 4) return { x: LANE.x0, phase: 'set', n, c };
+  if (c < 7.5) { const f = (c - 4) / 3.5; return { x: LANE.x0 + (LANE.x1 - LANE.x0) * f * f * (3 - 2 * f), phase: 'dash', n, c }; }
+  if (c < 11) return { x: LANE.x1, phase: 'won', n, c };
+  if (c < 23) return { x: LANE.x1 - (LANE.x1 - LANE.x0) * ((c - 11) / 12), phase: 'back', n, c };
+  return { x: LANE.x0, phase: 'set', n, c };
+}
+const RACE_TOWELS = [C.sky, C.white, C.sky];
+// A pennant on the cart's handle: it's a race car now.
+function pennant(ctx, x, t, fast) {
+  const [X, Y] = P(x - 0.05, LANE.y + 0.25, 1.53);
+  ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X, Y - 0.7);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+  const fl = Math.sin(t * (fast ? 18 : 3)) * 0.04;
+  ctx.beginPath(); ctx.moveTo(X, Y - 0.7); ctx.lineTo(X - 0.42, Y - 0.6 + fl); ctx.lineTo(X, Y - 0.48);
+  ctx.closePath(); paint(ctx, INK.funnelRed, { lw: 0.015 });
+  if (Q.detail) lettering(ctx, 'x', x - 0.25, LANE.y + 0.25, 1.53 + 0.52, '1', 0.08, C.white);
+}
+// The cook's flag, chequered, from the hand.
+const flag = (a) => (ctx) => {
+  const [hx, hy] = hand(a);
+  ctx.beginPath(); ctx.moveTo(hx, hy + 0.05); ctx.lineTo(hx, hy - 0.7);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke();
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+    ctx.fillStyle = (i + j) % 2 ? C.white : C.black;
+    ctx.fillRect(hx + i * 0.13, hy - 0.7 + j * 0.13, 0.13, 0.13);
+  }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.015; ctx.strokeRect(hx, hy - 0.7, 0.39, 0.26);
+};
+
+// ---------- The balloons ----------
+// A steward on a crate, blowing up balloons for the party, one every 16
+// seconds from 7am, tied to the bunch beside him: two at breakfast, twelve
+// by three. From three he stops and dances.
+const BLOWER = { x: 30.8, y: 13.1 };
+const BUNCH = { x: 31.6, y: 12.4 };
+const BLOW = 16;
+const balloons = (t) => 2 + Math.min(10, Math.floor((Math.min(wrap(t), PARTY) + 4) / BLOW));
+// Where each balloon floats (seeded), and its colour.
+const BALLOON = Array.from({ length: 12 }, (_, i) => ({
+  dx: Math.sin(i * 2.4) * 0.45, dy: Math.cos(i * 1.7) * 0.35, z: 2.3 + (i % 4) * 0.28 + (i % 3) * 0.1, c: BULBS[(i * 3) % BULBS.length],
+}));
+function bunch(ctx, t, popped) {
+  const n = balloons(t);
+  const [AX, AY] = P(BUNCH.x, BUNCH.y, 0.42);
+  // the weight: a tin of tomatoes
+  cylinder(ctx, BUNCH.x, BUNCH.y, 0, 0.16, 0.42, C.red, { lw: 0.02, top: C.white });
+  for (let i = 0; i < n; i++) {
+    const b = BALLOON[i], sway = Math.sin(t * 1.2 + i) * 0.05;
+    const [X, Y] = P(BUNCH.x + b.dx, BUNCH.y + b.dy, b.z);
+    const bx = X + sway;
+    ctx.beginPath(); ctx.moveTo(AX, AY); ctx.quadraticCurveTo((AX + bx) / 2 + 0.05, (AY + Y) / 2, bx, Y + 0.24);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012; ctx.stroke();
+    if (popped && i === n - 1) {
+      // the one that's just been popped: a bang and a scrap
+      if (!Q.detail) continue;
+      ctx.strokeStyle = b.c; ctx.lineWidth = 0.04;
+      ctx.beginPath();
+      for (let r = 0; r < 6; r++) { const a = r * 1.05; ctx.moveTo(bx + Math.cos(a) * 0.1, Y + Math.sin(a) * 0.1); ctx.lineTo(bx + Math.cos(a) * 0.3, Y + Math.sin(a) * 0.3); }
+      ctx.stroke();
+      continue;
+    }
+    ctx.beginPath(); ctx.ellipse(bx, Y, 0.2, 0.24, sway, 0, Math.PI * 2); paint(ctx, b.c, { lw: 0.02 });
+    ctx.beginPath(); ctx.moveTo(bx - 0.04, Y + 0.27); ctx.lineTo(bx + 0.04, Y + 0.27); ctx.lineTo(bx, Y + 0.22); ctx.closePath(); paint(ctx, b.c, { lw: 0.01 });
+    if (Q.detail) { ctx.fillStyle = alpha(C.white, 0.6); ctx.beginPath(); ctx.ellipse(bx - 0.07, Y - 0.08, 0.04, 0.07, 0.4, 0, Math.PI * 2); ctx.fill(); }
+  }
+}
+// The balloon at his mouth, growing (drawn over his face, facing right).
+const blowing = (t) => (ctx, hy, back) => {
+  if (back) return;
+  const c = Math.min(wrap(t), PARTY + 1) % BLOW;
+  if (wrap(t) >= PARTY || c >= 12) return;
+  const r = 0.05 + Math.min(1, c / 10) * 0.24;
+  const col = BALLOON[Math.min(11, balloons(t))].c;
+  ctx.beginPath(); ctx.ellipse(0.36 + r, hy + 0.14 - r * 0.3, r, r * 1.1, 0, 0, Math.PI * 2); paint(ctx, col, { lw: 0.02 });
+  // puffed cheeks
+  ctx.beginPath(); ctx.arc(0.22, hy + 0.12, 0.07 + Math.sin(t * 5) * 0.01, 0, Math.PI * 2); ctx.fillStyle = alpha(C.coral, 0.6); ctx.fill();
+};
+
+// ---------- The pickle ----------
+// On the bar, on a saucer: a big green pickle in a party hat. Not an iguana.
+const PICKLE = [4.3, 9.9, 1.2];
+function pickle(ctx) {
+  const [x, y, z] = PICKLE;
+  disc(ctx, x, y, z, 0.28, C.white, { lw: 0.02 });
+  const [X, Y] = P(x, y, z + 0.02);
+  ctx.save(); ctx.translate(X, Y - 0.1); ctx.rotate(-0.15);
+  // the pickle: knobbly, darker underneath
+  ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.12, 0, 0, Math.PI * 2);
+  paint(ctx, INK.queasyGreen, { lw: 0.025, dots: shade(INK.queasyGreen, 0.4), density: 0.3 });
+  if (Q.detail) {
+    ctx.fillStyle = shade(INK.queasyGreen, 0.3);
+    for (const [u, v] of [[-0.18, -0.03], [-0.05, -0.07], [0.08, -0.04], [0.2, -0.06], [-0.1, 0.04], [0.12, 0.05]]) { ctx.beginPath(); ctx.arc(u, v, 0.018, 0, Math.PI * 2); ctx.fill(); }
+    // a face, drawn on by somebody at the bar
+    ctx.fillStyle = C.ink;
+    ctx.beginPath(); ctx.arc(0.17, -0.03, 0.017, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0.17, 0.02, 0.04, 0.2, Math.PI - 0.2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012; ctx.stroke();
+  }
+  // the party hat, and its bobble
+  ctx.beginPath(); ctx.moveTo(0.04, -0.1); ctx.lineTo(0.12, -0.42); ctx.lineTo(0.24, -0.08); ctx.closePath();
+  paint(ctx, C.pink, { lw: 0.02, dots: C.mustard, density: 0.4 });
+  ctx.beginPath(); ctx.arc(0.12, -0.43, 0.035, 0, Math.PI * 2); paint(ctx, INK.sunYellow, { lw: 0.012 });
+  ctx.restore();
+}
+
+// ---------- The iguana's tail ----------
+// A tapering, banded tail through screen points (smoothed): the iguana's own
+// drawing in style.js keeps its tail to itself, and a hiding one needs its
+// tail out somewhere else.
+const IGUANA = { skin: INK.queasyGreen, dark: shade(INK.queasyGreen, 0.35) };
+function lizardTail(ctx, pts, w0 = 0.075, w1 = 0.014) {
+  const L = [], n = pts.length - 1;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n, i + 2)];
+    for (let s = 0; s < 6; s++) {
+      const u = s / 6, u2 = u * u, u3 = u2 * u;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * u + (2 * a - 5 * b + 4 * c - d) * u2 + (3 * b - a - 3 * c + d) * u3);
+      L.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  L.push(pts[n]);
+  const m = L.length - 1, A = [], B = [];
+  L.forEach((p, i) => {
+    const q0 = L[Math.max(0, i - 1)], q1 = L[Math.min(m, i + 1)];
+    const dx = q1[0] - q0[0], dy = q1[1] - q0[1], len = Math.hypot(dx, dy) || 1, w = w0 + (w1 - w0) * (i / m);
+    A.push([p[0] - (dy / len) * w, p[1] + (dx / len) * w]);
+    B.push([p[0] + (dy / len) * w, p[1] - (dx / len) * w]);
+  });
+  ctx.beginPath();
+  A.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+  for (let i = m; i >= 0; i--) ctx.lineTo(B[i][0], B[i][1]);
+  ctx.closePath();
+  paint(ctx, IGUANA.skin, { lw: 0.035 });
+  if (!Q.detail) return;
+  ctx.strokeStyle = IGUANA.dark; ctx.lineWidth = 0.05;
+  ctx.beginPath();
+  for (const k of [0.22, 0.4, 0.58, 0.76]) { const i = Math.round(k * m); ctx.moveTo(A[i][0], A[i][1]); ctx.lineTo(B[i][0], B[i][1]); }
+  ctx.stroke();
+}
 
 // ---------- The bar ----------
 function bar(ctx) {
@@ -687,6 +924,11 @@ export default {
 
     // ---------- The stores ----------
     PIECES.forEach(([a, b], i) => R.thing(b - 0.1, SHELF_Y1, (ctx) => shelfPiece(ctx, a, b, i), { depth: (a + b) / 2 + SHELF_Y1 }));
+    // The two crates with lids, sorted just after their shelf.
+    const ketchup = R.poke({ id: 'ketchup', at: [KETCHUP_X + LID.w / 2, 1.0, LID.z + 0.2], r: 0.55, sound: 'clunk', say: ['Just ketchup.', 'Still ketchup.'] });
+    const shrimpBox = R.poke({ id: 'display', at: [SHRIMP_X + LID.w / 2, 1.0, LID.z + 0.2], r: 0.55, sound: 'clunk', say: ['DISPLAY ONLY. Do not eat.', 'Since 2009.'] });
+    R.thing(KETCHUP_X + LID.w, LID.y1, (ctx) => lidCrate(ctx, KETCHUP_X, ketchup.k(), 'KETCHUP', C.ink, ketchupInside), { anim: true, depth: 23.3 });
+    R.thing(SHRIMP_X + LID.w, LID.y1, (ctx) => lidCrate(ctx, SHRIMP_X, shrimpBox.k(), 'DISPLAY ONLY', INK.funnelRed, shrimpInside, shrimpTell), { anim: true, depth: 23.31 });
 
     // ---------- The Gander Cola fridge ----------
     R.thing(24.7, 1.5, (ctx) => {
@@ -703,6 +945,8 @@ export default {
       lettering(ctx, 'x', 25.25, 1.48, 1.72, 'PASSENGERS', 0.06, C.ink);
     });
 
+    R.poke({ id: 'fridge', at: [24.7, 1.46, 1.6], r: 0.9, sound: 'clunk', say: ['NOT FOR PASSENGERS.', 'You look like a passenger.'] });
+
     // ---------- The mess ----------
     R.thing(29, 0.8, messBench, { depth: 20 });
     // (Sorted after the bench and everyone on it: at 31 the end eater was drawn over the table.)
@@ -712,6 +956,9 @@ export default {
     R.thing(6, 7.2, backBar);
     R.thing(6, 10.4, bar);
     for (const x of [4.1, 5.6, 7.2, 8.6]) R.thing(x, 11.2, (ctx) => stool(ctx, x, 11.2));
+    // The pickle in a party hat, on the bar: the iguana's lookalike down here.
+    R.thing(PICKLE[0] + 0.3, PICKLE[1] + 0.3, pickle, { depth: 6 + 10.4 + 0.05 });
+    R.decoy({ id: 'pickle', at: [PICKLE[0], PICKLE[1], PICKLE[2] + 0.2], r: 0.6, say: ['A pickle. In a hat. Not an iguana.', 'Still a pickle.'] });
     // The neon over it, buzzing (and now and then not).
     R.light({
       at: [0.1, 8.3, 4.3], r: 3.2, color: C.pink,
@@ -725,7 +972,14 @@ export default {
 
     // ---------- The stage ----------
     R.thing(26, 10.5, stage, { depth: 33 });
-    R.thing(29, 9.7, screen, { anim: true });
+    // The karaoke machine: the thing a first visit is nudged to tap.
+    const karaoke = R.poke({
+      id: 'karaoke', at: [KARAOKE.x + KARAOKE.w / 2, KARAOKE.y + KARAOKE.d / 2, KARAOKE.z + 0.4], r: 0.9, teach: true, hold: 4, sound: 'ding',
+      say: ['Now playing: My Heart Will Go On.', 'Now playing: Rock the Boat.', 'Now playing: Sloop John B.', 'Now playing: Fish Fingers (Remix).'],
+    });
+    const song = () => (karaoke.k() > 0.5 ? SONGS[(karaoke.taps + SONGS.length - 1) % SONGS.length] : null);
+    R.thing(KARAOKE.x + KARAOKE.w, KARAOKE.y + KARAOKE.d, (ctx, t) => machine(ctx, t, karaoke.k()), { anim: true, depth: 37 });
+    R.thing(29, 9.7, (ctx, t) => screen(ctx, t, song()), { anim: true });
     R.light({ at: [26, 10.5, 3], r: 3.5, color: C.butter, k: (t) => (wrap(t) > at(9) ? 0.55 + 0.25 * partyK(t) : 0.15) });
     R.light({ at: [14.5, 8.6, 0.5], r: 5, color: C.lilac, k: (t) => 0.2 + 0.4 * partyK(t) + (partying(t) ? 0.15 * Math.sin(t * 8) : 0) });
 
@@ -913,12 +1167,38 @@ export default {
     conga(R);
     // The waiter.
     waiter(R);
+    // Before three: the laundry cart time trials along the front, and the balloons.
+    timeTrials(R);
+    balloonMan(R);
 
     // ---------- The finds ----------
-    // The chase: sighting 6 (greybox; the area's artist hides it).
-    sighting(R, 5, { at: [10, 8, 0] });
-    R.find({ id: 'plastic-shrimp', label: 'A box of plastic shrimp', at: [21.5, 1, 1.7], r: 0.8 });
-    R.find({ id: 'spoon-ball', label: 'A disco ball made of spoons', at: [14, 7, 5], r: 0.75 });
+    // The chase, sighting 6 (the crew party): in the parked race cart, in the
+    // towels. Its crest and eye show over them, and its tail hangs down the
+    // front of the cart. Three carts, and nobody's dancing on this one.
+    sighting(R, 5, {
+      at: [LANE.x0 + 1.0, LANE.y + 0.55, 1.0], kind: 'hard', bias: 1.2,
+      hint: 'Three laundry carts. Nobody is dancing on one of them.',
+      draw(ctx, t, p) {
+        // its tail first, out from under the towels and down the front
+        const [A, B] = P(LANE.x0 + 0.4, LANE.y + 1.42, 1.12), sw = Math.sin(t * 1.1) * 0.03;
+        lizardTail(ctx, [[A, B - 0.06], [A - 0.04, B + 0.2], [A + 0.02 + sw, B + 0.45], [A + 0.16 + sw, B + 0.52], [A + 0.2 + sw, B + 0.4]], 0.07, 0.014);
+        // it, standing in the towels, bobbing its head to the music
+        iguana(ctx, p.x, p.y, p.z, 'r', t, {});
+        // and the towels piled back over its legs and belly
+        // (in screen units from its feet: up to just under its crest, and
+        // under its chin, so the spikes and the head show over the towels)
+        const [FX, FY] = P(p.x, p.y, p.z);
+        for (const [dx, dy, rx, ry, c] of [[-0.85, 0.02, 0.36, 0.2, C.sky], [-0.38, -0.08, 0.36, 0.29, C.white], [0.06, -0.06, 0.3, 0.3, C.sky], [0.48, 0.0, 0.3, 0.16, C.white], [-0.15, 0.1, 0.42, 0.22, C.white]]) {
+          ctx.beginPath(); ctx.ellipse(FX + dx, FY + dy, rx, ry, 0, Math.PI, 0); ctx.closePath();
+          paint(ctx, c, { lw: 0.02 });
+          if (Q.detail) { ctx.beginPath(); ctx.ellipse(FX + dx + 0.04, FY + dy - ry * 0.35, rx * 0.55, ry * 0.4, 0, Math.PI * 1.1, Math.PI * 1.7); ctx.strokeStyle = shade(c, 0.2); ctx.lineWidth = 0.015; ctx.stroke(); }
+        }
+      },
+      // the getaway: out of the cart, across the dance floor, out the door to the Engine Room
+      run: [[LANE.x0 + 1.2, LANE.y - 0.35, 0], [19.7, 11.6, 0], [9.8, 5.8, 0], [1.3, DOOR_Y, 0], [0.3, DOOR_Y, 0]],
+    });
+    R.find({ id: 'plastic-shrimp', label: 'A box of plastic shrimp', kind: 'poke', inside: shrimpBox, at: [SHRIMP_X + LID.w / 2, 1.0, LID.z + 0.2], r: 0.8, hint: "Chef Gaston's tower needs spares. The stores have them, if you can get the lid off." });
+    R.find({ id: 'spoon-ball', label: 'A disco ball made of spoons', kind: 'spot', at: [14, 7, 5], r: 0.75 });
   },
 };
 
@@ -1001,4 +1281,82 @@ function waiter(R) {
     }
     return { hide: true, x: -5, y: DOOR_Y };
   }, { wear: bowTie });
+}
+
+// ---------- The time trials ----------
+// The cart (its rider sorted just after it), the deckhand pushing, and the
+// cook at the finish with the flag. race() is the clock.
+function timeTrials(R) {
+  R.mover((t) => { const r = race(t); return { x: r.x + 1, y: LANE.y + 0.7, r }; }, (ctx, t, p) => {
+    const { r } = p, x = r.x;
+    cart(ctx, x, LANE.y, RACE_TOWELS, false);
+    pennant(ctx, x, t, r.phase === 'dash');
+    if (r.phase === 'dash' && Q.detail) {
+      // speed lines off the back
+      ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.03;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const [A, B] = P(x - 0.7 - (i % 2) * 0.4, LANE.y + 0.3 + i * 0.3, 0.3 + (i % 3) * 0.3);
+        ctx.moveTo(A, B); ctx.lineTo(A - 0.6, B - 0.3);
+      }
+      ctx.stroke();
+    }
+  }, { bias: 0.7 });
+
+  // The rider: up on the towels, arms up for the dash; off at three, to dance.
+  const toDance = path([[LANE.x0 + 1.2, LANE.y - 0.3], [19.8, 11.9], [19.6, 11.4]]);
+  crew(R, 250, { ...WHITES, style: 'pony' }, (t) => {
+    const r = race(t);
+    if (r.phase === 'party') {
+      const d = r.c * 1.6;
+      if (d < toDance.L) return { ...toDance.at(d), pose: 'walk', moving: true };
+      return { x: 19.6, y: 11.4, pose: 'dance', dir: 'l' };
+    }
+    const seat = { x: r.x + 1.1, y: LANE.y + 0.75, z: 0.5, pose: 'sit', dir: 'r', ahead: 0.7 };
+    if (r.phase === 'dash') return { ...seat, arms: [2.8 + Math.sin(t * 9) * 0.1, 2.6] };
+    if (r.phase === 'won') return { ...seat, arms: [2.9, 2.9], say: r.c < 9.5 ? (r.n % 2 ? 'Faster!' : 'Again!') : null };
+    if (r.phase === 'back') return { ...seat, dir: 'l', arms: [0.9, 0.7] };
+    return { ...seat, arms: [0.9, 0.7] };
+  });
+
+  // The pusher, behind the handle. At three he parks it and goes to dance.
+  const pushDance = path([[LANE.x0 - 0.55, LANE.y + 0.7], [LANE.x0 - 0.6, 14.15], [16.2, 14.1], [15.6, 12.0], [15.3, 11.7]]);
+  crew(R, 251, { ...NAVY, style: 'curly' }, (t) => {
+    const r = race(t);
+    if (r.phase === 'party') {
+      const d = r.c * 1.6;
+      if (d < pushDance.L) return { ...pushDance.at(d), pose: 'walk', moving: true };
+      return { x: 15.3, y: 11.7, pose: 'dance', dir: 'r' };
+    }
+    const at0 = { x: r.x - 0.55, y: LANE.y + 0.7, dir: 'r', arms: [1.5, 1.4] };
+    if (r.phase === 'dash') return { ...at0, pose: 'run', moving: true, speed: 14 };
+    if (r.phase === 'back') return { ...at0, pose: 'walk', moving: true, dir: 'l', back: true };
+    if (r.phase === 'won') return { ...at0, pose: 'cheer', arms: null };
+    // On your marks: stretching, one arm then the other.
+    return { ...at0, arms: Math.sin(t * 2) > 0 ? [Math.PI - 0.2, 0.2] : [0.2, Math.PI - 0.2] };
+  }, { wear: bib });
+
+  // The cook with the flag, and opinions.
+  const verdict = ['New record!', 'Disqualified.', 'Photo finish!', 'Wheel fell off. Allowed.'];
+  crew(R, 252, { ...GALLEY }, (t) => {
+    const r = race(t);
+    const p = { x: 27.2, y: 13.1, dir: 'l' };
+    if (r.phase === 'party') return { ...p, pose: 'dance', hold: flag(2.6) };
+    if (r.phase === 'dash' && r.c > 6.5) { const a = 2.4 + Math.sin(t * 20) * 0.4; return { ...p, arms: [a, 0.3], hold: flag(a) }; }
+    if (r.phase === 'won') return { ...p, arms: [2.5, 0.3], hold: flag(2.5), say: r.c < 10 ? verdict[r.n % verdict.length] : null };
+    return { ...p, arms: [0.8, 0.3], hold: flag(0.8) };
+  });
+}
+
+// ---------- The balloon man ----------
+function balloonMan(R) {
+  // his crate, and the bunch on its tin (tap it: one pops)
+  R.thing(BLOWER.x + 0.3, BLOWER.y + 0.3, (ctx) => box(ctx, BLOWER.x - 0.3, BLOWER.y - 0.3, 0, 0.6, 0.6, 0.45, C.woodLight, { lw: 0.025, top: shade(C.wood, 0.15) }));
+  const pop = R.poke({ id: 'balloons', at: [BUNCH.x, BUNCH.y, 2.6], r: 0.9, hold: 1.5, say: ['POP.', "That one was the captain's.", 'Stop popping the party.'] });
+  R.thing(BUNCH.x + 0.2, BUNCH.y + 0.2, (ctx, t) => bunch(ctx, t, pop.k() > 0.3), { anim: true });
+  crew(R, 253, { ...WHITES, style: 'bald' }, (t) => {
+    if (wrap(t) >= PARTY) return { x: BLOWER.x, y: BLOWER.y + 0.5, pose: 'dance', dir: 'r' };
+    const c = wrap(t) % BLOW;
+    return { x: BLOWER.x, y: BLOWER.y, z: -0.15, pose: 'sit', dir: 'r', face: blowing(t), arms: c < 12 ? [1.9, 1.7] : [0.5 + (c - 12) * 0.3, 0.4] };
+  });
 }

@@ -10,6 +10,12 @@
 // The apprentice walks back and taps the gauge again. The needle climbs all
 // day, and at 6pm, when the ship docks, the telegraph rings STOP and the
 // shafts wind down.
+//
+// The chase (sighting 7, 5pm): the iguana naps on top of engine No. 2 under a
+// blue tarp, its tail hanging down over the engine's name plate; the tarp on
+// No. 1 is the crew's socks. Its lookalike is a green rubber glove drying on
+// the riser by the hammock. Things that answer a tap: the big gauge (the
+// teach), the two tarps, the red phone, the NOT SOUP drum, the glove.
 // Keep the id: it's in links and saves.
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, speech, alpha, shade, tint, SKIN, HAIR,
@@ -18,7 +24,7 @@ import { particles, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { deck } from '../ship.js';
 import { HOUR } from '../plan.js';
-import { INK, MAT, at, wrap, hourOf, readable } from '../style.js';
+import { INK, MAT, at, wrap, hourOf, readable, iguana, chase, chaseOpen } from '../style.js';
 import { P, shape, board, porthole, bucket, onY, onX, inked, hand, words as wordsAt, sighting } from '../kit.js';
 
 // The engine room letters a little heavier than the rest of the ship (stencils).
@@ -369,9 +375,10 @@ function pressure(t) {
   // Stopped in port, it sinks.
   return v * (0.25 + 0.75 * way(t));
 }
-function gaugeNeedle(ctx, t) {
+function gaugeNeedle(ctx, t, tapped = 0) {
   onY(ctx, PANEL.x, PANEL.y + PANEL.d + 0.01, PANEL.h, (g) => {
-    needle(g, BIG.u, BIG.v, BIG.r, pressure(t));
+    // (tapped: a player's tap sends it up too, and it shivers)
+    needle(g, BIG.u, BIG.v, BIG.r, pressure(t) + tapped * (0.09 + Math.sin(t * 40) * 0.015));
     if (!Q.detail) return;
     // The lamps on the switch strip: green (C.leaf, not the queasy green) and
     // a red one that flashes with the alarm.
@@ -537,6 +544,153 @@ function riser(ctx, x, y, color = MAT.steel) {
   for (const z of [1.4, 2.45, 4.6]) flange(ctx, [x, y, z], [x, y, z + 0.1], 0.42);
   handwheel(ctx, x + 0.32, y + 0.32, 3.4, 0.2);
   pipe(ctx, [[x, y, 3.25], [x + 0.32, y + 0.32, 3.25], [x + 0.32, y + 0.32, 3.4]], MAT.steelDark, 0.1);
+}
+
+// ---------- The tarps on the engines ----------
+// Two blue tarps on top of the engines, the warmest spots on the ship: one on
+// No. 1 over the crew's socks, drying, and one on No. 2. Tapped, a tarp rolls
+// back toward the far side (k: 0 shut, 1 open). lump: how big what's under it is.
+const TOP = HEAD_Z + HEAD_H + 0.14;
+const NAP = { x0: 6.55, x1: 8.35, y0: 11.05, y1: 12.55 }; // on No. 2: the iguana's, in its hour
+const SOCKS = { x0: 7.1, x1: 8.7, y0: 6.75, y1: 8.25 }; // on No. 1
+const TARP = C.sky;
+function tarp(ctx, T, k, lump, t) {
+  const { x0, x1, y0 } = T, z = TOP + 0.06;
+  const ye = T.y1 - (T.y1 - y0) * 0.8 * k, drop = 0.38 * (1 - k);
+  const dark = shade(TARP, 0.3);
+  // the side hanging down the right, then the top
+  if (ye - y0 > 0.1) {
+    shape(ctx, [[x1, y0, z], [x1, ye, z], [x1, ye, z - drop * 0.8], [x1, y0, z - 0.2]], dark, { lw: 0.025 });
+    shape(ctx, [[x0, y0, z], [x1, y0, z], [x1, ye, z], [x0, ye, z]], TARP, { lw: 0.025, dots: dark, density: 0.12 });
+  }
+  // the lump, breathing if it's alive
+  if (lump > 0 && k < 0.3) {
+    const [X, Y] = P((x0 + x1) / 2 - 0.05, (y0 + ye) / 2, z);
+    const h = 0.08 + 0.3 * lump;
+    ctx.beginPath(); ctx.ellipse(X, Y + 0.08, 0.66, h + 0.08, 0, Math.PI, 0); ctx.closePath();
+    paint(ctx, TARP, { lw: 0.025, dots: dark, density: 0.12 });
+    // its shadow side
+    ctx.beginPath(); ctx.ellipse(X, Y + 0.08, 0.66, h + 0.08, 0, Math.PI * 1.6, 0); ctx.ellipse(X - 0.12, Y + 0.08, 0.54, h * 0.75, 0, 0, Math.PI * 1.65, true); ctx.closePath();
+    ctx.fillStyle = alpha(dark, 0.6); ctx.fill();
+    if (Q.detail) {
+      ctx.strokeStyle = dark; ctx.lineWidth = 0.02;
+      ctx.beginPath(); ctx.moveTo(X - 0.4, Y - 0.02); ctx.quadraticCurveTo(X - 0.15, Y - h * 0.8, X + 0.2, Y - h * 0.5); ctx.moveTo(X + 0.05, Y); ctx.quadraticCurveTo(X + 0.3, Y - h * 0.5, X + 0.5, Y - 0.04); ctx.stroke();
+    }
+  }
+  // the front, hanging over the edge in scallops; or, open, rolled up
+  if (drop > 0.04) {
+    const pts = [[x0, ye, z]];
+    for (let i = 0; i <= 6; i++) pts.push([x1 - ((x1 - x0) * i) / 6, ye + 0.02, z - drop + (i % 2 ? 0.08 : 0)]);
+    shape(ctx, [[x1, ye, z], ...pts.slice(1), [x0, ye, z]], TARP, { lw: 0.025 });
+    if (Q.detail) {
+      // its eyelets
+      ctx.fillStyle = C.white;
+      for (const u of [0.2, 0.5, 0.8]) { const [X, Y] = P(x0 + (x1 - x0) * u, ye + 0.02, z - 0.07); ctx.beginPath(); ctx.arc(X, Y, 0.03, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+  if (k > 0.1) inked(ctx, [P(x0, ye, z + 0.1), P(x1, ye, z + 0.1)], TARP, 0.2 * Math.min(1, k * 2));
+}
+// What's under the socks tarp: the crew's socks, drying, in a row.
+function socks(ctx, k) {
+  if (k < 0.3) return;
+  const cols = [C.white, C.red, INK.sunYellow, C.white, MAT.crewBlue];
+  cols.forEach((c, i) => {
+    const [X, Y] = P(SOCKS.x0 + 0.25 + i * 0.3, SOCKS.y0 + 0.75 + (i % 2) * 0.2, TOP + 0.04);
+    ctx.beginPath(); ctx.moveTo(X - 0.1, Y - 0.04); ctx.lineTo(X + 0.06, Y - 0.12); ctx.lineTo(X + 0.14, Y + 0.0); ctx.lineTo(X + 0.24, Y + 0.02); ctx.lineTo(X + 0.2, Y + 0.08); ctx.lineTo(X - 0.06, Y + 0.06); ctx.closePath();
+    paint(ctx, c, { lw: 0.015 });
+  });
+}
+
+// ---------- The iguana, asleep ----------
+// A tapering, banded tail through screen points (smoothed). The iguana's own
+// drawing (style.js) keeps its tail to itself; this one hangs over an edge.
+const IGUANA = { skin: INK.queasyGreen, dark: shade(INK.queasyGreen, 0.35) };
+function lizardTail(ctx, pts, w0 = 0.075, w1 = 0.014) {
+  const L = [], n = pts.length - 1;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n, i + 2)];
+    for (let s = 0; s < 6; s++) {
+      const u = s / 6, u2 = u * u, u3 = u2 * u;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * u + (2 * a - 5 * b + 4 * c - d) * u2 + (3 * b - a - 3 * c + d) * u3);
+      L.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  L.push(pts[n]);
+  const m = L.length - 1, A = [], B = [];
+  L.forEach((p, i) => {
+    const q0 = L[Math.max(0, i - 1)], q1 = L[Math.min(m, i + 1)];
+    const dx = q1[0] - q0[0], dy = q1[1] - q0[1], len = Math.hypot(dx, dy) || 1, w = w0 + (w1 - w0) * (i / m);
+    A.push([p[0] - (dy / len) * w, p[1] + (dx / len) * w]);
+    B.push([p[0] + (dy / len) * w, p[1] - (dx / len) * w]);
+  });
+  ctx.beginPath();
+  A.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+  for (let i = m; i >= 0; i--) ctx.lineTo(B[i][0], B[i][1]);
+  ctx.closePath();
+  paint(ctx, IGUANA.skin, { lw: 0.035 });
+  if (!Q.detail) return;
+  ctx.strokeStyle = IGUANA.dark; ctx.lineWidth = 0.05;
+  ctx.beginPath();
+  for (const k of [0.3, 0.46, 0.62, 0.78]) { const i = Math.round(k * m); ctx.moveTo(A[i][0], A[i][1]); ctx.lineTo(B[i][0], B[i][1]); }
+  ctx.stroke();
+}
+// Where it naps, under the tarp on No. 2, and its tail: out from under the
+// tarp's front, over the edge, down the engine to its name plate.
+const NAPPER = [7.3, 11.75, TOP];
+function hangingTail(ctx, t, fromBody) {
+  const sw = Math.sin(t * 0.7) * 0.02;
+  const [AX, AY] = P(7.0, 12.62, TOP - 0.24), [BX, BY] = P(7.05, 12.72, TOP - 0.75);
+  const pts = [[AX, AY], [BX - 0.05, BY - 0.25], [BX + sw, BY + 0.2], [BX + 0.18 + sw, BY + 0.3], [BX + 0.26 + sw, BY + 0.16]];
+  if (fromBody) {
+    const [X, Y] = P(...NAPPER);
+    const [EX, EY] = P(7.0, 12.55, TOP + 0.02);
+    pts.splice(0, 1, [X - 0.33, Y - 0.2], [(X - 0.33 + EX) / 2, (Y - 0.2 + EY) / 2 - 0.02], [EX, EY]);
+  }
+  lizardTail(ctx, pts, fromBody ? 0.075 : 0.065, 0.014);
+}
+function napping(ctx, t) {
+  const [X, Y] = P(...NAPPER);
+  // (Its own tail clipped off: the one hanging over the edge is its tail.)
+  ctx.save();
+  ctx.beginPath(); ctx.rect(X - 0.36, Y - 1.2, 2, 1.6); ctx.clip();
+  iguana(ctx, NAPPER[0], NAPPER[1], NAPPER[2], 'r', 1, {});
+  ctx.restore();
+  // eyes shut
+  ctx.beginPath(); ctx.arc(X + 0.46, Y - 0.34, 0.05, 0, Math.PI * 2); ctx.fillStyle = INK.queasyGreen; ctx.fill();
+  ctx.beginPath(); ctx.arc(X + 0.46, Y - 0.35, 0.035, 0.2, Math.PI - 0.2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+  // and a little z, rising
+  if (!Q.detail) return;
+  for (let i = 0; i < 2; i++) {
+    const k = (t * 0.45 + i / 2) % 1;
+    ctx.save(); ctx.translate(X + 0.62 + k * 0.3, Y - 0.55 - k * 0.7); ctx.scale(1 / 40, 1 / 40);
+    ctx.font = `${(0.22 + k * 0.16) * 40}px "Bagel Fat One", sans-serif`;
+    ctx.fillStyle = alpha(C.ink, 1 - k); ctx.textAlign = 'center';
+    ctx.fillText('z', 0, 0);
+    ctx.restore();
+  }
+}
+
+// ---------- The glove ----------
+// A green rubber glove drying on the warm riser by the hammock, hung by its
+// cuff from the valve wheel, fingers splayed like toes. Not an iguana.
+const GLOVE = [10.82, 13.52, 3.28];
+function glove(ctx) {
+  const [X, Y] = P(...GLOVE);
+  ctx.save(); ctx.translate(X, Y); ctx.rotate(0.12);
+  // the cuff, pegged to the wheel
+  ctx.beginPath(); ctx.roundRect(-0.1, -0.04, 0.2, 0.18, 0.03); paint(ctx, INK.queasyGreen, { lw: 0.02 });
+  // the palm, and four fingers and a thumb, hanging down, splayed
+  ctx.beginPath(); ctx.moveTo(-0.11, 0.12); ctx.quadraticCurveTo(-0.15, 0.32, -0.1, 0.42); ctx.lineTo(0.12, 0.42); ctx.quadraticCurveTo(0.15, 0.3, 0.1, 0.12); ctx.closePath();
+  paint(ctx, INK.queasyGreen, { lw: 0.022, dots: shade(INK.queasyGreen, 0.35), density: 0.25 });
+  ctx.lineCap = 'round';
+  for (const [a, b, c, d] of [[-0.08, 0.41, -0.13, 0.6], [-0.02, 0.42, -0.04, 0.64], [0.04, 0.42, 0.05, 0.63], [0.1, 0.4, 0.15, 0.57], [0.11, 0.2, 0.22, 0.3]]) {
+    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d);
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.085; ctx.stroke(); }
+    ctx.strokeStyle = INK.queasyGreen; ctx.lineWidth = 0.05; ctx.stroke();
+  }
+  // a peg
+  ctx.fillStyle = C.wood; ctx.fillRect(-0.03, -0.12, 0.06, 0.14);
+  ctx.restore();
 }
 
 // ---------- The wrench, and what it's lost among ----------
@@ -723,7 +877,9 @@ export default {
 
     // ---------- The panel, the big gauge, the alarm ----------
     R.thing(PANEL.x + PANEL.w / 2, PANEL.y + PANEL.d, panel);
-    R.thing(PANEL.x + PANEL.w / 2, PANEL.y + PANEL.d, gaugeNeedle, { anim: true, depth: PANEL.x + PANEL.w / 2 + PANEL.y + PANEL.d + 0.01 });
+    // The big gauge: tap it (everyone does). The thing a first visit is nudged to tap.
+    const gauge = R.poke({ id: 'gauge', at: [PANEL.x + BIG.u, PANEL.y + PANEL.d + 0.02, PANEL.h - BIG.v], r: 0.8, teach: true, hold: 0.8, sound: 'tick', say: ['Tap. It went up.', 'Up again.', 'Please stop tapping it.', 'NOPE.'] });
+    R.thing(PANEL.x + PANEL.w / 2, PANEL.y + PANEL.d, (ctx, t) => gaugeNeedle(ctx, t, gauge.k()), { anim: true, depth: PANEL.x + PANEL.w / 2 + PANEL.y + PANEL.d + 0.01 });
     R.thing(BEACON[0], BEACON[1] + 0.3, beacon, { anim: true, depth: PANEL.x + PANEL.w / 2 + PANEL.y + PANEL.d + 0.02 });
     R.light({ at: [BEACON[0], BEACON[1] + 1, BEACON[2]], r: 5, color: C.red, k: (t) => (alarm(t) ? 0.35 + 0.35 * Math.abs(Math.sin(t * 9)) : 0) });
     // A second beacon over the hammock, for all the good it does.
@@ -737,6 +893,9 @@ export default {
 
     // ---------- The hammock ----------
     R.thing(10.5, 13.2, (ctx) => riser(ctx, 10.5, 13.2));
+    // The glove drying on it: the iguana's lookalike down here.
+    R.thing(10.85, 13.55, glove);
+    R.decoy({ id: 'glove', at: [GLOVE[0], GLOVE[1], GLOVE[2] - 0.35], r: 0.6, say: ['A rubber glove. Not an iguana.', 'Still drying.'] });
     R.thing(12.8, 14.0, hammock, { anim: true });
     R.thing(15.0, 13.2, (ctx) => {
       riser(ctx, 15.0, 13.2, MAT.steelDark);
@@ -761,7 +920,7 @@ export default {
         words(g, 'ALL FINE', 0.6, 0.6, 0.12, C.leaf);
       });
       box(ctx, 12.35, 7.82, 1.0, 1.5, 0.3, 0.6, MAT.steelDark, { flat: true, lw: 0.03 });
-      // The red phone.
+      // The red phone (tap it: the bridge is on it).
       box(ctx, 14.6, 8.3, 1.45, 0.45, 0.35, 0.12, C.red, { flat: true, lw: 0.03 });
       // Knobs.
       if (Q.detail) for (let k = 0; k < 5; k++) disc(ctx, 13.1 + k * 0.28, 8.45, 1.5, 0.06, k % 2 ? C.white : C.ink, { lw: 0.015 });
@@ -926,6 +1085,8 @@ export default {
       });
     }
     R.thing(8.9, 3.0, (ctx) => onY(ctx, 8.55, 3.04, 1.0, (g) => words(g, 'NOT SOUP', 0.35, 0, 0.1, C.white)));
+    R.poke({ id: 'soup', at: [8.9, 2.65, 1.0], r: 0.6, sound: 'clunk', say: ['Still not soup.', 'Do not taste it.'] });
+    R.poke({ id: 'phone', at: [14.82, 8.47, 1.55], r: 0.55, sound: 'bell', say: ['Bridge here. Is he awake?', 'Bridge again. Is he awake now?'] });
 
     // ---------- The leak, and its bucket ----------
     R.thing(0.5, 12.9, (ctx) => bucket(ctx, 0.5, 12.6, 0, { color: C.grey, name: 'LEAK (SMALL)' }));
@@ -1048,10 +1209,37 @@ export default {
       }, 31);
     });
 
+    // ---------- The tarps ----------
+    // Each sorted just after its engine's rocker arms.
+    const here = (t) => chase.step === 6 && chaseOpen(6, t);
+    const nap = R.poke({ id: 'tarp', at: [7.45, 11.8, TOP + 0.3], r: 0.9, sound: 'thump', say: ['Warmest spot on the ship.', 'Still warm.'] });
+    const sockTarp = R.poke({ id: 'socks', at: [7.9, 7.5, TOP + 0.3], r: 0.9, sound: 'thump', say: ['Socks. Drying. Warm ones.', 'Do not sniff the socks.'] });
+    R.thing(NAP.x1, NAP.y1, (ctx, t) => tarp(ctx, NAP, nap.k(), here(t) ? 1 + Math.sin(t * 1.3) * 0.12 : 0.15, t), { anim: true, depth: ENG_X + ENG_W + ENGINES[1].y + ENG_D + 0.025 });
+    R.thing(SOCKS.x1, SOCKS.y1, (ctx, t) => { socks(ctx, sockTarp.k()); tarp(ctx, SOCKS, sockTarp.k(), 0.3, t); }, { anim: true, depth: ENG_X + ENG_W + ENGINES[0].y + ENG_D + 0.025 });
+
     // ---------- Finds ----------
-    // The chase: sighting 7 (greybox; the area's artist hides it).
-    sighting(R, 6, { at: [12.6, 13.4, 1.4] });
-    R.find({ id: 'hammock', label: 'A hammock between two pipes', at: [12.78, 13.45, 1.55], r: 1.0 });
-    R.find({ id: 'wrench', label: 'A lost wrench', at: [4, 14.8, 0.05], r: 0.7 });
+    // The chase, sighting 7 (5pm): asleep on the warm engine, under the tarp
+    // on No. 2, its tail hanging out over the edge the whole time. Tap the
+    // tarp and there it is, a little z rising. Groggy, it runs for the lift:
+    // along the engine, down behind it, up the gap and in.
+    const found = () => chase.found[6];
+    sighting(R, 6, {
+      at: NAPPER, kind: 'poke', inside: nap,
+      hint: 'Lizards love a warm spot. Two tarps, and one has a tail.',
+      draw(ctx, t) {
+        const open = nap.k() > 0.25;
+        hangingTail(ctx, t, open);
+        if (open) napping(ctx, t);
+      },
+      run: [[7.6, 10.9, TOP], [8.4, 9.65, 0], [11.0, 9.65, 0], [11.4, 4.6, 0], [12, 1.8, 0]],
+      // On the engine it's drawn over the tarp; down behind No. 2, under it.
+      depth: (t) => {
+        if (here(t)) return ENG_X + ENG_W + ENGINES[1].y + ENG_D + 0.03;
+        const f = found();
+        return f != null && (performance.now() - f) / 1500 < 0.16 ? ENG_X + ENG_W + ENGINES[1].y + ENG_D + 0.03 : 20;
+      },
+    });
+    R.find({ id: 'hammock', label: 'A hammock between two pipes', kind: 'spot', at: [12.78, 13.45, 1.55], r: 1.0 });
+    R.find({ id: 'wrench', label: 'A lost wrench', kind: 'hard', at: [4, 14.8, 0.05], r: 0.7, riddle: 'Lying low with the nuts and bolts.', hint: 'The pegboard has a gap. Someone dropped it by the oily rag.' });
   },
 };
