@@ -428,7 +428,7 @@ export default {
         lounger(ctx, x, y, c);
         const up = i === 2 && sunbather.k() > 0.5;
         if (up) person(ctx, x + 1.0, y + 0.5, 0.49, folk(20 + i, { pose: 'sit', dir: 'r', hat: 'sun', arms: [2.6, 0.4] }), t);
-        else person(ctx, x + 1.5, y + 0.5, 0.55, folk(20 + i, { pose: 'lie', dir: 'l', hat: i ? 'sun' : undefined }), t);
+        else person(ctx, x + 2.4, y + 0.5, 0.55, folk(20 + i, { pose: 'lie', dir: 'r', hat: i ? 'sun' : undefined }), t);
       }, { anim: true });
     });
     R.decoy({ id: 'towel', at: [2.5, 8.7, 1.0], r: 0.8, say: ['A towel swan. Very fancy.', 'Still a towel.', 'Please do not unfold the swan.'] });

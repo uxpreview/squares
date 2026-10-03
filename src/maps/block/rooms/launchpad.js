@@ -153,7 +153,9 @@ function gantry(ctx, t, s, k = 0) {
   // top deck with a railing and a beacon
   box(ctx, GX0 - 0.3, GY0 - 0.3, GH, GX1 - GX0 + 0.6, GY1 - GY0 + 0.6, 0.15, C.greyLight);
   capsule(ctx, t, k);
-  face(ctx, [[GX0 - 0.3, GY1 + 0.3, GH + 0.8], [GX1 + 0.3, GY1 + 0.3, GH + 0.8], [GX1 + 0.3, GY0 - 0.3, GH + 0.8]], null, { lw: 0.06 });
+  // (two open rails, the front ones: a closed path cut a third rail across the capsule)
+  face(ctx, [[GX0 - 0.3, GY1 + 0.3, GH + 0.8], [GX1 + 0.3, GY1 + 0.3, GH + 0.8]], null, { lw: 0.06 });
+  face(ctx, [[GX1 + 0.3, GY1 + 0.3, GH + 0.8], [GX1 + 0.3, GY0 - 0.3, GH + 0.8]], null, { lw: 0.06 });
   for (const [x, y] of [[GX0 - 0.3, GY1 + 0.3], [GX1 + 0.3, GY1 + 0.3], [GX1 + 0.3, GY0 - 0.3]]) face(ctx, [[x, y, GH + 0.15], [x, y, GH + 0.8]], null, { lw: 0.06 });
   // swing arm
   const swing = s < 8 || s > 26 ? 0 : s < 9.5 ? (s - 8) / 1.5 : s < 24.5 ? 1 : 1 - (s - 24.5) / 1.5;
@@ -836,8 +838,8 @@ export default {
       paint(ctx, C.white, { lw: 0.02 });
       ctx.beginPath(); ctx.moveTo(X + 0.12, Y - 0.37); ctx.lineTo(X + 0.24, Y - 0.36 + w * 0.6); ctx.strokeStyle = C.coral; ctx.lineWidth = 0.03; ctx.stroke();
       // umbrella
-      face(ctx, [[15.2, 12.6, 1.35], [15.2, 12.6, 3.0]], null, { lw: 0.06 });
-      const [ux, uy] = P(15.2, 12.6, 3.3);
+      face(ctx, [[15.4, 12.5, 1.35], [15.4, 12.5, 3.6]], null, { lw: 0.06 });
+      const [ux, uy] = P(15.4, 12.5, 3.9);
       for (let i = 0; i < 6; i++) {
         ctx.beginPath();
         ctx.moveTo(ux, uy - 0.35);
@@ -856,7 +858,7 @@ export default {
       }
     }, { anim: true });
     R.find({ id: 'flag', label: 'A tiny flag', kind: 'hard', at: [14.5, 12.9, 1.6], r: 0.6, riddle: 'Claimed in the name of lunch.', hint: 'One small step for a sausage. Look at the hot dogs.' });
-    R.mover(() => ({ x: 14.6, y: 11.8 }), (ctx, t, p) => {
+    R.mover(() => ({ x: 14.2, y: 11.8 }), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, folk(320, { pose: pulse(t, 5) < 0.3 ? 'wave' : 'stand', dir: 'l', hat: 'chef', top: C.white }), t);
     });
     R.mover(() => ({ x: 13.2, y: 13.3 }), (ctx, t, p) => {

@@ -807,8 +807,10 @@ export default {
       if (s > 2.2 && s < 4) speech(ctx, px, py, 2.7, 'THANKS, DEAR', { size: 0.34, dx: -0.7 });
     }, { bias: 0.5 });
 
-    // The waiter, looping out of the kitchen with a tray.
-    const waiter = route([[15.0, 4.2, 1.2], [15.0, 7.4], [8.2, 7.9], [7.5, 10.2], [9.0, 11.6, 1.4], [8.6, 14.9], [13.2, 15.0], [14.9, 12.0], [14.9, 10.6, 1.4], [15.0, 7.4]], { speed: 1.3 });
+    // The waiter, looping out of the kitchen with a tray. (His lane runs a
+    // step in front of the stools, so he doesn't walk through the diners or
+    // the cat.)
+    const waiter = route([[15.0, 4.2, 1.2], [15.0, 8.2], [8.9, 8.3], [7.5, 10.2], [9.0, 11.6, 1.4], [8.6, 14.9], [13.2, 15.0], [14.9, 12.0], [14.9, 10.6, 1.4], [15.0, 8.2]], { speed: 1.3 });
     R.mover(waiter, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, {
         skin: SKIN[2], hair: C.ink, style: 'short', top: C.white, bottom: C.ink, pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back,

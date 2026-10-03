@@ -725,11 +725,11 @@ export default {
     // Recliners: one stargazer, one sound asleep under the stars.
     R.thing(4.2, 10.2, (ctx, t) => {
       recliner(ctx, 1.6, 9.2, C.purple);
-      person(ctx, 3.0, 9.7, 0.62, folk(61, { pose: 'sleep', dir: 'l', top: C.teal }), t);
+      person(ctx, 3.7, 9.7, 0.62, folk(61, { pose: 'sleep', dir: 'r', top: C.teal }), t);
     }, { anim: true });
     R.thing(3.7, 15.2, (ctx, t) => {
       recliner(ctx, 1.1, 14.2, C.coral);
-      person(ctx, 2.5, 14.7, 0.62, folk(62, { pose: 'lie', dir: 'l', top: C.mustard, arms: [Math.PI - 0.4 + Math.sin(t * 2) * 0.2, 0.3] }), t);
+      person(ctx, 3.2, 14.7, 0.62, folk(62, { pose: 'lie', dir: 'r', top: C.mustard, arms: [Math.PI - 0.4 + Math.sin(t * 2) * 0.2, 0.3] }), t);
     }, { anim: true });
 
     // Bookshelf of star atlases, globes and brass bits.

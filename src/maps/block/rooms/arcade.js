@@ -514,7 +514,7 @@ export default {
     R.mover(() => ({ x: AX1 + 0.55, y: (AY0 + AY1) / 2 }), (ctx, t, p) => {
       const y = clamp(puck(t).y + Math.sin(t * 3) * 0.2, AY0 + 0.3, AY1 - 0.3);
       person(ctx, p.x, y - 0.2, 0, folk(451, { pose: 'point', dir: 'l', top: C.teal, hat: 'cap', arms: [1.6, 0.4] }), t);
-    });
+    }, { bias: 1 }); // he stands past the table's end, so he's drawn after it (not sunk into it)
 
     // Prize counter and shelves of plush
     R.thing(15.9, 1.2, (ctx) => {
