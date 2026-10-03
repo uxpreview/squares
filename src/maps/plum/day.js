@@ -621,7 +621,8 @@ export const TOWEL = [63.2, 46.6];
 const SHOULDER = PIKE + 0.95; // the turnpike's verge, island-bound side
 const sunSkin = mix(SKIN[2], SKIN[1], 0.35);
 const sunLook = folk(77, {
-  skin: sunSkin, hair: C.white, style: 'short', top: sunSkin, bottom: C.red, dress: false,
+  // (Bare legs: the kit colors a whole leg with bottom, so the shorts are worn.)
+  skin: sunSkin, hair: C.white, style: 'short', top: sunSkin, bottom: sunSkin, dress: false,
   // Sunglasses, and an earbud.
   face: (ctx, hy, back) => {
     if (back) return;
@@ -632,8 +633,12 @@ const sunLook = folk(77, {
     ctx.beginPath(); ctx.arc(-0.1, hy + 0.08, 0.05, 0, Math.PI * 2);
     ctx.fillStyle = C.ink; ctx.fill();
   },
-  // The black wire, from the ear down to the phone in his pocket.
+  // Red shorts, to mid-thigh; and the black wire, from the ear down to the
+  // phone in his pocket.
   wear: (ctx, b, t) => {
+    ctx.beginPath();
+    ctx.roundRect(-0.31, b.hipY - 0.1, 0.62, 0.42, 0.06);
+    paint(ctx, C.red, { lw: 0.04 });
     if (!Q.detail || b.back) return;
     ctx.beginPath();
     ctx.moveTo(-0.1, b.top - 0.18);
