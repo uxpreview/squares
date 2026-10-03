@@ -15,7 +15,9 @@ export function createTray(o) {
   // o: { isFound(room, f), foundAge(room, f), label(room, f), onHint(room, f),
   //      hintStep(room, f) 0..2, hintLine(room, f), placeLine(), hintsLeft(),
   //      onNoPick(), onGoRoom(i), onStateChange(prev, next), reduceMotion,
-  //      shows(room, f): false to leave a find off the list for now (a trail's later sightings) }
+  //      shows(room, f): false to leave a find off the list for now (a trail's later sightings),
+  //      away(room, f): true while a find that shows some of the time isn't here,
+  //      skipFor(room, f): where a skip would bring it back ("low tide"), onSkip(room, f) }
   // A hint goes in two steps (see rules.js): its line shows on the list, by
   // the thing it's for (the note over the chips, and under its row); the
   // next press rings it in the room.
@@ -59,12 +61,16 @@ export function createTray(o) {
     return m;
   }
   const grouped = () => o.rooms.some((r) => r.finds.some((f) => f.group));
-  const said = (f) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : f.group === 'sighting' ? ' (a sighting)' : '') + (f.note ? ` (at ${f.note})` : '');
-  // A find that only shows some of the time (at low tide) says when, small, after its name.
-  function noteOf(f) {
+  const away = (room, f) => !!(o.away && o.away(room, f));
+  const said = (f, room) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : f.group === 'sighting' ? ' (a sighting)' : '') +
+    (f.note ? ` (at ${f.note}${room && f.note && o.away ? (away(room, f) ? ', not here now' : ', here now') : ''})` : '');
+  // A find that only shows some of the time (at low tide) says when, small,
+  // after its name: lit with "now" while it's here, pale while it's away.
+  function noteOf(room, f) {
     const n = document.createElement('span');
-    n.className = 'find-note';
-    n.textContent = f.note;
+    const gone = away(room, f), live = !gone && o.away;
+    n.className = 'find-note' + (gone ? ' is-away' : live ? ' is-now' : '');
+    n.textContent = live ? `${f.note} · now` : f.note;
     n.setAttribute('aria-hidden', 'true');
     return n;
   }
@@ -82,8 +88,9 @@ export function createTray(o) {
     t.className = 'chip-label';
     t.textContent = o.label(room, f);
     b.append(mark(f, found), t);
-    if (f.note && !found) b.append(noteOf(f));
-    if (f.group || f.note) b.setAttribute('aria-label', said(f));
+    if (f.note && !found) b.append(noteOf(room, f));
+    if (f.note && !found && away(room, f)) b.classList.add('is-away');
+    if (f.group || f.note) b.setAttribute('aria-label', said(f, found ? null : room));
     if (found) {
       b.disabled = true;
       b.setAttribute('aria-label', said(f) + ', found');
@@ -111,10 +118,25 @@ export function createTray(o) {
     }
     li.append(mark(f, found), t);
     if (f.note && !found) {
-      li.append(noteOf(f));
+      // Away: the tag is a button that skips to when it's back.
+      const tide = document.createElement('span');
+      tide.className = 'row-tide';
+      const skip = away(room, f) && o.skipFor && o.skipFor(room, f);
+      if (skip) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'find-note is-away is-skip';
+        b.textContent = `Skip to ${skip}`;
+        b.setAttribute('aria-label', `Skip ahead to ${skip}, when ${o.label(room, f)} is back`);
+        b.addEventListener('click', () => o.onSkip(room, f));
+        tide.append(b);
+      } else tide.append(noteOf(room, f));
+      // (Under its name, so a narrow list doesn't squeeze it.)
+      t.append(tide);
+      if (away(room, f)) li.classList.add('is-away');
       const e = document.createElement('span');
       e.className = 'sr-only';
-      e.textContent = ` (at ${f.note})`;
+      e.textContent = ` (at ${f.note}${o.away ? (away(room, f) ? ', not here now' : ', here now') : ''})`;
       li.append(e);
     }
     if (f.group === 'evidence') {
@@ -224,15 +246,28 @@ export function createTray(o) {
 
     // The note over the chips: the picked find's line (its hint, or its
     // riddle), else the last one you asked a hint for.
+    // A picked find that's away (under the tide) says so, and offers the
+    // skip to when it's back, in place of "Show me".
     const noteFor = picked || open.find((f) => key(room, f) === lastHint);
+    const gone = picked && away(room, picked);
+    const skip = gone && o.skipFor && o.skipFor(room, picked);
     const line = noteFor && lineOf(room, noteFor);
-    el.note.hidden = !line;
-    if (line) {
-      el.noteText.textContent = line;
-      const st = o.hintStep(room, noteFor);
-      el.noteBtn.hidden = !st;
-      el.noteBtn.onclick = () => o.onHint(room, noteFor);
-      el.noteBtn.setAttribute('aria-label', 'Show where, for ' + o.label(room, noteFor));
+    const text = gone ? [line, `Only at ${picked.note || 'another time'}. Not here now.`].filter(Boolean).join(' ') : line;
+    el.note.hidden = !text;
+    if (text) {
+      el.noteText.textContent = text;
+      if (skip) {
+        el.noteBtn.hidden = false;
+        el.noteBtn.textContent = `Skip to ${skip}`;
+        el.noteBtn.onclick = () => o.onSkip(room, picked);
+        el.noteBtn.setAttribute('aria-label', `Skip ahead to ${skip}, when ${o.label(room, picked)} is back`);
+      } else {
+        const st = o.hintStep(room, noteFor);
+        el.noteBtn.hidden = !st || gone;
+        el.noteBtn.textContent = 'Show me';
+        el.noteBtn.onclick = () => o.onHint(room, noteFor);
+        el.noteBtn.setAttribute('aria-label', 'Show where, for ' + o.label(room, noteFor));
+      }
     }
 
     // The whole list: this zone first, then the rest in the map's order. A

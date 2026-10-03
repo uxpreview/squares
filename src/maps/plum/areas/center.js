@@ -3,7 +3,7 @@
 // writing), the $20 lot across the beach path (a hand-painted sign whose
 // price moves with the day, and a man waving a flag at cars), the bait
 // shop with today's tides chalked on its board, the ice cream window and its
-// line (the goose at the back of it), warnings nobody reads, the beach path
+// line (and two bins, one with the goose in it), warnings nobody reads, the beach path
 // over the dunes, the little jetty, and the Center's beach, where there's no
 // lifeguard. The greenhead man's swarm finds him in the lot at ten (swarm.js)
 // and he runs down the path and back up it at noon: everyone he passes
@@ -13,12 +13,13 @@
 //
 // World units, like land.js. Speed: whatever only changes with the hour is a
 // still picture shown in its hours (on); only what really moves is anim.
+import { sunbatherPoke } from '../day.js';
 import { C, Q, P, box, disc, face, poly, paint, paintText, person, folk, speech, label, glow, tint, shade, mix, alpha } from '../../../engine/art.js';
 import { drawLand } from '../../../engine/terrain.js';
 import { ZK } from '../../../engine/iso.js';
 import { route, schedule, particles, clamp } from '../../../engine/actors.js';
 import { land, h, PIKE, LOTS } from '../land.js';
-import { LOOP, hour, level, nightK, sunsetWatch } from '../tide.js';
+import { LOOP, hour, level, nightK, sunsetWatch, lowTide } from '../tide.js';
 import { EVENING, INK, HOUSE, CARS, LIT, BRAND, lightsOn } from '../style.js';
 import { who, house, car, umbrella, board, nightGlow, gull, printed } from '../kit.js';
 import { aside } from '../swarm.js';
@@ -46,8 +47,11 @@ const z0 = (p) => h(p[0], p[1]);
 const TICKET_CAR = [55.9, 35.2];
 const GH_CAR = [58.6, 35.2];
 const OLD_CAR = [67.6, 35.2];
-// The jetty's rocks, out from the beach.
-const JETTY = Array.from({ length: 7 }, (_, i) => ({ x: 56.6 + i * 0.22, y: 43.4 + i * 1.2, top: 1.35 - i * 0.14, w: 1.2 - (i % 2) * 0.12 }));
+// The jetty's rocks, out from the beach: granite blocks laid by hand, no two
+// quite the same size or quite in line. (The end one stays put: the starfish
+// and the cormorant are on it.)
+const JIG = [[0.06, 0.04, 1.1], [-0.1, -0.07, 0.98], [0.12, 0.06, 1.08], [-0.06, -0.05, 1.02], [0.1, 0.07, 1.12], [-0.08, -0.04, 0.96], [0, 0, 1.16]];
+const JETTY = Array.from({ length: 7 }, (_, i) => ({ x: 56.6 + i * 0.22 + JIG[i][0], y: 43.4 + i * 1.2, top: 1.35 - i * 0.14 + JIG[i][1], w: 1.2 - (i % 2) * 0.12 - Math.abs(JIG[i][0]), d: JIG[i][2] }));
 // The beach's umbrellas.
 const SPOTS = [[51, 45], [54, 44.6], [59.8, 45.4], [65, 44.8], [67.6, 45.8]];
 
@@ -284,6 +288,36 @@ export default {
       box(ctx, TB[0] - 0.03, TB[1] - 0.03, z + 2.16, 0.06, 0.4, 0.05, C.ink, { flat: true, stroke: false });
       shape(ctx, [[TB[0] - 0.15, TB[1] + 0.3, z + 2.18], [TB[0] + 0.15, TB[1] + 0.3, z + 2.18], [TB[0] + 0.1, TB[1] + 0.5, z + 2.0], [TB[0] - 0.1, TB[1] + 0.5, z + 2.0]], C.teal, { lw: 0.03 });
     });
+    // On the end of the bait shop's ridge, a weathervane: a white wooden goose
+    // over the arrow, swinging round with the sea breeze. (A decoy.)
+    const WV = [54.45, 33.9], wvz = h(53, 34) + 3.09;
+    R.thing(WV[0], WV[1], (ctx, t) => {
+      const [bx, by] = P(WV[0], WV[1], wvz), top = by - 1.15 * ZK;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, top + 0.1);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+      // The compass arms, then the goose and its arrow turning over them.
+      if (Q.detail) {
+        ctx.beginPath(); ctx.moveTo(bx - 0.3, by - 0.55 + 0.08); ctx.lineTo(bx + 0.3, by - 0.55 - 0.08); ctx.moveTo(bx - 0.3, by - 0.55 - 0.08); ctx.lineTo(bx + 0.3, by - 0.55 + 0.08);
+        ctx.lineWidth = 0.03; ctx.stroke();
+      }
+      const a = Math.sin(t * 0.25) * 1.3 + Math.sin(t * 1.7) * 0.12, sx = Math.cos(a);
+      ctx.save(); ctx.translate(bx, top); ctx.scale(sx < 0 ? Math.min(-0.25, sx) : Math.max(0.25, sx), 1);
+      ctx.beginPath(); ctx.moveTo(-0.6, 0.12); ctx.lineTo(0.6, 0.12); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0.6, 0.12); ctx.lineTo(0.45, 0.04); ctx.lineTo(0.45, 0.2); ctx.closePath(); paint(ctx, C.ink, { stroke: false });
+      ctx.beginPath(); ctx.moveTo(-0.6, 0.12); ctx.lineTo(-0.75, 0.0); ctx.lineTo(-0.66, 0.12); ctx.lineTo(-0.75, 0.24); ctx.closePath(); paint(ctx, C.ink, { stroke: false });
+      ctx.restore();
+      ctx.save(); ctx.translate(bx, top + 0.1); ctx.scale(sx < 0 ? -0.75 : 0.75, 0.75);
+      ctx.beginPath(); ctx.ellipse(0, -0.25, 0.42, 0.22, -0.1, 0, Math.PI * 2); ctx.moveTo(-0.3, -0.3); ctx.lineTo(-0.55, -0.45); ctx.lineTo(-0.38, -0.18);
+      paint(ctx, C.white, { lw: 0.04 });
+      ctx.beginPath(); ctx.ellipse(-0.05, -0.27, 0.22, 0.1, -0.2, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(0.22, -0.35); ctx.quadraticCurveTo(0.35, -0.55, 0.28, -0.85);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.2; ctx.lineCap = 'round'; ctx.stroke(); ctx.strokeStyle = C.white; ctx.lineWidth = 0.13; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0.28, -0.87, 0.12, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+      ctx.beginPath(); ctx.moveTo(0.36, -0.92); ctx.lineTo(0.58, -0.86); ctx.lineTo(0.36, -0.81); ctx.closePath(); paint(ctx, C.coral, { lw: 0.025 });
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.31, -0.9, 0.03, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }, { anim: true, depth: 54.62 + 35.02 + 0.1 });
+    R.decoy({ id: 'weathervane', at: [WV[0], WV[1], wvz + 1.4], r: 0.8, say: ['A weathervane. Wind from the goose.', 'Still a weathervane.', 'It says east. It always says east.'] });
     R.thing(TB[0] + 0.81, TB[1] + 0.36, (ctx) => {
       const z = h(...TB);
       disc(ctx, TB[0], TB[1] + 0.43, z + 2.0, 0.1, LIT, { lw: 0.02 });
@@ -293,36 +327,39 @@ export default {
     // a net all day and a couple sit under the lamp after dark.
     R.thing(55.0, 36.1, (ctx) => {
       const z = h(54.4, 35.6);
-      box(ctx, 54.0, 35.3, z, 0.9, 0.6, 0.7, BRAND.can, { flat: true, lw: 0.04, top: tint(BRAND.can, 0.2) });
+      // (The bench on the corner end, the cooler by the house: the other way
+      // round, the house next door hid the owner all but his head.)
+      box(ctx, 52.2, 35.3, z, 0.9, 0.6, 0.7, BRAND.can, { flat: true, lw: 0.04, top: tint(BRAND.can, 0.2) });
       if (Q.detail) {
-        plate(ctx, 'x', 54.45, 35.91, z + 0.42, 0.8, 0.34, [[BRAND.name, 0.12, BRAND.ink], [BRAND.line, 0.07, BRAND.ink]], { board: BRAND.can, edge: 0.001, gap: 1.3 });
+        plate(ctx, 'x', 52.65, 35.91, z + 0.42, 0.8, 0.34, [[BRAND.name, 0.12, BRAND.ink], [BRAND.line, 0.07, BRAND.ink]], { board: BRAND.can, edge: 0.001, gap: 1.3 });
       }
-      box(ctx, 52.2, 35.4, z + 0.4, 1.3, 0.45, 0.1, C.wood, { flat: true, lw: 0.03 });
-      for (const dx of [0.08, 1.12]) box(ctx, 52.2 + dx, 35.75, z, 0.1, 0.1, 0.4, shade(C.wood, 0.3), { flat: true, lw: 0.02 });
+      box(ctx, 53.4, 35.4, z + 0.4, 1.3, 0.45, 0.1, C.wood, { flat: true, lw: 0.03 });
+      for (const dx of [0.08, 1.12]) box(ctx, 53.4 + dx, 35.75, z, 0.1, 0.1, 0.4, shade(C.wood, 0.3), { flat: true, lw: 0.02 });
     });
     const owner = folk(301, { top: C.navy, bottom: C.brown, hat: 'cap', style: 'bald' });
-    R.mover(() => ({ x: 52.6, y: 35.62 }), (ctx, t) => {
+    const OB = 53.8; // where he sits
+    R.mover(() => ({ x: OB, y: 35.62 }), (ctx, t) => {
       if (!during(5.5, 20.9)(t)) return;
-      const z = h(52.6, 35.6) + 0.1;
-      if (sunsetWatch(t)) { person(ctx, 52.6, 36.2, z - 0.1, { ...owner, pose: 'stand', dir: 'r', back: true }, t); return; }
-      person(ctx, 52.6, 35.62, z, { ...owner, pose: 'sit', dir: 'r', arms: [1.0 + Math.sin(t * 3) * 0.3, 0.9] }, t);
+      const z = h(OB, 35.6) + 0.1;
+      if (sunsetWatch(t)) { person(ctx, OB, 36.2, z - 0.1, { ...owner, pose: 'stand', dir: 'r', back: true }, t); return; }
+      person(ctx, OB, 35.62, z, { ...owner, pose: 'sit', dir: 'r', arms: [1.0 + Math.sin(t * 3) * 0.3, 0.9] }, t);
       if (!Q.detail) return;
       // The net, over his knees and down to the ground.
       ctx.strokeStyle = alpha(C.ink, 0.6);
       ctx.lineWidth = 0.025;
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
-        const [a, b] = P(52.9 + i * 0.12, 35.9, z + 0.75), [c, d] = P(53.1 + i * 0.16, 36.3, h(53, 36.3));
+        const [a, b] = P(OB + 0.3 + i * 0.12, 35.9, z + 0.75), [c, d] = P(OB + 0.5 + i * 0.16, 36.3, h(OB + 0.4, 36.3));
         ctx.moveTo(a, b); ctx.lineTo(c, d);
       }
       for (let j = 0; j < 3; j++) {
-        const k = j / 3, [a, b] = P(52.9 + k * 0.2, 35.9 + k * 0.4, z + 0.75 - k * 0.75), [c, d] = P(53.4 + k * 0.3, 35.9 + k * 0.4, z + 0.75 - k * 0.75);
+        const k = j / 3, [a, b] = P(OB + 0.3 + k * 0.2, 35.9 + k * 0.4, z + 0.75 - k * 0.75), [c, d] = P(OB + 0.8 + k * 0.3, 35.9 + k * 0.4, z + 0.75 - k * 0.75);
         ctx.moveTo(a, b); ctx.lineTo(c, d);
       }
       ctx.stroke();
     }, { bias: 2 });
-    still(R, 52.45, 35.62, folk(302, { top: C.pink }), { pose: 'sit', dir: 'r', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
-    still(R, 53.15, 35.62, folk(303, { top: C.sky, hat: 'cap' }), { pose: 'sit', dir: 'l', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
+    still(R, 53.65, 35.62, folk(302, { top: C.pink }), { pose: 'sit', dir: 'r', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
+    still(R, 54.35, 35.62, folk(303, { top: C.sky, hat: 'cap' }), { pose: 'sit', dir: 'l', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
     // The shop cat, asleep on the step all day.
     R.thing(54.9, 33.5, (ctx, t) => {
       const [X, Y] = P(54.8, 33.4, h(54.8, 33.4));
@@ -411,8 +448,88 @@ export default {
       who(ctx, p.x + a.dx, p.y + a.dy, h(p.x, p.y), folk(341, { hold: a.k > 0.5 ? null : cone(FLAVORS[Math.floor(t / 20) % 3]) }), null, { pose: a.k > 0.5 ? 'wave' : 'walk', dir: p.dir, back: p.back, scale: 0.75 }, t);
     });
 
-    // The goose, at the back of the line all day, honking now and then.
-    R.goose((t) => ({ x: 69.2, y: 30, z: h(69.2, 30), dir: 'l', pose: honking(t) ? 'honk' : 'stand' }));
+    // Two bins by the ice cream window, for everybody's dropped cones. The
+    // goose has climbed into the one at the back of the line and is working
+    // through them: its lid won't sit flat, a tail fans out from under it,
+    // and a foot hangs over the rim. Tap a bin and the lid flips up; the other is just napkins.
+    const BIN_A = [69.3, 29.75], BIN_B = [63.95, 29.45];
+    const binA = R.poke({ id: 'bin', at: [BIN_A[0], BIN_A[1], z0(BIN_A) + 0.75], r: 0.7, sound: 'clunk', say: 'HONK?' });
+    const binB = R.poke({ id: 'bin2', at: [BIN_B[0], BIN_B[1], z0(BIN_B) + 0.75], r: 0.7, hold: 2.2, sound: 'clunk', say: ['Napkins. Sticky ones.', 'Still napkins.', 'A cone. Already licked.'] });
+    // A bin in two passes, so whatever's in it sits between them: the back
+    // (the whole bin, its dark mouth, the lid when it's up) and the front (the
+    // near side again, over anything inside, and the lid when it's down).
+    const BIN = mix(C.teal, C.ink, 0.25), BH = 0.95 * ZK, BR = 0.42;
+    const binSide = (ctx, X, Y) => {
+      const Yt = Y - BH;
+      ctx.beginPath(); ctx.moveTo(X - BR, Yt); ctx.lineTo(X - BR, Y); ctx.ellipse(X, Y, BR, BR / 2, 0, Math.PI, 0, true);
+      ctx.lineTo(X + BR, Yt); ctx.ellipse(X, Yt, BR, BR / 2, 0, 0, Math.PI, false); ctx.closePath();
+      paint(ctx, BIN, { lw: 0.04, dots: Q.detail ? shade(BIN, 0.5) : null, density: 0.18 });
+      if (!Q.detail) return;
+      ctx.beginPath(); ctx.ellipse(X, Y - BH * 0.55, BR, BR / 2, 0, 0, Math.PI); ctx.lineTo(X - BR, Y - BH * 0.75); ctx.ellipse(X, Y - BH * 0.75, BR, BR / 2, 0, Math.PI, 0, true); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.025 });
+    };
+    const binLid = (ctx, X, Y, k, crooked) => {
+      const Yt = Y - BH;
+      ctx.beginPath();
+      if (k > 0.05) ctx.ellipse(X + 0.22 * k, Yt - 0.06 - 0.42 * k, BR + 0.04, (BR / 2 + 0.02) * (1 - 0.75 * k), -0.15 - 0.5 * k, 0, Math.PI * 2);
+      else ctx.ellipse(X + (crooked ? 0.04 : 0), Yt - (crooked ? 0.1 : 0.03), BR + 0.04, BR / 2 + 0.02, crooked ? -0.2 : 0, 0, Math.PI * 2);
+      paint(ctx, shade(BIN, 0.15), { lw: 0.035 });
+      if (k < 0.05) { const [hx, hy] = [X + (crooked ? 0.04 : 0), Yt - (crooked ? 0.17 : 0.1)]; ctx.beginPath(); ctx.ellipse(hx, hy, 0.12, 0.05, crooked ? -0.2 : 0, 0, Math.PI * 2); paint(ctx, shade(BIN, 0.35), { lw: 0.025 }); }
+    };
+    const binBack = (bin, poke, inside) => R.thing(bin[0], bin[1], (ctx) => {
+      const [X, Y] = P(bin[0], bin[1], z0(bin)), k = poke.k();
+      binSide(ctx, X, Y);
+      ctx.beginPath(); ctx.ellipse(X, Y - BH, BR, BR / 2, 0, 0, Math.PI * 2); paint(ctx, mix(BIN, C.ink, 0.6), { lw: 0.035 });
+      if (k > 0.3 && inside) inside(ctx, X, Y - BH);
+      if (k >= 0.05) binLid(ctx, X, Y, k, false);
+    }, { anim: true, depth: bin[0] + bin[1] - 0.3 });
+    const binFront = (bin, poke, crooked, tell) => R.thing(bin[0], bin[1], (ctx) => {
+      const [X, Y] = P(bin[0], bin[1], z0(bin)), k = poke.k();
+      binSide(ctx, X, Y);
+      // (The tell in two parts: what pokes out from under the lid, then what
+      // hangs over the rim in front of it.)
+      if (k < 0.05) { if (tell) tell.under(ctx, X, Y - BH); binLid(ctx, X, Y, 0, crooked); if (tell) tell.over(ctx, X, Y - BH); }
+    }, { anim: true, depth: bin[0] + bin[1] + 0.3 });
+    binBack(BIN_A, binA);
+    binFront(BIN_A, binA, true, {
+      // The tell, big enough to read on a phone: a white tail fanned up out
+      // from under the back of the crooked lid...
+      under: (ctx, X, Yt) => {
+        const ox = X + 0.12, oy = Yt - 0.14;
+        ctx.beginPath(); ctx.moveTo(ox - 0.1, oy + 0.04);
+        for (let i = 0; i <= 4; i++) {
+          const a = -1.75 + i * 0.32, r = 0.78 - Math.abs(i - 2) * 0.06;
+          const b = a + 0.16, rb = r - 0.12;
+          ctx.lineTo(ox + Math.cos(a) * r, oy + Math.sin(a) * r);
+          if (i < 4) ctx.lineTo(ox + Math.cos(b) * rb, oy + Math.sin(b) * rb);
+        }
+        ctx.lineTo(ox + 0.12, oy + 0.06); ctx.closePath();
+        paint(ctx, C.white, { lw: 0.04 });
+        if (!Q.detail) return;
+        ctx.beginPath();
+        for (let i = 1; i < 4; i++) { const a = -1.75 + i * 0.32; ctx.moveTo(ox, oy); ctx.lineTo(ox + Math.cos(a) * 0.55, oy + Math.sin(a) * 0.55); }
+        ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.035; ctx.stroke();
+      },
+      // ...and an orange foot hanging over the front rim.
+      over: (ctx, X, Yt) => {
+        const fx = X - 0.16, fy = Yt + 0.16;
+        ctx.beginPath(); ctx.moveTo(fx, fy - 0.06); ctx.lineTo(fx - 0.02, fy + 0.22);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.07; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx - 0.02, fy + 0.2); ctx.lineTo(fx - 0.27, fy + 0.52); ctx.lineTo(fx - 0.1, fy + 0.45); ctx.lineTo(fx - 0.02, fy + 0.58); ctx.lineTo(fx + 0.06, fy + 0.45); ctx.lineTo(fx + 0.23, fy + 0.52); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.035 });
+      },
+    });
+    binBack(BIN_B, binB, (ctx, X, Yt) => {
+      for (const [dx, dy] of [[-0.15, 0], [0.05, -0.04], [0.18, 0.03], [-0.02, 0.07]]) { ctx.beginPath(); ctx.arc(X + dx, Yt + dy, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 }); }
+    });
+    binFront(BIN_B, binB, false);
+    // The goose, in the bin with the cones, up and honking once it's found out.
+    sunbatherPoke(R); // the sunbather on his towel (day.js draws him)
+    R.goose((t) => {
+      const k = binA.k();
+      return { x: BIN_A[0], y: BIN_A[1], z: z0(BIN_A) + 0.42 + 0.3 * k, dir: 'l', hidden: k < 0.3, pose: k > 0.6 && honking(t) ? 'honk' : 'sit' };
+    }, { kind: 'poke', inside: binA, hint: 'Somebody is finishing everyone\'s dropped cones. Two bins, and one lid won\'t sit flat.' });
 
     // ---------- The fly swatter stand ----------
     // A kid at the corner selling swatters all day. When the greenhead man
@@ -436,19 +553,24 @@ export default {
     // ---------- The lots ----------
     // Residents only, and everyone else gets a ticket.
     notice(R, 60.9, 33.0, [['RESIDENTS ONLY', 0.24, C.white], ['EVERYONE ELSE: TICKETED,', 0.12, C.white], ['TOWED AND JUDGED', 0.12, C.white]], { w: 2.0, h: 0.8, board: C.red, post: 1.35 });
-    R.thing(TICKET_CAR[0] + 0.5, TICKET_CAR[1] + 1, (ctx) => car(ctx, ...TICKET_CAR, h(...TICKET_CAR), CARS[0], 'y', null, 0, null, { board: C.butter }));
+    R.thing(TICKET_CAR[0] + 0.5, TICKET_CAR[1] + 1, (ctx) => car(ctx, ...TICKET_CAR, h(...TICKET_CAR), CARS[1], 'y', null, 0, null, { board: C.butter }));
     // (The third space is beach traffic's, day.js: in at 8:20am, out by six.)
     R.thing(GH_CAR[0] + 0.5, GH_CAR[1] + 1, (ctx) => car(ctx, ...GH_CAR, h(...GH_CAR), CARS[6], 'y'), { on: during(9.4, 22) });
-    // The ticket, under the wiper, flapping.
+    // The ticket: a bright orange envelope under the wiper, flapping, on a
+    // teal car so it can't hide in the paint.
     const tz = h(...TICKET_CAR);
     R.thing(TICKET_CAR[0] + 0.52, TICKET_CAR[1] + 1.02, (ctx, t) => {
-      const x = TICKET_CAR[0], y = TICKET_CAR[1] + 0.44, f = Q.detail ? Math.sin(t * 7) * 0.06 + 0.05 : 0.05;
-      shape(ctx, [[x - 0.32, y, tz + 0.66], [x + 0.28, y, tz + 0.66], [x + 0.28, y + f, tz + 1.02], [x - 0.32, y + f, tz + 1.02]], C.white, { lw: 0.03 });
-      shape(ctx, [[x - 0.32, y + f * 0.8, tz + 0.93], [x + 0.28, y + f * 0.8, tz + 0.93], [x + 0.28, y + f, tz + 1.02], [x - 0.32, y + f, tz + 1.02]], C.mustard, { stroke: false });
-      if (Q.detail) for (const zz of [0.74, 0.8, 0.86]) line(ctx, [[x - 0.2, y + f * ((zz - 0.66) / 0.34), tz + zz], [x + 0.1, y + f * ((zz - 0.66) / 0.34), tz + zz]], C.grey, 0.02);
-      line(ctx, [[x - 0.34, y + 0.02, tz + 0.7], [x + 0.28, y + 0.02, tz + 0.66]], C.ink, 0.04);
+      const x = TICKET_CAR[0], y = TICKET_CAR[1] + 0.44, f = Q.detail ? Math.sin(t * 7) * 0.06 + 0.06 : 0.06;
+      const x0 = x - 0.4, x1 = x + 0.36, zb = tz + 0.6, zt = tz + 1.12;
+      shape(ctx, [[x0, y, zb], [x1, y, zb], [x1, y + f, zt], [x0, y + f, zt]], C.coral, { lw: 0.035 });
+      // The envelope's flap, and its little window.
+      const fm = (zz) => y + f * ((zz - zb) / (zt - zb));
+      line(ctx, [[x0, fm(zt), zt], [(x0 + x1) / 2, fm(zt - 0.2), zt - 0.2], [x1, fm(zt), zt]], shade(C.coral, 0.35), 0.03);
+      if (Q.detail) shape(ctx, [[x0 + 0.1, fm(zb + 0.1), zb + 0.1], [x0 + 0.42, fm(zb + 0.1), zb + 0.1], [x0 + 0.42, fm(zb + 0.24), zb + 0.24], [x0 + 0.1, fm(zb + 0.24), zb + 0.24]], C.white, { lw: 0.02 });
+      // The wiper, across it.
+      line(ctx, [[x0 - 0.04, y + 0.03, tz + 0.7], [x1 + 0.02, y + 0.03, tz + 0.64]], C.ink, 0.05);
     }, { anim: true });
-    R.find({ id: 'ticket', label: 'A parking ticket', at: [TICKET_CAR[0], TICKET_CAR[1] + 0.46, tz + 0.83], r: 0.8 });
+    R.find({ id: 'ticket', label: 'A parking ticket', at: [TICKET_CAR[0], TICKET_CAR[1] + 0.46, tz + 0.86], r: 0.85 });
     // The parking officer, on a slow loop behind the cars, writing, writing.
     const officerLook = folk(361, { top: C.navy, bottom: C.navy, hat: 'cap', hold: pad });
     const beat = route([[55.3, 33.25], [55.9, 33.25, 7], [57.2, 33.25, 5], [58.6, 33.25, 6], [59.9, 33.25, 2], [60.5, 33.25], [60.5, 37.3, 3]], { speed: 0.55, loop: false });
@@ -491,8 +613,9 @@ export default {
       const ax = hx - Math.sin(Math.PI - 0.6 + s * 0.5) * 0.7, ay = hy - 0.6 - Math.cos(Math.PI - 0.6 + s * 0.5) * 0.35;
       ctx.beginPath(); ctx.moveTo(hx - 0.2, hy - 0.3); ctx.lineTo(ax - 0.3, ay - 0.9);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(ax - 0.3, ay - 0.9); ctx.lineTo(ax - 0.95, ay - 0.75 + s * 0.12); ctx.lineTo(ax - 0.9, ay - 0.35 + s * 0.12); ctx.lineTo(ax - 0.27, ay - 0.5); ctx.closePath();
-      paint(ctx, C.mustard, { lw: 0.03 });
+      // (A teal pennant: a yellow square here read as the ticket.)
+      ctx.beginPath(); ctx.moveTo(ax - 0.3, ay - 0.9); ctx.lineTo(ax - 1.0, ay - 0.6 + s * 0.12); ctx.lineTo(ax - 0.27, ay - 0.45); ctx.closePath();
+      paint(ctx, C.teal, { lw: 0.03 });
     });
     // The wagon that has been in the $20 lot since 1998: faded, wood panels,
     // sand in the wheel arches, the grass growing up round it.
@@ -508,20 +631,46 @@ export default {
         box(ctx, x - 0.3, y - 0.45, oz + 1.12, 0.6, 0.9, 0.08, tint(C.coral, 0.4), { flat: true, lw: 0.02 });
         for (const [dx, dy, s] of [[0.62, -0.7, 0.8], [0.64, 0.75, 0.7], [-0.4, 1.2, 0.8]]) tuft(ctx, x + dx, y + dy, oz, s);
       }
-      // The sticker: faded to nearly nothing, peeling at a corner.
-      const sy = y + 1.045, s0 = x - 0.36, s1 = x + 0.36, z0 = oz + 0.27, z1 = oz + 0.52;
-      shape(ctx, [[s0, sy, z0], [s1, sy, z0], [s1, sy, z1], [s0, sy, z1]], tint(C.sky, 0.55), { lw: 0.025, stroke: shade(C.sky, 0.25) });
+      // The sticker: the bright old print, peeling at a corner. Its bottom
+      // part (a coral and mustard stripe) shows under the towel all day.
+      const sy = y + 1.045, s0 = x - 0.4, s1 = x + 0.4, z0 = oz + 0.25, z1 = oz + 0.62;
+      shape(ctx, [[s0, sy, z0], [s1, sy, z0], [s1, sy, z1], [s0, sy, z1]], C.white, { lw: 0.03 });
+      shape(ctx, [[s0, sy, z0], [s1, sy, z0], [s1, sy, z0 + 0.09], [s0, sy, z0 + 0.09]], C.coral, { stroke: false });
+      shape(ctx, [[s0, sy, z0 + 0.09], [s1, sy, z0 + 0.09], [s1, sy, z0 + 0.16], [s0, sy, z0 + 0.16]], C.mustard, { stroke: false });
       shape(ctx, [[s1 - 0.12, sy, z1], [s1, sy, z1], [s1, sy, z1 - 0.1]], body, { stroke: false });
       shape(ctx, [[s1 - 0.12, sy + 0.02, z1], [s1, sy + 0.05, z1 - 0.1], [s1 - 0.1, sy + 0.05, z1 - 0.12]], C.white, { lw: 0.015 });
       if (Q.detail) {
         ctx.save();
         ctx.translate(...P(0, sy + 0.005, 0));
-        paintText(ctx, 'right', x - 0.04, oz + 0.43, 'PLUM ISLAND', 0.1, tint(C.navy, 0.45), 'Rethink Sans');
-        paintText(ctx, 'right', x - 0.04, oz + 0.33, "BEACH '98", 0.09, tint(C.coral, 0.4), 'Rethink Sans');
+        paintText(ctx, 'right', x - 0.04, oz + 0.54, 'PLUM ISLAND', 0.1, C.navy, 'Rethink Sans');
+        paintText(ctx, 'right', x - 0.04, oz + 0.45, "BEACH '98", 0.09, C.coral, 'Rethink Sans');
         ctx.restore();
       }
     });
-    R.find({ id: 'sticker', label: 'A beach sticker from 1998', at: [OLD_CAR[0], OLD_CAR[1] + 1.05, oz + 0.4], r: 0.8 });
+    // A beach towel drying over the wagon's tailgate, hiding the proof: tap
+    // it and it rolls up onto the rack. It hangs short, so the sticker's
+    // bright bottom shows under its fringe, and one corner is turned
+    // back (its pale underside) the way a towel you could lift looks.
+    const towel = R.poke({ id: 'towel', at: [OLD_CAR[0], OLD_CAR[1] + 1.07, oz + 0.6], r: 0.75, sound: 'pop' });
+    R.thing(OLD_CAR[0] + 0.52, OLD_CAR[1] + 1.02, (ctx, t) => {
+      const k = towel.k(), [x, y] = OLD_CAR, ty = y + 1.075, x0 = x - 0.44, x1 = x + 0.44;
+      const zt = oz + 1.12, zb = oz + 0.44 + 0.54 * k, sway = Q.detail ? Math.sin(t * 2.2) * 0.02 * (1 - k) : 0;
+      // Turned back at the near corner: the towel's edge runs up to it.
+      const c = 0.24 * (1 - k);
+      shape(ctx, [[x0, ty, zt], [x1, ty, zt], [x1, ty + sway, zb + c], [x1 - c, ty + sway, zb], [x0, ty + sway, zb]], C.pink, { lw: 0.035 });
+      if (Q.detail) for (const zz of [0.25, 0.6]) {
+        const a = zt - (zt - zb) * zz;
+        shape(ctx, [[x0, ty + sway * zz, a], [x1, ty + sway * zz, a], [x1, ty + sway * zz, a - 0.07], [x0, ty + sway * zz, a - 0.07]], C.white, { stroke: false });
+      }
+      if (k < 0.1) {
+        // The fold: the corner flipped up over the front, pale side out.
+        shape(ctx, [[x1 - c, ty + sway + 0.02, zb], [x1, ty + sway + 0.02, zb + c], [x1 - c * 0.9, ty + sway + 0.04, zb + c * 1.1]], tint(C.pink, 0.55), { lw: 0.03 });
+        // A fringe along the bottom.
+        if (Q.detail) for (let u = x0 + 0.06; u < x1 - c; u += 0.09) line(ctx, [[u, ty + sway + 0.01, zb], [u, ty + sway + 0.01, zb - 0.05]], shade(C.pink, 0.2), 0.02);
+      }
+      if (k > 0.1) line(ctx, [[x0, ty + 0.03, zb], [x1, ty + 0.03, zb]], shade(C.pink, 0.2), 0.12 * k);
+    }, { anim: true });
+    R.find({ id: 'sticker', label: 'A beach sticker from 1998', kind: 'poke', inside: towel, at: [OLD_CAR[0], OLD_CAR[1] + 1.05, oz + 0.42], r: 0.7, hint: 'The oldest car in the $20 lot can prove it. Something is drying over the proof.' });
 
     // ---------- The warnings ----------
     // The town's message board by the path, blinking its news at nobody.
@@ -533,12 +682,15 @@ export default {
       face(ctx, [[VX - 0.8, VY + 0.08, VZ + 1.6], [VX + 0.8, VY + 0.08, VZ + 1.6], [VX + 0.8, VY + 0.08, VZ + 2.45], [VX - 0.8, VY + 0.08, VZ + 2.45]], C.black, { lw: 0.06 });
     });
     const MSG = ['KING TIDE', 'TONIGHT', '12:15 AM', 'NO REALLY', 'TONIGHT'];
+    // Tap it, and for once it has someone to talk to.
+    const sign = R.poke({ id: 'board', teach: true, at: [VX + 0.3, VY + 0.15, VZ + 1.3], r: 1.0, hold: 2.5, sound: 'tick', say: ['It says KING TIDE. It means it.', 'Still tonight.', 'You read it! Tell the others.'] });
     R.thing(VX + 0.91, VY + 0.41, (ctx, t) => {
+      const told = sign.k() > 0.5;
       const k = Math.floor(t / 1.8) % MSG.length;
-      if ((t % 1.8) > 1.62) return;
+      if (!told && (t % 1.8) > 1.62) return;
       ctx.save();
       ctx.translate(...P(0, VY + 0.09, 0));
-      paintText(ctx, 'right', VX, VZ + 2.02, MSG[k], 0.27, C.mustard, 'Rethink Sans');
+      paintText(ctx, 'right', VX, VZ + 2.02, told ? 'HI THERE' : MSG[k], 0.27, told ? C.coral : C.mustard, 'Rethink Sans');
       ctx.restore();
     }, { anim: true });
     // Leaning on it, reading his phone.
@@ -618,7 +770,7 @@ export default {
     // People up and down the path all day, out of the way of the greenhead
     // man, and back.
     const loopers = [
-      [route([[PATH - 0.25, 37.0], [PATH - 0.25, 44.2], [63.6, 46.4]], { speed: 1.0, loop: false, offset: 0 }), folk(391, { top: C.teal, hold: boogie(C.mustard) }), 1],
+      [route([[PATH - 0.25, 37.0], [PATH - 0.25, 44.2], [61.3, 46.8]], { speed: 1.0, loop: false, offset: 0 }), folk(391, { top: C.teal, hold: boogie(C.mustard) }), 1],
       [route([[PATH + 0.25, 44.6], [PATH + 0.25, 37.2], [60.2, 36.9]], { speed: 0.9, loop: false, offset: 9 }), folk(392, { top: C.white, bottom: C.coral, hat: 'sun' }), 1],
     ];
     loopers.forEach(([fn, look, s]) => {
@@ -667,16 +819,46 @@ export default {
     // ---------- The little jetty ----------
     // Granite, the far rocks under at high water (only what's above it is
     // drawn), weed where the tide reaches.
-    JETTY.forEach((r) => {
+    // Each block: its body, a dressed cap a little in from its edges, a split
+    // down its face, and a chink stone wedged in the gap behind it.
+    const ROCK = mix(INK.shingle, C.brown, 0.15);
+    JETTY.forEach((r, i) => {
       R.thing(r.x + 0.6, r.y + 0.6, (ctx, t) => {
         const L = level(t), z0 = Math.max(h(r.x, r.y) - 0.3, L - 0.02);
         if (z0 >= r.top) return;
-        const w = r.w, col = mix(INK.shingle, C.brown, 0.15);
-        box(ctx, r.x - w / 2, r.y - 0.58, z0, w, 1.16, r.top - z0, col, { dotsL: shade(col, 0.5), dens: 0.18, lw: 0.04, top: tint(col, 0.15) });
+        const w = r.w, d = r.d, x0 = r.x - w / 2, y0 = r.y - d / 2, col = ROCK, cap = 0.14;
+        // The chink stone, behind, on alternate sides.
+        const cx = i % 2 ? r.x + w / 2 - 0.42 : x0 + 0.06, ct = Math.min(r.top - 0.35, z0 + 0.45);
+        if (i && ct > z0 + 0.05) box(ctx, cx, y0 - 0.2, z0, 0.36, 0.3, ct - z0, shade(col, 0.08), { flat: true, lw: 0.03, top: tint(col, 0.1) });
+        const body = Math.max(z0, r.top - cap);
+        if (body > z0) box(ctx, x0, y0, z0, w, d, body - z0, col, { dotsL: shade(col, 0.5), dens: 0.18, lw: 0.04, top: tint(col, 0.08) });
+        const c0 = Math.max(z0, r.top - cap);
+        box(ctx, x0 + 0.08, y0 + 0.08, c0, w - 0.16, d - 0.16, r.top - c0, tint(col, 0.1), { flat: true, lw: 0.035, top: tint(col, 0.18) });
+        if (Q.detail && body > z0 + 0.25) {
+          // A split down the face toward you, and a drill mark on the cap.
+          const u = x0 + w * (0.35 + 0.3 * ((i * 7) % 3) / 2);
+          line(ctx, [[u, y0 + d, body], [u + 0.06, y0 + d, body - 0.18], [u + 0.02, y0 + d, Math.max(z0, body - 0.42)]], shade(col, 0.45), 0.025);
+          disc(ctx, r.x + 0.15, r.y - 0.1, r.top + 0.002, 0.035, shade(col, 0.35), { stroke: false });
+        }
         const weed = Math.min(r.top, 0.45);
-        if (weed > z0 + 0.05 && Q.detail) face(ctx, [[r.x - w / 2, r.y + 0.58, z0], [r.x + w / 2, r.y + 0.58, z0], [r.x + w / 2, r.y + 0.58, weed], [r.x - w / 2, r.y + 0.58, weed]], alpha(C.green, 0.55), { stroke: false });
+        if (weed > z0 + 0.05 && Q.detail) face(ctx, [[x0, y0 + d, z0], [x0 + w, y0 + d, z0], [x0 + w, y0 + d, weed], [x0, y0 + d, weed]], alpha(C.green, 0.55), { stroke: false });
       }, { anim: true });
     });
+    // A starfish on the end rock's seaward face, low down where it's always
+    // wet: only out of the water when the tide is all the way out.
+    const SF = [JETTY[6].x - 0.15, JETTY[6].y + 0.59, -0.52];
+    R.thing(JETTY[6].x + 0.62, JETTY[6].y + 0.62, (ctx) => {
+      const [X, Y] = P(...SF);
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 0.07 : 0.19;
+        const px = X + Math.cos(a) * r, py = Y + Math.sin(a) * r * 0.9;
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.025, dots: Q.detail ? shade(C.coral, 0.4) : null, density: 0.3 });
+    }, { on: lowTide });
+    R.find({ id: 'starfish', label: 'A starfish', kind: 'hard', when: lowTide, note: 'low tide', at: SF, r: 0.6, riddle: 'Hanging on until the water comes back.', hint: 'When the sea is all the way out, look low on the rocks that are usually under it.' });
     // A cormorant on the end rock, drying its wings, until the tide has it.
     const end = JETTY[6];
     R.thing(end.x + 0.61, end.y + 0.61, (ctx, t) => {
@@ -735,7 +917,7 @@ export default {
     // ever had. (Biscuit, on the Sound, is the one who chases gulls.)
     const dogAt = (t) => {
       const L = level(t), u = (t % 16) / 16, run = u < 0.5 ? u * 2 : 2 - u * 2;
-      const x = 63.4 + run * 6, y = shoreY(x, L) - 0.4 + Math.sin(t * 2.3) * 0.5;
+      const x = 65.2 + run * 4.4, y = shoreY(x, L) - 0.4 + Math.sin(t * 2.3) * 0.5;
       return { x, y, dir: u < 0.5 ? 1 : -1 };
     };
     R.mover(dogAt, (ctx, t, p) => {

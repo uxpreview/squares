@@ -649,25 +649,51 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 900);
   await S(page, () => { document.getElementById('story').hidden = true; });
   const note = await S(page, () => [...document.querySelectorAll('#tray .find-note')].map((n) => n.textContent));
-  check('the list says when a tide-only find is there', note.includes('low tide') && note.includes('high tide'), note.join());
+  check('the list says when a tide-only find is there', note.includes('low tide') && note.some((n) => n.startsWith('high tide')), note.join());
+  // Louder (session 14): what's here now is lit with "now", what's away is
+  // pale, and the dial counts what the next skip brings back here.
+  const live = await S(page, () => ({
+    now: [...document.querySelectorAll('#tray-chips .find-note.is-now')].map((n) => n.textContent),
+    away: [...document.querySelectorAll('#tray-chips .find-note.is-away')].map((n) => n.textContent),
+  }));
+  await wait(page, 700);
+  const badge = await S(page, () => { const b = document.getElementById('dial-badge'); return { hidden: b.hidden, n: +b.textContent, label: document.getElementById('dial').getAttribute('aria-label') }; });
+  check('a tide find here now says "now", one that\'s away is pale', live.now.some((n) => /high tide · now/.test(n)) && live.away.includes('low tide'), JSON.stringify(live));
+  check('the dial counts what the next tide brings back', !badge.hidden && badge.n >= 2 && /come back/.test(badge.label), JSON.stringify(badge));
   let [bx, by] = await findOnScreen(page, 'sound', 'boot');
   await page.mouse.click(bx, by);
   await wait(page, 300);
   check('a low-tide find can\'t be found at high water', !(await S(page, () => window.__squares.store.isFound('plum', 'sound:boot'))));
+  // Picking it on the list says it's away, and offers the skip to when it's back.
   const before = await S(page, () => document.getElementById('dial-label').textContent);
-  await page.click('#dial');
+  const bootLabel = await S(page, () => window.__squares.world.zones.find((z) => z.id === 'sound').finds.find((f) => f.id === 'boot').label);
+  // (On a phone: pick its chip, and the note over the chips offers the skip.
+  // On a wide screen, as here: its row's tag is the skip.)
+  const skipBtn = page.locator('#tray-full .row.is-away', { hasText: bootLabel }).locator('button.is-skip');
+  const away = { btn: await skipBtn.textContent() };
+  check('a find that\'s away offers a skip to when it\'s back', away.btn === 'Skip to low tide', JSON.stringify(away));
+  await skipBtn.click();
   await wait(page, 2600);
   const after = await S(page, async () => {
     const { hour } = await import('/src/maps/plum/tide.js');
-    return { label: document.getElementById('dial-label').textContent, hour: hour(window.__squares.clock.now()), toast: document.getElementById('toast').textContent };
+    return { label: document.getElementById('dial-label').textContent, hour: hour(window.__squares.clock.now()), toast: document.getElementById('toast').textContent, note: [...document.querySelectorAll('#tray-full .row')].find((r) => r.textContent.includes(window.__squares.world.zones.find((z) => z.id === 'sound').finds.find((f) => f.id === 'boot').label))?.querySelector('.find-note')?.textContent };
   });
-  check('the dial skips ahead to the next turn of the tide', before !== after.label && after.label === 'Low tide' && Math.abs(after.hour - 12) < 0.3 && /Low tide/.test(after.toast), JSON.stringify({ before, ...after }));
+  check('the skip lands at low tide, and the list says it\'s here now', before !== after.label && after.label === 'Low tide' && Math.abs(after.hour - 12) < 0.3 && /Low tide/.test(after.toast) && /things to find are back here/.test(after.toast) && /now/.test(after.note || ''), JSON.stringify({ before, ...after }));
   await S(page, () => window.__squares.play.enterZone('sound', { dur: 0.01, near: [12.4, 22.2] }));
   await wait(page, 900);
   [bx, by] = await findOnScreen(page, 'sound', 'boot');
   await page.mouse.click(bx, by);
   await wait(page, 300);
   check('and at low tide it\'s there to find', await S(page, () => window.__squares.store.isFound('plum', 'sound:boot')));
+  // The sunbather: on his towel on the Center's beach at noon, answering a
+  // tap; gone home after dark, and nothing to tap where he was.
+  const sun = await S(page, async () => {
+    const { at } = await import('/src/maps/plum/tide.js');
+    const s = window.__squares, z = s.world.zones.find((q) => q.id === 'center'), pk = z.pokes.find((p) => p.id === 'sunbather');
+    const w = s.world.map.walkers.find((x) => x.id === 'sunbather');
+    return { noon: pk && pk.when(at(12)), night: pk && pk.when(at(22)), lie: w.at(at(12)).pose, home: w.at(at(23)).y < 0, says: pk && pk.say.some((l) => /Market Basket/.test(l)) };
+  });
+  check('the sunbather walks in, lies on the Center\'s beach all day and answers a tap, then walks home', sun.noon && !sun.night && sun.lie === 'lie' && sun.home && sun.says, JSON.stringify(sun));
   // From low water the dial stops at sunset (the Pink House's window) before high tide.
   const dialTo = async () => {
     await page.click('#dial');

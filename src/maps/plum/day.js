@@ -15,7 +15,7 @@
 //   4:15pm the drawbridge goes up for a sailboat, and the road waits
 //  10:25pm the Courier heads for the mainland, and the king tide has the
 //          road by the drawbridge: the van stops in the middle of it
-//  12:20am Every King Tide Dave drives out of the clam shack's lot, through
+//  12:20am Every King Tide Dave drives out of Bob's Lobster's lot, through
 //          the flood, windows down, past the van, as he does every king tide
 //
 // npm run qa checks every walk: never faster than a run (cars included).
@@ -367,7 +367,7 @@ const courierPoint = onFoot('courier-point', [
 ], POINT_SPAN);
 
 // ---------- Every King Tide Dave ----------
-// A red pickup (nobody's brand), parked at the clam shack all day facing the
+// A red pickup (nobody's brand), parked at Bob's Lobster all day facing the
 // road, Dave in it with a thermos and a camera on the dash. At the king tide
 // he drives out through the flood, windows down, arm out, waving, past the
 // Courier's van, onto the island, and home again once the road's clear.
@@ -612,4 +612,103 @@ const greenheadMan = {
   },
 };
 
-export const walkers = [van, courierCenter, courierPoint, dave, ...beachCars, ...queue, trier, greenheadMan];
+// ---------- The sunbather ----------
+// A local figure (the owner's): tan, white hair, sunglasses, red shorts and
+// wired headphones. He walks onto the island over the turnpike every
+// morning, lies on the Center's beach all day and walks home at five. Tap
+// him and he answers (sunbatherPoke, the Center's).
+export const TOWEL = [63.2, 46.6];
+const SHOULDER = PIKE - 0.95; // the turnpike's edge on the Pink House side (Dave's cooler is on the other)
+const sunSkin = mix(SKIN[2], SKIN[1], 0.35);
+const sunLook = folk(77, {
+  // (Bare legs: the kit colors a whole leg with bottom, so the shorts are worn.)
+  skin: sunSkin, hair: mix(C.white, C.greyLight, 0.3), style: 'short', top: sunSkin, bottom: sunSkin, dress: false,
+  // Sunglasses, and an earbud.
+  face: (ctx, hy, back) => {
+    // From behind: the black wire down from his ear, so the white hair
+    // isn't just a ball.
+    if (back) {
+      // His tan neck and ears under it.
+      ctx.beginPath(); ctx.arc(0.02, hy, 0.31, 0.15 * Math.PI, 0.85 * Math.PI); ctx.closePath();
+      ctx.fillStyle = sunSkin; ctx.fill();
+      ctx.beginPath(); ctx.arc(-0.29, hy + 0.04, 0.06, 0, Math.PI * 2); ctx.arc(0.33, hy + 0.04, 0.06, 0, Math.PI * 2);
+      ctx.fill();
+      if (!Q.detail) return;
+      ctx.beginPath(); ctx.arc(0.27, hy + 0.06, 0.05, 0, Math.PI * 2);
+      ctx.fillStyle = C.ink; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0.27, hy + 0.08); ctx.quadraticCurveTo(0.34, hy + 0.35, 0.22, hy + 0.55);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke();
+      return;
+    }
+    ctx.beginPath();
+    ctx.roundRect(0.03, hy - 0.04, 0.29, 0.11, 0.04);
+    ctx.fillStyle = C.ink; ctx.fill();
+    if (!Q.detail) return;
+    ctx.beginPath(); ctx.arc(-0.1, hy + 0.08, 0.05, 0, Math.PI * 2);
+    ctx.fillStyle = C.ink; ctx.fill();
+  },
+  // Red shorts, to mid-thigh; and the black wire, from the ear down to the
+  // phone in his pocket.
+  wear: (ctx, b, t) => {
+    ctx.beginPath();
+    ctx.roundRect(-0.31, b.hipY - 0.1, 0.62, 0.42, 0.06);
+    paint(ctx, C.red, { lw: 0.04 });
+    if (!Q.detail || b.back) return;
+    ctx.beginPath();
+    ctx.moveTo(-0.1, b.top - 0.18);
+    ctx.quadraticCurveTo(-0.2 + Math.sin(t * 2) * 0.03, b.shoulderY + 0.3, -0.12, b.hipY - 0.02);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.fillRect(-0.2, b.hipY - 0.04, 0.14, 0.1);
+  },
+});
+const SUN_IN = at(6.6), SUN_UP = at(17);
+const sunWalk = schedule([
+  [SHOULDER, OFF], { until: SUN_IN },
+  [SHOULDER, BLVD - 1.6], [PIKE, BLVD + 1.4], [PIKE, 43.2], [TOWEL[0] - 0.4, TOWEL[1] - 0.2],
+  [...TOWEL], { until: SUN_UP, pose: 'lie' },
+  [TOWEL[0] - 0.4, TOWEL[1] - 0.2], { wait: 3, pose: 'stand', say: 'Time to go to Market Basket.' },
+  [PIKE, 43.2], [PIKE, BLVD + 1.4], [SHOULDER, BLVD - 1.6],
+], { loop: LOOP, name: 'The sunbather', speed: WALK });
+// While he's lying on the beach (and while the poke's for him).
+export const sunbathing = (t) => { const p = sunWalk(t); return !p.moving && p.pose === 'lie'; };
+let sunPoke = null;
+const towelAt = (ctx, z) => {
+  const x = TOWEL[0] - 0.28, y = TOWEL[1] + 0.28, a = 0.75, b = 0.4; // (under him: he lies along the screen)
+  face(ctx, [[x - a - b, y + a - b, z + 0.02], [x + a - b, y - a - b, z + 0.02], [x + a + b, y - a + b, z + 0.02], [x - a + b, y + a + b, z + 0.02]], C.mustard, { lw: 0.03 });
+  if (Q.detail) face(ctx, [[x + 0.3 - b, y - 0.3 - b, z + 0.02], [x + 0.42 - b, y - 0.42 - b, z + 0.02], [x + 0.42 + b, y - 0.42 + b, z + 0.02], [x + 0.3 + b, y - 0.3 + b, z + 0.02]], C.red, { lw: 0 });
+};
+const sunbather = {
+  id: 'sunbather', name: 'The sunbather', loop: LOOP, color: C.red,
+  away: true, // at home the rest of the day, past the map's back edge
+  at: (t) => { const p = sunWalk(t); return { ...p, z: roadZ(p.x, p.y) }; },
+  draw(ctx, t, p) {
+    const s = wrap(t);
+    if (s < SUN_IN || p.y < -1) return;
+    const lying = !p.moving && p.pose === 'lie';
+    if (lying) {
+      towelAt(ctx, p.z);
+      // Tapped: he props up on an elbow for a second, then back down.
+      const k = sunPoke ? sunPoke.k() : 0;
+      if (k > 0.05) {
+        who(ctx, p.x, p.y, p.z, { ...sunLook, pose: 'sit', arms: [1.6, 0.4] }, null, { ...p, pose: 'sit', dir: 'l' }, t);
+        return;
+      }
+      who(ctx, p.x, p.y, p.z, sunLook, null, { ...p, pose: 'lie', dir: 'r' }, t);
+      return;
+    }
+    // Walking, nodding along to whatever's on.
+    const nod = Q.detail ? Math.sin(t * 7) * 0.04 : 0;
+    who(ctx, p.x, p.y, p.z + nod, sunLook, null, { ...p, pose: p.moving ? 'walk' : 'stand' }, t);
+    say(ctx, p.x, p.y, p.z + 2.9, p.say);
+  },
+};
+// His poke, on the Center's beach (the Center calls this).
+export function sunbatherPoke(R) {
+  sunPoke = R.poke({
+    id: 'sunbather', at: [TOWEL[0], TOWEL[1], h(...TOWEL) + 0.4], r: 1, hold: 2.5, sound: 'pop', when: sunbathing,
+    say: ['Can\'t hear you. Headphones.', 'Time to go to Market Basket.', 'Working on the tan.'],
+  });
+  return sunPoke;
+}
+
+export const walkers = [van, courierCenter, courierPoint, dave, ...beachCars, ...queue, trier, greenheadMan, sunbather];

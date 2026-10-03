@@ -78,7 +78,7 @@ export default {
   },
   qa: {
     goosePerZone: true,
-    things: [3, 3],
+    things: [4, 4],
     at: at(12),
     // Timed at low water at noon, and at high water after dark (the evening
     // inks, the lights, the most water on screen).

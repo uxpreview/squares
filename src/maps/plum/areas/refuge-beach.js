@@ -13,7 +13,7 @@ import { C, Q, folk, person, box, disc, paint, paintText, mix, tint, shade, alph
 import { ZK } from '../../../engine/iso.js';
 import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h } from '../land.js';
-import { LOOP, level, hour, at, nightK, sunsetWatch } from '../tide.js';
+import { LOOP, level, hour, at, nightK, sunsetWatch, lowTide } from '../tide.js';
 import { EVENING, INK, LIT, BRAND } from '../style.js';
 import { umbrella, board, boat } from '../kit.js';
 import { aside } from '../swarm.js';
@@ -66,7 +66,7 @@ function edge(x, L) {
 const PLOVER = mix(INK.sand, C.grey, 0.5);
 const CHALK = shade(C.green, 0.55);
 const STAKE = tint(C.woodLight, 0.25);
-const SANDPILE = shade(INK.sand, 0.12);
+const SANDPILE = shade(INK.sand, 0.22);
 const WETSAND = mix(INK.sand, C.brown, 0.18);
 
 // ---------- Small pieces ----------
@@ -170,6 +170,34 @@ function plaque(ctx, along, x, y, z, w, hgt, rows, o = {}) {
 }
 // A post, for fences, ropes and signs.
 const post = (ctx, x, y, z, hgt, color = C.wood) => box(ctx, x - 0.05, y - 0.05, z, 0.1, 0.1, hgt, color, { flat: true, lw: 0.025 });
+
+// A plover hide: a little canvas tent the volunteers watch the nests from,
+// a flap on the front (k: 0 shut, 1 rolled up) and a slit to look through.
+// It stands in the king tide like anything else: only what's above the water.
+const CANVAS = mix(INK.sand, C.green, 0.35);
+function hide(ctx, x, y, t, k, inside) {
+  const g = h(x, y), L = level(t), zb = Math.max(g, L - 0.02), top = g + 1.2;
+  const x0 = x - 0.55, y0 = y - 0.5, x1 = x + 0.55, y1 = y + 0.5;
+  box(ctx, x0, y0, zb, 1.1, 1.0, top - zb, CANVAS, { flat: true, lw: 0.035, left: shade(CANVAS, 0.12), right: shade(CANVAS, 0.25) });
+  // The roof, up to a point.
+  shape(ctx, [[x1, y0, top], [x1, y1, top], [x, y, top + 0.45]], shade(CANVAS, 0.3), { lw: 0.03 });
+  shape(ctx, [[x0, y1, top], [x1, y1, top], [x, y, top + 0.45]], tint(CANVAS, 0.1), { lw: 0.03 });
+  // The slit, and the doorway: dark inside, the flap rolled up k of the way.
+  const d0 = x - 0.3, d1 = x + 0.3, dz0 = Math.max(g + 0.05, zb), dz1 = g + 0.78;
+  shape(ctx, [[x0 + 0.12, y1, g + 0.86], [x1 - 0.12, y1, g + 0.86], [x1 - 0.12, y1, g + 0.94], [x0 + 0.12, y1, g + 0.94]], C.ink, { stroke: false });
+  if (dz1 > dz0) {
+    shape(ctx, [[d0, y1, dz0], [d1, y1, dz0], [d1, y1, dz1], [d0, y1, dz1]], shade(CANVAS, 0.7), { lw: 0.025 });
+    if (inside) inside(ctx, g);
+    const fz = Math.max(dz0, dz1 - (dz1 - dz0) * (1 - k));
+    if (fz < dz1 - 0.02) shape(ctx, [[d0, y1 + 0.01, fz], [d1, y1 + 0.01, fz], [d1, y1 + 0.01, dz1], [d0, y1 + 0.01, dz1]], shade(CANVAS, 0.06), { lw: 0.025 });
+    if (k > 0.1) {
+      const [a, b] = P(d0, y1 + 0.02, fz), [c, e] = P(d1, y1 + 0.02, fz);
+      ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, e);
+      ctx.strokeStyle = shade(CANVAS, 0.35); ctx.lineWidth = 0.09; ctx.lineCap = 'round'; ctx.stroke();
+    }
+  }
+  plaque(ctx, 'x', x, y1 + 0.01, g + 1.08, 0.8, 0.18, [['PLOVER WATCH', 0, 0.075]], { board: C.white, edge: 0.02 });
+}
 
 // ---------- Coming and going ----------
 // Everyone walks down Lot 1's boardwalk in the morning and back up it after
@@ -290,16 +318,39 @@ export default {
       }, (ctx, t, p) => plover(ctx, p.x, p.y, h(p.x, p.y), t, { run: p.run, dir: p.dir }));
     }
 
-    // The goose, inside the rope with the plovers, doing the plover walk:
-    // run, stop, peck, run. At low water it's on the sand; when the tide's in
-    // it paddles the shallows. The plovers aren't fooled, and don't care.
+    // Two plover hides inside the rope, where the volunteers watch the nests.
+    // In one, a birder with binoculars counting plovers. The other has been
+    // taken over by the goose, sitting on what it is sure is a nest: its
+    // tail pokes out of the side and an orange foot out under the flap, and
+    // the plovers aren't fooled. Tap the flap and it rolls up.
+    const HB = [21.2, 45.3], HA = [23.4, 45.3];
+    const birder = R.poke({ id: 'hide', at: [HB[0], HB[1] + 0.4, h(...HB) + 0.6], r: 0.8, hold: 2.2, say: ['Shh. Counting plovers.', 'Still six. Shh.', 'You made me lose count.'] });
+    const nest = R.poke({ id: 'goose-hide', at: [HA[0], HA[1] + 0.4, h(...HA) + 0.6], r: 0.8, sound: 'clunk', say: 'HONK?' });
+    R.thing(HB[0], HB[1], (ctx, t) => hide(ctx, HB[0], HB[1], t, birder.k(), (g, gz) => {
+      // Binoculars at the slit, always; a face behind them with the flap up.
+      const k = birder.k(), [X, Y] = P(HB[0], HB[1] + 0.5, gz + 0.9);
+      if (k > 0.3) { const [fx, fy] = P(HB[0], HB[1] + 0.5, gz + 0.5); g.beginPath(); g.arc(fx, fy, 0.16, 0, Math.PI * 2); paint(g, C.blush, { lw: 0.025 }); }
+      for (const dx of [-0.09, 0.09]) { g.beginPath(); g.arc(X + dx, Y, 0.065, 0, Math.PI * 2); paint(g, C.ink, { lw: 0.02 }); if (Q.detail) { g.beginPath(); g.arc(X + dx - 0.02, Y - 0.02, 0.02, 0, Math.PI * 2); g.fillStyle = C.white; g.fill(); } }
+    }), { anim: true, depth: HB[0] + HB[1] });
+    R.thing(HA[0], HA[1], (ctx, t) => {
+      const k = nest.k();
+      hide(ctx, HA[0], HA[1], t, k);
+      if (k > 0.4) return;
+      // The tell: a white tail tip out through the right side, a foot under the flap.
+      // (Both drawn on the ground's planes, so they stick out of the tent, not onto it.)
+      const g = h(...HA), xr = HA[0] + 0.55, ty = HA[1] - 0.1, wag = 0.03 * Math.sin(t * 1.6);
+      shape(ctx, [[xr, ty - 0.2, g + 0.58], [xr + 0.28, ty - 0.12, g + 0.66 + wag], [xr + 0.5, ty - 0.06, g + 0.78 + wag], [xr + 0.36, ty + 0.02, g + 0.6 + wag], [xr, ty + 0.12, g + 0.36]], C.white, { lw: 0.035 });
+      if (Q.detail) shape(ctx, [[xr + 0.3, ty - 0.08, g + 0.68 + wag], [xr + 0.5, ty - 0.06, g + 0.78 + wag], [xr + 0.38, ty - 0.01, g + 0.64 + wag]], C.greyLight, { stroke: false });
+      // A webbed foot, flat on the sand, three toes spread toward you.
+      const fx = HA[0] + 0.12, fy = HA[1] + 0.5, fz = Math.max(g, level(t)) + 0.02;
+      shape(ctx, [[fx - 0.04, fy, fz], [fx - 0.2, fy + 0.3, fz], [fx - 0.06, fy + 0.26, fz], [fx + 0.02, fy + 0.38, fz], [fx + 0.1, fy + 0.25, fz], [fx + 0.26, fy + 0.28, fz], [fx + 0.06, fy, fz]], C.coral, { lw: 0.03 });
+    }, { anim: true, depth: HA[0] + HA[1] });
+    // The goose, on its nest in the doorway, honking now and then once it's
+    // been found out. At the king tide it floats in there.
     R.goose((t) => {
-      const u = t / 2.4, n = Math.floor(u), f = u - n, moving = f < 0.55;
-      const s = ((n + Math.min(1, f / 0.55)) * 0.7) % 5.6, back = s > 2.8;
-      const x = 20.6 + (back ? 5.6 - s : s), y = 45.4;
-      const L = level(t), g = h(x, y), wet = L > g + 0.05;
-      return { x, y, z: float(x, y, t), dir: back ? 'l' : 'r', moving, pose: wet ? 'swim' : moving ? 'walk' : 'peck' };
-    });
+      const k = nest.k(), x = HA[0], y = HA[1] + 0.42, g = h(x, y), wet = level(t) > g + 0.05;
+      return { x, y, z: float(x, y, t), dir: 'l', hidden: k < 0.3, pose: wet ? 'swim' : k > 0.6 && Math.sin(t / 1.7) > 0.7 ? 'honk' : 'sit' };
+    }, { kind: 'poke', inside: nest, hint: 'Two hides for watching the plovers, and one of them has feet.' });
 
     // A sandcastle inside the rope (built at dawn, before the rope moved),
     // with its moat and a flag. The footprints go back to where the crowd was.
@@ -353,17 +404,21 @@ export default {
       }, { depth: (t) => rope(t) + y1 });
     }
 
-    // The warden's spare stake: a fresh one, lying on the sand by the rope's
-    // top end with its coral flag, a coil of rope beside it. It moves up with
-    // the rope, and floats when the king tide gets to it.
-    const stakeAt = (t) => { const x = rope(t) - 1.2, y = 44.5; return [x, y, float(x, y, t)]; };
-    R.mover((t) => { const [x, y] = stakeAt(t); return { x: x + 0.5, y }; }, (ctx, t) => {
+    // The warden's spare stake: a fresh one, dropped on its own patch of sand
+    // inside the rope, well clear of the warden and the rope's posts, with a
+    // coral flag tied on and a coil of rope beside it. It floats when the king
+    // tide gets to it.
+    const STK = [31, 49.4];
+    const stakeAt = (t) => { const [x, y] = STK; return [x, y, float(x, y, t)]; };
+    R.thing(STK[0] + 0.7, STK[1] + 0.3, (ctx, t) => {
       const [x, y, z] = stakeAt(t);
-      if (Q.detail) { const [X, Y] = P(x + 0.4, y + 0.25, z); ctx.beginPath(); ctx.ellipse(X, Y, 0.26, 0.12, 0, 0, Math.PI * 2); ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05; ctx.stroke(); ctx.beginPath(); ctx.ellipse(X, Y, 0.15, 0.07, 0, 0, Math.PI * 2); ctx.stroke(); }
-      box(ctx, x - 0.45, y - 0.06, z, 0.9, 0.12, 0.12, STAKE, { flat: true, lw: 0.03 });
-      shape(ctx, [[x - 0.45, y - 0.06, z], [x - 0.45, y + 0.06, z], [x - 0.62, y, z + 0.06]], shade(STAKE, 0.15), { lw: 0.03 });
-      box(ctx, x + 0.28, y - 0.08, z, 0.1, 0.16, 0.14, C.coral, { flat: true, lw: 0.025 });
-    });
+      if (Q.detail) { const [X, Y] = P(x + 0.35, y + 0.4, z); ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.14, 0, 0, Math.PI * 2); ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05; ctx.stroke(); ctx.beginPath(); ctx.ellipse(X, Y, 0.17, 0.08, 0, 0, Math.PI * 2); ctx.stroke(); }
+      box(ctx, x - 0.6, y - 0.07, z, 1.2, 0.14, 0.14, STAKE, { flat: true, lw: 0.03 });
+      shape(ctx, [[x - 0.6, y - 0.07, z], [x - 0.6, y + 0.07, z], [x - 0.8, y, z + 0.07]], shade(STAKE, 0.15), { lw: 0.03 });
+      // The flag, tied near the top end, lying out on the sand.
+      shape(ctx, [[x + 0.36, y + 0.07, z + 0.03], [x + 0.68, y + 0.07, z + 0.03], [x + 0.58, y + 0.8, z + 0.02]], C.coral, { lw: 0.03 });
+      box(ctx, x + 0.4, y - 0.09, z, 0.12, 0.18, 0.16, C.coral, { flat: true, lw: 0.025 });
+    }, { anim: true });
 
     // The plover warden, a volunteer in a vest with a clipboard: in down the
     // boardwalk at 6:15, then all day on the rope. At the top of each hour she
@@ -446,37 +501,70 @@ export default {
         box(ctx, FOOT[0] - 0.65, y, z - 0.1, 1.3, 0.22, 0.1, C.woodLight, { flat: true, lw: 0.03 });
       }
     });
-    // The warden's chalkboard, by the boardwalk.
+    // The warden's chalkboard, by the boardwalk. Tap it and you're counted.
+    const count = R.poke({ id: 'chalkboard', teach: true, at: [41.4, 44.6, h(41.4, 44.4) + 0.62], r: 0.9, sound: 'tick', say: ['Counted you. People: 213.', 'Still 213. Plovers: still 6.', 'You only count once.'] });
     R.thing(41.9, 44.7, (ctx) => {
-      const x = 41.4, y = 44.4, z = h(x, y);
+      const x = 41.4, y = 44.4, z = h(x, y), you = count.k() > 0.5;
       post(ctx, x - 0.5, y + 0.15, z, 1.05, C.wood); post(ctx, x + 0.5, y + 0.15, z, 1.05, C.wood);
       plaque(ctx, 'x', x, y + 0.2, z + 0.62, 1.1, 0.9, [
         ['PLOVERS: 6', 0.24, 0.15, C.white],
-        ['PEOPLE: 212', 0.02, 0.15, C.white],
+        [you ? 'PEOPLE: 213' : 'PEOPLE: 212', 0.02, 0.15, you ? C.coral : C.white],
         ['ROPE: MOVING', -0.22, 0.14, C.mustard],
       ], { board: CHALK });
-    });
+    }, { anim: true });
 
-    // A shell collection, laid out in a neat row on a towel, with its card.
-    // (The towel floats when the king tide comes up the beach.)
+    // A shell collection, in a shoebox on a towel with its card: the SHELL
+    // MUSEUM, shut between visitors. Beside it, the curator's lunchbox, which
+    // is just lunch. Tap a lid and it opens. (The towel floats when the king
+    // tide comes up the beach.)
     const SHELLS = [45.2, 44.3];
-    const shellInks = [C.white, C.blush, tint(C.coral, 0.3), C.navy, C.butter, tint(C.purple, 0.4), C.white];
-    // (Dry, all but the king tide: a still picture. Afloat, live.)
-    const shellsAfloat = (t) => level(t) > h(SHELLS[0], SHELLS[1]) - 0.02;
-    const shells = (ctx, t) => {
-      const [sx, sy] = SHELLS, z = float(sx, sy, t) + (level(t) > h(sx, sy) ? 0.03 * Math.sin(t * 1.7) : 0);
-      towel(ctx, sx - 0.65, sy - 0.3, z, 1.3, 0.6, C.sky);
-      shellInks.forEach((ink, k) => {
-        const x = sx - 0.52 + k * 0.175;
-        if (k === 3) { const [X, Y] = P(x, sy, z + 0.05); ctx.beginPath(); ctx.ellipse(X, Y, 0.1, 0.055, 0.5, 0, Math.PI * 2); paint(ctx, ink, { lw: 0.025 }); return; }
-        const [X, Y] = P(x, sy, z + 0.03);
-        ctx.beginPath(); ctx.moveTo(X - 0.1, Y); ctx.lineTo(X, Y - 0.13); ctx.lineTo(X + 0.1, Y); ctx.quadraticCurveTo(X, Y + 0.07, X - 0.1, Y);
-        paint(ctx, ink, { lw: 0.025 });
-      });
-      if (Q.detail) plaque(ctx, 'x', sx + 0.1, sy - 0.25, z + 0.2, 0.6, 0.22, [['SHELL MUSEUM', 0, 0.065]], { board: C.white, edge: 0.02 });
+    const shellInks = [C.white, C.blush, tint(C.coral, 0.3), C.navy, C.butter];
+    const BOX = mix(C.wood, C.white, 0.35); // a cardboard shoebox, so the white lid reads
+    const museum = R.poke({ id: 'museum', at: [SHELLS[0] - 0.35, SHELLS[1], h(...SHELLS) + 0.25], r: 0.65, sound: 'clunk' });
+    const lunch = R.poke({ id: 'lunchbox', at: [SHELLS[0] + 0.42, SHELLS[1], h(...SHELLS) + 0.25], r: 0.45, hold: 2, sound: 'clunk', say: ['Sandwiches. Sandier than planned.', 'Still sandwiches.'] });
+    // A box with a lid hinged at the back: shut, the lid is its top; open, it
+    // stands up behind, and what's in it shows.
+    const lidBox = (ctx, x0, y0, z, w, d, hh, color, lidColor, k, inside) => {
+      box(ctx, x0, y0, z, w, d, hh, color, { flat: true, lw: 0.03 });
+      const top = z + hh, x1 = x0 + w, y1 = y0 + d;
+      const lid = () => shape(ctx, [[x0, y0, top], [x1, y0, top], [x1, y0 + d * (1 - k), top + d * k], [x0, y0 + d * (1 - k), top + d * k]], lidColor, { lw: 0.03 });
+      const open = () => { shape(ctx, [[x0, y0, top], [x1, y0, top], [x1, y1, top], [x0, y1, top]], shade(color, 0.55), { lw: 0.02 }); if (k > 0.3) inside(top); };
+      if (k < 0.5) { open(); lid(); } else { lid(); open(); }
     };
-    R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, (ctx) => shells(ctx, 100), { on: (t) => !shellsAfloat(t) });
-    R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, shells, { anim: true, on: shellsAfloat });
+    // A scallop: a fan with ribs and a little hinge, standing in what holds it.
+    const scallop = (ctx, X, Y, sz, ink) => {
+      ctx.beginPath(); ctx.moveTo(X, Y); ctx.arc(X, Y, sz, Math.PI * 1.1, Math.PI * 1.9); ctx.closePath();
+      paint(ctx, ink, { lw: 0.022 });
+      if (Q.detail) {
+        ctx.beginPath();
+        for (let i = 1; i < 5; i++) { const a = Math.PI * (1.1 + 0.16 * i); ctx.moveTo(X, Y); ctx.lineTo(X + Math.cos(a) * sz * 0.9, Y + Math.sin(a) * sz * 0.9); }
+        ctx.strokeStyle = shade(ink, 0.35); ctx.lineWidth = 0.014; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.rect(X - sz * 0.25, Y - 0.01, sz * 0.5, sz * 0.22); paint(ctx, ink, { lw: 0.018 });
+    };
+    R.thing(SHELLS[0] + 0.7, SHELLS[1] + 0.4, (ctx, t) => {
+      const [sx, sy] = SHELLS, z = float(sx, sy, t) + (level(t) > h(sx, sy) ? 0.03 * Math.sin(t * 1.7) : 0);
+      towel(ctx, sx - 0.75, sy - 0.35, z, 1.5, 0.75, C.sky);
+      // The card, propped behind the box: big enough to read pinched in.
+      plaque(ctx, 'x', sx - 0.35, sy - 0.3, z + 0.55, 1.1, 0.42, [['SHELL', 0.08, 0.17, C.red], ['MUSEUM', -0.11, 0.14]], { board: C.white, edge: 0.025, font: 'Bagel Fat One' });
+      // The shoebox, its lid left ajar on a shell, so it looks like it opens
+      // and there's something in it. Tap it and the lid comes right up.
+      const k = museum.k(), lidK = 0.32 + 0.68 * k;
+      const [bx, by, bw, bd, bh] = [sx - 0.68, sy - 0.2, 0.66, 0.4, 0.26];
+      lidBox(ctx, bx, by, z, bw, bd, bh, BOX, C.white, lidK, (top) => {
+        shellInks.forEach((ink, i) => {
+          const [X, Y] = P(bx + 0.1 + i * 0.11, by + 0.14 + (i % 2) * 0.12, top);
+          scallop(ctx, X, Y, 0.09, ink);
+        });
+      });
+      // The shell holding the lid up, poking out over the front rim.
+      if (k < 0.5) { const [X, Y] = P(bx + bw * 0.55, by + bd * 0.72, z + bh + 0.08); scallop(ctx, X, Y, 0.13, tint(C.coral, 0.3)); }
+      lidBox(ctx, sx + 0.25, sy - 0.12, z, 0.34, 0.24, 0.18, C.red, C.red, lunch.k(), (top) => {
+        const [X, Y] = P(sx + 0.42, sy, top);
+        ctx.beginPath(); ctx.moveTo(X - 0.1, Y + 0.02); ctx.lineTo(X + 0.1, Y + 0.02); ctx.lineTo(X, Y - 0.08); ctx.closePath();
+        paint(ctx, C.butter, { lw: 0.02 });
+      });
+    }, { anim: true });
     // Its curator, a kid, walking to the water's edge for more and back.
     const kidLook = folk(88, { scale: 0.7, hat: 'sun', top: C.pink });
     R.mover((t) => {
@@ -538,7 +626,15 @@ export default {
         const kx = p.x + 0.7, ky = p.y + 1.05;
         if (!p.moving) {
           disc(ctx, kx - 0.35, ky - 0.1, h(kx, ky) + 0.01, 0.22, shade(INK.sand, 0.3), { lw: 0.025 });
-          { const [X, Y] = P(kx + 0.42, ky - 0.08, h(kx, ky)); ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.2, 0, Math.PI, 0); ctx.closePath(); paint(ctx, SANDPILE, { lw: 0.025 }); }
+          {
+            // A lumpy pile, flecked like the sand it came from (a smooth white
+            // dome here read as a half-shell, next to the shell museum).
+            const [X, Y] = P(kx + 0.42, ky - 0.08, h(kx, ky));
+            ctx.beginPath(); ctx.moveTo(X - 0.34, Y);
+            ctx.quadraticCurveTo(X - 0.26, Y - 0.16, X - 0.1, Y - 0.12); ctx.quadraticCurveTo(X, Y - 0.2, X + 0.12, Y - 0.1);
+            ctx.quadraticCurveTo(X + 0.26, Y - 0.1, X + 0.34, Y); ctx.closePath();
+            paint(ctx, SANDPILE, { lw: 0.025, dots: Q.detail ? shade(SANDPILE, 0.35) : null, density: 0.3 });
+          }
         }
         if (p.moving) {
           guy(ctx, p.x + 1.1, p.y + 0.1, z, dad, { pose: 'walk', arms: [1.3, 1.2], dir: 'r' }, t);
@@ -687,34 +783,54 @@ export default {
       });
     });
 
-    // A kid with a kite, which does most of the work.
+    // A kid with a kite, which does most of the work: a goose kite, wings out,
+    // up over the dunes. It's been up since Tuesday: when the kid goes home,
+    // the string stays tied to a stake in the sand. (A decoy: it answers back.)
     {
       const look = folk(111, { scale: 0.72, top: C.coral, hat: 'cap' });
-      R.mover((t) => visit((tt) => [13.4 + Math.sin(tt * 0.2) * 0.4, 45.6], 10, 18.4, t, SP), (ctx, t, p) => {
+      const STK = [13.0, 45.3];
+      const kid = (t) => visit((tt) => [13.4 + Math.sin(tt * 0.2) * 0.4, 45.6], 10, 18.4, t, SP);
+      const kiteAt = (t) => [11.8 + Math.sin(t * 0.8) * 0.5, 43.2, h(13.4, 45.6) + 5.6 + Math.sin(t * 1.3) * 0.4];
+      R.thing(STK[0] + 0.1, STK[1] + 0.1, (ctx) => post(ctx, STK[0], STK[1], h(...STK), 0.4, STAKE));
+      R.mover(kid, (ctx, t, p) => {
         if (p.phase === 'away') return;
         const z = h(p.x, p.y);
         if (p.phase !== 'here') { guy(ctx, p.x, p.y, z, look, { pose: 'walk', dir: p.dir, back: p.back }, t); return; }
         guy(ctx, p.x, p.y, z, look, { pose: 'point', dir: 'r', back: true, arms: [2.4, 0.3] }, t);
-        // The kite, up over the dunes, and its string.
-        const kx = p.x - 1.4 + Math.sin(t * 0.8) * 0.5, ky = p.y - 2.2, kz = z + 5.6 + Math.sin(t * 1.3) * 0.4;
-        const [hx, hy] = P(p.x + 0.2, p.y - 0.2, z + 1.9), [KX, KY] = P(kx, ky, kz);
+      });
+      // The kite and its string (from the kid's hand, or the stake).
+      R.mover(() => ({ x: STK[0], y: STK[1] }), (ctx, t) => {
+        const p = kid(t), [kx, ky, kz] = kiteAt(t);
+        const [hx, hy] = p.phase === 'here' ? P(p.x + 0.2, p.y - 0.2, h(p.x, p.y) + 1.9) : P(STK[0], STK[1], h(...STK) + 0.4);
+        const [KX, KY] = P(kx, ky, kz);
         if (Q.lines) {
-          ctx.beginPath(); ctx.moveTo(hx, hy); ctx.quadraticCurveTo((hx + KX) / 2 + 0.3, (hy + KY) / 2 + 0.6, KX, KY + 0.3);
+          ctx.beginPath(); ctx.moveTo(hx, hy); ctx.quadraticCurveTo((hx + KX) / 2 + 0.3, (hy + KY) / 2 + 0.6, KX, KY + 0.15);
           ctx.strokeStyle = alpha(C.ink, 0.6); ctx.lineWidth = 0.02; ctx.stroke();
         }
-        const tilt = Math.sin(t * 1.1) * 0.2;
-        ctx.save(); ctx.translate(KX, KY); ctx.rotate(tilt);
-        ctx.beginPath(); ctx.moveTo(0, -0.45); ctx.lineTo(0.3, 0); ctx.lineTo(0, 0.35); ctx.lineTo(-0.3, 0); ctx.closePath();
-        paint(ctx, C.mustard, { lw: 0.035 });
-        ctx.beginPath(); ctx.moveTo(0, -0.45); ctx.lineTo(0.3, 0); ctx.lineTo(0, 0); ctx.closePath(); paint(ctx, C.coral, { stroke: false });
-        ctx.beginPath(); ctx.moveTo(-0.3, 0); ctx.lineTo(0, 0.35); ctx.lineTo(0, 0); ctx.closePath(); paint(ctx, C.coral, { stroke: false });
+        const tilt = Math.sin(t * 1.1) * 0.15, flap = Math.sin(t * 2.3) * 0.08;
+        ctx.save(); ctx.translate(KX, KY); ctx.rotate(tilt); ctx.scale(-1.3, 1.3);
+        // Tail ribbons first, then the wings, the body, the neck and head.
         if (Q.detail) {
-          ctx.beginPath(); ctx.moveTo(0, 0.35);
-          for (let k = 1; k <= 6; k++) ctx.lineTo(Math.sin(t * 4 + k) * 0.12, 0.35 + k * 0.16);
-          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-0.4, 0.02);
+          for (let k = 1; k <= 6; k++) ctx.lineTo(-0.4 - k * 0.1, 0.05 + k * 0.12 + Math.sin(t * 4 + k) * 0.06);
+          ctx.strokeStyle = C.coral; ctx.lineWidth = 0.04; ctx.stroke();
         }
+        ctx.beginPath(); ctx.moveTo(-0.15, -0.02); ctx.lineTo(0.05, -0.55 - flap); ctx.lineTo(0.2, -0.04); ctx.closePath();
+        paint(ctx, C.greyLight, { lw: 0.03 });
+        ctx.beginPath(); ctx.ellipse(0, 0, 0.42, 0.14, 0, 0, Math.PI * 2);
+        ctx.moveTo(-0.32, -0.02); ctx.lineTo(-0.5, -0.12); ctx.lineTo(-0.4, 0.07);
+        paint(ctx, C.white, { lw: 0.03 });
+        ctx.beginPath(); ctx.moveTo(-0.12, 0.04); ctx.lineTo(0.08, 0.5 + flap); ctx.lineTo(0.22, 0.04); ctx.closePath();
+        paint(ctx, C.white, { lw: 0.03 });
+        ctx.beginPath(); ctx.moveTo(0.3, -0.03); ctx.quadraticCurveTo(0.5, -0.1, 0.62, -0.08);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.14; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.strokeStyle = C.white; ctx.lineWidth = 0.08; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0.64, -0.08, 0.08, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+        ctx.beginPath(); ctx.moveTo(0.7, -0.11); ctx.lineTo(0.86, -0.07); ctx.lineTo(0.7, -0.04); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02 });
+        ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.66, -0.1, 0.018, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       });
+      R.decoy({ id: 'kite', at: kiteAt, r: 0.9, say: ['A goose kite. Higher than the goose.', 'Still a kite.', 'Up since Tuesday.'] });
     }
 
     // A man surfcasting from the water's edge, dawn to dusk: casts, waits,
@@ -787,9 +903,26 @@ export default {
       person(ctx, p.x + 0.55 * p.dir, p.y + 0.15, z, { ...lobsterman, pose: p.haul ? 'carry' : 'stand', arms: p.haul ? [1.4 + Math.sin(t * 3) * 0.4, 1.4 - Math.sin(t * 3) * 0.4] : undefined, dir: 'l' }, t);
     });
 
+    // A sand dollar, out on the flats: the falling tide leaves it on the wet
+    // sand at midday, pale and flat and about the size of a cookie, and the
+    // rising tide takes it back.
+    const SD = [24.6, 49.1], sdz = h(...SD);
+    R.thing(SD[0] + 0.2, SD[1] + 0.2, (ctx) => {
+      const [X, Y] = P(SD[0], SD[1], sdz + 0.01);
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.1, 0, 0, Math.PI * 2);
+      paint(ctx, mix(C.white, INK.sand, 0.3), { lw: 0.02, stroke: shade(INK.sand, 0.35) });
+      if (!Q.detail) return;
+      ctx.fillStyle = shade(INK.sand, 0.3);
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + (k * Math.PI * 2) / 5;
+        ctx.beginPath(); ctx.ellipse(X + Math.cos(a) * 0.075, Y + Math.sin(a) * 0.037, 0.035, 0.012, a, 0, Math.PI * 2); ctx.fill();
+      }
+    }, { on: (t) => level(t) < sdz - 0.02 });
+
     // ================= The finds =================
     R.find({ id: 'sandcastle', label: 'A sandcastle inside the rope', at: [CASTLE[0], CASTLE[1], h(CASTLE[0], CASTLE[1]) + 0.35], r: 0.8 });
-    R.find({ id: 'stake', label: 'The warden\'s spare stake', at: (t) => { const [x, y, z] = stakeAt(t); return [x, y, z + 0.1]; }, r: 0.8 });
-    R.find({ id: 'shells', label: 'A shell collection', at: [SHELLS[0], SHELLS[1], h(SHELLS[0], SHELLS[1]) + 0.1], r: 0.8 });
+    R.find({ id: 'stake', label: 'The warden\'s spare stake', at: (t) => { const [x, y, z] = stakeAt(t); return [x, y + 0.1, z + 0.1]; }, r: 0.8 });
+    R.find({ id: 'shells', label: 'A shell collection', kind: 'poke', inside: museum, at: [SHELLS[0] - 0.35, SHELLS[1], h(SHELLS[0], SHELLS[1]) + 0.22], r: 0.65, hint: 'A kid has been collecting all day. The exhibit is shut between visitors.' });
+    R.find({ id: 'sanddollar', label: 'A sand dollar', kind: 'hard', when: lowTide, note: 'low tide', at: [SD[0], SD[1], sdz + 0.05], r: 0.6, riddle: 'Small change, out where the sea was.', hint: 'When the water is all the way out, something round and pale is lying on the wet sand. It is worth nothing.' });
   },
 };

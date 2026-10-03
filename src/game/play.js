@@ -60,7 +60,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
     geesePill: $('tally-geese-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
     caseLabel: document.querySelector('.tally-case-label'),
-    dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'),
+    dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'), dialBadge: $('dial-badge'),
   };
 
   const themeColor = document.querySelector('meta[name="theme-color"]');
@@ -237,6 +237,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (changed) {
       const zone = world.zones[i];
       zoneSince = performance.now();
+      // The first time you step into an area with something that's away
+      // (under the tide), the dial gives a little jump: it can bring it back.
+      if (world.map.dial && !tideNudged.has(zone.id) && zone.finds.some((f) => f.when && !isFound(zone, f) && (f.step == null || f.step <= stepNow()) && !here(f, clock()))) {
+        tideNudged.add(zone.id);
+        setTimeout(() => nudge(ui.dial), 900);
+      }
       on.place(world.id, zone.id);
       // The story shows the first time you arrive, then lives behind the zone name.
       if (!seenStory.has(zone.id)) { seenStory.add(zone.id); showStory(true, 5200); }
@@ -456,6 +462,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       showHint(zone, f);
     },
     onNoPick: () => toast('Pick something on the list for a hint.'),
+    // A find that only shows some of the time (at low tide) and isn't here
+    // now: the list says so, and offers the skip to when it's back (free:
+    // it says when, never where).
+    away: (zone, f) => !!f.when && !isFound(zone, f) && !here(f, clock()),
+    skipFor: (zone, f) => { const n = skipFor(f); return n && n.label; },
+    onSkip: (zone, f) => skipTo(skipFor(f)),
     onGoRoom: (i) => {
       userAct();
       if (tray.dock() === 'bottom' && tray.state === 'open') tray.setState('peek');
@@ -696,7 +708,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // teach, else the first that isn't a decoy and has nothing inside it (so the
   // lesson is "things answer back", and no find is given away).
   function teachPoke(zone) {
-    return zone.pokes.find((pk) => pk.teach) || zone.pokes.find((pk) => !pk.decoy && !zone.finds.some((f) => f.inside === pk)) || null;
+    return zone.pokes.find((pk) => pk.teach) || zone.pokes.find((pk) => !pk.decoy && !pk.when && !zone.finds.some((f) => f.inside === pk)) || null;
   }
   // Is the nudge showing in this zone now?
   function teaching(zone, now) {
@@ -857,6 +869,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // next(t) => { at, label, say } } (at: the moment to land on, label: what
   // that is, say: a line for when you get there).
   let dialText = '', dialLevel = -1, skipping = null;
+  const tideNudged = new Set(); // areas whose first visit nudged the dial
   function renderDial(t) {
     const d = active && world && world.map.dial;
     if (ui.dial.hidden === !!d) ui.dial.hidden = !d;
@@ -868,13 +881,81 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       ui.dialLabel.textContent = label;
       ui.dialNext.textContent = `Skip to ${n.label}`;
       ui.dial.setAttribute('aria-label', `${label}. Skip ahead to ${n.label}.`);
+      ui.dial.dataset.waiting = ''; // (the badge says its part again)
+      waitAt = -1;
     }
     if (level !== dialLevel) { dialLevel = level; ui.dial.style.setProperty('--level', level); }
+    renderWaiting(t);
+  }
+  // How many things the next skip brings back, here (or on the whole place,
+  // from the overview), on a badge on the dial; and the list redrawn when a
+  // find comes or goes with the tide, so its "now" stays true. Twice a second.
+  let waitAt = -1, waitSig = '';
+  // Things to find that are away at t and back at then: here, or on the whole
+  // place from the overview.
+  function comingBack(t, then) {
+    let n = 0;
+    for (const z of world.zones) {
+      if (mode === 'zone' && z.index !== current) continue;
+      for (const f of z.finds) if (f.when && !isFound(z, f) && (f.step == null || f.step <= stepNow()) && !here(f, t) && f.when(then)) n++;
+    }
+    return n;
+  }
+  function renderWaiting(t) {
+    const now = performance.now();
+    if (now - waitAt < 500) return;
+    waitAt = now;
+    const d = world.map.dial, n = d.next(t);
+    const back = comingBack(t, n.at);
+    let sig = '';
+    for (const z of world.zones) {
+      for (const f of z.finds) {
+        if (!f.when || isFound(z, f) || (f.step != null && f.step > stepNow())) continue;
+        sig += here(f, t) ? '1' : '0';
+      }
+    }
+    if (ui.dial.dataset.waiting !== String(back)) {
+      ui.dial.dataset.waiting = String(back);
+      ui.dialBadge.textContent = back;
+      ui.dialBadge.hidden = !back;
+      ui.dial.setAttribute('aria-label', `${dialText}. Skip ahead to ${n.label}${back ? `: ${back} ${back === 1 ? 'thing' : 'things'} to find come back` : ''}.`);
+    }
+    if (sig !== waitSig) {
+      const first = !waitSig;
+      waitSig = sig;
+      if (!first && mode === 'zone' && current >= 0) tray.render(current);
+    }
   }
   function skipAhead() {
-    if (!active || !world || !world.map.dial || skipping) return;
+    if (!active || !world || !world.map.dial) return;
+    skipTo(world.map.dial.next(clock()));
+  }
+  // Where to skip so a find that's away is back: the dial's next stop that
+  // has it (noon for low tide), else the moment its window opens, a few
+  // seconds in. Null on a place without a dial.
+  function skipFor(f) {
+    const d = world && world.map.dial;
+    if (!d || !f.when) return null;
+    let t = clock();
+    for (let k = 0; k < 4; k++) {
+      const n = d.next(t);
+      if (f.when(n.at)) return n;
+      t = n.at;
+    }
+    const loop = world.loop || 360;
+    for (let s = clock() + 1; s < clock() + loop; s += 0.5) {
+      if (!f.when(s)) continue;
+      let e = s;
+      while (e < s + 6 && f.when(e + 0.5)) e += 0.5;
+      return { at: e, label: f.note || 'then', say: `${f.note ? f.note[0].toUpperCase() + f.note.slice(1) : 'There'}. Have a look.` };
+    }
+    return null;
+  }
+  function skipTo(n) {
+    if (!active || !world || !n || skipping) return;
     userAct();
-    const from = clock(), n = world.map.dial.next(from);
+    const from = clock();
+    n = { ...n, back: comingBack(from, n.at) };
     sound('tide');
     if (reduceMotion) { setClock(n.at); landed(n); return; }
     skipping = { from, to: n.at, start: performance.now(), dur: 1800, n };
@@ -894,7 +975,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   }
   function landed(n) {
     dialText = '';
-    if (n.say) toast(n.say);
+    // Say what the skip brought back (the dial's badge counted them), so
+    // the number means something.
+    const back = n.back || 0;
+    const more = back ? ` ${back === 1 ? 'One thing to find is' : `${back} things to find are`} back${mode === 'zone' ? ' here' : ''}.` : '';
+    if (n.say || more) toast((n.say || '') + more);
     // Every other area's picture, at the moment you landed on.
     if (on.refresh) on.refresh();
   }
@@ -1038,6 +1123,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       }
       // Pokes in teal, decoys in ink.
       for (const pk of zone.pokes) {
+        if (pk.when && !pk.when(t)) continue;
         const [x, y, z] = findPos(pk, t);
         ctx.beginPath();
         ctx.arc(isoX(x, y), isoY(x, y, z), Math.max(pk.r, 22 / cam.z), 0, Math.PI * 2);
@@ -1235,7 +1321,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     for (const zone of world.zones) {
       if (lifted(zone) || !zone.pokes.length || (zone.shelled && zone.shellK > 0.5)) continue;
       for (const pk of zone.pokes) {
-        if (decoys && !pk.decoy) continue;
+        if ((decoys && !pk.decoy) || (pk.when && !pk.when(t))) continue;
         const d = screenGap(zone, pk, sx, sy, t);
         if (d < Math.max(pk.r * cam.z, 22) && d < bestD) { best = { zone, pk }; bestD = d; }
       }
@@ -1394,6 +1480,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     dialText = '';
     dialLevel = -1;
     skipping = null;
+    tideNudged.clear();
+    waitSig = '';
+    waitAt = -1;
+    ui.dial.dataset.waiting = '';
     platePrinted = null;
     printPlate(clock());
     // The lift can be the place's own (brass, at the Manor): map.lift.

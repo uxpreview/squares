@@ -9,11 +9,11 @@
 // rare bird; it's the goose; by the time they've focused, it's somewhere else.
 //
 // World units, like land.js.
-import { C, Q, P, folk, box, disc, face, paint, paintText, speech, mix, tint, shade, alpha } from '../../../engine/art.js';
+import { C, Q, P, folk, box, disc, face, paint, paintText, speech, mix, tint, shade, alpha, goose as drawGoose } from '../../../engine/art.js';
 import { schedule, route, particles, ease, clamp } from '../../../engine/actors.js';
 import { drawLand } from '../../../engine/terrain.js';
 import { land, h, LOTS, GATE, BLVD, TRACK, lineDist } from '../land.js';
-import { LOOP, at, hour, nightK, sunsetWatch } from '../tide.js';
+import { LOOP, at, hour, nightK, sunsetWatch, lowTide } from '../tide.js';
 import { EVENING, INK, LAND, CARS, BRAND, LIT, lightsOn } from '../style.js';
 import { who, trap, car, board, footing, nightGlow, printed } from '../kit.js';
 import { aside } from '../swarm.js';
@@ -40,7 +40,7 @@ const BUSH = [shade(LAND.scrub, 0.28), shade(mix(LAND.scrub, C.green, 0.5), 0.12
 // It stands at each hiding place in the dunes a while (honking as it gets
 // there), then walks to the next. The scopes swing to where it honked two
 // and a half seconds later, and stay there after it's gone.
-const HIDES = [[22.5, 39.6], [28.5, 38.6], [33, 40.2], [25.5, 37.8]];
+const HIDES = [[22.5, 39.6], [28.5, 38.6], [33, 40.2], [25, 40.6]];
 const SLOT = 9, GOOSE_SPEED = 1.8;
 const wrapN = (k, n) => ((k % n) + n) % n;
 function gooseAt(t) {
@@ -283,11 +283,12 @@ function bike(ctx, x, y, z, dir, color, look, t, scale = 1) {
 }
 
 // A white-tailed deer, side on, ears up, half in the grass; the tail flicks.
+// (Kept at life size, so the scrub in front of it hides all but its head.)
 function deer(ctx, x, y, z, t) {
   const [X, Y] = P(x, y, z);
   ctx.save();
   ctx.translate(X, Y);
-  ctx.scale(-1.3, 1.3); // facing the Sound's end of the island
+  ctx.scale(-1, 1); // facing the Sound's end of the island
   const leg = (x0, x1) => { ctx.moveTo(x0, -0.95); ctx.lineTo(x1, -0.45); ctx.lineTo(x1 - 0.02, 0); };
   ctx.beginPath(); leg(-0.42, -0.46); leg(-0.26, -0.28); leg(0.32, 0.34); leg(0.46, 0.5);
   ctx.lineCap = 'round';
@@ -378,12 +379,20 @@ export default {
 
     // ---------- The scrub ----------
     // Bayberry and beach plum across the refuge's middle, pitch pines at Sandy Point.
-    const BUSHES = [[3.6, 33.2, 0.5], [6.2, 35.6, 0.6], [7.8, 32.4, 0.55], [12.4, 33.9, 0.55], [12.9, 36.6, 0.45], [16.2, 34.9, 0.7], [18.4, 33.9, 0.5], [20.6, 36, 0.55], [29, 34.6, 0.6], [31.4, 35.7, 0.7], [34.2, 34.3, 0.5], [35.2, 36.8, 0.55], [14.6, 36.2, 0.5], [27.6, 36.4, 0.5], [44.6, 36.8, 0.55], [8.9, 38.6, 0.45], [2.6, 35.4, 0.4]];
+    const BUSHES = [[3.6, 33.2, 0.5], [6.2, 35.6, 0.6], [8.6, 34.4, 0.55], [12.4, 33.9, 0.55], [12.9, 36.6, 0.45], [16.2, 34.9, 0.7], [18.4, 33.9, 0.5], [20.6, 36, 0.55], [29, 34.6, 0.6], [31.4, 35.7, 0.7], [34.2, 34.3, 0.5], [35.2, 36.8, 0.55], [14.6, 36.2, 0.5], [27.6, 36.4, 0.5], [44.6, 36.8, 0.55], [8.9, 38.6, 0.45], [2.6, 35.4, 0.4]];
     BUSHES.forEach(([x, y, r], i) => R.thing(x, y, (ctx) => bush(ctx, x, y, h(x, y), r, BUSH[i % 3])));
     for (const [x, y, s] of [[6.5, 33.8, 0.9], [9.6, 31.9, 1.05], [6.9, 37.6, 0.8]]) R.thing(x + 0.1, y + 0.1, (ctx) => pine(ctx, x, y, h(x, y), s));
     // The deer, in the grass by the scrub, ears up, watching you back.
     const [dx, dy] = [10.5, 35.6];
-    R.thing(dx, dy, (ctx, t) => deer(ctx, dx, dy, h(dx, dy), t), { anim: true });
+    // (A hard find: it's small and stands right behind two big bushes, so all
+    // that shows is ears and the top of a head. DZ sinks it lower if it ever
+    // jumps out again.)
+    const DZ = 0;
+    R.thing(dx, dy, (ctx, t) => deer(ctx, dx, dy, h(dx, dy) + DZ, t), { anim: true });
+    R.thing(dx + 0.7, dy + 0.7, (ctx) => {
+      bush(ctx, dx - 0.2, dy + 0.8, h(dx, dy + 0.7), 1.3, BUSH[0]);
+      bush(ctx, dx + 0.8, dy + 0.6, h(dx + 0.7, dy + 0.5), 1.2, BUSH[1]);
+    });
 
     // ---------- Signs along the refuge road ----------
     sign(R, 14, 31.3, ['SANDY POINT 6 MI', 'NO U-TURNS. YES, YOU.'], { along: 'y', size: 0.22 });
@@ -634,6 +643,22 @@ export default {
       face(ctx, [[ux + 0.15, uy + 0.8, uz + 0.05], [ux + 0.65, uy + 0.8, uz + 0.05], [ux + 0.65, uy + 0.8, uz + 1.65], [ux + 0.15, uy + 0.8, uz + 1.65]], ink(shade(C.teal, 0.12)), { lw: 0.035 });
       face(ctx, [[ux + 0.45, uy + 0.8, uz + 1.3], [ux + 0.6, uy + 0.8, uz + 1.3], [ux + 0.6, uy + 0.8, uz + 1.4], [ux + 0.45, uy + 0.8, uz + 1.4]], C.red, { lw: 0.02 });
     }, { veil: (ctx, v) => v([[ux, uy, uz, 0.8, 0.8, 1.9], [ux - 0.04, uy - 0.04, uz + 1.9, 0.88, 0.88, 0.1]]) });
+    // Tap it (the first thing a new player is nudged to try): the door
+    // rattles and somebody inside is not pleased.
+    const potty = R.poke({ id: 'potty', teach: true, hold: 1.6, at: [ux + 0.4, uy + 0.8, uz + 1.0], r: 1.0, sound: 'clunk', say: ['OCCUPIED!', 'STILL OCCUPIED!', 'There is a QUEUE.'] });
+    R.thing(ux + 0.81, uy + 0.81, (ctx, t) => {
+      const k = potty.k();
+      if (k < 0.02) return;
+      const j = 0.04 * k * Math.sin(t * 45);
+      face(ctx, [[ux + 0.15 + j, uy + 0.8, uz + 0.05], [ux + 0.65 + j, uy + 0.8, uz + 0.05], [ux + 0.65 + j, uy + 0.8, uz + 1.65], [ux + 0.15 + j, uy + 0.8, uz + 1.65]], shade(C.teal, 0.12), { lw: 0.035 });
+      face(ctx, [[ux + 0.45 + j, uy + 0.8, uz + 1.3], [ux + 0.6 + j, uy + 0.8, uz + 1.3], [ux + 0.6 + j, uy + 0.8, uz + 1.4], [ux + 0.45 + j, uy + 0.8, uz + 1.4]], C.red, { lw: 0.02 });
+      // The whole box shaking: a few strokes off its sides.
+      if (Q.detail) {
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.lineCap = 'round'; ctx.beginPath();
+        for (const [px, py, s] of [[ux, uy + 0.8, -1], [ux + 0.8, uy, 1]]) { const [X, Y] = P(px, py, uz + 1.5); for (let i = 0; i < 2; i++) { ctx.moveTo(X + s * (0.12 + i * 0.12), Y - 0.1 + i * 0.2); ctx.lineTo(X + s * (0.28 + i * 0.12), Y - 0.16 + i * 0.2); } }
+        ctx.globalAlpha = k; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+    }, { anim: true });
     const waiter = folk(241, { top: C.purple });
     R.mover(() => ({ x: ux + 0.4, y: uy + 1.45 }), (ctx, t, p) => {
       const hr = hour(t);
@@ -679,7 +704,7 @@ export default {
     const snapper = folk(245, { top: KHAKI, bottom: C.brown, hat: 'sun', wear: vest });
     R.thing(qx + 1.3, qy + 0.9, (ctx) => {
       const x = qx + 1.1, y = qy + 0.6;
-      who(ctx, x, y, qz, { ...snapper, arms: [1.9, 1.7] }, null, { pose: 'stand', dir: 'r', back: true });
+      // (The lens points away from you, so it goes in first, behind his head.)
       const a = P(x + 0.15, y - 0.15, qz + 1.8), b = P(x + 0.5, y - 0.6, qz + 1.92), c = P(x + 0.62, y - 0.76, qz + 1.95);
       ctx.lineCap = 'butt';
       ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
@@ -687,10 +712,11 @@ export default {
       ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.2; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(...b); ctx.lineTo(...c);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.36; ctx.stroke();
+      who(ctx, x, y, qz, { ...snapper, arms: [1.9, 1.7] }, null, { pose: 'stand', dir: 'r', back: true });
     }, { on: (t) => { const hr = hour(t); return hr >= 5.6 && hr < 20.95; } });
     // A couple strolling the boardwalk; they stop to watch the sunset.
     const stroll = route([[23.4, 30, 3], [29.4, 30, 5]], { loop: false, speed: 0.55 });
-    [[0, 247, 0], [0.9, 249, 0.28]].forEach(([lag, s, off]) => {
+    [[0, 247, 0], [1.8, 249, 0.28]].forEach(([lag, s, off]) => {
       const look = folk(s);
       R.mover((t) => {
         const tt = sunsetWatch(t) ? at(19.8) : t, p = stroll(tt - lag);
@@ -753,6 +779,25 @@ export default {
       letters(ctx, 'x', tx + 1.2, ty + 2.6, deck + 0.8, ['MAX 8 BIRDERS', 'PLEASE SHARE SCOPES'], 0.15);
     }, { depth: tx + ty + 9 });
     sign(R, 17.4, 31.7, ['OBSERVATION', 'TOWER'], { size: 0.22, post: 1.0 });
+    // The refuge's interpretive sign about its famous snow geese (thousands
+    // stop here every spring and fall), with a big white one painted on it.
+    // The decoy: it answers back.
+    const SG = [20.6, 32.9], sgz = footing(R, SG[0], SG[1]);
+    R.thing(SG[0] + 0.1, SG[1] + 0.1, (ctx) => {
+      const [x, y] = SG, z = sgz, W = 1.9, bz = z + 1.55;
+      for (const s of [-1, 1]) box(ctx, x + s * (W / 2 - 0.2) - 0.05, y - 0.05, z, 0.1, 0.1, 1.55, POST, { flat: true, lw: 0.03 });
+      board(ctx, 'x', x, y + 0.06, bz, W, 1.25, null, { board: SIGN });
+      board(ctx, 'x', x, y + 0.07, bz + 0.17, W - 0.2, 0.78, null, { board: tint(C.sky, 0.35), edge: 0.02 });
+      // The painting: a snow goose, white with black wingtips, on blue sky.
+      drawGoose(ctx, x - 0.05, y + 0.08, bz - 0.12, 0, { pose: 'stand', dir: 'r', scale: 0.62 });
+      if (Q.detail) {
+        const [X, Y] = P(x - 0.05, y + 0.08, bz - 0.12);
+        ctx.beginPath(); ctx.moveTo(X - 0.16, Y - 0.31); ctx.lineTo(X - 0.36, Y - 0.36); ctx.lineTo(X - 0.2, Y - 0.25); ctx.closePath();
+        ctx.fillStyle = C.ink; ctx.fill();
+      }
+      letters(ctx, 'x', x, y + 0.07, bz - 0.42, ['SNOW GOOSE · SEEN HERE'], 0.12);
+    });
+    R.decoy({ id: 'snow-goose', at: [SG[0] - 0.05, SG[1] + 0.08, sgz + 1.55], r: 0.8, say: ['A snow goose. On a sign.', 'Famous here. Still painted.', 'The real one honks.'] });
 
     // The birders, and every scope swinging to where the goose just was.
     // Pidge's points at the beach: he's sure one of the plovers is the goose.
@@ -818,7 +863,7 @@ export default {
     const out = (t) => { const hr = hour(t); return hr >= 22.4 || hr < 1.3; };
     [[0, 251], [0.9, 253]].forEach(([lag, s], i) => {
       const look = folk(s, { top: i ? C.navy : C.purple });
-      R.mover((t) => { const p = sneak(t - lag); return { ...p, x: p.x + (i ? 0.35 : 0) }; }, (ctx, t, p) => {
+      R.mover((t) => { const p = sneak(t - lag); return { ...p, x: p.x + (i ? 0.4 : -0.15), y: p.y + (i ? 0.45 : 0) }; }, (ctx, t, p) => {
         if (!out(t)) return;
         const z = onL(p.x, p.y);
         who(ctx, p.x, p.y, z, look, null, { pose: p.moving ? 'walk' : p.pose, dir: p.dir, back: p.back }, t);
@@ -828,25 +873,106 @@ export default {
     R.light({ at: (t) => { const p = sneak(t); return [p.x + (p.back ? -0.4 : 0.4), p.y - (p.back ? 0.6 : -0.6), onL(p.x, p.y) + 0.4]; }, r: 1.5, color: LIT, k: (t) => (out(t) ? 0.75 : 0) });
 
     // ---------- The goose ----------
-    // Popping up in the dunes, honking, and gone by the time the scopes get there.
-    R.goose((t) => {
+    // Down in the dune grass: it stands up to honk, the scopes swing over two
+    // and a half seconds later, and by then it's crouched and creeping to the
+    // next spot, only its head and neck over the grass. Pecking, its head
+    // goes down and its tail tip stays up. (A hard find: there's always a
+    // bit of white in the grass, never the whole goose for long.)
+    const gooseNow = (t) => {
       const g = gooseAt(t);
-      return { x: g.x, y: g.y, z: h(g.x, g.y), dir: g.moving ? g.dir : 'l', pose: g.moving ? 'walk' : g.local < 1.2 ? 'honk' : g.local > 3 ? 'peck' : 'stand', moving: g.moving };
+      const pose = g.moving ? 'walk' : g.local < 1.3 ? 'honk' : g.local > 3 ? 'peck' : 'stand';
+      // How much of it the grass hides (screen units up from its feet).
+      const cut = g.moving ? 0.78 : g.local < 1.3 ? 0.18 + 0.4 * clamp((g.local - 0.9) / 0.4) : 0.6;
+      return { x: g.x, y: g.y, z: h(g.x, g.y), dir: g.moving ? g.dir : 'l', pose, moving: g.moving, cut };
+    };
+    R.goose((t) => ({ ...gooseNow(t), hidden: true }), { kind: 'hard', hint: 'The scopes are always one honk behind. Watch the long grass in the dunes.' });
+    const GRASS = shade(LAND.dune, 0.35), GRASS_L = tint(LAND.dune, 0.1);
+    // Its spots in the dunes: clumps of marram, tall enough to hide in.
+    const marram = (ctx, x, y, z, t, n, ht, sway = true) => {
+      const [X, Y] = P(x, y, z);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const gx = X - 0.55 + (i * 1.1) / (n - 1), hg = ht * (0.75 + ((i * 7) % 5) * 0.08), lean = (sway ? Math.sin(t * 1.4 + i + x) * 0.05 : 0) + (i % 2 ? 0.09 : -0.07);
+        ctx.moveTo(gx, Y + 0.04 + (i % 3) * 0.03); ctx.quadraticCurveTo(gx + lean * 0.5, Y - hg * 0.5, gx + lean, Y - hg);
+      }
+      ctx.strokeStyle = GRASS; ctx.lineWidth = 0.08; ctx.stroke();
+      ctx.strokeStyle = GRASS_L; ctx.lineWidth = 0.04; ctx.stroke();
+    };
+    for (const [x, y] of HIDES) R.thing(x - 0.3, y - 0.3, (ctx) => marram(ctx, x - 0.25, y - 0.3, h(x, y), 0, 9, 0.75, false));
+    R.mover((t) => gooseNow(t), (ctx, t, p) => {
+      const [X, Y] = P(p.x, p.y, p.z);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(X - 3, Y - 4, 6, 4 - p.cut); ctx.clip();
+      drawGoose(ctx, p.x, p.y, p.z, t, { dir: p.dir, pose: p.pose });
+      ctx.restore();
+      // The grass in front of it, up to where it's hidden.
+      marram(ctx, p.x + 0.15, p.y + 0.15, p.z, t, 8, p.cut + 0.12);
     });
 
     // ---------- The finds ----------
-    // A birder's lens cap, dropped on Lot 1's boardwalk.
-    const lc = [WALK + 0.3, 39.6], lcz = zL(lc[1]) + 0.01;
-    R.thing(lc[0], lc[1], (ctx) => {
-      const [x, y] = lc;
-      disc(ctx, x + 0.05, y + 0.05, lcz, 0.26, alpha(C.ink, 0.25), { stroke: false });
-      disc(ctx, x, y, lcz + 0.06, 0.24, C.black, { lw: 0.04 });
-      disc(ctx, x, y, lcz + 0.07, 0.16, shade(C.grey, 0.5), { stroke: C.grey, lw: 0.025 });
-      if (Q.detail) disc(ctx, x, y, lcz + 0.08, 0.05, C.white, { stroke: false });
-    }, { depth: WALK + 0.6 + Math.ceil(lc[1] - M1) + M1 + 0.1 });
-    R.find({ id: 'lens-cap', label: 'A birder\'s lens cap', at: [lc[0], lc[1], lcz + 0.08], r: 0.8 });
-    // The deer.
-    R.find({ id: 'deer', label: 'A deer in the dunes', at: [dx, dy, h(dx, dy) + 0.9], r: 1 });
+    // Two boxes on posts at the head of Lot 1's boardwalk: LOST & FOUND, with
+    // a lens cap's strap hanging out under its lid, and one marked NOT A BIN
+    // (the refuge has no bins: carry it in, carry it out), which says so.
+    const crate = (x, y, text, col, lid) => {
+      const z = h(x, y), W = 0.9, D = 0.55, Hb = 0.55, top = z + 0.75 + Hb, x0 = x - W / 2, y0 = y - D / 2;
+      const post = (ctx) => box(ctx, x - 0.06, y - 0.06, z, 0.12, 0.12, 0.75, POST, { flat: true, lw: 0.025 });
+      const body = (ctx) => {
+        box(ctx, x0, y0, z + 0.75, W, D, Hb, col, { flat: true, lw: 0.035, top: shade(col, 0.45) });
+        board(ctx, 'x', x, y0 + D + 0.01, z + 0.75 + Hb * 0.5, W - 0.1, 0.4, null, { board: C.white, edge: 0.02 });
+        letters(ctx, 'x', x, y0 + D + 0.01, z + 0.75 + Hb * 0.5, text, 0.13, SIGN);
+      };
+      const lidAt = (ctx, k) => {
+        const a = k * Math.PI * 0.62, c = Math.cos(a) * D, s = Math.sin(a) * D;
+        face(ctx, [[x0 - 0.03, y0, top], [x0 + W + 0.03, y0, top], [x0 + W + 0.03, y0 + c + 0.03, top + s], [x0 - 0.03, y0 + c + 0.03, top + s]], tint(col, 0.1), { lw: 0.035 });
+      };
+      R.thing(x + W / 2, y + D / 2, (ctx) => { post(ctx); body(ctx); });
+      R.thing(x + W / 2 + 0.01, y + D / 2 + 0.01, (ctx) => lidAt(ctx, lid.k()), { anim: true });
+      return top;
+    };
+    const LF = [41.9, 37.3], NB = [43.0, 37.3];
+    const lostFound = R.poke({ id: 'lost-found', at: [LF[0], LF[1], h(...LF) + 1.1], r: 0.75, sound: 'clunk' });
+    const notBin = R.poke({ id: 'not-a-bin', at: [NB[0], NB[1], h(...NB) + 1.1], r: 0.75, sound: 'clunk', say: ['NOT A BIN. Carry it out.', 'Still not a bin.', 'It\'s a refuge, not a dump.'] });
+    const lfTop = crate(LF[0], LF[1], ['LOST &', 'FOUND'], C.teal, lostFound);
+    crate(NB[0], NB[1], ['NOT A', 'BIN'], SIGN, notBin);
+    // The lens cap inside (seen when it's open), and its strap out under the lid.
+    R.thing(LF[0] + 0.36, LF[1] + 0.26, (ctx, t) => {
+      const k = lostFound.k(), [x, y] = LF;
+      if (k > 0.3) {
+        disc(ctx, x - 0.05, y, lfTop - 0.02, 0.23, C.black, { lw: 0.03 });
+        disc(ctx, x - 0.05, y, lfTop - 0.01, 0.15, shade(C.grey, 0.5), { stroke: C.grey, lw: 0.02 });
+        disc(ctx, x + 0.2, y + 0.05, lfTop - 0.02, 0.07, C.coral, { lw: 0.02 }); // and a lost bobble
+        return;
+      }
+      const [X, Y] = P(x + 0.1, y + 0.25, lfTop), sw = 0.03 * Math.sin(t * 1.5);
+      ctx.beginPath(); ctx.moveTo(X, Y); ctx.quadraticCurveTo(X + 0.05 + sw, Y + 0.18, X + 0.02 + sw, Y + 0.32);
+      ctx.strokeStyle = C.black; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(X + 0.02 + sw, Y + 0.36, 0.05, 0, TAU); ctx.lineWidth = 0.025; ctx.stroke();
+    }, { anim: true, depth: LF[0] + LF[1] + 0.8 });
+    R.find({ id: 'lens-cap', label: 'A birder\'s lens cap', kind: 'poke', inside: lostFound, at: [LF[0] - 0.05, LF[1], lfTop], r: 0.6, hint: 'Somebody found it and handed it in. Lot 1 keeps a box for that.' });
+    // The deer, behind its scrub: ears and the top of a head over the bushes.
+    R.find({ id: 'deer', label: 'A deer', kind: 'hard', at: [dx - 0.36, dy + 0.36, h(dx, dy) + DZ + 1.64], r: 0.8, riddle: 'Ears up, watching you back.', hint: 'Toward Sandy Point, a bush with ears. It\'s been watching you this whole time.' });
+    // A horseshoe crab, out on the wet sand at the Sandy Point end when the
+    // Sound drains away at low water; the water's over it the rest of the day.
+    const HC = [6.4, 30.0];
+    R.thing(HC[0] + 0.4, HC[1] + 0.4, (ctx) => {
+      const [x, y] = HC, z = h(x, y) + 0.02, [X, Y] = P(x, y, z);
+      const shell = mix(C.brown, C.green, 0.3);
+      // Its track in the sand, behind it.
+      if (Q.detail) { ctx.strokeStyle = alpha(shade(LAND.sand, 0.4), 0.8); ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(X + 0.3, Y - 0.3); ctx.quadraticCurveTo(X + 0.8, Y - 0.35, X + 1.1, Y - 0.6); ctx.stroke(); }
+      // The tail spike, then the shell: a horseshoe and its back half.
+      ctx.beginPath(); ctx.moveTo(X + 0.2, Y - 0.08); ctx.lineTo(X + 0.62, Y - 0.24); ctx.lineTo(X + 0.2, Y - 0.02);
+      paint(ctx, shade(shell, 0.2), { lw: 0.025 });
+      ctx.beginPath(); ctx.ellipse(X + 0.12, Y - 0.06, 0.16, 0.1, -0.2, 0, TAU); paint(ctx, shade(shell, 0.12), { lw: 0.03 });
+      ctx.beginPath(); ctx.ellipse(X - 0.12, Y - 0.02, 0.3, 0.17, -0.2, 0, TAU);
+      paint(ctx, shell, { lw: 0.035, dots: Q.detail ? shade(shell, 0.45) : null, density: 0.18 });
+      if (Q.detail) {
+        ctx.strokeStyle = shade(shell, 0.4); ctx.lineWidth = 0.02; ctx.beginPath();
+        ctx.moveTo(X - 0.38, Y + 0.03); ctx.quadraticCurveTo(X - 0.12, Y - 0.1, X + 0.14, Y - 0.08); ctx.stroke();
+        ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X - 0.2, Y - 0.08, 0.025, 0, TAU); ctx.arc(X - 0.02, Y - 0.12, 0.025, 0, TAU); ctx.fill();
+      }
+    }, { on: lowTide });
+    R.find({ id: 'horseshoe-crab', label: 'A horseshoe crab', at: [HC[0] + 0.03, HC[1] - 0.03, h(...HC) + 0.08], r: 0.9, when: lowTide, note: 'low tide' });
     // A checklist on a clipboard, dropped at the foot of the tower stairs:
     // every bird ticked but one, and that one struck out ("GOOSE?").
     const [kx, ky] = [22.2, 30], kz = zH(kx) + 0.02;
