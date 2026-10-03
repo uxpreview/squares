@@ -21,7 +21,7 @@ import {
 import { particles, pulse, clamp } from '../../../engine/actors.js';
 import { deck, outline, lifeboat } from '../ship.js';
 import { bucket, cocktail, board, lettering, gull, P, CREW_LOOK, sighting } from '../kit.js';
-import { INK, MAT, green, queasy } from '../style.js';
+import { INK, MAT, green, queasy, iguana, chase, chaseOpen } from '../style.js';
 
 // ---------- The layout ----------
 // The tower: its body, the platform on top, and the two flights of stairs
@@ -465,6 +465,63 @@ function wristband(ctx, x, y, z, color) {
   ctx.strokeStyle = color; ctx.lineWidth = 0.06; ctx.stroke();
   ctx.fillStyle = C.white; ctx.fillRect(X + 0.12, Y - 0.05, 0.07, 0.06);
 }
+// An inflatable crocodile on the water at (x, y, z), its snout toward a
+// (radians, in the deck's plane): lime vinyl, bumps down its back, goggly
+// eyes, a grin of white teeth, and a shine.
+function croc(ctx, x, y, z, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  const pt = (u, v, h = 0) => P(x + c * u - s * v, y + s * u + c * v, z + h);
+  const half = (u) => (u < -0.55 ? 0.22 * (u + 0.98) / 0.43 : u < 0.3 ? 0.3 : u < 0.5 ? 0.24 : 0.24 - (u - 0.5) * 0.2);
+  const outline = (h) => {
+    ctx.beginPath();
+    const n = 16;
+    for (let i = 0; i <= n; i++) { const u = -0.98 + (1.96 * i) / n; const [X, Y] = pt(u, half(u), h); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    for (let i = n; i >= 0; i--) { const u = -0.98 + (1.96 * i) / n; const [X, Y] = pt(u, -half(u), h); ctx.lineTo(X, Y); }
+    ctx.closePath();
+  };
+  const G = INK.queasyGreen;
+  // A ripple round it, then its puffed-up side and its top.
+  if (Q.detail) {
+    const [X, Y] = pt(0, 0, -0.02);
+    ctx.beginPath(); ctx.ellipse(X, Y, 1.3, 0.55, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = alpha(C.white, 0.7); ctx.lineWidth = 0.05; ctx.stroke();
+  }
+  outline(0);
+  paint(ctx, shade(G, 0.3), { lw: 0.035 });
+  // Stubby legs, out at the sides.
+  for (const [u, v] of [[-0.35, 0.36], [0.3, 0.33], [-0.35, -0.36], [0.3, -0.33]]) {
+    const [X, Y] = pt(u, v, 0.12);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.12, 0.08, 0, 0, Math.PI * 2);
+    paint(ctx, G, { lw: 0.025 });
+  }
+  outline(0.22);
+  paint(ctx, G, { lw: 0.035 });
+  // Bumps down its back.
+  for (let i = 0; i < 6; i++) {
+    const u = -0.75 + i * 0.2;
+    const [X, Y] = pt(u, 0, 0.26);
+    ctx.beginPath(); ctx.arc(X, Y - 0.04, 0.065 - i * 0.004, Math.PI, 0);
+    paint(ctx, shade(G, 0.2), { lw: 0.02 });
+  }
+  if (!Q.detail) return;
+  // The grin, along the near side of the snout.
+  ctx.beginPath();
+  for (let i = 0; i <= 5; i++) { const u = 0.5 + i * 0.09; const [X, Y] = pt(u, -half(u) + 0.02, 0.12 + (i % 2) * 0.06); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.04; ctx.lineJoin = 'miter'; ctx.stroke();
+  // Goggly eyes.
+  for (const v of [0.11, -0.11]) {
+    const [X, Y] = pt(0.52, v, 0.34);
+    ctx.beginPath(); ctx.arc(X, Y, 0.09, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X + 0.025, Y + 0.01, 0.04, 0, Math.PI * 2); ctx.fill();
+  }
+  // Its shine, and the valve.
+  const [hX, hY] = pt(-0.2, 0.12, 0.24);
+  ctx.beginPath(); ctx.ellipse(hX, hY, 0.25, 0.05, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = alpha(C.white, 0.6); ctx.fill();
+  const [vX, vY] = pt(-0.6, -0.08, 0.22);
+  ctx.beginPath(); ctx.arc(vX, vY, 0.04, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.015 });
+}
+
 // A funnel point: round the funnel at angle a, height z, out from its skin by
 // d, allowing for the rake.
 const funnelPt = (a, z, d = 0) => {
@@ -600,10 +657,12 @@ export default {
       lettering(ctx, 'x', 3.3, 1.16, 2.62, 'BOTTOMLESS 1', 0.24);
       lettering(ctx, 'x', 3.3, 1.08, 2.4, 'HIDING FROM THE IN-LAWS', 0.11);
     });
-    // His head, up out of the cover now and then for a look round.
+    // His head, up out of the cover now and then for a look round (and when
+    // somebody knocks on the boat).
+    const inlaws = R.poke({ id: 'lifeboat', at: [3.6, 0.9, 3.2], r: 0.9, sound: 'tick', hold: 1.6, say: ['Shh! Are they gone?', 'Not yet. Shh.', 'Tell them I fell overboard.'] });
     R.thing(3.3, 1.35, (ctx, t) => {
       const k = pulse(t, 13, 4);
-      const up = k < 0.08 ? k / 0.08 : k < 0.3 ? 1 : k < 0.36 ? 1 - (k - 0.3) / 0.06 : 0;
+      const up = Math.max(inlaws.k(), k < 0.08 ? k / 0.08 : k < 0.3 ? 1 : k < 0.36 ? 1 - (k - 0.3) / 0.06 : 0);
       if (up <= 0) return;
       const [X, Y] = P(3.1, 0.7, 3.4 + up * 0.35);
       ctx.save();
@@ -631,6 +690,7 @@ export default {
       lettering(ctx, 'x', 15.1, 1.1, 1.12, 'NONE LEFT', 0.07, INK.funnelRed);
       lettering(ctx, 'x', 15.1, 1.1, 0.99, 'SINCE 5AM', 0.07, C.ink);
     });
+    R.poke({ id: 'towels', at: [15, 1.1, 1.2], r: 0.8, sound: 'tick', say: ['None left. Since 5am.', 'Try the loungers. All of them.', 'Still none.'] });
 
     // The sunbather who found the one spot left: on top of the lift house.
     R.thing(12.7, 0.95, (ctx, t) => {
@@ -695,11 +755,53 @@ export default {
       // A whistle on a pipe up the front.
       const [wx, wy] = funnelPt(0.12 * Math.PI, 9.2, 0.12);
       box(ctx, wx - 0.12, wy - 0.12, 8.6, 0.24, 0.24, 0.9, MAT.brass, { flat: true, lw: 0.03 });
-      // Somebody's flip-flop, up on the rim. Nobody knows how.
-      const [fx, fy] = funnelPt(0.2 * Math.PI, FZ1, -0.05);
-      flipflop(ctx, fx, fy, FZ1 + 0.05, 0.35, 0.78);
     });
-    R.find({ id: 'flip-flop', label: 'A flip-flop on the funnel', at: [FX + 0.95, 5.3, 11.1], r: 0.7 });
+    // Somebody's flip-flop, stuck in the top of the funnel, its toe and strap
+    // up out of the smoke. Tap the funnel and it coughs it out onto the rim.
+    // Nobody knows how it got up there.
+    const cough = R.poke({ id: 'funnel', at: [FX - 0.2, FY + 0.3, FZ1 + 0.1], r: 1.0, sound: 'clunk', say: ['PFFFT. (Cough.)', 'Smoke break.', 'That is not a chimney.'] });
+    R.thing(FX + 0.5, FY + 0.5, (ctx, t) => {
+      const k = cough.k();
+      const [fx, fy] = funnelPt(0.2 * Math.PI, FZ1, -0.05);
+      const [cx, cy] = funnelPt(0, FZ1, -FR);
+      if (k > 0.98) { flipflop(ctx, fx, fy, FZ1 + 0.05, 0.35, 0.78); return; }
+      // The cough: a black puff out of the top as it goes.
+      if (k > 0.02 && Q.detail) {
+        const [X, Y] = P(cx, cy, FZ1 + 0.4 + k * 1.2);
+        ctx.beginPath(); ctx.arc(X, Y, 0.4 + k * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = alpha(C.ink, 0.5 * (1 - k)); ctx.fill();
+      }
+      // Flying: up out of the mouth and over onto the rim.
+      if (k > 0.02) {
+        const x = cx + (fx - cx) * k, y = cy + (fy - cy) * k, z = FZ1 + 0.05 + Math.sin(Math.PI * k) * 1.4;
+        flipflop(ctx, x, y, z, 0.35 + k * 3, 0.78);
+        return;
+      }
+      // Stuck: on end in the mouth, toe and strap up over the rim (only what's
+      // above the near lip, or seen down the opening, shows).
+      const ell = funnelPt(0, FZ1, -FR);
+      const [eX, eY] = P(...ell);
+      const rx = FR * Math.SQRT2, ry = FR / Math.SQRT2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(eX - rx, eY - 3, rx * 2, 3);
+      ctx.ellipse(eX, eY + 0.03, rx * 0.86, ry * 0.8, 0, 0, Math.PI * 2);
+      ctx.clip();
+      const [sX, sY] = P(cx + 0.55, cy + 0.15, FZ1);
+      ctx.translate(sX, sY + 0.05);
+      ctx.rotate(0.35);
+      ctx.beginPath(); ctx.ellipse(0, -0.25, 0.17, 0.42, 0, 0, Math.PI * 2);
+      paint(ctx, INK.sunYellow, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(-0.15, -0.05); ctx.lineTo(0.0, -0.45); ctx.lineTo(0.15, -0.05);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+      ctx.strokeStyle = INK.flamingo; ctx.lineWidth = 0.06; ctx.stroke();
+      ctx.restore();
+    }, { anim: true, depth: FX + FY + 0.6 });
+    R.find({
+      id: 'flip-flop', label: 'A lost flip-flop', kind: 'poke', inside: cough, at: [FX + 0.95, 5.3, 11.1], r: 0.7,
+      hint: 'Way up high, a strap is poking out of something hot. Give it a tap.',
+    });
 
     // Smoke, streaming back over the stern.
     R.air((ctx, t) => {
@@ -827,9 +929,46 @@ export default {
         ctx.restore();
       }
     }, { depth: 5.5 });
-    // The chase: sighting 3 (greybox; the area's artist hides it).
-    sighting(R, 2, { at: [4.4, 6.0, 8.6] });
     R.find({ id: 'shed-skin', label: 'A patch of shed skin', at: [3.6, 6.4, 8.6], r: 0.7 });
+
+    // ---------- The chase: sighting 3 ----------
+    // It shed up on the platform, then climbed down the Corkscrew's pole and
+    // clings there between two turns of the tube: the turn above hides its
+    // head, the one below its tail tip, and its crest and the peeling patches
+    // show in the gap. Found, it drops onto the tube and goes down the slide,
+    // into the splash pool, and off to the Pool.
+    {
+      const zH = 5.05; // where it clings, up the pole
+      const start = TUBE_PTS.findIndex((p) => p.th != null && p.th >= 4.68);
+      const slide = TUBE_PTS.slice(start).filter((_, i, a) => i % 4 === 0 || i === a.length - 1).map((p) => [p.x, p.y, p.z + 0.35]);
+      sighting(R, 2, {
+        at: [HX - 0.2, HY + 0.05, zH - 0.3], kind: 'hard', r: 0.9,
+        hint: 'Something green is hanging on in the middle of the Corkscrew.',
+        depth: (t) => (chase.step === 2 && chaseOpen(2, t) ? BACK_D + 1.2 : 40),
+        draw(ctx, t) {
+          const [X, Y] = P(HX, HY, zH);
+          ctx.save();
+          // Head up, belly to the pole, on its left side.
+          ctx.translate(X - 0.19, Y);
+          ctx.rotate(-Math.PI / 2);
+          iguana(ctx, 0, 0, 0, 'r', t, {});
+          // Shedding: pale papery patches peeling off, and a strip trailing
+          // off its tail.
+          for (const [x, y, w, h, a] of [[-0.14, -0.33, 0.1, 0.06, 0.3], [0.08, -0.27, 0.08, 0.05, -0.2], [-0.62, -0.08, 0.09, 0.04, 0.4]]) {
+            ctx.beginPath(); ctx.ellipse(x, y, w, h, a, 0, Math.PI * 2);
+            paint(ctx, tint(INK.queasyGreen, 0.6), { lw: 0.015 });
+          }
+          ctx.beginPath();
+          ctx.moveTo(-0.85, -0.02); ctx.quadraticCurveTo(-0.9, 0.18, -0.78, 0.32); ctx.lineTo(-0.72, 0.28); ctx.quadraticCurveTo(-0.8, 0.14, -0.76, -0.02); ctx.closePath();
+          paint(ctx, tint(INK.queasyGreen, 0.6), { lw: 0.015 });
+          ctx.restore();
+        },
+        run: [
+          [HX - 0.6, HY - 0.6, zH + 0.1], ...slide,
+          [6.2, 10.6, WZ + 0.1], [6.9, 10.4, WZ + 0.1], [7.7, 10.2, 0], [16.6, 9.3, 0],
+        ],
+      });
+    }
 
     // Flight B, down the tower's right side to the landing, and flight A,
     // along its front to the deck.
@@ -1034,6 +1173,10 @@ export default {
     });
 
     // The big man: queueing, sliding, stuck (feet out, kicking), then out.
+    // Knock on the tube where he sticks and whoever's in there answers (he
+    // kicks harder). Nothing's hidden in it: it's the one a first visit is
+    // nudged to tap.
+    const knock = (() => { const b = tubeAt(U_STUCK); return R.poke({ id: 'corkscrew', at: [b.x, b.y, b.z], r: 1.0, sound: 'clunk', hold: 1.4, teach: true, say: ['Occupied!', 'Still occupied!', 'Day four of the buffet.', 'Push! No, pull!'] }); })();
     const bigDraw = riderDraw(BIG, BIG_SICK, undefined, null, -1);
     R.mover((t) => crowd(t).big, (ctx, t, p) => {
       const c = cyc(t);
@@ -1043,7 +1186,8 @@ export default {
         // His middle, wedged in the tube, which has gone a bit round.
         const b = tubeAt(U_STUCK);
         const [X, Y] = P(b.x, b.y, b.z);
-        const w = 1 + Math.sin(t * 9) * 0.03;
+        const hard = 1 + 1.6 * knock.k();
+        const w = 1 + Math.sin(t * 9 * hard) * 0.03 * hard;
         ctx.beginPath(); ctx.ellipse(X, Y, 0.82 * w, 0.68 * w, -0.2, 0, Math.PI * 2);
         paint(ctx, TUBE, { lw: 0.05 });
         ctx.beginPath(); ctx.ellipse(X - 0.15, Y - 0.26, 0.26, 0.09, -0.3, 0, Math.PI * 2);
@@ -1059,24 +1203,18 @@ export default {
         ctx.beginPath(); ctx.ellipse(oX, oY, 0.3, 0.34, 0, 0, Math.PI * 2);
         paint(ctx, INK.flamingo, { lw: 0.03, dots: C.white, density: 0.3 });
         [0, 1].forEach((i) => {
-          const kick = Math.sin(t * 11 + i * Math.PI) * 0.35;
+          const kick = Math.sin(t * 11 * hard + i * Math.PI) * 0.35 * Math.min(hard, 1.8);
           const a = base + (i ? 0.3 : -0.2) + kick;
           const ex = oX + Math.cos(a) * 1.3, ey = oY + Math.sin(a) * 1.3;
           ctx.beginPath(); ctx.moveTo(oX + (i ? 0.08 : -0.08), oY); ctx.lineTo(ex, ey);
           ctx.lineCap = 'round';
           if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.42; ctx.stroke(); }
           ctx.strokeStyle = BIG.skin; ctx.lineWidth = 0.32; ctx.stroke();
-          // Feet: one bare, one still in its flip-flop.
+          // Bare feet. (The only flip-flop here is the lost one.)
           ctx.save();
           ctx.translate(ex, ey); ctx.rotate(a + Math.PI / 2);
           ctx.beginPath(); ctx.ellipse(0, 0.12, 0.17, 0.28, 0, 0, Math.PI * 2);
           paint(ctx, BIG.skin, { lw: 0.03 });
-          if (i) {
-            ctx.beginPath(); ctx.ellipse(0, 0.16, 0.2, 0.34, 0, 0, Math.PI * 2);
-            paint(ctx, INK.sunYellow, { lw: 0.025 });
-            ctx.beginPath(); ctx.moveTo(-0.1, 0.1); ctx.lineTo(0.02, -0.05); ctx.lineTo(0.14, 0.1);
-            ctx.strokeStyle = INK.flamingo; ctx.lineWidth = 0.05; ctx.stroke();
-          }
           ctx.restore();
         });
       }
@@ -1146,6 +1284,16 @@ export default {
       const look = folk(19, { hat: 'none', top: C.coral, scale: 0.7 });
       person(ctx, p.x + 0.05, p.y + 0.05, z - 0.25, { ...look, pose: 'sit', dir: 'l', arms: c > SPLASH && c < SPLASH + 3 ? [2.8, -2.8] : [0.8, 0.6] }, t);
     });
+
+    // An inflatable crocodile, adrift. It's green and it has a crest, so it
+    // answers back. (The big splash sets it rocking.)
+    const crocAt = (t) => ({ x: 4.0 + Math.sin(t * 0.11) * 0.2, y: 11.9 + Math.sin(t * 0.17 + 1) * 0.15, a: 2.75 + Math.sin(t * 0.09) * 0.25 });
+    R.mover(crocAt, (ctx, t, p) => {
+      const c = cyc(t);
+      const rock = c > SPLASH && c < SPLASH + 3 ? Math.sin((c - SPLASH) * 8) * 0.1 * (1 - (c - SPLASH) / 3) : 0;
+      croc(ctx, p.x, p.y, WZ + 0.04 + Math.sin(t * 1.3) * 0.03 + Math.abs(rock), p.a + rock);
+    });
+    R.decoy({ id: 'croc', at: (t) => { const p = crocAt(t); return [p.x, p.y, WZ + 0.3]; }, r: 0.9, say: ['An inflatable croc. Not an iguana.', 'Still inflatable.', 'Squeak.'] });
 
     // ---------- The lifeguard ----------
     R.thing(LGC[0], LGC[1] + 0.4, (ctx) => {

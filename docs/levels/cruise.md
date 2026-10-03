@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 1 | The Buffet | 7 to 9am (breakfast) | Pidge: "The camera saw it in the salad bar at 6:52." | In the salad bar, under the lettuce: lift the lettuce | poke |
 | 2 | The Cabins | 8:45 to 10:30am (9am) | Doreen: "It beat me to the melon, then took the lift up." | The honeymoon suite, posing as one of the towel animals, eating the flowers | hard |
-| 3 | The Waterslide | 10am to noon (the drill) | The steward: "A towel animal walked off. Up to the sun deck." | Up the waterslide tower, shedding its skin | hard |
+| 3 | The Waterslide | 10am to noon (the drill) | The steward: "A towel animal walked up to the sun deck." | Up the waterslide tower, shedding its skin | hard |
 | 4 | The Pool | 11:45am to 1:30pm (noon) | Tyler: "It came down the slide and went to the big pool." | Winning the limbo | spot |
 | 5 | Adults Only | 1:30 to 3pm (2pm) | Kelly: "Our limbo champion! Then it wanted somewhere quiet." | At the spa, under a seaweed wrap, cucumbers on its eyes | poke |
 | 6 | The Crew Bar | 3 to 4:45pm (the crew party) | Gloria: "It took my cucumbers and went to a party below." | At the crew party, the only green thing below the waterline | hard |
