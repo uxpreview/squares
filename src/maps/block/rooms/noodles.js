@@ -113,14 +113,6 @@ function lantern(ctx, hx, hy, hz, drop, t, i, color = C.red) {
   ctx.restore();
 }
 
-// Chopsticks lying flat.
-function sticks(ctx, x, y, z, a = 0.4, color = C.wood) {
-  for (const d of [0, 0.09]) {
-    face(ctx, [[x - Math.cos(a) * 0.4 + d, y - Math.sin(a) * 0.4, z], [x + Math.cos(a) * 0.4 + d, y + Math.sin(a) * 0.4, z]], null, { stroke: C.ink, lw: 0.09 });
-    face(ctx, [[x - Math.cos(a) * 0.4 + d, y - Math.sin(a) * 0.4, z], [x + Math.cos(a) * 0.4 + d, y + Math.sin(a) * 0.4, z]], null, { stroke: color, lw: 0.05 });
-  }
-}
-
 function stool(ctx, x, y, color = C.red) {
   box(ctx, x - 0.05, y - 0.05, 0, 0.1, 0.1, SEAT, C.ink, { flat: true, stroke: false });
   disc(ctx, x, y, 0.02, 0.3, C.ink, { stroke: false });
@@ -236,26 +228,20 @@ function gooseTeapot(ctx, x, y, z) {
   ctx.restore();
 }
 
-// A big sheet held up in front of someone facing you (a newspaper or a
-// menu), flat to the screen, centred on (x, y), bottom edge at zb.
-function bigPaper(ctx, x, y, zb, h, color, title, news) {
+// A giant menu held up in front of someone facing you, flat to the screen,
+// centred on (x, y), bottom edge at zb.
+function bigPaper(ctx, x, y, zb, h, color, title) {
   const d = 0.36, zt = zb + h;
-  face(ctx, [[x - d, y + d, zb], [x + d, y - d, zb], [x + d, y - d, zt], [x - d, y + d, zt]], color, { lw: 0.04, dots: news ? C.greyLight : shade(color, 0.3), density: 0.15 });
+  face(ctx, [[x - d, y + d, zb], [x + d, y - d, zb], [x + d, y - d, zt], [x - d, y + d, zt]], color, { lw: 0.04, dots: shade(color, 0.3), density: 0.15 });
   // the fold down the middle
   face(ctx, [[x, y, zb + 0.05], [x, y, zt - 0.05]], null, { lw: 0.03, stroke: alpha(C.ink, 0.6) });
   const [X, Y] = P(x, y, zt - 0.25);
-  if (news) {
-    if (Q.detail) label(ctx, x, y, zt - 0.22, title, 0.17, C.ink);
-    ctx.fillStyle = alpha(C.ink, 0.45);
-    for (let i = 0; i < 6; i++) for (const s of [-1, 1]) ctx.fillRect(X + s * 0.37 - 0.3, Y + 0.28 + i * 0.16, 0.6, 0.05);
-  } else {
-    ctx.beginPath(); ctx.rect(X - 0.7, Y - 0.22, 1.4, 0.06); ctx.fillStyle = C.mustard; ctx.fill();
-    if (Q.detail) label(ctx, x, y, zt - 0.35, title, 0.26, C.butter);
-    // little bowls drawn on it
-    for (const [dx, dy] of [[-0.35, 0.45], [0.35, 0.45], [-0.35, 0.85], [0.35, 0.85]]) {
-      ctx.beginPath(); ctx.arc(X + dx, Y + dy, 0.13, 0, Math.PI); ctx.closePath(); paint(ctx, C.white, { lw: 0.025 });
-      if (Q.detail) { ctx.beginPath(); ctx.moveTo(X + dx - 0.1, Y + dy - 0.05); ctx.quadraticCurveTo(X + dx, Y + dy - 0.2, X + dx + 0.1, Y + dy - 0.05); ctx.strokeStyle = C.butter; ctx.lineWidth = 0.03; ctx.stroke(); }
-    }
+  ctx.beginPath(); ctx.rect(X - 0.7, Y - 0.22, 1.4, 0.06); ctx.fillStyle = C.mustard; ctx.fill();
+  if (Q.detail) label(ctx, x, y, zt - 0.35, title, 0.26, C.butter);
+  // little bowls drawn on it
+  for (const [dx, dy] of [[-0.35, 0.45], [0.35, 0.45], [-0.35, 0.85], [0.35, 0.85]]) {
+    ctx.beginPath(); ctx.arc(X + dx, Y + dy, 0.13, 0, Math.PI); ctx.closePath(); paint(ctx, C.white, { lw: 0.025 });
+    if (Q.detail) { ctx.beginPath(); ctx.moveTo(X + dx - 0.1, Y + dy - 0.05); ctx.quadraticCurveTo(X + dx, Y + dy - 0.2, X + dx + 0.1, Y + dy - 0.05); ctx.strokeStyle = C.butter; ctx.lineWidth = 0.03; ctx.stroke(); }
   }
 }
 
@@ -469,8 +455,10 @@ export default {
     const onCounter = [];
     diners.forEach((x, i) => {
       if (i === 4) {
-        // the newspaper reader's chopsticks, and their teapot (a goose lookalike)
-        onCounter.push([x, (ctx) => { sticks(ctx, x - 0.2, 5.6, CT_H + 0.01, 0.3); gooseTeapot(ctx, x + 0.45, 5.6, CT_H); }]);
+        // stool five has finished: a tower of empty bowls
+        onCounter.push([x, (ctx) => {
+          for (let b = 0; b < 5; b++) bowl(ctx, x + 0.1, 5.7, CT_H + b * 0.13, 0.3 - b * 0.01, b % 2 ? C.sky : C.white, b % 3 ? C.red : C.navy);
+        }]);
         return;
       }
       onCounter.push([x, (ctx) => {
@@ -514,7 +502,7 @@ export default {
       folk(212, { top: C.navy, hat: 'cap' }),
       folk(213, { top: C.mustard, style: 'long' }),
       folk(214, { top: C.green, style: 'bun', hair: C.brown, face: hairSticks }),
-      null,
+      folk(215, { top: C.lilac, style: 'bald', bottom: C.brown }),
       null,
       folk(216, { top: C.purple, style: 'curly' }),
     ];
@@ -525,8 +513,8 @@ export default {
         const per = 3.2 + i * 0.4;
         const k = pulse(t, per, i);
         const staring = i === 6 && pulse(t, 14) > 0.55;
-        const phone = i === 1;
-        const arms = phone ? [2.4, 0.4] : staring ? [0.6, 0.4] : [2.3 - Math.sin(k * Math.PI * 2) * 0.25, 1.2];
+        const phone = i === 1, full = i === 4;
+        const arms = phone ? [2.4, 0.4] : staring ? [0.6, 0.4] : full ? [0.45, 0.3] : [2.3 - Math.sin(k * Math.PI * 2) * 0.25, 1.2];
         person(ctx, x, STOOL_Y, SEAT - 0.73, { ...st, pose: 'sit', dir: staring ? 'r' : 'r', arms }, t);
         if (!Q.detail) return;
         const [X, Y] = P(x, STOOL_Y, SEAT - 0.73);
@@ -535,6 +523,11 @@ export default {
           paint(ctx, C.ink, { lw: 0.02 });
           ctx.fillStyle = alpha(C.sky, 0.8); ctx.fillRect(X + 0.52, Y - 2.12, 0.12, 0.2);
           if (pulse(t, 9) < 0.25) speech(ctx, x, STOOL_Y, 3.3, 'POSTING IT', { size: 0.36 });
+          return;
+        }
+        if (full) {
+          // stuffed: leaning back, hands on his belly, now and then a burp
+          if (pulse(t, 7.3, 2) < 0.18) label(ctx, x + 0.5, STOOL_Y - 0.3, 2.85, 'BURP', 0.32, C.purple);
           return;
         }
         if (staring) {
@@ -586,22 +579,15 @@ export default {
       ctx.restore();
     });
 
-    // Two diners at the counter hiding behind paper. On stool five, a man
-    // behind his newspaper. On stool six, the goose, in a bib, with the
-    // large, behind a giant menu: a noodle runs from its bowl to behind the
-    // menu and goes in, slurp by slurp. A tap and the menu comes down.
-    const paper = R.poke({ id: 'paper', at: [9.7, STOOL_Y + 0.3, 1.7], r: 0.9, sound: 'tick', hold: 1.5, say: ['Do you MIND.', 'Still reading.', 'No geese here. Move along.'] });
-    R.mover(() => ({ x: 9.4, y: STOOL_Y }), (ctx, t) => {
-      const k = paper.k();
-      person(ctx, 9.4, STOOL_Y, SEAT - 0.73, folk(215, { pose: 'sit', dir: 'r', top: C.lilac, style: 'bald', bottom: C.brown, arms: [1.6, 1.5] }), t);
-      bigPaper(ctx, 9.75, STOOL_Y + 0.35, 1.05 - k * 0.5, 1.35, C.white, 'GOOSE AT LARGE', true);
-    }, { bias: 0.6 });
+    // On stool six, the goose, in a bib, with the large, behind a giant menu:
+    // a noodle runs from its bowl over the menu's top and goes in, slurp by
+    // slurp. A tap and the menu comes down.
     const menu = R.poke({ id: 'menu', at: [11.25, STOOL_Y + 0.35, 1.55], r: 0.9, say: ['MORE!', 'MORE! (Please.)'] });
     const G = 13;
     R.goose((t) => {
       const s = pulse(t, G) * G, k = menu.k();
       return { x: 10.9, y: STOOL_Y, z: SEAT + 0.02, dir: 'r', hidden: k < 0.3, pose: s > 9 && s < 10.2 ? 'honk' : 'sit' };
-    }, { bias: 0.1, kind: 'poke', inside: menu, hint: 'Two diners hiding behind paper at the counter. Only one of them is slurping.' });
+    }, { bias: 0.1, kind: 'poke', inside: menu, hint: 'Somebody at the counter is still reading the menu. Mid-slurp.' });
     R.thing(11.25, STOOL_Y + 0.35, (ctx, t) => {
       const k = menu.k();
       if (k < 0.5 && Q.detail) {
@@ -613,7 +599,7 @@ export default {
         if (q < 0.75) noodles(ctx, from, [mx, my], t, 2, -0.2 * (1 - q), 0.05);
         if (q > 0.78 && q < 0.95) label(ctx, 11.6, STOOL_Y + 0.4, 2.55, 'SLURP', 0.3, C.red);
       }
-      bigPaper(ctx, 11.25, STOOL_Y + 0.35, 0.95 - k * 0.95, 1.25 - k * 0.4, C.navy, 'MENU', false);
+      bigPaper(ctx, 11.25, STOOL_Y + 0.35, 0.95 - k * 0.95, 1.25 - k * 0.4, C.navy, 'MENU');
     }, { anim: true, depth: 10.9 + STOOL_Y + 0.8 });
     R.mover(() => ({ x: 10.9, y: STOOL_Y }), (ctx, t) => {
       if (menu.k() < 0.3) return;
@@ -689,7 +675,7 @@ export default {
 
     // ---------- front of house: tables ----------
     // Table 1: a couple sharing one very long noodle.
-    const T1 = [4.3, 11.2];
+    const T1 = [4.3, 11.2], TEA = [T1[0] - 0.45, T1[1] - 0.45];
     R.thing(T1[0] - 0.7, T1[1] + 0.7, (ctx) => chairAt(ctx, T1[0] - 0.7, T1[1] + 0.7, C.teal));
     R.thing(T1[0] + 0.7, T1[1] - 0.7, (ctx) => chairAt(ctx, T1[0] + 0.7, T1[1] - 0.7, C.teal));
     R.thing(T1[0], T1[1], (ctx) => { roundTable(ctx, T1[0], T1[1]); });
@@ -699,6 +685,8 @@ export default {
       const lean = s < 6 ? ease(s / 6) * 0.35 : s < 8 ? 0.35 : 0.35 * (1 - clamp((s - 8) / 0.6));
       const ax = T1[0] - 0.7 + lean * 0.5, ay = T1[1] + 0.7 - lean * 0.5;
       const bx = T1[0] + 0.7 - lean * 0.5, by = T1[1] - 0.7 + lean * 0.5;
+      // their pot of tea (a goose lookalike, well away from the real one)
+      gooseTeapot(ctx, TEA[0], TEA[1], CT_H);
       bowl(ctx, T1[0], T1[1], CT_H, 0.36, C.white, C.red);
       person(ctx, ax, ay, 0.02, folk(221, { pose: 'sit', dir: 'r', top: C.pink, style: 'long', arms: [1.2, 1.0] }), t);
       person(ctx, bx, by, 0.02, folk(222, { pose: 'sit', dir: 'l', top: C.navy, hat: 'none', arms: [1.2, 1.0] }), t);
@@ -984,13 +972,13 @@ export default {
     // fortune's slip of paper poking out of its flaps; tap it and the flaps
     // pop open on a fortune cookie. The other is yesterday's.
     const BOXES = [[1.95, 5.6], [2.38, 5.85]];
-    const box1 = R.poke({ id: 'takeaway', at: [BOXES[0][0], BOXES[0][1], CT_H + 0.4], r: 0.6 });
-    const box2 = R.poke({ id: 'leftovers', at: [BOXES[1][0], BOXES[1][1], CT_H + 0.4], r: 0.6, hold: 1.5, say: ["Yesterday's noodles.", 'Still cold.', 'Do not open. Again.'] });
+    const box1 = R.poke({ id: 'takeaway', at: [BOXES[0][0], BOXES[0][1], CT_H + 0.38], r: 0.75 });
+    const box2 = R.poke({ id: 'leftovers', at: [BOXES[1][0], BOXES[1][1], CT_H + 0.38], r: 0.75, hold: 1.5, say: ["Yesterday's noodles.", 'Still cold.', 'Do not open. Again.'] });
     R.thing(2.7, CT_Y1 + 0.2, (ctx, t) => {
       takeaway(ctx, BOXES[0][0], BOXES[0][1], CT_H, box1.k(), true);
       takeaway(ctx, BOXES[1][0], BOXES[1][1], CT_H, box2.k(), false);
     }, { anim: true, depth: 9.8 });
-    R.find({ id: 'fortune', label: 'A fortune cookie', kind: 'poke', inside: box1, at: [BOXES[0][0], BOXES[0][1], CT_H + 0.75], r: 0.6, hint: 'Two takeaway boxes wait for pickup, and one has a fortune poking out.' });
+    R.find({ id: 'fortune', label: 'A fortune cookie', kind: 'poke', inside: box1, at: [BOXES[0][0], BOXES[0][1], CT_H + 0.75], r: 0.7, hint: 'Two takeaway boxes wait for pickup, and one has a fortune poking out.' });
 
     // Somebody's chopsticks aren't on the floor any more: they're holding up
     // her bun, at the counter.
@@ -1012,14 +1000,14 @@ export default {
       }
     }, { anim: true, depth: 5.2 + CT_Y1 + 0.3 });
 
-    // The goose teapot's spout steams now and then.
-    R.decoy({ id: 'teapot', at: [9.85, 5.6, CT_H + 0.45], r: 0.6, say: ['A teapot. It honks when it boils.', 'Still a teapot.', 'It is not boiling. Yet.'] });
+    // The goose teapot on the couple's table: its spout steams now and then.
+    R.decoy({ id: 'teapot', at: [TEA[0], TEA[1], CT_H + 0.45], r: 0.6, say: ['A teapot. It honks when it boils.', 'Still a teapot.', 'It is not boiling. Yet.'] });
     R.air((ctx, t) => {
       if (!Q.detail) return;
       const k = pulse(t, 6);
       if (k > 0.4) return;
       const q = k / 0.4;
-      const [X, Y] = P(9.85 + 0.25, 5.6 - 0.25, CT_H + 0.95 + q * 0.6);
+      const [X, Y] = P(TEA[0] + 0.25, TEA[1] - 0.25, CT_H + 0.95 + q * 0.6);
       ctx.beginPath(); ctx.arc(X + q * 0.2, Y, 0.08 + q * 0.14, 0, Math.PI * 2);
       ctx.fillStyle = alpha(C.white, 0.85 * (1 - q)); ctx.fill();
       ctx.strokeStyle = alpha(C.grey, 0.5 * (1 - q)); ctx.lineWidth = 0.025; ctx.stroke();

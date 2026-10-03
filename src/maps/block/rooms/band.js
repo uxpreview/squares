@@ -823,7 +823,8 @@ export default {
     const CW = 1.4, CD = 1.0, CH = 0.85;
     const flightCase = (x0, y0, id, say, word, singer) => {
       const cx = x0 + CW / 2, cy = y0 + CD / 2, x1 = x0 + CW, y1 = y0 + CD;
-      const pk = R.poke({ id, at: [cx, cy, CH * 0.7], r: 1.0, sound: 'clunk', say });
+      // (the tap area covers the whole case, corners and all)
+      const pk = R.poke({ id, at: [cx, cy, CH * 0.5], r: 1.3, sound: 'clunk', say });
       const lid = (t) => {
         const k = pk.k();
         if (k > 0.01) return k * 1.9;
@@ -865,6 +866,14 @@ export default {
         for (const u of [0.3, CW - 0.3]) box(ctx, x0 + u - 0.07, y1, CH - 0.22, 0.14, 0.03, 0.14, C.greyLight, { lw: 0.02 });
         label(ctx, cx, y1, CH * 0.42, word, 0.2, C.mustard);
       }, { depth: cx + cy + 0.5 });
+      // The singer's tail tip, caught under the shut lid: a tell that holds
+      // in a still (the rattle only moves).
+      if (singer) R.thing(cx, cy, (ctx) => {
+        if (pk.k() > 0.05) return;
+        const u = x0 + CW - 0.75, w = y1 + 0.02;
+        face(ctx, [[u, w, CH + 0.02], [u + 0.42, w, CH + 0.02], [u + 0.3, w, CH - 0.3], [u + 0.2, w, CH - 0.18], [u + 0.1, w, CH - 0.26]], C.white, { lw: 0.035 });
+        face(ctx, [[u + 0.2, w, CH], [u + 0.2, w, CH - 0.16]], null, { lw: 0.025, stroke: C.greyLight });
+      }, { anim: true, depth: cx + cy + 0.6 });
       return pk;
     };
     const CA = [9.0, 6.0], CB = [10.7, 6.0];

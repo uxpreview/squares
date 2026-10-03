@@ -58,10 +58,12 @@ function cabLBody(ctx, y, color, name) {
   ctx.beginPath(); ctx.arc(jx - 0.03, jy - 0.32, 0.07, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.02 });
   for (let i = 0; i < 2; i++) {
     const [bx, by] = P(1.36, y + 0.75 + i * 0.22, 1.21);
-    ctx.beginPath(); ctx.ellipse(bx, by, 0.07, 0.04, 0, 0, Math.PI * 2); paint(ctx, i ? C.mustard : C.teal, { lw: 0.02 });
+    button(ctx, bx, by, i ? C.sky : C.teal);
   }
 }
-function cabRBody(ctx, x, color) {
+// gold: MAZE, the one cabinet with gold buttons (the lost token hides among
+// them). Everywhere else a button is plainly a button, so no coin lookalikes.
+function cabRBody(ctx, x, color, gold) {
   box(ctx, x, 0.05, 0, 1.25, 1.1, 2.6, color, { left: shade(color, 0.12) });
   box(ctx, x + 0.06, 1.15, 1.0, 1.13, 0.42, 0.2, C.ink, { top: shade(C.navy, 0.2) });
   face(ctx, [[x + 0.1, 1.16, 1.35], [x + 1.15, 1.16, 1.35], [x + 1.15, 1.16, 2.35], [x + 0.1, 1.16, 2.35]], C.ink);
@@ -71,8 +73,15 @@ function cabRBody(ctx, x, color) {
   ctx.beginPath(); ctx.arc(jx + 0.03, jy - 0.32, 0.07, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.02 });
   for (let i = 0; i < 2; i++) {
     const [bx, by] = P(x + 0.5 - i * 0.22, 1.36, 1.21);
-    ctx.beginPath(); ctx.ellipse(bx, by, 0.07, 0.04, 0, 0, Math.PI * 2); paint(ctx, i ? C.mustard : C.pink, { lw: 0.02 });
+    if (gold) { ctx.beginPath(); ctx.ellipse(bx, by, 0.07, 0.04, 0, 0, Math.PI * 2); paint(ctx, i ? C.mustard : C.pink, { lw: 0.02 }); }
+    else button(ctx, bx, by, i ? C.teal : C.pink);
   }
+}
+// A raised arcade button: a dark side under a domed cap with a shine on it.
+function button(ctx, bx, by, color) {
+  ctx.beginPath(); ctx.ellipse(bx, by + 0.02, 0.07, 0.04, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+  ctx.beginPath(); ctx.ellipse(bx, by - 0.025, 0.065, 0.037, 0, 0, Math.PI * 2); paint(ctx, color, { lw: 0.02 });
+  ctx.beginPath(); ctx.ellipse(bx - 0.02, by - 0.035, 0.022, 0.011, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.white, 0.85); ctx.fill();
 }
 
 // Animated screen content. at(u, v) maps screen coords (0..1, 0..1, v up) to 3D.
@@ -213,8 +222,9 @@ export default {
       const cols = [C.teal, C.pink, C.mustard, C.tealLight, C.coral, C.lilac];
       for (let i = 0; i < 190; i++) {
         const x = 0.3 + r() * 15.4, y = 0.3 + r() * 15.4;
-        const c = alpha(cols[i % cols.length], 0.75);
         const k = i % 4;
+        // (no gold dots in the carpet: a round gold thing here is the token)
+        const c = alpha(k === 0 && cols[i % cols.length] === C.mustard ? C.coral : cols[i % cols.length], 0.75);
         if (k === 0) disc(ctx, x, y, 0.005, 0.12, c, { stroke: false });
         else if (k === 1) face(ctx, [[x, y, 0.005], [x + 0.3, y + 0.05, 0.005], [x + 0.1, y + 0.3, 0.005]], c, { stroke: false });
         else if (k === 2) {
@@ -301,7 +311,7 @@ export default {
     const rightCabs = [[1.8, C.teal, 2], [3.2, C.coral, 3], [4.6, C.mustard, 0], [6.0, C.lilac, 1], [7.4, C.pink, 4]];
     rightCabs.forEach(([x, col, kind], i) => {
       R.thing(x + 1.25, 1.2, (ctx) => {
-        cabRBody(ctx, x, col);
+        cabRBody(ctx, x, col, i === 1);
         // The lost token, left on MAZE's controls by the joystick: gold, and
         // round, like the buttons next to it (a hard find).
         if (i === 1) {
@@ -539,8 +549,8 @@ export default {
     // sticks out of it, and the golden ticket is inside (a poke). The other
     // is just raffle stubs.
     const drawers = [
-      [R.poke({ id: 'drawer', at: [13.15, 3.75, 0.4], r: 0.6, sound: 'clunk' }), 12.8, true],
-      [R.poke({ id: 'stubs', at: [15.25, 3.75, 0.4], r: 0.6, sound: 'clunk', say: ['Raffle stubs. Thousands.', 'Still raffle stubs.'] }), 14.9, false],
+      [R.poke({ id: 'drawer', at: [13.15, 3.72, 0.38], r: 0.8, sound: 'clunk' }), 12.8, true],
+      [R.poke({ id: 'stubs', at: [15.25, 3.72, 0.38], r: 0.8, sound: 'clunk', say: ['Raffle stubs. Thousands.', 'Still raffle stubs.'] }), 14.9, false],
     ];
     R.thing(16, 3.75, (ctx) => {
       for (const [d, x0, gold] of drawers) drawer(ctx, x0, d.k(), gold);
@@ -823,7 +833,8 @@ function drawer(ctx, x0, k, gold) {
   ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
   if (gold && d <= 0.02) {
     // a gold corner caught in the gap
-    face(ctx, [[x0 + 0.42, fy + 0.02, z0 + h], [x0 + 0.62, fy + 0.02, z0 + h], [x0 + 0.56, fy + 0.03, z0 + h + 0.12]], C.mustard, { lw: 0.025 });
+    // (big enough to read in a still at a phone's framing)
+    face(ctx, [[x0 + 0.36, fy + 0.02, z0 + h], [x0 + 0.64, fy + 0.02, z0 + h], [x0 + 0.56, fy + 0.03, z0 + h + 0.17]], C.mustard, { lw: 0.025, dots: C.butter, density: 0.5 });
   }
 }
 // A ticket lying flat at (x, y, z), turned by a.

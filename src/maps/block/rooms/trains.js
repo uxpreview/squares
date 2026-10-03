@@ -1130,6 +1130,13 @@ export default {
           face(ctx, [[u, T1 + bb, hb], [u, T1 + bb * 0.3, HT]], null, { lw: 0.025, stroke: C.ink });
         }
       }
+      if (k < 0.01) {
+        // One orange webbed foot, out under the hem at the goose's stretch
+        // only: a tell that holds in a still (the breathing only moves).
+        const u = SKM + 0.3, w = T1 + b * 0.8;
+        // (a light orange, so it reads on the red runner)
+        face(ctx, [[u - 0.11, w - 0.02, 0.01], [u + 0.11, w - 0.02, 0.01], [u + 0.24, w + 0.36, 0.01], [u + 0.08, w + 0.29, 0.01], [u, w + 0.4, 0.01], [u - 0.08, w + 0.29, 0.01], [u - 0.24, w + 0.36, 0.01]], C.coralLight, { lw: 0.045 });
+      }
       if (k > 0.01) {
         // the rolled hem
         face(ctx, [[SK0, T1 + 0.02, hb], [SK1, T1 + 0.02, hb]], null, { lw: 0.13, stroke: C.ink });
@@ -1236,7 +1243,9 @@ export default {
       inY(ctx, TMY + 0.01, () => {
         if (k < 0.02) {
           // just the corner, stuck in the slot
-          ctx.beginPath(); ctx.rect(TMU - 0.12, 0.78, 0.24, 0.1); paint(ctx, C.butter, { lw: 0.02 });
+          // (bright and big enough to read in a still at a phone's framing)
+          ctx.beginPath(); ctx.rect(TMU - 0.18, 0.66, 0.36, 0.22); paint(ctx, C.butter, { lw: 0.025 });
+          ctx.fillStyle = C.coral; ctx.fillRect(TMU - 0.13, 0.7, 0.2, 0.05);
           return;
         }
         // the whole ticket, dropping into the tray
