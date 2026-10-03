@@ -720,13 +720,16 @@ export default {
     let floodS = at(21);
     while (floodS < 330 && level(floodS) < pitZ - 0.02) floodS += 0.5;
     const fireOn = (t) => { const s = wrap(t); return s >= at(20.95) && s < floodS; };
+    // (The ring and the logs go down in the evening, once the purple
+    // umbrella's family has packed up: by day they'd be lying in it.)
+    const pitUp = (t) => wrap(t) >= at(19.9) && level(t) < pitZ - 0.02;
     R.thing(PIT[0] + 0.6, PIT[1] + 0.6, (ctx) => {
       for (let k = 0; k < 8; k++) {
         const a = (k / 8) * Math.PI * 2, x = PIT[0] + Math.cos(a) * 0.45, y = PIT[1] + Math.sin(a) * 0.45;
         box(ctx, x - 0.1, y - 0.1, h(x, y) - 0.02, 0.2, 0.2, 0.14, tint(ROCK, 0.1), { flat: true, lw: 0.025 });
       }
       box(ctx, PIT[0] - 0.3, PIT[1] - 0.06, pitZ, 0.6, 0.12, 0.1, shade(C.brown, 0.2), { flat: true, lw: 0.025 });
-    }, { on: (t) => level(t) < pitZ - 0.02 });
+    }, { on: pitUp });
     R.light({ at: [PIT[0], PIT[1], pitZ + 0.5], r: 2.6, color: C.mustard, k: (t) => (fireOn(t) ? 0.75 + 0.2 * Math.sin(t * 13) * Math.sin(t * 7) : 0) });
     R.mover(() => ({ x: PIT[0], y: PIT[1] + 0.1 }), (ctx, t) => {
       const s = wrap(t);
@@ -755,7 +758,7 @@ export default {
         // (Sitting on a log, so drawn as is: they're dry, whatever their knees say.)
         person(ctx, x, y, z - 0.35, { ...look, hold: stick ? marsh : undefined, pose: 'sit', dir }, t);
       }, { bias: lift });
-      R.thing(x - 0.1 + lift / 2, y - 0.1 + lift / 2, (ctx) => box(ctx, x - 0.3, y - 0.15, h(x, y) - 0.02, 0.6, 0.3, 0.42, shade(C.brown, 0.1), { flat: true, lw: 0.03, top: C.woodLight }), { on: (t) => level(t) < pitZ - 0.02 });
+      R.thing(x - 0.1 + lift / 2, y - 0.1 + lift / 2, (ctx) => box(ctx, x - 0.3, y - 0.15, h(x, y) - 0.02, 0.6, 0.3, 0.42, shade(C.brown, 0.1), { flat: true, lw: 0.03, top: C.woodLight }), { on: pitUp });
     });
 
     // ---------- The finds ----------
@@ -863,8 +866,9 @@ export default {
     R.decoy({ id: 'float', at: (t) => { const p = ring(t); return [p.x + 0.2, p.y, p.z + 0.4]; }, r: 0.8, say: ['A pool float. Squeaks, doesn\'t honk.', 'Still a float.', 'Mostly hot air.'] });
 
     // The owner's toolbox, out by the stairs: everything he needs, and the
-    // one thing he's never used.
-    const TB = [84.2, 43.4], tbz = footing(R, TB[0] - 0.3, TB[1] - 0.18, 0.6, 0.36), tbTop = tbz + 0.3;
+    // one thing he's never used. (Nudged out from under the umbrella in
+    // front: at [84.2, 43.4] its canopy hid it.)
+    const TB = [84.0, 44.0], tbz = footing(R, TB[0] - 0.3, TB[1] - 0.18, 0.6, 0.36), tbTop = tbz + 0.3;
     const tools = R.poke({ id: 'toolbox', at: [TB[0], TB[1], tbz + 0.25], r: 0.75, sound: 'clunk', say: 'Nails. So many nails.' });
     R.thing(TB[0] + 0.35, TB[1] + 0.2, (ctx) => {
       const k = tools.k(), a = k * 1.9, x0 = TB[0] - 0.3, x1 = TB[0] + 0.3, y0 = TB[1] - 0.18, d = 0.36;

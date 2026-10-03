@@ -271,8 +271,9 @@ export default {
       pole(ctx, 60.1, 0.35, wz, 1.9, C.wood, 0.06);
       pole(ctx, 60.1, 1.85, wz, 1.9, C.wood, 0.06);
       plaque(ctx, 'y', 60.16, 1.1, wz + 1.6, 2, 0.95, C.teal, [
-        ['PLUM ISLAND', 0.2, 0.34, C.white, 'Bagel Fat One'],
-        ['POP. 2,000 · GREENHEADS 10,000,000', -0.2, 0.14, C.white],
+        ['PLUM ISLAND', 0.2, 0.26, C.white, 'Bagel Fat One'],
+        ['POP. 2,000', -0.11, 0.11, C.white],
+        ['GREENHEADS 10,000,000', -0.29, 0.11, C.white],
       ], { border: C.white });
     });
 
@@ -306,8 +307,8 @@ export default {
       pole(ctx, vx - 1.2, vy + 2.4, sz, 1.2);
       pole(ctx, vx + 0.3, vy + 2.4, sz, 1.2);
       plaque(ctx, 'x', vx - 0.45, vy + 2.46, sz + 1.2, 1.9, 0.8, C.brown, [
-        ['REFUGE VISITOR CENTER', 0.16, 0.17, C.white],
-        ['REFUGE FULL? WE ARE NOT.', -0.14, 0.13, C.butter],
+        ['REFUGE VISITOR CENTER', 0.16, 0.14, C.white],
+        ['REFUGE FULL? WE ARE NOT.', -0.14, 0.11, C.butter],
       ], { border: C.white });
     }, { veil: (ctx, v) => {
       const top = vz + 1.8, rise = 0.8, m = vy + vd / 2;
@@ -530,7 +531,7 @@ export default {
     R.thing(ex + 0.3, ey + 0.95, (ctx, t) => {
       if (!between(8, 20.9)(t)) return;
       const sun = sunsetWatch(t);
-      person(ctx, ex, ey + 0.75, ez + 0.3, folk(85, { pose: 'sit', dir: 'r', back: true, top: C.purple, hat: 'beanie', arms: sun ? [0.3, 0.2] : [1.35 + Math.sin(t * 2.3) * 0.25, 0.5] }), t);
+      person(ctx, ex, ey + 0.75, ez + 0.15, folk(85, { pose: 'sit', dir: 'r', back: true, top: C.purple, hat: 'beanie', arms: sun ? [0.3, 0.2] : [1.35 + Math.sin(t * 2.3) * 0.25, 0.5] }), t);
     }, { anim: true });
 
     // ---------- The low spot ----------
@@ -667,22 +668,14 @@ export default {
     // The queue, since they opened. (Moved up a little for the crates at the
     // end of it: the goose was last in line, then got bored.)
     const queue = [[66.2, 11.4, 70], [67.1, 11.7, 71], [67.95, 11.6, 72]];
+    // (The two by the shack stand in front of it: they sort after it, or its
+    // roof would cover their heads.)
     queue.forEach(([x, y, s], i) => {
-      extra(R, x, y, folk(s), { pose: i === 0 ? 'point' : i === 1 ? 'read' : 'stand', dir: 'l', back: true }, { hours: between(10.5, 20.5) });
+      extra(R, x, y, folk(s), { pose: i === 0 ? 'point' : i === 1 ? 'read' : 'stand', dir: 'l', back: true }, { hours: between(10.5, 20.5), ...(i ? { depth: S1 + T1 + 0.05 + i * 0.01 } : {}) });
     });
-    // A picnic table, two people eating lobster rolls, and the gull who's next.
-    const tb = [64.5, 8.6, 1.3, 0.7], tz = R.ground(65.1, 8.95);
-    R.thing(tb[0] + tb[2], tb[1] + tb[3] + 0.45, (ctx) => {
-      for (const v of [tb[1] - 0.45, tb[1] + tb[3] + 0.2]) box(ctx, tb[0], v, tz + 0.4, tb[2], 0.25, 0.08, C.wood, { flat: true, lw: 0.03 });
-      for (const u of [tb[0] + 0.15, tb[0] + tb[2] - 0.25]) box(ctx, u, tb[1] + 0.25, tz, 0.1, 0.2, 0.75, shade(C.wood, 0.2), { flat: true, lw: 0.03 });
-      box(ctx, tb[0], tb[1], tz + 0.75, tb[2], tb[3], 0.08, C.woodLight, { flat: true, lw: 0.035 });
-      if (!Q.detail) return;
-      box(ctx, tb[0] + 0.25, tb[1] + 0.2, tz + 0.83, 0.35, 0.3, 0.1, C.white, { flat: true, lw: 0.02 });
-      box(ctx, tb[0] + 0.7, tb[1] + 0.3, tz + 0.83, 0.3, 0.25, 0.1, C.white, { flat: true, lw: 0.02 });
-      cylinder(ctx, tb[0] + 1.12, tb[1] + 0.2, tz + 0.83, 0.05, 0.14, C.white);
-    });
-    extra(R, 65.0, 8.2, folk(93, { top: C.sky }), { pose: 'sit', dir: 'l' }, { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
-    extra(R, 65.3, 9.75, folk(94, { top: C.pink, style: 'bun' }), { pose: 'sit', dir: 'r', back: true, arms: [1.2, 0.3] }, { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
+    // (No picnic table on the lot: behind Bob's, Dave's truck hid it and only
+    // a head showed, and the lot has no dry corner left you can see. Lobster
+    // rolls get eaten on the deck at the island end.)
     // The gull: on the ridge, down to the gulls' bin by Bob's, a rummage,
     // and back up. (The fry thief is the Town Beach's; this one does bins.)
     const ridge = [S0 + 2.4, (T0 + T1) / 2, sz + 2.85], grab = [S1 + 0.35, T0 + 0.2, sz + 0.62];
@@ -907,8 +900,9 @@ export default {
       cylinder(ctx, p.x, p.y, p.z - 0.05, 0.18, 0.55, C.red);
       face(ctx, [[p.x - 0.18, p.y, p.z + 0.5], [p.x + 0.18, p.y, p.z + 0.5], [p.x, p.y, p.z + 0.75]], C.red, { lw: 0.03 });
     });
-    // A fisherman on the island bank, casting into the river.
-    const fish = [64.6, 26.55], bob = [64.9, 24.1];
+    // A fisherman on the island bank, casting into the river. (Clear of the
+    // ice cream window: from the Center he stood on its roof.)
+    const fish = [66.4, 26.55], bob = [66.6, 24.1];
     // (He and his rod are a still picture; only the line and the bobber move.)
     const fishing = between(5, 20.95), fsz = R.ground(...fish), tip = [fish[0] + 0.3, fish[1] - 1.3, fsz + 2.9];
     extra(R, fish[0], fish[1], folk(99, { top: C.green, bottom: C.brown, hat: 'sun' }), { pose: 'point', dir: 'r', back: true }, { hours: fishing, sun: false });
@@ -955,15 +949,16 @@ export default {
       words(ctx, 'y', X0 + bw, dy, DZ + 1.7, 'SUNSET AT 8:20. BOOK NOW.', 0.1, C.ink);
     }, { veil: (ctx, v) => v([[X0, Y0, DZ - 0.18, X1 - X0, Y1 - Y0, 0.18], [X0, Y0 + 0.2, DZ, 1.3, Y1 - Y0 - 0.4, 1.9], [X0 - 0.1, Y0 + 0.1, DZ + 1.9, 1.5, Y1 - Y0 - 0.2, 0.12]]) });
     // Its tables and lanterns.
+    // (Each its own picture, sorted just in front of whoever sits behind it.)
     const tables = [[dx - 0.8, dy - 0.2], [dx + 0.9, dy + 0.2]];
-    R.thing(dx - 0.8 + 0.4, dy + 0.2, (ctx) => {
-      for (const [x, y] of tables) {
+    for (const [x, y] of tables) {
+      R.thing(x, y, (ctx) => {
         line(ctx, [[x, y, DZ], [x, y, DZ + 0.75]], C.ink, 0.05);
         disc(ctx, x, y, DZ + 0.78, 0.38, C.white, { lw: 0.03 });
         box(ctx, x - 0.06, y - 0.06, DZ + 0.8, 0.12, 0.12, 0.18, C.ink, { flat: true, lw: 0.02 });
-      }
-    }, { depth: dx + dy - 1 });
-    R.thing(dx, dy - 0.5, (ctx) => { for (const [x, y] of tables) dot(ctx, x, y, DZ + 0.9, 0.07, LIT); }, { on: lightsOn, depth: dx + dy - 0.99 });
+      }, { depth: x + y + 0.3 });
+      R.thing(x, y, (ctx) => dot(ctx, x, y, DZ + 0.9, 0.07, LIT), { on: lightsOn, depth: x + y + 0.31 });
+    }
     // String lights on four posts, over everyone's heads.
     const posts = [[X0 + 1.45, Y0 + 0.1], [X1 - 0.1, Y0 + 0.1], [X1 - 0.1, Y1 - 0.1], [X0 + 1.45, Y1 - 0.1]];
     const strings = [];
@@ -978,10 +973,17 @@ export default {
     });
     R.thing(X1 + 0.11, Y1 + 0.11, (ctx) => { for (const s of strings) for (const p of s) dot(ctx, p[0], p[1], p[2] - 0.06, 0.07, LIT); }, { on: lightsOn });
     nightGlow(R, dx, dy + 0.3, DZ + 1.4, 2.8, LIT, 0.9);
-    // The diners, who all get up for the sunset, and the waiter.
+    // The diners, who all get up for the sunset, and the waiter. Those
+    // sitting sit on stools behind their tables, so you see the tables.
     const dinerHours = between(11.5, 23);
-    [[dx - 1.35, dy - 0.45, 211, 'sit'], [dx - 0.3, dy + 0.1, 213, 'sit'], [dx + 0.5, dy - 0.55, 215, 'stand'], [dx + 1.3, dy + 0.55, 217, 'sit']].forEach(([x, y, s, pose], i) => {
-      extra(R, x, y, folk(s), { pose: pose === 'stand' ? 'point' : pose, dir: i % 2 ? 'l' : 'r', back: i === 2 }, { z: DZ, hours: dinerHours, sun: i === 2 ? 'point' : 'stand' });
+    [[dx - 0.8, dy - 0.75, 211, 'sit', 'l'], [dx - 1.35, dy - 0.2, 213, 'sit', 'r'], [dx + 1.4, dy - 0.8, 215, 'stand', 'r'], [dx + 0.9, dy - 0.4, 217, 'sit', 'l']].forEach(([x, y, s, pose, dir], i) => {
+      if (pose === 'sit') {
+        R.thing(x, y, (ctx) => {
+          line(ctx, [[x, y, DZ], [x, y, DZ + 0.37]], C.ink, 0.06);
+          disc(ctx, x, y, DZ + 0.4, 0.2, C.wood, { lw: 0.03 });
+        }, { depth: x + y - 0.01 });
+      }
+      extra(R, x, y, folk(s), { pose: pose === 'stand' ? 'point' : pose, dir, back: i === 2 }, { z: DZ, hours: dinerHours, sun: i === 2 ? 'point' : 'stand' });
     });
     R.mover((t) => {
       const k = mod(t, 14), u = k < 7 ? k / 7 : 2 - k / 7;

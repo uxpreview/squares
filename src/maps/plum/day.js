@@ -618,14 +618,28 @@ const greenheadMan = {
 // morning, lies on the Center's beach all day and walks home at five. Tap
 // him and he answers (sunbatherPoke, the Center's).
 export const TOWEL = [63.2, 46.6];
-const SHOULDER = PIKE + 0.95; // the turnpike's verge, island-bound side
+const SHOULDER = PIKE - 0.95; // the turnpike's edge on the Pink House side (Dave's cooler is on the other)
 const sunSkin = mix(SKIN[2], SKIN[1], 0.35);
 const sunLook = folk(77, {
   // (Bare legs: the kit colors a whole leg with bottom, so the shorts are worn.)
-  skin: sunSkin, hair: C.white, style: 'short', top: sunSkin, bottom: sunSkin, dress: false,
+  skin: sunSkin, hair: mix(C.white, C.greyLight, 0.3), style: 'short', top: sunSkin, bottom: sunSkin, dress: false,
   // Sunglasses, and an earbud.
   face: (ctx, hy, back) => {
-    if (back) return;
+    // From behind: the black wire down from his ear, so the white hair
+    // isn't just a ball.
+    if (back) {
+      // His tan neck and ears under it.
+      ctx.beginPath(); ctx.arc(0.02, hy, 0.31, 0.15 * Math.PI, 0.85 * Math.PI); ctx.closePath();
+      ctx.fillStyle = sunSkin; ctx.fill();
+      ctx.beginPath(); ctx.arc(-0.29, hy + 0.04, 0.06, 0, Math.PI * 2); ctx.arc(0.33, hy + 0.04, 0.06, 0, Math.PI * 2);
+      ctx.fill();
+      if (!Q.detail) return;
+      ctx.beginPath(); ctx.arc(0.27, hy + 0.06, 0.05, 0, Math.PI * 2);
+      ctx.fillStyle = C.ink; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0.27, hy + 0.08); ctx.quadraticCurveTo(0.34, hy + 0.35, 0.22, hy + 0.55);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.035; ctx.stroke();
+      return;
+    }
     ctx.beginPath();
     ctx.roundRect(0.03, hy - 0.04, 0.29, 0.11, 0.04);
     ctx.fillStyle = C.ink; ctx.fill();

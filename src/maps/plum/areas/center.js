@@ -47,8 +47,11 @@ const z0 = (p) => h(p[0], p[1]);
 const TICKET_CAR = [55.9, 35.2];
 const GH_CAR = [58.6, 35.2];
 const OLD_CAR = [67.6, 35.2];
-// The jetty's rocks, out from the beach.
-const JETTY = Array.from({ length: 7 }, (_, i) => ({ x: 56.6 + i * 0.22, y: 43.4 + i * 1.2, top: 1.35 - i * 0.14, w: 1.2 - (i % 2) * 0.12 }));
+// The jetty's rocks, out from the beach: granite blocks laid by hand, no two
+// quite the same size or quite in line. (The end one stays put: the starfish
+// and the cormorant are on it.)
+const JIG = [[0.06, 0.04, 1.1], [-0.1, -0.07, 0.98], [0.12, 0.06, 1.08], [-0.06, -0.05, 1.02], [0.1, 0.07, 1.12], [-0.08, -0.04, 0.96], [0, 0, 1.16]];
+const JETTY = Array.from({ length: 7 }, (_, i) => ({ x: 56.6 + i * 0.22 + JIG[i][0], y: 43.4 + i * 1.2, top: 1.35 - i * 0.14 + JIG[i][1], w: 1.2 - (i % 2) * 0.12 - Math.abs(JIG[i][0]), d: JIG[i][2] }));
 // The beach's umbrellas.
 const SPOTS = [[51, 45], [54, 44.6], [59.8, 45.4], [65, 44.8], [67.6, 45.8]];
 
@@ -324,36 +327,39 @@ export default {
     // a net all day and a couple sit under the lamp after dark.
     R.thing(55.0, 36.1, (ctx) => {
       const z = h(54.4, 35.6);
-      box(ctx, 54.0, 35.3, z, 0.9, 0.6, 0.7, BRAND.can, { flat: true, lw: 0.04, top: tint(BRAND.can, 0.2) });
+      // (The bench on the corner end, the cooler by the house: the other way
+      // round, the house next door hid the owner all but his head.)
+      box(ctx, 52.2, 35.3, z, 0.9, 0.6, 0.7, BRAND.can, { flat: true, lw: 0.04, top: tint(BRAND.can, 0.2) });
       if (Q.detail) {
-        plate(ctx, 'x', 54.45, 35.91, z + 0.42, 0.8, 0.34, [[BRAND.name, 0.12, BRAND.ink], [BRAND.line, 0.07, BRAND.ink]], { board: BRAND.can, edge: 0.001, gap: 1.3 });
+        plate(ctx, 'x', 52.65, 35.91, z + 0.42, 0.8, 0.34, [[BRAND.name, 0.12, BRAND.ink], [BRAND.line, 0.07, BRAND.ink]], { board: BRAND.can, edge: 0.001, gap: 1.3 });
       }
-      box(ctx, 52.2, 35.4, z + 0.4, 1.3, 0.45, 0.1, C.wood, { flat: true, lw: 0.03 });
-      for (const dx of [0.08, 1.12]) box(ctx, 52.2 + dx, 35.75, z, 0.1, 0.1, 0.4, shade(C.wood, 0.3), { flat: true, lw: 0.02 });
+      box(ctx, 53.4, 35.4, z + 0.4, 1.3, 0.45, 0.1, C.wood, { flat: true, lw: 0.03 });
+      for (const dx of [0.08, 1.12]) box(ctx, 53.4 + dx, 35.75, z, 0.1, 0.1, 0.4, shade(C.wood, 0.3), { flat: true, lw: 0.02 });
     });
     const owner = folk(301, { top: C.navy, bottom: C.brown, hat: 'cap', style: 'bald' });
-    R.mover(() => ({ x: 52.6, y: 35.62 }), (ctx, t) => {
+    const OB = 53.8; // where he sits
+    R.mover(() => ({ x: OB, y: 35.62 }), (ctx, t) => {
       if (!during(5.5, 20.9)(t)) return;
-      const z = h(52.6, 35.6) + 0.1;
-      if (sunsetWatch(t)) { person(ctx, 52.6, 36.2, z - 0.1, { ...owner, pose: 'stand', dir: 'r', back: true }, t); return; }
-      person(ctx, 52.6, 35.62, z, { ...owner, pose: 'sit', dir: 'r', arms: [1.0 + Math.sin(t * 3) * 0.3, 0.9] }, t);
+      const z = h(OB, 35.6) + 0.1;
+      if (sunsetWatch(t)) { person(ctx, OB, 36.2, z - 0.1, { ...owner, pose: 'stand', dir: 'r', back: true }, t); return; }
+      person(ctx, OB, 35.62, z, { ...owner, pose: 'sit', dir: 'r', arms: [1.0 + Math.sin(t * 3) * 0.3, 0.9] }, t);
       if (!Q.detail) return;
       // The net, over his knees and down to the ground.
       ctx.strokeStyle = alpha(C.ink, 0.6);
       ctx.lineWidth = 0.025;
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
-        const [a, b] = P(52.9 + i * 0.12, 35.9, z + 0.75), [c, d] = P(53.1 + i * 0.16, 36.3, h(53, 36.3));
+        const [a, b] = P(OB + 0.3 + i * 0.12, 35.9, z + 0.75), [c, d] = P(OB + 0.5 + i * 0.16, 36.3, h(OB + 0.4, 36.3));
         ctx.moveTo(a, b); ctx.lineTo(c, d);
       }
       for (let j = 0; j < 3; j++) {
-        const k = j / 3, [a, b] = P(52.9 + k * 0.2, 35.9 + k * 0.4, z + 0.75 - k * 0.75), [c, d] = P(53.4 + k * 0.3, 35.9 + k * 0.4, z + 0.75 - k * 0.75);
+        const k = j / 3, [a, b] = P(OB + 0.3 + k * 0.2, 35.9 + k * 0.4, z + 0.75 - k * 0.75), [c, d] = P(OB + 0.8 + k * 0.3, 35.9 + k * 0.4, z + 0.75 - k * 0.75);
         ctx.moveTo(a, b); ctx.lineTo(c, d);
       }
       ctx.stroke();
     }, { bias: 2 });
-    still(R, 52.45, 35.62, folk(302, { top: C.pink }), { pose: 'sit', dir: 'r', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
-    still(R, 53.15, 35.62, folk(303, { top: C.sky, hat: 'cap' }), { pose: 'sit', dir: 'l', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
+    still(R, 53.65, 35.62, folk(302, { top: C.pink }), { pose: 'sit', dir: 'r', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
+    still(R, 54.35, 35.62, folk(303, { top: C.sky, hat: 'cap' }), { pose: 'sit', dir: 'l', z: 0.1, when: during(20.9, 23.6), watch: false, bias: 2 });
     // The shop cat, asleep on the step all day.
     R.thing(54.9, 33.5, (ctx, t) => {
       const [X, Y] = P(54.8, 33.4, h(54.8, 33.4));
@@ -769,14 +775,29 @@ export default {
     // ---------- The little jetty ----------
     // Granite, the far rocks under at high water (only what's above it is
     // drawn), weed where the tide reaches.
-    JETTY.forEach((r) => {
+    // Each block: its body, a dressed cap a little in from its edges, a split
+    // down its face, and a chink stone wedged in the gap behind it.
+    const ROCK = mix(INK.shingle, C.brown, 0.15);
+    JETTY.forEach((r, i) => {
       R.thing(r.x + 0.6, r.y + 0.6, (ctx, t) => {
         const L = level(t), z0 = Math.max(h(r.x, r.y) - 0.3, L - 0.02);
         if (z0 >= r.top) return;
-        const w = r.w, col = mix(INK.shingle, C.brown, 0.15);
-        box(ctx, r.x - w / 2, r.y - 0.58, z0, w, 1.16, r.top - z0, col, { dotsL: shade(col, 0.5), dens: 0.18, lw: 0.04, top: tint(col, 0.15) });
+        const w = r.w, d = r.d, x0 = r.x - w / 2, y0 = r.y - d / 2, col = ROCK, cap = 0.14;
+        // The chink stone, behind, on alternate sides.
+        const cx = i % 2 ? r.x + w / 2 - 0.42 : x0 + 0.06, ct = Math.min(r.top - 0.35, z0 + 0.45);
+        if (i && ct > z0 + 0.05) box(ctx, cx, y0 - 0.2, z0, 0.36, 0.3, ct - z0, shade(col, 0.08), { flat: true, lw: 0.03, top: tint(col, 0.1) });
+        const body = Math.max(z0, r.top - cap);
+        if (body > z0) box(ctx, x0, y0, z0, w, d, body - z0, col, { dotsL: shade(col, 0.5), dens: 0.18, lw: 0.04, top: tint(col, 0.08) });
+        const c0 = Math.max(z0, r.top - cap);
+        box(ctx, x0 + 0.08, y0 + 0.08, c0, w - 0.16, d - 0.16, r.top - c0, tint(col, 0.1), { flat: true, lw: 0.035, top: tint(col, 0.18) });
+        if (Q.detail && body > z0 + 0.25) {
+          // A split down the face toward you, and a drill mark on the cap.
+          const u = x0 + w * (0.35 + 0.3 * ((i * 7) % 3) / 2);
+          line(ctx, [[u, y0 + d, body], [u + 0.06, y0 + d, body - 0.18], [u + 0.02, y0 + d, Math.max(z0, body - 0.42)]], shade(col, 0.45), 0.025);
+          disc(ctx, r.x + 0.15, r.y - 0.1, r.top + 0.002, 0.035, shade(col, 0.35), { stroke: false });
+        }
         const weed = Math.min(r.top, 0.45);
-        if (weed > z0 + 0.05 && Q.detail) face(ctx, [[r.x - w / 2, r.y + 0.58, z0], [r.x + w / 2, r.y + 0.58, z0], [r.x + w / 2, r.y + 0.58, weed], [r.x - w / 2, r.y + 0.58, weed]], alpha(C.green, 0.55), { stroke: false });
+        if (weed > z0 + 0.05 && Q.detail) face(ctx, [[x0, y0 + d, z0], [x0 + w, y0 + d, z0], [x0 + w, y0 + d, weed], [x0, y0 + d, weed]], alpha(C.green, 0.55), { stroke: false });
       }, { anim: true });
     });
     // A starfish on the end rock's seaward face, low down where it's always
