@@ -68,6 +68,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let parade = 0; // when the all-geese victory lap started
   const pops = []; // tap ripples, ink bursts and honks
   const hints = []; // pulsing "look around here" rings
+  // Teaching the first verb: a new player who's sat in a room a few seconds
+  // without tapping anything that answers back gets a tap ripple on one thing
+  // that does (the zone's teach poke). Gone after their first poke.
+  const TEACH = { after: 5000, found: 3 };
+  let poked = false; // tapped something that answers back, this visit
+  let zoneSince = 0; // when we arrived in the room we're in
   const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
   const seenStory = new Set();
   const debug = { finds: false, calls: 0, pokes: 0, decoys: 0 }; // QA: ring every find that's still hidden; tests: honks, pokes and decoys so far
@@ -209,6 +215,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     layoutVars();
     if (changed) {
       const zone = world.zones[i];
+      zoneSince = performance.now();
       on.place(world.id, zone.id);
       // The story shows the first time you arrive, then lives behind the zone name.
       if (!seenStory.has(zone.id)) { seenStory.add(zone.id); showStory(true, 5200); }
@@ -623,6 +630,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const lines = pk.say ? [].concat(pk.say) : [];
     const line = lines.length ? lines[pk.taps % lines.length] : '';
     pk.taps++;
+    poked = true;
     if (pk.decoy) debug.decoys++;
     else {
       debug.pokes++;
@@ -637,6 +645,20 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       for (let i = pops.length - 1; i >= 0; i--) if (pops[i].kind === 'say' && pops[i].poke === pk) pops.splice(i, 1);
       pops.push({ kind: 'say', zone, poke: pk, text: line, t0: performance.now() });
     }
+  }
+
+  // The thing a new player is nudged to tap in this zone: the one marked
+  // teach, else the first that isn't a decoy and has nothing inside it (so the
+  // lesson is "things answer back", and no find is given away).
+  function teachPoke(zone) {
+    return zone.pokes.find((pk) => pk.teach) || zone.pokes.find((pk) => !pk.decoy && !zone.finds.some((f) => f.inside === pk)) || null;
+  }
+  // Is the nudge showing in this zone now?
+  function teaching(zone, now) {
+    if (poked || mode !== 'zone' || zone.index !== current || now - zoneSince < TEACH.after) return null;
+    const p = store.progress(world);
+    if (p.geese + p.things >= TEACH.found) return null;
+    return teachPoke(zone);
   }
 
   // After loading a place: whatever holds a find already found stays open.
@@ -949,6 +971,33 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const k = at && !reduceMotion ? Math.min(1, (now - at) / 520) : 1;
       penLoop(ctx, isoX(x, y), isoY(x, y, z), r, lw, f.id.length, C.coral, 1 - Math.pow(1 - k, 3));
     }
+    // The first verb: a tap ripple on something that answers back, twice
+    // every couple of seconds, like a finger tapping it (still, for reduced motion).
+    const tp = teaching(zone, now);
+    if (tp) {
+      const [x, y, z] = findPos(tp, t);
+      const X = isoX(x, y), Y = isoY(x, y, z);
+      const age = reduceMotion ? 0.35 : ((now - zoneSince - TEACH.after) / 1000) % 2.4;
+      for (const d of [0, 0.35]) {
+        const k = (age - d) / 0.9;
+        if (k < 0 || k > 1) continue;
+        // (A paper edge under the ink, so it reads on the busiest art.)
+        ctx.beginPath();
+        ctx.arc(X, Y, (10 + k * 28) / cam.z, 0, Math.PI * 2);
+        ctx.strokeStyle = alpha(C.paper, 0.9 * (1 - k));
+        ctx.lineWidth = 6 / cam.z;
+        ctx.stroke();
+        ctx.strokeStyle = alpha(C.coral, 1 - k);
+        ctx.lineWidth = 3 / cam.z;
+        ctx.stroke();
+      }
+      if (age < 0.9) {
+        ctx.beginPath();
+        ctx.arc(X, Y, 8 / cam.z, 0, Math.PI * 2);
+        ctx.fillStyle = alpha(C.coral, 0.6 * (1 - age / 0.9));
+        ctx.fill();
+      }
+    }
     for (let i = hints.length - 1; i >= 0; i--) {
       const h = hints[i];
       if (h.zone !== zone) continue;
@@ -1245,6 +1294,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     mode = 'overview';
     current = -1;
     entered = false;
+    poked = false;
     hints.length = 0;
     pops.length = 0;
     seenStory.clear();
@@ -1364,6 +1414,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     markFound,
     // Tap a poke or a decoy by its ids, or ask for a hint (tests).
     poke: (zoneId, id) => { const z = world.zones[world.indexOf(zoneId)]; const pk = z && z.pokes.find((q) => q.id === id); if (pk) poke(z, pk); return pk; },
+    // The thing a new player is being nudged to tap right now, if any (tests).
+    teaching: () => { const z = current >= 0 && world.zones[current]; const pk = z && teaching(z, performance.now()); return pk ? pk.id : null; },
     hint: (zoneId, id) => { const z = world.zones[world.indexOf(zoneId)]; const f = z && z.finds.find((q) => q.id === id); if (f) showHint(z, f); },
     skipAhead,
     get skipping() { return !!skipping; },

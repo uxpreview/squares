@@ -150,7 +150,7 @@ export default {
   words: {
     zone: 'room',
     invite: 'The Block Party is today',
-    hint: 'A goose in every room. Step inside.',
+    hint: 'A goose in every room. Step in and tap things.',
     whole: 'The whole block',
     complete: 'Every goose, found. The party can start.',
   },
