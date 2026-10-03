@@ -9,7 +9,7 @@
 //   x  0 ....... 48 ......... 70 .............. 96 ...... 112
 //   y 0  Plum      | the Great Marsh: the turnpike, | the
 //        Island    | the airfield, the Pink House's | Merrimack,
-//        Sound,    | lot, the clam shack, the Plum  | the Basin
+//        Sound,    | lot, Bob's Lobster, the Plum  | the Basin
 //        the flats | Island River behind the town   |
 //   27 ~~~~~~~~~~~ the island's back shore ~~~~~~~~~~~~~~~~~~~~~~~~~
 //        the refuge: | the Center:  | the Town Beach: | the Point:
@@ -113,7 +113,7 @@ export const AIRFIELD = [49.2, 3.2, 59.6, 7.6];
 export const VISITOR = [53.2, 0.3];
 // Where the Pink House stood: south of the road, mid-causeway, a raised lot.
 export const PINK = [57.4, 11.6];
-// The clam shack, across the road from it, and its lot.
+// Bob's Lobster (decision 50), across the road from it, and its lot.
 export const SHACK = [66.4, 10.4];
 // The restaurant deck at the island end, north of the road, facing the sunset.
 export const DECK_AT = [70.4, 24.6];
@@ -148,7 +148,7 @@ function marsh(x, y) {
   // Salt pannes: shallow pools at 0.25.
   for (const [px, py, pr] of PANNES) h = Math.min(h, 0.45 - 0.2 * (1 - smooth(pr - 0.4, pr + 0.4, Math.hypot(x - px, y - py))));
   // Raised ground: the causeway (up to the bridge's ends), the airstrip, the
-  // Pink House's lot, the clam shack's. Each falls away at 0.4 a unit past
+  // Pink House's lot, Bob's Lobster's. Each falls away at 0.4 a unit past
   // its edge, into whatever's round it.
   const pad = (top, out) => top - 0.4 * Math.max(0, out);
   const ramp = Math.min(1, (1 - smooth(BRIDGE[0] - 0.6, BRIDGE[0] + 0.4, y)) + smooth(BRIDGE[1] - 0.2, BRIDGE[1] + 1.6, y));

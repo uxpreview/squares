@@ -15,7 +15,7 @@
 //   4:15pm the drawbridge goes up for a sailboat, and the road waits
 //  10:25pm the Courier heads for the mainland, and the king tide has the
 //          road by the drawbridge: the van stops in the middle of it
-//  12:20am Every King Tide Dave drives out of the clam shack's lot, through
+//  12:20am Every King Tide Dave drives out of Bob's Lobster's lot, through
 //          the flood, windows down, past the van, as he does every king tide
 //
 // npm run qa checks every walk: never faster than a run (cars included).
@@ -367,7 +367,7 @@ const courierPoint = onFoot('courier-point', [
 ], POINT_SPAN);
 
 // ---------- Every King Tide Dave ----------
-// A red pickup (nobody's brand), parked at the clam shack all day facing the
+// A red pickup (nobody's brand), parked at Bob's Lobster all day facing the
 // road, Dave in it with a thermos and a camera on the dash. At the king tide
 // he drives out through the flood, windows down, arm out, waving, past the
 // Courier's van, onto the island, and home again once the road's clear.
@@ -660,6 +660,7 @@ const towelAt = (ctx, z) => {
 };
 const sunbather = {
   id: 'sunbather', name: 'The sunbather', loop: LOOP, color: C.red,
+  away: true, // at home the rest of the day, past the map's back edge
   at: (t) => { const p = sunWalk(t); return { ...p, z: roadZ(p.x, p.y) }; },
   draw(ctx, t, p) {
     const s = wrap(t);

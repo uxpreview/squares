@@ -8,7 +8,7 @@
 //
 // World units, like land.js. The chunk seams (x 16 and 32, y 16) are kept
 // clear of anything wide and tall: the sailboat sits at x 19.4 for that.
-import { C, Q, P, SKIN, HAIR, box, disc, face, poly, paint, person, folk, speech, glow, alpha, shade, tint, mix, cylinder, paintText } from '../../../engine/art.js';
+import { C, Q, P, SKIN, HAIR, box, disc, face, poly, paint, person, folk, speech, glow, alpha, shade, tint, mix, cylinder, paintText, goose } from '../../../engine/art.js';
 import { clamp, pulse } from '../../../engine/actors.js';
 import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h } from '../land.js';
@@ -417,6 +417,8 @@ export default {
     // Aground (most of the day) the hull, mast and boom are a still picture
     // and only she, her flag and her mug are live; afloat, all of it is.
     const aground = (t) => level(t) < h(...SAIL) - 0.05;
+    // Tap her (the first thing a new player is nudged to try): she looks up.
+    const reader = R.poke({ id: 'reader', teach: true, hold: 3, at: (t) => { const [x, y, z] = ownerSpot(t); return [x - 0.6, y, z + 0.9]; }, r: 1.3, sound: 'pop', say: ['Do you mind? Chapter nine.', 'It\'ll float. Shh.', 'No, I don\'t need a tow.'] });
     const sailboat = (ctx, t, part) => {
       const [bx, by] = SAIL, g = h(bx, by), L = level(t), afloat = L > g;
       const z = boatZ(t), deck = z + 0.45;
@@ -463,7 +465,9 @@ export default {
         for (let i = 0; i < 2; i++) { const k = (t * 0.5 + i * 0.5) % 1; const [X, Y] = P(ux, uy, deck + 0.25 + k * 0.6); ctx.beginPath(); ctx.moveTo(X, Y); ctx.quadraticCurveTo(X + 0.08 * Math.sin(t * 3 + i), Y - 0.1, X, Y - 0.2); ctx.stroke(); }
       }
       // Her, reading. The page turns every nine seconds.
-      const watch = sunsetWatch(t);
+      // (Tapped, she lowers the book and gives you a look.)
+      const looked = reader.k() > 0.5;
+      const watch = sunsetWatch(t) || looked;
       const [ox, oy, oz] = ownerSpot(t);
       const book = (c2, tt) => {
         c2.beginPath(); c2.rect(0.22, -0.14, 0.52, 0.3); paint(c2, C.coral, { lw: 0.03 });
@@ -471,7 +475,7 @@ export default {
         const k = pulse(tt, 9);
         if (k < 0.1) { const w = 0.22 * Math.cos((k / 0.1) * Math.PI); c2.beginPath(); c2.rect(0.48, -0.15, w, 0.25); paint(c2, INK.cream, { lw: 0.02 }); }
       };
-      person(ctx, ox, oy, oz, { ...owner, pose: 'sit', dir: 'r', back: watch, arms: watch ? [0.35, 0.3] : [1.0, 0.95], hold: watch ? null : book }, t);
+      person(ctx, ox, oy, oz, { ...owner, pose: 'sit', dir: 'r', back: watch && !looked, arms: watch ? [0.35, 0.3] : [1.0, 0.95], hold: watch ? null : book }, t);
       if (glowK > 0.3) glow(ctx, mx + 0.5, by + 0.22, deck + 1.5, 1.8, LIT, glowK * 0.8);
       // What she says, now and then.
       const s = t % 360;
@@ -762,20 +766,114 @@ export default {
       } else if (p.mode === 'paddle' && s < hFound + 4) say(ctx, p.x, p.y, zt, 'Found it!');
     });
 
-    // ================= The goose =================
-    // On the marsh island in the middle of the Sound, under a sign that says
-    // BIRDS ONLY, which it is. It walks the island at low tide, honks at the
-    // kayaks, faces the sunset like everyone else, and swims when the king
-    // tide takes the island.
+    // ================= The goose, and the duck blinds =================
+    // Two duck blinds on the marsh island, up on pilings so the king tide
+    // goes under them, either side of a sign that says BIRDS ONLY. In one, a
+    // gunner asleep since dawn (his cap shows over the brush). In the other,
+    // the goose: an orange foot dangles through the floor and a tail tip
+    // sticks out of the brush. A tap drops the front flap. Out in front of
+    // the gunner's blind, his wooden decoy, sat on the mud at low water and
+    // floating at high.
     signpost(R, 29, 19.4, 'BIRDS ONLY', { w: 1.3, h: 0.42, post: 0.75, size: 0.22, font: FONT, board: C.white });
+    R.thing(31.6, 22.4, (ctx) => tufts(ctx, [[27.6, 19.2, 5], [28.2, 21.9, 4], [31.4, 21.6, 5], [30.2, 18.6, 4], [29, 22.2, 3]]));
+    const HAY = mix(C.mustard, C.woodLight, 0.45), HAYD = shade(HAY, 0.3);
+    const BF = 1.05, BW = 0.95; // the blinds' floor, over the king tide, and their brush walls
+    const BLIND_A = { x: 30.1, y: 19.4, w: 1.4, d: 1.1 }, BLIND_B = { x: 26.3, y: 19.7, w: 1.4, d: 1.1 }; // (A kept a unit off the seam at x 32)
+    // A wall of brush: the face, then upright stalks and a ragged top.
+    const brush = (ctx, pts, col, n) => {
+      face(ctx, pts, col, { lw: 0.04, dots: Q.detail ? shade(col, 0.45) : null, density: 0.14 });
+      if (!Q.detail) return;
+      const [a, b, , d] = pts; // a, b along the floor; d over a
+      ctx.lineCap = 'round'; ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const k = i / n, base = [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+        const top = [lerp(d[0], d[0] + b[0] - a[0], k), lerp(d[1], d[1] + b[1] - a[1], k), lerp(d[2], d[2] + b[2] - a[2], k) + 0.12 + (i % 3) * 0.07];
+        const [X0, Y0] = P(...base), [X1, Y1] = P(...top);
+        ctx.moveTo(X0, Y0); ctx.lineTo(X1 + (i % 2 ? 0.05 : -0.04), Y1);
+      }
+      ctx.strokeStyle = HAYD; ctx.lineWidth = 0.035; ctx.stroke();
+    };
+    // The back of a blind: pilings, floor, its two back walls and inside.
+    const blindBack = (ctx, B) => {
+      const { x, y, w, d } = B, g = h(x + w / 2, y + d / 2);
+      for (const [px, py] of [[x + 0.1, y + 0.1], [x + w - 0.2, y + 0.1], [x + 0.1, y + d - 0.2], [x + w - 0.2, y + d - 0.2]]) box(ctx, px, py, g - 0.1, 0.1, 0.1, BF - g + 0.1, shade(C.wood, 0.3), { flat: true, lw: 0.025 });
+      box(ctx, x, y, BF - 0.1, w, d, 0.1, C.wood, { flat: true, lw: 0.03 });
+      brush(ctx, [[x, y, BF], [x, y + d, BF], [x, y + d, BF + BW], [x, y, BF + BW]], shade(HAY, 0.22), 6);
+      brush(ctx, [[x, y, BF], [x + w, y, BF], [x + w, y, BF + BW], [x, y, BF + BW]], shade(HAY, 0.14), 7);
+    };
+    // Its front: the side wall, and the front flap, hinged at the floor (k: open).
+    const blindFront = (ctx, B, k) => {
+      const { x, y, w, d } = B, a = k * Math.PI * 0.47, s = Math.sin(a) * BW, c = Math.cos(a) * BW;
+      brush(ctx, [[x + w, y, BF], [x + w, y + d, BF], [x + w, y + d, BF + BW], [x + w, y, BF + BW]], HAY, 6);
+      brush(ctx, [[x, y + d, BF], [x + w, y + d, BF], [x + w, y + d + s, BF + c], [x, y + d + s, BF + c]], tint(HAY, 0.08), 7);
+    };
+    // The goose's blind. Its foot and tail tip show while it's shut.
+    const blindA = R.poke({ id: 'blind', at: [BLIND_A.x + 0.7, BLIND_A.y + 0.9, BF + 0.5], r: 1.0, sound: 'pop', say: ['HONK.'] });
+    R.thing(BLIND_A.x + 0.2, BLIND_A.y + 0.2, (ctx) => blindBack(ctx, BLIND_A));
     R.goose((t) => {
-      const x = 30 + Math.sin(t / 5) * 0.8, y = 20.4, g = h(x, y), L = level(t);
-      const swim = L > g + 0.02;
-      if (sunsetWatch(t) && !swim) return { x, y, z: g, dir: 'r', pose: 'stand' };
-      const s = t % 17;
-      return { x, y, z: swim ? L : g, dir: Math.cos(t / 5) > 0 ? 'r' : 'l', pose: swim ? 'swim' : s < 1.6 ? 'honk' : s > 9 && s < 11 ? 'peck' : 'walk' };
+      const k = blindA.k(), s = t % 11;
+      return { x: BLIND_A.x + 0.7, y: BLIND_A.y + 0.6, z: BF, dir: 'r', hidden: k < 0.35, pose: sunsetWatch(t) ? 'stand' : s < 1.4 ? 'honk' : 'stand' };
+    }, { bias: -0.2, kind: 'poke', inside: blindA, hint: 'Two duck blinds on the island. Only one of them has feet.' });
+    R.thing(BLIND_A.x + BLIND_A.w, BLIND_A.y + BLIND_A.d, (ctx, t) => {
+      const k = blindA.k(), { x, y, w, d } = BLIND_A;
+      // The foot, dangling through a gap in the floor, paddling a little.
+      const [FX, FY] = P(x + w - 0.35, y + d - 0.1, BF - 0.1), sw = 0.04 * Math.sin(t * 2.3);
+      if (k < 0.35) {
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(FX, FY); ctx.lineTo(FX + sw, FY + 0.3); ctx.stroke();
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.07; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(FX - 0.14 + sw, FY + 0.32); ctx.lineTo(FX + 0.2 + sw, FY + 0.3); ctx.lineTo(FX + 0.02 + sw, FY + 0.46); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.03 });
+      }
+      // The tail tip, up over the brush at the back.
+      if (k < 0.35) {
+        const [TX, TY] = P(x + 0.35, y + 0.35, BF + BW + 0.05), wag = 0.04 * Math.sin(t * 1.7);
+        ctx.beginPath(); ctx.moveTo(TX - 0.12, TY + 0.1); ctx.lineTo(TX - 0.2 + wag, TY - 0.28); ctx.lineTo(TX + 0.12, TY + 0.08); ctx.closePath();
+        paint(ctx, C.white, { lw: 0.035 });
+      }
+      blindFront(ctx, BLIND_A, k);
+    }, { anim: true, depth: BLIND_A.x + BLIND_A.y + BLIND_A.w + BLIND_A.d });
+    // The gunner's blind: his cap over the brush, and snores.
+    const blindB = R.poke({ id: 'gunner', at: [BLIND_B.x + 0.7, BLIND_B.y + 0.9, BF + 0.5], r: 1.0, sound: 'pop', say: ['Shh. Waiting for geese.', 'Wake me when one shows up.', 'Since 1987. Zzz.'] });
+    const gunner = folk(77, { top: mix(C.green, C.brown, 0.4), bottom: C.brown, hat: 'cap', style: 'bald' });
+    R.thing(BLIND_B.x + 0.2, BLIND_B.y + 0.2, (ctx) => blindBack(ctx, BLIND_B));
+    R.thing(BLIND_B.x + BLIND_B.w, BLIND_B.y + BLIND_B.d, (ctx, t) => {
+      const k = blindB.k(), { x, y, w, d } = BLIND_B;
+      person(ctx, x + 0.75, y + 0.55, BF - 0.75, { ...gunner, pose: 'sit', dir: 'r', arms: [0.4, 0.35] }, 0);
+      blindFront(ctx, BLIND_B, k);
+      // His thermos, steaming on the rim.
+      cylinder(ctx, x + w - 0.25, y + 0.25, BF + BW, 0.08, 0.26, C.red, { flat: true });
+      if (Q.detail) {
+        const z = pulse(t, 4.5);
+        ctx.fillStyle = C.ink; ctx.font = '0.32px "Bagel Fat One", sans-serif'; ctx.textAlign = 'center';
+        const [X, Y] = P(x + 0.6, y + 0.4, BF + BW + 1.0 + z * 0.6);
+        ctx.globalAlpha = 1 - z; ctx.fillText('z', X + z * 0.3, Y); ctx.globalAlpha = 1;
+      }
+    }, { anim: true, depth: BLIND_B.x + BLIND_B.y + BLIND_B.w + BLIND_B.d });
+    // His wooden decoy: carved, painted white, chipped to the wood, on a
+    // keel and an anchor line. Sits on the mud at low water, floats at high.
+    const DEC = [25.3, 20.9];
+    const decoyAt = (t) => { const g = h(...DEC), L = level(t); return [DEC[0] + (L > g ? 0.15 * Math.sin(t / 4) : 0), DEC[1], float(...DEC, t) + (L > g ? 0.03 * Math.sin(t * 1.6) : 0)]; };
+    R.mover((t) => { const [x, y] = decoyAt(t); return { x, y }; }, (ctx, t) => {
+      const [x, y, z] = decoyAt(t), afloat = level(t) > h(...DEC);
+      const [X, Y] = P(x, y, z);
+      // The anchor line, off to its weight.
+      stick(ctx, [x - 0.3, y, z + 0.05], [x - 1.1, y + 0.5, h(x - 1.1, y + 0.5)], C.ink, 0.02);
+      // The keel block under it.
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.02, 0.4, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.03 });
+      ctx.save(); ctx.translate(X, Y); ctx.rotate(afloat ? 0.04 * Math.sin(t * 1.3) : -0.08); ctx.translate(-X, -Y);
+      goose(ctx, x, y, z + 0.08, 0, { pose: 'swim', dir: 'l', scale: 0.95 });
+      if (Q.detail) {
+        // Chipped paint, the wood showing, and a painted eye that doesn't blink.
+        ctx.beginPath(); ctx.ellipse(X - 0.12, Y - 0.12, 0.12, 0.05, -0.2, 0, Math.PI * 2); ctx.fillStyle = C.woodLight; ctx.fill();
+        ctx.beginPath(); ctx.ellipse(X + 0.18, Y - 0.07, 0.07, 0.03, 0.1, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = shade(C.wood, 0.2); ctx.lineWidth = 0.015;
+        ctx.beginPath(); ctx.moveTo(X - 0.3, Y - 0.03); ctx.lineTo(X + 0.3, Y - 0.03); ctx.stroke();
+      }
+      ctx.restore();
+      if (afloat && Q.lines) { ctx.beginPath(); ctx.ellipse(X, Y, 0.6, 0.24, 0, 0, Math.PI * 2); ctx.strokeStyle = alpha(C.white, 0.7); ctx.lineWidth = 0.04; ctx.stroke(); }
     });
-    R.thing(31.6, 22.4, (ctx) => tufts(ctx, [[27.6, 19.2, 5], [28.2, 21.9, 4], [31.4, 21.5, 5], [30.6, 18.8, 4], [29, 22.2, 3]]));
+    R.decoy({ id: 'wooden-goose', at: (t) => { const [x, y, z] = decoyAt(t); return [x, y, z + 0.3]; }, r: 0.8, say: ['A wooden decoy. Quack, apparently.', 'Carved in 1952. Still wood.', 'It has never once honked.'] });
 
     // ================= The finds =================
     // A clammer's boot, stuck upright in the mud, next to One Boot (low tide).
@@ -808,8 +906,60 @@ export default {
       line([lerp(a[0], b[0], 0.2), lerp(a[1], b[1], 0.2)], [lerp(a[0], b[0], 0.8), lerp(a[1], b[1], 0.8)], INK.cream, 0.1);
       if (Q.detail) line([a[0] + 0.05, a[1] - 0.07], [b[0] - 0.05, b[1] - 0.07], alpha(C.white, 0.8), 0.035);
       ctx.beginPath(); ctx.arc(n[0] + 0.05, n[1] - 0.02, 0.06, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.025 });
+      // Half sunk in the mud: only the neck, the cork and a glint of the note show.
+      const [MX, MY] = P(x - 0.12, y + 0.06, z - 0.05);
+      ctx.beginPath(); ctx.ellipse(MX, MY - 0.02, 0.36, 0.16, -0.05, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.08), { lw: 0.025 });
     }, { on: lowTide });
-    R.find({ id: 'bottle', label: 'A message in a bottle', at: [BOTTLE[0], BOTTLE[1], h(...BOTTLE) + 0.2], r: 0.8, when: lowTide, note: 'low tide' });
+    R.find({ id: 'bottle', label: 'A message in a bottle', kind: 'hard', at: [BOTTLE[0], BOTTLE[1], h(...BOTTLE) + 0.2], r: 0.8, when: lowTide, note: 'low tide', riddle: 'Mail, with a cork in it. The far mud signed for it.', hint: 'Across the channel from everyone, the mud is keeping something glassy.' });
+
+    // A crab pot, left out on the flats: at low water it sits on the mud; at
+    // high, only its buoy shows. Its lid opens on a tap, and what the crabs
+    // caught this time is somebody's teeth.
+    const POT = [36.4, 19.2], potZ = h(...POT);
+    const pot = R.poke({ id: 'crab-pot', at: [POT[0], POT[1], potZ + 0.3], r: 0.85, sound: 'clunk' });
+    R.thing(POT[0] + 0.45, POT[1] + 0.35, (ctx, t) => {
+      const [x, y] = POT, z = potZ, L = level(t);
+      if (L > z + 0.5) {
+        // Just its buoy, bobbing on the line.
+        const bz = L + 0.04 * Math.sin(t * 1.8);
+        stick(ctx, [x + 0.3, y + 0.2, bz], [x + 0.3, y + 0.2, bz - 0.1], C.ink, 0.02);
+        cylinder(ctx, x + 0.3, y + 0.2, bz - 0.05, 0.13, 0.3, C.mustard, { flat: true });
+        if (Q.detail) cylinder(ctx, x + 0.3, y + 0.2, bz + 0.08, 0.135, 0.08, C.coral, { flat: true });
+        return;
+      }
+      const k = pot.k(), W = 0.85, D = 0.6, Hh = 0.48, x0 = x - W / 2, y0 = y - D / 2;
+      const wire = mix(C.green, C.teal, 0.4);
+      // The pot: a wire box, its back and floor first, then what's in it.
+      face(ctx, [[x0, y0, z], [x0 + W, y0, z], [x0 + W, y0 + D, z], [x0, y0 + D, z]], shade(LAND.mud, 0.15), { lw: 0.03 });
+      if (k > 0.2) {
+        // The teeth: pink gums, white teeth, grinning.
+        const [X, Y] = P(x, y, z + 0.08);
+        ctx.beginPath(); ctx.ellipse(X, Y - 0.05, 0.24, 0.12, 0, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.025 });
+        ctx.beginPath(); ctx.rect(X - 0.19, Y - 0.1, 0.38, 0.09); paint(ctx, C.white, { lw: 0.02 });
+        if (Q.detail) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012; ctx.beginPath(); for (let i = -2; i <= 2; i++) { ctx.moveTo(X + i * 0.075, Y - 0.1); ctx.lineTo(X + i * 0.075, Y - 0.01); } ctx.stroke(); }
+      }
+      const mesh = (pts, col) => {
+        face(ctx, pts, alpha(col, 0.18), { lw: 0.035, stroke: wire });
+        if (!Q.detail) return;
+        const [a, b, , d] = pts;
+        ctx.beginPath();
+        for (let i = 1; i < 5; i++) { const u = i / 5; const p0 = P(lerp(a[0], b[0], u), lerp(a[1], b[1], u), lerp(a[2], b[2], u)), p1 = P(lerp(d[0], d[0] + b[0] - a[0], u), lerp(d[1], d[1] + b[1] - a[1], u), lerp(d[2], d[2] + b[2] - a[2], u)); ctx.moveTo(...p0); ctx.lineTo(...p1); }
+        for (let i = 1; i < 3; i++) { const u = i / 3; const p0 = P(lerp(a[0], d[0], u), lerp(a[1], d[1], u), lerp(a[2], d[2], u)), p1 = P(lerp(b[0], b[0] + d[0] - a[0], u), lerp(b[1], b[1] + d[1] - a[1], u), lerp(b[2], b[2] + d[2] - a[2], u)); ctx.moveTo(...p0); ctx.lineTo(...p1); }
+        ctx.strokeStyle = alpha(wire, 0.85); ctx.lineWidth = 0.02; ctx.stroke();
+      };
+      mesh([[x0, y0, z], [x0, y0 + D, z], [x0, y0 + D, z + Hh], [x0, y0, z + Hh]], wire);
+      mesh([[x0, y0, z], [x0 + W, y0, z], [x0 + W, y0, z + Hh], [x0, y0, z + Hh]], wire);
+      mesh([[x0 + W, y0, z], [x0 + W, y0 + D, z], [x0 + W, y0 + D, z + Hh], [x0 + W, y0, z + Hh]], wire);
+      mesh([[x0, y0 + D, z], [x0 + W, y0 + D, z], [x0 + W, y0 + D, z + Hh], [x0, y0 + D, z + Hh]], wire);
+      // The lid, hinged along the back: up and over when it's open.
+      const a = k * Math.PI * 0.6, c = Math.cos(a) * D, s = Math.sin(a) * D;
+      mesh([[x0, y0, z + Hh], [x0 + W, y0, z + Hh], [x0 + W, y0 + c, z + Hh + s], [x0, y0 + c, z + Hh + s]], wire);
+      // Its line and buoy, lying on the mud.
+      stick(ctx, [x0 + W, y0 + D / 2, z + Hh], [x + 0.9, y + 0.5, z + 0.05], C.ink, 0.02);
+      cylinder(ctx, x + 0.95, y + 0.55, z, 0.13, 0.3, C.mustard, { flat: true });
+      if (Q.detail) cylinder(ctx, x + 0.95, y + 0.55, z + 0.13, 0.135, 0.08, C.coral, { flat: true });
+    }, { anim: true });
+    R.find({ id: 'teeth', label: 'Some false teeth', kind: 'poke', inside: pot, at: [POT[0], POT[1], potZ + 0.15], r: 0.7, when: lowTide, note: 'low tide', hint: 'The crabs caught something odd this time. Low water shows you where they keep it.' });
     // A kayak paddle, drifting on the flood (high tide): Kayaker Three's.
     const paddleAt = (t) => [PADDLE[0] + Math.sin(t / 3) * 0.4, PADDLE[1] + Math.cos(t / 4) * 0.3, float(PADDLE[0], PADDLE[1], t) + 0.1];
     R.mover((t) => { const [x, y] = paddleAt(t); return { x, y }; }, (ctx, t) => {

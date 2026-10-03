@@ -47,7 +47,7 @@ Seven, each one area of any shape (E5).
 
 | Area | What's happening | Running gag (plays out over time) | Finds |
 | --- | --- | --- | --- |
-| **The Turnpike** | The causeway from the mainland: the airfield on the south side (a small plane in and out), the refuge's visitor center, the marsh, a clam shack (a lookalike, no name) on the north side, the Pink House's empty lot and memorial sign on the south side with people stopping for the photo, the drawbridge over the Plum Island River with its memorial flags, a restaurant deck at the island end facing the sunset, greenhead traps on the marsh, "Turn around, don't drown" signs | **Every King Tide Dave:** his truck is parked at the clam shack all day, facing the road. At the king tide he drives through the flood, windows down, waving. And the drawbridge: it goes up for one sailboat and the whole road waits | A goose; the Pink House, back for a moment *(at sunset)*; a car key on a float *(at high tide)*; a lobster crossing the road |
+| **The Turnpike** | The causeway from the mainland: the airfield on the south side (a small plane in and out), the refuge's visitor center, the marsh, Bob's Lobster on the north side (decision 50), the Pink House's empty lot and memorial sign on the south side with people stopping for the photo, the drawbridge over the Plum Island River with its memorial flags, a restaurant deck at the island end facing the sunset, greenhead traps on the marsh, "Turn around, don't drown" signs | **Every King Tide Dave:** his truck is parked at Bob's Lobster all day, facing the road. At the king tide he drives through the flood, windows down, waving. And the drawbridge: it goes up for one sailboat and the whole road waits | A goose; the Pink House, back for a moment *(at sunset)*; a car key on a float *(at high tide)*; a lobster crossing the road |
 | **The Sound** | Plum Island Sound behind the refuge: clammers on the flats at low water, kayaks at high, a sailboat that ran aground, the mainland shore beyond | **The sailboat:** aground at low tide with its owner sitting on the hull reading, afloat at high tide with its owner still on the hull reading | A goose; a clammer's lost boot *(at low tide)*; a message in a bottle *(at low tide)*; a kayak paddle *(at high tide)* |
 | **The Refuge Dunes** | The refuge road and its lots, the Hellcat boardwalk through the dunes and the observation tower full of birders, a deer in the grass, greenhead traps along the marsh edge. At the north end, the gatehouse | **The gate:** the lots fill by mid-morning, the ranger hangs "REFUGE FULL", and a line of cars waits on Sunset Drive all day. One car keeps trying: to the front, turned round, back to the end of the line. Bikes sail past the lot. Also, the birders swing every scope at a rare bird; it's the goose; when they look, it's gone | A goose; a birder's lens cap; a deer in the dunes; a checklist with one bird crossed out |
 | **The Refuge Beach** | The ocean beach, closed for the plovers from April to August: miles of empty sand and six birds. The open stretch at the Lot 1 boardwalk, with a plover warden (a volunteer) and the rope. Sandy Point at the far end, the state beach, open, with its own roped nests | **The rope:** the warden moves it out a little every hour, and the crowd on the other side shuffles back each time, towels and all | A goose; a sandcastle inside the rope; the warden's spare stake; a shell collection |
@@ -57,11 +57,12 @@ Seven, each one area of any shape (E5).
 
 ## Cast
 - **The Courier**, in his brown uniform with the parcel: over the turnpike at dawn, stuck in the gate queue at noon, asking the lifeguards, racing the tide back at night, stuck in the flood at the end.
-- **Every King Tide Dave**, who drives through the flood every king tide and has the photos to prove it. Parked at the clam shack all day, waiting.
+- **Every King Tide Dave**, who drives through the flood every king tide and has the photos to prove it. Parked at Bob's Lobster all day, waiting.
 - **Inspector Pidge**, among the birders on the tower with a borrowed scope, sure a plover is the goose.
 - **The ranger** at the gatehouse, with the "REFUGE FULL" sign.
 - **The plover warden**, a volunteer, moving the rope.
 - **The greenhead man**, and his swarm.
+- **The sunbather** (session 14, the owner's: a real local figure, unnamed): tan, white hair, sunglasses, red shorts and wired headphones. He walks onto the island over the turnpike every morning, lies on a towel on the Center's beach all day, and walks home at five. Tap him and he props up on an elbow ("Can't hear you. Headphones.", "Time to go to Market Basket.", "Working on the tan.").
 - **The lifeguards** at the Point, and their chalkboard.
 - **The birders**, the clammers, the kayakers, the sailboat's owner, the fishermen on the jetty, the surfers, the people stopping at the Pink House sign.
 - **Animals** (simple movers, not a cast system; real animal characters wait for E6 and the Catminium): plovers running at the waterline, gulls stealing food, seals, a deer, a heron in the creeks, the greenheads (a swarm of particles).
@@ -125,7 +126,7 @@ Draft labels, one goose and three things per area (7 geese, 21 things). Final wo
 - **The Courier**, the story's thread, and his parcel of greenhead spray.
 - **Inspector Pidge**, with the birders.
 - **The fake brand** on the banner plane over the beach (its name is still open in LEVELS.md).
-- **A "Have you seen this goose?" poster** on the clam shack.
+- **A "Have you seen this goose?" poster** on Bob's Lobster.
 - **Newburyport** across the river, steeples on the skyline: the next place, printed in the same inks.
 
 ## Tone
@@ -139,7 +140,7 @@ Checked against OpenStreetMap, the refuge's own guides, the town and city pages,
 | **Plum Island Turnpike** | The only road on, about 2 miles, all in Newbury. Farms and the airfield at the mainland end, then marsh with a cluster of houses, then the bridge, landing at the Center as Plum Island Boulevard | Yes. It floods at storm tides at the island end (by Sunset Drive and Old Point Road); police close it for the flooded part of the tide; the town expects it to flood at every king tide by about 2030 | By name. Floods at its island-end low spots at the king tide (decision 27) |
 | **The drawbridge** (Sgt. Donald A. Wilkinson Bridge) | Over the Plum Island River at the island end; a drawbridge (bascule), 1973, repaired 2024 | Yes. A memorial with flags at its west end, south side | Opens for boats, the traffic waits; the flags |
 | **The Pink House** | 60 Plum Island Turnpike, south side, mid-causeway, about a mile from the island | Demolished March 11, 2025. Newbury put up a memorial sign in April 2026 (a painting of the house on two granite posts); people still stop to photograph it | The empty lot, the sign, people stopping; the house flickers back at sunset (decision 1) |
-| **The clam shack** | Mid-causeway, north side, across the road from the Pink House lot | Open (a fire in Nov 2025; reopened for 2026) | A lookalike, no name (decision 9) |
+| **Bob's Lobster** | Mid-causeway, north side, across the road from the Pink House lot | Open (a fire in Nov 2025; reopened for 2026) | By name on its sign, lettering only, no logo (decision 50; it was a lookalike with no name, decision 9) |
 | **Plum Island Airport** | South side of the turnpike at the mainland end; two short runways; flying since 1910 | Operating | By name. A small plane in and out |
 | **The refuge's visitor center** | The mainland end of the turnpike, south side | Yes | A small building at the back edge |
 | **Greenhead traps** | Blue boxes on legs on the marshes, mid-June to mid-August | Yes, every summer | Blue boxes on the marsh; the flies peak in July |
@@ -316,7 +317,7 @@ Gate 1 (the brief), the owner's answers at the start of session 5 (Sept 2026):
 6. **July.**
 7. **The parcel is a pair of waders.** *(Changed: decision 34, greenhead fly spray.)*
 8. **"Plum Island"** in the picker, with **"King Tide"** as the card's subtitle.
-9. **Names:** the clam shack on the causeway is a lookalike with no name; the refuge, the lighthouse, the turnpike and the airfield use their real names.
+9. **Names:** the clam shack on the causeway is a lookalike with no name; the refuge, the lighthouse, the turnpike and the airfield use their real names. *(Changed: decision 50, the shack is Bob's Lobster by name.)*
 
 The owner's ideas, folded in above:
 

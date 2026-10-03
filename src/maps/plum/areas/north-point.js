@@ -491,22 +491,74 @@ export default {
       notice(ctx, 'x', 98.2, 29.43, hz + 1.95, 1.3, 0.32, [['THE REEL DEAL', 0.18, C.navy]], { board: C.white, font: 'Bagel Fat One' });
       if (Q.detail) for (const [x, lean] of [[99.0, 0.25], [99.15, 0.4], [99.28, 0.3]]) line(ctx, [[x, 29.5, hz], [x - lean, 29.5, hz + 2.3]], C.ink, 0.04);
     });
-    // The shower stall, against the house's side.
-    const sz = footing(R, 99.5, 27.6, 0.8, 0.8);
+    // Two outdoor shower stalls in front of the house, both always in use.
+    // In the left one, somebody back from the beach (her head over the top,
+    // her feet under the door); in the right one, the goose (orange feet
+    // under the door, a feather caught in it). Tap that door and it swings
+    // open. (The lighthouse hid the old one round the side.)
+    const SY = 29.5, A0 = 96.3, B0 = 97.15, GAP = 0.5, SH = 1.25; // the stalls' backs, the gap under the walls, the walls
+    const sz = footing(R, A0, SY, 1.65, 0.8);
     const showerer = folk(397, { top: C.teal, bottom: C.teal, style: 'curly' });
-    const stall = (ctx) => {
-      box(ctx, 99.5, 27.6, sz + 0.35, 0.8, 0.8, 1.55, C.woodLight, { flat: true, lw: 0.04, top: alpha(C.woodLight, 0) });
-      if (Q.detail) { ctx.strokeStyle = shade(C.woodLight, 0.3); ctx.lineWidth = 0.025; ctx.beginPath(); for (let k = 1; k < 4; k++) { const [a, b] = P(99.5 + k * 0.2, 28.4, sz + 0.35), [c, e] = P(99.5 + k * 0.2, 28.4, sz + 1.9); ctx.moveTo(a, b); ctx.lineTo(c, e); } ctx.stroke(); }
-      post(ctx, 99.6, 27.7, sz, 2.3, C.grey, 0.06);
-      disc(ctx, 99.75, 27.85, sz + 2.3, 0.12, C.grey, { lw: 0.03 });
+    const slats = (ctx, x0) => {
+      if (!Q.detail) return;
+      ctx.strokeStyle = shade(C.woodLight, 0.3); ctx.lineWidth = 0.025; ctx.beginPath();
+      for (let k = 1; k < 4; k++) { const [a, b] = P(x0 + k * 0.2, SY + 0.8, sz + GAP), [c, e] = P(x0 + k * 0.2, SY + 0.8, sz + GAP + SH); ctx.moveTo(a, b); ctx.lineTo(c, e); }
+      for (let k = 1; k < 4; k++) { const [a, b] = P(x0 + 0.8, SY + k * 0.2, sz + GAP), [c, e] = P(x0 + 0.8, SY + k * 0.2, sz + GAP + SH); ctx.moveTo(a, b); ctx.lineTo(c, e); }
+      ctx.stroke();
     };
-    R.thing(100.3, 28.4, stall, { on: (t) => !during(11, 18)(t) });
-    R.thing(100.3, 28.4, (ctx, t) => {
-      man(ctx, 99.9, 28.0, sz, { ...showerer, arms: [2.8 + Math.sin(t * 5) * 0.2, -2.6] }, { pose: 'stand', dir: 'l' }, t);
-      stall(ctx);
-      if (Q.detail) for (let i = 0; i < 5; i++) { const k = (t * 1.6 + i / 5) % 1; disc(ctx, 99.72 + (i % 3) * 0.1, 27.9 + (i % 2) * 0.1, sz + 2.2 - k * 0.5, 0.03, C.sky, { stroke: false }); }
-      if (Math.sin(t * 0.4) > 0.8) talk(ctx, 99.9, 28.0, sz + 2.8, 'Occupied!');
-    }, { anim: true, on: during(11, 18) });
+    const head = (ctx, x0) => {
+      post(ctx, x0 + 0.1, SY + 0.1, sz, 2.15, C.grey, 0.06);
+      disc(ctx, x0 + 0.25, SY + 0.25, sz + 2.15, 0.12, C.grey, { lw: 0.03 });
+    };
+    const stall = (ctx, x0) => {
+      box(ctx, x0, SY, sz + GAP, 0.8, 0.8, SH, C.woodLight, { flat: true, lw: 0.04, top: alpha(C.woodLight, 0) });
+      slats(ctx, x0);
+      // The door's latch.
+      face(ctx, [[x0 + 0.62, SY + 0.8, sz + 1.05], [x0 + 0.7, SY + 0.8, sz + 1.05], [x0 + 0.7, SY + 0.8, sz + 1.2], [x0 + 0.62, SY + 0.8, sz + 1.2]], C.ink, { stroke: false });
+      head(ctx, x0);
+    };
+    const drops = (ctx, t, x0) => {
+      if (Q.detail) for (let i = 0; i < 5; i++) { const k = (t * 1.6 + i / 5) % 1; disc(ctx, x0 + 0.3 + (i % 2) * 0.1, SY + 0.22 + (i % 3) * 0.1, sz + 2.05 - k * 0.5, 0.03, C.sky, { stroke: false }); }
+    };
+    R.thing(A0 + 0.8, SY + 0.8, (ctx, t) => {
+      man(ctx, A0 + 0.4, SY + 0.4, sz, { ...showerer, arms: [2.8 + Math.sin(t * 5) * 0.2, -2.6] }, { pose: 'stand', dir: 'l' }, t);
+      stall(ctx, A0);
+      drops(ctx, t, A0);
+      if (Math.sin(t * 0.4) > 0.8) talk(ctx, A0 + 0.4, SY + 0.4, sz + 2.8, 'Occupied!');
+    }, { anim: true });
+    R.poke({ id: 'shower', at: [A0 + 0.35, SY + 0.4, sz + 1.9], r: 0.7, say: ['Occupied!', 'STILL occupied!', 'Try the other one.'] });
+    const shower = R.poke({ id: 'stall', at: [B0 + 0.4, SY + 0.8, sz + 0.8], r: 0.7, sound: 'clunk' });
+    R.thing(B0 + 0.8, SY + 0.8, (ctx, t) => {
+      const k = shower.k();
+      drops(ctx, t, B0);
+      if (k < 0.05) {
+        stall(ctx, B0);
+        // Orange feet under the door, and a feather caught in it.
+        for (const dx of [0.28, 0.5]) {
+          const [X, Y] = P(B0 + dx, SY + 0.84, sz);
+          ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(X, Y - 0.04); ctx.lineTo(X + 0.02, Y - GAP * 1.12);
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.stroke();
+          ctx.strokeStyle = C.coral; ctx.lineWidth = 0.07; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(X + 0.05, Y - 0.08); ctx.lineTo(X - 0.25, Y - 0.04); ctx.lineTo(X - 0.2, Y + 0.08); ctx.lineTo(X + 0.07, Y + 0.04); ctx.closePath();
+          paint(ctx, C.coral, { lw: 0.03 });
+        }
+        const [FX, FY] = P(B0 + 0.79, SY + 0.81, sz + 1.4);
+        ctx.save(); ctx.translate(FX, FY); ctx.rotate(-0.4 + Math.sin(t * 2.2) * 0.12);
+        ctx.beginPath(); ctx.ellipse(0.16, 0, 0.2, 0.065, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+        ctx.restore();
+        return;
+      }
+      // Open: the inside, the side wall, and the door swung out on its hinge.
+      const z0 = sz + GAP, z1 = z0 + SH, a = k * 1.5;
+      const inner = shade(C.woodLight, 0.28);
+      face(ctx, [[B0, SY, z0], [B0, SY + 0.8, z0], [B0, SY + 0.8, z1], [B0, SY, z1]], inner, { lw: 0.035 });
+      face(ctx, [[B0, SY, z0], [B0 + 0.8, SY, z0], [B0 + 0.8, SY, z1], [B0, SY, z1]], shade(inner, 0.1), { lw: 0.035 });
+      head(ctx, B0);
+      face(ctx, [[B0 + 0.8, SY, z0], [B0 + 0.8, SY + 0.8, z0], [B0 + 0.8, SY + 0.8, z1], [B0 + 0.8, SY, z1]], tint(C.woodLight, 0.05), { lw: 0.04 });
+      const ex = B0 + 0.8 * Math.cos(a), ey = SY + 0.8 + 0.8 * Math.sin(a);
+      face(ctx, [[B0, SY + 0.8, z0], [ex, ey, z0], [ex, ey, z1], [B0, SY + 0.8, z1]], C.woodLight, { lw: 0.04 });
+    }, { anim: true, depth: B0 + SY + 1.6 });
 
     // ---------- The lot ----------
     // Always full. Five spots: two parked cars, the Courier's (in the
@@ -568,7 +620,7 @@ export default {
       if (Q.lines) for (const dx of [-0.22, 0.22]) line(ctx, [[x + dx, SWING.y, swTop], [x + dx, p.y, p.z]], C.ink, 0.03);
       box(ctx, x - 0.28, p.y - 0.12, p.z - 0.06, 0.56, 0.24, 0.06, C.ink, { flat: true, lw: 0.02 });
     };
-    // The goose's swing: gently, all day.
+    // An empty swing, going gently all day (somebody was on it).
     const gooseSwing = swingAt(103.8, 0.3, 1.7, 0);
     R.mover(gooseSwing, (ctx, t, p) => seat(ctx, 103.8, p), { bias: 0.9 });
     // A kid on the other, much higher.
@@ -617,6 +669,32 @@ export default {
     };
     R.thing(lrx + 0.5, lry + 0.4, (ctx) => springer(ctx, 0), { on: (t) => !kids(t) });
     R.thing(lrx + 0.5, lry + 0.4, springer, { anim: true, on: kids });
+    // And beside it, on a playground with a NO GEESE sign, a goose on a spring
+    // (the decoy). Tap it and it boings.
+    const GR = [105.4, 37.8], grz = h(...GR);
+    const boing = R.decoy({ id: 'rider', at: [GR[0] + 0.2, GR[1], grz + 1.0], r: 0.75, hold: 1.2, say: ['A goose on a spring. Boing.', 'Still boing.', 'Read the sign.'] });
+    R.thing(GR[0] + 0.5, GR[1] + 0.4, (ctx, t) => {
+      const k = boing.k(), rock = k * Math.sin(t * 13) * 0.18;
+      disc(ctx, GR[0], GR[1], grz + 0.02, 0.4, C.teal, { lw: 0.03 });
+      if (Q.lines) { const pts = []; for (let i = 0; i <= 6; i++) pts.push([GR[0] + rock * (i / 6) + (i % 2 ? 0.1 : -0.1), GR[1], grz + i * 0.08]); line(ctx, pts, C.grey, 0.05); }
+      const [X, Y] = P(GR[0] + rock, GR[1], grz + 0.5);
+      ctx.save(); ctx.translate(X, Y); ctx.rotate(rock * 0.8);
+      // Body and tail, painted white, a coral saddle.
+      ctx.beginPath(); ctx.ellipse(0, -0.22, 0.5, 0.26, -0.08, 0, Math.PI * 2);
+      ctx.moveTo(-0.38, -0.28); ctx.lineTo(-0.66, -0.48); ctx.lineTo(-0.44, -0.12);
+      paint(ctx, C.white, { lw: 0.045, dots: Q.detail ? C.grey : null, density: 0.1 });
+      ctx.beginPath(); ctx.ellipse(-0.05, -0.42, 0.2, 0.07, 0, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.03 });
+      // Neck and head, the handles through it, a beak, a painted eye.
+      ctx.beginPath(); ctx.moveTo(0.3, -0.3); ctx.quadraticCurveTo(0.46, -0.55, 0.38, -0.92);
+      ctx.lineCap = 'round'; ctx.strokeStyle = C.ink; ctx.lineWidth = 0.26; ctx.stroke(); ctx.strokeStyle = C.white; ctx.lineWidth = 0.19; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0.18, -0.74); ctx.lineTo(0.6, -0.74); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke();
+      for (const hx of [0.18, 0.6]) { ctx.beginPath(); ctx.arc(hx, -0.74, 0.05, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.02 }); }
+      ctx.beginPath(); ctx.arc(0.4, -0.98, 0.16, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
+      ctx.beginPath(); ctx.moveTo(0.52, -1.03); ctx.lineTo(0.78, -0.97); ctx.lineTo(0.52, -0.9); ctx.closePath(); paint(ctx, C.coral, { lw: 0.03 });
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.44, -1.03, 0.035, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }, { anim: true });
+
     // The bench, and a parent on their phone.
     const bz = h(100.3, 38.3);
     const parent = folk(311, { top: C.sky, bottom: C.navy, style: 'long' });
@@ -715,6 +793,8 @@ export default {
         talk(ctx, ox, oy, oDeck + 2.2, 'Who?');
       }
     }, { anim: true, on: (t) => guards(t) && busy(t) });
+    // The stand answers back (the thing a new visitor's nudged to tap first).
+    R.poke({ id: 'guard', at: [ox, oy, oDeck + 1.0], r: 1.0, sound: 'pop', teach: true, say: ['TWEET!', 'No geese past the flags.', 'Off duty at 5:30. Sort of.'] });
     // The river guard, back to us, binoculars on the boats.
     const rGuard = folk(103, { top: C.coral, bottom: C.coral, hat: 'cap', style: 'pony' });
     const [rx0, ry0] = RIVER_STAND;
@@ -732,11 +812,33 @@ export default {
         }
       }
     }, { anim: true, on: guards });
-    const kz = h(102.4, 42.9);
-    R.thing(102.8, 43.3, (ctx) => {
-      box(ctx, 102.1, 42.7, kz, 0.7, 0.45, 0.42, BRAND.can, { flat: true, lw: 0.035, top: C.white });
-      write(ctx, 'x', 102.45, 43.15, kz + 0.21, 'GANDER', 0.15, BRAND.ink, 'Bagel Fat One');
-    }, { on: guards });
+    // (It stays all night, lunch and all, and floats when the king tide
+    // comes up the beach. Tap it and the lid comes up: the find's inside.)
+    const coolerZ = (t) => { const g = h(102.45, 42.92), L = level(t); return L > g + 0.12 ? L - 0.12 + 0.03 * Math.sin(t * 1.5) : g; };
+    const lunch = R.poke({ id: 'cooler', at: (t) => [102.45, 42.92, coolerZ(t) + 0.3], r: 0.7, sound: 'clunk', say: 'Guards\' lunch. Hands off.' });
+    R.mover((t) => ({ x: 102.45, y: 42.92, z: coolerZ(t) }), (ctx, t, p) => {
+      const kz = p.z, k = lunch.k(), a = k * 1.9, top = kz + 0.42;
+      const lid = () => {
+        if (k < 0.05) { box(ctx, 102.08, 42.68, top, 0.74, 0.49, 0.08, C.white, { flat: true, lw: 0.035 }); return; }
+        const yf = 42.68 + 0.49 * Math.cos(a), zf = top + 0.08 + 0.49 * Math.sin(a);
+        face(ctx, [[102.08, 42.68, top + 0.08], [102.82, 42.68, top + 0.08], [102.82, yf, zf], [102.08, yf, zf]], k > 0.5 ? shade(C.white, 0.2) : C.white, { lw: 0.035 });
+      };
+      if (k > 0.5) lid();
+      wade(ctx, 102.45, 42.92, kz, level(t), (g) => {
+        box(g, 102.1, 42.7, kz, 0.7, 0.45, 0.42, BRAND.can, { flat: true, lw: 0.035, top: shade(BRAND.can, 0.55) });
+        write(g, 'x', 102.45, 43.15, kz + 0.21, 'GANDER', 0.15, BRAND.ink, 'Bagel Fat One');
+      }, 0.5);
+      if (k > 0.05) {
+        // Inside, on the ice: two cans, and a lobster roll from Bob's.
+        for (const dx of [-0.2, -0.05]) box(ctx, 102.45 + dx, 42.78, top - 0.12, 0.1, 0.1, 0.16, BRAND.can, { flat: true, lw: 0.02, top: C.greyLight });
+        const [X, Y] = P(102.55, 42.95, top + 0.05 + 0.1 * k);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.12, -0.2, 0, Math.PI * 2); paint(ctx, mix(C.butter, C.wood, 0.25), { lw: 0.03 });
+        ctx.beginPath(); ctx.ellipse(X, Y - 0.07, 0.23, 0.08, -0.2, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.025 });
+        if (Q.detail) { ctx.beginPath(); ctx.moveTo(X - 0.16, Y - 0.02); ctx.lineTo(X + 0.16, Y - 0.08); ctx.strokeStyle = C.green; ctx.lineWidth = 0.035; ctx.stroke(); }
+      }
+      if (k <= 0.5) lid();
+    }, { bias: 0.4 });
+    R.find({ id: 'roll', label: 'A lobster roll', kind: 'poke', inside: lunch, at: (t) => [102.55, 42.95, coolerZ(t) + 0.55], r: 0.85, hint: 'The lifeguards brought lunch from Bob\'s, and they\'re keeping it cold.' });
     // The chalkboard of today's tides, on an easel by the ocean stand.
     const [bx, by] = BOARD_AT, bz0 = h(bx, by);
     R.thing(bx + 0.9, by + 0.5, (ctx) => {
@@ -1020,15 +1122,20 @@ export default {
     }
 
     // ---------- The finds ----------
-    // The goose, on the playground's swings.
-    R.goose((t) => { const p = gooseSwing(t); return { x: 103.8, y: p.y, z: p.z + 0.04, pose: 'sit', dir: 'l' }; }, { bias: 1 });
+    // The goose, in the front shower stall at the rental, all day. When its
+    // door swings open, out it steps, honking.
+    R.goose((t) => {
+      const k = shower.k();
+      if (k < 0.3) return { x: B0 + 0.4, y: SY + 0.4, z: sz, hidden: true };
+      return { x: B0 + 0.55, y: SY + 1.3, z: h(B0 + 0.55, SY + 1.3), pose: Math.sin(t * 1.3) > 0.5 ? 'honk' : 'stand', dir: 'r' };
+    }, { bias: 0.3, kind: 'poke', inside: shower, hint: 'Both showers at the rental are taken. Look under the doors.' });
     // A lobster buoy, bobbing in the river off the Point, on its own.
     const buoyX = (t) => 109.6 + Math.sin(t / 2) * 0.2;
     R.mover((t) => ({ x: buoyX(t), y: 30.5 }), (ctx, t, p) => lobsterBuoy(ctx, p.x, 30.5, float(p.x, 30.5, t), t));
     R.find({ id: 'buoy', label: 'A lobster buoy', at: (t) => [buoyX(t), 30.5, float(109.6, 30.5, t) + 0.3], r: 0.8 });
     // A lure snagged on the side of a rock near the jetty's end, low enough that
     // it's only out at low water.
-    R.find({ id: 'lure', label: 'A lure on the jetty', at: LURE, r: 0.8, when: lowTide, note: 'low tide' });
+    R.find({ id: 'lure', label: 'A lure', kind: 'hard', at: LURE, r: 0.8, when: lowTide, note: 'low tide', riddle: 'Snagged where the seals sunbathe, low down.', hint: 'Somebody lost their tackle on the jetty. It\'s low on the side of a rock near the end, out only when the sea is.' });
     // The seal in sunglasses, on the middle rock, all day.
     const s0 = ROCKS[4];
     R.find({ id: 'seal', label: 'A seal wearing sunglasses', at: [s0.x, s0.y, s0.top + 0.4], r: 0.8 });

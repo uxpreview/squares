@@ -4,8 +4,9 @@
 // the mainland end (a little plane going round all day), and mid-causeway the
 // lot where the Pink House stood, a sign on two granite posts now, with people
 // still stopping for the photo and a painter who paints it anyway. North of
-// it: the clam shack and its queue (the goose at the end of it), Every King
-// Tide Dave's truck parked on its lot all day, facing the road, and the blue
+// it: Bob's Lobster and its queue (the goose got to the front and kept going,
+// into a crate), Every King Tide Dave's truck parked on its lot all day, facing
+// the road, his cooler packed for the flood, and the blue
 // greenhead traps out on the marsh (the flies are winning). The drawbridge
 // over the Plum Island River goes up for one boat and the whole road waits;
 // at the king tide the road floods at its low spot, just behind it. At the
@@ -14,7 +15,7 @@
 // World units, like land.js. Everything standing on the marsh that the king
 // tide reaches has its foot drawn live from the water line (feet()), since a
 // still picture would stand over the water.
-import { C, Q, box, disc, face, poly, paint, paintText, person, folk, speech, label, cylinder, mix, tint, shade, alpha, glow } from '../../../engine/art.js';
+import { C, Q, box, disc, face, poly, paint, paintText, person, folk, speech, label, cylinder, mix, tint, shade, alpha, glow, goose } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { drawLand, wade } from '../../../engine/terrain.js';
 import { land, float, h, roadZ, PIKE, RIVER, BRIDGE, DECK, PINK, SHACK, AIRFIELD, VISITOR, DECK_AT, PANNES, CREEKS } from '../land.js';
@@ -247,7 +248,7 @@ function plane(ctx, x, y, z, s, t, o = {}) {
 export default {
   id: 'turnpike',
   name: 'The Turnpike',
-  blurb: 'One low road over the marsh: a clam shack, a drawbridge that waits for nobody, and the lot where the Pink House stood. Dave has been parked here since breakfast.',
+  blurb: 'One low road over the marsh: Bob\'s Lobster, a drawbridge that waits for nobody, and the lot where the Pink House stood. Dave has been parked here since breakfast.',
   home: [PIKE, 12],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });
@@ -579,7 +580,7 @@ export default {
     }, { anim: true, on: nightShift });
     R.light({ at: [bx + 0.45, by + 0.4, bTop + 0.6], r: 1.4, color: WARN, k: (t) => (nightShift(t) && mod(t, 1) < 0.5 ? 0.9 : 0) });
 
-    // ---------- The clam shack ----------
+    // ---------- Bob's Lobster ----------
     const [sx, sy] = SHACK, S0 = sx - 0.4, S1 = S0 + 3, T0 = sy - 2, T1 = T0 + 2.2, sz = footing(R, S0, T0, 3, 2.2);
     const win = [S0 + 0.25, S0 + 1.3, sz + 0.85, sz + 1.6];
     printed(R, S1, T1, (ctx, ink) => {
@@ -595,7 +596,7 @@ export default {
       box(ctx, win[0] - 0.05, T1, win[2] - 0.08, win[1] - win[0] + 0.1, 0.22, 0.08, C.white, { flat: true, lw: 0.03 });
       // The menu, chalked.
       plaque(ctx, 'x', S0 + 2.2, T1 + 0.01, sz + 1.25, 1.1, 0.95, shade(C.green, 0.45), [
-        ['FRIED CLAMS', 0.28, 0.13, C.white], ['CHOWDER', 0.1, 0.13, C.white], ['MORE CLAMS', -0.08, 0.13, C.white],
+        ['LOBSTER ROLL', 0.28, 0.13, C.white], ['CHOWDER', 0.1, 0.13, C.white], ['MORE LOBSTER', -0.08, 0.13, C.white],
         ['GREENHEAD SPRAY: NO', -0.3, 0.1, C.butter],
       ], { border: C.wood });
       // The awning over the window, striped.
@@ -622,7 +623,7 @@ export default {
       face(ctx, [[S1, T0, top], [S1, T1, top], [S1, m, top + rise]], shade(body, 0.06), { lw: 0.05, stroke: C.white });
       face(ctx, [[S0 - 0.1, T1 + 0.1, top], [S1 + 0.1, T1 + 0.1, top], [S1 + 0.1, m, top + rise], [S0 - 0.1, m, top + rise]], ink(C.coral), { lw: 0.05, dots: Q.detail ? ink(shade(C.coral, 0.4)) : null, density: 0.12 });
       for (const u of [S0 + 0.8, S0 + 2.2]) pole(ctx, u, m, top + rise - 0.05, 0.45, C.ink, 0.03);
-      plaque(ctx, 'x', S0 + 1.5, m, top + rise + 0.7, 1.9, 0.62, C.white, [['CLAMS', 0, 0.44, C.coral, 'Bagel Fat One']], { border: C.coral });
+      plaque(ctx, 'x', S0 + 1.5, m, top + rise + 0.7, 2.8, 0.62, C.white, [["BOB'S LOBSTER", 0, 0.3, C.coral, 'Bagel Fat One']], { border: C.coral });
       // Bins round the side, for the gulls.
       cylinder(ctx, S1 + 0.35, T0 + 0.2, sz, 0.22, 0.6, ink(C.teal));
     }, { veil: (ctx, v) => {
@@ -635,16 +636,21 @@ export default {
     } });
     // The window and the bulbs, lit after dark.
     R.thing(S1 + 0.01, T1 + 0.01, (ctx) => pane(ctx, 'x', 0, T1, win[0], win[1], win[2], win[3], LIT, { lw: 0.04, stroke: C.white }), { on: lightsOn });
-    // The cook, in the window, all day.
+    // The cook, in the window, all day. Tap the window and he bobs up to it
+    // (any hour: Bob is always in, and so is everyone else called Bob).
+    const hatch = R.poke({ id: 'window', at: [(win[0] + win[1]) / 2, T1 + 0.05, (win[2] + win[3]) / 2], r: 0.8, hold: 2.5, teach: true,
+      say: ["Bob's not in. I'm also Bob.", "We're all Bob here.", 'One lobster roll, coming up.'] });
     R.thing(S1 + 0.02, T1 + 0.02, (ctx, t) => {
-      if (!between(10.3, 20.7)(t)) return;
+      const k = hatch.k();
+      if (!between(10.3, 20.7)(t) && k < 0.05) return;
       ctx.save();
       poly(ctx, [[win[0], T1, win[2]], [win[1], T1, win[2]], [win[1], T1, win[3]], [win[0], T1, win[3]]]);
       ctx.clip();
-      person(ctx, win[0] + 0.55 + Math.sin(t * 0.7) * 0.2, T1 - 0.2, sz + 0.2, folk(90, { hat: 'chef', top: C.white, pose: mod(t, 6) < 1 ? 'wave' : 'carry', dir: 'l' }), t);
+      const cx = win[0] + 0.55 + Math.sin(t * 0.7) * 0.2 * (1 - k);
+      person(ctx, cx, T1 - 0.2 + 0.15 * k, sz + 0.2 + 0.3 * k, folk(90, { hat: 'chef', top: C.white, pose: k > 0.3 || mod(t, 6) < 1 ? 'wave' : 'carry', dir: 'l' }), t);
       ctx.restore();
     }, { anim: true });
-    // A string of bulbs from the shack's corner to a pole by Dave's truck.
+    // A string of bulbs from Bob's corner to a pole by Dave's truck.
     const bulbPole = [64.4, 12.6], bpz = R.ground(...bulbPole);
     const bulbs = [];
     for (let i = 0; i <= 8; i++) {
@@ -658,12 +664,13 @@ export default {
     });
     R.thing(bulbPole[0] + 0.06, bulbPole[1] + 0.06, (ctx) => { for (const b of bulbs) dot(ctx, b[0], b[1], b[2] - 0.07, 0.08, LIT); }, { on: lightsOn });
     nightGlow(R, S0 + 1, T1 + 1.2, sz + 1.2, 2.6, LIT, 0.85);
-    // The queue, since they opened (and the goose at the end of it).
-    const queue = [[66.6, 11.4, 70], [67.6, 11.7, 71], [68.5, 11.6, 72]];
+    // The queue, since they opened. (Moved up a little for the crates at the
+    // end of it: the goose was last in line, then got bored.)
+    const queue = [[66.2, 11.4, 70], [67.1, 11.7, 71], [67.95, 11.6, 72]];
     queue.forEach(([x, y, s], i) => {
       extra(R, x, y, folk(s), { pose: i === 0 ? 'point' : i === 1 ? 'read' : 'stand', dir: 'l', back: true }, { hours: between(10.5, 20.5) });
     });
-    // A picnic table, two people eating clams, and the gull who's next.
+    // A picnic table, two people eating lobster rolls, and the gull who's next.
     const tb = [64.5, 8.6, 1.3, 0.7], tz = R.ground(65.1, 8.95);
     R.thing(tb[0] + tb[2], tb[1] + tb[3] + 0.45, (ctx) => {
       for (const v of [tb[1] - 0.45, tb[1] + tb[3] + 0.2]) box(ctx, tb[0], v, tz + 0.4, tb[2], 0.25, 0.08, C.wood, { flat: true, lw: 0.03 });
@@ -676,7 +683,7 @@ export default {
     });
     extra(R, 65.0, 8.2, folk(93, { top: C.sky }), { pose: 'sit', dir: 'l' }, { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
     extra(R, 65.3, 9.75, folk(94, { top: C.pink, style: 'bun' }), { pose: 'sit', dir: 'r', back: true, arms: [1.2, 0.3] }, { hours: between(11, 20.2), z: tz + 0.02, sun: 'stand' });
-    // The gull: on the ridge, down to the gulls' bin by the shack, a rummage,
+    // The gull: on the ridge, down to the gulls' bin by Bob's, a rummage,
     // and back up. (The fry thief is the Town Beach's; this one does bins.)
     const ridge = [S0 + 2.4, (T0 + T1) / 2, sz + 2.85], grab = [S1 + 0.35, T0 + 0.2, sz + 0.62];
     R.mover((t) => {
@@ -709,10 +716,35 @@ export default {
       face(ctx, [[chx + 0.25, chy - 0.25, chz + 0.4], [chx + 0.25, chy + 0.25, chz + 0.4], [chx + 0.4, chy + 0.25, chz + 1.0], [chx + 0.4, chy - 0.25, chz + 1.0]], C.teal, { lw: 0.03, dots: Q.detail ? C.white : null, density: 0.3 });
       for (const [u, v] of [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.22], [0.22, 0.22]]) line(ctx, [[chx + u, chy + v, chz], [chx + u, chy + v, chz + 0.36]], C.greyLight, 0.035);
       words(ctx, 'y', chx + 0.33, chy, chz + 0.8, 'DAVE', 0.1, C.white);
-      // The cooler: Gander Cola, take a gander.
-      box(ctx, chx - 0.35, chy + 0.35, chz, 0.6, 0.4, 0.4, BRAND.can, { flat: true, lw: 0.035, top: C.white });
-      words(ctx, 'x', chx - 0.05, chy + 0.75, chz + 0.22, BRAND.name, 0.075, BRAND.ink, 'Bagel Fat One');
     });
+    // His cooler: Gander Cola, take a gander. Packed for the flood, and the
+    // end of his snorkel won't fit under the lid.
+    const [cox, coy, cw, cd, ch] = [chx - 0.42, chy + 0.35, 0.72, 0.46, 0.44], coz = chz;
+    const cooler = R.poke({ id: 'cooler', at: [cox + cw / 2, coy + cd / 2, coz + 0.35], r: 0.7, sound: 'clunk', say: "Dave's. Hands off." });
+    const coolerAt = (ctx, k) => {
+      const zt = coz + ch, a = k * 1.75, cs = Math.cos(a), sn = Math.sin(a), Lc = cd;
+      const pt = (x, u, w) => [x, coy + u * cs - sn * w, zt + u * sn + cs * w];
+      const lid = () => { const c = []; for (const x of [cox, cox + cw]) c.push(pt(x, 0, 0), pt(x, Lc, 0), pt(x, Lc, 0.07), pt(x, 0, 0.07)); solid(ctx, c, C.white); };
+      if (k > 0.15) lid();
+      box(ctx, cox, coy, coz, cw, cd, ch, BRAND.can, { flat: true, lw: 0.035, top: k > 0.15 ? shade(BRAND.can, 0.55) : C.white });
+      words(ctx, 'x', cox + cw / 2, coy + cd, coz + 0.24, BRAND.name, 0.08, BRAND.ink, 'Bagel Fat One');
+      // The snorkel: up out of the ice when it's open, its tip out of the
+      // back corner when it's shut.
+      const sx0 = cox + cw * 0.6, sy0 = coy + cd * 0.45, up = 0.15 + 0.45 * k;
+      const tube = (pts) => { line(ctx, pts, C.ink, 0.14); line(ctx, pts, C.mustard, 0.09); };
+      if (k > 0.15) {
+        tube([[sx0, sy0, zt - 0.05], [sx0, sy0, zt + up + 0.5], [sx0 - 0.18, sy0, zt + up + 0.62]]);
+        const [X, Y] = P3(sx0 + 0.1, sy0 + 0.05, zt + up + 0.05);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.19, 0, 0, Math.PI * 2);
+        paint(ctx, C.teal, { lw: 0.035 });
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.21, 0.11, 0, 0, Math.PI * 2);
+        paint(ctx, tint(C.sky, 0.3), { lw: 0.02 });
+      } else {
+        tube([[cox + 0.12, coy + 0.1, zt - 0.02], [cox + 0.1, coy + 0.08, zt + 0.32], [cox - 0.02, coy + 0.08, zt + 0.4]]);
+        lid();
+      }
+    };
+    calm(R, cox + cw, coy + cd, (ctx) => coolerAt(ctx, cooler.k()), () => cooler.k() > 0.001);
 
     // ---------- The drawbridge ----------
     // Two leaves hinged on piers either side of the river, which lift for a
@@ -784,15 +816,18 @@ export default {
       pane(ctx, 'y', HX1, 0, HY0 + 0.2, HY1 - 0.2, hutZ + 0.7, hutZ + 1.25, LIT, { lw: 0.03, stroke: C.teal });
     }, { on: lightsOn });
     // The bell on the roof, swinging while the bridge moves; and it says so.
+    // Anyone can ring it. The bridge doesn't care.
+    const bell = R.poke({ id: 'bell', at: [HX0 + 0.75, HY0 + 0.5, hutZ + 1.85], r: 0.7, hold: 1.4, sound: 'tick',
+      say: ['DING. Nobody moved.', 'DING. The bridge stays down.', "He's reading. Let him read."] });
     calm(R, HX1 + 0.02, HY1 + 0.02, (ctx, t) => {
-      const k = bridgeUp(t), ring = k > 0 && k < 1;
+      const k = bridgeUp(t), ring = (k > 0 && k < 1) || bell.k() > 0.02;
       const sw = ring ? Math.sin(t * 9) * 0.35 : 0, [X, Y] = P3(HX0 + 0.75, HY0 + 0.5, hutZ + 1.95);
       ctx.save(); ctx.translate(X, Y); ctx.rotate(sw);
       ctx.beginPath(); ctx.moveTo(-0.14, 0.26); ctx.quadraticCurveTo(-0.14, 0, 0, 0); ctx.quadraticCurveTo(0.14, 0, 0.14, 0.26); ctx.closePath();
       paint(ctx, WARN, { lw: 0.03 });
       ctx.restore();
       if (ring && Q.detail && mod(t, 1) < 0.6) label(ctx, HX0 + 0.3, HY0 + 0.2, hutZ + 2.6 + mod(t, 1) * 0.4, 'DING', 0.3, C.ink);
-    }, moving);
+    }, (t) => moving(t) || bell.k() > 0.02);
     // The tender, on his platform. Waves the boat through; waves at the queue.
     const tender = folk(96, { top: C.navy, bottom: C.navy, hat: 'cap' }), up = (t) => bridgeUp(t) > 0;
     extra(R, 59.3, 20.75, tender, { pose: 'read', dir: 'r' }, { z: hutZ, depth: HX1 + HY1 + 0.4, hours: (t) => !up(t) });
@@ -999,21 +1034,115 @@ export default {
     // The ending: the geese paddle out to the Courier's van (finale.js).
     swim(R);
 
+    // ---------- Bob's crates, and the porch goose ----------
+    // Two crates of live lobsters at the end of the queue, just delivered. Two
+    // of a kind, one has it: the goose got bored of queueing and got in. Its
+    // lid sits ajar, a tail tip sticks out the side and a foot out between
+    // the slats. The other one is just lobsters (live ones are dark; only the
+    // one on the road is red).
+    const CRATE = C.woodLight, CW = 0.95, CD = 0.75, CH = 0.6;
+    const crate = (x0, y0, pk, o) => {
+      const z = R.ground(x0 + CW / 2, y0 + CD / 2), zt = z + CH;
+      const body = (ctx, t) => {
+        const k = pk.k();
+        box(ctx, x0, y0, z, CW, CD, CH, CRATE, { lw: 0.04, top: k > 0.15 ? shade(C.brown, 0.5) : CRATE, dotsL: shade(CRATE, 0.45), dens: 0.1 });
+        // Slats: dark gaps across both faces you see.
+        for (const dz of [0.2, 0.4]) {
+          line(ctx, [[x0, y0 + CD, z + dz], [x0 + CW, y0 + CD, z + dz]], shade(C.wood, 0.5), 0.035);
+          line(ctx, [[x0 + CW, y0, z + dz], [x0 + CW, y0 + CD, z + dz]], shade(C.wood, 0.5), 0.035);
+        }
+        words(ctx, 'x', x0 + CW / 2, y0 + CD, z + 0.49, "BOB'S", 0.12, C.navy, 'Bagel Fat One');
+        words(ctx, 'x', x0 + CW / 2, y0 + CD, z + 0.3, 'LIVE LOBSTERS', 0.075, C.navy);
+        if (o.tell && k < 0.3) {
+          // The tail tip out of the side, under the lid, and a webbed foot
+          // out of the bottom gap.
+          face(ctx, [[x0 + CW, y0 + 0.12, zt - 0.1], [x0 + CW, y0 + 0.55, zt - 0.1], [x0 + CW + 0.45, y0 + 0.3, zt + 0.16]], C.white, { lw: 0.035, dots: Q.detail ? C.grey : null, density: 0.12 });
+          if (Q.detail) line(ctx, [[x0 + CW + 0.05, y0 + 0.33, zt - 0.06], [x0 + CW + 0.32, y0 + 0.3, zt + 0.08]], C.greyLight, 0.03);
+          const fy = y0 + CD;
+          face(ctx, [[x0 + 0.32, fy, z + 0.16], [x0 + 0.46, fy, z + 0.16], [x0 + 0.56, fy + 0.3, z + 0.02], [x0 + 0.44, fy + 0.26, z + 0.02], [x0 + 0.36, fy + 0.32, z + 0.02], [x0 + 0.26, fy + 0.26, z + 0.02]], C.coral, { lw: 0.03 });
+        }
+        if (o.lobsters && k > 0.15) {
+          // Two live lobsters, claws up, unimpressed.
+          const L = mix(C.navy, C.green, 0.35), up = 0.25 * k;
+          for (const [u, v, s] of [[0.3, 0.35, 1], [0.65, 0.4, -1]]) {
+            const bx = x0 + u, by = y0 + v;
+            line(ctx, [[bx, by, zt - 0.1], [bx + 0.08 * s, by, zt + up + 0.15]], L, 0.07);
+            disc(ctx, bx + 0.1 * s, by, zt + up + 0.2, 0.09, L, { lw: 0.025 });
+            if (Q.detail) line(ctx, [[bx, by, zt], [bx - 0.15 * s, by + 0.1, zt + up + 0.4]], shade(L, 0.2), 0.02);
+          }
+        }
+      };
+      // The lid, hinged along the back. Shut, it's drawn over the crate;
+      // open, behind whatever comes up out of it.
+      const lid = (ctx) => {
+        const k = pk.k(), a = ((o.ajar || 0) + k * (1 - (o.ajar || 0))) * 1.75, cs = Math.cos(a), sn = Math.sin(a);
+        const pt = (x, u, w) => [x, y0 + u * cs - sn * w, zt + u * sn + cs * w];
+        const c = [];
+        for (const x of [x0 - 0.02, x0 + CW + 0.02]) c.push(pt(x, 0, 0), pt(x, CD + 0.02, 0), pt(x, CD + 0.02, 0.06), pt(x, 0, 0.06));
+        solid(ctx, c, tint(CRATE, 0.15));
+      };
+      const busy = () => pk.k() > 0.001, front = x0 + CW + y0 + CD;
+      calm(R, x0 + CW, y0 + CD, body, busy);
+      calm(R, x0 + CW, y0 + CD, lid, busy, { depth: front + 0.02, busyDepth: () => (pk.k() > 0.15 ? x0 + y0 + 0.05 : front + 0.02) });
+      return z;
+    };
+    const goosey = R.poke({ id: 'crate', at: [69.0, 12.0, 1.0 + 0.35], r: 0.7, sound: 'clunk' });
+    const lobsters = R.poke({ id: 'lobsters', at: [69.0, 10.98, 1.0 + 0.35], r: 0.6, sound: 'clunk', say: ['Live lobsters. They saw nothing.', 'Still lobsters. Still saw nothing.'] });
+    const gcz = crate(69.0 - CW / 2, 12.0 - CD / 2, goosey, { tell: true, ajar: 0.07 });
+    crate(69.0 - CW / 2, 10.98 - CD / 2, lobsters, { lobsters: true });
+    // The porch goose out front of Bob's: concrete, and dressed by Bob for the
+    // weather, which is always a flood. Drawn as the goose is, plus a slicker
+    // and a sou'wester.
+    const pgx = 66.5, pgy = 12.45, pgz = R.ground(pgx, pgy);
+    R.thing(pgx + 0.3, pgy + 0.2, (ctx) => {
+      const [X, Y] = P3(pgx, pgy, pgz), s = 0.85;
+      // Its concrete step.
+      box(ctx, pgx - 0.32, pgy - 0.25, pgz, 0.64, 0.5, 0.1, CONCRETE, { flat: true, lw: 0.03 });
+      goose(ctx, pgx, pgy, pgz + 0.1, 0, { dir: 'r', pose: 'stand', scale: s });
+      ctx.save();
+      ctx.translate(X, Y - 0.1 * ZK);
+      ctx.scale(s, s);
+      // The slicker, over the body and the wing; the tail stays out.
+      ctx.beginPath();
+      ctx.ellipse(0.04, -0.44, 0.36, 0.22, -0.12, 0, Math.PI * 2);
+      paint(ctx, C.mustard, { lw: 0.035, dots: Q.detail ? shade(C.mustard, 0.35) : null, density: 0.1 });
+      ctx.beginPath(); ctx.moveTo(0.16, -0.62); ctx.lineTo(0.14, -0.26);
+      ctx.strokeStyle = shade(C.mustard, 0.45); ctx.lineWidth = 0.025; ctx.stroke();
+      for (const yy of [-0.52, -0.4]) { ctx.beginPath(); ctx.arc(0.2, yy, 0.025, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill(); }
+      // The sou'wester: a brim, a crown, the long back down the neck.
+      ctx.beginPath();
+      ctx.ellipse(0.24, -1.2, 0.3, 0.075, -0.12, 0, Math.PI * 2);
+      paint(ctx, C.mustard, { lw: 0.03 });
+      ctx.beginPath();
+      ctx.ellipse(0.27, -1.23, 0.15, 0.14, 0, Math.PI, Math.PI * 2);
+      ctx.closePath();
+      paint(ctx, C.mustard, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(0.36, -1.17); ctx.lineTo(0.33, -0.98);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+      ctx.restore();
+    });
+    R.decoy({ id: 'porch-goose', at: [pgx, pgy, pgz + 0.55], r: 0.7, say: ['A porch goose. Dressed for the flood.', 'Concrete. Better dressed than you.', 'Bob changes its outfit weekly.'] });
+
     // ---------- The finds ----------
-    // The goose, at the end of the clam shack's queue (it's been there since
-    // they opened), looking at the menu now and then.
-    const gx0 = sx + 3, gy0 = sy + 1.6, gz0 = h(gx0, gy0);
-    R.goose((t) => { const k = mod(t, 12); return { x: gx0, y: gy0, z: gz0, dir: 'l', pose: k < 1 ? 'honk' : k > 8 && k < 9.5 ? 'peck' : 'stand' }; });
-    // A lobster crossing the road, very slowly, both ways.
-    // (On the asphalt, mostly the far lane: past the road's edge on the
-    // shack's side, the shack's roof hid it.)
+    // The goose: last in Bob's queue since they opened, then into a crate of
+    // live lobsters. Up it comes when the lid does.
+    R.goose((t) => {
+      const k = goosey.k();
+      return { x: 69.0, y: 12.0, z: gcz + 0.12 + 0.5 * k, dir: 'l', hidden: k < 0.3, pose: k > 0.6 && mod(t, 5) < 1.2 ? 'honk' : 'stand' };
+    }, { kind: 'poke', inside: goosey, hint: 'The goose got to the front of the queue and kept going. Check the deliveries.' });
+    // Dave's snorkel, in his cooler (he drives through the flood every year).
+    R.find({ id: 'snorkel', label: 'A snorkel', kind: 'poke', inside: cooler, at: [cox + cw * 0.6, coy + cd * 0.45, coz + ch + 0.6], r: 0.8, hint: 'Every King Tide Dave comes prepared. Check what he packed.' });
+    // A lobster crossing the road, very slowly, both ways: out from Bob's,
+    // having second thoughts. (On the asphalt, mostly the far lane: past the
+    // road's edge on Bob's side, its roof hid it.)
     const lobAt = (t) => { const x = PIKE - 0.4 + 0.9 * Math.sin(t / 14); return [x, 8.4, float(x, 8.4, t) + 0.2]; };
     R.find({ id: 'lobster', label: 'A lobster crossing the road', at: lobAt, r: 0.8 });
     R.mover((t) => { const [x, y, z] = lobAt(t); return { x, y, z, s: Math.cos(t / 14) >= 0 ? 1 : -1 }; }, (ctx, t, p) => lobster(ctx, p.x, p.y, p.z - 0.18, p.s, t));
     // A car key on a cork float, bobbing in a salt panne when there's water in it.
     const [kx, ky] = PANNES[0];
     const keyAt = (t) => [kx + 0.3 * Math.sin(t / 2.7), ky + 0.2 * Math.cos(t / 3.1), float(kx, ky, t) + 0.1];
-    R.find({ id: 'key', label: 'A car key on a float', at: keyAt, r: 0.8, when: highTide, note: 'high tide' });
+    R.find({ id: 'key', label: 'A car key on a float', kind: 'hard', at: keyAt, r: 0.8, when: highTide, note: 'high tide',
+      riddle: 'Bobbing in a puddle the tide left behind.', hint: "At high water the pools on the marsh fill up. Something cork is bobbing in one, out behind Bob's." });
     R.mover((t) => { const [x, y, z] = keyAt(t); return { x, y, z: z + Math.sin(t * 1.9) * 0.03 }; }, (ctx, t, p) => {
       if (!highTide(t)) return;
       cylinder(ctx, p.x, p.y, p.z - 0.12, 0.17, 0.22, C.woodLight);
