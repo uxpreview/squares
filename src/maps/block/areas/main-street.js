@@ -11,13 +11,13 @@
 // the chunks it reaches), and everything that changes with the hour is a
 // still picture shown only in its hours (on), not an animated one.
 import {
-  C, Q, P, box, rect, disc, cylinder, face, poly, paint, paintText, person, folk, speech, label, note, tint, shade, alpha,
+  C, Q, P, box, rect, disc, cylinder, face, poly, paint, paintText, person, folk, speech, label, note, tint, shade, alpha, goose,
 } from '../../../engine/art.js';
 import { SLAB } from '../../../engine/iso.js';
 import { particles, ease } from '../../../engine/actors.js';
 import { MAIN_STREET, MAIN0, MAIN1, MID, STAGE, STAGE_Z, CASTLE } from '../plan.js';
 import { conga } from '../finale.js';
-import { STREET, STREET_NIGHT, STAGE_INK, PARTY_LIGHT, BUNTING, bunting, board, cone, streetLamp, litter } from '../style.js';
+import { STREET, STREET_NIGHT, STAGE_INK, PARTY_LIGHT, BUNTING, bunting, board, cone, streetLamp, litter, onFloor } from '../style.js';
 import { hour, nightK, within, LAUNCH } from '../clock.js';
 
 // ---------- The day ----------
@@ -503,8 +503,9 @@ function turret(ctx, x, y, z, h, color, roof) {
   ctx.ellipse(X, Y, 0.62, 0.3, 0, 0, Math.PI);
   paint(ctx, roof, { lw: 0.04 });
 }
-function castle(ctx, t) {
-  const k = puff(t), c = ((t % CYCLE) + CYCLE) % CYCLE;
+// boost: the pump, tapped (0 to 1): up it goes, whoever's sitting on it.
+function castle(ctx, t, boost = 0) {
+  const k = Math.max(puff(t), 0.12 + 0.83 * boost), c = ((t % CYCLE) + CYCLE) % CYCLE;
   const base = 0.2 + 0.35 * k, wall = 0.25 + 1.5 * k, tower = 0.3 + 2.1 * k;
   const x0 = KX, y0 = KY, x1 = KX + KW, y1 = KY + KD;
   box(ctx, x0, y0, 0, KW, KD, base, C.coral, { top: C.butter, lw: 0.04 });
@@ -597,6 +598,134 @@ function pump(ctx, t) {
   const cross = c >= 18 && c < 25;
   person(ctx, KX + KW + 0.6, KY + KD + 0.4, 0, { ...folk(97), top: C.teal, hat: 'cap', pose: cross ? 'point' : 'wave', dir: 'r' }, t);
   if (cross && c < 21 && Q.detail && Q.pxPerUnit >= 12) speech(ctx, KX + KW + 0.6, KY + KD + 0.4, 3.0, 'OFF THE PUMP!', { size: 0.42 });
+}
+
+// ---------- The crates of party stuff ----------
+// Two lidded crates on the back arm: PARTY (the spare bunting) and HATS.
+const CRATE = { x: 42.1, y: 24.6, w: 1.4, d: 1.3, h: 0.8 };
+const HATS = { x: 42.3, y: 26.0, w: 1.2, d: 0.8, h: 0.55 };
+// A lid hinged along a crate's back edge (y = c.y), open by k: flat at 0,
+// up and leaning back past upright at 1.
+function lid(ctx, c, k, color, most = 1.95) {
+  const a = k * most, top = c.h, D = c.d;
+  const y = c.y + D * Math.cos(a), z = top + D * Math.sin(a);
+  face(ctx, [[c.x, c.y, top], [c.x + c.w, c.y, top], [c.x + c.w, y, z], [c.x, y, z]], k > 0.5 ? shade(color, 0.25) : color, { lw: 0.04 });
+  if (k < 0.5 && Q.detail) line(ctx, [c.x + 0.1, (c.y + y) / 2, (top + z) / 2], [c.x + c.w - 0.1, (c.y + y) / 2, (top + z) / 2], shade(color, 0.35), 0.025);
+}
+// The inside of an open crate, dark.
+const inside = (ctx, c) => rect(ctx, c.x + 0.06, c.y + 0.06, c.w - 0.12, c.d - 0.12, c.h - 0.005, shade(C.wood, 0.6), { stroke: false });
+// A roll of bunting: a spool, and flags round it.
+function roll(ctx, x, y, z) {
+  cylinder(ctx, x, y, z, 0.38, 0.28, C.white, { top: C.white });
+  disc(ctx, x, y, z + 0.28, 0.12, C.wood, { lw: 0.02 });
+  for (const [a, c] of [[0, C.coral], [1.6, C.teal], [3.2, C.mustard], [4.6, C.purple]]) {
+    const [X, Y] = P(x + Math.cos(a) * 0.38, y + Math.sin(a) * 0.38, z + 0.14);
+    ctx.beginPath();
+    ctx.moveTo(X - 0.08, Y - 0.06);
+    ctx.lineTo(X + 0.08, Y - 0.06);
+    ctx.lineTo(X, Y + 0.1);
+    ctx.closePath();
+    ctx.fillStyle = c;
+    ctx.fill();
+  }
+}
+function partyCrate(ctx, k) {
+  const c = CRATE;
+  if (k < 0.5) {
+    // Shut: the roll's tail of flags caught under the lid, down the side.
+    lid(ctx, c, k, C.wood);
+    const pts = [[c.x + c.w - 0.05, 25.15, c.h + 0.02], [c.x + c.w + 0.04, 25.3, 0.62], [c.x + c.w + 0.05, 25.5, 0.42], [c.x + c.w + 0.04, 25.72, 0.24]];
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(...P(...p)) : ctx.moveTo(...P(...p))));
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 0.03;
+    ctx.stroke();
+    pts.slice(1).forEach((p, i) => {
+      const [X, Y] = P(...p);
+      ctx.beginPath();
+      ctx.moveTo(X - 0.13, Y);
+      ctx.lineTo(X + 0.13, Y);
+      ctx.lineTo(X, Y + 0.28);
+      ctx.closePath();
+      paint(ctx, BUNTING[i + 1], { lw: 0.025 });
+    });
+    return;
+  }
+  // Open: the lid up behind, and the roll pops up out of it.
+  lid(ctx, c, k, C.wood);
+  inside(ctx, c);
+  roll(ctx, 42.8, 25.25, c.h - 0.3 + 0.55 * k);
+}
+function hatCrate(ctx, k) {
+  const c = HATS;
+  if (k < 0.5) { lid(ctx, c, k, C.woodLight, 1.5); return; }
+  lid(ctx, c, k, C.woodLight, 1.5);
+  inside(ctx, c);
+  // Party hats, springing up.
+  for (const [x, y, col, d] of [[42.6, 26.3, C.pink, 0], [43.0, 26.35, C.teal, 0.12], [42.8, 26.55, C.mustard, 0.06]]) {
+    const [X, Y] = P(x, y, c.h - 0.2 + (0.45 + d) * k);
+    ctx.beginPath();
+    ctx.moveTo(X - 0.15, Y);
+    ctx.lineTo(X, Y - 0.5);
+    ctx.lineTo(X + 0.15, Y);
+    ctx.closePath();
+    paint(ctx, col, { lw: 0.025 });
+  }
+}
+
+// ---------- The Courier's map ----------
+// On the zebra crossing on the back road, between two stripes and over one.
+const MAP = [39.45, 10.95];
+
+// ---------- The balloon goose ----------
+// Tethered for the parade by the "Have you seen this goose?" board, half
+// blown up: a white goose the size of the real one, bobbing low on a string.
+const BG = { x: 40.1, y: 56.0, bag: [40.55, 56.5] };
+function balloonGoose(ctx, t) {
+  const bob = Math.sin(t * 1.1) * 0.07, z = 0.55 + bob;
+  const [bx, by] = BG.bag;
+  // Its shadow on the road, and the sandbag it's tied to.
+  if (Q.detail) {
+    const [SX, SY] = P(BG.x, BG.y, 0);
+    ctx.beginPath();
+    ctx.ellipse(SX, SY, 0.36, 0.13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.ink, 0.13);
+    ctx.fill();
+  }
+  box(ctx, bx - 0.2, by - 0.15, 0, 0.4, 0.3, 0.2, C.woodLight, { lw: 0.03 });
+  // The string, from the bag to its belly.
+  const [AX, AY] = P(bx, by, 0.2), [GX, GY] = P(BG.x + 0.05, BG.y + 0.05, z + 0.1);
+  ctx.beginPath();
+  ctx.moveTo(AX, AY);
+  ctx.quadraticCurveTo((AX + GX) / 2 + 0.1, (AY + GY) / 2 + 0.15, GX, GY);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.025;
+  ctx.stroke();
+  // The goose: the real one's shape, a little saggy, swaying on its string.
+  const [X, Y] = P(BG.x, BG.y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(Math.sin(t * 0.8) * 0.08);
+  ctx.scale(1, 0.94);
+  ctx.translate(-X, -Y);
+  goose(ctx, BG.x, BG.y, z, 0, { pose: 'swim', dir: 'l' });
+  ctx.restore();
+  if (!Q.detail) return;
+  // A shine, a crease where it's not full, and the knot under it.
+  ctx.beginPath();
+  ctx.ellipse(X + 0.12, Y - 0.12, 0.1, 0.04, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = alpha(C.white, 0.9);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(X - 0.25, Y - 0.08);
+  ctx.quadraticCurveTo(X - 0.1, Y - 0.02, X + 0.05, Y - 0.1);
+  ctx.strokeStyle = C.greyLight;
+  ctx.lineWidth = 0.025;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(GX, GY + 0.03, 0.04, 0, Math.PI * 2);
+  ctx.fillStyle = C.white;
+  ctx.fill();
 }
 
 // ---------- The street's furniture ----------
@@ -842,6 +971,18 @@ export default {
     R.light({ at: [MID, MID, 3.5], r: 6.5, color: PARTY_LIGHT, k: glowK });
     R.light({ at: [MID + 1, MID + 1, 1.6], r: 3.5, color: C.butter, k: (t) => glowK(t) * 0.6 });
 
+    // The stage answers a tap all day: a sound check, and notes off it.
+    const check = R.poke({ id: 'stage', at: [MID, MID, SZ + 1.2], r: 1.8, hold: 2.5, sound: 'tick', teach: true, say: ['ONE, TWO. ONE, TWO.', 'IS THIS THING ON?', 'THE HONKS. LIVE AT 7PM.'] });
+    R.thing(MID, MID, (ctx, t) => {
+      const k = check.k();
+      if (k <= 0.01 || !Q.detail) return;
+      const s = (t * 0.8) % 1;
+      for (let i = 0; i < 5; i++) {
+        const u = (s + i / 5) % 1;
+        note(ctx, MID - 1.6 + i * 0.8, MID + 1.6 - i * 0.8, SZ + 1.2 + u * 2.6, alpha(i % 2 ? C.coral : C.ink, k * (1 - u * 0.7)), 1.6);
+      }
+    }, { anim: true, depth: 90.2 });
+
     // The generator behind the backdrop, and its cable.
     R.thing(42.8, 35.0, (ctx) => {
       line(ctx, [42.8, 35.2, 0.03], [42.8, SY, 0.03], C.ink, 0.07);
@@ -907,56 +1048,28 @@ export default {
       face(ctx, [[41.0, 32.7, 0.02], [41.9, 32.6, 0.02], [42.0, 33.1, 0.02], [41.1, 33.2, 0.02]], C.coral, { lw: 0.03 });
       face(ctx, [[41.3, 32.75, 0.03], [41.5, 32.72, 0.03], [41.6, 33.12, 0.03], [41.4, 33.15, 0.03]], C.white, { stroke: false });
     });
-    // Crates of party stuff, and on one of them, a roll of bunting.
-    R.thing(42.8, 26.0, (ctx) => {
-      box(ctx, 42.1, 24.6, 0, 1.4, 1.3, 0.8, C.wood, { lw: 0.04, dotsL: shade(C.wood, 0.5) });
-      if (Q.detail) for (const z of [0.27, 0.54]) line(ctx, [42.1, 25.9, z], [43.5, 25.9, z], shade(C.wood, 0.35), 0.03);
-      box(ctx, 42.3, 26.0, 0, 1.2, 0.8, 0.55, C.woodLight, { lw: 0.04 });
-      // party hats poking out
-      for (const [x, y, c] of [[42.6, 26.3, C.pink], [43.0, 26.4, C.teal], [42.8, 26.6, C.mustard]]) {
-        const [X, Y] = P(x, y, 0.55);
-        ctx.beginPath();
-        ctx.moveTo(X - 0.15, Y);
-        ctx.lineTo(X, Y - 0.5);
-        ctx.lineTo(X + 0.15, Y);
-        ctx.closePath();
-        paint(ctx, c, { lw: 0.025 });
-      }
-      if (Q.detail) words(ctx, 'y', 26.8, 42.9, 0.28, 'HATS', 0.24, C.brown);
-    });
-    R.thing(43.0, 25.6, (ctx) => {
-      // the roll: a spool, and a few flags off it over the crate's edge
-      cylinder(ctx, 43.0, 25.5, 0.8, 0.38, 0.28, C.white, { top: C.white });
-      disc(ctx, 43.0, 25.5, 1.08, 0.12, C.wood, { lw: 0.02 });
-      const pts = [[43.2, 25.75, 0.95], [43.0, 25.9, 0.8], [42.7, 25.95, 0.55], [42.45, 25.95, 0.35]];
-      ctx.beginPath();
-      pts.forEach((p, i) => (i ? ctx.lineTo(...P(...p)) : ctx.moveTo(...P(...p))));
-      ctx.strokeStyle = C.ink;
-      ctx.lineWidth = 0.03;
-      ctx.stroke();
-      pts.slice(1).forEach((p, i) => {
-        const [X, Y] = P(...p);
-        ctx.beginPath();
-        ctx.moveTo(X - 0.1, Y);
-        ctx.lineTo(X + 0.1, Y);
-        ctx.lineTo(X, Y + 0.22);
-        ctx.closePath();
-        paint(ctx, BUNTING[i + 1], { lw: 0.02 });
-      });
-      for (const [a, c] of [[0, C.coral], [1.6, C.teal], [3.2, C.mustard], [4.6, C.purple]]) {
-        const [X, Y] = P(43.0 + Math.cos(a) * 0.38, 25.5 + Math.sin(a) * 0.38, 0.94);
-        ctx.beginPath();
-        ctx.moveTo(X - 0.08, Y - 0.06);
-        ctx.lineTo(X + 0.08, Y - 0.06);
-        ctx.lineTo(X, Y + 0.1);
-        ctx.closePath();
-        ctx.fillStyle = c;
-        ctx.fill();
-      }
-    }, { depth: 70 }); // over the crate it sits on
+    const partyLid = R.poke({ id: 'party-crate', at: [42.8, 25.25, 0.9], r: 0.9, sound: 'clunk' });
+    const hatLid = R.poke({ id: 'hats', at: [42.9, 26.4, 0.6], r: 0.7, sound: 'clunk', say: ['Just hats.', 'Still just hats.', 'One each. No geese.'] });
+    // Two crates of party stuff by the kerb, lids shut. The big one (PARTY)
+    // has the spare roll of bunting in it, its tail of flags caught under the
+    // lid; the little one (HATS) is just hats.
+    R.thing(43.5, 25.9, (ctx) => {
+      box(ctx, CRATE.x, CRATE.y, 0, CRATE.w, CRATE.d, CRATE.h, C.wood, { lw: 0.04, dotsL: shade(C.wood, 0.5) });
+      if (!Q.detail) return;
+      for (const z of [0.27, 0.54]) line(ctx, [CRATE.x, CRATE.y + CRATE.d, z], [CRATE.x + CRATE.w, CRATE.y + CRATE.d, z], shade(C.wood, 0.35), 0.03);
+      words(ctx, 'x', CRATE.x + CRATE.w, CRATE.y + CRATE.d / 2, 0.42, 'PARTY', 0.22, C.brown);
+    }, { depth: 68.0 });
+    R.thing(43.5, 25.95, (ctx) => partyCrate(ctx, partyLid.k()), { anim: true, depth: 68.1 });
+    R.thing(43.5, 26.8, (ctx) => {
+      box(ctx, HATS.x, HATS.y, 0, HATS.w, HATS.d, HATS.h, C.woodLight, { lw: 0.04 });
+      words(ctx, 'y', HATS.y + HATS.d, HATS.x + HATS.w / 2, 0.28, 'HATS', 0.24, C.brown);
+    }, { depth: 69.0 });
+    R.thing(43.5, 26.85, (ctx) => hatCrate(ctx, hatLid.k()), { anim: true, depth: 69.1 });
     // The pigeons, pecking, till the lorry comes by (and one fewer after 1pm:
     // Inspector Pidge nicked it).
     const lorry = R.walkers.find((w) => w.id === 'lorry');
+    // The bin lorry answers back, wherever it's got to.
+    if (lorry) R.poke({ id: 'lorry', at: (t) => { const p = lorry.at(t); return [p.x, p.y, 1.5]; }, r: 1.4, sound: 'clunk', say: ['HONK HONK.', 'Party? On bin day?', 'Back it up. Again.'] });
     R.thing(38.0, 18.9, (ctx, t) => {
       const lz = lorry && lorry.at(t);
       const scared = lz && Math.abs(lz.y - 18.9) < 3.5 && Math.abs(lz.x - MID) < 1;
@@ -983,7 +1096,9 @@ export default {
     }, { anim: true, on: during(5, 20) });
 
     // ---------- The left arm: the bouncy castle ----------
-    R.thing(KX + KW / 2, KY + KD / 2, (ctx, t) => castle(ctx, t), { anim: true, depth: 48, on: CASTLE_UP });
+    // Tap the pump and the castle goes up, for a bit.
+    const blower = R.poke({ id: 'pump', at: [PUMP[0], PUMP[1], 0.5], r: 0.8, hold: 4, sound: 'clunk', say: ['WHIRRRRR.', 'Full puff! For a bit.', "It's a pump, not a seat."] });
+    R.thing(KX + KW / 2, KY + KD / 2, (ctx, t) => castle(ctx, t, blower.k()), { anim: true, depth: 48, on: CASTLE_UP });
     R.thing(KX + KW / 2, KY + KD / 2, (ctx) => flatCastle(ctx), { depth: 48, on: during(20, 9) });
     R.thing(PUMP[0], PUMP[1], (ctx, t) => pump(ctx, t), { anim: true, on: CASTLE_UP });
     // The hopscotch, with a kid on it, and one chalking the next go.
@@ -1071,29 +1186,41 @@ export default {
     }
 
     // ---------- The Courier's trail ----------
-    // His map, flat on the road: a street map of the Block itself (a cross of
-    // road, sixteen blocks), every block circled and crossed out, folded in
-    // four.
-    const [mx, my] = [MID - 1.9, 21.2];
-    R.thing(mx, my, (ctx) => {
-      const z = 0.02, W = 0.62, D = 0.5;
-      face(ctx, [[mx - W, my - D, z], [mx + W, my - D, z], [mx + W, my + D, z], [mx - W, my + D, z]], C.white, { lw: 0.035 });
+    // His map, folded in four and dropped on the zebra crossing on the back
+    // road: white paper on the white stripes. A street map of the Block itself
+    // (a cross of road, the blocks), every one circled and crossed out.
+    const [mx, my] = MAP;
+    R.thing(mx, my, (ctx) => onFloor(ctx, mx, my, 0.35, () => {
+      const W = 0.27, D = 0.21;
+      ctx.beginPath();
+      ctx.rect(-W, -D, W * 2, D * 2);
+      paint(ctx, C.white, { lw: 0.02, stroke: C.greyLight });
       // the roads: Main Street's cross, in the road ink
-      face(ctx, [[mx - 0.07, my - D, z], [mx + 0.07, my - D, z], [mx + 0.07, my + D, z], [mx - 0.07, my + D, z]], STREET.road, { stroke: false });
-      face(ctx, [[mx - W, my - 0.07, z], [mx + W, my - 0.07, z], [mx + W, my + 0.07, z], [mx - W, my + 0.07, z]], STREET.road, { stroke: false });
-      for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-          const cx = mx + (i < 2 ? -W + 0.16 + i * 0.26 : 0.2 + (i - 2) * 0.26), cy = my + (j < 2 ? -D + 0.14 + j * 0.2 : 0.16 + (j - 2) * 0.2);
-          face(ctx, [[cx - 0.08, cy - 0.06, z], [cx + 0.08, cy - 0.06, z], [cx + 0.08, cy + 0.06, z], [cx - 0.08, cy + 0.06, z]], C.greyLight, { stroke: false });
-          if (!Q.detail) continue;
-          disc(ctx, cx, cy, z, 0.09, null, { stroke: C.coral, lw: 0.025 });
-          line(ctx, [cx - 0.08, cy - 0.08, z], [cx + 0.08, cy + 0.08, z], C.ink, 0.02);
-          line(ctx, [cx + 0.08, cy - 0.08, z], [cx - 0.08, cy + 0.08, z], C.ink, 0.02);
+      ctx.fillStyle = STREET.road;
+      ctx.fillRect(-0.035, -D, 0.07, D * 2);
+      ctx.fillRect(-W, -0.035, W * 2, 0.07);
+      if (!Q.detail) return;
+      for (const u of [-0.17, -0.08, 0.08, 0.17]) {
+        for (const v of [-0.13, -0.07, 0.07, 0.13]) {
+          ctx.fillStyle = C.greyLight;
+          ctx.fillRect(u - 0.03, v - 0.02, 0.06, 0.04);
+          ctx.beginPath();
+          ctx.arc(u, v, 0.035, 0, Math.PI * 2);
+          ctx.strokeStyle = alpha(C.coral, 0.55);
+          ctx.lineWidth = 0.012;
+          ctx.stroke();
         }
       }
-      // the fold, and a dog-eared corner
-      face(ctx, [[mx + W - 0.18, my + D, z], [mx + W, my + D, z], [mx + W, my + D - 0.18, z]], tint(C.greyLight, 0.4), { lw: 0.02 });
-    });
+      // the folds, and a dog-eared corner
+      ctx.strokeStyle = C.greyLight;
+      ctx.lineWidth = 0.012;
+      ctx.beginPath();
+      ctx.moveTo(-W, 0.005); ctx.lineTo(W, 0.005);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(W - 0.08, D); ctx.lineTo(W, D); ctx.lineTo(W, D - 0.08); ctx.closePath();
+      paint(ctx, tint(C.greyLight, 0.4), { lw: 0.012, stroke: C.greyLight });
+    }));
     // A delivery slip, signed with a webbed foot.
     const [sx, sy] = [27, MID + 2.4];
     R.thing(sx, sy, (ctx) => {
@@ -1150,9 +1277,13 @@ export default {
     // The ending: the geese conga round Main Street (finale.js).
     conga(R);
 
-    R.find({ id: 'courier-map', label: 'The Courier\'s map', at: [mx, my, 0.05], r: 0.8 });
+    // The balloon goose, by the board that asks if you've seen one.
+    R.thing(BG.x + 0.6, BG.y + 0.6, (ctx, t) => balloonGoose(ctx, t), { anim: true });
+    R.decoy({ id: 'balloon-goose', at: (t) => [BG.x, BG.y, 0.95 + Math.sin(t * 1.1) * 0.07], r: 0.8, say: ['A balloon goose. Full of hot air.', 'Still a balloon.', 'Do not pop the goose.'] });
+
+    R.find({ id: 'courier-map', label: 'The Courier\'s map', kind: 'hard', at: [mx, my, 0.05], r: 0.75, riddle: 'He should have looked both ways.', hint: 'One of the white stripes on a crossing is folded in four.' });
     R.find({ id: 'delivery-slip', label: 'A signed delivery slip', at: [sx, sy, 0.05], r: 0.8 });
-    R.find({ id: 'bunting', label: 'A roll of bunting', at: [43.0, 25.5, 0.95], r: 0.8 });
+    R.find({ id: 'bunting', label: 'A roll of bunting', kind: 'poke', inside: partyLid, at: [42.8, 25.25, 1.1], r: 0.75, hint: 'Two crates of party stuff up the back road. A tail of flags is caught in one lid.' });
     R.find({ id: 'lunch', label: 'The Courier\'s lunch', at: [lx, ly, 0.3], r: 0.8 });
   },
 };

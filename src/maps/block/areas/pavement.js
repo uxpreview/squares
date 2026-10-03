@@ -14,7 +14,7 @@
 // outer half and the stalls to the inner half. The seams (every 16) cross the
 // strips at 16, 32, 48, 64 and 80: the big props keep a unit or two clear.
 import {
-  C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, speech, note, paintText, label, shade, tint, mix, alpha, rng,
+  C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, speech, note, paintText, label, shade, tint, mix, alpha, rng, goose,
 } from '../../../engine/art.js';
 import { particles } from '../../../engine/actors.js';
 import { SLAB } from '../../../engine/iso.js';
@@ -103,7 +103,7 @@ function drain(ctx, x, y, ink) {
 // Chewing gum, trodden flat: everywhere, except round the finds.
 const GUM = (() => {
   const r = rng(85), out = [];
-  const clear = [[81.7, 40], [30, 84], [61.2, 82.1]];
+  const clear = [[82.65, 39.45], [30, 84], [61.2, 82.1]];
   while (out.length < 70) {
     const left = r() < 0.5, run = r() * 84, across = EDGE + 0.2 + r() * 3.6;
     const [x, y] = left ? [run, across] : [across, run];
@@ -488,6 +488,96 @@ function tomorrow(ctx) {
   // A peg, clipping it to the rack.
   box(ctx, cx - 0.05, y - 0.02, z1 - 0.05, 0.1, 0.06, 0.18, C.mustard, { flat: true, lw: 0.025 });
 }
+// The blind over the rack's top, pulled down over tomorrow's paper (k: 0
+// down, 1 rolled up). A corner of the paper pokes out crooked at its side.
+function blind(ctx, k) {
+  const cx = 61.2, y = RACK.y + RACK.d + 0.05, x0 = cx - 0.52, x1 = cx + 0.52, top = 2.82;
+  const zb = 1.84 + (top - 0.1 - 1.84) * k;
+  if (k < 0.5) {
+    face(ctx, [[x1 - 0.05, y, 2.5], [x1 + 0.16, y, 2.44], [x1 + 0.12, y, 2.66], [x1 - 0.05, y, 2.7]], C.white, { lw: 0.025 });
+    face(ctx, [[x1, y, 2.58], [x1 + 0.13, y, 2.55], [x1 + 0.12, y, 2.62], [x1, y, 2.65]], C.red, { stroke: false });
+  }
+  face(ctx, [[x0, y, zb], [x1, y, zb], [x1, y, top], [x0, y, top]], shade(C.green, 0.12), { lw: 0.035, dots: shade(C.green, 0.45), density: 0.18 });
+  // The roller, and the pull cord.
+  face(ctx, [[x0 - 0.04, y, top - 0.1], [x1 + 0.04, y, top - 0.1], [x1 + 0.04, y, top + 0.02], [x0 - 0.04, y, top + 0.02]], C.green, { lw: 0.03 });
+  face(ctx, [[cx, y, zb], [cx, y, zb - 0.14]], null, { lw: 0.025 });
+  disc(ctx, cx, y, zb - 0.16, 0.035, C.mustard, { lw: 0.02 });
+  if (k < 0.3) {
+    words(ctx, 'x', cx, y, 2.42, 'NOT TILL', 0.1, C.butter);
+    words(ctx, 'x', cx, y, 2.22, 'SUNDAY', 0.17, C.butter);
+  }
+}
+
+// A red phone box on the corner. It rings now and then; answer it.
+const PB = { x: 81.3, y: 81.3, w: 0.95, d: 0.95, h: 2.55 };
+function phoneBox(ctx) {
+  const { x, y, w, d, h } = PB, x1 = x + w, y1 = y + d;
+  box(ctx, x, y, 0, w, d, h, C.red, { right: shade(C.red, 0.12), dotsL: shade(C.red, 0.4) });
+  box(ctx, x - 0.06, y - 0.06, h, w + 0.12, d + 0.12, 0.14, shade(C.red, 0.1), { lw: 0.035 });
+  box(ctx, x + 0.1, y + 0.1, h + 0.14, w - 0.2, d - 0.2, 0.1, C.red, { lw: 0.03 });
+  // TELEPHONE over the door and round the side.
+  face(ctx, [[x + 0.1, y1, h - 0.3], [x1 - 0.1, y1, h - 0.3], [x1 - 0.1, y1, h - 0.1], [x + 0.1, y1, h - 0.1]], C.white, { lw: 0.02 });
+  face(ctx, [[x1, y + 0.1, h - 0.3], [x1, y1 - 0.1, h - 0.3], [x1, y1 - 0.1, h - 0.1], [x1, y + 0.1, h - 0.1]], C.white, { lw: 0.02 });
+  words(ctx, 'x', x + w / 2, y1, h - 0.2, 'TELEPHONE', 0.1, C.ink);
+  words(ctx, 'y', x1, y + d / 2, h - 0.2, 'TELEPHONE', 0.1, C.ink);
+  // Panes down the side.
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
+    const z = 0.75 + r * 0.38, u = y + 0.14 + c * 0.35;
+    face(ctx, [[x1, u, z], [x1, u + 0.3, z], [x1, u + 0.3, z + 0.32], [x1, u, z + 0.32]], tint(C.sky, 0.3), { lw: 0.02 });
+  }
+}
+// Its door (the side facing the queue), open by k, and the phone inside.
+function phoneDoor(ctx, k) {
+  const { x, y, w, h } = PB, y1 = y + PB.d, hx = x + 0.06, W = w - 0.12, top = h - 0.36;
+  if (k > 0.02) {
+    // Inside: dark, a phone on the back wall, the handset off its hook.
+    face(ctx, [[hx, y1, 0.05], [hx + W, y1, 0.05], [hx + W, y1, top], [hx, y1, top]], shade(C.red, 0.65), { lw: 0.025 });
+    box(ctx, x + 0.32, y + 0.12, 1.35, 0.3, 0.12, 0.4, C.ink, { flat: true, lw: 0.02 });
+    face(ctx, [[x + 0.47, y + 0.3, 1.4], [x + 0.55, y + 0.6, 0.95]], null, { lw: 0.03 });
+    box(ctx, x + 0.45, y + 0.55, 0.82, 0.16, 0.1, 0.16, C.ink, { flat: true, stroke: false });
+  }
+  const a = k * 1.35, ex = hx + W * Math.cos(a), ey = y1 + W * Math.sin(a);
+  face(ctx, [[hx, y1, 0.05], [ex, ey, 0.05], [ex, ey, top], [hx, y1, top]], k > 0.02 ? shade(C.red, 0.05) : C.red, { lw: 0.03 });
+  for (let r = 0; r < 4; r++) {
+    const z = 0.75 + r * 0.38;
+    const p = (f, zz) => [hx + (ex - hx) * f, y1 + (ey - y1) * f, zz];
+    face(ctx, [p(0.15, z), p(0.85, z), p(0.85, z + 0.32), p(0.15, z + 0.32)], tint(C.sky, 0.3), { lw: 0.02 });
+  }
+}
+// Ringing, every so often: lines off the crown.
+function ring(ctx, t) {
+  if ((t % 13) > 1.8 || !Q.detail) return;
+  const [X, Y] = P(PB.x + PB.w / 2, PB.y + PB.d / 2, PB.h + 0.35);
+  const j = Math.sin(t * 40) * 0.03;
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.05;
+  ctx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    for (const r of [0.55, 0.75]) {
+      ctx.beginPath();
+      ctx.arc(X + j, Y, r, s > 0 ? -0.5 : Math.PI - 0.5, s > 0 ? 0.5 : Math.PI + 0.5);
+      ctx.stroke();
+    }
+  }
+  label(ctx, PB.x + PB.w / 2 - 0.2, PB.y + PB.d / 2 + 0.2, PB.h + 0.75, 'RING!', 0.32, C.red);
+}
+
+// "Have you seen this goose?", big, on the corner's lamp post, with the
+// goose drawn the size of the real one.
+function bigPoster(ctx, x, y) {
+  const [X, Y] = P(x, y, 1.4);
+  ctx.beginPath();
+  ctx.rect(X - 0.75, Y - 1.0, 1.5, 1.9);
+  paint(ctx, mix(C.butter, C.white, 0.55), { lw: 0.04 });
+  ctx.fillStyle = alpha(C.white, 0.75);
+  ctx.fillRect(X - 0.83, Y - 1.06, 0.26, 0.1);
+  ctx.fillRect(X + 0.57, Y - 1.06, 0.26, 0.1);
+  label(ctx, x, y, 2.18, 'HAVE YOU SEEN', 0.14, C.ink);
+  label(ctx, x, y, 1.98, 'THIS GOOSE?', 0.18, C.red);
+  goose(ctx, x, y, 0.75, 0, { pose: 'stand', dir: 'r' });
+  if (Q.detail) label(ctx, x, y, 0.64, 'reward: bread', 0.11, C.ink, 'Rethink Sans');
+}
+
 // Today's headline, on a board on the pavement.
 function aboard(ctx) {
   const x0 = 62.15, x1 = 62.85, y = 82.05;
@@ -562,7 +652,7 @@ const onDuty = (h) => h >= 7.5 && h < 22.5;
 
 // ---------- Where the other things go ----------
 const LAMPS = [[EDGE + 0.6, 8], [EDGE + 0.6, 24], [EDGE + 0.6, 52], [EDGE + 0.6, 72], [8, EDGE + 0.6], [24, EDGE + 0.6], [52, EDGE + 0.6], [72, EDGE + 0.6]];
-const POSTERS = [[EDGE + 0.6, 24], [52, EDGE + 0.6], [EDGE + 0.6, 72]];
+const POSTERS = [[EDGE + 0.6, 24], [52, EDGE + 0.6]]; // and a big one at 72 (the decoy)
 
 export default {
   id: 'pavement',
@@ -586,6 +676,13 @@ export default {
 
     // ---------- Lamp posts ----------
     for (const [x, y] of LAMPS) streetLamp(R, x, y, POSTERS.some(([px, py]) => px === x && py === y));
+    R.thing(EDGE + 0.78, 72.18, (ctx) => bigPoster(ctx, EDGE + 0.76, 72.16));
+    R.decoy({ id: 'poster', at: [EDGE + 0.76, 72.16, 1.3], r: 0.8, say: ["A poster. She's still at large.", 'Still a poster.', 'Reward: bread. Stale.'] });
+
+    // ---------- The phone box ----------
+    R.thing(PB.x + PB.w, PB.y + PB.d, (ctx) => phoneBox(ctx));
+    const phone = R.poke({ id: 'phone', at: [PB.x + PB.w / 2, PB.y + PB.d / 2, 1.4], r: 1.0, hold: 3, sound: 'tick', teach: true, say: ["It's for you.", 'Hello? No, no goose here.', 'Wrong number. Again.'] });
+    R.thing(PB.x + PB.w, PB.y + PB.d + 0.02, (ctx, t) => { phoneDoor(ctx, phone.k()); ring(ctx, t); }, { anim: true, depth: PB.x + PB.y + PB.w + PB.d + 0.05 });
 
     // ---------- The queue ----------
     // A sign where it starts, with a ticket machine (empty) on the pole.
@@ -634,6 +731,7 @@ export default {
         ctx.fill();
       }, 11);
     }, { anim: true });
+    R.poke({ id: 'cart', at: [82.3, 12.1, 1.3], r: 1.0, say: ['One with everything?', 'Ketchup is extra.', 'No. It is not goose.'] });
     // The lunchtime queue: two.
     const LUNCH = [[83.7, 12.2, folk(71)], [84.55, 11.5, folk(72, { pose: 'read' })]];
     LUNCH.forEach(([x, y, look], i) => R.thing(x, y, (ctx, t) => {
@@ -645,8 +743,13 @@ export default {
 
     // ---------- The newsstand ----------
     R.thing(KIOSK.x + KIOSK.w, KIOSK.y + KIOSK.d, (ctx) => kiosk(ctx));
-    R.thing(RACK.x + RACK.w, RACK.y + RACK.d + 0.05, (ctx) => { rack(ctx); tomorrow(ctx); });
-    R.find({ id: 'newspaper', label: 'Tomorrow\'s newspaper', at: [61.2, 82.1, 2.3], r: 0.8 });
+    R.thing(RACK.x + RACK.w, RACK.y + RACK.d + 0.05, (ctx) => rack(ctx));
+    // Tomorrow's paper, behind the blind: a tap rolls it up.
+    const shade1 = R.poke({ id: 'rack', at: [61.2, 82.17, 2.3], r: 0.8 });
+    R.thing(RACK.x + RACK.w, RACK.y + RACK.d + 0.07, (ctx) => { tomorrow(ctx); blind(ctx, shade1.k()); }, { anim: true });
+    R.find({ id: 'newspaper', label: 'Tomorrow\'s newspaper', kind: 'poke', inside: shade1, at: [61.2, 82.17, 2.3], r: 0.75, hint: 'Somebody has the news before it happens. The newsstand has a blind down.' });
+    // Today's papers answer back.
+    R.poke({ id: 'papers', at: [59.7, 81.85, 1.3], r: 0.6, sound: 'tick', say: ["Today's. Already old news.", 'Still today.'] });
     R.thing(62.85, 82.35, (ctx) => aboard(ctx));
     // The vendor, asleep on a stool, all day.
     R.thing(SNOOZER.x, SNOOZER.y - 0.05, (ctx) => cylinder(ctx, SNOOZER.x, SNOOZER.y, 0, 0.22, 0.55, C.grey));
@@ -727,6 +830,7 @@ export default {
         ctx.restore();
       }, 23);
     }, { anim: true });
+    R.poke({ id: 'busker', at: [BUSK.x, BUSK.y, 1.4], r: 0.9, sound: 'tick', say: ['Coins in the case, ta.', 'Stopping costs extra.', 'That note was on purpose.'] });
     // A passer-by with a coin, every so often, one way or the other.
     R.mover((t) => {
       const h = hour(t);
@@ -808,7 +912,9 @@ export default {
 
     // ---------- The other finds ----------
     // The Courier's card, the only one anywhere: SORRY WE MISSED YOU.
-    R.thing(82.1, 40.3, (ctx) => onFloor(ctx, 81.7, 40, -0.35, () => {
+    // (Smaller than a flyer, one corner under the flattened box.)
+    R.thing(82.1, 40.3, (ctx) => onFloor(ctx, 82.65, 39.45, -0.35, () => {
+      ctx.scale(0.8, 0.8);
       ctx.beginPath();
       ctx.rect(-0.34, -0.22, 0.68, 0.44);
       paint(ctx, C.white, { lw: 0.035 });
@@ -823,7 +929,7 @@ export default {
       ctx.lineWidth = 0.02;
       ctx.strokeRect(0.18, 0.08, 0.1, 0.08);
     }));
-    R.find({ id: 'sorry-card', label: 'A "Sorry we missed you" card', at: [81.7, 40, 0.05], r: 0.8 });
+    R.find({ id: 'sorry-card', label: 'A "Sorry we missed you" card', kind: 'hard', at: [82.65, 39.45, 0.05], r: 0.75, riddle: 'Blown in with the junk mail.', hint: 'Litter by the post box. One of the flyers has a brown stripe.' });
     // Round it, what the wind brings down the pavement: party flyers, a box
     // flattened for the recycling, a crisp packet, old gum. The card is the
     // only one with the Courier's brown band.
@@ -835,6 +941,8 @@ export default {
       litter(ctx, 'wrapper', 82.95, 39.95, 0.4);
       litter(ctx, 'napkin', 81.3, 41.3, 0.3);
       litter(ctx, 'gum', 82.3, 40.4, 0);
+      litter(ctx, 'flyer', 81.7, 40.0, -0.3);
+      litter(ctx, 'flyer', 81.9, 37.6, 0.4);
     });
 
     // A queue ticket, like a deli counter's: number 99, torn off.

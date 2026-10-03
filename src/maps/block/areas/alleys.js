@@ -14,7 +14,7 @@
 // hand alleys (x 64) and the front cross alleys (y 64), so props there hug the
 // near side.
 import {
-  C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha,
+  C, Q, P, box, rect, disc, cylinder, face, paint, paintText, person, folk, speech, shade, tint, mix, alpha,
 } from '../../../engine/art.js';
 import { particles } from '../../../engine/actors.js';
 import { ALLEYS, ALLEY, LOOP } from '../plan.js';
@@ -60,11 +60,12 @@ function paving(ctx, ink, cell) {
 }
 
 // Puddles [x, y, size], drains [x, y].
-const PUDDLES = [[18.4, 60.2, 0.62], [18.3, 21.5, 0.5], [17.2, 67.6, 0.45], [62.1, 56.2, 0.55], [55.5, 17.1, 0.5], [8.8, 62.2, 0.5], [30.2, 62.3, 0.4], [17.1, 5.8, 0.4]];
+const PUDDLES = [[18.4, 60.2, 0.62], [17.75, 57.3, 0.42], [16.7, 59.55, 0.36], [18.45, 58.55, 0.3], [18.3, 21.5, 0.5], [17.2, 67.6, 0.45], [62.1, 56.2, 0.55], [55.5, 17.1, 0.5], [8.8, 62.2, 0.5], [30.2, 62.3, 0.4], [17.1, 5.8, 0.4]];
 const DRAINS = [[18.9, 51.9], [18, 30], [18, 71], [63, 40.5], [63, 26], [40.5, 18], [24, 18], [70, 63]];
 
+const waterInk = (night) => (night ? mix(C.navy, C.lilac, 0.4) : mix(C.sky, STREET.alley, 0.3));
 function puddle(ctx, x, y, s, night) {
-  const water = night ? mix(C.navy, C.lilac, 0.4) : mix(C.sky, STREET.alley, 0.3);
+  const water = waterInk(night);
   disc(ctx, x, y, 0.005, s, water, { stroke: false });
   disc(ctx, x + s * 0.55, y - s * 0.3, 0.005, s * 0.55, water, { stroke: false });
   disc(ctx, x - s * 0.3, y + s * 0.5, 0.005, s * 0.45, water, { stroke: false });
@@ -117,20 +118,21 @@ function chalkSquid(ctx, night) {
   });
 }
 
-// The find: one tentacle print, big and wet, suckers and all. Printed in the
-// night inks too (a lilac sheen), so it still shows after dark. It's a step up
-// the alley from the lane the octopus walks, off to the side, so the octopus
-// never sits on it and doesn't point straight at it.
+// The find: one tentacle print, wet, suckers and all, printed in the same
+// water as the puddles round it (a hard find: one of the puddles curls). It's
+// a step up the alley from the lane the octopus walks, off to the side, so the
+// octopus never sits on it and doesn't point straight at it.
 const PRINT = [16.95, 58.3];
 function tentaclePrint(ctx, night) {
-  const wet = night ? mix(C.lilac, C.navy, 0.3) : mix(C.navy, STREET.alley, 0.35);
-  const ring = night ? tint(C.lilac, 0.35) : mix(C.sky, C.navy, 0.35);
+  const wet = waterInk(night);
+  const ring = mix(wet, C.navy, night ? 0.15 : 0.22);
   onFloor(ctx, PRINT[0], PRINT[1], 0.5, () => {
+    ctx.scale(0.85, 0.85);
     // A curl: a spine spiralling in, tapering as it goes.
     const N = 24, sp = [];
     for (let i = 0; i <= N; i++) {
       const s = i / N, th = -1.9 + s * 3.9, r = 0.52 - 0.34 * s;
-      sp.push([Math.cos(th) * r, Math.sin(th) * r, 0.2 * (1 - 0.8 * s), th]);
+      sp.push([Math.cos(th) * r, Math.sin(th) * r, 0.26 * (1 - 0.75 * s), th]);
     }
     ctx.beginPath();
     sp.forEach(([x, y, w, th], i) => {
@@ -379,6 +381,159 @@ function pigeon(ctx, t, x, y, z) {
   ctx.fill();
 }
 
+// The noodle bar's back door key, on a fish-shaped keyring with a paper tag,
+// in the floor's plane (draw it inside onFloor).
+function key(ctx) {
+  ctx.lineWidth = 0.035;
+  ctx.strokeStyle = C.ink;
+  // The key: a bow, a shaft, two teeth.
+  ctx.beginPath();
+  ctx.arc(-0.05, 0, 0.13, 0, Math.PI * 2);
+  ctx.moveTo(0.08, -0.04); ctx.lineTo(0.42, -0.04); ctx.lineTo(0.42, 0.13); ctx.lineTo(0.35, 0.13); ctx.lineTo(0.35, 0.04);
+  ctx.lineTo(0.28, 0.04); ctx.lineTo(0.28, 0.1); ctx.lineTo(0.22, 0.1); ctx.lineTo(0.22, 0.04); ctx.lineTo(0.08, 0.04);
+  ctx.closePath();
+  ctx.fillStyle = C.mustard;
+  ctx.fill('evenodd');
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(-0.05, 0, 0.05, 0, Math.PI * 2);
+  ctx.fillStyle = STREET.alley;
+  ctx.fill();
+  ctx.stroke();
+  // The ring, and the fish on it.
+  ctx.beginPath();
+  ctx.arc(-0.2, 0.12, 0.07, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(-0.4, 0.24, 0.16, 0.09, 0.5, 0, Math.PI * 2);
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.beginPath();
+  ctx.moveTo(-0.52, 0.17); ctx.lineTo(-0.66, 0.2); ctx.lineTo(-0.6, 0.36); ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.beginPath();
+  ctx.arc(-0.31, 0.26, 0.022, 0, Math.PI * 2);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  // A paper tag on the ring: whose it is.
+  ctx.beginPath();
+  ctx.rect(-0.3, -0.36, 0.5, 0.22);
+  paint(ctx, C.white, { lw: 0.025 });
+  ctx.beginPath();
+  ctx.moveTo(-0.2, -0.14); ctx.lineTo(-0.2, 0.06);
+  ctx.stroke();
+  if (!Q.detail) return;
+  ctx.save();
+  ctx.translate(-0.05, -0.25);
+  ctx.scale(1 / 40, 1 / 40);
+  ctx.font = '2.5px "Bagel Fat One", "Arial Black", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.red;
+  ctx.fillText('NOODLES: BACK', 0, 0);
+  ctx.restore();
+}
+
+// The noodle bar's back door mat, over the key. It lifts on its edge by the
+// noodle bar's side (k: 0 flat, 1 up), and the keyring's fish tail pokes out
+// from under it the whole time.
+const MAT = { x0: 16.15, y0: 50.98, x1: 17.35, y1: 52.15 };
+function doormat(ctx, k) {
+  const { x0, y0, x1, y1 } = MAT, z = 0.012;
+  onFloor(ctx, 16.9, 51.6, Math.PI + 0.25, () => key(ctx));
+  const a = k * 1.45, W = x1 - x0;
+  const x = x0 + W * Math.cos(a), h = z + W * Math.sin(a);
+  const up = k > 0.02;
+  face(ctx, [[x0, y0, z], [x, y0, h], [x, y1, h], [x0, y1, z]], up ? shade(C.brown, 0.3) : C.brown, { lw: 0.03, dots: up ? null : shade(C.brown, 0.4), density: 0.15 });
+  if (up || !Q.detail) return;
+  // A bristly border, NOODLES, and the lump the key makes.
+  rect(ctx, x0 + 0.1, y0 + 0.1, W - 0.2, y1 - y0 - 0.2, z + 0.002, null, { stroke: C.mustard, lw: 0.03 });
+  paintText(ctx, 'floor', (x0 + x1) / 2 - 0.12, (y0 + y1) / 2 - 0.2, 'NOODLES', 0.2, C.mustard);
+  const [X, Y] = P(16.85, 51.68, z);
+  ctx.beginPath();
+  ctx.ellipse(X, Y, 0.3, 0.1, 0.1, 0, Math.PI * 2);
+  ctx.fillStyle = alpha(tint(C.brown, 0.35), 0.8);
+  ctx.fill();
+}
+
+// A herring gull, the size of the goose and nearly its colors: white, a grey
+// back, black wing tips, a yellow beak with a red spot, pink legs. Standing at
+// (x, y, z), eyeing the fish bin, and now and then it shouts about it.
+function gull(ctx, t, x, y, z) {
+  const [X, Y] = P(x, y, z);
+  const c = t % 9, look = c > 6.5 ? 1 : -1, shout = c > 3 && c < 4.2;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(look, 1);
+  if (Q.detail) {
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 0.36, 0.13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.ink, 0.16);
+    ctx.fill();
+  }
+  // Legs.
+  ctx.strokeStyle = C.pink;
+  ctx.lineWidth = 0.06;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-0.04, -0.3); ctx.lineTo(-0.06, 0);
+  ctx.moveTo(0.08, -0.3); ctx.lineTo(0.09, 0);
+  ctx.stroke();
+  // Body and tail, the goose's white.
+  const by = -0.45;
+  ctx.beginPath();
+  ctx.ellipse(0, by, 0.4, 0.22, -0.12, 0, Math.PI * 2);
+  ctx.moveTo(-0.3, by - 0.04);
+  ctx.lineTo(-0.56, by - 0.12);
+  ctx.lineTo(-0.36, by + 0.08);
+  paint(ctx, C.white, { dots: Q.detail ? C.grey : null, density: 0.1 });
+  // The grey back, and black tips with white spots.
+  ctx.beginPath();
+  ctx.ellipse(-0.1, by - 0.06, 0.3, 0.13, -0.15, 0, Math.PI * 2);
+  paint(ctx, C.grey);
+  ctx.beginPath();
+  ctx.moveTo(-0.32, by - 0.06); ctx.lineTo(-0.62, by - 0.16); ctx.lineTo(-0.36, by + 0.04);
+  ctx.closePath();
+  paint(ctx, C.ink, { lw: 0.02 });
+  if (Q.detail) {
+    ctx.fillStyle = C.white;
+    ctx.beginPath(); ctx.arc(-0.5, by - 0.11, 0.025, 0, Math.PI * 2); ctx.fill();
+  }
+  // A short thick neck and the head (a gull, not a goose: no long neck).
+  const hx = 0.3, hy = by - 0.3;
+  ctx.beginPath();
+  ctx.moveTo(0.18, by - 0.08);
+  ctx.quadraticCurveTo(0.28, by - 0.16, hx, hy);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.24;
+  ctx.stroke();
+  ctx.strokeStyle = C.white;
+  ctx.lineWidth = 0.17;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(hx, hy, 0.13, 0, Math.PI * 2);
+  paint(ctx, C.white);
+  // The beak: yellow, a red spot, open when it shouts.
+  ctx.beginPath();
+  if (shout) {
+    ctx.moveTo(hx + 0.1, hy - 0.04); ctx.lineTo(hx + 0.36, hy - 0.13); ctx.lineTo(hx + 0.12, hy + 0.01);
+    ctx.moveTo(hx + 0.1, hy + 0.03); ctx.lineTo(hx + 0.34, hy + 0.1); ctx.lineTo(hx + 0.1, hy + 0.07);
+  } else {
+    ctx.moveTo(hx + 0.1, hy - 0.05); ctx.lineTo(hx + 0.36, hy + 0.0); ctx.lineTo(hx + 0.33, hy + 0.05); ctx.lineTo(hx + 0.1, hy + 0.06);
+  }
+  paint(ctx, C.mustard, { lw: 0.025 });
+  if (Q.detail) {
+    ctx.fillStyle = C.red;
+    ctx.beginPath(); ctx.arc(hx + 0.27, hy + 0.04, 0.025, 0, Math.PI * 2); ctx.fill();
+    // A beady eye, and a cross brow.
+    ctx.fillStyle = C.ink;
+    ctx.beginPath(); ctx.arc(hx + 0.04, hy - 0.03, 0.028, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 0.025;
+    ctx.beginPath(); ctx.moveTo(hx - 0.03, hy - 0.1); ctx.lineTo(hx + 0.1, hy - 0.06); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // ---------- Where things go ----------
 // Bins round the alleys, on the near side of each lane (see the top), a unit
 // clear of the seams and a step clear of the rooms' doors: [x, y, color].
@@ -404,7 +559,7 @@ export default {
       chalkSquid(ctx, night);
       tentaclePrint(ctx, night);
     }]);
-    R.find({ id: 'tentacle-print', label: 'A tentacle print', at: [...PRINT, 0.05], r: 0.8 });
+    R.find({ id: 'tentacle-print', label: 'A tentacle print', kind: 'hard', at: [...PRINT, 0.05], r: 0.75, riddle: 'Not every puddle out back is a puddle.', hint: 'Something on eight legs came up the alley wet. Check the puddles by the chalk squid.' });
 
     // ---------- Quiet alleys ----------
     for (const [x, y, color] of BINS) R.thing(x + 0.9, y + 0.9, (ctx) => wheelie(ctx, x, y, color));
@@ -512,6 +667,27 @@ export default {
       fish(ctx, X - 0.05, Y - 0.05, 0.05, 1.1);
     });
     R.thing(16.95, 50.95, (ctx, t) => bulb(ctx, t, 16.85, 49.9), { anim: true });
+    // A gull on the shut bin, eyeing the open one.
+    R.thing(16.96, 49.96, (ctx, t) => gull(ctx, t, 16.45, 49.4, 1.2), { anim: true });
+    R.decoy({ id: 'gull', at: [16.45, 49.4, 1.7], r: 0.6, say: ['A gull. It wants your chips.', 'Still a gull.', 'It has already had your chips.'] });
+    // The open bin answers a tap: a fish leaps out and the flies go mad.
+    const fishBin = R.poke({ id: 'fish-bin', at: [16.47, 50.47, 1.2], r: 0.8, hold: 2.2, sound: 'clunk', teach: true, say: ['Fish heads. Mostly heads.', 'The flies were here first.', "Lid won't shut. Never has."] });
+    R.thing(16.92, 50.92, (ctx, t) => {
+      const k = fishBin.k();
+      if (k <= 0.01) return;
+      const [X, Y] = P(16.47, 50.47, 1.15);
+      const u = Math.min(1, ((t * 0.9) % 1.4) / 1.1);
+      fish(ctx, X + 0.2 + u * 0.5, Y - Math.sin(u * Math.PI) * 0.9 * k, 0.6 + u * 2.4, 1.1);
+      if (!Q.detail) return;
+      ctx.fillStyle = C.ink;
+      for (let i = 0; i < 9; i++) {
+        const a = t * (3 + i * 0.4) + i * 2.1, r = 0.4 + k * 0.5 + (i % 3) * 0.12;
+        const [FX, FY] = P(16.47 + Math.cos(a) * r, 50.47 + Math.sin(a) * r, 1.6 + Math.sin(t * 4 + i) * 0.35);
+        ctx.beginPath();
+        ctx.arc(FX, FY, 0.035, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }, { anim: true });
     R.light({ at: [16.9, 50.4, 2.7], r: 3.8, color: LIT, k: (t) => nightK(t) * 0.9 });
     // Flies, round the open bin.
     R.thing(17.0, 51.0, (ctx, t) => {
@@ -526,61 +702,15 @@ export default {
       }
     }, { anim: true });
 
-    // The find: the noodle bar's back door key, dropped by the bins, on a
-    // fish-shaped keyring. (Nudged a little off [16.8, 51.6] so the octopus,
-    // waiting at [18, 53], doesn't stand on it.)
-    R.thing(17.25, 51.5, (ctx) => onFloor(ctx, 17.0, 51.4, 0.6, () => {
-      ctx.lineWidth = 0.035;
-      ctx.strokeStyle = C.ink;
-      // The key: a bow, a shaft, two teeth.
-      ctx.beginPath();
-      ctx.arc(-0.05, 0, 0.13, 0, Math.PI * 2);
-      ctx.moveTo(0.08, -0.04); ctx.lineTo(0.42, -0.04); ctx.lineTo(0.42, 0.13); ctx.lineTo(0.35, 0.13); ctx.lineTo(0.35, 0.04);
-      ctx.lineTo(0.28, 0.04); ctx.lineTo(0.28, 0.1); ctx.lineTo(0.22, 0.1); ctx.lineTo(0.22, 0.04); ctx.lineTo(0.08, 0.04);
-      ctx.closePath();
-      ctx.fillStyle = C.mustard;
-      ctx.fill('evenodd');
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(-0.05, 0, 0.05, 0, Math.PI * 2);
-      ctx.fillStyle = STREET.alley;
-      ctx.fill();
-      ctx.stroke();
-      // The ring, and the fish on it.
-      ctx.beginPath();
-      ctx.arc(-0.2, 0.12, 0.07, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(-0.4, 0.24, 0.16, 0.09, 0.5, 0, Math.PI * 2);
-      paint(ctx, C.coral, { lw: 0.03 });
-      ctx.beginPath();
-      ctx.moveTo(-0.52, 0.17); ctx.lineTo(-0.66, 0.2); ctx.lineTo(-0.6, 0.36); ctx.closePath();
-      paint(ctx, C.coral, { lw: 0.03 });
-      ctx.beginPath();
-      ctx.arc(-0.31, 0.26, 0.022, 0, Math.PI * 2);
-      ctx.fillStyle = C.ink;
-      ctx.fill();
-      // A paper tag on the ring: whose it is.
-      ctx.beginPath();
-      ctx.rect(-0.3, -0.36, 0.5, 0.22);
-      paint(ctx, C.white, { lw: 0.025 });
-      ctx.beginPath();
-      ctx.moveTo(-0.2, -0.14); ctx.lineTo(-0.2, 0.06);
-      ctx.stroke();
-      if (!Q.detail) return;
-      ctx.save();
-      ctx.translate(-0.05, -0.25);
-      ctx.scale(1 / 40, 1 / 40);
-      ctx.font = '2.5px "Bagel Fat One", "Arial Black", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = C.red;
-      ctx.fillText('NOODLES: BACK', 0, 0);
-      ctx.restore();
-    }));
-    R.find({ id: 'noodle-key', label: 'The noodle bar\'s back door key', at: [17.0, 51.4, 0.05], r: 0.8 });
+    // The find: the noodle bar's back door key, under the mat by the bins
+    // (where else?). A tap lifts the mat. (Clear of [18, 53], where the
+    // octopus waits.)
+    const mat = R.poke({ id: 'mat', at: [16.75, 51.57, 0.1], r: 0.8 });
+    R.thing(MAT.x1, MAT.y1, (ctx) => doormat(ctx, mat.k()), { anim: true });
+    R.find({ id: 'noodle-key', label: 'The noodle bar\'s back door key', kind: 'poke', inside: mat, at: [16.85, 51.6, 0.05], r: 0.75, hint: 'Where would you hide a spare key? The mat by the noodle bar\'s bins has a lump.' });
 
     // A crate of squid, delivered to the noodle bar. It says AQUARIUM on it.
+    R.poke({ id: 'squid', at: [16.5, 52.9, 0.7], r: 0.7, sound: 'tick', say: ['RETURN TO SENDER.', 'Still squid. Still wrong.', 'The octopus would like a word.'] });
     R.thing(17.0, 53.55, (ctx) => {
       const x = 16.05, y = 52.3, w = 0.95, d = 1.25, h = 0.62;
       box(ctx, x, y, 0, w, d, h, C.woodLight, { top: C.white });
