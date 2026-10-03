@@ -1,9 +1,15 @@
 // Launch Pad: a rocket that really goes, once a day. The crew walk out, ride
 // the gantry lift and climb aboard, the board counts down, the smoke rolls,
 // and up it goes. By dawn the mechanic has wheeled out a new one.
+//
+// Retuned in session 10: the goose is shut in the spare capsule on top of the
+// gantry (poke: it rocks; tap the hatch), so it's still up there at 8:48pm
+// when the rocket goes. The wrench is in one of two toolboxes (poke), the
+// tiny flag is planted in a hot dog (hard), the dog stays a spot find. A
+// crash test goose is the decoy; the big red button is the first thing to tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, tiles, onLeft,
-  paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash, SKIN,
+  paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash, SKIN, goose,
 } from '../../../engine/art.js';
 import { route, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -79,7 +85,54 @@ function drawRocket(ctx, x, y, z, t, st) {
   label(ctx, ...cylP(x, y, Math.PI / 4, BODY_R + 0.02, z + 1.5), '1', 0.42, C.navy);
 }
 
-function gantry(ctx, t, s) {
+// The spare capsule on the gantry's top deck, its round hatch toward you.
+// k: the hatch, 0 shut to 1 open. While the goose is shut in it, it rocks
+// now and then.
+const CAP = { x: (GX0 + GX1) / 2, y: (GY0 + GY1) / 2, r: 0.72, r2: 0.32, h: 1.0 };
+const capZ = () => GH + 0.15;
+function capsule(ctx, t, k) {
+  const z = capZ();
+  const [bx, by] = P(CAP.x, CAP.y, z);
+  const [tx, ty] = P(CAP.x, CAP.y, z + CAP.h);
+  const q = pulse(t, 6);
+  const rock = k < 0.5 && q > 0.82 ? Math.sin((q - 0.82) * 60) * 0.07 * (1 - q) * 5 : 0;
+  ctx.save();
+  ctx.translate(bx, by); ctx.rotate(rock); ctx.translate(-bx, -by);
+  const R1 = CAP.r * Math.SQRT2, R2 = CAP.r2 * Math.SQRT2;
+  ctx.beginPath();
+  ctx.moveTo(bx - R1, by);
+  ctx.lineTo(tx - R2, ty);
+  ctx.ellipse(tx, ty, R2, R2 / 2, 0, Math.PI, Math.PI * 2);
+  ctx.lineTo(bx + R1, by);
+  ctx.ellipse(bx, by, R1, R1 / 2, 0, 0, Math.PI);
+  ctx.closePath();
+  paint(ctx, C.white, { dots: C.grey, density: 0.18 });
+  // heat shield and nose
+  ctx.beginPath(); ctx.ellipse(bx, by, R1, R1 / 2, 0, 0, Math.PI); ctx.ellipse(bx, by - 0.12, R1 * 0.97, R1 / 2 * 0.97, 0, Math.PI, 0, true);
+  ctx.fillStyle = C.ink; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(tx, ty, R2, R2 / 2, 0, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.04 });
+  ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty - 0.35); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+  // its aerial is the gantry's blinking beacon
+  const on = Math.sin(t * 5) > 0;
+  ctx.beginPath(); ctx.arc(tx, ty - 0.4, 0.1, 0, Math.PI * 2); paint(ctx, on ? C.coral : shade(C.coral, 0.4), { lw: 0.03 });
+  if (on && Q.detail) { ctx.beginPath(); ctx.arc(tx, ty - 0.4, 0.3, 0, Math.PI * 2); ctx.fillStyle = alpha(C.coral, 0.25); ctx.fill(); }
+  label(ctx, CAP.x + 0.55, CAP.y + 0.55, z + 0.82, 'SPARE', 0.16, C.navy);
+  // the hatch, straight toward you
+  const [hx, hy] = P(CAP.x + 0.5, CAP.y + 0.5, z + 0.42);
+  ctx.beginPath(); ctx.ellipse(hx, hy, 0.24, 0.27, 0, 0, Math.PI * 2);
+  paint(ctx, k > 0.02 ? C.night : C.greyLight, { lw: 0.04 });
+  const w = 0.24 * (1 - k * 0.75);
+  ctx.beginPath(); ctx.ellipse(hx + k * 0.42, hy, w, 0.27, 0, 0, Math.PI * 2);
+  paint(ctx, C.coral, { lw: 0.04, dots: shade(C.coral, 0.4), density: 0.2 });
+  if (k < 0.3) {
+    // its porthole, steamed up from the inside
+    ctx.beginPath(); ctx.arc(hx, hy - 0.04, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+    ctx.beginPath(); ctx.moveTo(hx + 0.12, hy + 0.12); ctx.lineTo(hx + 0.2, hy + 0.12); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function gantry(ctx, t, s, k = 0) {
   const col = C.red;
   const posts = [[GX0, GY0], [GX1, GY0], [GX0, GY1], [GX1, GY1]];
   for (const [x, y] of posts) box(ctx, x - 0.08, y - 0.08, 0, 0.16, 0.16, GH, col, { flat: true, lw: 0.04 });
@@ -99,6 +152,7 @@ function gantry(ctx, t, s) {
   }
   // top deck with a railing and a beacon
   box(ctx, GX0 - 0.3, GY0 - 0.3, GH, GX1 - GX0 + 0.6, GY1 - GY0 + 0.6, 0.15, C.greyLight);
+  capsule(ctx, t, k);
   face(ctx, [[GX0 - 0.3, GY1 + 0.3, GH + 0.8], [GX1 + 0.3, GY1 + 0.3, GH + 0.8], [GX1 + 0.3, GY0 - 0.3, GH + 0.8]], null, { lw: 0.06 });
   for (const [x, y] of [[GX0 - 0.3, GY1 + 0.3], [GX1 + 0.3, GY1 + 0.3], [GX1 + 0.3, GY0 - 0.3]]) face(ctx, [[x, y, GH + 0.15], [x, y, GH + 0.8]], null, { lw: 0.06 });
   // swing arm
@@ -111,11 +165,6 @@ function gantry(ctx, t, s) {
   face(ctx, [[px - nx, py - ny, ARM_Z - 0.2], [ex - nx, ey - ny, ARM_Z - 0.2], [ex + nx, ey + ny, ARM_Z - 0.2], [ex + nx, ey + ny, ARM_Z], [px + nx, py + ny, ARM_Z]], shade(C.greyLight, 0.25));
   face(ctx, [[px - nx, py - ny, ARM_Z], [ex - nx, ey - ny, ARM_Z], [ex + nx, ey + ny, ARM_Z], [px + nx, py + ny, ARM_Z]], C.greyLight);
   face(ctx, [[px + nx, py + ny, ARM_Z + 0.7], [ex + nx, ey + ny, ARM_Z + 0.7]], null, { lw: 0.05 });
-  // blinking beacon
-  const on = Math.sin(t * 5) > 0;
-  const [bx, by] = P(GX1 + 0.2, GY1 + 0.2, GH + 1.0);
-  ctx.beginPath(); ctx.arc(bx, by, 0.16, 0, Math.PI * 2); paint(ctx, on ? C.coral : shade(C.coral, 0.4), { lw: 0.04 });
-  if (on && Q.detail) { ctx.beginPath(); ctx.arc(bx, by, 0.4, 0, Math.PI * 2); ctx.fillStyle = alpha(C.coral, 0.25); ctx.fill(); }
 }
 
 // Crew member i: out of the hut, up the lift, across the arm, into the rocket.
@@ -183,6 +232,104 @@ function checkFlag(c, t, up) {
     c.fillStyle = (i + j) % 2 ? C.white : C.ink; c.fill();
   }
   c.restore();
+}
+
+// A toolbox, its lid hinged along the back. k: the lid, 0 shut to 1 open.
+// wrench: the lost wrench is in it, too long to shut it on, so the lid sits
+// ajar with the handle showing.
+const TOOLS = [{ x: 9.9, y: 4.9, c: C.red }, { x: 9.9, y: 6.4, c: C.teal }];
+function toolbox(ctx, x, y, color, k, wrench) {
+  const x0 = x - 0.45, y0 = y - 0.3, H = 0.45;
+  box(ctx, x0, y0, 0, 0.9, 0.6, H, color, { dots: shade(color, 0.4), density: 0.2 });
+  const a = (wrench ? 0.16 : 0) + k * 1.35;
+  if (a > 0.05) {
+    // inside
+    face(ctx, [[x0 + 0.05, y0 + 0.05, H], [x0 + 0.85, y0 + 0.05, H], [x0 + 0.85, y0 + 0.55, H], [x0 + 0.05, y0 + 0.55, H]], C.ink, { lw: 0.02 });
+    if (k > 0.3) {
+      if (wrench) wrenchShape(ctx, ...P(x, y, H + 0.04), 1);
+      else {
+        // spanners, lots of them
+        for (let i = 0; i < 3; i++) {
+          const [X, Y] = P(x - 0.2 + i * 0.2, y - 0.1 + i * 0.08, H + 0.04);
+          ctx.beginPath(); ctx.roundRect(X - 0.22, Y - 0.03, 0.44, 0.06, 0.03); paint(ctx, C.greyLight, { lw: 0.02 });
+        }
+      }
+    }
+  }
+  const L = 0.9;
+  const lx = x0 + L * Math.cos(a), lz = H + L * Math.sin(a);
+  if (wrench && k < 0.3) {
+    // the handle, sticking out under the lid
+    const A = P(x + 0.25, y + 0.05, H + 0.04), B = P(x + 0.62, y + 0.12, H + 0.07);
+    ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.grey; ctx.lineWidth = 0.07; ctx.stroke();
+  }
+  face(ctx, [[x0, y0, H], [x0, y0 + 0.6, H], [lx, y0 + 0.6, lz], [lx, y0, lz]], tint(color, 0.15), { lw: 0.035 });
+  const [hx, hy] = P((x0 + lx) / 2, y0 + 0.3, (H + lz) / 2 + 0.06);
+  ctx.beginPath(); ctx.ellipse(hx, hy, 0.16, 0.06, 0, Math.PI, Math.PI * 2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+}
+function wrenchShape(ctx, X, Y, s) {
+  ctx.save(); ctx.translate(X, Y); ctx.scale(s, s); ctx.rotate(-0.4);
+  ctx.beginPath(); ctx.roundRect(-0.35, -0.05, 0.6, 0.1, 0.05); paint(ctx, C.grey, { lw: 0.03 });
+  ctx.beginPath(); ctx.arc(0.3, 0, 0.13, 0.6, Math.PI * 2 - 0.6); ctx.lineTo(0.3, 0); ctx.closePath(); paint(ctx, C.grey, { lw: 0.03 });
+  ctx.beginPath(); ctx.arc(-0.38, 0, 0.1, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
+  ctx.restore();
+}
+
+// Crash test markings: a quartered disc, yellow and black.
+function target(ctx, X, Y, r) {
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(X, Y); ctx.arc(X, Y, r, (i * Math.PI) / 2, ((i + 1) * Math.PI) / 2); ctx.closePath();
+    ctx.fillStyle = i % 2 ? C.ink : C.mustard; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(X, Y, r, 0, Math.PI * 2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+}
+// The crash test sled: a seat on rails with a foam goose strapped in, the
+// size and shape of the real one. (A decoy.)
+const SLED = [1.6, 8.6];
+function crashSled(ctx) {
+  const [x, y] = SLED;
+  for (const dx of [-0.3, 0.3]) face(ctx, [[x + dx, 7.2, 0.04], [x + dx, 10.3, 0.04]], null, { lw: 0.1, stroke: C.grey });
+  for (let i = 0; i < 6; i++) face(ctx, [[x - 0.4, 7.3 + i * 0.55, 0.03], [x + 0.4, 7.3 + i * 0.55, 0.03]], null, { lw: 0.06, stroke: C.brown });
+  box(ctx, x - 0.55, 10.25, 0, 1.1, 0.3, 0.9, C.mustard, { dotsR: C.ink });
+  box(ctx, x - 0.45, y - 0.5, 0.1, 0.9, 1.0, 0.35, C.navy);
+  box(ctx, x - 0.45, y - 0.6, 0.45, 0.9, 0.15, 1.1, C.navy, { top: tint(C.navy, 0.2) });
+  goose(ctx, x, y + 0.05, 0.45, 0, { pose: 'sit', dir: 'l' });
+  const X = x - y - 0.05, Y = (x + y + 0.05) / 2 - 0.45 * ZK;
+  target(ctx, X + 0.05, Y - 0.2, 0.09);
+  target(ctx, X - 0.28, Y - 0.82, 0.06);
+  // the strap
+  ctx.beginPath(); ctx.moveTo(X + 0.35, Y - 0.38); ctx.lineTo(X - 0.25, Y - 0.05);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 0.06; ctx.stroke();
+  label(ctx, x, 10.56, 0.5, 'TEST', 0.22, C.ink);
+}
+
+// The big red button, on its own little pedestal at the front. Pressed (k 1)
+// it sinks and the light on top spins.
+const BTN = [5.8, 13.3];
+function redButton(ctx, t, k) {
+  const [x, y] = BTN;
+  box(ctx, x - 0.45, y - 0.45, 0, 0.9, 0.9, 1.0, C.greyLight, { top: C.white });
+  for (let i = 0; i < 4; i++) face(ctx, [[x + 0.46, y - 0.4 + i * 0.22, 0.1], [x + 0.46, y - 0.3 + i * 0.22, 0.1], [x + 0.46, y - 0.18 + i * 0.22, 0.35], [x + 0.46, y - 0.28 + i * 0.22, 0.35]], C.mustard, { stroke: false });
+  label(ctx, x + 0.46, y + 0.46, 0.7, 'DO NOT', 0.17, C.coral);
+  label(ctx, x + 0.46, y + 0.46, 0.5, 'PRESS', 0.17, C.coral);
+  cylinder(ctx, x, y, 1.0, 0.36, 0.1, C.ink, { flat: true });
+  cylinder(ctx, x, y, 1.1, 0.3, 0.22 - k * 0.15, C.red, { top: C.coral });
+  const [X, Y] = P(x, y, 1.32 - k * 0.15);
+  ctx.beginPath(); ctx.ellipse(X - 0.1, Y - 0.04, 0.1, 0.04, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.white, 0.7); ctx.fill();
+  if (k > 0.05) {
+    // the alarm light, going round
+    const a = t * 9;
+    const [lx, ly] = P(x, y, 1.9);
+    ctx.beginPath(); ctx.moveTo(lx, ly);
+    ctx.arc(lx, ly, 1.4 * k, a, a + 0.6); ctx.closePath();
+    ctx.fillStyle = alpha(C.coral, 0.3 * k); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(lx, ly);
+    ctx.arc(lx, ly, 1.4 * k, a + Math.PI, a + Math.PI + 0.6); ctx.closePath();
+    ctx.fill();
+  }
 }
 
 // ---------- The day ----------
@@ -360,8 +507,9 @@ export default {
       band(ctx, 4.2, 1.2, 0.9, 1.6, 1.9, C.coral);
     });
 
-    // Gantry tower
-    R.thing(GX1, GY1, (ctx, t) => gantry(ctx, t, ph(t)), { anim: true });
+    // Gantry tower, with the spare capsule on top: tap its hatch.
+    const hatch = R.poke({ id: 'capsule', at: [CAP.x + 0.5, CAP.y + 0.5, capZ() + 0.45], r: 0.9, sound: 'clunk', say: '3, 2, 1... HONK.' });
+    R.thing(GX1, GY1, (ctx, t) => gantry(ctx, t, ph(t), hatch.k()), { anim: true });
     // Lift cage
     R.mover((t) => {
       const s = ph(t);
@@ -449,6 +597,8 @@ export default {
       paintText(ctx, 'left', 9.2, 4.5, 'MISSION CLOCK', 0.34, C.white, 'Rethink Sans');
       ctx.restore();
     }, { anim: true });
+
+    R.poke({ id: 'board', at: [0.45, 9.2, 3.4], r: 1.0, sound: 'tick', say: ['T-MINUS A WHILE.', 'LAUNCH 8:48 PM. SHARP.', 'NO, YOU CANNOT PRESS GO.'] });
 
     // Crew hut with a windsock on the roof.
     R.thing(3.2, 15.6, (ctx, t) => {
@@ -567,16 +717,23 @@ export default {
       box(ctx, 7.4, 10.1, 0, 2.5, 0.55, 0.95, C.greyLight, { dotsL: C.grey });
       for (let i = 0; i < 5; i++) face(ctx, [[7.5 + i * 0.5, 10.66, 0.1], [7.75 + i * 0.5, 10.66, 0.85]], null, { lw: 0.12, stroke: C.mustard });
     });
-    // The lost wrench
-    R.rug((ctx) => {
-      const [X, Y] = P(9.2, 4.3, 0.03);
-      ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.4);
-      ctx.beginPath(); ctx.roundRect(-0.35, -0.05, 0.6, 0.1, 0.05); paint(ctx, C.grey, { lw: 0.03 });
-      ctx.beginPath(); ctx.arc(0.3, 0, 0.13, 0.6, Math.PI * 2 - 0.6); ctx.lineTo(0.3, 0); ctx.closePath(); paint(ctx, C.grey, { lw: 0.03 });
-      ctx.beginPath(); ctx.arc(-0.38, 0, 0.1, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.03 });
-      ctx.restore();
+    // Two toolboxes by the pad. The wrench is in the red one, too long for
+    // it, so its lid won't shut; the other is all spanners.
+    const box1 = R.poke({ id: 'toolbox', at: [TOOLS[0].x, TOOLS[0].y, 0.5], r: 0.6, sound: 'clunk' });
+    const box2 = R.poke({ id: 'spanners', at: [TOOLS[1].x, TOOLS[1].y, 0.5], r: 0.6, sound: 'clunk', say: ['Spanners. Not the same thing.', 'Still spanners.'] });
+    TOOLS.forEach(({ x, y, c }, i) => {
+      const lid = i ? box2 : box1;
+      R.thing(x + 0.45, y + 0.3, (ctx) => toolbox(ctx, x, y, c, lid.k(), !i), { anim: true });
     });
-    R.find({ id: 'wrench', label: 'A lost wrench', at: [9.2, 4.3, 0.05], r: 0.7 });
+    R.find({ id: 'wrench', label: 'A lost wrench', kind: 'poke', inside: box1, at: [TOOLS[0].x, TOOLS[0].y, 0.55], r: 0.6, hint: 'The mechanic is fixing a rocket with his shoe. One toolbox will not shut.' });
+
+    // A crash test goose, strapped into its sled (a decoy).
+    R.thing(SLED[0] + 0.5, 10.5, (ctx) => crashSled(ctx));
+    R.decoy({ id: 'dummy', at: [SLED[0], SLED[1], 0.95], r: 0.8, say: ['Crash test goose. Foam.', 'Still foam.', 'It has been through a lot.'] });
+
+    // The big red button: the first thing to tap.
+    const button = R.poke({ id: 'button', at: [BTN[0], BTN[1], 1.2], r: 0.9, teach: true, hold: 3, sound: 'clunk', say: ['NOT YET.', 'STILL NOT YET.', 'NICE TRY.', 'WAIT FOR 8:48 PM.'] });
+    R.thing(BTN[0] + 0.45, BTN[1] + 0.45, (ctx, t) => redButton(ctx, t, button.k()), { anim: true });
 
     // Fence around the viewing area
     for (let i = 0; i < 8; i++) {
@@ -672,6 +829,12 @@ export default {
       const [X, Y] = P(14.4, 12.9, 1.36);
       ctx.beginPath(); ctx.roundRect(X - 0.3, Y - 0.08, 0.6, 0.16, 0.08); paint(ctx, C.woodLight, { lw: 0.02 });
       ctx.beginPath(); ctx.roundRect(X - 0.34, Y - 0.1, 0.68, 0.08, 0.04); ctx.fillStyle = C.red; ctx.fill();
+      // a tiny flag, planted in it: claimed for the space program
+      ctx.beginPath(); ctx.moveTo(X + 0.12, Y - 0.08); ctx.lineTo(X + 0.12, Y - 0.42); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+      const w = Math.sin(t * 6) * 0.02;
+      ctx.beginPath(); ctx.moveTo(X + 0.12, Y - 0.42); ctx.lineTo(X + 0.3, Y - 0.37 + w); ctx.lineTo(X + 0.12, Y - 0.31); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.02 });
+      ctx.beginPath(); ctx.moveTo(X + 0.12, Y - 0.37); ctx.lineTo(X + 0.24, Y - 0.36 + w * 0.6); ctx.strokeStyle = C.coral; ctx.lineWidth = 0.03; ctx.stroke();
       // umbrella
       face(ctx, [[15.2, 12.6, 1.35], [15.2, 12.6, 3.0]], null, { lw: 0.06 });
       const [ux, uy] = P(15.2, 12.6, 3.3);
@@ -692,6 +855,7 @@ export default {
         }
       }
     }, { anim: true });
+    R.find({ id: 'flag', label: 'A tiny flag', kind: 'hard', at: [14.5, 12.9, 1.6], r: 0.6, riddle: 'Claimed in the name of lunch.', hint: 'One small step for a sausage. Look at the hot dogs.' });
     R.mover(() => ({ x: 14.6, y: 11.8 }), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, folk(320, { pose: pulse(t, 5) < 0.3 ? 'wave' : 'stand', dir: 'l', hat: 'chef', top: C.white }), t);
     });
@@ -738,30 +902,28 @@ export default {
       if (Math.sin(t * 4) > 0) { ctx.beginPath(); ctx.arc(X - 0.1, Y - 0.26, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.coral; ctx.fill(); }
     });
 
-    // Traffic cone with a tiny flag planted in it.
-    R.thing(10.6, 9.6, (ctx, t) => {
+    // A traffic cone.
+    R.thing(10.6, 9.6, (ctx) => {
       const [X, Y] = P(10.3, 9.3, 0);
       ctx.beginPath(); ctx.moveTo(X - 0.3, Y); ctx.lineTo(X + 0.3, Y); ctx.lineTo(X + 0.06, Y - 0.85); ctx.lineTo(X - 0.06, Y - 0.85); ctx.closePath();
       paint(ctx, C.coral, { lw: 0.04 });
       ctx.beginPath(); ctx.rect(X - 0.18, Y - 0.5, 0.36, 0.12); ctx.fillStyle = C.white; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(X, Y - 0.85); ctx.lineTo(X, Y - 1.45); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
-      const w = Math.sin(t * 6) * 0.03;
-      ctx.beginPath(); ctx.moveTo(X, Y - 1.45); ctx.lineTo(X + 0.32, Y - 1.36 + w); ctx.lineTo(X, Y - 1.24); ctx.closePath();
-      paint(ctx, C.teal, { lw: 0.02 });
-    }, { anim: true });
-    R.find({ id: 'flag', label: 'A tiny flag', at: [10.3, 9.3, 1.1], r: 0.6 });
+    });
 
     // Dog in a space helmet, on patrol.
     const dogRoute = route([[4.6, 11.2, 1], [7.2, 11.4], [7.2, 15.2, 1.5], [4.4, 15.2]], { speed: 1.4 });
     R.mover(dogRoute, (ctx, t, p) => dog(ctx, p.x, p.y, 0, t, p.dir, p.moving));
     R.find({ id: 'dog', label: 'A dog in a space helmet', at: (t) => { const p = dogRoute(t); return [p.x, p.y, 0.5]; }, r: 0.8 });
 
-    // The goose, running the show from the top of the gantry.
+    // The goose, shut in the spare capsule at the top of the gantry. Open the
+    // hatch and it's sat in the hatchway, running the show from up there
+    // (honking along to the countdown at 8:48pm).
     R.goose((t) => {
       const s = ph(t);
-      const honk = (s > 8 && s < 11 && pulse(t, 1) < 0.35) || (s > 11 && s < 12.5);
-      return { x: (GX0 + GX1) / 2, y: (GY0 + GY1) / 2 + 0.2, z: GH + 0.15, dir: 'r', pose: honk ? 'honk' : 'stand' };
-    }, { bias: 1.5 });
+      const k = hatch.k();
+      const honk = (s > 8 && s < 11 && pulse(t, 1) < 0.35) || (s > 11 && s < 12.5) || pulse(t, 8) > 0.9;
+      return { x: CAP.x + 0.55, y: CAP.y + 0.55, z: capZ() + 0.02, dir: 'r', hidden: k < 0.3, pose: k > 0.5 && honk ? 'honk' : 'sit' };
+    }, { bias: 1.5, kind: 'poke', inside: hatch, hint: 'The spare capsule up on the gantry keeps rocking. Knock on its hatch.' });
 
     // After the launch the smoke hangs over the lot, then the pad smoulders
     // all night.
