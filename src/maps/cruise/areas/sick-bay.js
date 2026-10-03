@@ -76,6 +76,46 @@ function walkIn(pts, t0, speed = 1.6) {
   };
 }
 
+// A hot-water bottle shaped like a lizard, lying flat on a blanket: green
+// ribbed rubber, four stubby legs, a tail, painted eyes and a white stopper
+// in its neck. k: how squashed (a tap).
+function hotWaterLizard(ctx, x, y, z, k) {
+  const [X, Y] = P(x, y, z);
+  const skin = INK.queasyGreen, dark = shade(INK.queasyGreen, 0.35);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.transform(1, 0.5, -1, 0.5, 0, 0); // flat on the bed: u along x, v along y
+  ctx.scale(0.8 * (1 + k * 0.12), 0.8 * (1 - k * 0.1));
+  ctx.lineCap = 'round';
+  // The legs and the tail, under the body.
+  for (const [a, b, c, d] of [[0.2, -0.18, 0.32, -0.36], [0.2, 0.18, 0.32, 0.36], [-0.25, -0.18, -0.36, -0.36], [-0.25, 0.18, -0.36, 0.36]]) {
+    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d);
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.15; ctx.stroke(); }
+    ctx.strokeStyle = skin; ctx.lineWidth = 0.1; ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(-0.4, 0); ctx.quadraticCurveTo(-0.7, 0.05, -0.75, 0.25); ctx.quadraticCurveTo(-0.78, 0.38, -0.66, 0.36);
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke(); }
+  ctx.strokeStyle = skin; ctx.lineWidth = 0.08; ctx.stroke();
+  // The body, a fat rubber bag, ribbed.
+  ctx.beginPath(); ctx.ellipse(-0.04, 0, 0.42, 0.24, 0, 0, Math.PI * 2);
+  paint(ctx, skin, { lw: 0.03, dots: dark, density: 0.12 });
+  if (Q.detail) {
+    ctx.strokeStyle = dark; ctx.lineWidth = 0.02;
+    for (let i = -3; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 0.1, -0.17); ctx.lineTo(i * 0.1, 0.17); ctx.stroke(); }
+  }
+  // The head, and its painted eyes.
+  ctx.beginPath(); ctx.ellipse(0.48, 0, 0.16, 0.13, 0, 0, Math.PI * 2);
+  paint(ctx, skin, { lw: 0.03 });
+  for (const v of [-0.07, 0.07]) {
+    ctx.beginPath(); ctx.arc(0.52, v, 0.04, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.012 });
+    ctx.beginPath(); ctx.arc(0.53, v, 0.018, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+  }
+  ctx.restore();
+  // The stopper, standing up out of its neck.
+  const [sx, sy] = P(x + 0.26, y, z + 0.05);
+  ctx.beginPath(); ctx.roundRect(sx - 0.06, sy - 0.16, 0.12, 0.16, 0.03); paint(ctx, C.white, { lw: 0.015 });
+}
+
 // ---------- The cast who stay here ----------
 
 // Where people come in: the door from the Crew Bar, in the wall at x 0.
@@ -299,6 +339,13 @@ export default {
       onLeft(ctx, 8.5, 2.3, 0.9, 0.8, C.white, { lw: 0.03 });
       onLeft(ctx, 8.8, 2.55, 0.3, 0.3, INK.funnelRed, { stroke: false });
     });
+    // The ticket machine: a tap and it prints you a number (a big one).
+    const ticket = R.poke({ id: 'tickets', at: [0.2, 4.9, 2.0], r: 0.7, hold: 1.5, sound: 'tick', say: ['You are number 2,413.', 'Now serving: 3.', 'Please wait. Forever.'] });
+    R.decor((ctx) => {
+      const k = ticket.k();
+      if (k <= 0) return;
+      onLeft(ctx, 4.72, 1.62 - k * 0.45, 0.36, 0.45 * k + 0.02, C.white, { lw: 0.015 });
+    }, { anim: true });
     // NOW SERVING: 3, blinking, all day. (He is number 4.)
     R.decor((ctx, t) => {
       if (!Q.detail) return;
@@ -428,10 +475,13 @@ export default {
       });
     }, { anim: true, depth: -0.85 });
 
-    // The digit card: flips when it changes.
+    // The digit card: flips when it changes. A tap puts it up one, for a
+    // moment, until somebody puts it back.
+    const sign = R.poke({ id: 'sign', at: [9.3, 0.3, 4.3], r: 1.3, hold: 1.8, teach: true, sound: 'clunk', say: ['ONE! A new record!', 'Zero. He says zero.', 'Back to zero.'] });
     R.thing(10.4, 0.3, (ctx, t) => {
-      const { n, since } = digit(wrap(t));
-      const flip = since < 0.4 ? Math.abs(Math.cos((since / 0.4) * Math.PI)) : 1;
+      const d = digit(wrap(t)), k = sign.k();
+      const n = d.n + (k > 0.5 ? 1 : 0);
+      const flip = k > 0 && k < 1 ? Math.abs(Math.cos(k * Math.PI)) : d.since < 0.4 ? Math.abs(Math.cos((d.since / 0.4) * Math.PI)) : 1;
       onY(ctx, CARD.x, 0.05, CARD.z, (g) => {
         g.save();
         g.translate(0.6, 0.6); g.scale(1, Math.max(0.05, flip)); g.translate(-0.6, -0.6);
@@ -447,6 +497,7 @@ export default {
       box(ctx, 12.4, 0.25, 0, 1.2, 0.8, 2.3, MAT.steel, { top: tint(MAT.steel, 0.2) });
       onY(ctx, 12.4, 1.05, 2.3, (g) => {
         ['FORMS', 'MORE FORMS', 'BUCKETS'].forEach((s, i) => {
+          if (i === 1) return; // (its own item, below: it opens)
           g.beginPath(); g.rect(0.08, 0.1 + i * 0.73, 1.04, 0.63); paint(g, tint(MAT.steel, 0.15), { lw: 0.02 });
           g.beginPath(); g.rect(0.35, 0.22 + i * 0.73, 0.5, 0.14); paint(g, C.white, { lw: 0.015 });
           words(g, s, 0.6, 0.29 + i * 0.73, 0.07, C.ink, 'center', 900);
@@ -461,6 +512,61 @@ export default {
         paint(ctx, C.leaf, { lw: 0.015 });
       }
     });
+    // MORE FORMS: the lab's results are filed in it, and one didn't go in
+    // all the way (a corner with the red stamp sticks out of the top).
+    const files = R.poke({ id: 'files', at: [13.0, 1.4, 1.2], r: 0.75, sound: 'clunk' });
+    const FD = { x: 12.48, y: 1.05, z0: 0.84, z1: 1.47, w: 1.04 };
+    R.thing(13.0, 1.9, (ctx) => {
+      const out = 0.04 + files.k() * 0.66;
+      const { x, y, z0, z1, w } = FD;
+      // The hole it came out of, then the drawer: front, side, the dark inside.
+      if (out > 0.06) onY(ctx, x, y + 0.005, z1, (g) => { g.beginPath(); g.rect(0, 0, w, z1 - z0); g.fillStyle = shade(MAT.steelDark, 0.45); g.fill(); });
+      box(ctx, x, y, z0, w, out, z1 - z0, tint(MAT.steel, 0.15), { top: shade(MAT.steelDark, 0.45), flat: true, lw: 0.02 });
+      // The lab slip: a corner caught in the top when it's shut; standing up
+      // in the files when it's open.
+      const sy = y + out - 0.25;
+      if (out < 0.3) {
+        // (Big and plain: white paper, the lab's blue band, a red LAB stamp.)
+        onY(ctx, x, y + out + 0.005, z1, (g) => {
+          g.save(); g.translate(0.64, 0.03); g.rotate(-0.14);
+          g.beginPath(); g.rect(-0.24, -0.4, 0.48, 0.42); paint(g, C.white, { lw: 0.016 });
+          g.fillStyle = MAT.crewBlue; g.fillRect(-0.24, -0.4, 0.48, 0.06);
+          g.beginPath(); g.arc(0.02, -0.18, 0.11, 0, Math.PI * 2); g.strokeStyle = INK.funnelRed; g.lineWidth = 0.022; g.stroke();
+          words(g, 'LAB', 0.02, -0.18, 0.08, INK.funnelRed, 'center', 900);
+          g.restore();
+        });
+      } else {
+        // The other files, a row of folders.
+        for (let i = 3; i >= 0; i--) onY(ctx, x + 0.06, sy - 0.12 - i * 0.1, z1 + 0.12, (g) => { g.beginPath(); g.rect(0, 0, w - 0.12, 0.12); paint(g, i % 2 ? C.butter : tint(C.butter, 0.3), { lw: 0.012 }); });
+        onY(ctx, x + 0.18, sy, z1 + 0.5, (g) => {
+          g.save(); g.rotate(-0.06);
+          g.beginPath(); g.rect(0, 0, 0.68, 0.5); paint(g, C.white, { lw: 0.015 });
+          g.fillStyle = MAT.crewBlue; g.fillRect(0, 0, 0.68, 0.07);
+          words(g, 'LAB RESULT', 0.06, 0.14, 0.06, C.ink, 'left', 900);
+          words(g, 'SALMONELLA', 0.06, 0.24, 0.07, C.ink, 'left', 900);
+          words(g, '(REPTILE)', 0.06, 0.34, 0.055, INK.funnelRed, 'left', 900);
+          // The stamp, and a little lizard doodle in pen.
+          g.beginPath(); g.arc(0.56, 0.36, 0.08, 0, Math.PI * 2); g.strokeStyle = INK.funnelRed; g.lineWidth = 0.015; g.stroke();
+          words(g, 'LAB', 0.56, 0.36, 0.04, INK.funnelRed, 'center', 900);
+          g.strokeStyle = C.ink; g.lineWidth = 0.012; g.lineCap = 'round';
+          g.beginPath(); g.ellipse(0.22, 0.43, 0.06, 0.02, 0, 0, Math.PI * 2); g.stroke();
+          g.beginPath(); g.arc(0.29, 0.425, 0.018, 0, Math.PI * 2); g.stroke();
+          g.beginPath(); g.moveTo(0.16, 0.43); g.quadraticCurveTo(0.11, 0.44, 0.1, 0.47); g.stroke();
+          g.restore();
+        });
+      }
+      // The drawer's front: its label and handle.
+      onY(ctx, x, y + out, z1, (g) => {
+        g.beginPath(); g.rect(0.27, 0.12, 0.5, 0.14); paint(g, C.white, { lw: 0.015 });
+        words(g, 'MORE FORMS', 0.52, 0.19, 0.07, C.ink, 'center', 900);
+        g.beginPath(); g.rect(0.32, 0.38, 0.4, 0.06); paint(g, MAT.chrome, { lw: 0.012 });
+      });
+    }, { anim: true, depth: 13.0 + 1.9 });
+    R.find({
+      id: 'lab-slip', label: 'A lab slip', kind: 'poke', inside: files, at: [13.0, 1.5, 1.85], r: 0.8,
+      hint: "Results come back from the lab and get filed. One didn't go in all the way.",
+    });
+
     // The desk chair, pushed back (he never sits down).
     R.thing(16.4, 2.2, (ctx) => chair(ctx, 15.9, 1.4, 0, MAT.crewBlue, 'l'), {});
     // The desk.
@@ -501,57 +607,10 @@ export default {
       // The lab stamp and its ink pad (it's red, like everything else stamped here).
       box(ctx, 15.25, 3.05, z, 0.3, 0.2, 0.03, C.ink, { flat: true, lw: 0.012 });
       cylinder(ctx, 15.55, 3.0, z, 0.07, 0.18, INK.funnelRed, { flat: true });
-      // The paperwork: forms and prescriptions, all on the same slips. One
-      // of them is back from the lab.
-      const slip = (x, y, rot, draw) => {
-        const c = Math.cos(rot) * 0.22, s = Math.sin(rot) * 0.22, c2 = -Math.sin(rot) * 0.15, s2 = Math.cos(rot) * 0.15;
-        const zz = z + 0.01;
-        face(ctx, [[x - c - c2, y - s - s2, zz], [x + c - c2, y + s - s2, zz], [x + c + c2, y + s + s2, zz], [x - c + c2, y - s + s2, zz]], C.white, { lw: 0.012 });
-        if (!Q.detail) return;
-        const [X, Y] = P(x, y, zz);
-        ctx.save();
-        ctx.transform(1, 0.5, -1, 0.5, X, Y); // flat on the desk
-        ctx.rotate(rot);
-        ctx.fillStyle = MAT.crewBlue; ctx.fillRect(-0.22, -0.15, 0.44, 0.05);
-        draw(ctx);
-        ctx.restore();
-      };
-      const lines = (g, a, b) => {
-        words(g, a, -0.19, -0.05, 0.045, C.ink, 'left', 900);
-        words(g, b, -0.19, 0.03, 0.04, C.ink, 'left', 700);
-        g.fillStyle = alpha(C.ink, 0.35);
-        g.fillRect(-0.19, 0.08, 0.3, 0.012); g.fillRect(-0.19, 0.11, 0.24, 0.012);
-      };
-      const stamp = (g, u, v, s) => {
-        g.save(); g.translate(u, v); g.rotate(-0.3);
-        g.beginPath(); g.arc(0, 0, 0.06, 0, Math.PI * 2);
-        g.strokeStyle = INK.funnelRed; g.lineWidth = 0.014; g.stroke();
-        words(g, s, 0, 0, 0.028, INK.funnelRed, 'center', 900);
-        g.restore();
-      };
-      slip(15.3, 3.42, 0.35, (g) => { lines(g, 'Rx: REST', 'LIE DOWN. NO BUFFET.'); });
-      slip(15.85, 3.45, -0.25, (g) => { lines(g, 'SICK NOTE', 'EXCUSED FROM LIMBO'); stamp(g, 0.13, 0.05, 'OK'); });
-      slip(16.1, 3.78, 0.45, (g) => { lines(g, 'Rx: GINGER ALE', 'X 2400 PASSENGERS'); });
-      slip(17.0, 3.62, -0.4, (g) => { lines(g, 'FORM 7B', 'IN TRIPLICATE'); stamp(g, 0.13, 0.05, 'NO'); });
-      // The lab slip: a lab stamp, the result underlined, and a lizard doodle.
-      slip(16.55, 3.5, 0.08, (g) => {
-        words(g, 'LAB RESULT', -0.19, -0.06, 0.045, C.ink, 'left', 900);
-        words(g, 'SALMONELLA', -0.19, 0.02, 0.05, C.ink, 'left', 900);
-        g.fillStyle = C.ink; g.fillRect(-0.19, 0.05, 0.22, 0.01);
-        words(g, '(REPTILE)', -0.19, 0.1, 0.038, INK.funnelRed, 'left', 900);
-        stamp(g, 0.14, -0.04, 'LAB');
-        // The doodle: a little lizard, in pen.
-        g.strokeStyle = C.ink; g.lineWidth = 0.01; g.lineCap = 'round';
-        g.beginPath(); g.ellipse(0.13, 0.09, 0.045, 0.016, 0, 0, Math.PI * 2); g.stroke();
-        g.beginPath(); g.arc(0.185, 0.085, 0.014, 0, Math.PI * 2); g.stroke();
-        g.beginPath(); g.moveTo(0.085, 0.09); g.quadraticCurveTo(0.05, 0.1, 0.04, 0.13); g.stroke();
-        for (const [a, b] of [[0.11, 1], [0.15, 1], [0.11, -1], [0.15, -1]]) { g.beginPath(); g.moveTo(a, 0.09 + b * 0.014); g.lineTo(a + 0.012, 0.09 + b * 0.034); g.stroke(); }
-      });
       // His nameplate, at the front.
       face(ctx, [[15.05, 3.97, z], [15.85, 3.97, z], [15.85, 3.93, z + 0.16], [15.05, 3.93, z + 0.16]], INK.teak, { lw: 0.015 });
       lettering(ctx, 'x', 15.45, 3.98, z + 0.08, 'DR. SWABB', 0.08, C.white);
     });
-    R.find({ id: 'lab-slip', label: 'A lab slip', at: [16.55, 3.5, 1.2], r: 0.8 });
 
     // The skeleton by the desk: SKELETON CREW, in a party hat.
     R.thing(18.9, 3.4, (ctx) => {
@@ -656,9 +715,9 @@ export default {
         box(ctx, bx, BED_Y + 2.92, 0.3, 2, 0.1, 0.72, MAT.chrome, { flat: true, lw: 0.02 });
         onY(ctx, bx + 1.2, BED_Y + 3.03, 0.95, (g) => {
           g.beginPath(); g.rect(0, 0, 0.45, 0.55); paint(g, MAT.teakDark, { lw: 0.02 });
-          g.beginPath(); g.rect(0.05, 0.08, 0.35, 0.42); paint(g, C.white, { lw: 0.012 });
+          g.beginPath(); g.rect(0.05, 0.08, 0.35, 0.42); paint(g, tint(C.butter, 0.4), { lw: 0.012 });
           words(g, 'CHART', 0.22, 0.16, 0.06, C.ink, 'center', 900);
-          words(g, i % 2 ? 'SEE ABOVE' : 'GREEN', 0.22, 0.3, 0.05, INK.funnelRed, 'center', 900);
+          words(g, i % 2 ? 'SEE ABOVE' : 'GREEN', 0.22, 0.3, 0.05, C.navy, 'center', 900);
         });
         // The tray: a bed table across the blanket, jelly and crackers.
         const tx = bx + 0.25, ty = 13.15, tz = 0.95;
@@ -675,20 +734,30 @@ export default {
           cup(bx + 0.6, 13.4, C.brown);
           cup(tx + 0.75, 13.35, INK.flamingo);
           if (b.tray === 'find') {
-            const [a, c] = P(bx + 0.6, 13.4, zt + 0.13), [d, e] = P(bx + 0.72, 13.34, zt + 0.52);
-            inked(ctx, [[a, c], [d, e]], C.white, 0.05);
+            // The thermometer: a big glass one, standing well up out of the
+            // pudding, a red line up its middle and the scale marked on it.
+            // (Nothing else on any tray has a stick in it.)
+            const [a, c] = P(bx + 0.6, 13.4, zt + 0.1), [d, e] = P(bx + 0.7, 13.36, zt + 0.95);
+            const dx = d - a, dy = e - c, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
+            inked(ctx, [[a, c], [d, e]], alpha(MAT.glass, 0.95), 0.1);
+            // the red line, from the pudding up past halfway
+            inked(ctx, [[a + dx * 0.08, c + dy * 0.08], [a + dx * 0.62, c + dy * 0.62]], INK.funnelRed, 0.035);
             if (Q.detail) {
-              ctx.strokeStyle = INK.funnelRed; ctx.lineWidth = 0.018;
-              ctx.beginPath(); ctx.moveTo(a + (d - a) * 0.15, c + (e - c) * 0.15); ctx.lineTo(a + (d - a) * 0.6, c + (e - c) * 0.6); ctx.stroke();
+              ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012;
+              for (let k = 0; k < 6; k++) {
+                const u = 0.2 + k * 0.12, w = k % 2 ? 0.025 : 0.045;
+                ctx.beginPath(); ctx.moveTo(a + dx * u + nx * 0.02, c + dy * u + ny * 0.02); ctx.lineTo(a + dx * u + nx * (0.02 + w), c + dy * u + ny * (0.02 + w)); ctx.stroke();
+              }
+              // a glint down the glass
+              ctx.strokeStyle = alpha(C.white, 0.85); ctx.lineWidth = 0.015;
+              ctx.beginPath(); ctx.moveTo(a + dx * 0.68 - nx * 0.025, c + dy * 0.68 - ny * 0.025); ctx.lineTo(a + dx * 0.92 - nx * 0.025, c + dy * 0.92 - ny * 0.025); ctx.stroke();
             }
-            ctx.beginPath(); ctx.arc(d, e, 0.035, 0, Math.PI * 2); paint(ctx, MAT.chrome, { lw: 0.012 });
+            // the red bulb, just above the pudding
+            ctx.beginPath(); ctx.arc(a + dx * 0.06, c + dy * 0.06, 0.055, 0, Math.PI * 2); paint(ctx, INK.funnelRed, { lw: 0.015 });
           }
         } else if (b.tray === 'spoon') {
-          // A jelly with a spoon standing up in it.
+          // A red jelly and a yellow one.
           cup(tx + 0.35, 13.4, C.red);
-          const [a, c] = P(tx + 0.35, 13.4, zt + 0.13), [d, e] = P(tx + 0.44, 13.35, zt + 0.48);
-          inked(ctx, [[a, c], [d, e]], MAT.chrome, 0.04);
-          ctx.beginPath(); ctx.ellipse(d, e, 0.04, 0.06, 0.3, 0, Math.PI * 2); paint(ctx, MAT.chrome, { lw: 0.012 });
           cup(tx + 0.75, 13.35, INK.sunYellow);
         } else {
           // A juice box and its straw, and a jelly.
@@ -726,7 +795,11 @@ export default {
         ctx.fillStyle = alpha(MAT.glass, 1 - k); ctx.fill();
       }
     }, { anim: true, depth: 8 + BED_Y + 0.35 });
-    R.find({ id: 'pudding', label: 'A thermometer in a pudding', at: [13.25, 13.4, 1.1], r: 0.8 });
+    R.find({ id: 'pudding', label: 'A thermometer in a pudding', kind: 'spot', at: [13.25, 13.38, 1.4], r: 0.8 });
+
+    // A hot-water bottle on bed 2, lizard shaped, green: the decoy.
+    const bottle = R.decoy({ id: 'bottle', at: [7.2, 14.1, 1.05], r: 0.65, hold: 0.6, say: ['A hot-water bottle. Not an iguana.', 'Still warm. Still not an iguana.', 'Hands off. It is HIS.'] });
+    R.thing(7.2, 14.4, (ctx, t) => hotWaterLizard(ctx, 7.2, 14.1, 0.94, bottle.k()), { anim: true, depth: BEDS[1].bx + 1 + BED_Y + 1.58 });
 
     // The heart monitor by bed 4: beep, beep, beep.
     R.thing(15.3, 12.6, (ctx) => {
@@ -1005,8 +1078,9 @@ export default {
         g.beginPath(); g.rect(1.3, 1.3, 0.12, 0.35); paint(g, MAT.chrome, { lw: 0.015 });
       });
       // A tray of jelly left by the slot.
-      box(ctx, QB.x + 2.0, QB.y + QB.d + 0.2, 0, 0.6, 0.4, 0.04, C.white, { flat: true, lw: 0.015 });
-      cylinder(ctx, QB.x + 2.3, QB.y + QB.d + 0.4, 0.04, 0.1, 0.1, C.white, { flat: true, top: C.red });
+      // (A steel tray and a proper cup: a white sheet with a red dot read as the lab slip.)
+      box(ctx, QB.x + 2.0, QB.y + QB.d + 0.2, 0, 0.6, 0.4, 0.05, MAT.chrome, { flat: true, lw: 0.015 });
+      cylinder(ctx, QB.x + 2.3, QB.y + QB.d + 0.4, 0.05, 0.12, 0.16, alpha(MAT.glass, 0.9), { flat: true, top: C.red });
     });
     // His face at the porthole, now and then, and his knocking.
     const PRISONER = { skin: SKIN[5], hair: HAIR[2] };
@@ -1037,6 +1111,7 @@ export default {
       if (knock) noise(ctx, QB.x + 1.7, QB.y + QB.d + 0.2, 3.0, 'KNOCK KNOCK', (ph - 0.3) / 0.15, 0.36);
       if (ph > 0.48 && ph < 0.7) speech(ctx, QB.x + 1.7, QB.y + QB.d, 3.4, LINES[Math.floor(t / 13) % LINES.length], { size: 0.32 });
     }, { anim: true, depth: QB.x + QB.w / 2 + QB.y + QB.d / 2 + 0.05 });
+    R.poke({ id: 'booth', at: [QB.x + 1.7, QB.y + QB.d, 1.8], r: 1.0, sound: 'clunk', say: ['Do NOT open.', 'Not even if he asks nicely.', 'He says hi.'] });
     // The beacon on the roof, going round.
     R.thing(QB.x + QB.w / 2, QB.y + QB.d / 2 + 0.1, (ctx, t) => {
       const cx = QB.x + QB.w / 2, cy = QB.y + QB.d / 2;
@@ -1090,6 +1165,7 @@ export default {
       for (let i = 0; i < 3; i++) cylinder(ctx, 24.6 + i * 0.22, 9.75, 1.1, 0.08, 0.26, INK.funnelRed, { flat: true, lw: 0.012 });
       cylinder(ctx, 26.9, 9.8, 1.1, 0.12, 0.08, MAT.brass);
     });
+    R.poke({ id: 'counter-bell', at: [26.9, 9.8, 1.2], r: 0.6, sound: 'tick', say: ['DING. We have ginger ale.', 'DING. Still ginger ale.'] });
     // The pharmacist, handing out cans, and the customer who wants something else.
     const CHEM = { ...folk(271), ...CREW_LOOK, skin: SKIN[4], hair: HAIR[0], style: 'short' };
     R.thing(25.8, 8.4, (ctx, t) => {
@@ -1159,9 +1235,9 @@ export default {
       const k = green(t, at(10.4));
       person(ctx, 18.0, 13.1, 0.1, { ...WHEELIE, skin: qz(WHEELIE.skin, k), pose: 'sit', dir: 'l', arms: [1.4 + Math.sin(t * 6) * 0.3, 0.6] }, t);
       const [X, Y] = P(18.0, 13.1, 0.1), [hx, hy] = handAt(X, Y, -1, 1.4 + Math.sin(t * 6) * 0.3);
-      ctx.beginPath(); ctx.rect(hx - 0.16, hy - 0.3, 0.3, 0.38); paint(ctx, C.white, { lw: 0.015 });
+      ctx.beginPath(); ctx.rect(hx - 0.16, hy - 0.3, 0.3, 0.38); paint(ctx, INK.sunYellow, { lw: 0.015 });
       if (Q.detail) {
-        words(ctx, 'MENU', hx - 0.01, hy - 0.2, 0.07, INK.funnelRed, 'center', 900);
+        words(ctx, 'MENU', hx - 0.01, hy - 0.2, 0.07, C.ink, 'center', 900);
         if (pulse(t, 15, 7) < 0.22) speech(ctx, 18.0, 13.1, 2.4, k > 0.5 ? 'Is lunch included?' : 'Is it lunch yet?', { size: 0.3 });
       }
     }, { anim: true, depth: 31.5 });

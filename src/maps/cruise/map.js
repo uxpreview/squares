@@ -1,14 +1,15 @@
 // All You Can Eat: day four on a cruise ship, cut open from bow to stern.
-// Something from the buffet is going round, deck by deck, and you have until
-// the ship docks to find patient zero. A whodunit (case.js) on four decks
-// (the Manor's storeys, changed from the ship's lift), everyone on one clock
-// from 7am to 7pm (day.js), the ship on a sea that follows the day. The brief
-// is docs/levels/cruise.md; the layout is plan.js.
+// Something from the buffet is going round, and patient zero, a stowaway
+// iguana, is loose. A chase (trail.js): follow it sighting by sighting
+// through the day, deck to deck (the Manor's storeys, changed from the ship's
+// lift), and corner it at the gangway as the ship docks. Everyone is on one
+// clock from 7am to 7pm (day.js), and the ship is on a sea that follows the
+// day. The brief is docs/levels/cruise.md; the layout is plan.js.
 import { AREAS, STOREY, DECK, LOOP, LENGTH, BEAM } from './plan.js';
 import { walkers } from './day.js';
-import { seaAt, clockLabel, wrap, MOMENTS, LIFT_COLORS } from './style.js';
+import { seaAt, clockLabel, wrap, at, MOMENTS, LIFT_COLORS, CHASE, chase, chaseOpen, caught } from './style.js';
 import { backdrop, sky } from './ambient.js';
-import cruiseCase from './case.js';
+import trail from './trail.js';
 import { sound } from './sound.js';
 
 import waterslide from './areas/waterslide.js';
@@ -26,14 +27,18 @@ import port from './areas/port.js';
 
 const place = (zone, tag, o = {}) => ({ zone, at: AREAS[zone.id].at, size: AREAS[zone.id].size, tag, ...o });
 
-// The dial: the ship's clock, and a tap skips to the day's next moment.
+// The dial: the ship's clock, and a tap skips to the day's next moment. On
+// the chase, while the next sighting's hours aren't now, straight to them
+// (its moment: every sighting's note is a moment's label), so a player who
+// missed noon isn't six taps from it.
 const dial = {
   name: "the ship's clock",
   label: clockLabel,
   level: (t) => wrap(t) / LOOP,
   next(t) {
     const w = wrap(t);
-    const m = MOMENTS.find((x) => x.at > w + 5) || MOMENTS[0];
+    const want = !caught() && !chaseOpen(chase.step, t) && MOMENTS.find((x) => x.label === CHASE[chase.step].note);
+    const m = want || MOMENTS.find((x) => x.at > w + 5) || MOMENTS[0];
     let when = t - w + m.at;
     while (when < t + 5) when += LOOP;
     return { at: when, label: m.label, say: m.say };
@@ -44,7 +49,7 @@ export default {
   id: 'cruise',
   name: 'All-You-Can-Eat',
   short: 'The ship', // the back button in an area
-  tagline: 'Day four at sea. Something from the buffet is going round, and nobody is getting off.',
+  tagline: 'Day four at sea. Patient zero is a stowaway iguana, and it is loose.',
   zones: [
     place(waterslide, 'Sun Deck'),
     place(pool, 'Sun Deck'),
@@ -60,7 +65,7 @@ export default {
     place(sickBay, 'Crew only', { reach: 2.2 }),
     place(port, 'The port', { fixed: true, h: 3 }),
   ],
-  // Prev / next: the crime scene first, then up the ship, then down below.
+  // Prev / next: where it started first, then up the ship, then down below.
   order: [
     'buffet', 'theater', 'casino', 'cabins', 'adults-only', 'pool', 'waterslide', 'bridge',
     'engine-room', 'crew-bar', 'sick-bay', 'port',
@@ -81,8 +86,9 @@ export default {
   // to the picker card's edges too.
   plate: { at: (t) => ({ paper: seaAt(t), kind: 'night' }), bleed: true },
   dial,
-  // A first visit starts where it started: the salad bar.
-  invite: { zone: 'buffet', at: [14, 6, 1.2] },
+  // A first visit starts where it started: the lettuce on the salad bar,
+  // where the first sighting hides.
+  invite: { zone: 'buffet', at: [13.1, 8.0, 1.6] },
   // The whole ship on a wide screen; on an upright phone, the middle of the
   // ship to its full height, bow and stern running off the sides; on a phone
   // on its side, the decks filling the height.
@@ -95,21 +101,25 @@ export default {
   sound,
   backdrop,
   sky,
-  // A whodunit: the goal is naming patient zero (case.js).
-  case: cruiseCase,
+  // A chase: the goal is the iguana's last sighting (trail.js).
+  trail,
+  // Cornered: the clock goes to just after docking and the camera to the
+  // gangway, where the iguana is under a towel and the clicker says 2,400.
+  // (Framed close round the gangway desk, at the Casino's stern end.)
+  finale: { at: at(18.25), zone: 'casino', near: [AREAS.casino.at[0] + 12, AREAS.casino.at[1] + 13.5], span: 5, hold: 8 },
   words: {
     zone: 'deck',
     invite: 'Start at the buffet',
-    hint: 'Find where it began. Name patient zero.',
+    hint: 'Patient zero is loose. Follow it.',
     whole: 'The whole ship',
-    inside: 'on the ship', // the case-closed card: "You found 20 of the 29 things on the ship."
-    complete: 'Patient zero was a stowaway iguana. It is not getting off either.',
+    inside: 'on the ship', // the card: "You found 20 of the 37 things on the ship."
+    complete: 'Patient zero was a stowaway iguana. It tried to get off at the gangway. Nobody gets off.',
   },
   loop: LOOP,
   qa: {
     goosePerZone: false,
     geese: 1,
-    things: [2, 4],
+    things: [2, 5], // (each area on the chase has a sighting too)
     at: 40,
     moments: MOMENTS.map((m) => ({ at: m.at + 3, label: m.label })),
     zoneAt: { pool: 76, cabins: 62, theater: 50, 'sick-bay': 150, port: 168 },

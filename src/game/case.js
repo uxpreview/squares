@@ -28,10 +28,12 @@
 //   }
 
 import { need } from './rules.js';
+import { setUpTrail } from './trail.js';
 
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
 // Work out a world's format once it's built: its goal, and each find's group.
+// (A place with a trail instead of a case is set up in trail.js.)
 export function setUp(world) {
   const c = world.map.case;
   world.goal = c ? 'case' : 'geese';
@@ -46,6 +48,8 @@ export function setUp(world) {
       f.inside = p;
     }
   }
+  // A trail (trail.js): follow something loose, sighting by sighting.
+  if (world.map.trail) return setUpTrail(world);
   if (!c) return world;
   const byKey = new Map();
   for (const z of world.zones) for (const f of z.finds) byKey.set(keyOf(z, f), { zone: z, f });

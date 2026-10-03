@@ -1,11 +1,42 @@
 # All You Can Eat
 
-**October 2026 (session 8): the ship stops being a whodunit.** The mystery is the Manor's alone; in v2 the ship becomes a chase, the iguana's trail deck to deck (STRATEGY.md, ROADMAP.md session 12). This brief records the whodunit as built and shipped.
+**October 2026 (session 12): the ship is a chase.** The mystery is the Manor's alone (STRATEGY.md); the iguana is loose and you follow it, sighting by sighting, deck to deck through the day, and corner it at the gangway as the ship docks. **"The chase" below is how it plays now, and overrides the whodunit sections after it** ("The story", the evidence in "Finds", "Mechanic"), which record the ship as it shipped in session 7.
 
 > Status: **Shipped** · Brief → Greybox → Art → QA → Preview → Shipped
 > Approvals: brief [x] (the lead's call, decisions 1 to 16) · greybox [x] (the lead's call, decisions 17 to 27) · preview [ ] (the owner)
 >
 > Session 7 (Sept 2026), built alongside Boston (Moving Day) in another session. Boston owns engine changes this round (PROCESS.md, "Two levels at once"), so this level is built only from what exists: storeys and the lift (the Manor), walkers on one clock, the whodunit format (`game/case.js`), a place's own dial (Plum Island's tide), and a plate that changes with the clock (the Block Party). It keeps to `src/maps/cruise/`, this brief, and its own lines in shared files.
+
+## The chase (session 12)
+
+**In one line:** patient zero is a stowaway iguana, it's loose, and nobody can catch it; follow it round the ship through the day and corner it before it gets off at the port.
+
+**How it plays.** The ship's goal is no longer a case to solve: it's the trail (`src/game/trail.js`, the format, G7; `src/maps/cruise/trail.js`, the ship's). Eight sightings of the iguana, each a find, in order through the day. Only the next one can be found, and only in its hours; the list shows just that one, with the witness who saw it go there under its name; the ship's clock skips to a moment in every sighting's hours. Find it and it bolts (you see it run off), the toast says who saw where it went, and the next sighting is on the list. The Trail button (where Case was) opens the log: every sighting so far, its witness and what was seen, the next one lit, the rest "Not seen yet." The eighth corners it at the gangway as the ship docks: the clock goes to 6:15pm, the camera to the Casino, and the card says **Caught**.
+
+**The iguana is always one step ahead.** It's drawn only at the sighting you're on, in that sighting's hours (`chase.step` in `style.js`; `sighting()` in `kit.js` draws and registers it). So every iguana anyone sees is the one to tap, and nobody stumbles on the last sighting first. It isn't on the clock any more (`day.js`): there is no iguana walking the ship or lying on its lounger all day.
+
+**The trail:**
+
+| # | Area | Hours | Witness (the line that points there) | Where it hides | Kind |
+| --- | --- | --- | --- | --- | --- |
+| 1 | The Buffet | 7 to 9am (breakfast) | Pidge: "The camera saw it in the salad bar at 6:52." | Under one of two lettuce heaps on the salad bar, its tail over the counter's edge | poke |
+| 2 | The Cabins | 8:45 to 10:30am (9am) | Doreen: "It beat me to the melon, then took the lift up." | On the honeymoon bed, posing as a towel animal, a green snout, a blinking eye and a tail tip showing | hard |
+| 3 | The Waterslide | 10am to noon (the drill) | The steward: "A towel animal walked up to the Sun Deck." | Clinging to the Corkscrew's centre pole between two turns of the tube, shedding | hard |
+| 4 | The Pool | 11:45am to 1:30pm (noon) | Tyler: "It came down the slide and went to the big pool." | Under the limbo bar at noon, in a winner's rosette | spot |
+| 5 | Adults Only | 1:30 to 3pm (2pm) | Kelly: "Our limbo champion! Then it wanted somewhere quiet." | In a seaweed wrap next to Gerald's, its tail out of the end; cucumbers on its eyes | poke |
+| 6 | The Crew Bar | 3 to 4:45pm (the crew party) | Gloria: "It took my cucumbers and went to a party below." | In the one laundry cart nobody is dancing on, crest and tail showing | hard |
+| 7 | The Engine Room | 4:45 to 6pm (5pm) | Chef Gaston: "It ate my plastic shrimp. Now it needs a nap." | Asleep under one of two tarps on the warm engines, its tail hanging out | poke |
+| 8 | The Casino | 5:45 to 7pm (docking) | The captain: "It'll try the gangway. Nobody gets off." | In one of two suitcases queueing to go ashore, its tail out of the zip | poke |
+
+The ending: in the Casino, from the moment it's caught, the iguana is under a striped towel on the gangway desk, the clicker says 2,400 again, and the security officer says "2,400. Nobody gets off." The lift goes to the Promenade and the camera frames the desk close. Found, each sighting runs off (down the whole slide, across the dance floor, into the lift).
+
+**Witnesses.** The old suspects and the cast say where they saw it go (the ship's six suspects all appear, as witnesses now). Their line is on the list under the next sighting, in the toast when the one before is found, and in the log. Tapping a person to ask them isn't built (people on the clock aren't tappable; E8 later).
+
+**Decoys are iguana lookalikes,** one joke each across the ship (a green pool float, a dinosaur toy, a cucumber, a lizard on a slot machine), answering back when tapped.
+
+**What stays.** Every area, the day, the cast, the dial, the port. The case's seventeen evidence finds keep their ids and are ordinary things now, so saves carry over; a player who solved the case has the place finished already. The goose is still at the drill in its life jacket, one of the things, not the goal. The kinds of find, pokes and decoys come to the ship this session (the rules from session 9, as the Block Party got them in session 10).
+
+**On the old brief:** the culprit card, accusations, alibis and the reveal at the pool are gone. Gloria's mask, Chad's cocktails, the captain's seasickness and Tyler's slime stay as jokes (and as the green people the iguana hides among), not as red herrings.
 
 ## In one line
 Day four on a cruise ship, cut open from bow to stern: something from the buffet is going round, deck by deck, and you have until the ship docks to find patient zero.
@@ -273,3 +304,16 @@ Gate 3 (the owner, Oct 2026, every recommendation taken):
 45. **No density pass for now:** the tour filled the Bridge's stern half; the back of the Cabins corridor and the Crew Bar's front before 3pm wait for the owner to say they read empty.
 46. **The port keeps its framing;** pinching in works.
 47. **All-You-Can-Eat ships** in the picker after Moving Day, "Day Four" under its name.
+
+The chase (session 12, the lead's calls; the owner plays it on a phone next):
+48. **The ship is a chase, in a new format** (G7, `src/game/trail.js`): a trail of sightings, found in order, each pointing to the next through a witness; the last ends the place with the map's finale. It replaces the case. The goose's trail between places (phase 2) reuses it.
+49. **The iguana is always one step ahead:** it's drawn only at the sighting the player is on, in its hours, so nobody stumbles on the last sighting first and every iguana you see is the one to tap. The art reads the chase from `chase` in `style.js` (as the Manor's art reads its verdict); it's the second thing in a zone, after pokes, that isn't a pure function of time. It isn't on the day's clock any more.
+50. **Eight sightings, deck to deck, forward through the day** (the table above), in overlapping hours of 25 to 40 seconds. Every sighting's hours hold one of the dial's moments, which are now eight (breakfast, 9am, the drill, noon, 2pm, the crew party, 5pm, docking), and **while the next sighting's hours aren't now, the ship's clock skips straight to them** (the playtester at 4pm with noon next would have tapped six times).
+51. **Witnesses, not suspects:** the six suspects and two of the crew each say where they saw it go. The line is under the sighting on the list (as a hard find's riddle), in the toast with the time to look ("Next, at noon."), and in the log. People on the clock can't be tapped to ask them (E8, later).
+52. **Saves carry over without a version bump:** sightings are finds, and the case's evidence keeps its ids as ordinary things; a solved case stays finished.
+53. **Every area retuned to the rules of finding** (six artists, two areas each, by deck): 12 decoys, all iguana lookalikes, one joke each (a cucumber lizard, Gary's rubber lizard, a LUCKY LIZARD slot mascot, a carved souvenir, a towel crocodile, Gerald in his wrap, an inflatable croc, a dinosaur float, a pickle in a party hat, a rubber glove, a stress gecko, a lizard hot-water bottle); 58 things that answer a tap; a teach poke in every area. The goose is in the LIFE JACKETS (1 LEFT) locker, its beak out of the door.
+54. **The Bridge's Lizard Cam:** a monitor with a plan of the ship and a green dot on the next sighting's area ("IT'S IN: THE POOL" in its hours, "HEADED FOR" otherwise; CAUGHT at the end). An in-world hint for players who look.
+55. **The density pass the owner deferred is done:** a tower of room service trays outside the honeymoon suite, a tray more every hour, and a do-not-disturb war at the stern end of the Cabins; laundry cart time trials and the balloons going up at the Crew Bar's front before 3pm.
+56. **The finale takes the lift to its floor and can frame one spot** (`finale.span` round `near`): won from the crew deck, the ending played under the decks lifted above it, and a room's worth round the desk was wider than a phone's overview.
+57. **The blind playtest** (a phone's view, every area, each at its sighting's time): 33 of 37 found, all eight sightings among them; the lookalikes fooled the tester as meant. Fixed after it: the hibiscus in the iguana's mouth read as the garland (now melon rind, the garland's tell plainer), the iguana's old lounger print read as the goose (gone), the camera still's tap was 3px off, the lab slip's corner was too small, the bar tab and the wrench were too easy, the pudding's thermometer too hard among cups with spoons. In the chase: the toast now says when to look next, the log says "Heading here", the toast steps aside for the log, and the card says the gangway, not the port.
+

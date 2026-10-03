@@ -1,16 +1,18 @@
 // The Pool. The middle of the Sun Deck, open air: the pool, a row of loungers
 // saved with towels since 5am and nobody on them, the Bottomless Bar against
 // the far rail, the hot tub, the lifeboats. At 10 the lifeboat drill (only the
-// goose is listening), at noon the limbo. The iguana has a lounger, and a
-// drink. Keep the id: it's in links and saves.
+// goose is listening, from inside the life jacket locker), at noon the limbo,
+// which the iguana wins when the chase is here (sighting 4). Its lounger is
+// still saved, with its sunglasses and its drink. Keep the id: it's in links
+// and saves.
 import {
   C, Q, box, rect, disc, cylinder, face, poly, paint, person, folk, speech, label, note,
   shade, tint, mix, alpha, dots, SKIN, HAIR,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
 import { deck, outline, lifeboat } from '../ship.js';
-import { lounger, cocktail, bucket, towelAnimal, lifebuoy, board, lettering, gull, P, CREW_LOOK } from '../kit.js';
-import { INK, MAT, green, queasy, verdict, wrap } from '../style.js';
+import { lounger, cocktail, bucket, towelAnimal, lifebuoy, board, lettering, gull, P, CREW_LOOK, sighting } from '../kit.js';
+import { INK, MAT, green, queasy, wrap, iguana, chase, chaseOpen } from '../style.js';
 
 // The pool (the hero), sunk in the deck: its edges, the water, its floor.
 const PX0 = 12, PY0 = 5, PX1 = 24, PY1 = 11, WZ = -0.3, BED = -1.4;
@@ -22,7 +24,10 @@ const IGUANA_LOUNGER = [24, 12];
 // The limbo: two stands at x 8.5, y 7 and 9, and its rounds at noon.
 // (Kelly leaves the limbo at 1pm on a diagonal past x 8.5, y 9: the stands
 // sit clear of it.)
-const LIMBO = { x: 9.2, y0: 6.7, y1: 8.75, lane: 7.6 };
+// (The contestants go under its far half, y 7.3; the iguana has the near
+// half, at y 8.3, all through the chase's noon.)
+const LIMBO = { x: 9.2, y0: 6.7, y1: 8.75, lane: 7.3 };
+const IG_AT = [9.2, 8.3, 0];
 const LX = LIMBO.x - 8.5; // the limbo's moves are written for a bar at x 8.5
 const ROUNDS = [102, 109, 116, 123]; // each round is 7 seconds
 const HEIGHTS = [1.8, 1.4, 1.0, 0.65];
@@ -130,56 +135,47 @@ function saved(ctx, x, y, o) {
   if (o.note) restNote(ctx, x, y, o.note, o.paper);
 }
 
-// Chad's bar tab: a very long receipt on the bar, over its edge and down the
-// front, a column of little green glasses printed on it, curled at the end.
+// Chad's bar tab: tucked under a tray of his empties at the front of the
+// bar, only its corner showing, over the edge with two green glasses
+// printed on it. The rest of it (and the other twenty-nine) is under the tray.
+const TAB = { x0: 22.44, x1: 22.68, edge: 2.93, top: 1.23 };
 function barTab(ctx) {
-  const x0 = 22.36, x1 = 22.64, top = 1.23, edge = 2.93;
-  face(ctx, [[x0, 1.95, top], [x1, 1.95, top], [x1, edge, top], [x0, edge, top]], C.white, { lw: 0.02 });
-  // Down the front, with a little wave in it.
-  ctx.beginPath();
-  const pts = [];
-  for (let i = 0; i <= 8; i++) {
-    const z = top - i * 0.11, w = Math.sin(i * 0.9) * 0.03;
-    pts.push([w, z]);
+  const { x0, x1, edge, top } = TAB;
+  // The corner, from under the tray to the edge, and a little way down it,
+  // torn on a slant.
+  face(ctx, [[x0, 2.5, top], [x1, 2.5, top], [x1, edge, top], [x0, edge, top]], C.white, { lw: 0.02 });
+  face(ctx, [[x0, edge + 0.01, top], [x1, edge + 0.01, top], [x1, edge + 0.01, top - 0.12], [x0, edge + 0.01, top - 0.22]], C.white, { lw: 0.02 });
+  if (Q.detail) {
+    const glass = (X, Y) => {
+      ctx.beginPath();
+      ctx.moveTo(X - 0.035, Y - 0.07); ctx.lineTo(X + 0.035, Y - 0.07); ctx.lineTo(X + 0.02, Y); ctx.lineTo(X - 0.02, Y);
+      ctx.closePath();
+      ctx.fillStyle = INK.queasyGreen; ctx.fill();
+    };
+    for (const y of [2.72, 2.86]) { const [X, Y] = P(x0 + 0.08, y, top); glass(X, Y); }
+    ctx.fillStyle = C.grey;
+    for (const y of [2.72, 2.86]) { const [X, Y] = P(x0 + 0.17, y, top); ctx.fillRect(X, Y - 0.05, 0.06, 0.02); }
   }
-  pts.forEach(([w, z], i) => { const [X, Y] = P(x0 + w, edge + 0.02, z); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
-  for (let i = pts.length - 1; i >= 0; i--) { const [w, z] = pts[i]; const [X, Y] = P(x1 + w, edge + 0.02, z); ctx.lineTo(X, Y); }
-  ctx.closePath();
-  paint(ctx, C.white, { lw: 0.02 });
-  // The curl at the bottom.
-  const [cx, cy] = P((x0 + x1) / 2, edge + 0.08, top - 0.92);
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, 0.17, 0.1, 0, 0, Math.PI * 2);
-  paint(ctx, C.white, { lw: 0.02 });
+  // The tray of empties over the rest of it.
+  disc(ctx, 22.56, 2.36, top + 0.01, 0.3, MAT.chrome, { lw: 0.025 });
   if (!Q.detail) return;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, 0.08, 0.045, 0, 0, Math.PI * 2);
-  ctx.strokeStyle = C.grey; ctx.lineWidth = 0.015; ctx.stroke();
-  // The printing: a column of green glasses, one per Mermaid, and a total.
-  const glass = (X, Y) => {
+  for (const [dx, dy] of [[-0.1, -0.08], [0.1, -0.02], [-0.02, 0.1]]) {
+    const [X, Y] = P(22.56 + dx, 2.36 + dy, top + 0.03);
     ctx.beginPath();
-    ctx.moveTo(X - 0.035, Y - 0.07); ctx.lineTo(X + 0.035, Y - 0.07); ctx.lineTo(X + 0.02, Y); ctx.lineTo(X - 0.02, Y);
+    ctx.moveTo(X - 0.08, Y - 0.34); ctx.lineTo(X - 0.05, Y); ctx.lineTo(X + 0.05, Y); ctx.lineTo(X + 0.08, Y - 0.34);
     ctx.closePath();
-    ctx.fillStyle = INK.queasyGreen; ctx.fill();
-  };
-  for (let i = 0; i < 4; i++) { const [X, Y] = P(22.46, 2.1 + i * 0.22, top); glass(X, Y); }
-  for (let i = 0; i < 7; i++) { const [X, Y] = P(22.46 + Math.sin(i * 0.9) * 0.03, edge + 0.02, top - 0.08 - i * 0.11); glass(X, Y); }
-  ctx.fillStyle = C.grey;
-  for (let i = 0; i < 4; i++) { const [X, Y] = P(22.56, 2.1 + i * 0.22, top); ctx.fillRect(X, Y - 0.05, 0.07, 0.02); }
+    paint(ctx, alpha(MAT.glass, 0.7), { lw: 0.018 });
+    ctx.beginPath(); ctx.ellipse(X, Y - 0.04, 0.05, 0.02, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(INK.queasyGreen, 0.8); ctx.fill(); // the last of the Mermaid
+  }
 }
 
-// An ordinary short receipt, and the rest of what sits on a bar.
-function receipt(ctx, x, y, n = 1) {
-  rect(ctx, x, y, 0.22, 0.34, 1.23, C.white, { lw: 0.02 });
-  if (!Q.detail) return;
-  for (let i = 0; i < n; i++) {
-    const [X, Y] = P(x + 0.07, y + 0.1 + i * 0.1, 1.23);
-    ctx.fillStyle = INK.queasyGreen;
-    ctx.fillRect(X - 0.03, Y - 0.06, 0.05, 0.06);
-  }
-  const [X, Y] = P(x + 0.15, y + 0.2, 1.23);
-  ctx.fillStyle = C.grey;
-  ctx.fillRect(X, Y - 0.04, 0.06, 0.02);
+// The rest of what sits on a bar.
+// (No other receipts on the bar: Chad's tab is the only one.) A lime wedge.
+function lime(ctx, x, y) {
+  const [X, Y] = P(x, y, 1.23);
+  ctx.beginPath(); ctx.arc(X, Y, 0.09, Math.PI, 0); ctx.closePath();
+  paint(ctx, C.leaf, { lw: 0.015 });
 }
 function coaster(ctx, x, y, color) { disc(ctx, x, y, 1.23, 0.14, color, { lw: 0.02 }); }
 function napkins(ctx, x, y) { box(ctx, x, y, 1.22, 0.3, 0.3, 0.09, C.white, { flat: true, lw: 0.02 }); }
@@ -373,16 +369,81 @@ export default {
     // A gull on the second lifeboat, keeping watch.
     R.thing(28.4, 1.2, (ctx, t) => gull(ctx, 28.4, 0.7, 3.45, t, { peck: true, dir: 'l', phase: 2 }), { anim: true });
 
-    // The life jacket locker by the muster station: one left, goose-sized.
-    R.thing(12.3, 1.1, (ctx) => {
-      box(ctx, 11.2, 0.15, 0, 2.2, 0.9, 1.5, C.white, { flat: true });
-      face(ctx, [[11.3, 1.05, 0.1], [12.2, 1.05, 0.1], [12.2, 1.05, 1.4], [11.3, 1.05, 1.4]], shade(C.white, 0.35), { lw: 0.03 });
-      face(ctx, [[11.3, 1.05, 0.1], [11.3, 1.9, 0.1], [11.3, 1.9, 1.4], [11.3, 1.05, 1.4]], C.white, { lw: 0.03 });
-      box(ctx, 11.5, 0.5, 0.15, 0.5, 0.35, 0.3, JACKET, { flat: true, lw: 0.02 });
-      lettering(ctx, 'x', 12.8, 1.05, 1.1, 'LIFE', 0.2);
-      lettering(ctx, 'x', 12.8, 1.05, 0.85, 'JACKETS', 0.2);
-      lettering(ctx, 'x', 12.8, 1.05, 0.5, '(1 LEFT)', 0.13);
-    });
+    // The lockers by the muster station, two doors: LIFE JACKETS (1 LEFT) and
+    // SPARE TOWELS. The one life jacket left is on the goose, who came for the
+    // drill and is waiting inside, ready: its door won't quite shut, and its
+    // beak and a strap of its jacket stick out. The towels are all on the
+    // loungers. (The cabinet and its insides first; the goose; then the front
+    // frame and the doors over it.)
+    const LK = { x0: 11.2, x1: 13.4, y0: 0.15, y1: 1.05, h: 1.5, mid: 12.3 };
+    const hole = (a, b) => [[a, LK.y1, 0.08], [b, LK.y1, 0.08], [b, LK.y1, 1.42], [a, LK.y1, 1.42]];
+    R.thing(12.3, 0.6, (ctx) => {
+      box(ctx, LK.x0, LK.y0, 0, LK.x1 - LK.x0, LK.y1 - LK.y0, LK.h, C.white, { dotsR: shade(C.white, 0.3) });
+      for (const [a, b] of [[11.27, 12.25], [12.35, 13.33]]) {
+        ctx.save();
+        poly(ctx, hole(a, b)); ctx.clip();
+        poly(ctx, hole(a, b)); ctx.fillStyle = shade(C.white, 0.55); ctx.fill();
+        face(ctx, [[a, 0.2, 0.08], [b, 0.2, 0.08], [b, LK.y1, 0.08], [a, LK.y1, 0.08]], shade(C.white, 0.3), { lw: 0.02 });
+        face(ctx, [[a, 0.2, 0.08], [a, LK.y1, 0.08], [a, LK.y1, 1.42], [a, 0.2, 1.42]], shade(C.white, 0.4), { lw: 0.02 });
+        // A rail, and in the towel side one empty hanger.
+        face(ctx, [[a, 0.45, 1.25], [b, 0.45, 1.25]], null, { lw: 0.04, stroke: MAT.chrome });
+        if (a > 12) {
+          const [X, Y] = P(12.85, 0.45, 1.25);
+          ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X - 0.25, Y + 0.22); ctx.lineTo(X + 0.25, Y + 0.22); ctx.closePath();
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }, { depth: 11.5 });
+    const jackets = R.poke({ id: 'jackets', at: [11.75, 1.1, 0.8], r: 0.7, say: ['HONK.', 'Honk. (Muffled.)'] });
+    const towels = R.poke({ id: 'spare-towels', at: [12.85, 1.1, 0.8], r: 0.7, sound: 'clunk', hold: 1.6, say: ['Empty. Every towel is on a lounger.', 'Still empty.'] });
+    // The drill, 10 till 11: it honks back when Kelly calls, and its door rattles.
+    const drillHonk = (t) => { const w = wrap(t); return w > 60 && w < 90 && pulse(w, 5) < 0.14; };
+    R.thing(12.3, 1.2, (ctx, t) => {
+      // The front frame round the two doorways.
+      const F = (pts) => face(ctx, pts, C.white, { lw: 0.025 });
+      for (const [a, b] of [[LK.x0, 11.27], [12.25, 12.35], [13.33, LK.x1]]) F([[a, LK.y1, 0], [b, LK.y1, 0], [b, LK.y1, LK.h], [a, LK.y1, LK.h]]);
+      F([[LK.x0, LK.y1, 1.42], [LK.x1, LK.y1, 1.42], [LK.x1, LK.y1, LK.h], [LK.x0, LK.y1, LK.h]]);
+      F([[LK.x0, LK.y1, 0], [LK.x1, LK.y1, 0], [LK.x1, LK.y1, 0.08], [LK.x0, LK.y1, 0.08]]);
+      // A door from its hinge at (hx), swung by a (0 shut along the front).
+      const door = (hx, side, a, lines, tell) => {
+        const ex = hx + side * Math.cos(a) * 0.97, ey = LK.y1 + 0.02 + Math.sin(a) * 0.97;
+        const q = [[hx, LK.y1 + 0.02, 0.09], [ex, ey, 0.09], [ex, ey, 1.41], [hx, LK.y1 + 0.02, 1.41]];
+        face(ctx, q, a > 0.5 ? shade(C.white, 0.15) : C.white, { lw: 0.03 });
+        if (a > 0.4) return;
+        const cx = hx + side * 0.48, y = LK.y1 + 0.03 + Math.sin(a) * 0.48;
+        // Vent slits, and the stencil.
+        if (Q.detail) for (let i = 0; i < 4; i++) face(ctx, [[cx - 0.25, y, 0.25 + i * 0.09], [cx + 0.25, y, 0.25 + i * 0.09]], null, { lw: 0.03, stroke: shade(C.white, 0.4) });
+        lines.forEach(([text, size, z, ink], i) => lettering(ctx, 'x', cx, y + 0.01, z, text, size, ink));
+        if (tell) tell(ex, ey);
+      };
+      const ka = jackets.k(), rattle = drillHonk(t) && ka < 0.05 ? Math.sin(t * 40) * 0.05 : 0;
+      let gap = null;
+      door(11.25, 1, 0.16 + rattle + ka * 1.4, [['LIFE', 0.17, 1.17, C.ink], ['JACKETS', 0.17, 0.97], ['(1 LEFT)', 0.11, 0.8, INK.funnelRed]], (ex, ey) => { gap = [ex, ey]; });
+      door(13.35, -1, towels.k() * 1.45, [['SPARE', 0.17, 1.17, C.ink], ['TOWELS', 0.17, 0.97]]);
+      if (gap) {
+        // The tell, over both doors (it sticks out of the gap toward you): a
+        // strap of its jacket hanging out under the door to the deck, buckle
+        // and all, and a big orange beak out of the gap at head height, with
+        // a sliver of white head and an eye behind it.
+        const [ex, ey] = gap;
+        const strap = [[ex - 0.3, ey + 0.01, 0.42], [ex - 0.14, ey + 0.01, 0.42], [ex - 0.14, ey + 0.03, 0.02], [ex - 0.3, ey + 0.03, 0.02]];
+        face(ctx, strap, JACKET, { lw: 0.02 });
+        face(ctx, [[ex - 0.3, ey + 0.03, 0.012], [ex - 0.14, ey + 0.03, 0.012], [ex - 0.14, ey + 0.55, 0.012], [ex - 0.3, ey + 0.55, 0.012]], JACKET, { lw: 0.02 });
+        if (Q.detail) face(ctx, [[ex - 0.3, ey + 0.2, 0.014], [ex - 0.14, ey + 0.2, 0.014], [ex - 0.14, ey + 0.26, 0.014], [ex - 0.3, ey + 0.26, 0.014]], C.white, { stroke: false });
+        box(ctx, ex - 0.34, ey + 0.5, 0.012, 0.24, 0.16, 0.04, MAT.chrome, { flat: true, lw: 0.02 }); // the buckle
+        // (Its head is bowed under the shelf: the beak comes out between the
+        // door's lettering and its vents.)
+        const [X, Y] = P(ex + 0.01, ey, 0.7);
+        const open = drillHonk(t) ? 0.1 : 0;
+        ctx.beginPath(); ctx.ellipse(X - 0.05, Y - 0.04, 0.06, 0.12, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+        ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X - 0.05, Y - 0.1, 0.025, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(X - 0.02, Y - 0.1); ctx.lineTo(X + 0.5, Y - 0.01 - open); ctx.lineTo(X - 0.02, Y + 0.06); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.025 });
+        if (open) { ctx.beginPath(); ctx.moveTo(X - 0.02, Y + 0.06); ctx.lineTo(X + 0.44, Y + 0.1 + open); ctx.lineTo(X - 0.02, Y + 0.11); ctx.closePath(); paint(ctx, C.coral, { lw: 0.025 }); }
+        if (Q.detail) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.ellipse(X + 0.14, Y - 0.05, 0.03, 0.014, 0.15, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }, { anim: true, depth: 12.95 });
     // The drill's beacon, on the muster sign: it flashes from 10 till 11.
     R.thing(18, 0.4, (ctx, t) => {
       const w = wrap(t);
@@ -445,8 +506,8 @@ export default {
       if (!Q.detail) return;
       coaster(ctx, 19.5, 2.2, INK.flamingo);
       cocktail(ctx, 19.5, 2.2, 1.23);
-      napkins(ctx, 19.9, 1.45);
-      receipt(ctx, 20.1, 2.3, 1);
+      napkins(ctx, 20.05, 1.45);
+      lime(ctx, 20.1, 2.3);
     });
     R.thing(21.25, 2.9, (ctx) => {
       top(ctx, 20.5, 22);
@@ -454,7 +515,7 @@ export default {
       coaster(ctx, 20.9, 2.3, C.white);
       cocktail(ctx, 20.9, 2.3, 1.23);
       menuTent(ctx, 21.1, 1.4);
-      receipt(ctx, 21.55, 2.15, 2);
+      lime(ctx, 21.55, 2.15);
       coaster(ctx, 21.7, 2.7, INK.sunYellow);
     });
     R.thing(22.75, 2.9, (ctx) => {
@@ -465,20 +526,63 @@ export default {
       cocktail(ctx, 22.1, 2.55, 1.23);
       coaster(ctx, 23.1, 2.5, C.white);
       cocktail(ctx, 23.1, 2.5, 1.23, { umbrella: INK.sunYellow });
-      receipt(ctx, 22.9, 1.55, 1);
+      lime(ctx, 22.9, 1.55);
       napkins(ctx, 23.05, 1.4);
     });
     R.thing(24.25, 2.9, (ctx) => {
       top(ctx, 23.5, 25);
       if (!Q.detail) return;
       menuTent(ctx, 23.7, 1.45);
-      receipt(ctx, 23.8, 2.3, 0);
+      lime(ctx, 23.8, 2.3);
       // A tip jar for the doctor, and a bowl of limes.
       cylinder(ctx, 24.35, 1.75, 1.22, 0.14, 0.3, alpha(MAT.glass, 0.8), { flat: true });
       label(ctx, 24.35 - 0, 1.75, 1.36, 'TIPS', 0.09, C.ink, 'Rethink Sans');
       disc(ctx, 24.4, 2.55, 1.24, 0.2, C.white, { lw: 0.02 });
       for (const [dx, dy] of [[-0.06, 0], [0.07, 0.04], [0, -0.07]]) disc(ctx, 24.4 + dx, 2.55 + dy, 1.28, 0.07, C.leaf, { lw: 0.015 });
     });
+    // The big blender at the end of the bar: tap it and it makes a Green
+    // Mermaid, loudly. (The one a first visit is nudged to tap.)
+    const whizz = R.poke({ id: 'blender', at: [19.4, 1.75, 1.8], r: 0.9, sound: 'clunk', hold: 1.6, teach: true, say: ['BRRRRRRRR.', 'One Green Mermaid, coming up.', 'BRRRR. ("Make it two." Chad)'] });
+    R.thing(19.4, 1.75, (ctx, t) => {
+      const k = whizz.k(), on = k > 0.05;
+      const x = 19.4, y = 1.75, z = 1.23;
+      box(ctx, x - 0.22, y - 0.22, z, 0.44, 0.44, 0.28, MAT.chrome, { flat: true, lw: 0.025 });
+      const [bX, bY] = P(x + 0.22, y, z + 0.14);
+      ctx.beginPath(); ctx.arc(bX - 0.12, bY + 0.06, 0.05, 0, Math.PI * 2); ctx.fillStyle = on ? INK.funnelRed : shade(INK.funnelRed, 0.5); ctx.fill();
+      // The jug: glass, tapering in toward its foot, the drink in it.
+      const jug = (z0, z1, w0, w1) => {
+        const [aX, aY] = P(x, y, z0), [, cY] = P(x, y, z1);
+        ctx.beginPath(); ctx.moveTo(aX - w0, aY); ctx.lineTo(aX - w1, cY); ctx.lineTo(aX + w1, cY); ctx.lineTo(aX + w0, aY); ctx.closePath();
+      };
+      const shake = on ? Math.sin(t * 60) * 0.02 : 0;
+      ctx.save(); ctx.translate(shake, 0);
+      const top = 2.25, fill = 1.95 + (on ? 0.12 : 0);
+      jug(z + 0.28, fill, 0.2, 0.28);
+      paint(ctx, INK.queasyGreen, { stroke: false, dots: on ? C.white : shade(INK.queasyGreen, 0.3), density: on ? 0.35 : 0.15 });
+      if (on && Q.detail) {
+        // The whirl.
+        const [wX, wY] = P(x, y, (z + fill) / 2 + 0.15);
+        ctx.strokeStyle = alpha(C.white, 0.85); ctx.lineWidth = 0.035;
+        for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.ellipse(wX, wY + i * 0.2, 0.16, 0.05, 0, t * 20 + i, t * 20 + i + 4); ctx.stroke(); }
+      }
+      jug(z + 0.28, top, 0.2, 0.3);
+      paint(ctx, alpha(MAT.glass, 0.35), { lw: 0.03 });
+      // The lid, hopping when it goes.
+      const hop = on ? Math.abs(Math.sin(t * 25)) * 0.12 * k : 0;
+      const [lX, lY] = P(x, y, top + 0.02 + hop);
+      ctx.beginPath(); ctx.ellipse(lX, lY, 0.32, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+      ctx.beginPath(); ctx.ellipse(lX, lY - 0.07, 0.08, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+      ctx.restore();
+      if (on && Q.detail) {
+        // Splashes of Mermaid over the top.
+        particles(t, 6, 0.6, (kk, r) => {
+          const a = r() * Math.PI * 2;
+          const [sX, sY] = P(x + Math.cos(a) * kk * 0.5, y + Math.sin(a) * kk * 0.5, top + 0.1 + kk * 0.6 - kk * kk * 0.8);
+          ctx.beginPath(); ctx.arc(sX, sY, 0.05, 0, Math.PI * 2); ctx.fillStyle = INK.queasyGreen; ctx.fill();
+        }, 4);
+      }
+    }, { anim: true, depth: 22.7 });
+
     // Bar stools, one with a sun hat on it (saved).
     for (const x of [19.8, 20.9, 24.3]) {
       R.thing(x, 3.4, (ctx) => {
@@ -578,11 +682,23 @@ export default {
     });
     R.find({ id: 'towel', label: 'A lounger reserved since day one', at: [2.5, 13.8, 0.6], r: 0.8 });
 
-    // The iguana's lounger (it's on the clock: the engine draws it lying
-    // here all day), with a Green Mermaid on the side table.
+    // The iguana's lounger, saved since it came aboard: its sunglasses left
+    // on the pillow end, a note, and a Green Mermaid on the side table. It's
+    // off at the limbo. (No print of it on the towel: a grey lizard shape in
+    // sunglasses read as the goose.)
     R.thing(IGUANA_LOUNGER[0], IGUANA_LOUNGER[1], (ctx) => {
       const [x, y] = IGUANA_LOUNGER;
       saved(ctx, x, y, { towel: C.white, stripe: INK.funnelRed });
+      const z = 0.48;
+      const cx = x + 0.5;
+      // The sunglasses, folded on the towel.
+      if (Q.detail) {
+        const [X, Y] = P(cx, y + 0.45, z + 0.02);
+        ctx.fillStyle = C.black;
+        ctx.beginPath(); ctx.roundRect(X - 0.2, Y - 0.06, 0.17, 0.09, 0.03); ctx.roundRect(X + 0.03, Y - 0.06, 0.17, 0.09, 0.03); ctx.fill();
+        ctx.fillStyle = alpha(C.white, 0.7); ctx.fillRect(X - 0.16, Y - 0.05, 0.05, 0.015);
+      }
+      restNote(ctx, x, y, 'AT THE\nLIMBO', tint(INK.queasyGreen, 0.6));
     });
     // (Beside it in the row, not behind it on the walkway.)
     R.thing(25.6, 12.9, (ctx) => {
@@ -734,7 +850,7 @@ export default {
 
     // ---------- People round the deck ----------
     // The towel warden: patrols the loungers, straightens every towel, never
-    // sits down. Not even on the iguana's. (Along their foot ends, off the
+    // sits down. Not even on the iguana's, while it's at the limbo. (Along their foot ends, off the
     // walkway behind them.)
     const warden = route([[18.0, 15.1, 2.5], [21.1, 15.1, 2], [24.5, 14.65, 3], [27.7, 15.1, 2], [30.9, 15.1, 2.5]], { speed: 0.8, loop: false, offset: 4 });
     const WARDEN = { skin: SKIN[5], hair: HAIR[4], style: 'curly', top: INK.flamingo, bottom: C.white, dress: true, hat: 'sun' };
@@ -878,19 +994,17 @@ export default {
       ctx.restore();
     });
 
-    // The goose, at its muster station in its own little life jacket, facing
-    // Kelly, the only passenger listening. It honks back when she calls.
-    const gooseAt = (t) => {
-      const w = wrap(t);
-      const drillOn = w > 60 && w < 90;
-      // (At the back of the box: Kelly walks the front of it at 11.)
-      return { x: 15.4, y: 2.1, z: 0, dir: 'r', pose: drillOn && pulse(w, 5) < 0.14 ? 'honk' : 'stand' };
-    };
-    R.goose(gooseAt, { dir: 'r' });
+    // The goose, in the life jacket locker in the last life jacket, ready
+    // for the drill since 10, the only passenger who listened. It honks
+    // back when Kelly calls.
+    const GS = 0.85;
+    const gooseAt = (t) => ({ x: 11.62, y: 0.62, z: 0.08, dir: 'r', pose: drillHonk(t) ? 'honk' : 'stand' });
+    R.goose(gooseAt, { dir: 'r', scale: GS, kind: 'poke', inside: jackets, bias: 0.02, hint: 'Somebody took the last life jacket very seriously.' });
     R.mover(gooseAt, (ctx, t, p) => {
       const [X, Y] = P(p.x, p.y, p.z);
       ctx.save();
       ctx.translate(X, Y);
+      ctx.scale(GS, GS);
       const by = -0.45;
       ctx.beginPath();
       ctx.ellipse(0.06, by + 0.02, 0.28, 0.21, -0.12, 0, Math.PI * 2);
@@ -904,7 +1018,7 @@ export default {
         ctx.fillRect(-0.2, by + 0.04, 0.5, 0.04);
       }
       ctx.restore();
-    }, { bias: 0.02 });
+    }, { bias: 0.03 });
 
     // ---------- The limbo, noon ----------
     // Two stands, a bar, and a boombox. The bar drops every round; four try,
@@ -940,15 +1054,19 @@ export default {
     // The boombox and its notes, at noon.
     // (Off every path across this end of the deck: Kelly's, the iguana's,
     // Pidge's, and the way in from the Waterslide.)
+    const boom = R.poke({ id: 'boombox', at: [8.45, 5.8, 0.3], r: 0.7, sound: 'tick', hold: 1.5, say: ['LIMBO! LIMBO! LIMBO!', 'Turn it up!', 'How low can you go?'] });
     R.thing(8.45, 5.95, (ctx, t) => {
-      box(ctx, 8.0, 5.6, 0, 0.9, 0.35, 0.5, C.navy, { flat: true, lw: 0.03 });
+      const k = boom.k();
+      const jump = k > 0.05 ? Math.abs(Math.sin(t * 18)) * 0.08 * k : 0;
+      box(ctx, 8.0, 5.6, jump, 0.9, 0.35, 0.5, C.navy, { flat: true, lw: 0.03 });
       for (const dx of [0.2, 0.7]) {
-        const [X, Y] = P(8.0 + dx, 5.95, 0.25);
-        ctx.beginPath(); ctx.ellipse(X, Y, 0.14, 0.14, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+        const [X, Y] = P(8.0 + dx, 5.95, 0.25 + jump);
+        const r = 0.14 * (1 + 0.25 * k * Math.abs(Math.sin(t * 18)));
+        ctx.beginPath(); ctx.ellipse(X, Y, r, r, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
       }
       const w = wrap(t);
-      if (w < 96 || w > 134 || !Q.detail) return;
-      particles(t, 3, 2.2, (k, r) => note(ctx, 8.4 + k * 0.6 - r() * 0.5, 5.8 - k * 0.8, 0.8 + k * 1.6, alpha(C.ink, 1 - k), 0.8), 3);
+      if ((k < 0.05 && (w < 96 || w > 134)) || !Q.detail) return;
+      particles(t, k > 0.05 ? 6 : 3, k > 0.05 ? 1.2 : 2.2, (kk, r) => note(ctx, 8.4 + kk * 0.6 - r() * 0.5, 5.8 - kk * 0.8, 0.8 + kk * 1.6, alpha(C.ink, 1 - kk), 0.8), 3);
     }, { anim: true });
     // The chalkboard, and the prize.
     // (Hung on the far rail: anywhere on the deck it stood in front of
@@ -991,12 +1109,14 @@ export default {
         if (s < 0.8) return { x: q(0) + (7.4 + LX - q(0)) * (s / 0.8), y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.3 * (s / 0.8) };
         if (s < 2.8) { const k = (s - 0.8) / 2; return { x: 7.4 + LX + 1.2 * k, y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.3 + (made ? 0.55 : 0.8) * k, slow: true }; }
         if (made && s < 4.2) { const k = (s - 2.8) / 1.4; return { x: 8.6 + LX + 1.1 * k, y: LIMBO.lane, dir: 'r', pose: 'walk', lean: 0.85 * (1 - k), slow: true }; }
-        if (!made && s < 5.2) return { x: 8.9 + LX, y: LIMBO.lane + 0.2, dir: 'r', pose: 'lie' };
+        if (!made && s < 5.2) return { x: 9.3 + LX, y: LIMBO.lane - 0.4, dir: 'r', pose: 'lie' };
         // To the spectators, then back out at 1pm.
-        const from = made ? [9.7 + LX, LIMBO.lane] : [8.9 + LX, LIMBO.lane + 0.2];
+        const from = made ? [9.7 + LX, LIMBO.lane] : [9.3 + LX, LIMBO.lane - 0.4];
         const t0 = S + (made ? 4.2 : 5.2);
         const k = clamp((w - t0) / 1.6);
-        if (w < 133) return { x: from[0] + (spot[0] - from[0]) * k, y: from[1] + (spot[1] - from[1]) * k, dir: k < 1 ? 'r' : 'l', pose: k < 1 ? 'walk' : (made ? 'cheer' : 'stand') };
+        // (Done, they watch: the winner cheers; with the iguana under the
+        // bar, everybody cheers it.)
+        if (w < 133) return { x: from[0] + (spot[0] - from[0]) * k, y: from[1] + (spot[1] - from[1]) * k, dir: k < 1 ? 'r' : 'l', pose: k < 1 ? 'walk' : (made || igOn(t) ? 'cheer' : 'stand') };
         const x = spot[0] - (w - 133) * 1.8;
         return { x, y: spot[1], dir: 'l', pose: 'walk', a: edgeFade(x) };
       };
@@ -1010,11 +1130,63 @@ export default {
         ctx.restore();
       });
     });
+    // Two kids at the front, watching every round (and cheering the iguana).
+    const KIDS = [{ x: 7.1, y: 10.4, seed: 23, look: { top: INK.flamingo, hat: 'cap' } }, { x: 8.0, y: 10.75, seed: 29, look: { top: C.sky, style: 'pony' } }];
+    KIDS.forEach((kd, i) => {
+      const look = { ...folk(kd.seed), ...kd.look, scale: 0.7, dress: false };
+      R.thing(kd.x, kd.y, (ctx, t) => {
+        const w = wrap(t);
+        if (w < 97 || w > 135) return;
+        // Cheering while someone's going under, or the whole time it's there.
+        const going = ROUNDS.some((r0) => w - r0 > 0.8 && w - r0 < 4.2);
+        const yay = igOn(t) || going;
+        person(ctx, kd.x, kd.y, 0, { ...look, pose: yay ? 'cheer' : 'stand', dir: 'r', back: true, speed: 6 + i }, t);
+      }, { anim: true });
+    });
+
+    // ---------- The chase: sighting 4 ----------
+    // The iguana wins the limbo: flat under the near half of the bar from a
+    // quarter to noon, round after round, as the bar comes down and everyone
+    // else knocks it off, and the crowd goes wild. In plain sight. Found, it
+    // bolts back toward the Waterslide and the lift.
+    sighting(R, 3, {
+      at: IG_AT, kind: 'spot', r: 1.0,
+      draw(ctx, t) {
+        const [X, Y] = P(...IG_AT);
+        ctx.save();
+        ctx.translate(X, Y);
+        ctx.rotate(-0.12); // leaning back, the way it's done
+        iguana(ctx, 0, 0, 0, 'r', t, {});
+        // The champion's rosette, round its neck.
+        ctx.beginPath(); ctx.moveTo(0.26, -0.2); ctx.lineTo(0.2, 0.02); ctx.lineTo(0.27, -0.03); ctx.lineTo(0.33, 0.02); ctx.closePath();
+        paint(ctx, INK.funnelRed, { lw: 0.015 });
+        ctx.beginPath(); ctx.arc(0.27, -0.2, 0.07, 0, Math.PI * 2);
+        paint(ctx, INK.sunYellow, { lw: 0.02 });
+        ctx.restore();
+      },
+      run: [[8.0, 8.6, 0], [-0.6, 8.4, 0]],
+    });
+
     // The last round: the bar at knee height, and a gull strolls under it.
     R.mover((t) => {
       const w = wrap(t), k = (w - 130) / 4;
       return k < 0 || k > 1 ? { hidden: true, x: 7 + LX, y: 7.7 } : { x: 7 + LX + k * 3.2, y: 7.7 };
     }, (ctx, t, p) => { if (!p.hidden) gull(ctx, p.x, p.y, 0, t, { dir: 'r', scale: 0.9 }); });
+
+    // The crowd, for the champion.
+    R.air((ctx, t) => {
+      if (!Q.detail || !igOn(t)) return;
+      const w = wrap(t);
+      const c = (w * 0.7) % 3;
+      if (w > 97 && c < 1.2) speech(ctx, KIDS[1].x, KIDS[1].y, 2.2, 'Lizard! Lizard!', { size: 0.4 });
+      else if (w > 108 && c > 1.6 && c < 2.6) speech(ctx, 10.8, 4.2, 3.1, 'How is it doing that?', { size: 0.4 });
+    });
+
+    // A green pool float: an inflatable dinosaur, adrift at the shallow end
+    // (also 3 ft). It's green and spiky, so it answers back.
+    const dinoAt = (t) => ({ x: 16.3 + Math.sin(t * 0.1) * 0.5, y: 7.6 + Math.sin(t * 0.14 + 2) * 0.2 });
+    R.mover(dinoAt, (ctx, t, p) => dino(ctx, p.x, p.y, WZ + 0.05 + Math.sin(t * 1.2) * 0.04, Math.sin(t * 0.1 + 1) > 0 ? 'r' : 'l'));
+    R.decoy({ id: 'dino', at: (t) => { const p = dinoAt(t); return [p.x, p.y, WZ + 0.6]; }, r: 0.9, say: ['A pool float. Not an iguana.', 'Still a pool float.', 'Rawr. (Squeak.)'] });
 
     // A gull overhead, circling the pool for chips.
     R.air((ctx, t) => {
@@ -1022,8 +1194,12 @@ export default {
       gull(ctx, p.x, p.y, 7.5 + Math.sin(t * 0.8) * 0.4, t, { fly: true, dir: p.dir, phase: 1 });
     });
 
-    // Chad's bar tab (it clears him): the long one, curled over the bar's edge.
-    R.find({ id: 'bar-tab', label: "Chad's bar tab", at: [22.5, 2.6, 1.1], r: 0.8 });
+    // Chad's bar tab: under a tray of his empties, its corner over the bar's edge.
+    R.find({
+      id: 'bar-tab', label: "Chad's bar tab", kind: 'hard', at: [22.56, 2.85, 1.18], r: 0.8,
+      riddle: 'Thirty-one Green Mermaids and counting.',
+      hint: "Chad's been at the bar since last night. Look under what he's finished.",
+    });
   },
 };
 
@@ -1044,6 +1220,51 @@ function textFloor(ctx, x, y, text, size, color = alpha(C.navy, 0.75)) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
   ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
+// Is the iguana at the limbo now? (The chase is at sighting 4, in its hours.)
+const igOn = (t) => chase.step === 3 && chaseOpen(3, t);
+
+// An inflatable dinosaur on the water at (x, y, z), facing dir: a lime body,
+// a long neck, a row of spikes, a smile, and a shine on it.
+function dino(ctx, x, y, z, dir) {
+  const [X, Y] = P(x, y, z);
+  const G = INK.queasyGreen;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(dir === 'l' ? -1 : 1, 1);
+  if (Q.detail) {
+    ctx.beginPath(); ctx.ellipse(0, 0, 1.0, 0.36, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = alpha(C.white, 0.75); ctx.lineWidth = 0.05; ctx.stroke();
+  }
+  // The tail, then the body, puffed up.
+  ctx.beginPath();
+  ctx.moveTo(-0.45, -0.18); ctx.quadraticCurveTo(-0.85, -0.2, -1.0, -0.02); ctx.quadraticCurveTo(-0.8, -0.06, -0.45, -0.02); ctx.closePath();
+  paint(ctx, G, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(0, -0.12, 0.58, 0.26, 0, 0, Math.PI * 2);
+  paint(ctx, shade(G, 0.25), { lw: 0.035 });
+  ctx.beginPath(); ctx.ellipse(0, -0.2, 0.52, 0.2, 0, 0, Math.PI * 2);
+  paint(ctx, G, { lw: 0.03 });
+  // Spikes down its back, yellow.
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) { const bx = -0.36 + i * 0.16, by = -0.37 + Math.abs(i - 2) * 0.012; ctx.moveTo(bx - 0.06, by + 0.03); ctx.lineTo(bx, by - 0.12); ctx.lineTo(bx + 0.06, by + 0.03); }
+  paint(ctx, INK.sunYellow, { lw: 0.02 });
+  // The neck, up and over, and the head.
+  ctx.beginPath();
+  ctx.moveTo(0.28, -0.3); ctx.quadraticCurveTo(0.5, -0.6, 0.52, -1.0); ctx.lineTo(0.7, -1.0); ctx.quadraticCurveTo(0.66, -0.5, 0.5, -0.2); ctx.closePath();
+  paint(ctx, G, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(0.7, -1.04, 0.22, 0.13, 0.15, 0, Math.PI * 2);
+  paint(ctx, G, { lw: 0.03 });
+  if (Q.detail) {
+    ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(0.68, -1.1, 0.05, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.695, -1.1, 0.025, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0.74, -1.0); ctx.quadraticCurveTo(0.82, -0.96, 0.89, -1.02);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-0.15, -0.28, 0.22, 0.04, -0.1, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.white, 0.6); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0.6, -0.72, 0.03, 0.13, 0.2, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.restore();
 }
 

@@ -33,6 +33,9 @@ const CAGE = [9.65, 3.5];
 const BOOTH = { x0: 14.2, x1: 16, y1: 2.3, h: 1.6 };
 const RABBIT = [14.8, 14.6];
 const SPOT = [14.3, 1.1, 2.7]; // the follow spot's lens
+const HAT = [GARY[0] + 0.23, GARY[1] - 0.23, 2.3]; // the hat in Gary's far hand
+const TRUNKS = [[5.75, 10.1], [5.75, 12.35]]; // Captain Splat's trunks (their back corners)
+const LIZARD = [6.2, 5.7]; // the rubber lizard, belly up
 
 // The day's shows (seconds into the loop).
 const KIDS = [at(9.3), at(11.1)];
@@ -191,6 +194,116 @@ function pigeon(ctx, x, y, z, t, o = {}) {
     if (!o.fly) { c.strokeStyle = C.coral; c.lineWidth = 0.025; c.beginPath(); c.moveTo(-0.02, -0.03); c.lineTo(-0.02, 0.02); c.moveTo(0.05, -0.03); c.lineTo(0.05, 0.02); c.stroke(); }
   });
   if (o.shock && Q.detail) label(ctx, x, y, z + 0.75, '!', 0.4, INK.funnelRed);
+}
+
+// What comes out of the hat when you tap it, a different thing each tap, and
+// what Gary says about it (in step: the line is the tap's, the thing too).
+const POP = ['duck', 'sock', 'flop', 'cola', 'shrimp', 'leg', 'swan'];
+const POP_SAY = ['A duck! Close.', 'A sock. Not a rabbit.', 'A flip-flop. Ta-da?', 'A Gander Cola!', 'A shrimp. Do not eat.', 'From the buffet!', 'A towel swan. Nearly!'];
+
+// Captain Splat's trunk on the stage: at [x0, y0] (its back corner), a lid
+// hinged along the back that tips up when tapped (k). kit: the one with the
+// slime kit in, oozing out under the lid; the other is full of glitter.
+function trunk(ctx, [x0, y0], k, t, kit) {
+  const W = 0.7, D = 0.8, H = 0.48, z0 = ST.h, zt = z0 + H, x1 = x0 + W;
+  box(ctx, x0, y0, z0, W, D, H, C.navy, { top: C.ink, dotsL: C.ink, dens: 0.25 });
+  for (const y of [y0 + 0.14, y0 + D - 0.14]) face(ctx, [[x1 + 0.005, y, z0 + 0.02], [x1 + 0.005, y, zt - 0.02]], null, { lw: 0.05, stroke: MAT.brass });
+  lettering(ctx, 'y', x1 + 0.01, y0 + D / 2, z0 + 0.2, 'CAPT. SPLAT', 0.085, MAT.carpetGold);
+  if (k > 0.05) {
+    if (kit) {
+      // the kit: a tub of lime slime, the lid off, a spoon in it, and its label
+      cylinder(ctx, x0 + 0.33, y0 + 0.4, zt - 0.12, 0.2, 0.22, C.white, { top: INK.queasyGreen, lw: 0.02 });
+      const [X, Y] = P(x0 + 0.33, y0 + 0.4, zt + 0.1);
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.04, 0.2, 0.12, 0, Math.PI, 0); ctx.closePath();
+      paint(ctx, INK.queasyGreen, { lw: 0.02, dots: shade(INK.queasyGreen, 0.3), density: 0.2 });
+      face(ctx, [[x0 + 0.3, y0 + 0.45, zt + 0.08], [x0 + 0.15, y0 + 0.2, zt + 0.4]], null, { lw: 0.05, stroke: INK.teak });
+      board(ctx, 'y', x0 + 0.56, y0 + 0.4, zt + 0.0, 0.34, 0.14, 'LIME 10AM', { size: 0.06, edge: 0.012 });
+    } else if (Q.detail) {
+      // glitter, up in a puff
+      for (let i = 0; i < 10; i++) {
+        const [X, Y] = P(x0 + 0.15 + ((i * 0.37) % 0.45), y0 + 0.15 + ((i * 0.53) % 0.55), zt + 0.1 + k * (0.2 + (i % 4) * 0.12));
+        ctx.fillStyle = [MAT.carpetGold, INK.flamingo, C.sky][i % 3];
+        ctx.beginPath(); ctx.arc(X, Y, 0.035 + 0.02 * Math.abs(Math.sin(t * 6 + i)), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+  // The lid, tipped back on its hinge, and the lip along its free edge.
+  const b = k * 1.85, xe = x0 + W * Math.cos(b), ze = zt + W * Math.sin(b);
+  const lx = xe + Math.sin(b) * 0.08, lz = ze - Math.cos(b) * 0.08;
+  face(ctx, [[x0, y0, zt], [x0, y0 + D, zt], [xe, y0 + D, ze], [xe, y0, ze]], shade(C.navy, 0.1), { lw: 0.03, dots: C.ink, density: 0.2 });
+  face(ctx, [[xe, y0, ze], [xe, y0 + D, ze], [lx, y0 + D, lz], [lx, y0, lz]], C.navy, { lw: 0.025 });
+  const [CX, CY] = P((xe + lx) / 2 + 0.01, y0 + D / 2, (ze + lz) / 2);
+  ctx.beginPath(); ctx.rect(CX - 0.05, CY - 0.05, 0.1, 0.1); paint(ctx, MAT.brass, { lw: 0.015 });
+  if (!kit) return;
+  // The ooze: squeezed out under the lid, down the front.
+  const wob = Math.sin(t * 1.7) * 0.015;
+  ctx.beginPath();
+  const pts = [[y0 + 0.18, 0], [y0 + 0.3, -0.06], [y0 + 0.42, -0.02], [y0 + 0.55, -0.07], [y0 + 0.66, 0]];
+  const [SX, SY] = P(x1 + 0.01, pts[0][0], zt - 0.02);
+  ctx.moveTo(SX, SY);
+  for (const [y, dz] of pts) { const [X, Y] = P(x1 + 0.01, y, zt + 0.02 + dz); ctx.lineTo(X, Y); }
+  for (const [y, len] of [[y0 + 0.62, 0.12], [y0 + 0.5, 0.3 + wob], [y0 + 0.4, 0.1], [y0 + 0.27, 0.22 - wob], [y0 + 0.2, 0.06]]) {
+    const [X, Y] = P(x1 + 0.01, y, zt - 0.06 - len);
+    ctx.lineTo(X + 0.035, Y - 0.02); ctx.arc(X, Y, 0.04, 0, Math.PI); ctx.lineTo(X - 0.035, Y - 0.02);
+  }
+  ctx.closePath();
+  paint(ctx, INK.queasyGreen, { lw: 0.02 });
+  if (Q.detail) { ctx.fillStyle = alpha(C.white, 0.6); ctx.beginPath(); ctx.arc(SX - 0.12, SY + 0.1, 0.025, 0, Math.PI * 2); ctx.fill(); }
+}
+
+// The Great Gary's rubber lizard, belly up on the stage, legs in the air:
+// lizardy and green at a glance, a toy when you look (the shine, the seam,
+// the price tag). The decoy.
+function rubberLizard(ctx, x, y, z) {
+  const g = INK.queasyGreen, belly = tint(INK.queasyGreen, 0.5);
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.beginPath(); ctx.ellipse(-0.05, 0.02, 0.62, 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill();
+  // the tail, curled round
+  ctx.beginPath();
+  ctx.moveTo(-0.3, -0.12);
+  ctx.bezierCurveTo(-0.6, -0.08, -0.78, -0.2, -0.7, -0.34);
+  ctx.bezierCurveTo(-0.64, -0.44, -0.52, -0.38, -0.56, -0.3);
+  ctx.lineCap = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.13; ctx.stroke(); }
+  ctx.strokeStyle = g; ctx.lineWidth = 0.08; ctx.stroke();
+  // four stubby legs in the air, round toes
+  for (const [lx, a] of [[-0.2, -0.3], [-0.08, 0.15], [0.16, -0.25], [0.28, 0.2]]) {
+    const ex = lx + Math.sin(a) * 0.18, ey = -0.2 - Math.cos(a) * 0.18;
+    ctx.beginPath(); ctx.moveTo(lx, -0.14); ctx.lineTo(ex, ey);
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.stroke(); }
+    ctx.strokeStyle = g; ctx.lineWidth = 0.065; ctx.stroke();
+    ctx.beginPath(); ctx.arc(ex, ey, 0.05, 0, Math.PI * 2); paint(ctx, g, { lw: 0.02 });
+  }
+  // the body on its back: green sides, a pale belly with its moulded scales
+  ctx.beginPath(); ctx.ellipse(0, -0.1, 0.36, 0.12, 0, 0, Math.PI * 2); paint(ctx, g, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(0, -0.14, 0.3, 0.07, 0, 0, Math.PI * 2); paint(ctx, belly, { lw: 0.015 });
+  if (Q.detail) {
+    ctx.strokeStyle = shade(belly, 0.2); ctx.lineWidth = 0.012;
+    ctx.beginPath(); for (const bx of [-0.15, -0.05, 0.05, 0.15]) { ctx.moveTo(bx, -0.19); ctx.lineTo(bx, -0.09); } ctx.stroke();
+  }
+  // the head, flopped back, a painted eye and a painted grin
+  ctx.beginPath(); ctx.ellipse(0.42, -0.06, 0.15, 0.09, 0.2, 0, Math.PI * 2); paint(ctx, g, { lw: 0.03 });
+  ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(0.43, -0.1, 0.035, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.44, -0.1, 0.018, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.015; ctx.beginPath(); ctx.arc(0.48, -0.05, 0.06, 0.2, 1.4); ctx.stroke();
+  // the shine of rubber
+  ctx.strokeStyle = alpha(C.white, 0.75); ctx.lineWidth = 0.03;
+  ctx.beginPath(); ctx.ellipse(-0.05, -0.12, 0.24, 0.07, 0, Math.PI * 1.15, Math.PI * 1.55); ctx.stroke();
+  // the price tag, on a string from a leg
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012;
+  ctx.beginPath(); ctx.moveTo(0.28 + Math.sin(0.2) * 0.18, -0.38); ctx.lineTo(0.4, -0.5); ctx.stroke();
+  ctx.beginPath(); ctx.rect(0.36, -0.62, 0.2, 0.12); paint(ctx, C.white, { lw: 0.015 });
+  ctx.restore();
+  if (Q.detail) {
+    const [TX, TY] = [X + 0.46, Y - 0.56];
+    ctx.save();
+    ctx.font = '700 0.07px "Rethink Sans", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = INK.funnelRed; ctx.fillText('99c', TX, TY);
+    ctx.restore();
+  }
 }
 
 // ---------- The house ----------
@@ -538,13 +651,16 @@ export default {
       lettering(ctx, 'x', 2.75, 13.56, ST.h + 0.86, 'BACK AFTER', 0.12, C.white);
       lettering(ctx, 'x', 2.75, 13.56, ST.h + 0.7, 'LUNCH', 0.12, C.white);
     });
+    // Tap the box: her feet kick.
+    const legs = R.poke({ id: 'assistant', at: [3.2, 13.2, 2.0], r: 0.9, hold: 1.4, say: ['Gary. My legs.', 'Still in half.', 'I want a raise.'] });
     R.thing(4.5, 13.7, (ctx, t) => {
       // Her head out of one end, her feet out of the other, wiggling.
       const [HX, HY] = P(1.95, 13.2, ST.h + 0.86);
       ctx.beginPath(); ctx.arc(HX, HY, 0.24, 0, Math.PI * 2); paint(ctx, SKIN[1], { lw: 0.03 });
       ctx.beginPath(); ctx.arc(HX + 0.02, HY - 0.08, 0.26, Math.PI * 1.1, Math.PI * 1.95); ctx.lineTo(HX - 0.1, HY - 0.02); ctx.fillStyle = HAIR[3]; ctx.fill();
       if (Q.detail) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(HX + 0.06, HY + 0.02, 0.03, 0, Math.PI * 2); ctx.arc(HX + 0.16, HY + 0.02, 0.03, 0, Math.PI * 2); ctx.fill(); }
-      const wig = Math.sin(t * 5) * 0.25;
+      const lk = legs.k(); // tapped: she kicks
+      const wig = Math.sin(t * (5 + 7 * lk)) * (0.25 + 0.3 * lk);
       for (const [dy, ph] of [[-0.14, 0], [0.14, 1.2]]) {
         local(ctx, 4.45, 13.2 + dy, ST.h + 0.86, 1, (c) => {
           c.rotate(-0.6 + wig * Math.sin(t * 3 + ph));
@@ -557,6 +673,9 @@ export default {
 
     // ---------- The Great Gary ----------
     const GARY_LOOK = { skin: SKIN[0], hair: HAIR[0], style: 'short', top: C.purple, bottom: C.ink, hat: 'none' };
+    // Tap the hat: something comes out, a different thing each time, never
+    // a rabbit. (The one a first visit is nudged to try.)
+    const hat = R.poke({ id: 'hat', at: HAT, r: 0.8, hold: 1.4, teach: true, sound: 'pop', say: POP_SAY });
     R.thing(GARY[0], GARY[1], (ctx, t) => {
       const w = wrap(t);
       const a = act(w);
@@ -594,6 +713,20 @@ export default {
         c.fillStyle = INK.funnelRed; c.fillRect(hx - 0.2, hy + 0.0, 0.4, 0.07);
         c.beginPath(); c.ellipse(hx, hy - 0.08, 0.3, 0.09, 0, 0, Math.PI * 2); paint(c, C.black, { lw: 0.03 });
         c.beginPath(); c.ellipse(hx, hy - 0.08, 0.19, 0.055, 0, 0, Math.PI * 2); c.fillStyle = shade(C.purple, 0.5); c.fill();
+        // What a tap pulled out, popping up out of it.
+        const hk = hat.k();
+        if (hk > 0) {
+          c.save();
+          c.translate(hx, hy - 0.15 - 0.75 * hk);
+          c.rotate(Math.sin(t * 7) * 0.15);
+          c.scale(1.4, 1.4);
+          THINGS[POP[(hat.taps + POP.length - 1) % POP.length]](c);
+          c.restore();
+          if (Q.detail) {
+            c.fillStyle = INK.sunYellow;
+            for (let i = 0; i < 5; i++) { const a = i * 1.26 + t * 2; c.beginPath(); c.arc(hx + Math.cos(a) * 0.45 * hk, hy - 0.5 * hk + Math.sin(a) * 0.3 * hk, 0.04, 0, Math.PI * 2); c.fill(); }
+          }
+        }
         // The wand, in the near hand.
         const [wx, wy] = hand(aA);
         const ang = aA + Math.PI;
@@ -669,15 +802,25 @@ export default {
       tub(ctx, 4.2, 11.05, C.sky, 'BLUE');
       tub(ctx, 4.2, 11.5, MAT.carpetGold, 'GOLD');
       tub(ctx, 4.2, 11.95, INK.flamingo, 'PINK');
-      // The slime (the find): same tub, lime, made today.
-      tub(ctx, 4.72, 11.5, INK.queasyGreen, 'LIME', 'TODAY 10AM');
+      // The mixing bowl, scraped clean (the day's slime is packed in a trunk).
+      disc(ctx, 4.72, 11.5, TABLE.top + 0.02, 0.24, MAT.chrome, { lw: 0.025 });
+      disc(ctx, 4.72, 11.5, TABLE.top + 0.04, 0.17, shade(MAT.chrome, 0.15), { stroke: false });
       // The glue, the spare hat and the wand, round the front.
       bucket(ctx, 5.12, 11.0, TABLE.top, { color: C.white, name: 'GLUE' });
       box(ctx, 5.0, 11.65, TABLE.top, 0.3, 0.3, 0.03, C.black, { flat: true, lw: 0.02 });
       cylinder(ctx, 5.15, 11.8, TABLE.top, 0.12, 0.28, C.black, { flat: true });
       face(ctx, [[4.5, 12.0, TABLE.top + 0.02], [4.9, 11.82, TABLE.top + 0.02]], null, { lw: 0.06 });
     });
-    R.find({ id: 'slime-kit', label: 'A slime kit', at: [4.72, 11.5, 1.7], r: 0.7 });
+    // Captain Splat's two trunks, by the table. One is just glitter. The other
+    // has the slime kit in it, and it's leaking (the tell).
+    const kitBox = R.poke({ id: 'trunk', at: [TRUNKS[0][0] + 0.35, TRUNKS[0][1] + 0.4, 1.6], r: 0.8, sound: 'clunk', say: ['Lime. Fresh.', 'Still lime.'] });
+    const glitter = R.poke({ id: 'trunk-2', at: [TRUNKS[1][0] + 0.35, TRUNKS[1][1] + 0.4, 1.6], r: 0.8, sound: 'clunk', say: ['Just glitter.', 'Glitter. Everywhere.'] });
+    R.thing(TRUNKS[0][0] + 0.7, TRUNKS[0][1] + 0.8, (ctx, t) => trunk(ctx, TRUNKS[0], kitBox.k(), t, true), { anim: true });
+    R.thing(TRUNKS[1][0] + 0.7, TRUNKS[1][1] + 0.8, (ctx, t) => trunk(ctx, TRUNKS[1], glitter.k(), t, false), { anim: true });
+    R.find({
+      id: 'slime-kit', label: 'A slime kit', kind: 'poke', inside: kitBox, at: [TRUNKS[0][0] + 0.35, TRUNKS[0][1] + 0.4, 1.75], r: 0.7,
+      hint: "The kids' show packed up its slime. Something is leaking.",
+    });
 
     // Captain Splat, the kids' entertainer: goggles, lab coat, slimed. Flings
     // a blob at the splash zone every few seconds.
@@ -891,10 +1034,13 @@ export default {
       // The tray of called balls.
       box(ctx, CAGE[0] + 0.05, CAGE[1] - 0.35, 0.85, 0.35, 0.7, 0.06, MAT.brass, { flat: true, lw: 0.02 });
     });
+    // Tap it and it spins, bingo or not.
+    const cage = R.poke({ id: 'bingo-cage', at: [CAGE[0], CAGE[1], 1.5], r: 0.8, hold: 1.5, sound: 'tick', say: ['Bingo is at 3.', 'Still not 3.', 'Fine. B 4.'] });
     R.thing(CAGE[0] + 0.55, CAGE[1] + 0.5, (ctx, t) => {
       const w = wrap(t);
       const on = w > BINGO[0] && w < BINGO[1];
-      const spin = on ? t * 5 : 0.3;
+      const bk = cage.k();
+      const spin = on || bk > 0 ? t * (5 + 9 * bk) : 0.3;
       const [X, Y] = P(CAGE[0], CAGE[1], 1.5);
       ctx.beginPath(); ctx.ellipse(X, Y, 0.42, 0.36, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(MAT.glass, 0.35); ctx.fill();
       // Balls tumbling inside.
@@ -1104,6 +1250,11 @@ export default {
         c.beginPath(); c.arc(0.3, -0.33 + twitch, 0.022, 0, Math.PI * 2); c.fillStyle = C.pink; c.fill();
       });
     }, { anim: true });
-    R.find({ id: 'rabbit', label: 'A rabbit in a lifebuoy', at: [RABBIT[0], RABBIT[1], 0.4], r: 0.75 });
+    R.find({ id: 'rabbit', label: 'A rabbit in a lifebuoy', kind: 'spot', at: [RABBIT[0], RABBIT[1], 0.4], r: 0.75 });
+
+    // ---------- Gary's rubber lizard ----------
+    // Out of the hat at some show, belly up on the stage ever since. (The decoy.)
+    R.thing(LIZARD[0] + 0.5, LIZARD[1] + 0.3, (ctx) => rubberLizard(ctx, LIZARD[0], LIZARD[1], ST.h));
+    R.decoy({ id: 'rubber-lizard', at: [LIZARD[0], LIZARD[1], ST.h + 0.2], r: 0.7, say: ['Rubber lizard. Not an iguana.', 'Squeak.'] });
   },
 };

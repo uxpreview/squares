@@ -15,8 +15,8 @@ import {
 } from '../../../engine/art.js';
 import { particles, clamp, pulse } from '../../../engine/actors.js';
 import { deck } from '../ship.js';
-import { INK, MAT, at, wrap, hourOf, green, queasy } from '../style.js';
-import { porthole, lettering, board, bucket, lifebuoy, CREW_LOOK, shape } from '../kit.js';
+import { INK, MAT, at, wrap, hourOf, green, queasy, iguana, chase, chaseOpen } from '../style.js';
+import { porthole, lettering, board, bucket, lifebuoy, CREW_LOOK, shape, sighting } from '../kit.js';
 
 const SEAM = 16; // where the engine cuts the area in two
 const STEEL = MAT.steel, CHROME = MAT.chrome;
@@ -110,7 +110,7 @@ const TRAYS = [
   { name: 'BACON', food: C.coralLight, bits: C.red, tongs: true, lid: true },
   { name: 'SAUSAGE', food: C.brown, bits: shade(C.brown, 0.3), tongs: true },
   { name: 'PANCAKES', food: C.woodLight, stack: true },
-  { name: 'HASH', food: C.mustard, bits: C.wood, tongs: true, lid: true },
+  { name: 'HASH', food: C.mustard, bits: C.wood, rolltop: true }, // shut, Doreen's tongs inside (hashDish)
   { name: 'BEANS', food: C.coral, bits: C.red },
   { name: 'CLUBS', food: C.white, clubs: true },
   { name: 'MUFFINS', food: C.wood, muffins: true },
@@ -155,22 +155,236 @@ function hotTray(ctx, a, b, i) {
   lettering(ctx, 'x', cx, 3.12, 0.62, tr.name, 0.2, C.ink);
 }
 
+// The hash, shut under a roll-top lid. Doreen's tongs went in with it: the
+// handle sticks out of the front, pink scrunchie and all (the tell). A tap
+// tips the lid back on its hinge. k: 0 shut, 1 open.
+const HASH = { x0: 9.12, x1: 10.13, yc: 2.55, zc: 1.09, r: 0.4 };
+const TONGS = [9.72, 2.86, 1.2]; // the middle of Doreen's tongs, handle to the front
+// Doreen's tongs lying along y, tips in the hash, handle out over the lip.
+// from: only draw what's in front of this y (the bit the lid can't cover).
+function tongsY(ctx, from = -1) {
+  const [x, y, z] = TONGS, lift = 0.22;
+  const at = (u) => [x, y - 0.32 + u * 0.62, z - lift / 2 + u * lift];
+  const u0 = Math.max(0, (from - (y - 0.32)) / 0.62);
+  for (const dx of [-0.05, 0.05]) {
+    const a = at(u0), b = at(1);
+    face(ctx, [[a[0] + dx * (1.6 - u0 * 0.6), a[1], a[2]], [b[0] + dx, b[1], b[2]]], null, { lw: 0.075, stroke: C.ink });
+    face(ctx, [[a[0] + dx * (1.6 - u0 * 0.6), a[1], a[2]], [b[0] + dx, b[1], b[2]]], null, { lw: 0.04, stroke: CHROME });
+  }
+  const [hx, hy, hz] = at(1.03);
+  const [X, Y] = P(hx, hy, hz);
+  ctx.beginPath(); ctx.arc(X, Y, 0.06, 0, Math.PI * 2); paint(ctx, STEEL, { lw: 0.025 });
+  // the scrunchie, round the handle
+  const [sx, sy, sz] = at(0.8);
+  const [SX, SY] = P(sx, sy, sz);
+  ctx.beginPath();
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    ctx.moveTo(SX + Math.cos(a) * 0.12 + 0.07, SY + Math.sin(a) * 0.08);
+    ctx.arc(SX + Math.cos(a) * 0.12, SY + Math.sin(a) * 0.08, 0.07, 0, Math.PI * 2);
+  }
+  paint(ctx, INK.flamingo, { lw: 0.02, dots: shade(INK.flamingo, 0.35), density: 0.3 });
+}
+// The roll-top lid: a half dome along x, hinged along its back edge.
+function rollTop(ctx, k) {
+  const { x0, x1, yc, zc, r } = HASH;
+  const b = k * 1.95; // tipped back to just past upright
+  const N = 8, arc = [];
+  for (let i = 0; i <= N; i++) {
+    const th = (Math.PI * i) / N;
+    const vy = r * Math.cos(th) + r, vz = r * 0.78 * Math.sin(th);
+    arc.push([yc - r + vy * Math.cos(b) - vz * Math.sin(b), zc + vy * Math.sin(b) + vz * Math.cos(b)]);
+  }
+  // Strips of the dome, back to front, then the end facing us.
+  const strips = [];
+  for (let i = 0; i < N; i++) strips.push([arc[i], arc[i + 1], arc[i][0] + arc[i + 1][0] + (arc[i][1] + arc[i + 1][1]) * 0.6]);
+  strips.sort((a, c) => a[2] - c[2]);
+  for (const [p, q] of strips) {
+    const up = (p[1] + q[1]) / 2 - zc;
+    face(ctx, [[x0, p[0], p[1]], [x1, p[0], p[1]], [x1, q[0], q[1]], [x0, q[0], q[1]]], up > 0.22 ? tint(CHROME, 0.25) : CHROME, { lw: 0.025 });
+  }
+  face(ctx, arc.map(([y, z]) => [x1, y, z]), shade(CHROME, 0.12), { lw: 0.03, dots: STEEL, density: 0.2 });
+  // the knob
+  const top = arc[N / 2];
+  const [X, Y] = P((x0 + x1) / 2, top[0], top[1] + 0.06);
+  ctx.beginPath(); ctx.ellipse(X, Y, 0.09, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.black, { lw: 0.02 });
+}
+
 // ---------- The salad bar ----------
-// Two bowls to a piece. Doreen's tongs lie across the fifth bowl from the
-// left: the only pair with a pink scrunchie round the handle.
-const SALAD = [
-  [C.leaf, C.green], [C.red, shade(C.red, 0.3)], [C.coral, C.coralLight], [C.woodLight, C.mustard],
-  [C.leaf, C.white], [C.purple, shade(C.purple, 0.3)], [C.white, C.butter], [C.pink, C.white],
-  [C.black, C.ink], [C.green, C.leaf], [C.butter, C.mustard], [C.white, C.greyLight],
+// Bowls under a sneeze guard. Two big heaps of lettuce side by side: the
+// iguana's breakfast spot (and, 7 to 9am, its hiding place) is the left one.
+// The near end has Chef Gaston's garnish: a cucumber carved into a lizard.
+// (It was at the far end, where the shrimp tower's top, a find, stands in
+// front of it on screen and took every tap meant for it.)
+const LETTUCE = [[13.1, 8.0], [14.5, 8.0]]; // the iguana's heap, then the other
+const GARNISH = [11.55, 8.05, 1.03];
+const BAR = [
+  'garnish', // the cucumber lizard, on its own
+  null, null, // the lettuce
+  [[C.coral, C.coralLight], [C.woodLight, C.mustard]], // salmon, croutons
+  [[C.purple, shade(C.purple, 0.3)]], // beets
+  [[C.red, shade(C.red, 0.3)], [C.white, C.butter]], // tomatoes, eggs
 ];
 function saladPiece(ctx, a, b, idx) {
-  const n = b - a > 1.1 ? 2 : 1;
+  const row = BAR[idx];
+  if (row === 'garnish') {
+    cucumberLizard(ctx, ...GARNISH);
+    sneezeGuard(ctx, a, b, 7.35, 8.85, 1.0, 2.15);
+    return;
+  }
+  if (!row) {
+    // a big bowl for a heap of lettuce (the heap, and this guard, are drawn after it)
+    const cx = (a + b) / 2;
+    disc(ctx, cx, 8.0, 1.01, 0.56, CHROME, { lw: 0.03 });
+    disc(ctx, cx, 8.0, 1.03, 0.5, shade(C.leaf, 0.25), { lw: 0.02 });
+    return;
+  }
+  const n = row.length;
   for (let k = 0; k < n; k++) {
     const x = a + ((k + 0.5) * (b - a)) / n;
-    const [food, bits] = SALAD[(idx * 2 + k) % SALAD.length];
-    bowl(ctx, x, 8.0, 1.0, 0.28, food, bits);
+    bowl(ctx, x, 8.0, 1.0, 0.28, row[k][0], row[k][1]);
   }
+  if (idx === 3) tongs(ctx, 15.6, 7.95, 1.25);
   sneezeGuard(ctx, a, b, 7.35, 8.85, 1.0, 2.15);
+}
+
+// A heap of lettuce, in two halves that part when tapped (k: 0 shut, 1 open).
+// Leaves in screen units round the bowl's middle: [dx, dy, rx, ry, turn, tone].
+const LEAVES = [
+  [-0.12, -0.5, 0.24, 0.15, -0.3, 1], [0.14, -0.5, 0.24, 0.15, 0.3, 2],
+  [-0.38, -0.34, 0.26, 0.16, -0.5, 0], [0.36, -0.36, 0.26, 0.16, 0.5, 1], [-0.02, -0.3, 0.2, 0.14, 0.1, 0],
+  [-0.55, -0.12, 0.2, 0.13, -0.6, 2], [0.55, -0.14, 0.2, 0.13, 0.6, 0],
+  [-0.24, -0.12, 0.26, 0.15, 0.2, 1], [0.24, -0.12, 0.26, 0.15, -0.2, 2],
+];
+const LEAF_TONES = [C.leaf, tint(C.leaf, 0.3), shade(C.leaf, 0.12)];
+function leaf(ctx, dx, dy, rx, ry, rot, color) {
+  ctx.save();
+  ctx.translate(dx, dy);
+  ctx.rotate(rot);
+  // a ruffled edge: the ellipse with a wavy rim
+  ctx.beginPath();
+  for (let i = 0; i <= 16; i++) {
+    const a = (i / 16) * Math.PI * 2, w = 1 + (i % 2 ? 0.08 : -0.04);
+    ctx.lineTo(Math.cos(a) * rx * w, Math.sin(a) * ry * w);
+  }
+  ctx.closePath();
+  paint(ctx, color, { lw: 0.022 });
+  if (Q.detail) {
+    ctx.beginPath(); ctx.moveTo(-rx * 0.7, 0); ctx.lineTo(rx * 0.7, 0);
+    ctx.moveTo(-rx * 0.2, 0); ctx.lineTo(-rx * 0.4, -ry * 0.5); ctx.moveTo(rx * 0.2, 0); ctx.lineTo(rx * 0.05, -ry * 0.55);
+    ctx.strokeStyle = tint(C.leaf, 0.55); ctx.lineWidth = 0.018; ctx.stroke();
+  }
+  ctx.restore();
+}
+function lettuceHeap(ctx, x, y, k) {
+  const [X, Y] = P(x, y, 1.05);
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.translate(X + side * 0.85 * k, Y - 0.06 * k);
+    ctx.rotate(side * 0.3 * k);
+    // the heap's body, so nothing shows between the leaves
+    ctx.beginPath();
+    ctx.moveTo(0, 0.1);
+    ctx.lineTo(0, -0.62);
+    ctx.ellipse(0, 0, 0.72, 0.62, 0, -Math.PI / 2, side < 0 ? -Math.PI : 0, side < 0);
+    ctx.lineTo(side * 0.66, 0.08);
+    ctx.closePath();
+    paint(ctx, shade(C.leaf, 0.2), { lw: 0.03, dots: shade(C.leaf, 0.45), density: 0.2 });
+    for (const [dx, dy, rx, ry, rot, tone] of LEAVES) if (Math.sign(dx) === side || (dx === 0 && side > 0)) leaf(ctx, dx, dy, rx, ry, rot, LEAF_TONES[tone]);
+    ctx.restore();
+  }
+  // The bed of leaves along the bowl's front lip.
+  ctx.save();
+  ctx.translate(X, Y);
+  for (const [dx, dy, tone] of [[-0.46, 0.06, 2], [-0.16, 0.12, 0], [0.16, 0.12, 1], [0.46, 0.06, 0]]) leaf(ctx, dx, dy, 0.2, 0.08, dx * 0.4, LEAF_TONES[tone]);
+  ctx.restore();
+}
+
+// The iguana's tail, from under the lettuce, over the bowl's rim and the
+// counter's front edge and down its face, the tip curled and twitching. In
+// screen units from the iguana's feet (X, Y). Drawn as short pieces that
+// taper, banded like the real one (style.js's iguana).
+function hangingTail(ctx, X, Y, t) {
+  const sw = Math.sin(t * 1.3) * 0.03 + (Math.sin(t * 7) > 0.97 ? 0.04 : 0);
+  const segs = [
+    [[-0.33, -0.2], [-0.55, -0.22], [-0.78, -0.06], [-0.82, 0.13]],
+    [[-0.82, 0.13], [-0.86, 0.32], [-0.9 + sw, 0.56], [-0.79 + sw, 0.62]],
+    [[-0.79 + sw, 0.62], [-0.71 + sw, 0.66], [-0.66 + sw, 0.56], [-0.72 + sw, 0.51]],
+  ];
+  const pts = [];
+  for (const [a, b, c, d] of segs) for (let i = pts.length ? 1 : 0; i <= 8; i++) {
+    const u = i / 8, v = 1 - u;
+    pts.push([X + v * v * v * a[0] + 3 * v * v * u * b[0] + 3 * v * u * u * c[0] + u * u * u * d[0],
+      Y + v * v * v * a[1] + 3 * v * v * u * b[1] + 3 * v * u * u * c[1] + u * u * u * d[1]]);
+  }
+  const w = (i) => 0.15 - (0.13 * i) / (pts.length - 1);
+  ctx.lineCap = 'round';
+  for (const pass of [0, 1]) {
+    if (!pass && !Q.lines) continue;
+    ctx.strokeStyle = pass ? INK.queasyGreen : C.ink;
+    for (let i = 0; i < pts.length - 1; i++) {
+      ctx.lineWidth = w(i) + (pass ? 0 : 0.05);
+      ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i + 1][0], pts[i + 1][1]); ctx.stroke();
+    }
+  }
+  if (!Q.detail) return;
+  // dark bands across it
+  ctx.strokeStyle = shade(INK.queasyGreen, 0.35);
+  ctx.lineWidth = 0.035;
+  ctx.beginPath();
+  for (const i of [5, 9, 12, 15, 18]) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
+    const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, r = w(i) / 2;
+    ctx.moveTo(x0 - (dy / l) * r, y0 + (dx / l) * r); ctx.lineTo(x0 + (dy / l) * r, y0 - (dx / l) * r);
+  }
+  ctx.stroke();
+}
+
+// Chef Gaston's garnish: a cucumber carved into a lizard, on a doily. Its
+// legs are slices, its crest is skin, its eyes are olives. (The decoy.)
+function cucumberLizard(ctx, x, y, z) {
+  const skin = mix(C.green, INK.queasyGreen, 0.55), flesh = tint(INK.queasyGreen, 0.6);
+  disc(ctx, x, y, z, 0.4, C.white, { lw: 0.02 });
+  if (Q.detail) disc(ctx, x, y, z + 0.005, 0.34, alpha(C.greyLight, 0.6), { stroke: false });
+  const [X, Y] = P(x, y, z + 0.02);
+  ctx.save();
+  ctx.translate(X, Y);
+  // the tail: a curl of peel
+  ctx.beginPath();
+  ctx.moveTo(-0.28, -0.1);
+  ctx.bezierCurveTo(-0.55, -0.05, -0.62, -0.28, -0.48, -0.32);
+  ctx.bezierCurveTo(-0.38, -0.35, -0.38, -0.22, -0.46, -0.22);
+  ctx.lineCap = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke(); }
+  ctx.strokeStyle = skin; ctx.lineWidth = 0.045; ctx.stroke();
+  // legs: four slices, seeds and all
+  for (const [lx, ly] of [[-0.2, 0.0], [0.16, 0.0], [-0.12, -0.2], [0.22, -0.18]]) {
+    ctx.beginPath(); ctx.ellipse(lx, ly, 0.08, 0.05, 0, 0, Math.PI * 2); paint(ctx, flesh, { lw: 0.02, stroke: skin });
+    if (Q.detail) { ctx.fillStyle = tint(flesh, 0.5); ctx.beginPath(); ctx.arc(lx, ly, 0.02, 0, Math.PI * 2); ctx.fill(); }
+  }
+  // the body: half a cucumber, cut side down, scored like scales
+  ctx.beginPath();
+  ctx.ellipse(0, -0.13, 0.32, 0.11, -0.05, 0, Math.PI * 2);
+  paint(ctx, skin, { lw: 0.03, dots: shade(skin, 0.4), density: 0.2 });
+  if (Q.detail) {
+    ctx.strokeStyle = flesh; ctx.lineWidth = 0.018;
+    ctx.beginPath();
+    for (const bx of [-0.16, -0.05, 0.06, 0.16]) { ctx.moveTo(bx, -0.21); ctx.lineTo(bx + 0.03, -0.07); }
+    ctx.stroke();
+  }
+  // the crest: little triangles of skin pinned along its back
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) { const bx = -0.2 + i * 0.08; ctx.moveTo(bx - 0.03, -0.22); ctx.lineTo(bx, -0.3 + i * 0.006); ctx.lineTo(bx + 0.03, -0.22); }
+  paint(ctx, shade(skin, 0.25), { lw: 0.015 });
+  // the head: the cucumber's end, carved to a snout, and olive eyes
+  ctx.beginPath();
+  ctx.moveTo(0.26, -0.2); ctx.quadraticCurveTo(0.46, -0.24, 0.5, -0.15); ctx.quadraticCurveTo(0.44, -0.07, 0.27, -0.07); ctx.closePath();
+  paint(ctx, skin, { lw: 0.025 });
+  ctx.beginPath(); ctx.arc(0.36, -0.2, 0.04, 0, Math.PI * 2); paint(ctx, C.black, { lw: 0.015 });
+  ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(0.365, -0.2, 0.015, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // its card
+  board(ctx, 'x', x + 0.2, y + 0.42, 1.08, 0.5, 0.17, 'GARNISH', { size: 0.08, edge: 0.015 });
 }
 
 // ---------- The butter swan ----------
@@ -370,7 +584,7 @@ function fountainTable(ctx) {
   }
   board(ctx, 'x', 26.4, 12.15, 1.1, 0.95, 0.28, 'DO NOT DIP FINGERS', { size: 0.1, edge: 0.02 });
 }
-function fountain(ctx, t) {
+function fountain(ctx, t, k = 0) {
   const cx = 26.8, cy = 11.3;
   const choc = C.brown;
   disc(ctx, cx, cy, 0.93, 0.5, choc, { lw: 0.03, dots: shade(choc, 0.4), density: 0.2 });
@@ -401,6 +615,20 @@ function fountain(ctx, t) {
   // the crown, bubbling
   const [X, Y] = P(cx, cy, 2.2 + Math.sin(t * 6) * 0.02);
   ctx.beginPath(); ctx.ellipse(X, Y, 0.14, 0.08, 0, 0, Math.PI * 2); paint(ctx, choc, { lw: 0.03 });
+  if (k <= 0) return;
+  // Tapped: a gush out of the top, and chocolate everywhere.
+  const h = (0.7 + Math.sin(t * 18) * 0.06) * k;
+  ctx.beginPath();
+  ctx.moveTo(X - 0.08, Y); ctx.quadraticCurveTo(X - 0.05, Y - h * 0.6, X - 0.16, Y - h);
+  ctx.quadraticCurveTo(X, Y - h - 0.22, X + 0.16, Y - h);
+  ctx.quadraticCurveTo(X + 0.05, Y - h * 0.6, X + 0.08, Y);
+  ctx.closePath();
+  paint(ctx, choc, { lw: 0.03, dots: shade(choc, 0.4), density: 0.2 });
+  for (let i = 0; i < 7; i++) {
+    const a = i * 0.9 + 0.4, d = 0.25 + 0.55 * k;
+    const [DX, DY] = P(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 2.2 + 0.4 * k - 0.6 * k * k * ((i % 3) / 2));
+    ctx.beginPath(); ctx.ellipse(DX, DY, 0.06, 0.08, 0, 0, Math.PI * 2); paint(ctx, choc, { lw: 0.015 });
+  }
 }
 
 // ---------- The carvery ----------
@@ -571,7 +799,7 @@ export default {
       face(ctx, [[3.9, 13.75, 0.02], [4.6, 13.95, 0.02]], null, { lw: 0.045, stroke: C.white });
       face(ctx, [[4.0, 13.78, 0.02], [4.15, 13.83, 0.02]], null, { lw: 0.045, stroke: INK.funnelRed });
       rect(ctx, 3.95, 14.8, 0.3, 0.2, 0.02, C.white, { lw: 0.02 });
-      rect(ctx, 4.4, 14.3, 0.28, 0.2, 0.02, C.pink, { lw: 0.02 });
+      rect(ctx, 4.4, 14.3, 0.28, 0.2, 0.02, C.sky, { lw: 0.02 }); // (blue: the only pink paper on the floor is the ticket)
       shape(ctx, [[2.6, 13.4, 0.02], [2.75, 13.35, 0.02], [3.05, 14.0, 0.02], [2.9, 14.05, 0.02]], C.white, { lw: 0.02 });
       if (Q.detail) for (let i = 0; i < 4; i++) face(ctx, [[2.7 + i * 0.07, 13.5 + i * 0.13, 0.021], [2.78 + i * 0.07, 13.48 + i * 0.13, 0.021]], null, { lw: 0.012, stroke: C.grey });
       // the ticket: a little pink deli ticket, a torn edge, a big 2
@@ -647,7 +875,7 @@ export default {
     R.thing(1.0, 9.5, (ctx) => {
       box(ctx, 0.92, 9.42, 0, 0.16, 0.16, 2.6, STEEL, { flat: true, lw: 0.03 });
       box(ctx, 0.7, 9.2, 2.6, 0.6, 0.5, 0.55, INK.funnelRed);
-      shape(ctx, [[1.3, 9.35, 2.75], [1.3, 9.55, 2.75], [1.55, 9.55, 2.55], [1.55, 9.35, 2.55]], INK.flamingo, { lw: 0.02 });
+      shape(ctx, [[1.3, 9.35, 2.75], [1.3, 9.55, 2.75], [1.55, 9.55, 2.55], [1.55, 9.35, 2.55]], C.white, { lw: 0.02 });
       lettering(ctx, 'x', 1.0, 9.71, 2.9, 'TAKE A NUMBER', 0.1, C.white);
     });
     R.thing(1.4, 15.3, (ctx, t) => {
@@ -662,8 +890,18 @@ export default {
     // ---------- The hot trays and the eggs ----------
     counter(R, 4, 14, 2, 3.1, 1.05, { body: STEEL, top: CHROME }, (ctx, a, b, i) => {
       hotTray(ctx, a, b, i);
-      sneezeGuard(ctx, a, b, 2.05, 3.0, 1.0, 2.0);
+      // (The hash's guard goes on after its lid: see below.)
+      if (!TRAYS[i]?.rolltop) sneezeGuard(ctx, a, b, 2.05, 3.0, 1.0, 2.0);
     });
+    // The hash, shut, Doreen's tongs caught under the lid. Tap: it tips open.
+    const hash = R.poke({ id: 'hash', at: [9.62, 2.6, 1.35], r: 0.9, sound: 'clunk', say: ['Hash browns!', 'Still hash browns.'] });
+    R.thing(10.25, 3.1, (ctx) => {
+      const k = hash.k();
+      tongsY(ctx);
+      rollTop(ctx, k);
+      tongsY(ctx, 2.98); // the handle, out in front of the lid
+      sneezeGuard(ctx, 9, 10.25, 2.05, 3.0, 1.0, 2.0);
+    }, { anim: true, depth: 10.25 + 3.1 + 0.05 });
     // Steam off the trays.
     R.air((ctx, t) => {
       if (!Q.detail) return;
@@ -745,10 +983,22 @@ export default {
     // ---------- The salad bar ----------
     counter(R, 11, 18, 7.3, 8.7, 1.05, { body: INK.teak, top: CHROME }, (ctx, a, b, i) => {
       saladPiece(ctx, a, b, i);
-      if (a <= 12 && b > 12) tongs(ctx, 12.05, 7.95, 1.25);
-      if (a <= 15.2 && b > 15.2) tongs(ctx, 15.2, 7.9, 1.25, { scrunchie: true });
-      if (a <= 17.5 && b > 17.5) tongs(ctx, 17.45, 7.95, 1.25);
       if (a < 11.2) lettering(ctx, 'x', 12.9, 8.72, 0.62, 'SALAD BAR: FRESH SINCE 6AM', 0.2, INK.hullWhite);
+    });
+    R.decoy({ id: 'cucumber', at: [GARNISH[0], GARNISH[1], 1.25], r: 0.75, say: ['A cucumber. Not an iguana.', 'Carved by Chef Gaston.', 'Still a cucumber.'] });
+    // The two heaps of lettuce. Sighting 1 (7 to 9am): the iguana is under the
+    // left one, its tail out of the leaves. Tap a heap and the leaves part.
+    const IG_AT = [LETTUCE[0][0] - 0.1, LETTUCE[0][1] + 0.1, 1.0]; // a little left of the middle, so its tail is out
+    const igHere = (t) => chase.step === 0 && chaseOpen(0, t);
+    const heaps = LETTUCE.map(([x, y], i) => {
+      const heap = R.poke({ id: i ? 'lettuce' : 'lettuce-heap', at: [x, y, 1.4], r: 0.75, say: ['Just lettuce.', 'Still lettuce.'] });
+      R.thing(x, y, (ctx, t) => {
+        // (It says what's under it: an iguana answers back.)
+        if (!i) heap.say = igHere(t) ? ['Hiss!', 'HISS.'] : ['Just lettuce.', 'Still lettuce.'];
+        lettuceHeap(ctx, x, y, heap.k());
+        sneezeGuard(ctx, x - 0.7, x + 0.7, 7.35, 8.85, 1.0, 2.15);
+      }, { anim: true, depth: x + 0.7 + 8.7 + 0.15 });
+      return heap;
     });
     // 1pm: Dr. Swabb tapes it off. The tape unrolls along the front, and
     // stays until the day starts again. Each stretch sorts with its piece.
@@ -805,7 +1055,9 @@ export default {
 
     // ---------- The chocolate fountain ----------
     R.thing(26.8, 12.1, (ctx) => fountainTable(ctx), { depth: 26.8 + 11.3 - 0.4 });
-    R.thing(26.8, 11.3, (ctx, t) => fountain(ctx, t), { anim: true, depth: 26.8 + 11.3 });
+    // Tap it and it gushes. (The one a first visit is nudged to try.)
+    const gush = R.poke({ id: 'fountain', at: [26.8, 11.3, 1.8], r: 1.0, hold: 1.6, teach: true, say: ['Do not dip fingers.', 'Fingers: dipped.', 'Chef saw that.'] });
+    R.thing(26.8, 11.3, (ctx, t) => fountain(ctx, t, gush.k()), { anim: true, depth: 26.8 + 11.3 });
 
     // ---------- The carvery ----------
     counter(R, 23.5, 27.5, 5.4, 6.6, 1.05, { body: INK.teak, top: MAT.teakDark }, carveryTop);
@@ -831,13 +1083,17 @@ export default {
       }
     });
     // The swirl coming out of the machine, again and again.
+    // Tap the machine and it won't stop.
+    const serve = R.poke({ id: 'soft-serve', at: [29.4, 7.55, 1.6], r: 0.8, hold: 2.2, say: ['NO THIRDS.', 'That was fourths.'] });
     R.thing(29.4, 8.4, (ctx, t) => {
-      const k = pulse(t, 5);
-      const n = Math.floor(k * 5);
+      const k = pulse(t, 5), more = serve.k();
+      const n = more > 0 ? 4 + Math.round(more * 6) : Math.floor(k * 5);
       const [X, Y] = P(29.4, 7.95, 1.05);
       ctx.beginPath(); ctx.moveTo(X - 0.08, Y - 0.3); ctx.lineTo(X + 0.08, Y - 0.3); ctx.lineTo(X, Y); ctx.closePath(); paint(ctx, C.woodLight, { lw: 0.02 });
-      for (let i = 0; i < Math.min(n, 4); i++) {
-        ctx.beginPath(); ctx.ellipse(X, Y - 0.33 - i * 0.07, 0.1 - i * 0.02, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+      for (let i = 0; i < n; i++) {
+        // (past four it leans, the way a tower of soft serve does)
+        const lean = i > 3 ? (i - 3) * (i - 3) * 0.012 : 0;
+        ctx.beginPath(); ctx.ellipse(X + lean, Y - 0.33 - i * 0.07, Math.max(0.05, 0.1 - Math.min(i, 3) * 0.015), 0.05, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
       }
     }, { anim: true });
 
@@ -1032,10 +1288,38 @@ export default {
     crew(R, 31.0, 13.3, 88, { dir: 'l', back: true, arms: [1.2, 1.0] });
 
     // ---------- The finds ----------
-    R.find({ id: 'tongs', label: 'Tongs with a pink scrunchie', at: [15.2, 7.9, 1.25], r: 0.8 });
-    R.find({ id: 'queue-ticket', label: 'A queue ticket', at: [3.4, 14.4, 0.05], r: 0.8 });
-    R.find({ id: 'butter-prints', label: 'Claw prints in the butter', at: [8.5, 9.2, 1.5], r: 0.75 });
-    R.find({ id: 'shrimp', label: 'A shrimp on a toothpick', at: [20, 10, 3.3], r: 0.8 });
+    // The chase: sighting 1, 7 to 9am. Under the left heap of lettuce, having
+    // breakfast; its tail hangs out of the leaves the whole time. Found, it
+    // hops off the back of the bar and out of the door to the Theater and the lift.
+    sighting(R, 0, {
+      at: IG_AT, kind: 'poke', inside: heaps[0], dir: 'r', bias: 0.3,
+      hint: 'Two heaps of lettuce, and one of them has a tail.',
+      draw(ctx, t, p) {
+        // Its own tail is clipped off and a longer one hangs out of the
+        // leaves, over the counter's edge and down the front.
+        const [AX, AY] = P(p.x, p.y, p.z);
+        ctx.save();
+        ctx.beginPath(); ctx.rect(AX - 0.36, AY - 2, 3, 3); ctx.clip();
+        iguana(ctx, p.x, p.y, p.z, 'r', t);
+        ctx.restore();
+        hangingTail(ctx, AX, AY, t);
+        // munching, once it's been caught at it
+        if (heaps[0].k() < 0.3) return;
+        const [X, Y] = P(p.x, p.y, p.z);
+        leaf(ctx, X + 0.7, Y - 0.24 + Math.sin(t * 9) * 0.015, 0.12, 0.07, 0.6, LEAF_TONES[1]);
+      },
+      run: [[12.8, 6.6, 0], [3, 5.4, 0], [0.1, 3.3, 0]],
+    });
+    R.find({
+      id: 'tongs', label: 'Tongs with a pink scrunchie', kind: 'poke', inside: hash, at: [TONGS[0], TONGS[1] + 0.1, 1.3], r: 0.8,
+      hint: 'One of the hot dishes is shut, and something pink is caught in its lid.',
+    });
+    R.find({
+      id: 'queue-ticket', label: 'A queue ticket', kind: 'hard', at: [3.4, 14.4, 0.05], r: 0.8,
+      riddle: 'Dropped in the rush at seven.', hint: 'Doreen was number 2. Look at the litter by the doors.',
+    });
+    R.find({ id: 'butter-prints', label: 'Claw prints in the butter', kind: 'spot', at: [8.5, 9.2, 1.5], r: 0.75 });
+    R.find({ id: 'shrimp', label: 'A shrimp on a toothpick', kind: 'spot', at: [20, 10, 3.3], r: 0.8 });
   },
 };
 

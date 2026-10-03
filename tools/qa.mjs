@@ -151,6 +151,7 @@ try {
           return {
             id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null, window,
             kind: f.kind || 'spot', inside: f.inside ? f.inside.id : null, riddle: f.riddle || '', hint: f.hint || '',
+            step: f.step ?? null,
           };
         }),
         pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, say: [].concat(p.say || []) })),
@@ -166,6 +167,12 @@ try {
         })),
         reveal: m.case.reveal.lines.map(([who, text]) => [who, text]),
         names: m.case.names || {},
+      } : null,
+      // A trail (src/game/trail.js): its sightings, in order, and who points to each.
+      trail: m.trail ? {
+        sightings: w.sightings.map((x) => ({ key: x.find, zone: x.zone.name, who: x.who, says: x.says, seen: x.seen || '', from: x.f.when ? null : 'always' })),
+        names: m.trail.names || {},
+        finale: m.finale ? m.finale.zone : null,
       } : null,
     };
   });
@@ -205,7 +212,8 @@ try {
       if (rest.length >= 3 && rest.filter((w) => /^[A-Z][a-z]/.test(w)).length / rest.length >= 0.6) warn('copy', `${z.name}: "${l}" looks like Title Case; labels are sentence case ("A lost mitten").`);
       if (l.length > 36) warn('copy', `${z.name}: "${l}" is ${l.length} characters; a chip reads best under 36.`);
       const key = l.toLowerCase();
-      if (seen.has(key)) bad(`"${l}" is in both ${seen.get(key)} and ${z.name}. Labels must be unique across the level.`);
+      // (A trail's sightings are the same thing seen again: they share a label.)
+      if (seen.has(key) && f.step == null) bad(`"${l}" is in both ${seen.get(key)} and ${z.name}. Labels must be unique across the level.`);
       seen.set(key, z.name);
     }
     const ids = z.finds.map((f) => f.id);
@@ -274,7 +282,7 @@ try {
   for (const [z, f] of windowed) {
     const w = f.window;
     if (w.mid == null || w.secs < 20) { windowsOk = false; fail('finds', `${z.name}: "${f.label}" is only there for ${w.secs.toFixed(0)}s of the loop; give it at least 20.`); }
-    else if (w.secs < 45) warn('finds', `${z.name}: "${f.label}" is only there for ${w.secs.toFixed(0)}s of the loop (${w.note || 'no note'}).`);
+    else if (w.secs < 45 && f.step == null) warn('finds', `${z.name}: "${f.label}" is only there for ${w.secs.toFixed(0)}s of the loop (${w.note || 'no note'}).`);
     if (!w.note) { windowsOk = false; fail('finds', `${z.name}: "${f.label}" is only there some of the time but its list entry doesn't say when (note).`); }
   }
   if (windowed.length && windowsOk) pass('finds', `${windowed.length} finds only there some of the time (${[...new Set(windowed.map(([, f]) => f.window.note))].join(', ')}), each long enough and saying when.`);
@@ -295,6 +303,22 @@ try {
     const culprit = c.suspects.find((x) => x.id === c.culprit);
     const rooms = new Set(culprit.clues.map((k) => zoneOf.get(k)));
     if (caseOk) pass('case', `The case: ${c.suspects.length} suspects, ${c.totals.evidence} pieces of evidence and ${c.totals.curiosity} curiosities. Naming the culprit takes ${culprit.clues.length} clues across ${rooms.size} areas (${[...rooms].join(', ')}).`);
+  }
+
+  // ---------- The trail ----------
+  if (info.trail) {
+    let trailOk = true;
+    const tr = info.trail;
+    for (const x of tr.sightings) {
+      if (!tr.names[x.who]) { trailOk = false; fail('trail', `The sighting in ${x.zone} is pointed to by "${x.who}", who has no name in the trail.`); }
+      if (x.says.length > 52) warn('trail', `${x.zone}: the witness line "${x.says}" is ${x.says.length} characters; it shows under the sighting on the list, so under 52 reads best.`);
+      if (!x.seen) warn('trail', `${x.zone}: the sighting has no line for the log once it's seen.`);
+    }
+    // In order through the day: each sighting's window starts after the last one's.
+    const mids = tr.sightings.map((x) => { const [zid, fid] = x.key.split(':'); const f = byId.get(zid).finds.find((q) => q.id === fid); return f.window ? f.window.mid : null; });
+    for (let i = 1; i < mids.length; i++) if (mids[i] != null && mids[i - 1] != null && mids[i] < mids[i - 1]) { trailOk = false; fail('trail', `Sighting ${i + 1} (${tr.sightings[i].zone}) comes earlier in the day than sighting ${i} (${tr.sightings[i - 1].zone}).`); }
+    if (!tr.finale) warn('trail', 'The trail has no finale (map.finale): the last sighting just ends it.');
+    if (trailOk) pass('trail', `The trail: ${tr.sightings.length} sightings through the day, across ${new Set(tr.sightings.map((x) => x.zone)).size} areas, each pointed to by a witness${tr.finale ? `, cornered in ${byId.get(tr.finale).name}` : ''}.`);
   }
 
   // ---------- Sound: every cue and the bed exist and build ----------
@@ -491,6 +515,7 @@ try {
     const { ctx, page: p } = kind === 'desktop' ? main : await open(viewport);
     let screenOk = true;
     const geeseLeft = [];
+    const stolenSeen = new Set();
     for (const id of order) {
       const zone = byId.get(id);
       // A long area (a street) is framed around where you tap, so each of its
@@ -545,6 +570,36 @@ try {
           if (g === f || g.id < f.id || g.moving || f.moving) continue;
           if (Math.hypot(g.sx - f.sx, g.sy - f.sy) < 26) warn('screen', `${where}: "${f.label}" and "${g.label}" are within ${Math.round(Math.hypot(g.sx - f.sx, g.sy - f.sy))}px of each other.`);
         }
+      }
+      // A tap goes to a find before anything that answers back, so a poke
+      // with a find's tap area over it can't be tapped there. A decoy wins a
+      // tap that's nearer it than the find, so only one on the very same spot
+      // as a find fails (the ship's cucumber lizard sat right under the shrimp
+      // tower's top). (Finds inside a poke only count while it's open, so
+      // they're left out.)
+      const stolen = await p.evaluate((id) => {
+        const s = window.__squares, z = s.world.zones.find((x) => x.id === id), t = s.clock.now();
+        const at = (o) => { const [x, y, h] = typeof o.at === 'function' ? o.at(t) : o.at; return s.camera.toScreen(z.anchor[0] + x - y, z.anchor[1] - z.lift + (x + y) / 2 - h * 1.12); };
+        const out = [];
+        for (const pk of z.pokes) {
+          const [px, py] = at(pk);
+          if (px < 0 || py < 0 || px > innerWidth || py > innerHeight) continue;
+          for (const f of z.finds) {
+            if (f.inside || (f.when && !f.when(t))) continue;
+            const [fx, fy] = at(f);
+            const d = Math.hypot(fx - px, fy - py);
+            if (pk.decoy ? d < 8 : d < Math.max(f.r * s.cam.z, 22)) out.push({ poke: pk.id, decoy: pk.decoy, find: f.goose ? 'The goose' : f.label });
+          }
+        }
+        return out;
+      }, id);
+      for (const x of stolen) {
+        const key = `${kind}/${id}/${x.poke}/${x.find}`;
+        if (stolenSeen.has(key)) continue;
+        stolenSeen.add(key);
+        const msg = x.decoy ? `${zone.name} (${kind}): the decoy "${x.poke}" is on the same spot as "${x.find}", so a tap can't tell them apart; move one of them.`
+          : `${zone.name} (${kind}): a tap on the poke "${x.poke}" finds "${x.find}" instead; move one of them apart.`;
+        if (x.decoy) { screenOk = false; fail('screen', msg); } else warn('screen', msg);
       }
       // Tap every thing here (geese at the very end: the last one finishes the place).
       for (const f of zone.finds) {
@@ -765,8 +820,10 @@ async function tapFind(p, zoneId, findId) {
   // A find inside something (a poke) is tapped with it open, the way a player gets to it.
   const inside = await p.evaluate(({ zoneId, findId }) => {
     const s = window.__squares, z = s.world.zones.find((x) => x.id === zoneId), f = z.finds.find((x) => x.id === findId);
+    // (A trail's sighting is tapped with the trail held at it, as if the ones before were found.)
+    s.play.trailTo(f.step ?? null);
     if (f.inside && !f.inside.open) { f.inside.set(true); return true; }
-    return false;
+    return f.step != null;
   }, { zoneId, findId });
   if (inside) await p.waitForTimeout(320);
   const [sx, sy] = await p.evaluate(({ zoneId, findId }) => {

@@ -15,7 +15,7 @@ import {
 import { route, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { deck } from '../ship.js';
-import { P, shape, lettering, board, porthole, lifebuoy, bucket, cocktail, towelAnimal } from '../kit.js';
+import { P, shape, lettering, board, porthole, lifebuoy, bucket, cocktail, towelAnimal, sighting } from '../kit.js';
 import { INK, MAT, at, wrap, green, queasy, seaAt } from '../style.js';
 
 // ---------- The plan of the row ----------
@@ -102,12 +102,24 @@ function tray(ctx, x, y, z = 0, o = {}) {
   box(ctx, x - 0.4, y - 0.28, z, 0.8, 0.56, 0.05, MAT.chrome, { flat: true, lw: 0.03 });
   disc(ctx, x - 0.12, y, z + 0.06, 0.2, C.white, { lw: 0.02 });
   if (o.cloche !== false) {
+    // (o.lift: a tap lifts the lid, 0 to 1, on two cold fried eggs.)
+    const lift = o.lift || 0;
+    if (lift > 0.02) {
+      for (const dx of [-0.07, 0.05]) {
+        disc(ctx, x - 0.12 + dx, y + dx * 0.4, z + 0.07, 0.08, C.white, { lw: 0.012 });
+        disc(ctx, x - 0.12 + dx, y + dx * 0.4, z + 0.075, 0.035, INK.sunYellow, { stroke: false });
+      }
+    }
     const [X, Y] = P(x - 0.12, y, z + 0.06);
+    ctx.save();
+    ctx.translate(X + lift * 0.12, Y - lift * 0.55);
+    ctx.rotate(lift * 0.5);
     ctx.beginPath();
-    ctx.ellipse(X, Y, 0.26, 0.24, 0, Math.PI, 0);
+    ctx.ellipse(0, 0, 0.26, 0.24, 0, Math.PI, 0);
     ctx.closePath();
     paint(ctx, MAT.chrome, { lw: 0.025 });
-    ctx.beginPath(); ctx.arc(X, Y - 0.25, 0.035, 0, Math.PI * 2); paint(ctx, MAT.steel, { lw: 0.015 });
+    ctx.beginPath(); ctx.arc(0, -0.25, 0.035, 0, Math.PI * 2); paint(ctx, MAT.steel, { lw: 0.015 });
+    ctx.restore();
   } else {
     // eaten: crumbs and a crust
     disc(ctx, x - 0.1, y + 0.02, z + 0.07, 0.07, C.woodLight, { lw: 0.015 });
@@ -280,6 +292,220 @@ function garland(ctx, x, y, z, bedColor) {
   }
 }
 
+// A banded green tail tip (screen units, at the context's origin): from a
+// (where it leaves the towel) out and curling up to its tip.
+const IGK = { skin: INK.queasyGreen, dark: shade(INK.queasyGreen, 0.35), pale: tint(INK.queasyGreen, 0.45) };
+function tailTip(ctx, pts, w0) {
+  const [a, b, c] = pts;
+  ctx.lineCap = 'round';
+  const n = 6;
+  for (let i = 0; i < n; i++) {
+    // short pieces, each thinner, so it tapers
+    const u0 = i / n, u1 = (i + 1) / n;
+    const q = (u) => [(1 - u) * (1 - u) * a[0] + 2 * (1 - u) * u * b[0] + u * u * c[0], (1 - u) * (1 - u) * a[1] + 2 * (1 - u) * u * b[1] + u * u * c[1]];
+    const [x0, y0] = q(u0), [x1, y1] = q(u1);
+    const w = w0 * (1 - u0 * 0.8);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.05; ctx.stroke(); }
+    ctx.strokeStyle = i % 2 ? IGK.dark : IGK.skin; ctx.lineWidth = w; ctx.stroke();
+  }
+}
+
+// The towel crocodile (the decoy): the steward's proudest work, in green
+// towelling, lying along the spread with a prize rosette. Facing right.
+function towelCroc(ctx, x, y, z) {
+  const [X, Y] = P(x, y, z);
+  const G = INK.queasyGreen, D = shade(INK.queasyGreen, 0.3);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(1.45, 1.45);
+  // stubby rolled-washcloth legs
+  for (const lx of [-0.3, -0.05, 0.2, 0.42]) { ctx.beginPath(); ctx.ellipse(lx, -0.02, 0.07, 0.04, 0, 0, Math.PI * 2); paint(ctx, D, { lw: 0.015 }); }
+  // the tail, tapering off to the left with a flick up
+  ctx.beginPath();
+  ctx.moveTo(-0.32, -0.2); ctx.quadraticCurveTo(-0.7, -0.14, -0.86, -0.26); ctx.quadraticCurveTo(-0.72, -0.06, -0.3, -0.04);
+  ctx.closePath(); paint(ctx, G, { lw: 0.022 });
+  // the body: a fat roll, with its towel folds
+  ctx.beginPath(); ctx.ellipse(0.04, -0.13, 0.42, 0.12, 0, 0, Math.PI * 2); paint(ctx, G, { lw: 0.025, dots: D, density: 0.18 });
+  // the snout: long and flat, jaws a little open, teeth all along
+  ctx.beginPath();
+  ctx.moveTo(0.38, -0.22); ctx.lineTo(0.86, -0.17); ctx.quadraticCurveTo(0.9, -0.12, 0.84, -0.11); ctx.lineTo(0.42, -0.1); ctx.closePath();
+  paint(ctx, G, { lw: 0.022 });
+  if (Q.detail) {
+    ctx.strokeStyle = D; ctx.lineWidth = 0.018;
+    for (const fx of [-0.18, 0.02, 0.2]) { ctx.beginPath(); ctx.moveTo(fx, -0.24); ctx.quadraticCurveTo(fx + 0.04, -0.13, fx, -0.03); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(0.46, -0.145);
+    for (let i = 0; i < 7; i++) ctx.lineTo(0.5 + i * 0.05 + 0.025, i % 2 ? -0.145 : -0.115);
+    ctx.strokeStyle = C.white; ctx.lineWidth = 0.02; ctx.stroke();
+    // nostrils
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.82, -0.17, 0.012, 0, Math.PI * 2); ctx.fill();
+  }
+  // two rolled eye bumps with googly eyes
+  for (const ex of [0.36, 0.47]) {
+    ctx.beginPath(); ctx.arc(ex, -0.25, 0.06, 0, Math.PI * 2); paint(ctx, G, { lw: 0.018 });
+    ctx.beginPath(); ctx.arc(ex + 0.005, -0.27, 0.035, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.012 });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(ex + 0.015, -0.265, 0.016, 0, Math.PI * 2); ctx.fill();
+  }
+  // the rosette: 1ST, from the steward's towel animal league
+  ctx.beginPath(); ctx.moveTo(-0.5, 0.0); ctx.lineTo(-0.56, 0.14); ctx.lineTo(-0.5, 0.11); ctx.lineTo(-0.46, 0.15); ctx.lineTo(-0.44, 0.0); ctx.closePath();
+  paint(ctx, C.sky, { lw: 0.012 });
+  ctx.beginPath(); ctx.arc(-0.48, -0.03, 0.07, 0, Math.PI * 2); paint(ctx, INK.sunYellow, { lw: 0.015 });
+  if (Q.detail) { ctx.fillStyle = C.ink; ctx.font = '800 0.045px "Rethink Sans", sans-serif'; ctx.textAlign = 'center'; ctx.fillText('1ST', -0.48, -0.015); }
+  ctx.restore();
+}
+
+// The iguana, posing as a towel animal on the suite's bed (sighting 2): a
+// white towel folded over it like the steward's swans, a bite of Doreen's
+// melon rind in its mouth (no flower: only the garland under the cloche is
+// flowers). Its green snout, one eye (it blinks) and the tip of
+// its tail show the whole time. Facing right; drawn bigger than a towel swan.
+function towelIguana(ctx, x, y, z, t) {
+  const [X, Y] = P(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(1.5, 1.5);
+  // the tail tip, out from under the back of the towel, curling up
+  tailTip(ctx, [[-0.36, -0.08], [-0.7, -0.02], [-0.64, -0.24]], 0.075);
+  // feet, tucked under: just the toes of one
+  if (Q.detail) {
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
+    ctx.beginPath(); ctx.moveTo(0.18, 0.0); ctx.lineTo(0.27, 0.01); ctx.moveTo(0.18, 0.0); ctx.lineTo(0.25, -0.04); ctx.stroke();
+  }
+  // the snout, out of the towel's fold, with the rind in its mouth
+  ctx.beginPath();
+  ctx.moveTo(0.34, -0.44);
+  ctx.bezierCurveTo(0.44, -0.5, 0.6, -0.47, 0.68, -0.38);
+  ctx.bezierCurveTo(0.71, -0.32, 0.65, -0.28, 0.55, -0.28);
+  ctx.lineTo(0.36, -0.26);
+  ctx.closePath();
+  paint(ctx, IGK.skin, { lw: 0.025 });
+  ctx.beginPath(); ctx.moveTo(0.52, -0.28); ctx.quadraticCurveTo(0.5, -0.17, 0.38, -0.24); ctx.closePath();
+  paint(ctx, IGK.pale, { lw: 0.02 }); // the dewlap
+  if (Q.detail) {
+    ctx.beginPath(); ctx.moveTo(0.68, -0.33); ctx.quadraticCurveTo(0.6, -0.3, 0.5, -0.32);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.018; ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.64, -0.39, 0.012, 0, Math.PI * 2); ctx.fill();
+  }
+  // the eye, blinking every few seconds
+  const blink = ((t % 3.3) + 3.3) % 3.3 < 0.18;
+  if (blink) {
+    ctx.beginPath(); ctx.arc(0.5, -0.4, 0.04, 0.2, Math.PI - 0.2);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(0.5, -0.4, 0.045, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.015 });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.51, -0.4, 0.022, 0, Math.PI * 2); ctx.fill();
+  }
+  // the melon rind, Doreen's, a crescent held crossways in its jaws
+  ctx.save(); ctx.translate(0.74, -0.31); ctx.rotate(0.35);
+  ctx.beginPath(); ctx.arc(0, -0.05, 0.13, 0.15, Math.PI - 0.15); ctx.closePath();
+  paint(ctx, C.leaf, { lw: 0.014 });
+  ctx.beginPath(); ctx.arc(0, -0.06, 0.1, 0.25, Math.PI - 0.25); ctx.closePath();
+  paint(ctx, tint(C.coral, 0.5), { lw: 0.01 });
+  ctx.restore();
+  // the towel: a folded body like the steward's, and a rolled hood over its head
+  ctx.beginPath();
+  ctx.moveTo(-0.42, 0.0);
+  ctx.bezierCurveTo(-0.46, -0.3, -0.1, -0.4, 0.18, -0.36);
+  ctx.bezierCurveTo(0.3, -0.34, 0.36, -0.26, 0.36, -0.12);
+  ctx.lineTo(0.34, 0.02);
+  ctx.closePath();
+  paint(ctx, C.white, { lw: 0.025, dots: C.greyLight, density: 0.12 });
+  ctx.beginPath();
+  ctx.moveTo(0.2, -0.28);
+  ctx.bezierCurveTo(0.22, -0.52, 0.42, -0.58, 0.54, -0.48);
+  ctx.quadraticCurveTo(0.5, -0.43, 0.44, -0.44);
+  ctx.quadraticCurveTo(0.34, -0.42, 0.34, -0.24);
+  ctx.closePath();
+  paint(ctx, C.white, { lw: 0.022 });
+  if (Q.detail) {
+    // the towel's folds and its hem
+    ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.02;
+    ctx.beginPath(); ctx.moveTo(-0.3, -0.18); ctx.quadraticCurveTo(-0.05, -0.28, 0.2, -0.22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-0.34, -0.06); ctx.quadraticCurveTo(-0.02, -0.14, 0.3, -0.08); ctx.stroke();
+    ctx.strokeStyle = C.sky; ctx.lineWidth = 0.025;
+    ctx.beginPath(); ctx.moveTo(-0.4, -0.02); ctx.lineTo(0.34, -0.0); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// The suite's breakfast in bed: a tray, a silver cloche (lifted by k), and
+// under it a melon rind and the nibbled garland. A loop of the garland has
+// slipped out from under the front of the rim, three flowers on its string
+// (one bitten), so the cloche says "lift me".
+function breakfastInBed(ctx, x, y, z, k) {
+  box(ctx, x - 0.6, y - 0.5, z, 1.2, 1.0, 0.05, MAT.chrome, { flat: true, lw: 0.03 });
+  const zt = z + 0.06;
+  const gx = x - 0.05, gy = y - 0.05;
+  // the loop's string, from under the rim and back
+  const ring = (a, r) => P(gx + Math.cos(a) * r, gy + Math.sin(a) * r, zt);
+  ctx.beginPath();
+  for (let i = 0; i <= 12; i++) {
+    const a = 0.05 + (i / 12) * 1.45, r = 0.4 + Math.sin((i / 12) * Math.PI) * 0.22;
+    const [X, Y] = ring(a, r); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+  }
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke(); }
+  ctx.strokeStyle = C.green; ctx.lineWidth = 0.03; ctx.stroke();
+  // its three flowers, the middle one bitten
+  [[0.36, 0.58, INK.sunYellow], [0.78, 0.62, INK.flamingo], [1.2, 0.58, C.coral]].forEach(([a, r, ink], i) => {
+    const fx = gx + Math.cos(a) * r, fy = gy + Math.sin(a) * r;
+    disc(ctx, fx, fy, zt + 0.003, 0.14, ink, { lw: 0.02 });
+    if (i === 1) disc(ctx, fx + Math.cos(a) * 0.12, fy + Math.sin(a) * 0.12, zt + 0.004, 0.09, MAT.chrome, { stroke: false });
+    if (Q.detail) disc(ctx, fx, fy, zt + 0.005, 0.045, INK.sunYellow === ink ? C.coral : INK.sunYellow, { stroke: false });
+  });
+  if (k > 0.02) {
+    garland(ctx, x - 0.05, y - 0.05, zt, MAT.chrome);
+    // the melon: a rind, bitten clean
+    const [X, Y] = P(x + 0.3, y - 0.25, zt);
+    ctx.beginPath(); ctx.arc(X, Y - 0.04, 0.14, 0.1, Math.PI - 0.1); ctx.closePath();
+    paint(ctx, C.leaf, { lw: 0.015 });
+    ctx.beginPath(); ctx.arc(X, Y - 0.05, 0.1, 0.2, Math.PI - 0.2); ctx.closePath();
+    paint(ctx, tint(C.coral, 0.5), { lw: 0.01 });
+  }
+  const [X, Y] = P(x - 0.05, y - 0.05, zt);
+  ctx.save();
+  ctx.translate(X - k * 0.35, Y - k * 0.95);
+  ctx.rotate(-k * 0.45);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 0.62, 0.31, 0, 0, Math.PI);
+  ctx.ellipse(0, 0, 0.62, 0.58, 0, Math.PI, 0);
+  paint(ctx, MAT.chrome, { lw: 0.03, dots: MAT.steel, density: 0.1 });
+  if (Q.detail) {
+    ctx.beginPath(); ctx.ellipse(-0.2, -0.3, 0.14, 0.08, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.white, 0.7); ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(0, -0.6, 0.06, 0, Math.PI * 2); paint(ctx, MAT.steel, { lw: 0.02 });
+  ctx.restore();
+}
+
+// The tower of room service trays outside the suite: one more every hour the
+// honeymooners don't come out. It sways, more the taller it gets, and a tap
+// sets it going properly (k).
+const TOWER = { x: 7.4, y: 6.7 };
+const towerTrays = (t) => clamp(3 + Math.floor(wrap(t) / at(8)), 3, 14); // (at(8) is an hour in)
+function trayTower(ctx, t, k) {
+  const n = towerTrays(t);
+  const [X, Y] = P(TOWER.x, TOWER.y, 0);
+  const sway = Math.sin(t * 1.4) * 0.004 * n + Math.sin(t * 9) * 0.05 * k;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(1.25, 1.25);
+  for (let i = 0; i < n; i++) {
+    const h = i * 0.3 * ZK;
+    ctx.save();
+    ctx.translate(sway * i * 1.8, -h);
+    ctx.rotate(sway * (i % 2 ? 1 : -0.5));
+    // a tray, seen from the corner, and its lid
+    ctx.beginPath();
+    ctx.moveTo(-0.5, 0); ctx.lineTo(0, -0.25); ctx.lineTo(0.5, 0); ctx.lineTo(0, 0.25); ctx.closePath();
+    paint(ctx, MAT.chrome, { lw: 0.025 });
+    ctx.beginPath(); ctx.moveTo(-0.5, 0); ctx.lineTo(0, 0.25); ctx.lineTo(0.5, 0); ctx.lineTo(0.5, 0.05); ctx.lineTo(0, 0.3); ctx.lineTo(-0.5, 0.05); ctx.closePath();
+    paint(ctx, MAT.steel, { lw: 0.02 });
+    ctx.beginPath(); ctx.ellipse(0, -0.02, 0.24, 0.24, 0, Math.PI, 0); ctx.closePath();
+    paint(ctx, MAT.chrome, { lw: 0.02 });
+    if (Q.detail && i % 3 === 1) { // a napkin hanging out, a lemon
+      ctx.fillStyle = C.white; ctx.fillRect(0.2, -0.04, 0.16, 0.14);
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 // ---------- Cabin 7's things, and where they end up ----------
 // Every hour something else of Ray's goes out of the door, from Brenda's
 // hands onto the pile in the corridor. home: where it sits in cabin 7 until
@@ -431,18 +657,12 @@ export default {
       rect(ctx, 0, FY, 8, 16 - FY, 0, tint(INK.flamingo, 0.45), { stroke: false, dots: INK.flamingo, density: 0.14 });
     });
     R.rug((ctx) => {
-      // a heart rug in the suite, and a trail of rose petals to the bed
+      // a heart rug in the suite (no rose petals: loose red petals read as
+      // the garland, which is only under the cloche)
       const [X, Y] = P(4.6, 11.0, 0.01);
       ctx.save(); ctx.translate(X, Y); ctx.scale(1, 0.55);
       heart(ctx, 0, 0.2, 1.3, INK.flamingo);
       ctx.restore();
-      if (Q.detail) {
-        for (let i = 0; i < 16; i++) {
-          const k = i / 15;
-          const px = 6.2 - k * 2.4 + Math.sin(i * 2.1) * 0.35, py = 8.9 + k * 2.6 + Math.cos(i * 1.7) * 0.25;
-          disc(ctx, px, py, 0.012, 0.06, i % 3 ? C.red : INK.flamingo, { stroke: false });
-        }
-      }
       // doormats outside every door, with its number
       for (const n of ROOMS) {
         if (n === 3) continue; // 3 and 4 share one mat, at their double doorway
@@ -576,7 +796,9 @@ export default {
       if (g0 - a1 > 0.05) R.thing((a1 + g0) / 2, FY + T, (ctx) => cutWall(ctx, a1, FY - T, g0, FY + T));
       if (b1 - g1 > 0.05) R.thing((g1 + b1) / 2, FY + T, (ctx) => cutWall(ctx, g1, FY - T, b1, FY + T));
       // the door, open into the cabin, with its number on a brass plate
+      // (cabin 7's slams when tapped: it's drawn with the cabin, below)
       const hx = HINGE_R[n] ? g1 - 0.1 : g0 + 0.02;
+      if (n === 7) continue;
       R.thing(hx + 0.05, FY + 1.0, (ctx) => {
         box(ctx, hx, FY + T, 0, 0.08, 1.55, WH, INK.teak, { flat: true, top: C.ink, lw: 0.03 });
         face(ctx, [[hx + 0.081, FY + 0.45, 0.42], [hx + 0.081, FY + 1.05, 0.42], [hx + 0.081, FY + 1.05, 0.82], [hx + 0.081, FY + 0.45, 0.82]], MAT.brass, { lw: 0.02 });
@@ -614,29 +836,24 @@ export default {
       box(ctx, 1, 12, 0.45, 6, 3.4, 0.35, C.white, { flat: true, lw: 0.05 });
       rect(ctx, 6.1, 12, 0.7, 3.4, 0.805, tint(INK.flamingo, 0.2), { lw: 0.03 });
       for (const py of [12.3, 13.8]) box(ctx, 1.15, py, 0.8, 0.7, 1.3, 0.2, C.white, { flat: true, lw: 0.03 });
-      // chocolates on the pillows, petals on the spread
+      // chocolates on the pillows (and no petals on the spread)
       for (const [cx, cy] of [[1.5, 12.95], [1.5, 14.45]]) box(ctx, cx - 0.1, cy - 0.1, 1.0, 0.2, 0.2, 0.06, C.brown, { flat: true, lw: 0.015 });
-      if (Q.detail) {
-        for (let i = 0; i < 14; i++) {
-          const px = 2.4 + ((i * 2.37) % 3.4), py = 12.3 + ((i * 1.93) % 2.8);
-          if (Math.hypot(px - 3, py - 13.4) < 0.55) continue; // not on the garland
-          disc(ctx, px, py, 0.81, 0.07, i % 2 ? C.red : INK.flamingo, { stroke: false });
-        }
-      }
-      garland(ctx, 3, 13.4, 0.82, C.white);
-      towel(ctx, 5.3, 13.7, 0.8, 'hearts');
+      towel(ctx, 4.5, 12.95, 0.8, 'hearts');
     });
+    // Breakfast in bed, with something under the lid that isn't breakfast.
+    const cloche = R.poke({ id: 'breakfast', at: [2.95, 13.55, 1.2], r: 0.75, sound: 'tick', say: ['Not breakfast.', 'Somebody ate the melon.'] });
+    R.thing(2.95, 13.6, (ctx) => breakfastInBed(ctx, 2.95, 13.55, 0.81, cloche.k()), { anim: true, depth: 18.0 });
     // The loveseat, and the newlyweds on it (one of them went to the buffet).
     R.thing(3.3, 9.4, (ctx) => {
       box(ctx, 1.7, 8.75, 0, 3.3, 0.35, 1.3, INK.flamingo, { lw: 0.04 });
       box(ctx, 1.7, 9.1, 0, 3.3, 0.85, 0.72, tint(INK.flamingo, 0.2), { lw: 0.04 });
       for (const x of [1.55, 4.9]) box(ctx, x, 8.9, 0, 0.25, 1.05, 0.95, INK.flamingo, { lw: 0.04 });
     }, { depth: 11.8 });
-    const lei = (ctx, b) => {
-      const inks = [INK.sunYellow, INK.flamingo, C.coral];
-      for (let i = 0; i < 7; i++) {
-        ctx.beginPath(); ctx.arc(-0.24 + i * 0.08, b.top + 0.08 + Math.sin((i / 6) * Math.PI) * 0.14, 0.06, 0, Math.PI * 2);
-        paint(ctx, inks[i % 3], { lw: 0.015 });
+    // Pearls (not a lei: the only flowers in the suite are the garland's).
+    const pearls = (ctx, b) => {
+      for (let i = 0; i < 9; i++) {
+        ctx.beginPath(); ctx.arc(-0.2 + i * 0.05, b.top + 0.06 + Math.sin((i / 8) * Math.PI) * 0.1, 0.03, 0, Math.PI * 2);
+        paint(ctx, C.white, { lw: 0.01 });
       }
     };
     extra(R, 2.6, 9.65, 41, {
@@ -651,7 +868,9 @@ export default {
       say: [(t) => (wrap(t) < at(11.5) ? 'Best. Honeymoon. Ever.' : 'I love you. I need a minute.'), 20, 3.5, 11],
     });
     extra(R, 4.0, 9.65, 42, {
-      pose: 'sit', dir: 'l', look: { top: INK.flamingo, dress: true, style: 'long' }, wear: lei,
+      pose: 'sit', dir: 'l', look: { top: INK.flamingo, dress: true, style: 'long' }, wear: pearls,
+      // (her answer to housekeeping, right after every knock; out of the groom's turn)
+      say: ['Do NOT disturb!', 20, 3, 17.4], sayZ: 2.1,
       after: (ctx, t) => {
         if (!Q.detail) return;
         const ill = wrap(t) >= at(11.5);
@@ -823,6 +1042,29 @@ export default {
         box(ctx, b0 + 1.4, 13.2, 0.7, 0.4, 0.25, 0.18, C.white, { flat: true, lw: 0.02 });
       });
       R.thing(24.7, 9.3, (ctx) => dresser(ctx, 24.15, 25.2));
+      // Her door: tap it and Brenda slams it (and opens it again: there's
+      // more of Ray's stuff to throw). The area's big "tap me".
+      const slam = R.poke({ id: 'cabin-7', at: [26.2, FY + 0.6, 0.9], r: 1.2, teach: true, hold: 1.4, sound: 'clunk', say: ['SLAM!', 'Not now, Ray!', 'Is that you, Ray? GO AWAY.'] });
+      const hx = doorOf(7) - DW / 2 + 0.02;
+      R.thing(hx + 0.5, FY + 0.7, (ctx) => {
+        const k = slam.k(), th = k * Math.PI / 2, L = 1.55 + 0.2 * k;
+        const ex = hx + Math.sin(th) * L, ey = FY + T + Math.cos(th) * L;
+        face(ctx, [[hx, FY + T, 0], [ex, ey, 0], [ex, ey, WH], [hx, FY + T, WH]], INK.teak, { lw: 0.03 });
+        face(ctx, [[hx, FY + T, WH], [ex, ey, WH]], null, { lw: 0.06, stroke: C.ink });
+        const u = (a) => [hx + Math.sin(th) * a, FY + T + Math.cos(th) * a];
+        const [p0x, p0y] = u(0.45), [p1x, p1y] = u(1.05);
+        face(ctx, [[p0x, p0y, 0.42], [p1x, p1y, 0.42], [p1x, p1y, 0.82], [p0x, p0y, 0.82]], MAT.brass, { lw: 0.02 });
+        if (k < 0.5) lettering(ctx, 'y', hx + 0.01, FY + 0.75, 0.62, '7', 0.28);
+        else lettering(ctx, 'x', hx + 0.75, FY + T + 0.01, 0.62, '7', 0.28);
+        if (k > 0.85 && Q.detail) {
+          // shake lines off the slammed door
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.lineCap = 'round';
+          for (const [dx, dz] of [[-0.25, 0.9], [-0.35, 0.6], [2.05, 0.9], [2.15, 0.6]]) {
+            const [a, b] = P(hx + dx, FY + T, dz), [c, d] = P(hx + dx + (dx < 0 ? -0.25 : 0.25), FY + T, dz + 0.1);
+            ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke();
+          }
+        }
+      }, { anim: true });
       for (const it of RAYS) {
         const t0 = at(it.h);
         R.mover((t) => {
@@ -942,8 +1184,11 @@ export default {
       const [b0, b1] = bedX(11);
       R.thing((b0 + b1) / 2, 14.2, (ctx) => {
         bed(ctx, b0, b1, SPREAD[2]);
-        towel(ctx, b1 - 0.6, 14.3, 0.72, 'stack');
+        towel(ctx, b1 - 0.4, 13.45, 0.72, 'stack');
+        // The steward's masterpiece, with its rosette: a towel crocodile.
+        towelCroc(ctx, b0 + 1.45, 14.85, 0.72);
       });
+      R.decoy({ id: 'croc', at: [bedX(11)[0] + 1.6, 14.85, 1.0], r: 0.9, say: ['A towel crocodile. Not an iguana.', "The steward's proudest work.", 'Please do not feed the towels.'] });
       R.thing(43.4, 9.3, (ctx) => dresser(ctx, 42.9, 43.85, (c) => {
         for (let i = 0; i < 3; i++) cylinder(c, 43.1 + i * 0.22, 9.0, 0.9, 0.08, 0.24, INK.funnelRed, { flat: true, lw: 0.015 });
       }));
@@ -997,7 +1242,9 @@ export default {
     R.thing(10.3, 7.75, (ctx) => tray(ctx, 10.3, 7.75, 0, { cloche: false }));
     R.thing(17.6, 7.85, (ctx) => bucket(ctx, 17.6, 7.85, 0, { name: 'ICE' }));
     R.thing(14.0, 7.7, (ctx) => shoes(ctx, 14.0, 7.7, C.white));
-    R.thing(34.4, 7.75, (ctx) => tray(ctx, 34.4, 7.75, 0, { glass: INK.queasyGreen }));
+    // (Its lid lifts on a tap: breakfast, still waiting.)
+    const lid = R.poke({ id: 'eggs', at: [34.3, 7.75, 0.35], r: 0.7, hold: 2, sound: 'tick', say: ['Cold eggs. Since Tuesday.', 'Still cold.'] });
+    R.thing(34.4, 7.75, (ctx) => tray(ctx, 34.4, 7.75, 0, { glass: INK.queasyGreen, lift: lid.k() }), { anim: true });
     R.thing(30.3, 7.85, (ctx) => shoes(ctx, 30.3, 7.85, C.brown));
     R.thing(44.6, 8.0, (ctx) => {
       bucket(ctx, 44.6, 8.0, 0, { name: 'CHAD' });
@@ -1095,6 +1342,31 @@ export default {
       arms: (t) => [2.35 + (every(t, 0.5, 0.2) ? 0.12 : 0), 0.1],
       say: ['Come ON.', 11, 2.5, 5],
     });
+    R.poke({ id: 'lift-man', at: [14.1, 0.5, 1.5], r: 0.8, sound: 'tick', say: ['Pressed it 400 times.', 'It knows I\'m here.', 'Have you tried the stairs? No.'] });
+
+    // ---------- The stern end of the corridor: the do-not-disturb war ----------
+    // The honeymooners haven't come out since they boarded. Room service
+    // leaves a tray an hour, and the tower outside the suite grows all day.
+    const tower = R.poke({ id: 'tower', at: (t) => [TOWER.x, TOWER.y, 0.2 + towerTrays(t) * 0.19], r: 0.9, hold: 1.5, sound: 'clunk', say: ['Do NOT touch the tower.', "It's load-bearing now.", 'Day four of breakfast.'] });
+    R.thing(TOWER.x, TOWER.y, (ctx, t) => trayTower(ctx, t, tower.k()), { anim: true });
+    // ...and housekeeping knocks every few minutes, with fresh towels and a
+    // swan, and gets the same answer from the loveseat every time.
+    extra(R, 9.6, 6.7, 57, {
+      dir: 'l', look: { top: C.white, bottom: C.navy, style: 'bun', hat: 'none' },
+      arms: (t) => [every(t, 20, 2.2) ? 2.4 + Math.sin(t * 14) * 0.25 : 1.3, 1.2],
+      face: (ctx, hy, back, t, arms) => {
+        if (back) return;
+        const [hx, hyy] = hand(1.2);
+        // the towels she's holding, a swan on top
+        ctx.beginPath(); ctx.rect(hx - 0.32, hyy - 0.22, 0.5, 0.26); paint(ctx, C.white, { lw: 0.015 });
+        ctx.beginPath(); ctx.moveTo(hx - 0.32, hyy - 0.1); ctx.lineTo(hx + 0.18, hyy - 0.1); ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.save(); ctx.translate(hx - 0.07, hyy - 0.2); ctx.scale(0.55, 0.55);
+        ctx.beginPath(); ctx.ellipse(0, -0.14, 0.28, 0.14, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+        ctx.beginPath(); ctx.moveTo(0.14, -0.2); ctx.quadraticCurveTo(0.34, -0.5, 0.18, -0.58); ctx.quadraticCurveTo(0.26, -0.44, 0.1, -0.26); paint(ctx, C.white, { lw: 0.03 });
+        ctx.restore();
+      },
+      say: ['Housekeeping!', 20, 2.2, 0],
+    });
 
     // The audience: across the corridor from cabin 7, a row of folding chairs
     // fills up through the day, drinks and snacks, everyone facing the show.
@@ -1135,8 +1407,21 @@ export default {
     }
 
     // ---------- The finds ----------
-    R.find({ id: 'chad-bucket', label: 'A bucket outside cabin 12', at: [44.6, 8, 0.3], r: 0.8 });
-    R.find({ id: 'garland', label: 'A nibbled flower garland', at: [3, 13.4, 0.9], r: 0.8 });
-    R.find({ id: 'towel-monkey', label: 'A towel monkey', at: [34.5, 14.3, 1.2], r: 0.9 });
+    R.find({ id: 'chad-bucket', label: 'A bucket outside cabin 12', kind: 'spot', at: [44.6, 8, 0.3], r: 0.8 });
+    // The chase, sighting 2: in the honeymoon suite, at the foot of the bed,
+    // posing as one of the steward's towel animals with a melon rind in its mouth.
+    // Its snout, a blinking eye and its tail tip show. Found, it's off the
+    // bed, out of the suite's door and up the corridor to the lift.
+    sighting(R, 1, {
+      at: [5.6, 14.45, 0.8], kind: 'hard', depth: 21,
+      hint: 'One of the towel animals in the suite is blinking.',
+      draw: (ctx, t, p) => towelIguana(ctx, p.x, p.y, p.z, t),
+      run: [[6.6, 11.6, 0], [6.3, 8.0, 0], [6.6, 5.0, 0], [11.8, 1.0, 0]],
+    });
+    R.find({
+      id: 'garland', label: 'A nibbled flower garland', kind: 'poke', inside: cloche, at: [2.95, 13.55, 0.95], r: 0.8,
+      hint: 'The honeymooners ordered breakfast in bed. Something got to it first.',
+    });
+    R.find({ id: 'towel-monkey', label: 'A towel monkey', kind: 'spot', at: [34.5, 14.3, 1.2], r: 0.9 });
   },
 };

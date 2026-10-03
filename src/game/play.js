@@ -16,6 +16,11 @@
 // when you accuse the right suspect: a flash of lightning, and the camera cuts
 // to the reveal.
 //
+// A trail (a map with map.trail, see src/game/trail.js) swaps it for a Trail
+// button and its log: something is loose, and only the next sighting of it
+// can be found (the list hides the ones after). Each one found says where it
+// went; the last ends the place, with the map's finale.
+//
 // Finding is the game's rules (rules.js): finds come in kinds (spot, poke,
 // hard); some sit inside things that open on a tap (a poke), and some
 // things only look like the goose (a decoy, which answers back). Hints are
@@ -32,8 +37,10 @@ import { C, Q, alpha } from '../engine/art.js';
 import { findPos } from '../engine/zone.js';
 import { createTray } from '../ui/tray.js';
 import { createCasefile } from '../ui/casefile.js';
+import { createTrailLog } from '../ui/traillog.js';
 import { play as sound, bed, wake } from './audio.js';
 import { caseState, accuse as accuseIn } from './case.js';
+import { trailState, trailStep } from './trail.js';
 import { whereIs } from './rules.js';
 
 const keyOf = (zone, f) => zone.id + ':' + f.id;
@@ -52,6 +59,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     pill: $('room-pill'), unit: $('room-unit'), name: $('room-name'), story: $('story'), storyText: $('story-text'),
     places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
     geesePill: $('tally-geese-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
+    caseLabel: document.querySelector('.tally-case-label'),
     dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'),
   };
 
@@ -76,17 +84,30 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   let zoneSince = 0; // when we arrived in the room we're in
   const foundAt = new Map(); // when each find was circled this visit, so the pen can draw it on
   const seenStory = new Set();
-  const debug = { finds: false, calls: 0, pokes: 0, decoys: 0 }; // QA: ring every find that's still hidden; tests: honks, pokes and decoys so far
+  const debug = { finds: false, calls: 0, pokes: 0, decoys: 0, step: null }; // QA: ring every find that's still hidden; tests: honks, pokes and decoys so far; step: hold a trail at a sighting
   const hasStoreys = () => !!(world && world.map.storeys && world.storeys.length > 1);
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
   // Is a find there to be found at t? (Some only show at low tide.)
   const here = (f, t) => !f.when || f.when(t);
   // Can it be tapped at t? There, and if it's inside something, that's open.
-  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6);
+  // (A trail's sighting only once it's the next one.)
+  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6) && (f.step == null || f.step === stepNow());
   const words = () => ({ zone: 'room', invite: '', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
+  const isTrail = () => !!(world && world.goal === 'trail');
+  const theTrail = () => trailState(world, (key) => store.isFound(world.id, key));
+  // The sighting a trail is on (tools can hold it at one: debug.step).
+  const stepNow = () => (debug.step != null ? debug.step : trailStep(world, (key) => store.isFound(world.id, key)));
+  // Tell the trail's art where it's got to (and when each was found, for the
+  // quarry's getaway).
+  const sightedAt = new Map();
+  function tellTrail() {
+    if (!isTrail() || !world.map.trail.onStep) return;
+    world.map.trail.onStep(stepNow(), world.sightings.map((s) => sightedAt.get(world.id + '/' + s.find) ?? null));
+    dialText = ''; // (the dial's next skip can follow the trail: say it again)
+  }
 
   // ---------- Framing ----------
   // The phone's home bar, in px (it only changes with the screen's size).
@@ -411,6 +432,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // ---------- The find list ----------
   const tray = createTray({
     reduceMotion,
+    // A trail's sightings after the next one aren't on the list yet.
+    shows: (zone, f) => f.step == null || f.step <= stepNow(),
     isFound: (zone, f) => isFound(zone, f),
     foundAge: (zone, f) => { const at = foundAt.get(world.id + '/' + keyOf(zone, f)); return at ? performance.now() - at : Infinity; },
     label: (zone, f) => (f.goose ? 'The goose' : f.label),
@@ -421,6 +444,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     placeLine: () => {
       const p = store.progress(world);
       if (isCase()) return `${p.evidence} of ${world.totals.evidence} pieces of evidence`;
+      if (isTrail()) return p.met ? `Caught. ${world.totalThings - p.things} things still out there.` : `Sighting ${p.sightings + 1} of ${world.sightings.length} next`;
       if (p.done) return p.all ? 'Every last thing, found.' : `Finished. ${world.totalThings - p.things} things still out there.`;
       const geese = world.totalGeese - p.geese, things = Math.max(0, world.need - p.things);
       const g = geese ? `${geese} ${geese === 1 ? 'goose' : 'geese'}` : '', t = things ? `${things} ${things === 1 ? 'thing' : 'things'}` : '';
@@ -477,8 +501,14 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ui.hintsPill.setAttribute('aria-label', `${p.hints} ${p.hints === 1 ? 'hint' : 'hints'} left. Find ${p.toHint} more for another.`);
     ui.hintsPill.title = `Hints left. Find ${p.toHint} more for another.`;
     // A whodunit's geese aren't the point: the Case button takes their place.
-    ui.geesePill.hidden = isCase();
-    ui.caseBtn.hidden = !isCase();
+    ui.geesePill.hidden = isCase() || isTrail();
+    ui.caseBtn.hidden = !isCase() && !isTrail();
+    ui.caseLabel.textContent = isTrail() ? 'Trail' : 'Case';
+    if (isTrail()) {
+      bumpText(ui.caseCount, p.met ? 'Caught' : `${p.sightings}/${world.sightings.length}`);
+      ui.caseBtn.classList.toggle('is-solved', p.met);
+      ui.caseBtn.setAttribute('aria-label', p.met ? 'The trail. Caught.' : `The trail: ${p.sightings} of ${world.sightings.length} sightings. Where it went next.`);
+    }
     if (isCase()) {
       const solved = store.caseOf(world.id).solved;
       bumpText(ui.caseCount, solved ? 'Solved' : `${p.evidence}/${world.totals.evidence}`);
@@ -503,8 +533,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   }
 
   let toastTimer = 0;
-  function toast(msg) {
+  function toast(msg, ms = 2600) {
     ui.toast.textContent = msg;
+    ui.toast.classList.toggle('is-long', msg.length > 60);
     // Under the dial when it's up top, never over it (Moving Day's noon
     // message covered the lease clock).
     const d = !ui.dial.hidden && ui.dial.getBoundingClientRect();
@@ -514,7 +545,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     void ui.toast.offsetWidth;
     ui.toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { ui.toast.hidden = true; }, 2600);
+    toastTimer = setTimeout(() => { ui.toast.hidden = true; }, ms);
   }
 
   // A hint's first step: a line that points. A find's own (hint in R.find),
@@ -575,11 +606,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const p = renderTally();
     renderInvite();
     if (mode === 'zone' && current >= 0) tray.render(current);
-    const zoneDone = zone.finds.every((x) => isFound(zone, x));
+    const zoneDone = zone.finds.every((x) => isFound(zone, x) || (x.step != null && x.step > stepNow()));
     // Every few finds earns a hint.
     const earned = p.hints > was.hints ? ' A hint earned.' : '';
     if (earned) nudge(ui.hintsPill);
     if (isCase()) { caseFound(zone, f, before, p, zoneDone, earned); return; }
+    if (isTrail()) { trailFound(zone, f, was, p, zoneDone, earned); return; }
     // Finished: every goose and most of the things (see rules.js).
     const finished = !was.done && p.met;
     if (finished) finish();
@@ -599,6 +631,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     }
   }
 
+  // A patch of a zone, about span units round a world point on its floor: a
+  // finale that plays at one spot (the ship's gangway desk) frames it close,
+  // where a room's worth would be wider than a phone's overview.
+  function patchBox(zone, near, span) {
+    const lx = near[0] - zone.ox, ly = near[1] - zone.oy;
+    const X = zone.anchor[0] + isoX(lx, ly), Y = zone.anchor[1] + isoY(lx, ly, 0);
+    return [X - span * 1.6, X + span * 1.6, Y - span * 1.4, Y + span * 0.9];
+  }
+
   // The place is finished: let the last find land, pull back to the whole
   // place (or its finale), then the card. Skipped if the player has left.
   function finish() {
@@ -616,8 +657,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (fin && fin.at != null) { skipping = null; ui.dial.classList.remove('is-skipping'); setClock(fin.at); }
       const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
       if (fz >= 0) {
+        // On a place with floors, the lift goes to the ending's floor first,
+        // or it would play under the floors lifted off above it.
+        const fzone = w.zones[fz];
+        if (hasStoreys() && !fzone.fixed && fzone.storey !== storey) { storey = fzone.storey; renderFloors(); }
         showOverviewUI();
-        camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), clearOfCard(), 0.5)), 2.5);
+        camera.flyTo(camera.clamp(camera.fit(fin.span ? patchBox(fzone, fin.near, fin.span) : w.zoneBox(fzone, fin.near), clearOfCard(), 0.5)), 2.5);
       } else toOverview({ dur: 2.5 });
       setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
     }, 1800);
@@ -695,6 +740,44 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   }
   const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 
+  // ---------- Trails ----------
+  // A find on a trail: a sighting says where it went next (the next
+  // witness's line); the last one corners it and finishes the place.
+  function trailFound(zone, f, was, p, zoneDone, earned = '') {
+    if (f.group === 'sighting') {
+      sightedAt.set(world.id + '/' + keyOf(zone, f), performance.now());
+      tellTrail();
+      sound('honk');
+      const next = world.sightings[f.step + 1];
+      if (!was.done && p.met) {
+        toast(words().complete, 7000);
+        finish();
+      } else if (next) {
+        // Where it went (the next witness) and when to look.
+        const tr = world.map.trail, who = (tr.names && tr.names[next.who]) || next.who;
+        toast(`${f.step + 1} of ${world.sightings.length}! It got away.${next.f.note ? ` Next, at ${next.f.note}.` : ''} ${who}: "${next.says}"`, 6000);
+        nudgeCase(true);
+      }
+      if (mode === 'zone' && current >= 0) tray.render(current);
+      traillog.refresh();
+      return;
+    }
+    if (f.goose) {
+      pops.push({ zone, f, t0: performance.now(), kind: 'honk' });
+      sound('honk');
+    } else sound('pen');
+    toast(f.goose ? 'HONK. You found the goose. It is at its muster station.' + earned
+      : zoneDone ? `${zone.name}, all found.${earned}` : `Found: ${lower(f.label)}.${earned}`);
+  }
+
+  const traillog = createTrailLog({
+    reduceMotion,
+    state: () => theTrail(),
+    sound,
+    portrait: (ctx, id, w, h, dpr) => world.map.trail.portrait(ctx, id, w, h, clock(), dpr),
+    onClose: () => {},
+  });
+
   // A button wiggles to say "this one".
   function nudge(el) {
     if (reduceMotion || el.hidden) return;
@@ -727,10 +810,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     onClose: () => {},
   });
   ui.caseBtn.addEventListener('click', () => {
-    if (!active || !isCase()) return;
+    if (!active || (!isCase() && !isTrail())) return;
     userAct();
     sound('tick');
-    casefile.open();
+    ui.toast.hidden = true; // (it would sit over the sheet's top)
+    if (isTrail()) traillog.open();
+    else casefile.open();
   });
 
   // The case is closed: a flash of lightning, and in it the camera cuts to
@@ -821,7 +906,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const CALL_EVERY = [3.2, 5.6]; // seconds between honks, at random in this range
   let nextCall = 0, lastCaller = null;
   function call(now) {
-    if (!active || !world || mode !== 'overview' || isCase() || reduceMotion || camera.flying) return;
+    if (!active || !world || mode !== 'overview' || world.goal !== 'geese' || reduceMotion || camera.flying) return;
     if (now < nextCall) return;
     const first = !nextCall;
     nextCall = now + (CALL_EVERY[0] + Math.random() * (CALL_EVERY[1] - CALL_EVERY[0])) * 1000;
@@ -1145,11 +1230,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
 
   // The poke (or decoy) under a screen point, if any: the nearest, in the
   // room you're in or one you can see into.
-  function pokeAtScreen(sx, sy, t) {
+  function pokeAtScreen(sx, sy, t, decoys = false) {
     let best = null, bestD = Infinity;
     for (const zone of world.zones) {
       if (lifted(zone) || !zone.pokes.length || (zone.shelled && zone.shellK > 0.5)) continue;
       for (const pk of zone.pokes) {
+        if (decoys && !pk.decoy) continue;
         const d = screenGap(zone, pk, sx, sy, t);
         if (d < Math.max(pk.r * cam.z, 22) && d < bestD) { best = { zone, pk }; bestD = d; }
       }
@@ -1162,9 +1248,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const t = clock();
     const zoomedIn = cam.z >= zoneModeZ();
     if (zoomedIn) {
-      const hit = findAtScreen(sx, sy, t);
-      // (A find wins over the thing it's in, or next to.)
-      const pk = hit ? null : pokeAtScreen(sx, sy, t);
+      let hit = findAtScreen(sx, sy, t);
+      // (A find wins over the thing it's in, or next to. Not over a decoy,
+      // which never holds anything: a tap nearer the lookalike than the real
+      // thing is the lookalike's, or a decoy beside its goose gives it away.)
+      const dk = hit && pokeAtScreen(sx, sy, t, true);
+      if (dk && screenGap(dk.zone, dk.pk, sx, sy, t) < screenGap(hit.zone, hit.f, sx, sy, t)) hit = null;
+      const pk = hit ? null : dk || pokeAtScreen(sx, sy, t);
       const at = hit || pk;
       if (at) {
         if (hit) markFound(hit.zone, hit.f);
@@ -1224,13 +1314,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   });
   window.addEventListener('keydown', (e) => {
     if (!active || (e.target.closest && e.target.closest('input, textarea'))) return;
-    if (casefile.isOpen && e.key !== 'Escape') return; // the case file has the keys while it's open
+    if ((casefile.isOpen || traillog.isOpen) && e.key !== 'Escape') return; // the case file has the keys while it's open
     if (e.key === 'ArrowRight') step(1);
     else if (e.key === 'ArrowLeft') step(-1);
     else if (e.key === 'PageUp' && hasStoreys()) { e.preventDefault(); setStorey(storey + 1); }
     else if (e.key === 'PageDown' && hasStoreys()) { e.preventDefault(); setStorey(storey - 1); }
     else if (e.key === 'Escape') {
-      if (casefile.back()) return;
+      if (casefile.back() || traillog.back()) return;
       if (!ui.story.hidden) showStory(false);
       else if (mode === 'zone' && tray.state === 'open' && tray.dock() === 'bottom') tray.setState('peek');
       else if (mode === 'zone') { userAct(); toOverview(); }
@@ -1323,6 +1413,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       else world.map.case.onOpen();
       if (world.map.case.ink) document.body.style.setProperty('--case-ink', world.map.case.ink);
     }
+    if (isTrail()) {
+      sightedAt.clear();
+      tellTrail();
+      if (world.map.trail.ink) document.body.style.setProperty('--case-ink', world.map.trail.ink);
+    }
     pinPokes();
     const p = renderTally();
     parade = !isCase() && p.done ? performance.now() : 0;
@@ -1356,6 +1451,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ui.hud.hidden = true;
     bed(null);
     casefile.close();
+    traillog.close();
     showStory(false);
     tray.show(false);
     renderFloors();
@@ -1403,10 +1499,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     },
     tick,
     casefile,
+    traillog,
+    // Hold a trail at a sighting (QA and tests), or let it follow the save (null).
+    trailTo(n) { debug.step = n; tellTrail(); if (mode === 'zone' && current >= 0) tray.render(current); },
     // Reset the loaded place's progress (QA and tests), including its case.
     reset() {
       store.resetMap(world.id);
       if (isCase()) world.map.case.onOpen();
+      sightedAt.clear();
+      tellTrail();
       pinPokes();
       renderTally();
       if (mode === 'zone' && current >= 0) tray.render(current);
