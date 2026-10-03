@@ -891,19 +891,27 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // from the overview), on a badge on the dial; and the list redrawn when a
   // find comes or goes with the tide, so its "now" stays true. Twice a second.
   let waitAt = -1, waitSig = '';
+  // Things to find that are away at t and back at then: here, or on the whole
+  // place from the overview.
+  function comingBack(t, then) {
+    let n = 0;
+    for (const z of world.zones) {
+      if (mode === 'zone' && z.index !== current) continue;
+      for (const f of z.finds) if (f.when && !isFound(z, f) && (f.step == null || f.step <= stepNow()) && !here(f, t) && f.when(then)) n++;
+    }
+    return n;
+  }
   function renderWaiting(t) {
     const now = performance.now();
     if (now - waitAt < 500) return;
     waitAt = now;
     const d = world.map.dial, n = d.next(t);
-    let back = 0, sig = '';
+    const back = comingBack(t, n.at);
+    let sig = '';
     for (const z of world.zones) {
-      const mine = mode !== 'zone' || z.index === current;
       for (const f of z.finds) {
         if (!f.when || isFound(z, f) || (f.step != null && f.step > stepNow())) continue;
-        const h = here(f, t);
-        sig += h ? '1' : '0';
-        if (mine && !h && f.when(n.at)) back++;
+        sig += here(f, t) ? '1' : '0';
       }
     }
     if (ui.dial.dataset.waiting !== String(back)) {
@@ -947,6 +955,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (!active || !world || !n || skipping) return;
     userAct();
     const from = clock();
+    n = { ...n, back: comingBack(from, n.at) };
     sound('tide');
     if (reduceMotion) { setClock(n.at); landed(n); return; }
     skipping = { from, to: n.at, start: performance.now(), dur: 1800, n };
@@ -966,7 +975,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   }
   function landed(n) {
     dialText = '';
-    if (n.say) toast(n.say);
+    // Say what the skip brought back (the dial's badge counted them), so
+    // the number means something.
+    const back = n.back || 0;
+    const more = back ? ` ${back === 1 ? 'One thing to find is' : `${back} things to find are`} back${mode === 'zone' ? ' here' : ''}.` : '';
+    if (n.say || more) toast((n.say || '') + more);
     // Every other area's picture, at the moment you landed on.
     if (on.refresh) on.refresh();
   }

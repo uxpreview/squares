@@ -1144,7 +1144,7 @@ export default {
     const [kx, ky] = PANNES[0];
     const keyAt = (t) => [kx + 0.3 * Math.sin(t / 2.7), ky + 0.2 * Math.cos(t / 3.1), float(kx, ky, t) + 0.1];
     R.find({ id: 'key', label: 'A car key on a float', kind: 'hard', at: keyAt, r: 0.8, when: highTide, note: 'high tide',
-      riddle: 'Bobbing in a puddle the tide left behind.', hint: "At high water the pools on the marsh fill up. Something cork is bobbing in one, out behind Bob's." });
+      riddle: 'Bobbing where the marsh fills up at night.', hint: "At high water the pools on the marsh fill up. Something cork is bobbing in one, out behind Bob's." });
     R.mover((t) => { const [x, y, z] = keyAt(t); return { x, y, z: z + Math.sin(t * 1.9) * 0.03 }; }, (ctx, t, p) => {
       if (!highTide(t)) return;
       cylinder(ctx, p.x, p.y, p.z - 0.12, 0.17, 0.22, C.woodLight);

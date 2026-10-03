@@ -678,7 +678,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     const { hour } = await import('/src/maps/plum/tide.js');
     return { label: document.getElementById('dial-label').textContent, hour: hour(window.__squares.clock.now()), toast: document.getElementById('toast').textContent, note: [...document.querySelectorAll('#tray-full .row')].find((r) => r.textContent.includes(window.__squares.world.zones.find((z) => z.id === 'sound').finds.find((f) => f.id === 'boot').label))?.querySelector('.find-note')?.textContent };
   });
-  check('the skip lands at low tide, and the list says it\'s here now', before !== after.label && after.label === 'Low tide' && Math.abs(after.hour - 12) < 0.3 && /Low tide/.test(after.toast) && /now/.test(after.note || ''), JSON.stringify({ before, ...after }));
+  check('the skip lands at low tide, and the list says it\'s here now', before !== after.label && after.label === 'Low tide' && Math.abs(after.hour - 12) < 0.3 && /Low tide/.test(after.toast) && /things to find are back here/.test(after.toast) && /now/.test(after.note || ''), JSON.stringify({ before, ...after }));
   await S(page, () => window.__squares.play.enterZone('sound', { dur: 0.01, near: [12.4, 22.2] }));
   await wait(page, 900);
   [bx, by] = await findOnScreen(page, 'sound', 'boot');
