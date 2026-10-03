@@ -92,7 +92,7 @@ function backdrop(ctx, t) {
   ctx.font = `${0.9 * k}px "Rethink Sans", system-ui, sans-serif`;
   ctx.fillStyle = alpha(night ? C.paper : C.ink, 0.55);
   ctx.textBaseline = 'middle';
-  ctx.fillText('SQUARES  ·  THE BLOCK PARTY  ·  16 ROOMS, 16 GEESE, 1 SOCK', 0, 0);
+  ctx.fillText('GOOSE AT LARGE  ·  THE BLOCK PARTY  ·  16 ROOMS, 16 GEESE, 1 SOCK', 0, 0);
   ctx.restore();
 }
 

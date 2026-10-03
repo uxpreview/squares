@@ -1,6 +1,6 @@
-# Squares
+# Goose at Large
 
-A hidden-object picture book you can walk through. Tiny animated places, drawn entirely in code in a six-ink risograph style, and every one has a loose goose.
+A hidden-object picture book you can walk through. Tiny animated places, drawn entirely in code in a six-ink risograph style, and a goose called Geraldine loose in all of them. (Called Squares until October 2026; the repo, the folder and the address still are.)
 
 - **Title screen:** the current place drifts behind the title. **Play** (or **Continue**) and **All places**.
 - **Pick a place:** one card per map, with a live picture and your progress.
@@ -163,7 +163,7 @@ docs/
 | I want to... | Change this |
 | --- | --- |
 | Lock places until you've found enough geese | `lockMaps: true` in `src/config.js`, and each place's `unlock.geese` in `src/maps/index.js` |
-| Remove the "← Lab" link when Squares lives on its own | `backLink: null` in `src/config.js` |
+| Remove the "← Lab" link when the game lives on its own | `backLink: null` in `src/config.js` |
 | Change the title screen tagline | `tagline` in `src/config.js` |
 | Rename a place or change its picker blurb | `src/maps/index.js` (picker) and that place's `map.js` (in-game) |
 | Change the palette | `C` at the top of `src/engine/art.js`. Every zone pulls from it. |
@@ -244,8 +244,8 @@ Each place loads only when someone opens it, so adding places doesn't slow down 
 
 ## Saved progress
 
-Saved in the browser under `squares.save.v3`: what's been found per place, each whodunit's case (who you've accused, whether it's solved), the sound setting, and where you left off. Saves from earlier versions (`squares.save.v2`, `squares.found.v1`) are carried over on first load. If you change the save's shape, bump the version in `src/game/store.js` and teach `migrate()` to upgrade the old one, so nobody loses their geese.
+Saved in the browser under `goose.save.v4`: what's been found per place, each whodunit's case (who you've accused, whether it's solved), hints spent, places finished, the sound setting, and where you left off. Saves from earlier versions (`squares.save.v4` from before the rename, `squares.save.v3`, `squares.save.v2`, `squares.found.v1`) are carried over on first load. If you change the save's shape, bump the version in `src/game/store.js` and teach `migrate()` to upgrade the old one, so nobody loses their geese.
 
 ## Deploying
 
-Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044. It's a Vite site: Vercel runs `npm run build` and serves `dist/`. The built game uses relative paths, so it also works from a subfolder.
+Goose at Large lives at `squares.ryankm.com` (its own domain comes later) and is listed on ryankm.com/lab as EXP-044. It's a Vite site: Vercel runs `npm run build` and serves `dist/`. The built game uses relative paths, so it also works from a subfolder.

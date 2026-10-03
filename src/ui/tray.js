@@ -7,7 +7,7 @@
 // hint or a jump to another zone actually does. use() points it at a map.
 
 const RIGHT_DOCK = matchMedia('(min-width: 900px), (orientation: landscape) and (min-width: 600px)');
-const STORE = 'squares.tray.v1';
+const STORE = 'goose.tray.v1';
 const STATES = ['hidden', 'peek', 'open'];
 const EASE = 'cubic-bezier(.2, .8, .2, 1)';
 
@@ -31,7 +31,8 @@ export function createTray(o) {
   let state = 'peek';
   try {
     // The old room card remembered "collapsed"; carry that choice over.
-    state = localStorage.getItem(STORE) || (localStorage.getItem('squares.card.collapsed') === '1' ? 'hidden' : 'peek');
+    // (Under the game's old name, squares.*, until session 11.)
+    state = localStorage.getItem(STORE) || localStorage.getItem('squares.tray.v1') || (localStorage.getItem('squares.card.collapsed') === '1' ? 'hidden' : 'peek');
   } catch {}
   if (!STATES.includes(state)) state = 'peek';
 

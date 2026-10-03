@@ -142,11 +142,36 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 400);
   check('title offers to continue where you were', (await page.textContent('#title-play-label')) === 'Continue');
 
-  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')));
+  const saved = await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')));
   check('progress saved in the v4 format', saved && saved.v === 4 && saved.found.block.includes('laundromat:coin') && saved.hints && saved.finished);
 
   await page.click('.title .sound-btn');
-  check('sound toggle remembers', (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).settings.sound)) === false);
+  check('sound toggle remembers', (await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')).settings.sound)) === false);
+  await page.close();
+}
+
+// ---------- 1a. A player from when the game was called Squares ----------
+// The name changed in session 11, and the save moved from squares.save.v4 to
+// goose.save.v4: nobody loses a goose.
+{
+  const page = await fresh({ width: 390, height: 844 }, () => {
+    if (!sessionStorage.getItem('seeded')) {
+      localStorage.clear();
+      localStorage.setItem('squares.save.v4', JSON.stringify({ v: 4, found: { block: ['pool:goose', 'laundromat:goose', 'pool:float'] }, cases: {}, hints: { block: { used: 1, on: {} } }, finished: {}, settings: { sound: false }, last: { map: 'block', zone: 'pool' } }));
+      sessionStorage.setItem('seeded', '1');
+    }
+  });
+  await page.goto(base);
+  await ready(page);
+  await wait(page, 600);
+  const t = await S(page, () => ({ name: document.getElementById('wordmark').getAttribute('aria-label'), title: document.title, lines: document.querySelectorAll('#wordmark .line').length, wide: document.getElementById('wordmark').scrollWidth <= innerWidth }));
+  check('the title says Goose at Large, in two lines that fit a phone', t.name === 'Goose at Large' && t.title === 'Goose at Large' && t.lines === 2 && t.wide, JSON.stringify(t));
+  check('a save from when it was Squares carries over', (await page.textContent('#title-progress')).includes('2 geese') &&
+    (await page.textContent('#title-play-label')) === 'Continue' && (await S(page, () => window.__squares.store.settings.sound)) === false);
+  await page.click('.title .sound-btn');
+  await wait(page, 200);
+  const moved = await S(page, () => { const g = JSON.parse(localStorage.getItem('goose.save.v4')); return { found: g && g.found.block.length, sound: g && g.settings.sound }; });
+  check('and is saved under the new name from then on', moved.found === 3 && moved.sound === true, JSON.stringify(moved));
   await page.close();
 }
 
@@ -194,7 +219,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await ready(page);
   await wait(page, 1200);
   check('the preview\'s address goes to the Block Party', (await S(page, () => location.hash)) === '#/block/pool');
-  const saved = await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')));
+  const saved = await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')));
   check('the merged save is written under block, once', !saved.found.blockparty && saved.found.block.length === 4, JSON.stringify(saved.found));
   await page.close();
 }
@@ -431,14 +456,14 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('.case-accuse');
   await speak();
   check('a wrong accusation plays their alibi and clears them', await page.isVisible('.scene-end .stamp.is-cleared') &&
-    (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).cases.manor.accused)).includes('jenkins'));
+    (await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')).cases.manor.accused)).includes('jenkins'));
   await page.click('.scene-end .big-btn');
   await wait(page, 500);
   await page.click('.suspect >> text=Someone else?');
   await wait(page, 500);
   await page.click('.case-accuse');
   await speak();
-  check("the culprit can't be named without the clues", (await page.$$('.scene-end .stamp')).length === 0 && !(await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).cases.manor.solved)));
+  check("the culprit can't be named without the clues", (await page.$$('.scene-end .stamp')).length === 0 && !(await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')).cases.manor.solved)));
   await page.click('.scene-end .big-btn');
   await wait(page, 400);
   await S(page, () => {
@@ -461,7 +486,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('the reveal cuts to the dining room and closes the case',
     (await S(page, () => location.hash)) === '#/manor/dining-room' && await page.isVisible('#complete') &&
     (await page.textContent('.complete-kicker')) === 'Case closed' &&
-    (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).cases.manor.solved)) === true);
+    (await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')).cases.manor.solved)) === true);
   await page.reload();
   await ready(page);
   await wait(page, 800);
@@ -889,7 +914,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     (await page.textContent('#tray-note-text')).includes('teddy'), await page.textContent('#tray-note-text'));
   await page.click('#tray-note-btn');
   await wait(page, 200);
-  check('the second step rings it, free', (await left()) === 2 && (await S(page, () => JSON.parse(localStorage.getItem('squares.save.v4')).hints.block.on['laundromat:teddy'])) === 2);
+  check('the second step rings it, free', (await left()) === 2 && (await S(page, () => JSON.parse(localStorage.getItem('goose.save.v4')).hints.block.on['laundromat:teddy'])) === 2);
   // Spend the rest, and find things to earn another.
   await S(page, () => { window.__squares.play.hint('laundromat', 'cat'); window.__squares.play.hint('laundromat', 'sock'); });
   check('hints run out', (await left()) === 0 && (await page.textContent('#tally-hints')) === '0');

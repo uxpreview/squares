@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ECE2CF">
-<title>Squares</title>
-<meta name="description" content="A hidden-object picture book you can walk through. Tiny animated places, drawn in code, each with a loose goose.">
-<meta property="og:title" content="Squares">
-<meta property="og:description" content="A hidden-object picture book you can walk through. Every place has a loose goose.">
+<title>Goose at Large</title>
+<meta name="description" content="Goose at Large: a hidden-object picture book you can walk through. Tiny animated places, drawn in code, and a goose called Geraldine loose in all of them.">
+<meta property="og:title" content="Goose at Large">
+<meta property="og:description" content="A hidden-object picture book you can walk through. Have you seen this goose? She answers to Geraldine.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 <script>
@@ -22,7 +22,7 @@
     var plates = { manor: '#1F2749' };
     var id = location.hash.replace(/^#\/?/, '').split('/')[0];
     if (!id || id === 'maps') {
-      try { id = JSON.parse(localStorage.getItem('squares.save.v4') || localStorage.getItem('squares.save.v3')).last.map; } catch (e) { id = ''; }
+      try { id = JSON.parse(localStorage.getItem('goose.save.v4') || localStorage.getItem('squares.save.v4') || localStorage.getItem('squares.save.v3')).last.map; } catch (e) { id = ''; }
     }
     var p = plates[id];
     if (!p) return;
@@ -43,7 +43,7 @@
 <!-- ============ Title ============ -->
 <section id="title" class="screen title" aria-labelledby="wordmark" hidden>
   <div class="title-top">
-    <h1 id="wordmark" class="wordmark">Squares</h1>
+    <h1 id="wordmark" class="wordmark">Goose at Large</h1>
     <p id="title-tagline" class="title-tagline"></p>
   </div>
   <div class="title-actions">

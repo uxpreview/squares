@@ -1,4 +1,6 @@
-# Squares: notes for AI agents
+# Goose at Large: notes for AI agents
+
+The game was called Squares until session 11; the repo, the folder, `package.json` and the address still are, and saves moved from `squares.*` to `goose.*` keys.
 
 An isometric hidden-object game drawn entirely on a 2D canvas. Vanilla JS modules, built with Vite. No frameworks, no runtime dependencies (fonts are the only npm packages that ship).
 

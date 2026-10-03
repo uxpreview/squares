@@ -1,11 +1,13 @@
 // Game-wide switches. Change these without touching any other code.
 
 export default {
-  name: 'Squares',
-  tagline: 'A hidden-object picture book. Every place has a loose goose.',
+  name: 'Goose at Large',
+  // The wordmark on the title screen, a line at a time (it won't fit a phone on one).
+  wordmark: ['Goose', 'at Large'],
+  tagline: 'A hidden-object picture book. Have you seen this goose? She answers to Geraldine.',
 
   // The link back to the portfolio on the title screen. Set to null once
-  // Squares lives on its own.
+  // the game lives on its own.
   backLink: { href: 'https://ryankm.com/lab', label: 'Lab' },
 
   // false: every place is open from the start.

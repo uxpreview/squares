@@ -270,7 +270,7 @@ export function backdrop(ctx, t, world, fx) {
   ctx.fillStyle = alpha(n > 0.5 ? C.white : C.ink, 0.55);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('SQUARES  ·  MOVING DAY  ·  SOUTH BOSTON, SEPTEMBER 1ST', 0, 0);
+  ctx.fillText('GOOSE AT LARGE  ·  MOVING DAY  ·  SOUTH BOSTON, SEPTEMBER 1ST', 0, 0);
   ctx.restore();
 }
 
