@@ -790,14 +790,16 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.keyboard.press('Escape');
   await wait(page, 300);
   check('Escape closes the log', await S(page, () => document.getElementById('case').hidden));
-  // The rest of the trail, and it's caught: the ending at the gangway, then the card.
+  // The rest of the trail, and it's caught (from the crew deck): the ending at the gangway, then the card.
+  await S(page, () => { window.__squares.play.toOverview({ dur: 0.01 }); window.__squares.play.setStorey('crew'); });
+  await wait(page, 600);
   await S(page, () => {
     const s = window.__squares, w = s.world;
     for (const t of w.sightings.slice(2)) s.play.markFound(t.zone, t.f);
   });
   const done = await page.waitForFunction(() => !document.getElementById('complete').hidden, null, { timeout: 16000 }).then(() => true, () => false);
-  const end = await S(page, () => ({ kicker: document.querySelector('.complete-kicker').textContent, hour: 7 + (((window.__squares.clock.now() % 240) + 240) % 240) / 20 }));
-  check('the last sighting corners it: the clock goes to docking and the card says caught', done && end.kicker === 'Caught' && end.hour > 18 && end.hour < 19, JSON.stringify(end));
+  const end = await S(page, () => ({ kicker: document.querySelector('.complete-kicker').textContent, hour: 7 + (((window.__squares.clock.now() % 240) + 240) % 240) / 20, deck: window.__squares.play.storey.id }));
+  check('the last sighting corners it: the lift goes to the Promenade, the clock to docking, and the card says caught', done && end.kicker === 'Caught' && end.hour > 18 && end.hour < 19 && end.deck === 'promenade', JSON.stringify(end));
   await page.close();
 }
 {

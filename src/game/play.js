@@ -630,6 +630,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     }
   }
 
+  // A patch of a zone, about span units round a world point on its floor: a
+  // finale that plays at one spot (the ship's gangway desk) frames it close,
+  // where a room's worth would be wider than a phone's overview.
+  function patchBox(zone, near, span) {
+    const lx = near[0] - zone.ox, ly = near[1] - zone.oy;
+    const X = zone.anchor[0] + isoX(lx, ly), Y = zone.anchor[1] + isoY(lx, ly, 0);
+    return [X - span * 1.6, X + span * 1.6, Y - span * 1.4, Y + span * 0.9];
+  }
+
   // The place is finished: let the last find land, pull back to the whole
   // place (or its finale), then the card. Skipped if the player has left.
   function finish() {
@@ -647,8 +656,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (fin && fin.at != null) { skipping = null; ui.dial.classList.remove('is-skipping'); setClock(fin.at); }
       const fz = fin && fin.zone ? w.indexOf(fin.zone) : -1;
       if (fz >= 0) {
+        // On a place with floors, the lift goes to the ending's floor first,
+        // or it would play under the floors lifted off above it.
+        const fzone = w.zones[fz];
+        if (hasStoreys() && !fzone.fixed && fzone.storey !== storey) { storey = fzone.storey; renderFloors(); }
         showOverviewUI();
-        camera.flyTo(camera.clamp(camera.fit(w.zoneBox(w.zones[fz], fin.near), clearOfCard(), 0.5)), 2.5);
+        camera.flyTo(camera.clamp(camera.fit(fin.span ? patchBox(fzone, fin.near, fin.span) : w.zoneBox(fzone, fin.near), clearOfCard(), 0.5)), 2.5);
       } else toOverview({ dur: 2.5 });
       setTimeout(() => { if (still()) on.complete(w); }, fz >= 0 ? (fin.hold || 8) * 1000 : 2600);
     }, 1800);

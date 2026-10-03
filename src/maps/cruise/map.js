@@ -101,7 +101,8 @@ export default {
   trail,
   // Cornered: the clock goes to just after docking and the camera to the
   // gangway, where the iguana is under a towel and the clicker says 2,400.
-  finale: { at: at(18.25), zone: 'casino', hold: 8 },
+  // (Framed close round the gangway desk, at the Casino's stern end.)
+  finale: { at: at(18.25), zone: 'casino', near: [AREAS.casino.at[0] + 12, AREAS.casino.at[1] + 13.5], span: 5, hold: 8 },
   words: {
     zone: 'deck',
     invite: 'Start at the buffet',
