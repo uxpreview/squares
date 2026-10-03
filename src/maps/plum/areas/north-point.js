@@ -133,7 +133,7 @@ const STONES = ROCKS.map((r, i) => {
 // The lure hangs on the right face of the fourth rock from the end, half a
 // unit under an ordinary tide (so it's out only at low water). (It was on
 // the second-to-last, but framed on a laptop that sat under the area's name.)
-const LURE_ROCK = 7;
+const LURE_ROCK = 6;
 const LURE = (() => { const m = STONES[LURE_ROCK].find((st) => st.main); const a = sideAt(m, 1, -0.5), b = sideAt(m, 2, -0.5); return [(a[0] + b[0]) / 2 + 0.03, ROCKS[LURE_ROCK].y, -0.5]; })();
 // A block from z0 up to z1 (Infinity: to its top). The tide never gets above
 // CUT, so what's over it is a still picture and only the band under it,
@@ -572,7 +572,7 @@ export default {
       if (!Q.detail) return;
       for (const x of [97.7, 98.7, 99.7, 100.7]) line(ctx, [[x, m0 + 0.3, h(x, m0 + 0.3) + 0.02], [x, m0 + 2.5, h(x, m0 + 2.5) + 0.02]], alpha(C.white, 0.8), 0.06);
     });
-    const parked = [[101.15, CARS[6], { board: C.butter }]];
+    const parked = [[101.15, CARS[6], { board: C.teal }]];
     for (const [x, color, o] of parked) R.thing(x + 0.5, 34.6, (ctx) => car(ctx, x, 33.6, h(x, 33.6), color, 'y', null, 0, null, o));
     // The spot saver, in his beach chair, in the empty spot.
     const saver = folk(321, { top: C.white, bottom: C.teal, hat: 'cap', style: 'bald' });
@@ -582,7 +582,7 @@ export default {
       face(ctx, [[cx0 - 0.3, cy0 - 0.25, chz + 0.35], [cx0 + 0.3, cy0 - 0.25, chz + 0.35], [cx0 + 0.3, cy0 - 0.45, chz + 1.1], [cx0 - 0.3, cy0 - 0.45, chz + 1.1]], C.coral, { lw: 0.035, dots: Q.detail ? C.white : null, density: 0.3 });
       for (const [dx, dy] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) strut(ctx, [cx0 + dx, cy0 + dy, chz], [cx0 + dx, cy0 + dy * 0.8, chz + 0.33], 0.03, C.grey);
       // His cardboard sign.
-      notice(ctx, 'x', cx0 + 0.55, cy0 + 0.55, chz + 0.55, 0.62, 0.36, [['SAVED', 0.17, C.ink]], { board: C.woodLight });
+      notice(ctx, 'x', cx0 + 0.55, cy0 + 0.55, chz + 0.55, 0.62, 0.36, [['SAVED', 0.17, C.coral]], { board: C.white });
       post(ctx, cx0 + 0.55, cy0 + 0.5, chz, 0.4, C.wood, 0.05);
     };
     const saverOn = during(7.5, 19.8), saverSunset = during(19.8, 20.9);
@@ -823,17 +823,31 @@ export default {
     const coolerZ = (t) => { const g = h(102.45, 42.92), L = level(t); return L > g + 0.12 ? L - 0.12 + 0.03 * Math.sin(t * 1.5) : g; };
     const lunch = R.poke({ id: 'cooler', at: (t) => [102.45, 42.92, coolerZ(t) + 0.3], r: 0.7, sound: 'clunk', say: 'Guards\' lunch. Hands off.' });
     R.mover((t) => ({ x: 102.45, y: 42.92, z: coolerZ(t) }), (ctx, t, p) => {
-      const kz = p.z, k = lunch.k(), a = k * 1.9, top = kz + 0.42;
+      // Shut, the lid never quite closes: it sits propped on the roll, and
+      // the bun's end and a pink of lobster show in the gap.
+      const kz = p.z, k = lunch.k(), a = 0.32 + k * 1.6, top = kz + 0.42;
       const lid = () => {
-        if (k < 0.05) { box(ctx, 102.08, 42.68, top, 0.74, 0.49, 0.08, C.white, { flat: true, lw: 0.035 }); return; }
         const yf = 42.68 + 0.49 * Math.cos(a), zf = top + 0.08 + 0.49 * Math.sin(a);
         face(ctx, [[102.08, 42.68, top + 0.08], [102.82, 42.68, top + 0.08], [102.82, yf, zf], [102.08, yf, zf]], k > 0.5 ? shade(C.white, 0.2) : C.white, { lw: 0.035 });
+        // The lid's rim and its latch, hanging open.
+        line(ctx, [[102.08, yf, zf], [102.82, yf, zf]], C.ink, 0.05);
+        if (k < 0.5) box(ctx, 102.4, yf - 0.02, zf - 0.16, 0.1, 0.04, 0.16, C.grey, { flat: true, lw: 0.02 });
+      };
+      const peek = () => {
+        // The roll's end, sticking out of the gap at the front.
+        const [X, Y] = P(102.62, 43.1, top + 0.1);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.24, 0.12, -0.35, 0, Math.PI * 2); paint(ctx, mix(C.butter, C.wood, 0.2), { lw: 0.03 });
+        ctx.beginPath(); ctx.ellipse(X + 0.02, Y - 0.08, 0.18, 0.07, -0.35, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.025 });
+        if (Q.detail) { ctx.beginPath(); ctx.moveTo(X - 0.12, Y - 0.06); ctx.lineTo(X + 0.14, Y - 0.14); ctx.strokeStyle = C.green; ctx.lineWidth = 0.035; ctx.stroke(); }
       };
       if (k > 0.5) lid();
       wade(ctx, 102.45, 42.92, kz, level(t), (g) => {
         box(g, 102.1, 42.7, kz, 0.7, 0.45, 0.42, BRAND.can, { flat: true, lw: 0.035, top: shade(BRAND.can, 0.55) });
         write(g, 'x', 102.45, 43.15, kz + 0.21, 'GANDER', 0.15, BRAND.ink, 'Bagel Fat One');
+        // A carry handle on each end, so it reads as a cooler.
+        for (const x of [102.1, 102.8]) line(g, [[x, 42.82, kz + 0.3], [x, 43.02, kz + 0.3]], C.white, 0.06);
       }, 0.5);
+      if (k < 0.05) peek();
       if (k > 0.05) {
         // Inside, on the ice: two cans, and a lobster roll from Bob's.
         for (const dx of [-0.2, -0.05]) box(ctx, 102.45 + dx, 42.78, top - 0.12, 0.1, 0.1, 0.16, BRAND.can, { flat: true, lw: 0.02, top: C.greyLight });

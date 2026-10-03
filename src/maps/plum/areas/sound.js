@@ -19,12 +19,13 @@ import { boat, trap, signpost, board, house, gull, lettering } from '../kit.js';
 // ---------- Where things are ----------
 const SAIL = [19.4, 21.8]; // the sailboat, aground on the flats south of the channel
 const LAUNCH = [40.2, 26.2]; // the refuge's kayak launch, across from Lot 1
-const BOOT = [12.4, 22.2];
+const BOOT = [12.0, 23.0]; // right by One Boot's hopping spot
 const BOTTLE = [8, 9.4];
 const PADDLE = [23, 22.6];
 const TOW = [21.8, 20.4]; // the towing sign on its piling, by the sailboat's bow
 const SUN0 = at(19.8), SUN1 = at(20.9); // the sunset watch, in loop seconds
 const WADERS = shade(C.green, 0.28);
+const BOOT_RED = C.coral; // One Boot's boots: the one he's in, and the one in the mud
 const FONT = 'Rethink Sans';
 
 // ---------- Little helpers ----------
@@ -415,7 +416,7 @@ export default {
     }
     // A gull going round and round over the flats, by day.
     const gullAt = (t) => { const a = t / 4; return { x: 22 + Math.cos(a) * 5, y: 17 + Math.sin(a) * 3, z: 5.5 + Math.sin(a * 2) * 0.4 }; };
-    R.mover(gullAt, (ctx, t, p) => { if (nightK(t) <= 0.5) flier(ctx, p.x, p.y, p.z, t, C.white, 0.45, 8); }, { bias: 12 });
+    R.mover(gullAt, (ctx, t, p) => { if (nightK(t) <= 0.5) flier(ctx, p.x, p.y, p.z, t, C.grey, 0.45, 8); }, { bias: 12 });
 
     // ================= The sailboat (the running gag) =================
     // Aground at low tide, afloat at high, and its owner on the hull reading
@@ -557,7 +558,7 @@ export default {
       { to: [11, 26.4], speed: 0.7 }, { to: [10.9, 23.3], speed: 0.7 }, { until: 160, dir: 'r', stuck: true },
       { to: [11, 26.4], speed: 0.7 }, { to: [11, 27.9], speed: 0.7 },
     ]);
-    const c0Look = folk(41, { top: C.mustard, bottom: WADERS, shoes: WADERS, hat: 'cap', style: 'short' });
+    const c0Look = folk(41, { top: C.mustard, bottom: WADERS, shoes: BOOT_RED, hat: 'cap', style: 'short' });
     R.mover((t) => c0(t) || away([11, 27.9]), (ctx, t, p) => {
       if (p.gone) return;
       const hop = Math.abs(Math.sin(t * 5.5)) * 0.28, z = h(p.x, p.y) + hop;
@@ -900,44 +901,49 @@ export default {
     R.thing(BOOT[0] + 0.3, BOOT[1] + 0.3, (ctx) => {
       const [x, y] = BOOT, z = h(x, y);
       disc(ctx, x, y, z + 0.01, 0.36, shade(LAND.mud, 0.2), { stroke: false });
-      // A tall rubber boot in profile, tipped over and half sucked down.
+      // A tall red rubber boot, stood bolt upright where the mud took it,
+      // the heel sunk and the toe out, pointing at its owner.
       const [X, Y] = P(x, y, z);
-      ctx.save(); ctx.translate(X, Y + 0.04); ctx.rotate(0.3);
+      ctx.beginPath(); ctx.ellipse(X + 0.1, Y + 0.02, 0.62, 0.2, 0, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.1), { lw: 0.03 });
+      ctx.save(); ctx.translate(X - 0.08, Y); ctx.scale(1.5, 1.5);
       ctx.beginPath();
-      ctx.moveTo(-0.17, -0.78); ctx.lineTo(0.1, -0.78); ctx.lineTo(0.12, -0.2);
-      ctx.quadraticCurveTo(0.42, -0.2, 0.44, -0.06); ctx.lineTo(0.44, 0); ctx.lineTo(-0.2, 0); ctx.closePath();
-      paint(ctx, WADERS, { lw: 0.045, dots: shade(WADERS, 0.5), density: 0.14 });
-      ctx.beginPath(); ctx.rect(-0.18, -0.8, 0.3, 0.12); paint(ctx, C.mustard, { lw: 0.035 });
-      ctx.beginPath(); ctx.ellipse(-0.03, -0.8, 0.15, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.ink, { stroke: false });
+      ctx.moveTo(-0.15, -0.8); ctx.lineTo(0.12, -0.8); ctx.lineTo(0.12, -0.22);
+      ctx.quadraticCurveTo(0.2, -0.16, 0.38, -0.12); ctx.quadraticCurveTo(0.5, -0.09, 0.48, 0.01);
+      ctx.lineTo(-0.17, 0.01); ctx.closePath();
+      paint(ctx, BOOT_RED, { lw: 0.04 });
+      // A black sole and a mustard band at the top: a wellie, not a post.
+      ctx.beginPath(); ctx.rect(-0.17, -0.03, 0.65, 0.05); paint(ctx, C.ink, { stroke: false });
+      ctx.beginPath(); ctx.rect(-0.16, -0.8, 0.29, 0.1); paint(ctx, C.mustard, { lw: 0.03 });
+      ctx.beginPath(); ctx.ellipse(-0.015, -0.8, 0.135, 0.045, 0, 0, Math.PI * 2); paint(ctx, C.ink, { stroke: false });
+      if (Q.detail) { ctx.beginPath(); ctx.moveTo(-0.07, -0.64); ctx.lineTo(-0.07, -0.24); ctx.strokeStyle = alpha(C.white, 0.6); ctx.lineWidth = 0.035; ctx.stroke(); }
       ctx.restore();
-      // The mud it's stuck in, lapping up over the foot.
-      ctx.beginPath(); ctx.ellipse(X + 0.05, Y + 0.02, 0.4, 0.13, 0, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.1), { lw: 0.03 });
+      // The mud lapping up over the heel.
+      ctx.beginPath(); ctx.ellipse(X - 0.12, Y + 0.03, 0.26, 0.08, 0, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.2), { stroke: false });
     }, { on: lowTide });
-    R.find({ id: 'boot', label: 'A clammer\'s lost boot', at: [BOOT[0], BOOT[1], h(...BOOT) + 0.3], r: 0.8, when: lowTide, note: 'low tide' });
+    R.find({ id: 'boot', label: 'A clammer\'s lost boot', at: [BOOT[0], BOOT[1], h(...BOOT) + 0.6], r: 0.85, when: lowTide, note: 'low tide' });
     // A message in a bottle, washed up on the far flats (low tide).
     R.thing(BOTTLE[0] + 0.4, BOTTLE[1] + 0.2, (ctx) => {
       const [x, y] = BOTTLE, z = h(x, y) + 0.1;
-      const a = P(x - 0.32, y + 0.12, z), b = P(x + 0.2, y - 0.08, z), n = P(x + 0.42, y - 0.16, z + 0.02);
-      const glass = mix(C.teal, C.green, 0.4);
+      // Sunk to the shoulder: only the neck and the cork stick up out of the
+      // mud, the glass dulled with it.
+      const b = P(x + 0.1, y - 0.04, z - 0.02), n = P(x + 0.34, y - 0.14, z + 0.05);
+      const glass = mix(mix(C.teal, C.green, 0.4), LAND.mud, 0.45);
       ctx.lineCap = 'round';
       const line = (p, q, c, w) => { ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(...q); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.stroke(); };
-      if (Q.lines) { line(a, b, C.ink, 0.32); line(b, n, C.ink, 0.17); }
-      line(a, b, glass, 0.24); line(b, n, glass, 0.1);
-      line([lerp(a[0], b[0], 0.2), lerp(a[1], b[1], 0.2)], [lerp(a[0], b[0], 0.8), lerp(a[1], b[1], 0.8)], INK.cream, 0.1);
-      if (Q.detail) line([a[0] + 0.05, a[1] - 0.07], [b[0] - 0.05, b[1] - 0.07], alpha(C.white, 0.8), 0.035);
-      ctx.beginPath(); ctx.arc(n[0] + 0.05, n[1] - 0.02, 0.06, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.025 });
-      // Half sunk in the mud: only the neck, the cork and a glint of the note show.
-      const [MX, MY] = P(x - 0.12, y + 0.06, z - 0.05);
-      ctx.beginPath(); ctx.ellipse(MX, MY - 0.02, 0.36, 0.16, -0.05, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.08), { lw: 0.025 });
+      if (Q.lines) line(b, n, C.ink, 0.15);
+      line(b, n, glass, 0.09);
+      ctx.beginPath(); ctx.arc(n[0] + 0.04, n[1] - 0.02, 0.05, 0, Math.PI * 2); paint(ctx, shade(C.wood, 0.15), { lw: 0.022 });
+      const [MX, MY] = P(x + 0.08, y - 0.02, z - 0.04);
+      ctx.beginPath(); ctx.ellipse(MX, MY, 0.2, 0.08, -0.05, 0, Math.PI * 2); paint(ctx, shade(LAND.mud, 0.08), { lw: 0.02 });
     }, { on: lowTide });
-    R.find({ id: 'bottle', label: 'A message in a bottle', kind: 'hard', at: [BOTTLE[0], BOTTLE[1], h(...BOTTLE) + 0.2], r: 0.8, when: lowTide, note: 'low tide', riddle: 'Mail, with a cork in it. The far mud signed for it.', hint: 'Across the channel from everyone, the mud is keeping something glassy.' });
+    R.find({ id: 'bottle', label: 'A message in a bottle', kind: 'hard', at: [BOTTLE[0], BOTTLE[1], h(...BOTTLE) + 0.2], r: 0.8, when: lowTide, note: 'low tide', riddle: 'A letter nobody posted, waiting where nobody walks.', hint: 'Across the channel from everyone, the mud is keeping something glassy.' });
 
     // A crab pot, left out on the flats: at low water it sits on the mud; at
     // high, only its buoy shows. Its lid opens on a tap, and what the crabs
     // caught this time is somebody's teeth.
     const POT = [36.4, 19.2], potZ = h(...POT);
-    const pot = R.poke({ id: 'crab-pot', at: [POT[0], POT[1], potZ + 0.3], r: 0.85, sound: 'clunk' });
-    R.thing(POT[0] + 0.45, POT[1] + 0.35, (ctx, t) => {
+    const pot = R.poke({ id: 'crab-pot', at: [POT[0], POT[1], potZ + 0.3], r: 0.95, sound: 'clunk' });
+    R.thing(POT[0] + 0.6, POT[1] + 0.5, (ctx, t) => {
       const [x, y] = POT, z = potZ, L = level(t);
       if (L > z + 0.5) {
         // Just its buoy, bobbing on the line.
@@ -947,7 +953,7 @@ export default {
         if (Q.detail) cylinder(ctx, x + 0.3, y + 0.2, bz + 0.08, 0.135, 0.08, C.coral, { flat: true });
         return;
       }
-      const k = pot.k(), W = 0.85, D = 0.6, Hh = 0.48, x0 = x - W / 2, y0 = y - D / 2;
+      const k = pot.k(), W = 1.1, D = 0.75, Hh = 0.6, x0 = x - W / 2, y0 = y - D / 2;
       const wire = mix(C.green, C.teal, 0.4);
       // The pot: a wire box, its back and floor first, then what's in it.
       face(ctx, [[x0, y0, z], [x0 + W, y0, z], [x0 + W, y0 + D, z], [x0, y0 + D, z]], shade(LAND.mud, 0.15), { lw: 0.03 });
@@ -971,13 +977,30 @@ export default {
       mesh([[x0, y0, z], [x0 + W, y0, z], [x0 + W, y0, z + Hh], [x0, y0, z + Hh]], wire);
       mesh([[x0 + W, y0, z], [x0 + W, y0 + D, z], [x0 + W, y0 + D, z + Hh], [x0 + W, y0, z + Hh]], wire);
       mesh([[x0, y0 + D, z], [x0 + W, y0 + D, z], [x0 + W, y0 + D, z + Hh], [x0, y0 + D, z + Hh]], wire);
-      // The lid, hinged along the back: up and over when it's open.
-      const a = k * Math.PI * 0.6, c = Math.cos(a) * D, s = Math.sin(a) * D;
-      mesh([[x0, y0, z + Hh], [x0 + W, y0, z + Hh], [x0 + W, y0 + c, z + Hh + s], [x0, y0 + c, z + Hh + s]], wire);
+      if (k <= 0.2) {
+        // Shut, a white edge of teeth shows through the mesh at the front
+        // (drawn over the sides, under a wire or two, so it isn't dimmed).
+        const [X, Y] = P(x + 0.1, y + 0.15, z + 0.06);
+        ctx.beginPath(); ctx.ellipse(X, Y - 0.04, 0.26, 0.12, 0, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.025 });
+        ctx.beginPath(); ctx.rect(X - 0.21, Y - 0.12, 0.42, 0.1); paint(ctx, C.white, { lw: 0.025 });
+        if (Q.detail) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.014; ctx.beginPath(); for (let i = -2; i <= 2; i++) { ctx.moveTo(X + i * 0.08, Y - 0.12); ctx.lineTo(X + i * 0.08, Y - 0.02); } ctx.stroke(); }
+        stick(ctx, [x - 0.1, y0 + D, z], [x - 0.1, y0 + D, z + Hh], wire, 0.025);
+        stick(ctx, [x + 0.15, y0 + D, z], [x + 0.15, y0 + D, z + Hh], wire, 0.025);
+      }
+      // The lid, hinged along the back, never quite shut: up and over when it's open.
+      const a = 0.16 + k * Math.PI * 0.55, c = Math.cos(a) * D, s = Math.sin(a) * D;
+      const lidPts = [[x0, y0, z + Hh], [x0 + W, y0, z + Hh], [x0 + W, y0 + c, z + Hh + s], [x0, y0 + c, z + Hh + s]];
+      mesh(lidPts, wire);
+      // The lid's frame, a hinge bar along the back and a latch at the front.
+      ctx.beginPath(); ctx.moveTo(...P(...lidPts[0])); for (const q of lidPts.slice(1)) ctx.lineTo(...P(...q)); ctx.closePath();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+      stick(ctx, [x0 - 0.04, y0, z + Hh], [x0 + W + 0.04, y0, z + Hh], C.grey, 0.06);
+      const lx = x0 + W / 2, ly = y0 + c, lz = z + Hh + s;
+      box(ctx, lx - 0.1, ly - 0.03, lz - (k < 0.2 ? 0.2 : 0.02), 0.2, 0.06, 0.22, C.mustard, { flat: true, lw: 0.025 });
       // Its line and buoy, lying on the mud.
-      stick(ctx, [x0 + W, y0 + D / 2, z + Hh], [x + 0.9, y + 0.5, z + 0.05], C.ink, 0.02);
-      cylinder(ctx, x + 0.95, y + 0.55, z, 0.13, 0.3, C.mustard, { flat: true });
-      if (Q.detail) cylinder(ctx, x + 0.95, y + 0.55, z + 0.13, 0.135, 0.08, C.coral, { flat: true });
+      stick(ctx, [x0 + W, y0 + D / 2, z + Hh], [x + 1.1, y + 0.6, z + 0.05], C.ink, 0.02);
+      cylinder(ctx, x + 1.15, y + 0.65, z, 0.13, 0.3, C.mustard, { flat: true });
+      if (Q.detail) cylinder(ctx, x + 1.15, y + 0.65, z + 0.13, 0.135, 0.08, C.coral, { flat: true });
     }, { anim: true });
     R.find({ id: 'teeth', label: 'Some false teeth', kind: 'poke', inside: pot, at: [POT[0], POT[1], potZ + 0.15], r: 0.7, when: lowTide, note: 'low tide', hint: 'The crabs caught something odd this time. Low water shows you where they keep it.' });
     // A kayak paddle, drifting on the flood (high tide): Kayaker Three's.
