@@ -931,8 +931,8 @@ export default {
     R.poke({ id: 'stairs', at: [(SX0 + SX1) / 2, tread(2).y + 0.3, tread(2).z + 0.3], r: 1.0, sound: 'clunk', teach: true, say: ['Six summers. Still a foot short.', 'Next summer. Definitely.', 'Mind the gap.'] });
 
     // A cooler buried to its lid in the wet sand low on the beach, only
-    // while the tide's right out, a shovel stuck in beside it (somebody gave
-    // up). The man with the metal detector digs a little way off, every day.
+    // while the tide's right out, its lid dusted with sand. The man with the
+    // metal detector digs a little way off, every day.
     const CO = [84.2, 49.2], coZ = h(...CO);
     R.thing(CO[0] + 0.5, CO[1] + 0.4, (ctx) => {
       const [x, y] = CO, z = coZ, wet = shade(INK.sand, 0.22), dug = shade(INK.sand, 0.32);
@@ -940,15 +940,12 @@ export default {
       disc(ctx, x, y + 0.05, z + 0.01, 0.62, dug, { lw: 0.03, stroke: shade(dug, 0.25) });
       // The cooler: a white lid on a teal body, a hand's width of it out.
       box(ctx, x - 0.42, y - 0.26, z - 0.1, 0.84, 0.52, 0.25, C.teal, { lw: 0.04, top: C.white, dotsL: shade(C.teal, 0.5), dens: 0.14 });
-      box(ctx, x - 0.45, y - 0.29, z + 0.15, 0.9, 0.58, 0.08, C.white, { flat: true, lw: 0.035 });
+      box(ctx, x - 0.45, y - 0.29, z + 0.15, 0.9, 0.58, 0.08, tint(INK.sand, 0.55), { flat: true, lw: 0.035 }); // (the lid sand-dusted: a hard find)
       // Wet sand banked against its front, in lumps, nearly to the lid.
       const bank = (pts) => face(ctx, pts, wet, { lw: 0.03, stroke: shade(wet, 0.3) });
       bank([[x - 0.5, y + 0.3, z], [x + 0.5, y + 0.3, z], [x + 0.46, y + 0.27, z + 0.12], [x + 0.2, y + 0.27, z + 0.18], [x - 0.05, y + 0.27, z + 0.09], [x - 0.3, y + 0.27, z + 0.16], [x - 0.5, y + 0.27, z + 0.07]]);
       bank([[x + 0.46, y + 0.3, z], [x + 0.46, y - 0.3, z], [x + 0.44, y - 0.28, z + 0.06], [x + 0.44, y - 0.05, z + 0.14], [x + 0.44, y + 0.2, z + 0.08]]);
       disc(ctx, x - 0.1, y - 0.05, z + 0.24, 0.13, tint(wet, 0.2), { stroke: false });
-      // The shovel.
-      box(ctx, x + 0.62, y - 0.42, z - 0.1, 0.05, 0.05, 0.75, C.coral, { flat: true, lw: 0.025 });
-      face(ctx, [[x + 0.5, y - 0.4, z - 0.05], [x + 0.78, y - 0.4, z - 0.05], [x + 0.78, y - 0.4, z + 0.2], [x + 0.5, y - 0.4, z + 0.2]], C.mustard, { lw: 0.025 });
     }, { on: lowTide });
     R.find({ id: 'cooler', label: 'A buried cooler', kind: 'hard', at: [CO[0], CO[1], coZ + 0.1], r: 0.8, when: lowTide, note: 'low tide', riddle: 'Lunch, buried below the high-water mark.', hint: 'The man with the metal detector keeps beeping, and digging in the wrong spot.' });
 
