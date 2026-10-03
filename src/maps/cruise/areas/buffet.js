@@ -213,17 +213,25 @@ function rollTop(ctx, k) {
 // ---------- The salad bar ----------
 // Bowls under a sneeze guard. Two big heaps of lettuce side by side: the
 // iguana's breakfast spot (and, 7 to 9am, its hiding place) is the left one.
-// The far end has Chef Gaston's garnish: a cucumber carved into a lizard.
+// The near end has Chef Gaston's garnish: a cucumber carved into a lizard.
+// (It was at the far end, where the shrimp tower's top, a find, stands in
+// front of it on screen and took every tap meant for it.)
 const LETTUCE = [[13.1, 8.0], [14.5, 8.0]]; // the iguana's heap, then the other
+const GARNISH = [11.55, 8.05, 1.03];
 const BAR = [
-  [[C.red, shade(C.red, 0.3)], [C.woodLight, C.mustard]], // tomatoes, croutons
+  'garnish', // the cucumber lizard, on its own
   null, null, // the lettuce
-  [[C.coral, C.coralLight]], // salmon
+  [[C.coral, C.coralLight], [C.woodLight, C.mustard]], // salmon, croutons
   [[C.purple, shade(C.purple, 0.3)]], // beets
-  [[C.white, C.butter]], // eggs (and the garnish beside them)
+  [[C.red, shade(C.red, 0.3)], [C.white, C.butter]], // tomatoes, eggs
 ];
 function saladPiece(ctx, a, b, idx) {
   const row = BAR[idx];
+  if (row === 'garnish') {
+    cucumberLizard(ctx, ...GARNISH);
+    sneezeGuard(ctx, a, b, 7.35, 8.85, 1.0, 2.15);
+    return;
+  }
   if (!row) {
     // a big bowl for a heap of lettuce (the heap, and this guard, are drawn after it)
     const cx = (a + b) / 2;
@@ -231,13 +239,12 @@ function saladPiece(ctx, a, b, idx) {
     disc(ctx, cx, 8.0, 1.03, 0.5, shade(C.leaf, 0.25), { lw: 0.02 });
     return;
   }
-  const n = row.length, end = idx === BAR.length - 1;
+  const n = row.length;
   for (let k = 0; k < n; k++) {
-    const x = end ? a + 0.35 : a + ((k + 0.5) * (b - a)) / n;
+    const x = a + ((k + 0.5) * (b - a)) / n;
     bowl(ctx, x, 8.0, 1.0, 0.28, row[k][0], row[k][1]);
   }
   if (idx === 3) tongs(ctx, 15.6, 7.95, 1.25);
-  if (end) cucumberLizard(ctx, 17.4, 8.05, 1.03);
   sneezeGuard(ctx, a, b, 7.35, 8.85, 1.0, 2.15);
 }
 
@@ -978,7 +985,7 @@ export default {
       saladPiece(ctx, a, b, i);
       if (a < 11.2) lettering(ctx, 'x', 12.9, 8.72, 0.62, 'SALAD BAR: FRESH SINCE 6AM', 0.2, INK.hullWhite);
     });
-    R.decoy({ id: 'cucumber', at: [17.4, 8.05, 1.25], r: 0.75, say: ['A cucumber. Not an iguana.', 'Carved by Chef Gaston.', 'Still a cucumber.'] });
+    R.decoy({ id: 'cucumber', at: [GARNISH[0], GARNISH[1], 1.25], r: 0.75, say: ['A cucumber. Not an iguana.', 'Carved by Chef Gaston.', 'Still a cucumber.'] });
     // The two heaps of lettuce. Sighting 1 (7 to 9am): the iguana is under the
     // left one, its tail out of the leaves. Tap a heap and the leaves part.
     const IG_AT = [LETTUCE[0][0] - 0.1, LETTUCE[0][1] + 0.1, 1.0]; // a little left of the middle, so its tail is out
