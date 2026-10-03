@@ -214,6 +214,104 @@ function stick(swing = 0) {
   };
 }
 
+// A red mitten with white spots and a white cuff, in screen units, upright
+// at the origin (s: its scale).
+function mitten(ctx, s = 1) {
+  ctx.save();
+  ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.roundRect(-0.17, -0.42, 0.34, 0.46, 0.15);
+  ctx.moveTo(0.14, -0.1); ctx.ellipse(0.2, -0.16, 0.08, 0.14, 0.5, 0, Math.PI * 2);
+  paint(ctx, C.red, { dots: C.white, density: 0.22, lw: 0.04 });
+  ctx.beginPath(); ctx.rect(-0.18, -0.02, 0.36, 0.1); paint(ctx, C.white, { lw: 0.03 });
+  ctx.restore();
+}
+
+// The machine's dumped snow: a heap (k 0), or knocked flat with its snow
+// thrown off (k 1). sprig: a carrot's green top poking out of it.
+function snowPile(ctx, x, y, k, sprig) {
+  const [X, Y] = P(x, y, 0);
+  const h = 0.75 * (1 - 0.65 * k);
+  if (sprig && k < 0.5) {
+    ctx.beginPath(); ctx.moveTo(X + 0.25, Y - h * 0.9); ctx.lineTo(X + 0.35, Y - h * 0.9 - 0.25); ctx.moveTo(X + 0.27, Y - h * 0.9); ctx.lineTo(X + 0.18, Y - h * 0.9 - 0.22);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle = C.green; ctx.lineWidth = 0.05; ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(X - 1.15, Y);
+  ctx.bezierCurveTo(X - 1.0, Y - h * 0.9, X - 0.5, Y - h * 1.25, X - 0.05, Y - h);
+  ctx.bezierCurveTo(X + 0.35, Y - h * 1.2, X + 0.95, Y - h * 0.8, X + 1.15, Y);
+  ctx.quadraticCurveTo(X, Y + 0.32, X - 1.15, Y);
+  paint(ctx, C.white, { dots: C.sky, density: 0.15, lw: 0.04 });
+  if (Q.detail) {
+    // lumps of scraped ice in it
+    ctx.fillStyle = alpha(C.sky, 0.6);
+    for (const [dx, dy] of [[-0.5, -0.3], [0.3, -0.45], [0.6, -0.15], [-0.2, -0.6]]) {
+      ctx.beginPath(); ctx.ellipse(X + dx, Y + dy * h / 0.75, 0.1, 0.05, 0.3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  if (k > 0.05) {
+    // snow thrown off in a burst
+    ctx.fillStyle = C.white; ctx.strokeStyle = alpha(C.sky, 0.9); ctx.lineWidth = 0.02;
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (0.1 + i * 0.13), r = 0.6 + k * 0.9;
+      ctx.beginPath(); ctx.arc(X + Math.cos(a) * r * 1.2, Y - Math.sin(a) * r * 0.5 + k * 0.2, 0.09, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+  }
+}
+
+// The carrot, lying on its side in the snow (screen units at the origin).
+function carrot(ctx) {
+  ctx.beginPath();
+  ctx.moveTo(-0.3, -0.08); ctx.quadraticCurveTo(0.2, -0.05, 0.36, 0); ctx.quadraticCurveTo(0.2, 0.06, -0.3, 0.08);
+  ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.035 });
+  ctx.strokeStyle = shade(C.coral, 0.4); ctx.lineWidth = 0.02;
+  ctx.beginPath(); ctx.moveTo(-0.1, -0.06); ctx.lineTo(-0.05, 0.02); ctx.moveTo(0.08, -0.04); ctx.lineTo(0.12, 0.03); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-0.3, 0); ctx.lineTo(-0.45, -0.12); ctx.moveTo(-0.3, 0.02); ctx.lineTo(-0.46, 0.06);
+  ctx.strokeStyle = C.green; ctx.lineWidth = 0.05; ctx.stroke();
+}
+
+// An ice sculpture of a swan on a snow block, slowly dripping: clear ice,
+// a goose's size, a long curved neck.
+function iceSwan(ctx, x, y, t) {
+  box(ctx, x - 0.45, y - 0.45, 0, 0.9, 0.9, 0.55, C.white, { dotsL: tint(C.sky, 0.2), dens: 0.15, lw: 0.04 });
+  const [X, Y] = P(x, y, 0.55);
+  const ice = tint(C.sky, 0.7);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(-1.15, 1.15);
+  ctx.beginPath();
+  ctx.ellipse(0, -0.28, 0.45, 0.24, -0.1, 0, Math.PI * 2);
+  ctx.moveTo(-0.35, -0.32); ctx.lineTo(-0.58, -0.52); ctx.lineTo(-0.4, -0.2);
+  paint(ctx, ice, { lw: 0.04 });
+  // carved wing feathers
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) { ctx.moveTo(-0.25 + i * 0.12, -0.42); ctx.quadraticCurveTo(-0.1 + i * 0.12, -0.3, -0.25 + i * 0.14, -0.18); }
+  ctx.strokeStyle = alpha(C.white, 0.95); ctx.lineWidth = 0.035; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0.3, -0.36);
+  ctx.bezierCurveTo(0.55, -0.6, 0.12, -0.85, 0.32, -1.08);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.17; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = ice; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0.34, -1.1, 0.11, 0, Math.PI * 2); paint(ctx, ice, { lw: 0.04 });
+  ctx.beginPath(); ctx.moveTo(0.42, -1.14); ctx.lineTo(0.66, -1.06); ctx.lineTo(0.42, -1.04); ctx.closePath(); paint(ctx, ice, { lw: 0.03 });
+  // a glint
+  ctx.beginPath(); ctx.moveTo(-0.15, -0.42); ctx.lineTo(0.1, -0.44);
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.05; ctx.stroke();
+  ctx.restore();
+  // drips, and the puddle they make
+  const [PX, PY] = P(x + 0.5, y + 0.2, 0);
+  ctx.beginPath(); ctx.ellipse(PX, PY, 0.4, 0.13, 0, 0, Math.PI * 2);
+  ctx.fillStyle = alpha(C.sky, 0.55); ctx.fill();
+  if (Q.detail) {
+    const k = (t * 0.7) % 1;
+    const [DX, DY] = P(x + 0.45, y + 0.1, 0.55 - k * 0.55);
+    ctx.beginPath(); ctx.arc(DX, DY, 0.045, 0, Math.PI * 2);
+    ctx.fillStyle = C.sky; ctx.fill();
+  }
+}
+
 // ---------- the resurfacing machine ----------
 const machine = route([[5.3, 5.85], [13.7, 5.85], [13.7, 11.6], [5.3, 11.6]], { speed: 0.5 });
 function heading(t) {
@@ -394,7 +492,7 @@ export default {
     for (const [x, y, s] of [[1.3, 1.4, 1.35], [3.3, 0.9, 1.05], [0.9, 3.5, 1.0], [7.0, 0.3, 0.7], [13.4, 1.0, 1.2], [15.1, 2.3, 1.0], [15.3, 0.6, 0.8], [0.9, 15.0, 0.75]]) {
       R.thing(x, y, (ctx) => pine(ctx, x, y, s));
     }
-    for (const [x, y, r] of [[2.3, 2.6, 0.7], [12.4, 2.8, 0.5], [0.8, 7.8, 0.5], [14.6, 14.6, 0.6], [4.8, 15.3, 0.5], [3.4, 4.2, 0.45]]) {
+    for (const [x, y, r] of [[2.3, 2.6, 0.7], [12.4, 2.8, 0.5], [0.8, 7.8, 0.5], [3.4, 4.2, 0.45]]) {
       R.thing(x, y, (ctx) => mound(ctx, x, y, r));
     }
 
@@ -522,25 +620,21 @@ export default {
           paint(ctx, tint(C.sky, 0.4), { lw: 0.02 });
         }
       }
-      // the snowman's carrot, stuck in the roof snow
-      const [cx, cy] = P(HX + HW - 0.35, HY + HD - 0.2, az + 0.45);
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(-0.6);
-      ctx.beginPath();
-      ctx.moveTo(-0.3, -0.08); ctx.quadraticCurveTo(0.2, -0.05, 0.36, 0); ctx.quadraticCurveTo(0.2, 0.06, -0.3, 0.08);
-      ctx.closePath();
-      paint(ctx, C.coral, { lw: 0.035 });
-      ctx.strokeStyle = shade(C.coral, 0.4); ctx.lineWidth = 0.02;
-      ctx.beginPath(); ctx.moveTo(-0.1, -0.06); ctx.lineTo(-0.05, 0.02); ctx.moveTo(0.08, -0.04); ctx.lineTo(0.12, 0.03); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-0.3, 0); ctx.lineTo(-0.45, -0.12); ctx.moveTo(-0.3, 0.02); ctx.lineTo(-0.46, 0.06);
-      ctx.strokeStyle = C.green; ctx.lineWidth = 0.05; ctx.stroke();
-      ctx.restore();
-      ctx.beginPath();
-      ctx.ellipse(cx - 0.16, cy + 0.12, 0.22, 0.07, 0, 0, Math.PI * 2);
-      ctx.fillStyle = C.white; ctx.fill();
     });
-    R.find({ id: 'carrot', label: 'A carrot', at: [HX + HW - 0.35, HY + HD - 0.2, 3.3], r: 0.7 });
+    // A lost mitten, red with white spots, left to dry on a red stripe of
+    // the awning: it matches the stripes.
+    const MIT = [HX + 2.4, HY + HD + 0.5, 2.55];
+    R.thing(HX + HW / 2, HY + HD + 0.55, (ctx) => {
+      const [MX, MY] = P(...MIT);
+      ctx.save();
+      ctx.translate(MX, MY);
+      ctx.rotate(-0.5);
+      mitten(ctx, 0.8);
+      ctx.restore();
+    });
+    R.find({ id: 'mitten', label: 'A lost mitten', kind: 'hard', at: [MIT[0], MIT[1], MIT[2] + 0.1], r: 0.6, riddle: 'Hanging about by the cocoa, in disguise.', hint: 'It is red with white spots, like the stripes over the cocoa counter.' });
+    // Somebody's at the front of the line, every time you tap.
+    R.poke({ id: 'cocoa', at: [HX + 2.1, HY + HD + 0.3, 1.5], r: 0.9, sound: 'tick', say: ['BACK OF THE LINE.', 'EXTRA FOAM.', 'ONE MORE. JUST ONE.'] });
     // steam from the pot
     R.air((ctx, t) => {
       if (!Q.detail) return;
@@ -842,7 +936,20 @@ export default {
       if (Q.detail && pulse(t, 7) < 0.3) speech(ctx, 14.9, 13.9, 2.2, 'HEWP!', { size: 0.38 });
     }, { bias: 0.5 });
 
-    // ---------- the resurfacing machine (with a lost mitten riding along) ----------
+    // ---------- the resurfacing machine (with a stowaway in its snow tank) ----------
+    // NO GEESE ON ICE, says the sign, so the goose is riding round the rink
+    // inside the ICE-O-MATIC's snow tank, its red scarf trailing out from under
+    // the lid. A tap and the lid flips up: there it sits in the snow, honking.
+    const tank = (t) => {
+      const p = machine(t), [hx, hy] = heading(t);
+      const alongX = Math.abs(hx) > Math.abs(hy);
+      const w = alongX ? 2.3 : 1.3, d = alongX ? 1.3 : 2.3;
+      const x = p.x - w / 2, y = p.y - d / 2;
+      const tx = alongX ? (hx > 0 ? x : x + w * 0.4) : x, ty = alongX ? y : (hy > 0 ? y : y + d * 0.4);
+      const tw = alongX ? w * 0.6 : w, td = alongX ? d : d * 0.6;
+      return { x: tx + tw / 2, y: ty + td / 2, tx, ty, tw, td, hx, hy };
+    };
+    const lid = R.poke({ id: 'tank', at: (t) => { const k = tank(t); return [k.x, k.y, 1.7]; }, r: 1.0, sound: 'clunk', say: ['HONK.', 'HONK. (Faster.)'] });
     R.mover(machine, (ctx, t, p) => {
       const [hx, hy] = heading(t);
       const alongX = Math.abs(hx) > Math.abs(hy);
@@ -862,7 +969,26 @@ export default {
       const tx = alongX ? (hx > 0 ? x : x + w * 0.4) : x, ty = alongX ? y : (hy > 0 ? y : y + d * 0.4);
       const tw = alongX ? w * 0.6 : w, td = alongX ? d : d * 0.6;
       box(ctx, tx + 0.05, ty + 0.05, 1.05, tw - 0.1, td - 0.1, 0.55, C.teal, { top: shade(C.teal, 0.3) });
+      const k = lid.k();
+      // the snow inside, and the lid: shut flat on top (bumping up now and
+      // then, as something shifts under it), or flipped up toward the back
       rect(ctx, tx + 0.2, ty + 0.2, tw - 0.4, td - 0.4, 1.6, C.white, { lw: 0.03, dots: C.sky, density: 0.2 });
+      if (k < 0.5) {
+        const bump = pulse(t, 5) > 0.9 ? Math.sin(t * 20) * 0.04 + 0.04 : 0;
+        rect(ctx, tx + 0.1, ty + 0.1, tw - 0.2, td - 0.2, 1.62 + bump, C.teal, { lw: 0.035, dots: shade(C.teal, 0.3), density: 0.2 });
+        // the scarf's end, trailing out over the tank's side and flapping
+        const ex = tx + tw / 2 - hx * (tw / 2 - 0.05), ey = ty + td / 2 - hy * (td / 2 - 0.05);
+        const flap = Math.sin(t * 10) * 0.06;
+        const [SX, SY] = P(ex, ey, 1.6);
+        const [EX, EY] = P(ex - hx * 0.45, ey - hy * 0.45, 1.25 + flap);
+        ctx.beginPath(); ctx.moveTo(SX - 0.08, SY); ctx.lineTo(EX - 0.07, EY); ctx.lineTo(EX + 0.07, EY + 0.06); ctx.lineTo(SX + 0.08, SY); ctx.closePath();
+        paint(ctx, C.red, { dots: C.white, density: 0.35, lw: 0.03 });
+      } else {
+        // (hinged on the far long side, so it never hides what's inside)
+        const ax = Math.abs(hx) > Math.abs(hy), z0 = 1.62, z1 = 1.62 + 0.85 * k;
+        const pts = ax ? [[tx + 0.1, ty + 0.1], [tx + tw - 0.1, ty + 0.1]] : [[tx + 0.1, ty + 0.1], [tx + 0.1, ty + td - 0.1]];
+        face(ctx, [[...pts[0], z0], [...pts[1], z0], [...pts[1], z1], [...pts[0], z1]], C.teal, { lw: 0.035, dots: shade(C.teal, 0.3), density: 0.2 });
+      }
       label(ctx, alongX ? p.x : x + w, alongX ? y + d : p.y, 0.95, 'ICE-O-MATIC', 0.26, C.navy);
       // driver in the front seat
       const sx = p.x + hx * 0.7, sy = p.y + hy * 0.7;
@@ -877,32 +1003,15 @@ export default {
         ctx.beginPath(); ctx.arc(BX, BY - 0.1, 0.42, 0, Math.PI * 2);
         ctx.fillStyle = alpha(C.butter, 0.35); ctx.fill();
       }
-      // the mitten on the tank lid
-      const mx = tx + tw / 2 - hx * 0.45, my = ty + td / 2 - hy * 0.45;
-      const [MX, MY] = P(mx, my, 1.65);
-      ctx.save();
-      ctx.translate(MX, MY);
-      ctx.rotate(0.3);
-      ctx.beginPath();
-      ctx.roundRect(-0.17, -0.42, 0.34, 0.46, 0.15);
-      ctx.moveTo(0.14, -0.1); ctx.ellipse(0.2, -0.16, 0.08, 0.14, 0.5, 0, Math.PI * 2);
-      paint(ctx, C.red, { dots: C.white, density: 0.22, lw: 0.04 });
-      ctx.beginPath(); ctx.rect(-0.18, -0.02, 0.36, 0.1); paint(ctx, C.white, { lw: 0.03 });
-      ctx.restore();
       if (Q.detail && pulse(t, 29) > 0.4 && pulse(t, 29) < 0.5) speech(ctx, sx, sy, 3.0, 'BEEP BEEP', { size: 0.4 });
     }, { bias: 0.4 });
-    R.find({
-      id: 'mitten', label: 'A lost mitten', r: 0.8,
-      at: (t) => {
-        const p = machine(t), [hx, hy] = heading(t);
-        const alongX = Math.abs(hx) > Math.abs(hy);
-        const w = alongX ? 2.3 : 1.3, d = alongX ? 1.3 : 2.3;
-        const x = p.x - w / 2, y = p.y - d / 2;
-        const tx = alongX ? (hx > 0 ? x : x + w * 0.4) : x, ty = alongX ? y : (hy > 0 ? y : y + d * 0.4);
-        const tw = alongX ? w * 0.6 : w, td = alongX ? d : d * 0.6;
-        return [tx + tw / 2 - hx * 0.45, ty + td / 2 - hy * 0.45, 1.85];
-      },
-    });
+    // The goose, in the tank: tucked under the lid, or sat up in the snow
+    // with its scarf on, facing the way it's going and honking now and then.
+    const goosePos = (t) => {
+      const k = lid.k(), q = tank(t);
+      return { x: q.x, y: q.y, z: 1.3 + 0.3 * k, dir: q.hx - q.hy >= 0 ? 'r' : 'l', hidden: k < 0.3, pose: k > 0.5 && pulse(t, 4) > 0.75 ? 'honk' : 'sit' };
+    };
+    R.goose(goosePos, { bias: 1.1, kind: 'poke', inside: lid, hint: 'NO GEESE ON ICE, says the sign. Somebody\'s scarf is hitching a ride.' });
 
     // ---------- hockey on the practice patch ----------
     const HOC = 6;
@@ -953,44 +1062,23 @@ export default {
       if (p.sulk && Q.detail) speech(ctx, p.x, p.y, 2.2, 'NOT FAIR', { size: 0.36 });
     });
 
-    // ---------- the goose: a run-up and a belly slide in a nice scarf ----------
-    const gIn = track([[2.9, 12.2], [3.5, 11.2], [4.1, 10.5]], 0.9);
-    const gBack = track([[12.3, 9.6], [4.3, 10.5], [3.5, 11.2], [2.9, 12.2]], 1.0);
-    const GC = 24;
-    const goosePos = (t) => {
-      let s = pulse(t, GC) * GC;
-      if (s < gIn.T) return { ...gIn(s), z: 0 };
-      s -= gIn.T;
-      if (s < 0.7) { const q = s / 0.7; return { x: 4.1 + q * 1.2, y: 10.5 - q * 0.1, z: 0, dir: 'r', moving: true, run: true }; }
-      s -= 0.7;
-      if (s < 4.2) {
-        const u = s / 4.2, q = 1 - (1 - u) * (1 - u);
-        return { x: 5.3 + q * 7.0, y: 10.4 - q * 0.8, z: 0.05, dir: 'r', pose: 'sit', slide: 1 - u };
-      }
-      s -= 4.2;
-      if (s < 1.6) return { x: 12.3, y: 9.6, z: 0, dir: 'r', pose: s < 1.0 ? 'honk' : 'stand' };
-      s -= 1.6;
-      if (s < gBack.T) return { ...gBack(s), z: 0 };
-      return { x: 2.9, y: 12.2, z: 0, dir: 'r', pose: 'peck' };
-    };
-    R.goose(goosePos, { bias: 0.3 });
-    // the scarf (and a spray of ice when sliding)
+    // ---------- the goose's scarf, streaming in the wind as it rides ----------
     R.mover(goosePos, (ctx, t, p) => {
-      const pose = p.pose || (p.moving ? 'walk' : 'stand');
+      if (p.hidden) return;
+      const pose = p.pose;
       const f = p.dir === 'l' ? -1 : 1;
-      const by = pose === 'sit' ? -0.2 : -0.45;
-      const bob = pose === 'walk' ? Math.abs(Math.sin(t * 9)) * 0.06 : 0;
+      const by = -0.2;
       const [X, Y] = P(p.x, p.y, p.z || 0);
       ctx.save();
-      ctx.translate(X, Y - bob);
+      ctx.translate(X, Y);
       ctx.scale(f, 1);
       const nx = pose === 'honk' ? 0.36 : 0.3, ny = by - 0.27;
       const flap = Math.sin(t * 12) * 0.08;
-      const len = p.slide ? 0.5 + p.slide * 0.4 : 0.35;
+      const len = 0.75;
       ctx.beginPath();
       ctx.moveTo(nx - 0.02, ny + 0.02);
-      ctx.quadraticCurveTo(nx - len * 0.6, ny - 0.05 + flap, nx - len - 0.1, ny + (p.slide ? -0.1 : 0.3) + flap);
-      ctx.lineTo(nx - len - 0.02, ny + (p.slide ? 0.04 : 0.38) + flap);
+      ctx.quadraticCurveTo(nx - len * 0.6, ny - 0.05 + flap, nx - len - 0.1, ny - 0.1 + flap);
+      ctx.lineTo(nx - len - 0.02, ny + 0.04 + flap);
       ctx.quadraticCurveTo(nx - len * 0.5, ny + 0.12, nx, ny + 0.12);
       ctx.closePath();
       paint(ctx, C.red, { dots: C.white, density: 0.35, lw: 0.035 });
@@ -1000,16 +1088,35 @@ export default {
       ctx.beginPath(); ctx.moveTo(nx - 0.08, ny); ctx.lineTo(nx - 0.04, ny + 0.12); ctx.moveTo(nx + 0.06, ny - 0.02); ctx.lineTo(nx + 0.1, ny + 0.1);
       ctx.strokeStyle = C.white; ctx.lineWidth = 0.035; ctx.stroke();
       ctx.restore();
-      if (p.slide && Q.detail) {
-        for (let i = 0; i < 6; i++) {
-          const k = ((t * 3 + i / 6) % 1);
-          const [sx, sy] = P(p.x - 0.4 - k * 0.8 * p.slide - 0.2, p.y + (i % 3 - 1) * 0.25, 0.1 + Math.sin(k * Math.PI) * 0.4);
-          ctx.beginPath(); ctx.arc(sx, sy, 0.06 * (1 - k) + 0.02, 0, Math.PI * 2);
-          ctx.fillStyle = C.white; ctx.fill();
-          ctx.strokeStyle = alpha(C.sky, 0.9); ctx.lineWidth = 0.02; ctx.stroke();
-        }
+    }, { bias: 1.11 });
+
+    // ---------- the snow the machine dumps, and the snowman's nose in it ----------
+    // Two heaps of scraped snow by the front: one has a green sprig poking out
+    // of it. The machine scraped the nose off the ice with everything else.
+    const DUMP = [5.0, 15.0], DUMP2 = [14.5, 14.7];
+    const heap = R.poke({ id: 'dump', at: [DUMP[0], DUMP[1], 0.4], r: 0.9 });
+    R.thing(DUMP[0], DUMP[1], (ctx) => {
+      const k = heap.k();
+      snowPile(ctx, DUMP[0], DUMP[1], k, true);
+      if (k > 0.5) {
+        const [X, Y] = P(DUMP[0] + 0.1, DUMP[1], 0.3);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.25); carrot(ctx); ctx.restore();
       }
-    }, { bias: 0.31 });
+    }, { anim: true });
+    R.find({ id: 'carrot', label: 'A carrot', kind: 'poke', inside: heap, at: [DUMP[0] + 0.1, DUMP[1], 0.3], r: 0.7, hint: 'The judge lost his nose on the ice. The machine scrapes up everything, and dumps it.' });
+    const heap2 = R.poke({ id: 'snow', at: [DUMP2[0], DUMP2[1], 0.4], r: 0.9, hold: 2, say: ['Just snow.', 'Still snow.', 'Snow all the way down.'] });
+    R.thing(DUMP2[0], DUMP2[1], (ctx) => snowPile(ctx, DUMP2[0], DUMP2[1], heap2.k() * 0.5, false), { anim: true });
+
+    // ---------- the ice swan (a goose lookalike) ----------
+    // A sculpture between the benches, entered for the judges. It's dripping.
+    const SW = [2.9, 8.0];
+    R.thing(SW[0] + 0.45, SW[1] + 0.45, (ctx, t) => iceSwan(ctx, SW[0], SW[1], t), { anim: true });
+    R.decoy({ id: 'iceswan', at: [SW[0], SW[1], 1.1], r: 0.8, say: ['An ice swan. Melting slowly.', 'Still melting.', 'Score: 1.0.'] });
+
+    // The snowman judge answers back; the figure skater (the room's first
+    // lesson in tapping) wants a better score.
+    R.poke({ id: 'judge', at: [1.7, 12.9, 1.8], r: 0.9, sound: 'tick', say: ['1.0.', 'Still 1.0.', 'Find my nose. Then we talk.'] });
+    R.poke({ id: 'skater', at: (t) => { const p = fig(t); return [p.x, p.y, p.z + 1.2]; }, r: 1.0, teach: true, say: ['Did you SEE that?', 'That was a triple.', 'Score me. Go on.'] });
 
     // ---------- snow over everything ----------
     R.air((ctx, t) => {

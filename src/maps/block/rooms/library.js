@@ -144,6 +144,53 @@ function plane(ctx, X, Y, dx, dy, s = 1) {
   ctx.restore();
 }
 
+// A big book held up open by someone in an armchair facing +x: its covers in
+// a V with the spine toward you, the title on it. zb: its bottom edge.
+function bigBook(ctx, x, y, zb, h, cover, title) {
+  const zt = zb + h, e = 0.28, w = 0.52;
+  // the pages' edges, just showing past the covers
+  for (const f of [-1, 1]) face(ctx, [[x - e, y + f * w, zb + 0.04], [x - e - 0.06, y + f * (w - 0.04), zb + 0.04], [x - e - 0.06, y + f * (w - 0.04), zt - 0.04], [x - e, y + f * w, zt - 0.04]], C.white, { lw: 0.025 });
+  face(ctx, [[x - e, y - w, zb], [x, y, zb], [x, y, zt], [x - e, y - w, zt]], shade(cover, 0.15), { lw: 0.035 });
+  face(ctx, [[x, y, zb], [x - e, y + w, zb], [x - e, y + w, zt], [x, y, zt]], cover, { lw: 0.035, dots: shade(cover, 0.3), density: 0.15 });
+  // a gold band top and bottom, and the title
+  for (const z of [zb + 0.12, zt - 0.12]) face(ctx, [[x, y, z], [x - e, y + w, z]], null, { lw: 0.035, stroke: C.mustard });
+  if (Q.detail) {
+    const [X, Y] = P(x - e / 2, y + w / 2, zb + h * 0.55);
+    ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, 0, 1, 0, 0);
+    txt(ctx, 0, 0, title, 0.17, C.butter);
+    ctx.restore();
+  }
+}
+
+// A stuffed swan standing on a little wooden base, facing left: a goose's
+// size and white, with a long S of a neck and a black knob on its beak.
+function swan(ctx, x, y, z) {
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(1.15, 1.15);
+  ctx.beginPath(); ctx.ellipse(0, 0, 0.42, 0.14, 0, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.03 });
+  // body, with its tail tucked up behind
+  ctx.beginPath();
+  ctx.ellipse(0.05, -0.3, 0.44, 0.24, 0.1, 0, Math.PI * 2);
+  ctx.moveTo(0.38, -0.36); ctx.lineTo(0.58, -0.52); ctx.lineTo(0.44, -0.24);
+  paint(ctx, C.white, { dots: C.grey, density: 0.1 });
+  ctx.beginPath(); ctx.ellipse(0.12, -0.36, 0.26, 0.13, 0.25, 0, Math.PI * 2); paint(ctx, C.greyLight);
+  // the S of a neck
+  ctx.beginPath();
+  ctx.moveTo(-0.28, -0.4);
+  ctx.bezierCurveTo(-0.5, -0.6, -0.1, -0.85, -0.3, -1.08);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.17; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(-0.33, -1.1, 0.11, 0, Math.PI * 2); paint(ctx, C.white);
+  // beak, the black knob and mask
+  ctx.beginPath(); ctx.moveTo(-0.4, -1.15); ctx.lineTo(-0.66, -1.06); ctx.lineTo(-0.4, -1.04); ctx.closePath(); paint(ctx, C.coral, { lw: 0.03 });
+  ctx.fillStyle = C.ink;
+  ctx.beginPath(); ctx.arc(-0.42, -1.13, 0.05, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-0.34, -1.13, 0.025, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
 // The sky by the hour, and the clock's hands on it.
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
 function skyAt(h) {
@@ -172,7 +219,7 @@ function clockHands(ctx, h) {
 export default {
   id: 'library',
   name: 'Library',
-  blurb: 'The librarian has shushed three children, one ladder and a thunderstorm. The goose is studying swans, for reasons.',
+  blurb: 'The librarian has shushed three children, one ladder and a thunderstorm. Somebody is reading up on swans, for reasons.',
 
   build(R) {
     // The door onto Main Street, the sky in the window, and the librarian
@@ -339,13 +386,56 @@ export default {
       ctx.translate(-4.6, 2.3);
       paintText(ctx, 'right', 13.8, 0.65, 'RETURNS', 0.5, C.white);
       ctx.restore();
-      // monitor, bell, stamp, a pile of returns
+      // monitor, stamp, and today's returns: one of them is decades late,
+      // grey with dust, its date card sticking out and a cobweb to the next
       box(ctx, 14.6, 3.8, 1.25, 0.7, 0.3, 0.6, C.greyLight, { lw: 0.03 });
       box(ctx, 14.62, 3.78, 1.33, 0.66, 0.02, 0.45, C.navy, { flat: true, stroke: false });
-      cylinder(ctx, 12.5, 4.2, 1.25, 0.14, 0.1, C.mustard);
-      cylinder(ctx, 13.2, 4.1, 1.25, 0.08, 0.22, C.brown, { top: C.red });
-      for (let i = 0; i < 4; i++) flatBook(ctx, 13.6 + (i % 2) * 0.05, 3.85, 1.25 + i * 0.13, 0.6, 0.5, CLOTH[i + 3], 0.13);
+      cylinder(ctx, 13.0, 4.1, 1.25, 0.08, 0.22, C.brown, { top: C.red });
+      const pile = [C.navy, C.teal, null, C.coral, C.mustard, C.purple];
+      pile.forEach((c, i) => {
+        if (!c) {
+          flatBook(ctx, 13.48, 3.84, 1.25 + i * 0.13, 0.66, 0.6, mix(C.greyLight, C.wood, 0.25), 0.13);
+          // the date card, stamped in red, poking out of its pages
+          box(ctx, 13.85, 4.4, 1.3 + i * 0.13, 0.2, 0.16, 0.015, C.white, { flat: true, lw: 0.02 });
+          if (Q.detail) {
+            const [WX, WY] = P(13.5, 4.44, 1.25 + i * 0.13);
+            ctx.strokeStyle = alpha(C.white, 0.95); ctx.lineWidth = 0.018; ctx.beginPath();
+            for (const a of [0.5, 1.1, 1.7]) { ctx.moveTo(WX, WY); ctx.lineTo(WX + Math.cos(a) * 0.22, WY + Math.sin(a) * 0.2); }
+            ctx.moveTo(WX + 0.1, WY + 0.05); ctx.quadraticCurveTo(WX + 0.06, WY + 0.1, WX + 0.02, WY + 0.11);
+            ctx.stroke();
+            const [SX, SY] = P(13.95, 4.48, 1.32 + i * 0.13);
+            ctx.fillStyle = C.red; ctx.fillRect(SX - 0.05, SY - 0.03, 0.08, 0.03);
+          }
+        } else flatBook(ctx, 13.55 + (i % 2) * 0.05, 3.85, 1.25 + i * 0.13, 0.6, 0.5, c, 0.13);
+      });
     });
+    // The bell on the desk: ring it and the whole library shushes you.
+    const bell = R.poke({ id: 'bell', at: [12.5, 4.2, 1.45], r: 0.6, sound: 'tick', hold: 0.6, say: ['SHHH.', 'SHHHHHH.', 'Who rang that?'] });
+    R.thing(12.7, 4.4, (ctx, t) => {
+      const k = bell.k(), j = k * Math.sin(t * 40) * 0.04;
+      cylinder(ctx, 12.5, 4.2, 1.25, 0.2, 0.05, C.ink);
+      const [X, Y] = P(12.5, 4.2, 1.3);
+      ctx.beginPath(); ctx.moveTo(X - 0.18 + j, Y); ctx.quadraticCurveTo(X - 0.17 + j, Y - 0.26, X + j, Y - 0.26); ctx.quadraticCurveTo(X + 0.17 + j, Y - 0.26, X + 0.18 + j, Y); ctx.closePath();
+      paint(ctx, C.mustard, { lw: 0.03 });
+      ctx.beginPath(); ctx.arc(X + j, Y - 0.3 + k * 0.04, 0.05, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
+      if (k > 0.1 && Q.detail) {
+        ctx.strokeStyle = alpha(C.ink, k); ctx.lineWidth = 0.03; ctx.beginPath();
+        for (const f of [-1, 1]) { ctx.moveTo(X + f * 0.28, Y - 0.3); ctx.lineTo(X + f * 0.42, Y - 0.42); ctx.moveTo(X + f * 0.3, Y - 0.15); ctx.lineTo(X + f * 0.46, Y - 0.17); }
+        ctx.stroke();
+      }
+    }, { anim: true, depth: 20.3 });
+    R.find({ id: 'overdue', label: 'An overdue book', kind: 'hard', at: [13.8, 4.15, 1.6], r: 0.6, riddle: 'Due back in 1987. Returned today.', hint: 'Somebody finally brought it back. One of the returns has cobwebs.' });
+    // The returns chute in the desk's front: it takes books. Mostly books.
+    const chute = R.poke({ id: 'chute', at: [14.9, 4.6, 0.75], r: 0.6, sound: 'clunk', hold: 1.2, say: ['THANK YOU.', 'That was a sandwich.', 'NO SANDWICHES.'] });
+    R.thing(15.0, 4.7, (ctx, t) => {
+      const k = chute.k(), x0 = 14.6, x1 = 15.2, z0 = 0.55, z1 = 0.85, y = 4.61;
+      face(ctx, [[x0 - 0.06, y, z0 - 0.06], [x1 + 0.06, y, z0 - 0.06], [x1 + 0.06, y, z1 + 0.06], [x0 - 0.06, y, z1 + 0.06]], C.mustard, { lw: 0.03 });
+      face(ctx, [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]], C.ink, { stroke: false });
+      // the flap swings in at the top when something goes through
+      const zt = z1 - (z1 - z0) * (1 - k * 0.8);
+      face(ctx, [[x0, y, zt], [x1, y, zt], [x1, y - k * 0.25, z1], [x0, y - k * 0.25, z1]], shade(C.mustard, 0.1), { lw: 0.025 });
+      if (Q.detail) txt(ctx, ...P((x0 + x1) / 2, y, z1 + 0.22), 'BOOKS', 0.14, C.butter);
+    }, { anim: true, depth: 20.4 });
     // Who gets shushed, and when.
     const shush = (t) => {
       const s = pulse(t, LOOP) * LOOP;
@@ -408,7 +498,7 @@ export default {
         const s = pulse(t, LOOP) * LOOP;
         const scared = r && s > 3.1;
         if (i === 4) {
-          // this one is watching the goose instead
+          // this one has heard this story before
           person(ctx, x, y, 0, folk(seed, { pose: 'sit', dir: 'l', scale: 0.68, top }), t);
           return;
         }
@@ -453,17 +543,33 @@ export default {
         txt(ctx, X - k * 0.4, Y, 'z', 0.4 + k * 0.2, alpha(C.ink, 1 - k));
       }
     }, { depth: 13.4 });
-    // the goose's chair, open book, and the goose itself
-    R.thing(7.7, 7.6, (ctx) => {
-      for (const [lx, ly] of [[7.2, 7.05], [7.6, 7.05], [7.2, 7.45], [7.6, 7.45]]) face(ctx, [[lx, ly, 0], [7.4 + (lx - 7.4) * 0.5, 7.25 + (ly - 7.25) * 0.5, 0.8]], null, { lw: 0.07, stroke: C.ink });
-      cylinder(ctx, 7.4, 7.25, 0.72, 0.36, 0.1, C.red);
-    }, { depth: 14.5 });
-    R.goose((t) => {
-      const s = pulse(t, 7) * 7;
-      return { x: 7.4, y: 7.25, z: 0.82, dir: 'l', pose: s > 5.6 && s < 6.2 ? 'peck' : 'stand' };
-    }, { bias: 0.2 });
+    // At the end of the table, where you'd expect a goose doing its homework:
+    // a stuffed swan in a glass case (a goose lookalike).
+    const CASE = [7.5, 7.3];
+    R.thing(CASE[0] + 0.5, CASE[1] + 0.5, (ctx) => {
+      box(ctx, CASE[0] - 0.5, CASE[1] - 0.5, 0, 1.0, 1.0, 0.75, C.brown, { top: C.wood, dotsL: shade(C.brown, 0.4), dens: 0.3, lw: 0.04 });
+      // the brass plate on its plinth
+      face(ctx, [[CASE[0] - 0.2, CASE[1] + 0.5, 0.32], [CASE[0] + 0.2, CASE[1] + 0.5, 0.32], [CASE[0] + 0.2, CASE[1] + 0.5, 0.48], [CASE[0] - 0.2, CASE[1] + 0.5, 0.48]], C.mustard, { lw: 0.025 });
+      swan(ctx, CASE[0], CASE[1], 0.78);
+      // the glass case over it: tinted sides, a frame, a glint
+      const g = alpha(C.sky, 0.22), x0 = CASE[0] - 0.48, y0 = CASE[1] - 0.48, x1 = CASE[0] + 0.48, y1 = CASE[1] + 0.48, z0 = 0.75, z1 = 2.05;
+      face(ctx, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], g, { lw: 0.03 });
+      face(ctx, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], g, { lw: 0.03 });
+      face(ctx, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], alpha(C.white, 0.3), { lw: 0.03 });
+      face(ctx, [[x1, y0 + 0.12, z1 - 0.15], [x1, y0 + 0.32, z1 - 0.5]], null, { lw: 0.05, stroke: alpha(C.white, 0.8) });
+      face(ctx, [[x0 + 0.1, y1, z1 - 0.12], [x0 + 0.28, y1, z1 - 0.42]], null, { lw: 0.04, stroke: alpha(C.white, 0.7) });
+    }, { depth: CASE[0] + CASE[1] + 0.6 });
+    R.decoy({ id: 'stuffed', at: [CASE[0], CASE[1], 1.3], r: 0.8, say: ['A stuffed swan. Shh.', 'Still stuffed.', 'Do not tap the glass.'] });
+    // a reader at the table, on the chair by the case
+    R.mover(() => ({ x: 6.0, y: 8.7 }), (ctx, t) => {
+      const turn = pulse(t, 5) > 0.85;
+      person(ctx, 6.0, 8.7, 0.1, folk(251, {
+        pose: 'sit', dir: 'l', back: true, top: C.lilac, style: 'long', hair: C.ink, arms: [turn ? 1.6 : 1.1, 1.0],
+        hold: (c) => { c.beginPath(); c.rect(0, -0.3, 0.5, 0.6); paint(c, C.green, { lw: 0.03 }); },
+      }), t);
+    }, { depth: 15.2 });
     R.thing(6.9, 7.5, (ctx, t) => {
-      // open book in front of the goose, pages turning now and then
+      // an open book left on the table, its pages turning in the draught now and then
       const bx = 6.2, by = 7.2, z = 1.21;
       face(ctx, [[bx - 0.35, by - 0.3, z], [bx + 0.35, by - 0.3, z], [bx + 0.35, by + 0.3, z], [bx - 0.35, by + 0.3, z]], C.navy, { lw: 0.03 });
       face(ctx, [[bx - 0.3, by - 0.27, z + 0.03], [bx, by - 0.27, z + 0.03], [bx, by + 0.27, z + 0.03], [bx - 0.3, by + 0.27, z + 0.03]], C.white, { lw: 0.03 });
@@ -475,13 +581,11 @@ export default {
         face(ctx, [[bx, by - 0.27, z + 0.03], [ex, by - 0.27, ez], [ex, by + 0.27, ez], [bx, by + 0.27, z + 0.03]], C.greyLight, { lw: 0.03 });
       }
       if (Q.detail) {
-        const [X, Y] = P(bx - 0.15, by, z);
-        txt(ctx, X, Y - 0.02, 'SWANS', 0.12, C.ink);
         ctx.strokeStyle = C.grey; ctx.lineWidth = 0.02; ctx.beginPath();
-        for (let i = 0; i < 3; i++) { const [a1, b1] = P(bx + 0.07, by - 0.2 + i * 0.15, z + 0.04); const [a2, b2] = P(bx + 0.25, by - 0.2 + i * 0.15, z + 0.04); ctx.moveTo(a1, b1); ctx.lineTo(a2, b2); }
+        for (let i = 0; i < 3; i++) for (const u of [-0.25, 0.07]) { const [a1, b1] = P(bx + u, by - 0.2 + i * 0.15, z + 0.04); const [a2, b2] = P(bx + u + 0.18, by - 0.2 + i * 0.15, z + 0.04); ctx.moveTo(a1, b1); ctx.lineTo(a2, b2); }
         ctx.stroke();
       }
-      // a highlighter, for the important swan facts
+      // a highlighter, for the important facts
       face(ctx, [[bx + 0.2, by + 0.45, z + 0.02], [bx + 0.55, by + 0.3, z + 0.02]], null, { lw: 0.08, stroke: C.pink });
     }, { anim: true, depth: 14.6 });
 
@@ -503,50 +607,12 @@ export default {
         box(ctx, x0, y0, 0.95, 1.2, 0.7, 0.08, C.teal, { lw: 0.03 });
         for (let i = 0; i < 4; i++) box(ctx, x0 + 0.1 + i * 0.24, y0 + 0.1, 1.03, 0.2, 0.5, 0.42, CLOTH[(i * 3 + 2) % CLOTH.length], { flat: true, lw: 0.02 });
         for (const [lx, ly] of [[x0, y0 + 0.62], [x0 + 1.12, y0 + 0.62], [x0 + 1.12, y0]]) box(ctx, lx, ly, 0.1, 0.08, 0.08, 1.0, C.ink, { flat: true, stroke: false });
-        // the overdue book, lying on top with its red tag: a bit bigger than
-        // the rest, OVERDUE stamped across it in red, its date card sticking
-        // out, and a cobweb in the corner (it's been gone a while)
-        const bx = p.cx - 0.36, by = p.cy - 0.26, bz = 1.56;
-        flatBook(ctx, bx, by, bz - 0.12, 0.7, 0.52, C.butter, 0.12);
-        box(ctx, bx + 0.5, by + 0.1, bz - 0.02, 0.36, 0.26, 0.015, C.white, { flat: true, lw: 0.02 }); // the date card
-        if (Q.detail) {
-          const [OX, OY] = P(bx, by, bz);
-          ctx.save();
-          ctx.transform(1, 0.5, -1, 0.5, OX, OY); // the cover's plane, in units
-          ctx.fillStyle = C.red;
-          for (const [u, v] of [[0.62, 0.15], [0.75, 0.15], [0.62, 0.24]]) ctx.fillRect(u, v, 0.08, 0.04); // the card's stamps
-          ctx.translate(0.3, 0.26);
-          ctx.rotate(-0.35);
-          ctx.strokeStyle = C.red; ctx.lineWidth = 0.025;
-          ctx.strokeRect(-0.3, -0.08, 0.6, 0.16);
-          const k = 40;
-          ctx.scale(1 / k, 1 / k);
-          ctx.font = `${0.13 * k}px "Bagel Fat One", "Arial Black", sans-serif`;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillStyle = C.red;
-          ctx.fillText('OVERDUE', 0, 0.3);
-          ctx.restore();
-          // the cobweb, in its back corner
-          const [WX, WY] = P(bx + 0.02, by + 0.02, bz);
-          ctx.strokeStyle = alpha(C.white, 0.9); ctx.lineWidth = 0.015;
-          ctx.beginPath();
-          for (const a of [0.2, 0.75, 1.3]) { ctx.moveTo(WX, WY); ctx.lineTo(WX + Math.cos(a) * 0.3, WY + Math.sin(a) * 0.18 - 0.06); }
-          for (const r of [0.12, 0.22]) { ctx.moveTo(WX + Math.cos(0.2) * r, WY + Math.sin(0.2) * r * 0.6 - 0.02); ctx.quadraticCurveTo(WX + r * 0.5, WY + r * 0.2, WX + Math.cos(1.3) * r, WY + Math.sin(1.3) * r * 0.6 - 0.02); }
-          ctx.stroke();
-        }
-        const [TX, TY] = P(p.cx + 0.3, p.cy + 0.24, 1.56);
-        ctx.beginPath(); ctx.moveTo(TX, TY); ctx.lineTo(TX + 0.12, TY + 0.25);
-        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
-        const sw = Math.sin(t * 3) * 0.1;
-        ctx.save(); ctx.translate(TX + 0.12, TY + 0.25); ctx.rotate(sw);
-        ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(0.12, 0); ctx.lineTo(0.12, 0.3); ctx.lineTo(0, 0.38); ctx.lineTo(-0.12, 0.3); ctx.closePath();
-        paint(ctx, C.red, { lw: 0.03 });
-        ctx.restore();
+        // a book waiting to go back, lying on top
+        flatBook(ctx, p.cx - 0.36, p.cy - 0.26, 1.44, 0.7, 0.52, C.coral, 0.12);
       };
       const drawPusher = () => person(ctx, p.x, p.y, 0, folk(231, { pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, top: C.green, hat: 'none', style: 'pony', speed: 5, arms: [1.3, 1.2] }), t);
       if (p.dir === 'r') { drawPusher(); drawCart(); } else { drawCart(); drawPusher(); }
     });
-    R.find({ id: 'overdue', label: 'An overdue book', r: 0.8, at: (t) => { const p = cartAt(t); return [p.cx, p.cy, 1.6]; } });
 
     // ---------- grandpa, looking everywhere for the glasses on his head ----------
     const gramps = route([[5.2, 10.3, 1.6], [7.8, 10.2], [8.0, 11.9, 1.4], [5.0, 12.0]], { speed: 0.55 });
@@ -566,12 +632,15 @@ export default {
     R.find({ id: 'glasses', label: 'A pair of reading glasses', r: 0.7, at: (t) => { const p = gramps(t); return [p.x + 0.5, p.y + 0.5, 1.5]; } });
 
     // ---------- the wobbling tower of books ----------
+    // (A tap sets it swaying hard, and its builder panics: the room's first
+    // lesson that things in here answer back.)
     const TOWER = [6.9, 13.9];
+    const wobble = R.poke({ id: 'tower', at: [TOWER[0], TOWER[1], 1.6], r: 1.0, hold: 1.6, teach: true, say: ['Do NOT touch the tower.', 'It is load bearing.', 'Book eighteen goes on tomorrow.'] });
     R.mover(() => ({ x: TOWER[0], y: TOWER[1] }), (ctx, t) => {
       const [X, Y] = P(TOWER[0], TOWER[1], 0);
       const r = rng(77);
       const nerve = 0.5 + 0.5 * Math.sin(t * 0.7);
-      const amp = 0.04 + nerve * 0.1;
+      const amp = 0.04 + nerve * 0.1 + wobble.k() * 0.25;
       let y = Y;
       for (let i = 0; i < 17; i++) {
         const k = i / 16;
@@ -591,7 +660,7 @@ export default {
     });
     // the kid building it, on a step stool, with one more book
     R.mover(() => ({ x: 7.9, y: 14.5 }), (ctx, t) => {
-      const nerve = 0.5 + 0.5 * Math.sin(t * 0.7);
+      const nerve = Math.max(0.5 + 0.5 * Math.sin(t * 0.7), wobble.k());
       box(ctx, 7.5, 14.1, 0, 0.8, 0.8, 0.5, C.red, { lw: 0.04 });
       person(ctx, 7.9, 14.5, 0.5, folk(241, {
         pose: 'stand', dir: 'l', scale: 0.72, top: C.butter, hat: 'none', style: 'curly', hair: C.brown,
@@ -605,26 +674,43 @@ export default {
     R.thing(4.1, 13.2, (ctx) => armchair(ctx, 2.9, 12.0, C.red));
     R.thing(4.1, 15.4, (ctx) => armchair(ctx, 2.9, 14.2, C.teal));
     R.thing(3.3, 13.8, (ctx, t) => lamp(ctx, 3.3, 13.7, t, C.butter), { anim: true }); // it flickers
-    R.mover(() => ({ x: 3.7, y: 12.6 }), (ctx, t) => {
-      const turn = pulse(t, 5) > 0.85;
-      person(ctx, 3.7, 12.6, 0.15, folk(251, {
-        pose: 'sit', dir: 'r', top: C.lilac, style: 'long', hair: C.ink, arms: [turn ? 1.6 : 1.1, 1.0],
-        hold: (c) => { c.beginPath(); c.rect(0, -0.3, 0.5, 0.6); paint(c, C.green, { lw: 0.03 }); },
-      }), t);
-    }, { depth: 17.4 });
+    // Two readers hidden behind big open books, one in each armchair. The
+    // teal one is a man asleep behind NAPS (his shoes show). The red one is
+    // the goose behind SWANS: its orange feet dangle off the seat, and the
+    // book trembles now and then. A tap and the book comes down.
+    const napper = R.poke({ id: 'napper', at: [4.0, 14.8, 1.8], r: 0.9, sound: 'tick', hold: 1.6, say: ['Shh. I am reading.', 'Same page. Two hours.', 'Zzz.'] });
     R.mover(() => ({ x: 3.7, y: 14.8 }), (ctx, t) => {
-      person(ctx, 3.7, 14.8, 0.15, folk(252, { pose: 'sit', dir: 'r', top: C.mustard, style: 'bald', arms: [0.2, 0.1] }), t);
-      const [X, Y] = P(3.7, 14.8, 0.15);
-      // a book tented over his face
-      ctx.beginPath(); ctx.moveTo(X - 0.3, Y - 1.8); ctx.lineTo(X + 0.08, Y - 2.2); ctx.lineTo(X + 0.46, Y - 1.8); ctx.lineTo(X + 0.38, Y - 1.8); ctx.lineTo(X + 0.08, Y - 2.1); ctx.lineTo(X - 0.22, Y - 1.8); ctx.closePath();
-      paint(ctx, C.navy, { lw: 0.04 });
-      ctx.beginPath(); ctx.moveTo(X - 0.22, Y - 1.8); ctx.lineTo(X + 0.08, Y - 2.1); ctx.lineTo(X + 0.38, Y - 1.8); ctx.closePath();
-      paint(ctx, C.white, { lw: 0.03 });
+      const k = napper.k();
+      person(ctx, 3.7, 14.8, 0.15, folk(252, { pose: 'sit', dir: 'r', top: C.mustard, style: 'bald', arms: [1.5, 1.4] }), t);
+      bigBook(ctx, 4.35, 14.8, 1.05 - k * 0.55, 1.35, C.green, 'NAPS', 0);
       if (Q.detail) {
-        const k = (t * 0.5) % 1;
-        txt(ctx, X + 0.3 + k * 0.3, Y - 2.4 - k * 0.8, 'Z', 0.35 + k * 0.2, alpha(C.ink, 1 - k));
+        const s = (t * 0.5) % 1;
+        const [X, Y] = P(4.2, 14.6, 2.6 - k * 0.5);
+        txt(ctx, X + 0.3 + s * 0.3, Y - s * 0.8, 'Z', 0.35 + s * 0.2, alpha(C.ink, 1 - s));
       }
     }, { depth: 19.6 });
+    const swans = R.poke({ id: 'swans', at: [4.15, 12.6, 1.45], r: 0.9, say: ['HONK. (Page 212.)', 'HONK.'] });
+    R.goose((t) => {
+      const k = swans.k();
+      return { x: 3.55, y: 12.6, z: 0.75 + 0.3 * k, dir: 'r', hidden: k < 0.3, pose: k > 0.5 && pulse(t, 6) > 0.8 ? 'honk' : 'sit' };
+    }, { bias: 1.4, kind: 'poke', inside: swans, hint: 'Two readers hiding behind big books. One of them has webbed feet.' });
+    R.thing(4.3, 12.6, (ctx, t) => {
+      const k = swans.k();
+      if (k < 0.5) {
+        // orange feet dangling off the front of the seat, swinging a little
+        const sw = Math.sin(t * 1.7) * 0.04;
+        for (const dy of [-0.14, 0.14]) {
+          const [X, Y] = P(4.12, 12.6 + dy, 0.7);
+          ctx.beginPath(); ctx.moveTo(X, Y - 0.12); ctx.lineTo(X + sw, Y + 0.05);
+          ctx.strokeStyle = C.coral; ctx.lineWidth = 0.06; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(X - 0.1 + sw, Y + 0.08); ctx.lineTo(X + 0.12 + sw, Y + 0.1); ctx.lineTo(X + sw, Y + 0.02); ctx.closePath();
+          paint(ctx, C.coral, { lw: 0.025 });
+        }
+      }
+      // the book trembles every so often (somebody is very into swans)
+      const shiver = k < 0.5 && pulse(t, 7) > 0.88 ? Math.sin(t * 30) * 0.03 : 0;
+      bigBook(ctx, 4.2, 12.6 + shiver, 0.95 - k * 0.75, 1.0, C.navy, 'SWANS');
+    }, { anim: true, depth: 3.55 + 12.6 + 1.6 });
 
     // ---------- the paper airplane (a find), and the kid who threw it ----------
     const flight = (t) => {

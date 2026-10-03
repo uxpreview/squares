@@ -1,6 +1,6 @@
 // Noodle Bar: a chef slapping noodles, a wok on fire (on purpose), a couple
 // sharing one very long noodle, a bottomless challenge bowl and a goose who
-// ordered the large.
+// ordered the large (behind a menu: tap it).
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, plant, rng, SKIN,
@@ -196,10 +196,109 @@ function luckyCat(ctx, x, y, z, t) {
   ctx.restore();
 }
 
+// Chopsticks stuck through a bun of hair (person's face hook: drawn in the
+// head's own space, so they follow the head).
+function hairSticks(ctx, hy) {
+  ctx.lineCap = 'round';
+  for (const [a, b] of [[[-0.38, hy - 0.5], [0.22, hy - 0.26]], [[-0.34, hy - 0.28], [0.24, hy - 0.5]]]) {
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke();
+    ctx.strokeStyle = C.wood; ctx.lineWidth = 0.04; ctx.stroke();
+  }
+}
+
+// A teapot shaped like a goose, sitting on the counter at z: a white round
+// body, its spout a goose's neck and head, its handle a tail. Goose sized.
+function gooseTeapot(ctx, x, y, z) {
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  // the handle, curled up like a tail
+  ctx.beginPath(); ctx.arc(-0.42, -0.42, 0.17, Math.PI * 0.4, Math.PI * 1.6);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.06; ctx.stroke();
+  // body and lid
+  ctx.beginPath(); ctx.ellipse(0, -0.34, 0.4, 0.32, 0, 0, Math.PI * 2);
+  paint(ctx, C.white, { dots: C.grey, density: 0.12, lw: 0.04 });
+  ctx.beginPath(); ctx.ellipse(-0.05, -0.38, 0.2, 0.1, -0.2, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(0, -0.66, 0.16, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.arc(0, -0.74, 0.05, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.025 });
+  // the spout: a goose's neck and head
+  ctx.beginPath(); ctx.moveTo(0.3, -0.4); ctx.quadraticCurveTo(0.45, -0.6, 0.42, -0.86);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.19; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.12; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0.42, -0.9, 0.11, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+  ctx.beginPath(); ctx.moveTo(0.5, -0.94); ctx.lineTo(0.72, -0.88); ctx.lineTo(0.5, -0.83); ctx.closePath(); paint(ctx, C.coral, { lw: 0.03 });
+  ctx.beginPath(); ctx.arc(0.45, -0.93, 0.025, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+  // a blue band round its middle, like good china
+  ctx.beginPath(); ctx.ellipse(0, -0.22, 0.37, 0.1, 0, 0.15, Math.PI - 0.15);
+  ctx.strokeStyle = C.navy; ctx.lineWidth = 0.035; ctx.stroke();
+  ctx.restore();
+}
+
+// A big sheet held up in front of someone facing you (a newspaper or a
+// menu), flat to the screen, centred on (x, y), bottom edge at zb.
+function bigPaper(ctx, x, y, zb, h, color, title, news) {
+  const d = 0.36, zt = zb + h;
+  face(ctx, [[x - d, y + d, zb], [x + d, y - d, zb], [x + d, y - d, zt], [x - d, y + d, zt]], color, { lw: 0.04, dots: news ? C.greyLight : shade(color, 0.3), density: 0.15 });
+  // the fold down the middle
+  face(ctx, [[x, y, zb + 0.05], [x, y, zt - 0.05]], null, { lw: 0.03, stroke: alpha(C.ink, 0.6) });
+  const [X, Y] = P(x, y, zt - 0.25);
+  if (news) {
+    if (Q.detail) label(ctx, x, y, zt - 0.22, title, 0.17, C.ink);
+    ctx.fillStyle = alpha(C.ink, 0.45);
+    for (let i = 0; i < 6; i++) for (const s of [-1, 1]) ctx.fillRect(X + s * 0.37 - 0.3, Y + 0.28 + i * 0.16, 0.6, 0.05);
+  } else {
+    ctx.beginPath(); ctx.rect(X - 0.7, Y - 0.22, 1.4, 0.06); ctx.fillStyle = C.mustard; ctx.fill();
+    if (Q.detail) label(ctx, x, y, zt - 0.35, title, 0.26, C.butter);
+    // little bowls drawn on it
+    for (const [dx, dy] of [[-0.35, 0.45], [0.35, 0.45], [-0.35, 0.85], [0.35, 0.85]]) {
+      ctx.beginPath(); ctx.arc(X + dx, Y + dy, 0.13, 0, Math.PI); ctx.closePath(); paint(ctx, C.white, { lw: 0.025 });
+      if (Q.detail) { ctx.beginPath(); ctx.moveTo(X + dx - 0.1, Y + dy - 0.05); ctx.quadraticCurveTo(X + dx, Y + dy - 0.2, X + dx + 0.1, Y + dy - 0.05); ctx.strokeStyle = C.butter; ctx.lineWidth = 0.03; ctx.stroke(); }
+    }
+  }
+}
+
+// A takeaway box (an oyster pail) on the counter at z: flaps folded shut
+// (k 0) or popped open (k 1). fortune: a slip of paper peeks out of the
+// flaps, and a fortune cookie pops up when it opens.
+function takeaway(ctx, x, y, z, k, fortune) {
+  const [X, Y] = P(x, y, z);
+  ctx.beginPath(); ctx.moveTo(X - 0.17, Y); ctx.lineTo(X - 0.24, Y - 0.5); ctx.lineTo(X + 0.24, Y - 0.5); ctx.lineTo(X + 0.17, Y); ctx.closePath();
+  paint(ctx, C.white, { lw: 0.035 });
+  ctx.beginPath(); ctx.rect(X - 0.2, Y - 0.32, 0.4, 0.08); ctx.fillStyle = C.red; ctx.fill();
+  // the wire handle
+  ctx.beginPath(); ctx.arc(X, Y - 0.5, 0.2, Math.PI, 0); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.025; ctx.stroke();
+  if (fortune && k > 0.3) {
+    // the cookie, popped up out of the box with its fortune
+    const up = 0.15 + 0.15 * k;
+    ctx.beginPath();
+    ctx.moveTo(X - 0.2, Y - 0.5 - up); ctx.quadraticCurveTo(X - 0.16, Y - 0.8 - up, X, Y - 0.76 - up); ctx.quadraticCurveTo(X + 0.16, Y - 0.8 - up, X + 0.2, Y - 0.5 - up);
+    ctx.quadraticCurveTo(X, Y - 0.6 - up, X - 0.2, Y - 0.5 - up);
+    paint(ctx, C.mustard, { dots: C.brown, density: 0.2, lw: 0.035 });
+    ctx.beginPath(); ctx.rect(X - 0.02, Y - 0.66 - up, 0.32, 0.07); paint(ctx, C.white, { lw: 0.02 });
+  }
+  // the flaps: folded in to a peak, or thrown open to the sides
+  const a = k * 1.1;
+  for (const f of [-1, 1]) {
+    ctx.save();
+    ctx.translate(X + f * 0.24, Y - 0.5);
+    ctx.rotate(f * a);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-f * 0.24, -0.16); ctx.lineTo(-f * 0.02, -0.04); ctx.closePath();
+    paint(ctx, C.white, { lw: 0.03 });
+    ctx.restore();
+  }
+  if (fortune && k <= 0.3) {
+    // a slip of paper poking out between the flaps
+    ctx.beginPath(); ctx.rect(X - 0.02, Y - 0.72, 0.06, 0.18); paint(ctx, C.white, { lw: 0.02 });
+    ctx.fillStyle = C.red; ctx.fillRect(X - 0.005, Y - 0.69, 0.03, 0.04);
+  }
+}
+
 export default {
   id: 'noodles',
   name: 'Noodle Bar',
-  blurb: 'The noodle challenge has been going for 47 minutes and the bowl is somehow fuller. Nobody has asked the goose on stool six to pay.',
+  blurb: 'The noodle challenge has been going for 47 minutes and the bowl is somehow fuller. Somebody keeps ordering the large, and nobody has asked them to pay.',
 
   build(R) {
     // ---------- room shell ----------
@@ -369,7 +468,11 @@ export default {
     const cups = [C.teal, C.mustard, C.coral, C.teal, C.mustard, C.coral, C.teal];
     const onCounter = [];
     diners.forEach((x, i) => {
-      if (i === 4) { onCounter.push([x, (ctx) => sticks(ctx, x + 0.1, 5.6, CT_H + 0.01, 0.3)]); return; }
+      if (i === 4) {
+        // the newspaper reader's chopsticks, and their teapot (a goose lookalike)
+        onCounter.push([x, (ctx) => { sticks(ctx, x - 0.2, 5.6, CT_H + 0.01, 0.3); gooseTeapot(ctx, x + 0.45, 5.6, CT_H); }]);
+        return;
+      }
       onCounter.push([x, (ctx) => {
         if (i !== 5) cylinder(ctx, x - 0.3, 5.5, CT_H, 0.1, 0.3, cups[i], { flat: true });
         bowl(ctx, x + 0.25, 5.75, CT_H, 0.3, i % 2 ? C.white : C.sky, i % 3 ? C.red : C.navy);
@@ -410,7 +513,7 @@ export default {
       folk(211, { top: C.teal, style: 'bun' }),
       folk(212, { top: C.navy, hat: 'cap' }),
       folk(213, { top: C.mustard, style: 'long' }),
-      folk(214, { top: C.green, style: 'short' }),
+      folk(214, { top: C.green, style: 'bun', hair: C.brown, face: hairSticks }),
       null,
       null,
       folk(216, { top: C.purple, style: 'curly' }),
@@ -483,14 +586,37 @@ export default {
       ctx.restore();
     });
 
-    // The goose, on stool six, in a bib, with the large.
+    // Two diners at the counter hiding behind paper. On stool five, a man
+    // behind his newspaper. On stool six, the goose, in a bib, with the
+    // large, behind a giant menu: a noodle runs from its bowl to behind the
+    // menu and goes in, slurp by slurp. A tap and the menu comes down.
+    const paper = R.poke({ id: 'paper', at: [9.7, STOOL_Y + 0.3, 1.7], r: 0.9, sound: 'tick', hold: 1.5, say: ['Do you MIND.', 'Still reading.', 'No geese here. Move along.'] });
+    R.mover(() => ({ x: 9.4, y: STOOL_Y }), (ctx, t) => {
+      const k = paper.k();
+      person(ctx, 9.4, STOOL_Y, SEAT - 0.73, folk(215, { pose: 'sit', dir: 'r', top: C.lilac, style: 'bald', bottom: C.brown, arms: [1.6, 1.5] }), t);
+      bigPaper(ctx, 9.75, STOOL_Y + 0.35, 1.05 - k * 0.5, 1.35, C.white, 'GOOSE AT LARGE', true);
+    }, { bias: 0.6 });
+    const menu = R.poke({ id: 'menu', at: [11.25, STOOL_Y + 0.35, 1.55], r: 0.9, say: ['MORE!', 'MORE! (Please.)'] });
     const G = 13;
     R.goose((t) => {
-      const s = pulse(t, G) * G;
-      if (s > 9 && s < 10.2) return { x: 10.9, y: STOOL_Y, z: SEAT + 0.02, dir: 'r', pose: 'honk' };
-      return { x: 10.9, y: STOOL_Y, z: SEAT + 0.02, dir: 'r', pose: 'sit' };
-    }, { bias: 0.1 });
+      const s = pulse(t, G) * G, k = menu.k();
+      return { x: 10.9, y: STOOL_Y, z: SEAT + 0.02, dir: 'r', hidden: k < 0.3, pose: s > 9 && s < 10.2 ? 'honk' : 'sit' };
+    }, { bias: 0.1, kind: 'poke', inside: menu, hint: 'Two diners hiding behind paper at the counter. Only one of them is slurping.' });
+    R.thing(11.25, STOOL_Y + 0.35, (ctx, t) => {
+      const k = menu.k();
+      if (k < 0.5 && Q.detail) {
+        // the noodle, from the bowl up over the menu's top and in (slurp by slurp)
+        const q = pulse(t, 3.1);
+        const [bx, by] = P(11.15, 5.75, CT_H + 0.2);
+        const [mx, my] = P(11.1, STOOL_Y + 0.15, 1.95);
+        const from = q < 0.75 ? [bx + (mx - bx) * q * 0.6, by + (my - by) * q * 0.6] : [mx, my];
+        if (q < 0.75) noodles(ctx, from, [mx, my], t, 2, -0.2 * (1 - q), 0.05);
+        if (q > 0.78 && q < 0.95) label(ctx, 11.6, STOOL_Y + 0.4, 2.55, 'SLURP', 0.3, C.red);
+      }
+      bigPaper(ctx, 11.25, STOOL_Y + 0.35, 0.95 - k * 0.95, 1.25 - k * 0.4, C.navy, 'MENU', false);
+    }, { anim: true, depth: 10.9 + STOOL_Y + 0.8 });
     R.mover(() => ({ x: 10.9, y: STOOL_Y }), (ctx, t) => {
+      if (menu.k() < 0.3) return;
       const s = pulse(t, G) * G;
       const honk = s > 9 && s < 10.2;
       const [X, Y] = P(10.9, STOOL_Y, SEAT + 0.02);
@@ -852,23 +978,55 @@ export default {
     R.decor((ctx, t) => luckyCat(ctx, 0.35, 9.1, 3.12, t), { anim: true });
     R.find({ id: 'luckycat', label: 'A lucky cat', at: [0.35, 9.1, 3.55], r: 0.7 });
 
-    // Fortune cookie on the floor by the challenge table.
-    R.rug((ctx) => {
-      const [X, Y] = P(12.3, 15.4, 0.05);
-      ctx.beginPath();
-      ctx.moveTo(X - 0.3, Y); ctx.quadraticCurveTo(X - 0.25, Y - 0.35, X, Y - 0.3); ctx.quadraticCurveTo(X + 0.25, Y - 0.35, X + 0.3, Y);
-      ctx.quadraticCurveTo(X, Y - 0.12, X - 0.3, Y);
-      paint(ctx, C.mustard, { dots: C.brown, density: 0.2, lw: 0.04 });
-      ctx.beginPath(); ctx.rect(X - 0.05, Y - 0.2, 0.42, 0.1); paint(ctx, C.white, { lw: 0.025 });
-    });
-    R.find({ id: 'fortune', label: 'A fortune cookie', at: [12.3, 15.4, 0.15], r: 0.7 });
+    // Two takeaway boxes waiting at the pickup end of the counter. One has a
+    // fortune's slip of paper poking out of its flaps; tap it and the flaps
+    // pop open on a fortune cookie. The other is yesterday's.
+    const BOXES = [[1.95, 5.6], [2.38, 5.85]];
+    const box1 = R.poke({ id: 'takeaway', at: [BOXES[0][0], BOXES[0][1], CT_H + 0.4], r: 0.6 });
+    const box2 = R.poke({ id: 'leftovers', at: [BOXES[1][0], BOXES[1][1], CT_H + 0.4], r: 0.6, hold: 1.5, say: ["Yesterday's noodles.", 'Still cold.', 'Do not open. Again.'] });
+    R.thing(2.7, CT_Y1 + 0.2, (ctx, t) => {
+      takeaway(ctx, BOXES[0][0], BOXES[0][1], CT_H, box1.k(), true);
+      takeaway(ctx, BOXES[1][0], BOXES[1][1], CT_H, box2.k(), false);
+    }, { anim: true, depth: 9.8 });
+    R.find({ id: 'fortune', label: 'A fortune cookie', kind: 'poke', inside: box1, at: [BOXES[0][0], BOXES[0][1], CT_H + 0.75], r: 0.6, hint: 'Two takeaway boxes wait for pickup, and one has a fortune poking out.' });
 
-    // Dropped chopsticks on the floor near the counter.
-    R.rug((ctx) => {
-      sticks(ctx, 5.9, 9.2, 0.02, 0.9, C.red);
-      disc(ctx, 6.3, 9.6, 0.02, 0.18, alpha(C.brown, 0.4), { stroke: false });
+    // Somebody's chopsticks aren't on the floor any more: they're holding up
+    // her bun, at the counter.
+    R.find({ id: 'chopsticks', label: 'A pair of chopsticks', kind: 'hard', at: [7.8, STOOL_Y, 2.25], r: 0.6, riddle: "Holding up somebody's hairdo.", hint: 'One of the diners at the counter has put her hair up with them.' });
+
+    // The kitchen bell on the pass: tap it and the whole kitchen shouts.
+    const bell = R.poke({ id: 'bell', at: [5.0, 5.45, CT_H + 0.15], r: 0.55, sound: 'tick', hold: 0.6, say: ['ORDER UP!', 'ORDER UP AGAIN!', 'Nobody ordered that.'] });
+    R.thing(5.2, CT_Y1 + 0.2, (ctx, t) => {
+      const k = bell.k(), j = k * Math.sin(t * 40) * 0.04;
+      cylinder(ctx, 5.0, 5.45, CT_H, 0.2, 0.05, C.ink);
+      const [X, Y] = P(5.0, 5.45, CT_H + 0.05);
+      ctx.beginPath(); ctx.moveTo(X - 0.18 + j, Y); ctx.quadraticCurveTo(X - 0.17 + j, Y - 0.26, X + j, Y - 0.26); ctx.quadraticCurveTo(X + 0.17 + j, Y - 0.26, X + 0.18 + j, Y); ctx.closePath();
+      paint(ctx, C.mustard, { lw: 0.03 });
+      ctx.beginPath(); ctx.arc(X + j, Y - 0.3 + k * 0.04, 0.05, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
+      if (k > 0.1 && Q.detail) {
+        ctx.strokeStyle = alpha(C.ink, k); ctx.lineWidth = 0.03; ctx.beginPath();
+        for (const f of [-1, 1]) { ctx.moveTo(X + f * 0.28, Y - 0.3); ctx.lineTo(X + f * 0.42, Y - 0.42); }
+        ctx.stroke();
+      }
+    }, { anim: true, depth: 5.2 + CT_Y1 + 0.3 });
+
+    // The goose teapot's spout steams now and then.
+    R.decoy({ id: 'teapot', at: [9.85, 5.6, CT_H + 0.45], r: 0.6, say: ['A teapot. It honks when it boils.', 'Still a teapot.', 'It is not boiling. Yet.'] });
+    R.air((ctx, t) => {
+      if (!Q.detail) return;
+      const k = pulse(t, 6);
+      if (k > 0.4) return;
+      const q = k / 0.4;
+      const [X, Y] = P(9.85 + 0.25, 5.6 - 0.25, CT_H + 0.95 + q * 0.6);
+      ctx.beginPath(); ctx.arc(X + q * 0.2, Y, 0.08 + q * 0.14, 0, Math.PI * 2);
+      ctx.fillStyle = alpha(C.white, 0.85 * (1 - q)); ctx.fill();
+      ctx.strokeStyle = alpha(C.grey, 0.5 * (1 - q)); ctx.lineWidth = 0.025; ctx.stroke();
     });
-    R.find({ id: 'chopsticks', label: 'Dropped chopsticks', at: [5.95, 9.2, 0.05], r: 0.7 });
+
+    // The noodle challenger and the fish tank answer back. The challenger is
+    // big, near the front: a first visit gets nudged to tap him.
+    R.poke({ id: 'challenger', at: [T2[0] - 0.4, T2[1] + 0.4, 1.6], r: 1.1, teach: true, say: ['Not... full... yet.', 'Minute forty-eight.', 'I can see the bottom. No I cannot.'] });
+    R.poke({ id: 'tank', at: [6.0, 15.25, 1.3], r: 0.8, sound: 'clunk', say: ['DO NOT EAT.', 'They are not on the menu.', 'The fish say hi.'] });
 
     // A tip jar and a register at the right end of the counter.
     R.thing(13.5, CT_Y1 + 0.35, (ctx, t) => {
