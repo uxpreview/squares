@@ -1,5 +1,12 @@
 // Roller Disco: a mirror ball, a DJ who calls "REVERSE!" at the worst moment,
 // a rink full of skaters and one skate that left without its owner.
+//
+// Retuned for the difficulty rules (session 10): the goose is crouched behind
+// the DJ booth, plugged into the mixer, and pops up in its headphones when
+// the booth is tapped (poke); the pizza on the deck and the lone skate are
+// spot finds; the earring is small, by the skater who fell (hard). A
+// goose-shaped glitterball is the decoy; the DJ, a jammed skate locker and
+// the show-off in the middle answer a tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor,
   onLeft, onRight, speech, paintText, shade, tint, mix, alpha, Q, P, hash, SKIN,
@@ -437,9 +444,10 @@ export default {
       // laptop with a sticker
       box(ctx, 5.6, 1.5, 1.3, 0.5, 0.5, 0.05, C.greyLight, { lw: 0.03 });
     }, { anim: true });
-    R.find({ id: 'pizza', label: 'A slice of pizza', at: [6.5, 1.95, 1.45], r: 0.7 }); // on the left deck, clear of the goose
+    R.find({ id: 'pizza', label: 'A slice of pizza', kind: 'spot', at: [6.5, 1.95, 1.45], r: 0.7 }); // on the left deck, clear of the goose
 
-    // The DJ, bobbing, calling out the reverse
+    // The DJ, bobbing, calling out the reverse (and on a tap, too)
+    R.poke({ id: 'dj', at: [7.2, 0.8, 2.3], r: 0.8, sound: 'tick', say: ['REVERSE!', 'AND FORWARD!', 'No requests. Ever.'] });
     R.mover(() => ({ x: 7.2, y: 0.8 }), (ctx, t) => {
       const beat = Math.abs(Math.sin(t * Math.PI * 2));
       const s = pulse(t, CYC) * CYC;
@@ -463,16 +471,38 @@ export default {
       }
     }, { bias: -0.2 });
 
-    // The goose: dancing behind the booth, in its own headphones.
+    // The goose: crouched behind the booth, plugged into the mixer (its pink
+    // cable runs over the back edge, twitching to the beat). A tap on the
+    // booth and up it pops, dancing in its own headphones.
+    const booth = R.poke({ id: 'booth', at: [9.4, 1.9, 1.0], r: 0.9 });
     const gpos = (t) => {
+      const k = booth.k();
       const beat = t * 2;
-      const hop = Math.abs(Math.sin(beat * Math.PI));
+      const hop = Math.abs(Math.sin(beat * Math.PI)) * k;
       const big = Math.floor(beat) % 4 === 3;
-      return { x: 8.9, y: 0.8, z: hop * (big ? 0.95 : 0.45), dir: Math.floor(beat / 2) % 2 ? 'l' : 'r', pose: big && hop > 0.6 ? 'honk' : 'stand' };
+      return { x: 9.3, y: 0.85, z: k * 0.9 + hop * (big ? 0.6 : 0.3), dir: Math.floor(beat / 2) % 2 ? 'l' : 'r', pose: k > 0.5 && big && hop > 0.6 ? 'honk' : 'stand', hidden: k < 0.3 };
     };
-    R.goose(gpos, { bias: 0 });
+    R.goose(gpos, { bias: 0, kind: 'poke', inside: booth, hint: "The DJ isn't the only one plugged into that mixer." });
+    // the goose's cable, and a feather drifting up from behind the booth
+    R.thing(10, 2.5, (ctx, t) => {
+      const tw = Math.sin(t * Math.PI * 4) * 0.03;
+      const pts = [[7.9, 1.95, 1.43], [8.6, 1.75, 1.4 + tw], [9.3, 1.5, 1.37 - tw], [9.75, 1.42, 1.34], [9.8, 1.36, 1.1]];
+      ctx.beginPath();
+      pts.forEach((q, i) => { const [X, Y] = P(...q); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.stroke();
+      ctx.strokeStyle = C.pink; ctx.lineWidth = 0.045; ctx.stroke();
+      const k = pulse(t, 7);
+      if (Q.detail && booth.k() < 0.3 && k < 0.4) {
+        const q = k / 0.4;
+        const [X, Y] = P(9.5 + Math.sin(q * 9) * 0.15, 1.0, 1.3 + q * 1.4);
+        ctx.save(); ctx.globalAlpha = Math.sin(q * Math.PI); ctx.translate(X, Y); ctx.rotate(Math.sin(q * 7) * 0.6);
+        ctx.beginPath(); ctx.ellipse(0, 0, 0.06, 0.16, 0.3, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+        ctx.restore();
+      }
+    }, { anim: true, depth: 12.6 });
     R.mover(gpos, (ctx, t, p) => {
-      if (p.pose === 'honk') return;
+      if (p.pose === 'honk' || p.hidden) return;
       const f = p.dir === 'l' ? -1 : 1;
       const [X, Y] = P(p.x, p.y, p.z);
       const hx = X + 0.28 * f, hy = Y - 1.07;
@@ -551,6 +581,30 @@ export default {
       txt(ctx, X, Y - 0.62, '!', 0.45, C.ink);
       txt(ctx, X, Y - 0.25, 'WET', 0.18, C.ink);
     });
+
+    // ---------- skate lockers in the back corner: the middle one is jammed ----------
+    const jam = R.poke({ id: 'locker', at: [1.5, 0.62, 1.2], r: 0.8, hold: 0.8, sound: 'clunk', say: ['Jammed.', 'Still jammed.', 'It smells of feet.'] });
+    R.thing(3.0, 0.62, (ctx, t) => {
+      [C.teal, C.coral, C.lilac].forEach((c, i) => {
+        const x0 = 0.15 + i * 0.9;
+        // the jammed one rattles now and then, and hard when tapped
+        const rat = i === 1 ? Math.sin(t * 40) * (pulse(t, 5) > 0.85 ? 0.02 : 0) + Math.sin(t * 50) * 0.05 * jam.k() : 0;
+        box(ctx, x0 + rat, 0.02, 0, 0.86, 0.6, 2.2, c, { lw: 0.04 });
+        const f = (u, v) => [x0 + rat + u, 0.63, v];
+        face(ctx, [f(0.08, 0.1), f(0.78, 0.1), f(0.78, 2.1), f(0.08, 2.1)], shade(c, 0.12), { lw: 0.03 });
+        if (Q.detail) for (let k = 0; k < 3; k++) face(ctx, [f(0.25, 1.75 - k * 0.12), f(0.6, 1.75 - k * 0.12)], null, { lw: 0.03, stroke: C.ink });
+        face(ctx, [f(0.68, 0.95), f(0.68, 1.25)], null, { lw: 0.06, stroke: C.greyLight });
+        label(ctx, x0 + rat + 0.43, 0.64, 1.45, String(i + 7), 0.2, C.white);
+        if (i === 1) {
+          // a lace caught in the door
+          face(ctx, [f(0.76, 0.6), f(0.86, 0.45), f(0.8, 0.3)], null, { lw: 0.03, stroke: C.white });
+        }
+      });
+    }, { anim: true });
+
+    // ---------- a glitterball in the shape of a goose (a decoy) ----------
+    R.air((ctx, t) => glitterGoose(ctx, t));
+    R.decoy({ id: 'glitter', at: [GG[0], GG[1], GG[2] - 0.5], r: 0.9, say: ['A disco goose. It only spins.', 'Still spinning.', 'Mirrors all the way down.'] });
 
     // ---------- the mirror ball ----------
     R.air((ctx, t) => {
@@ -653,11 +707,15 @@ export default {
       });
     });
 
-    // The show-off spinning in the middle
+    // The show-off spinning in the middle. A tap and she does her jump (the
+    // one a first visit is nudged to tap).
+    const show = R.poke({ id: 'showoff', at: [CX, CY, 1.4], r: 1.0, hold: 1.4, teach: true, say: ['Watch this!', 'Again? Fine.', 'I do this for free.'] });
     R.mover(() => ({ x: CX, y: CY }), (ctx, t) => {
       const spin = Math.floor(t * 6) % 2;
-      const trick = pulse(t, 8) > 0.8;
-      skater(ctx, CX, CY, trick ? Math.sin(pulse(t, 8) * 5 * Math.PI) * 0.4 : 0, folk(110, {
+      const sk = show.k();
+      const trick = pulse(t, 8) > 0.8 || sk > 0.05;
+      const jump = sk > 0.05 ? sk * 0.7 : trick ? Math.sin(pulse(t, 8) * 5 * Math.PI) * 0.4 : 0;
+      skater(ctx, CX, CY, jump, folk(110, {
         pose: trick ? 'cheer' : 'skate', dir: spin ? 'l' : 'r', back: Math.floor(t * 3) % 2 === 1, top: C.lilac, bottom: C.pink, style: 'long', hair: C.pink, speed: 10,
         arms: trick ? undefined : [2.8, -2.8],
       }), t);
@@ -688,7 +746,7 @@ export default {
         ctx.beginPath(); ctx.arc(X2 - 0.3, Y2 - k * 0.4, 0.05, 0, Math.PI * 2); ctx.fill();
       }
     });
-    R.find({ id: 'skate', label: 'A skate with no owner', r: 0.8, at: (t) => { const p = lone(t); return [p.x, p.y, 0.35]; } });
+    R.find({ id: 'skate', label: 'A skate with no owner', kind: 'spot', r: 0.8, at: (t) => { const p = lone(t); return [p.x, p.y, 0.35]; } });
 
     // ---------- the one who just fell over ----------
     R.mover(() => ({ x: 13.5, y: 11.9 }), (ctx, t) => {
@@ -708,15 +766,16 @@ export default {
       skater(ctx, 14.9, 10.6, 0, folk(121, { pose: 'skate', dir: 'l', top: C.coral, speed: 2, arms: [lol ? 2.6 : 0.9, 0.2] }), t);
       if (lol && Q.detail) speech(ctx, 14.9, 10.6, 3.0, 'HA!', { size: 0.45 });
     });
-    // the lost earring (a find), glinting on the floor
+    // The lost earring (a hard find): small, on the floor where she landed,
+    // and it only glints now and then.
     R.rug((ctx, t) => {
       const [X, Y] = P(12.9, 12.7, 0.03);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.16, 0.1, 0.3, 0, Math.PI * 2);
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke();
-      ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.05; ctx.stroke();
-      ctx.beginPath(); ctx.arc(X + 0.02, Y + 0.12, 0.06, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.02 });
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.11, 0.07, 0.3, 0, Math.PI * 2);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.stroke();
+      ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.035; ctx.stroke();
+      ctx.beginPath(); ctx.arc(X + 0.02, Y + 0.09, 0.045, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.02 });
       if (Q.detail) {
-        const g = Math.max(0, Math.sin(t * 2.2));
+        const g = Math.max(0, Math.sin(pulse(t, 6) * Math.PI * 6)) * (pulse(t, 6) < 1 / 6 ? 1 : 0);
         if (g > 0.3) {
           ctx.beginPath();
           ctx.moveTo(X + 0.15 - g * 0.3, Y - 0.1); ctx.lineTo(X + 0.15 + g * 0.3, Y - 0.1);
@@ -725,9 +784,54 @@ export default {
         }
       }
     }, { anim: true });
-    R.find({ id: 'earring', label: 'A lost earring', at: [12.9, 12.7, 0.05], r: 0.6 });
+    R.find({ id: 'earring', label: 'A lost earring', kind: 'hard', at: [12.9, 12.7, 0.05], r: 0.6, riddle: 'Somebody hit the floor. So did their jewelry.', hint: 'Somebody just fell over at the edge of the rink. Look where she landed.' });
   },
 };
+
+// The glitterball goose: where it hangs, its feet's height.
+const GG = [7.0, 12.0, 3.4];
+function glitterGoose(ctx, t) {
+  const [TX, TY] = P(GG[0], GG[1], 9);
+  const [X, Y] = P(GG[0], GG[1], GG[2]);
+  ctx.beginPath(); ctx.moveTo(TX, TY); ctx.lineTo(X, Y - 1.2);
+  ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.04; ctx.stroke();
+  // it turns on its string: squashed side-on, flipped round the back
+  let sx = Math.cos(t * 0.8);
+  if (Math.abs(sx) < 0.35) sx = sx < 0 ? -0.35 : 0.35;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(sx * 1.2, 1.2);
+  const by = -0.45;
+  const shape = () => {
+    ctx.beginPath();
+    ctx.ellipse(0, by, 0.42, 0.24, -0.12, 0, Math.PI * 2);
+    ctx.moveTo(-0.3, by - 0.05); ctx.lineTo(-0.55, by - 0.22); ctx.lineTo(-0.38, by + 0.08); ctx.closePath();
+    ctx.moveTo(0.12, by - 0.05); ctx.quadraticCurveTo(0.24, by - 0.4, 0.18, by - 0.62); ctx.lineTo(0.38, by - 0.62); ctx.quadraticCurveTo(0.42, by - 0.35, 0.34, by - 0.1); ctx.closePath();
+    ctx.moveTo(0.4, by - 0.66); ctx.arc(0.28, by - 0.66, 0.12, 0, Math.PI * 2);
+  };
+  // outline first, then the mirror tiles over its inner half
+  shape(); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.lineJoin = 'round'; ctx.stroke();
+  shape(); ctx.fillStyle = C.grey; ctx.fill();
+  if (Q.detail) {
+    ctx.save(); shape(); ctx.clip();
+    const s = 0.1, f = Math.floor(t * 6);
+    for (let i = -6; i < 6; i++) for (let j = -12; j < 1; j++) {
+      const h = hash(i * 13 + j, (f + i) % 7);
+      ctx.fillStyle = h > 0.85 ? C.white : h > 0.55 ? C.greyLight : h > 0.4 ? GLOWS[(i + j + 12) % GLOWS.length] : C.grey;
+      ctx.fillRect(i * s + 0.012, j * s + 0.012, s - 0.024, s - 0.024);
+    }
+    ctx.restore();
+  }
+  // beak
+  ctx.beginPath(); ctx.moveTo(0.38, by - 0.7); ctx.lineTo(0.6, by - 0.64); ctx.lineTo(0.38, by - 0.58); ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.restore();
+  if (Q.detail) {
+    const k = pulse(t, 1.7);
+    const s = Math.sin(k * Math.PI) * 0.2;
+    if (s > 0.02) star(ctx, X + 0.5 * sx, Y - 0.9 - k * 0.2, s, C.white);
+  }
+}
 
 function label(ctx, x, y, z, text, size, color) {
   const [X, Y] = P(x, y, z);

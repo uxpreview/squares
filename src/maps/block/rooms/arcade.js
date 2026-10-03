@@ -1,6 +1,13 @@
 // Arcade: rows of glowing cabinets, a claw machine with a three-try story,
 // a dance machine, air hockey, a prize counter, and a ticket machine that
 // will not stop paying out.
+//
+// Retuned for the difficulty rules (session 10): the goose sits among the
+// white plush in the claw machine, bonking the claw (hard); the spilled soda
+// is a spot find; the golden ticket is in one of the prize counter's two
+// drawers (poke); the lost token sits on a cabinet's controls among the gold
+// buttons (hard). A pixel goose on the HONK cabinet is the decoy; the claw
+// machine, a cabinet and the photo booth answer a tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab,
   shelfR, onLeft, onRight, paintText, label, speech, shade, tint, mix, alpha, dots, Q, P, hash, rng,
@@ -107,6 +114,9 @@ function screen(ctx, at, kind, t, seed, hi) {
     face(ctx, q(0.08, bv - 0.12, 0.12, bv + 0.12), C.white, { stroke: false });
     face(ctx, q(0.88, 0.5 + Math.sin(t * 2) * 0.25 - 0.12, 0.92, 0.5 + Math.sin(t * 2) * 0.25 + 0.12), C.white, { stroke: false });
     face(ctx, q(bu - 0.03, bv - 0.04, bu + 0.03, bv + 0.04), c2, { stroke: false });
+  } else if (kind === 4) {
+    // HONK: a pixel goose the size of a real one, strutting on the spot
+    pixelGoose(ctx, q, t);
   } else {
     // maze with a chomping dot
     for (let i = 0; i < 5; i++) face(ctx, q(0.12 + i * 0.18, 0.48, 0.16 + i * 0.18, 0.52), C.butter, { stroke: false });
@@ -120,11 +130,48 @@ function screen(ctx, at, kind, t, seed, hi) {
   }
 }
 
+// An 8-bit goose (a decoy), facing right, filling a screen. Rows top down.
+// W white, G grey wing, K eye, O orange (beak and feet), A/B feet by frame.
+const PIXGOOSE = [
+  '......WW....',
+  '.....WWWW...',
+  '.....WKWWOO.',
+  '......WWWOO.',
+  '......WW....',
+  '......WW....',
+  'W....WWW....',
+  'WWWWWWWWW...',
+  '.WWGGGWWW...',
+  '..WWWWWW....',
+  '...A..B.....',
+  '..AA.BB.....',
+];
+function pixelGoose(ctx, q, t) {
+  const n = PIXGOOSE.length, m = PIXGOOSE[0].length;
+  const pu = 0.84 / m, pv = 0.84 / n;
+  const step = Math.floor(t * 3) % 2, bob = step ? pv * 0.5 : 0;
+  const ink = { W: C.white, G: C.greyLight, K: C.ink, O: C.coral, A: C.coral, B: C.coral };
+  PIXGOOSE.forEach((row, j) => {
+    for (let i = 0; i < m; i++) {
+      let ch = row[i];
+      if (ch === '.') continue;
+      // the feet take turns
+      if ((ch === 'A' && step) || (ch === 'B' && !step)) continue;
+      const u = 0.08 + i * pu, v = 0.92 - (j + 1) * pv + (j < 10 ? bob : 0);
+      face(ctx, q(u, v, u + pu * 1.02, v + pv * 1.02), ink[ch], { stroke: false });
+    }
+  });
+}
+
 // Claw machine
 const MX0 = 10.1, MY0 = 0.35, MW = 2.2, MB = 1.1, MT = 3.4;
 const HOME = [MX0 + 0.45, MY0 + MW - 0.45];
 const CLAW_T = 8;
+// The lost token, on MAZE's controls (right wall, second cabinet).
+const TOKEN = [4.25, 1.36, 1.215];
 const TARGETS = [[10.85, 0.95], [11.85, 2.05], [11.0, 1.75]];
+// White bears drawn in front of the goose (it's TARGETS[1]).
+const SNUG = [[11.6, 2.4, MB + 0.05], [12.05, 2.35, MB + 0.08], [12.15, 1.9, MB + 0.05]];
 function clawState(t) {
   const n = Math.floor(t / CLAW_T);
   const s = t - n * CLAW_T;
@@ -154,7 +201,7 @@ const puck = (t) => ({ x: AX0 + 0.45 + tri(t, 2.6) * (AX1 - AX0 - 0.9), y: AY0 +
 export default {
   id: 'arcade',
   name: 'Neon Arcade',
-  blurb: 'Someone set a high score and will not let anyone forget it. The claw machine has a goose in it, and the goose is not a prize.',
+  blurb: 'Someone set a high score and will not let anyone forget it. The claw machine is rigged, says everyone who has lost to it.',
 
   build(R) {
     // Floor: dark carpet with that arcade confetti pattern.
@@ -226,10 +273,23 @@ export default {
 
     // Left-wall cabinets
     const leftCabs = [[1.6, C.coral, 0], [3.0, C.teal, 1], [4.4, C.mustard, 2], [5.8, C.pink, 3], [7.2, C.lilac, 0], [8.6, C.red, 1]];
+    // The last cabinet on the left wants a coin, and says so when tapped.
+    const coin = R.poke({ id: 'insert', at: [1.17, 9.15, 1.85], r: 0.9, hold: 2.5, sound: 'tick', say: ['INSERT COIN', 'INSERT COIN. PLEASE.', 'IT IS ONE TOKEN.'] });
     leftCabs.forEach(([y, col, kind], i) => {
       R.thing(1.2, y + 1.25, (ctx) => cabLBody(ctx, y, col));
       R.thing(1.2, y + 1.25, (ctx, t) => {
         const hi = i === 2 && pulse(t, 9) > 0.6 && pulse(t, 9) < 0.85;
+        if (i === 5 && coin.k() > 0.05) {
+          // tapped: it asks for money, blinking
+          const at = (u, v) => [1.17, y + 1.1 - u * 0.95, 1.4 + v * 0.9];
+          face(ctx, [at(0.04, 0.05), at(0.96, 0.05), at(0.96, 0.95), at(0.04, 0.95)], C.night, { lw: 0.02 });
+          if (Math.floor(t * 3) % 3) {
+            label(ctx, ...at(0.5, 0.66), 'INSERT', 0.2, C.butter, 'Rethink Sans');
+            label(ctx, ...at(0.5, 0.36), 'COIN', 0.2, C.butter, 'Rethink Sans');
+          }
+          label(ctx, 1.41, y + 0.63, 2.85, 'VROOM', 0.26, C.butter);
+          return;
+        }
         screen(ctx, (u, v) => [1.17, y + 1.1 - u * 0.95, 1.4 + v * 0.9], kind, t, i + 2, hi);
         // lit marquee
         const [X, Y] = P(1.41, y + 0.63, 2.85);
@@ -237,14 +297,25 @@ export default {
       }, { anim: true });
     });
     // Right-wall cabinets
-    const rightCabs = [[1.8, C.teal, 2], [3.2, C.coral, 3], [4.6, C.mustard, 0], [6.0, C.lilac, 1], [7.4, C.pink, 2]];
+    // (The last one plays HONK, starring a pixel goose: a decoy.)
+    const rightCabs = [[1.8, C.teal, 2], [3.2, C.coral, 3], [4.6, C.mustard, 0], [6.0, C.lilac, 1], [7.4, C.pink, 4]];
     rightCabs.forEach(([x, col, kind], i) => {
-      R.thing(x + 1.25, 1.2, (ctx) => cabRBody(ctx, x, col));
+      R.thing(x + 1.25, 1.2, (ctx) => {
+        cabRBody(ctx, x, col);
+        // The lost token, left on MAZE's controls by the joystick: gold, and
+        // round, like the buttons next to it (a hard find).
+        if (i === 1) {
+          disc(ctx, TOKEN[0], TOKEN[1], TOKEN[2], 0.075, C.mustard, { lw: 0.025 });
+          disc(ctx, TOKEN[0], TOKEN[1], TOKEN[2] + 0.005, 0.04, null, { lw: 0.015, stroke: shade(C.mustard, 0.4) });
+        }
+      });
       R.thing(x + 1.25, 1.2, (ctx, t) => {
         screen(ctx, (u, v) => [x + 0.15 + u * 0.95, 1.17, 1.4 + v * 0.9], kind, t, i + 11, false);
-        label(ctx, x + 0.63, 1.41, 2.85, ['PONG', 'MAZE', 'ZAP', 'VROOM', 'PONG 3'][i], 0.26, C.butter);
+        label(ctx, x + 0.63, 1.41, 2.85, ['PONG', 'MAZE', 'ZAP', 'VROOM', 'HONK'][i], 0.26, C.butter);
       }, { anim: true });
     });
+    R.decoy({ id: 'pixel', at: [8.03, 1.17, 1.85], r: 0.8, say: ['8-bit. Still not a goose.', 'Game over. Insert goose.'] });
+    R.find({ id: 'token', label: 'A lost token', kind: 'hard', at: TOKEN, r: 0.6, riddle: 'One last go, left with the buttons.', hint: 'Not every gold button on the cabinets is a button.' });
     // floor glow in front of every screen
     R.rug((ctx, t) => {
       if (!Q.detail) return;
@@ -462,8 +533,19 @@ export default {
         ctx.beginPath(); ctx.arc(X, Y - 0.06, 0.07 + r() * 0.04, 0, Math.PI * 2);
         ctx.fillStyle = [C.coral, C.mustard, C.teal, C.white][i % 4]; ctx.fill();
       }
-      label(ctx, 14.3, 3.72, 0.65, 'PRIZES', 0.34, C.white);
+      label(ctx, 14.3, 3.72, 0.88, 'PRIZES', 0.32, C.white);
     });
+    // Two drawers under the counter. One won't quite shut: a gold corner
+    // sticks out of it, and the golden ticket is inside (a poke). The other
+    // is just raffle stubs.
+    const drawers = [
+      [R.poke({ id: 'drawer', at: [13.15, 3.75, 0.4], r: 0.6, sound: 'clunk' }), 12.8, true],
+      [R.poke({ id: 'stubs', at: [15.25, 3.75, 0.4], r: 0.6, sound: 'clunk', say: ['Raffle stubs. Thousands.', 'Still raffle stubs.'] }), 14.9, false],
+    ];
+    R.thing(16, 3.75, (ctx) => {
+      for (const [d, x0, gold] of drawers) drawer(ctx, x0, d.k(), gold);
+    }, { anim: true, depth: 19.75 });
+    R.find({ id: 'goldticket', label: 'A golden ticket', kind: 'poke', inside: drawers[0][0], at: [13.15, 4.05, 0.6], r: 0.6, hint: 'The prize counter has two drawers, and one of them will not quite shut.' });
     R.mover(() => ({ x: 14.1, y: 2.2 }), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, folk(460, { pose: pulse(t, 6) < 0.3 ? 'point' : 'stand', dir: 'l', top: C.teal, hat: 'cap', style: 'bun' }), t);
     });
@@ -487,6 +569,9 @@ export default {
     const PILE = [];
     { const r = rng(31); for (let i = 0; i < 18; i++) PILE.push([MX0 + 0.95 + (i % 5) * 0.28 + r() * 0.1 - (Math.floor(i / 5) % 2) * 0.14, MY0 + 0.35 + Math.floor(i / 5) * 0.42 + r() * 0.1, MB + 0.05 + r() * 0.12, [C.pink, C.teal, C.mustard, C.lilac, C.coral, C.sky, C.leaf][i % 7]]); }
     for (let i = PILE.length - 1; i >= 0; i--) if (Math.hypot(PILE[i][0] - TARGETS[1][0], PILE[i][1] - TARGETS[1][1]) < 0.45) PILE.splice(i, 1);
+    // The goose's end of the machine is all white bears, so it sits among them
+    // as one more white toy.
+    for (const p of PILE) if (Math.hypot(p[0] - TARGETS[1][0], p[1] - TARGETS[1][1]) < 0.85) p[3] = C.white;
     const nearest = (tx, ty) => PILE.reduce((b, p, i) => (Math.hypot(p[0] - tx, p[1] - ty) < Math.hypot(PILE[b][0] - tx, PILE[b][1] - ty) ? i : b), 0);
     const grabbed = TARGETS.map(([x, y]) => nearest(x, y));
     R.thing(MX0 + 0.6, MY0 + 0.6, (ctx, t) => {
@@ -507,6 +592,8 @@ export default {
         const z = (MT - 0.35 - 0.45) + (MB + 0.1 - (MT - 0.8)) * clamp(k * k * 1.6);
         plush(ctx, x, y, z, PILE[grabbed[0]][3], 0.8);
       }
+      // white bears heaped in front of the goose, up to its chest
+      for (const [bx, by, bz] of SNUG) plush(ctx, bx, by, bz, C.white, 0.8);
       // gantry rails
       face(ctx, [[MX0 + 0.1, st.y, MT - 0.15], [MX0 + MW - 0.1, st.y, MT - 0.15]], null, { lw: 0.06, stroke: C.grey });
       box(ctx, st.x - 0.14, st.y - 0.14, MT - 0.25, 0.28, 0.28, 0.12, C.grey);
@@ -554,12 +641,15 @@ export default {
       const win = st.att === 2 && st.s > 6.5;
       person(ctx, p.x, p.y, 0, folk(471, { pose: win ? 'cheer' : 'stand', dir: 'l', scale: 0.74, top: C.coral, arms: win ? undefined : [0.2, 2.6] }), t);
     });
-    // The goose, sitting among the plush and bonking the claw away.
+    // The goose, sitting among the white plush and bonking the claw away
+    // when it comes for her (a hard find: one more white toy, until it honks).
     R.goose((t) => {
       const st = clawState(t);
       const honk = st.att === 1 && st.s > 3.0 && st.s < 5.5;
-      return { x: 11.85, y: 2.05, z: MB + 0.12, dir: 'l', pose: honk ? 'honk' : 'sit' };
-    }, { bias: 0.1, scale: 1 });
+      return { x: 11.85, y: 2.05, z: MB + 0.05, dir: 'l', pose: honk ? 'honk' : 'sit' };
+    }, { bias: 0.1, scale: 1, kind: 'hard', hint: 'Not every white toy in the claw machine is a prize. One of them bites.' });
+    // The machine itself answers back.
+    R.poke({ id: 'claw', at: [MX0 + 1.4, MY0 + MW, 0.55], r: 0.8, sound: 'clunk', say: ['RIGGED.', 'Still rigged.', 'Three tries. One miracle.'] });
 
     // Overflowing bin between the cabinets and the claw
     R.thing(9.75, 2.4, (ctx) => {
@@ -591,6 +681,8 @@ export default {
     }, { anim: true });
 
     // Photo booth: two pairs of feet, a curtain, a flash, a strip of photos.
+    // A tap sets the flash off (the one a first visit is nudged to tap).
+    const booth = R.poke({ id: 'photos', at: [15.0, 11.3, 1.5], r: 1.1, hold: 0.6, teach: true, sound: 'tick', say: ['SAY CHEESE!', 'Blinked. Again.', 'Lovely. Framing that one.'] });
     R.thing(15.9, 11.4, (ctx, t) => {
       const x0 = 14.1, x1 = 15.9, y0 = 9.3, y1 = 11.3;
       box(ctx, x0, y0, 0, x1 - x0, y1 - y0, 3.0, C.teal, { left: shade(C.teal, 0.1) });
@@ -598,7 +690,8 @@ export default {
       label(ctx, (x0 + x1) / 2, y1 + 0.05, 3.2, 'PHOTOS', 0.28, C.ink);
       // opening on the front (+y) face with a flash spilling out
       const k = pulse(t, 4.2);
-      face(ctx, [[x0 + 0.3, y1 + 0.01, 0.35], [x1 - 0.3, y1 + 0.01, 0.35], [x1 - 0.3, y1 + 0.01, 2.6], [x0 + 0.3, y1 + 0.01, 2.6]], k < 0.08 ? C.white : C.night);
+      const flash = k < 0.08 || booth.k() > 0.3;
+      face(ctx, [[x0 + 0.3, y1 + 0.01, 0.35], [x1 - 0.3, y1 + 0.01, 0.35], [x1 - 0.3, y1 + 0.01, 2.6], [x0 + 0.3, y1 + 0.01, 2.6]], flash ? C.white : C.night);
       // two pairs of feet under the curtain
       for (const [fx, c] of [[x0 + 0.6, C.coral], [x0 + 0.95, C.ink], [x0 + 1.25, C.pink], [x0 + 1.5, C.ink]]) {
         const [X, Y] = P(fx, y1 + 0.02, 0.1);
@@ -610,6 +703,15 @@ export default {
       for (let i = 0; i <= 8; i++) pts.push([x0 + 0.3 + i * 0.15 + (i % 2 ? sw : 0), y1 + 0.05, 2.6]);
       for (let i = 8; i >= 0; i--) pts.push([x0 + 0.3 + i * 0.15 + sw * 2, y1 + 0.05, 0.55]);
       face(ctx, pts, C.red, { dots: shade(C.red, 0.4), density: 0.25 });
+      // tapped: the flash goes off through the curtain
+      const bk = booth.k();
+      if (bk > 0.05) {
+        face(ctx, pts, alpha(C.white, 0.75 * bk), { stroke: false });
+        const [FX, FY] = P((x0 + x1) / 2, y1 + 0.1, 1.6);
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; ctx.moveTo(FX + Math.cos(a) * 1.2, FY + Math.sin(a) * 1.2); ctx.lineTo(FX + Math.cos(a) * (1.2 + bk * 0.6), FY + Math.sin(a) * (1.2 + bk * 0.6)); }
+        ctx.strokeStyle = C.butter; ctx.lineWidth = 0.08; ctx.lineCap = 'round'; ctx.stroke();
+      }
       // the strip of photos, slides out after each flash
       const out = clamp((k - 0.2) / 0.3) * (1 - clamp((k - 0.9) / 0.1));
       if (out > 0) {
@@ -683,7 +785,7 @@ export default {
         hold: (c) => { c.beginPath(); c.moveTo(-0.1, -0.05); c.lineTo(0.3, -0.05); c.lineTo(0.25, 0.35); c.lineTo(-0.05, 0.35); c.closePath(); paint(c, C.red, { dots: C.white, density: 0.5, lw: 0.02 }); c.beginPath(); c.arc(0.1, -0.08, 0.14, Math.PI, 0); c.fillStyle = C.butter; c.fill(); } }), t);
     });
 
-    // Finds: a spilled soda, a lost token, a golden ticket.
+    // A spilled soda, in plain sight (a spot find).
     R.rug((ctx) => {
       const [X, Y] = P(10.7, 14.6, 0.01);
       ctx.beginPath();
@@ -700,34 +802,36 @@ export default {
       ctx.beginPath(); ctx.moveTo(0.22, 0); ctx.lineTo(0.55, 0.05); ctx.strokeStyle = C.pink; ctx.lineWidth = 0.05; ctx.stroke();
       ctx.restore();
     });
-    R.find({ id: 'soda', label: 'A spilled soda', at: [10.8, 14.7, 0.1], r: 0.8 });
+    R.find({ id: 'soda', label: 'A spilled soda', kind: 'spot', at: [10.8, 14.7, 0.1], r: 0.8 });
 
-    R.rug((ctx, t) => {
-      const [X, Y] = P(6.4, 3.6, 0.02);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.17, 0.09, 0, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.03 });
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.08, 0.04, 0, 0, Math.PI * 2); ctx.strokeStyle = shade(C.mustard, 0.4); ctx.lineWidth = 0.02; ctx.stroke();
-      const k = pulse(t, 3.1);
-      if (k < 0.2 && Q.detail) {
-        ctx.save(); ctx.globalAlpha = 1 - k * 5;
-        ctx.beginPath(); ctx.moveTo(X + 0.1, Y - 0.35); ctx.lineTo(X + 0.1, Y - 0.05); ctx.moveTo(X - 0.05, Y - 0.2); ctx.lineTo(X + 0.25, Y - 0.2);
-        ctx.strokeStyle = C.white; ctx.lineWidth = 0.04; ctx.stroke(); ctx.restore();
-      }
-    }, { anim: true });
-    R.find({ id: 'token', label: 'A lost token', at: [6.4, 3.6, 0.05], r: 0.6 });
-
-    R.rug((ctx, t) => {
-      const [X, Y] = P(12.9, 10.2, 0.02);
-      ctx.save(); ctx.translate(X, Y); ctx.rotate(0.35);
-      ctx.beginPath(); ctx.rect(-0.3, -0.13, 0.6, 0.26); paint(ctx, C.mustard, { dots: C.butter, density: 0.5, lw: 0.03 });
-      ctx.beginPath(); ctx.rect(-0.22, -0.06, 0.44, 0.12); ctx.strokeStyle = shade(C.mustard, 0.35); ctx.lineWidth = 0.02; ctx.stroke();
-      ctx.restore();
-      const k = pulse(t, 2.3);
-      if (k < 0.25 && Q.detail) {
-        ctx.save(); ctx.globalAlpha = 1 - k * 4;
-        ctx.beginPath(); ctx.moveTo(X - 0.2, Y - 0.45); ctx.lineTo(X - 0.2, Y - 0.1); ctx.moveTo(X - 0.37, Y - 0.27); ctx.lineTo(X - 0.03, Y - 0.27);
-        ctx.strokeStyle = C.white; ctx.lineWidth = 0.05; ctx.stroke(); ctx.restore();
-      }
-    }, { anim: true });
-    R.find({ id: 'goldticket', label: 'A golden ticket', at: [12.9, 10.2, 0.05], r: 0.7 });
   },
 };
+
+// A drawer in the prize counter's front (the face at y 3.7), x0 its left
+// edge: shut (k 0) or slid out toward you (k 1). gold: the one with the
+// golden ticket, a corner of which sticks out of the gap while it's shut.
+function drawer(ctx, x0, k, gold) {
+  const w = 0.7, z0 = 0.2, h = 0.3, fy = 3.7, d = k * 0.6;
+  if (d > 0.02) {
+    // the part slid out: the inside, then what's in it
+    box(ctx, x0, fy, z0, w, d, h, shade(C.pink, 0.15), { top: C.night, lw: 0.03 });
+    if (gold) ticket(ctx, x0 + 0.35, fy + d * 0.5, z0 + h + 0.02, 0.2);
+    else for (let i = 0; i < 4; i++) ticket(ctx, x0 + 0.15 + i * 0.14, fy + d * 0.5 + (i % 2) * 0.08, z0 + h + 0.02, 0.1 * i - 0.2, C.coral);
+  }
+  face(ctx, [[x0, fy + d + 0.01, z0], [x0 + w, fy + d + 0.01, z0], [x0 + w, fy + d + 0.01, z0 + h], [x0, fy + d + 0.01, z0 + h]], tint(C.pink, 0.2), { lw: 0.03 });
+  const [X, Y] = P(x0 + w / 2, fy + d + 0.02, z0 + h / 2);
+  ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+  if (gold && d <= 0.02) {
+    // a gold corner caught in the gap
+    face(ctx, [[x0 + 0.42, fy + 0.02, z0 + h], [x0 + 0.62, fy + 0.02, z0 + h], [x0 + 0.56, fy + 0.03, z0 + h + 0.12]], C.mustard, { lw: 0.025 });
+  }
+}
+// A ticket lying flat at (x, y, z), turned by a.
+function ticket(ctx, x, y, z, a = 0, color = C.mustard) {
+  const [X, Y] = P(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.rotate(a);
+  ctx.beginPath(); ctx.rect(-0.22, -0.08, 0.44, 0.16);
+  paint(ctx, color, { dots: color === C.mustard ? C.butter : null, density: 0.5, lw: 0.025 });
+  if (color === C.mustard) { ctx.beginPath(); ctx.rect(-0.16, -0.04, 0.32, 0.08); ctx.strokeStyle = shade(C.mustard, 0.35); ctx.lineWidth = 0.015; ctx.stroke(); }
+  ctx.restore();
+}
