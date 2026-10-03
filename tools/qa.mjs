@@ -571,11 +571,12 @@ try {
           if (Math.hypot(g.sx - f.sx, g.sy - f.sy) < 26) warn('screen', `${where}: "${f.label}" and "${g.label}" are within ${Math.round(Math.hypot(g.sx - f.sx, g.sy - f.sy))}px of each other.`);
         }
       }
-      // A tap goes to a find before anything that answers back, so a decoy
-      // (or a poke) with a find's tap area over it can't be tapped at all:
-      // the ship's cucumber lizard sat under the shrimp tower's top, and every
-      // tap on it found the shrimp. (Finds inside a poke only count while it's
-      // open, so they're left out.)
+      // A tap goes to a find before anything that answers back, so a poke
+      // with a find's tap area over it can't be tapped there. A decoy wins a
+      // tap that's nearer it than the find, so only one on the very same spot
+      // as a find fails (the ship's cucumber lizard sat right under the shrimp
+      // tower's top). (Finds inside a poke only count while it's open, so
+      // they're left out.)
       const stolen = await p.evaluate((id) => {
         const s = window.__squares, z = s.world.zones.find((x) => x.id === id), t = s.clock.now();
         const at = (o) => { const [x, y, h] = typeof o.at === 'function' ? o.at(t) : o.at; return s.camera.toScreen(z.anchor[0] + x - y, z.anchor[1] - z.lift + (x + y) / 2 - h * 1.12); };
@@ -586,7 +587,8 @@ try {
           for (const f of z.finds) {
             if (f.inside || (f.when && !f.when(t))) continue;
             const [fx, fy] = at(f);
-            if (Math.hypot(fx - px, fy - py) < Math.max(f.r * s.cam.z, 22)) out.push({ poke: pk.id, decoy: pk.decoy, find: f.goose ? 'The goose' : f.label });
+            const d = Math.hypot(fx - px, fy - py);
+            if (pk.decoy ? d < 8 : d < Math.max(f.r * s.cam.z, 22)) out.push({ poke: pk.id, decoy: pk.decoy, find: f.goose ? 'The goose' : f.label });
           }
         }
         return out;
@@ -595,7 +597,8 @@ try {
         const key = `${kind}/${id}/${x.poke}/${x.find}`;
         if (stolenSeen.has(key)) continue;
         stolenSeen.add(key);
-        const msg = `${zone.name} (${kind}): a tap on the ${x.decoy ? 'decoy' : 'poke'} "${x.poke}" finds "${x.find}" instead; move one of them apart.`;
+        const msg = x.decoy ? `${zone.name} (${kind}): the decoy "${x.poke}" is on the same spot as "${x.find}", so a tap can't tell them apart; move one of them.`
+          : `${zone.name} (${kind}): a tap on the poke "${x.poke}" finds "${x.find}" instead; move one of them apart.`;
         if (x.decoy) { screenOk = false; fail('screen', msg); } else warn('screen', msg);
       }
       // Tap every thing here (geese at the very end: the last one finishes the place).

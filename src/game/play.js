@@ -1230,11 +1230,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
 
   // The poke (or decoy) under a screen point, if any: the nearest, in the
   // room you're in or one you can see into.
-  function pokeAtScreen(sx, sy, t) {
+  function pokeAtScreen(sx, sy, t, decoys = false) {
     let best = null, bestD = Infinity;
     for (const zone of world.zones) {
       if (lifted(zone) || !zone.pokes.length || (zone.shelled && zone.shellK > 0.5)) continue;
       for (const pk of zone.pokes) {
+        if (decoys && !pk.decoy) continue;
         const d = screenGap(zone, pk, sx, sy, t);
         if (d < Math.max(pk.r * cam.z, 22) && d < bestD) { best = { zone, pk }; bestD = d; }
       }
@@ -1247,9 +1248,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const t = clock();
     const zoomedIn = cam.z >= zoneModeZ();
     if (zoomedIn) {
-      const hit = findAtScreen(sx, sy, t);
-      // (A find wins over the thing it's in, or next to.)
-      const pk = hit ? null : pokeAtScreen(sx, sy, t);
+      let hit = findAtScreen(sx, sy, t);
+      // (A find wins over the thing it's in, or next to. Not over a decoy,
+      // which never holds anything: a tap nearer the lookalike than the real
+      // thing is the lookalike's, or a decoy beside its goose gives it away.)
+      const dk = hit && pokeAtScreen(sx, sy, t, true);
+      if (dk && screenGap(dk.zone, dk.pk, sx, sy, t) < screenGap(hit.zone, hit.f, sx, sy, t)) hit = null;
+      const pk = hit ? null : dk || pokeAtScreen(sx, sy, t);
       const at = hit || pk;
       if (at) {
         if (hit) markFound(hit.zone, hit.f);

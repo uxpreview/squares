@@ -821,6 +821,32 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   }
 }
 
+// ---------- A decoy beside its goose (phone) ----------
+{
+  // The Dawn Bakery's goose queues beside the concrete porch goose: on a phone
+  // their tap areas overlap, and a tap on the decoy must still be the decoy's.
+  const page = await fresh({ width: 390, height: 844 }, () => localStorage.clear());
+  await page.goto(base + '#/block/bakery');
+  await ready(page);
+  await wait(page, 1600);
+  await S(page, () => { document.getElementById('story').hidden = true; window.__squares.clock.freeze(6); });
+  await wait(page, 300);
+  const spots = await S(page, () => {
+    const s = window.__squares, z = s.world.zones.find((q) => q.id === 'bakery'), t = s.clock.now();
+    const at = (o) => { const [x, y, h] = typeof o.at === 'function' ? o.at(t) : o.at; return s.camera.toScreen(z.anchor[0] + x - y, z.anchor[1] - z.lift + (x + y) / 2 - h * 1.12); };
+    return { porch: at(z.pokes.find((p) => p.id === 'porch')), goose: at(z.finds.find((f) => f.goose)) };
+  });
+  const apart = Math.hypot(spots.porch[0] - spots.goose[0], spots.porch[1] - spots.goose[1]);
+  await page.mouse.click(...spots.porch);
+  await wait(page, 300);
+  const r = await S(page, () => ({ decoys: window.__squares.play.debug.decoys, goose: window.__squares.store.isFound('block', 'bakery:goose') }));
+  check('a tap on a decoy beside its goose is the decoy\'s, even with their tap areas overlapping', apart < 22 && r.decoys === 1 && !r.goose, JSON.stringify({ apart: Math.round(apart), ...r }));
+  await page.mouse.click(...spots.goose);
+  await wait(page, 300);
+  check('and a tap on the goose beside it finds the goose', await S(page, () => window.__squares.store.isFound('block', 'bakery:goose')));
+  await page.close();
+}
+
 // ---------- 6. The rules of finding: pokes, decoys, earned hints (phone) ----------
 {
   const page = await fresh({ width: 390, height: 844 }, () => localStorage.clear());
