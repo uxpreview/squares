@@ -575,7 +575,7 @@ function bigPoster(ctx, x, y) {
   label(ctx, x, y, 2.18, 'HAVE YOU SEEN', 0.14, C.ink);
   label(ctx, x, y, 1.98, 'THIS GOOSE?', 0.18, C.red);
   goose(ctx, x, y, 0.75, 0, { pose: 'stand', dir: 'r' });
-  if (Q.detail) label(ctx, x, y, 0.64, 'reward: bread', 0.11, C.ink, 'Rethink Sans');
+  if (Q.detail) label(ctx, x, y, 0.64, 'answers to Geraldine', 0.1, C.ink, 'Rethink Sans');
 }
 
 // Today's headline, on a board on the pavement.
@@ -677,7 +677,7 @@ export default {
     // ---------- Lamp posts ----------
     for (const [x, y] of LAMPS) streetLamp(R, x, y, POSTERS.some(([px, py]) => px === x && py === y));
     R.thing(EDGE + 0.78, 72.18, (ctx) => bigPoster(ctx, EDGE + 0.76, 72.16));
-    R.decoy({ id: 'poster', at: [EDGE + 0.76, 72.16, 1.3], r: 0.8, say: ["A poster. She's still at large.", 'Still a poster.', 'Reward: bread. Stale.'] });
+    R.decoy({ id: 'poster', at: [EDGE + 0.76, 72.16, 1.3], r: 0.8, say: ["A poster. She's still at large.", 'Answers to Geraldine. Not to you.', 'Reward: bread. Stale.'] });
 
     // ---------- The phone box ----------
     R.thing(PB.x + PB.w, PB.y + PB.d, (ctx) => phoneBox(ctx));

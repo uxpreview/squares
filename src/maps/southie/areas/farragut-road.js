@@ -321,7 +321,7 @@ function goosePoster(ctx, x, y) {
   lettering(ctx, 'x', x, y + 0.07, z + 0.38, 'HAVE YOU SEEN', 0.1, C.ink, 'Bagel Fat One');
   lettering(ctx, 'x', x, y + 0.07, z + 0.25, 'THIS GOOSE?', 0.1, C.ink, 'Bagel Fat One');
   if (Q.detail) goose(ctx, x - 0.12, y + 0.08, z - 0.35, 0, { scale: 0.42, dir: 'r' });
-  lettering(ctx, 'x', x, y + 0.07, z - 0.42, 'ANSWERS TO HONK', 0.065, C.red);
+  lettering(ctx, 'x', x, y + 0.07, z - 0.42, 'ANSWERS TO GERALDINE', 0.06, C.red);
 }
 // A streetlight (the kit's), standing on the sidewalk.
 const streetlight = (ctx, x, y, lit = false) => kitLight(ctx, x, y, G, lit);

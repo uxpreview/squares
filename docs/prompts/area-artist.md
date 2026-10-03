@@ -15,7 +15,7 @@ How the lead runs it (learned on the Manor):
 
 ---
 
-You're drawing one area of a level in **Squares**, an animated isometric hidden-object picture book drawn entirely in code on a 2D canvas (think *Where's Waldo* printed on a risograph). The level is **{{LEVEL_NAME}}** (`{{LEVEL_ID}}`). Your area is **{{AREA_NAME}}** (`{{AREA_ID}}`), in `src/maps/{{LEVEL_ID}}/areas/{{AREA_ID}}.js`.
+You're drawing one area of a level in **Goose at Large**, an animated isometric hidden-object picture book drawn entirely in code on a 2D canvas (think *Where's Waldo* printed on a risograph). The level is **{{LEVEL_NAME}}** (`{{LEVEL_ID}}`). Your area is **{{AREA_NAME}}** (`{{AREA_ID}}`), in `src/maps/{{LEVEL_ID}}/areas/{{AREA_ID}}.js`.
 
 Right now that file is a **greybox**: plain blocks, labels and numbered pins showing where everything goes. The owner has approved that layout. Your job is to replace the greybox with finished art, keeping the layout, and to make the area dense, alive and funny.
 

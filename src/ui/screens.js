@@ -22,13 +22,27 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   const thumbs = new Map(); // mapId -> rendered canvas
 
   // ---------- Title ----------
+  // A line at a time, word by word (as a place's name is), each letter its
+  // own span so they drop in one after another.
   el.wordmark.setAttribute('aria-label', config.name);
-  el.wordmark.replaceChildren(...[...config.name].map((ch, i) => {
-    const s = document.createElement('span');
-    s.setAttribute('aria-hidden', 'true');
-    s.textContent = ch;
-    s.style.setProperty('--i', i);
-    return s;
+  let li = 0;
+  el.wordmark.replaceChildren(...(config.wordmark || [config.name]).map((text) => {
+    const line = document.createElement('span');
+    line.className = 'line';
+    line.setAttribute('aria-hidden', 'true');
+    text.split(' ').forEach((w, wi) => {
+      if (wi) { const sp = document.createElement('span'); sp.className = 'sp'; line.append(sp); }
+      const word = document.createElement('span');
+      word.className = 'word';
+      for (const ch of w) {
+        const s = document.createElement('span');
+        s.textContent = ch;
+        s.style.setProperty('--i', li++);
+        word.append(s);
+      }
+      line.append(word);
+    });
+    return line;
   }));
   el.tagline.textContent = config.tagline;
   if (config.backLink) {

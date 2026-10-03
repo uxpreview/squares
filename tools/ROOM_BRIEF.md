@@ -1,6 +1,6 @@
-# Squares: brief for drawing a zone
+# Goose at Large: brief for drawing a zone
 
-Squares is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on the Block Party, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three or four objects the player taps to circle with a pen, some in plain sight, some inside things that open when tapped, one or two hard.
+Goose at Large is an animated isometric hidden-object picture book (a "wimmelbild", like r/wimmelbilder or Where's Waldo, drawn in a risograph / halftone print style). The game is made of **places** (maps), and each place is made of **zones**: a room on the Block Party, a floor of The Walk-Up. You zoom into a zone, and there are tiny people doing funny things everywhere. Every zone hides a loose goose plus three or four objects the player taps to circle with a pen, some in plain sight, some inside things that open when tapped, one or two hard.
 
 Everything is drawn in code on a canvas. Nothing is static: every zone should be crawling with life.
 

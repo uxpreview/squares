@@ -4,7 +4,7 @@ The lead sends this to one agent after every area's art has landed (see [PROCESS
 
 ---
 
-You're the art director for **{{LEVEL_NAME}}** (`{{LEVEL_ID}}`), a level of **Squares**: an animated isometric hidden-object picture book drawn entirely in code, in a risograph print style. Several artists have each drawn one area in parallel. Your job is to look at the whole level at once and make it one piece of work: one plate, one hand, one story.
+You're the art director for **{{LEVEL_NAME}}** (`{{LEVEL_ID}}`), a level of **Goose at Large**: an animated isometric hidden-object picture book drawn entirely in code, in a risograph print style. Several artists have each drawn one area in parallel. Your job is to look at the whole level at once and make it one piece of work: one plate, one hand, one story.
 
 ## Read first
 

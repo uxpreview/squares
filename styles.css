@@ -116,10 +116,12 @@ html, body {
 }
 .wordmark span,
 .place-name span { display: inline-block; }
+.wordmark .line { display: block; white-space: nowrap; }
+.wordmark .sp,
 .place-name .sp { width: 0.28em; }
 .place-name .word { white-space: nowrap; }
 /* Letters drop in one after another. main.js sets --i on each. */
-body[data-ready] .wordmark span,
+body[data-ready] .wordmark span:not(.line):not(.word),
 body[data-ready] .place-name span:not(.word) {
   animation: letter 0.7s cubic-bezier(.2, 1.5, .4, 1) both;
   animation-delay: calc(var(--i, 0) * 0.04s);
@@ -226,7 +228,7 @@ button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   pointer-events: none;
 }
 .title > * { pointer-events: auto; }
-.wordmark { font-size: clamp(64px, 20vw, 128px); white-space: nowrap; }
+.wordmark { font-size: clamp(56px, 19vw, 120px); }
 .title-tagline {
   max-width: 22em;
   margin: 22px 0 0;

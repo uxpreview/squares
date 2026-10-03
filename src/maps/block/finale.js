@@ -71,7 +71,7 @@ export function conga(R) {
       if (k > 5) { const sz = z + 0.45 + Math.min(1, (k - 5) / 1.2) * 0.7; lostSock(ctx, px - py, (px + py) / 2 - sz * 1.12); }
     }
     if (!Q.detail) return;
-    const say = k < 3 ? 'G. Goose?' : k < 5.5 ? 'Sign here.' : k < 10 ? 'It\'s a sock.' : 'Happy Block Party!';
+    const say = k < 3 ? 'G. Goose?' : k < 5.5 ? 'Sign here, Geraldine.' : k < 10 ? 'It\'s a sock.' : 'Happy Block Party!';
     speech(ctx, x, y, z + 3, say, { size: 0.5 });
   }, { bias: 0.5 });
 }

@@ -18,7 +18,10 @@
 
 import { HINTS } from './rules.js';
 
-const KEY = 'squares.save.v4';
+// The game was called Squares until session 11: its saves were under
+// squares.*, and a v4 save there moves here as it is (same shape, same version).
+const KEY = 'goose.save.v4';
+const OLD_KEY = 'squares.save.v4';
 const V = 4;
 
 function blank() {
@@ -77,13 +80,15 @@ function moved(data) {
 }
 
 function load() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const d = JSON.parse(raw);
-      if (d && d.v === V) return moved({ ...blank(), ...d, settings: { ...blank().settings, ...d.settings } });
-    }
-  } catch {}
+  for (const key of [KEY, OLD_KEY]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && d.v === V) return moved({ ...blank(), ...d, settings: { ...blank().settings, ...d.settings } });
+      }
+    } catch {}
+  }
   return moved(migrate());
 }
 

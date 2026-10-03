@@ -66,7 +66,7 @@ if (mode === 'prepare') {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: SCALE, ...(DESKTOP ? {} : { isMobile: true, hasTouch: true }) });
   // The list tucked away, as a player hunting would have it.
-  await ctx.addInitScript(() => { try { localStorage.clear(); localStorage.setItem('squares.tray.v1', 'hidden'); } catch {} });
+  await ctx.addInitScript(() => { try { localStorage.clear(); localStorage.setItem('goose.tray.v1', 'hidden'); } catch {} });
   const page = await ctx.newPage();
   await page.goto(`http://localhost:${server.httpServer.address().port}/#/${level}`);
   await page.waitForFunction(() => window.__squares && window.__squares.world, null, { timeout: 30000 });
