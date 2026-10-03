@@ -41,6 +41,16 @@ function stick(ctx, a, b, color, w = 0.06) {
   if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.05; ctx.stroke(); }
   ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke();
 }
+// A path round the outline of some world points (their convex hull on screen).
+function hull(ctx, pts) {
+  const q = pts.map((p) => P(...p)).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], hi = [];
+  for (const p of q) { while (lo.length > 1 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of q.slice().reverse()) { while (hi.length > 1 && cross(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+  const ring = lo.slice(0, -1).concat(hi.slice(0, -1));
+  ctx.beginPath(); ring.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y))); ctx.closePath();
+}
 // Lettering on a plane along x, facing the lower left (kit's lettering()).
 const letters = (ctx, x, y, z, text, size, ink = C.ink, font = FONT) => lettering(ctx, 'x', x, y, z, text, size, ink, font);
 // Someone drawn standing (or wading, when the water's over their feet).
@@ -328,7 +338,7 @@ export default {
       for (let y = 2.4; y < 4.6; y += 0.7) box(ctx, 20.5, y, z - 0.1, 0.08, 0.08, 0.2, shade(C.wood, 0.25), { flat: true, stroke: false });
       box(ctx, 20.4, 2.2, z, 0.6, 2.5, 0.08, C.woodLight, { flat: true, lw: 0.03 });
       if (Q.detail) { ctx.strokeStyle = shade(C.woodLight, 0.3); ctx.lineWidth = 0.02; ctx.beginPath(); for (let y = 2.5; y < 4.7; y += 0.3) { const [a, b] = P(20.4, y, z + 0.08), [c, d] = P(21, y, z + 0.08); ctx.moveTo(a, b); ctx.lineTo(c, d); } ctx.stroke(); }
-      board(ctx, 'x', 20.7, 4.72, z + 0.75, 1.3, 0.36, 'GONE CLAMMING', { size: 0.18, font: FONT, board: C.butter });
+      board(ctx, 'x', 20.7, 4.72, z + 0.75, 1.7, 0.36, 'GONE CLAMMING', { size: 0.17, font: FONT, board: C.butter });
       box(ctx, 20.66, 4.62, z, 0.08, 0.08, 0.6, C.wood, { flat: true, lw: 0.03 });
     }
     // (Aground most of the day, a still picture; live once it floats.)
@@ -677,12 +687,12 @@ export default {
         const z = h(p.x, p.y);
         if (!p.seg.sit) { body(ctx, p.x, p.y, z, coupleLooks[i], { pose: 'walk', dir: p.dir, back: p.back }, t); return; }
         person(ctx, p.x, p.y, z - 0.2, { ...coupleLooks[i], pose: 'sit', dir: 'r', back: true, arms: [0.4, 0.3] }, t);
-        // The chair, in front of them from here.
+        // The chair, in front of them from here (its back square behind theirs).
         const cc = [C.coral, C.teal][i];
-        stick(ctx, [p.x - 0.3, p.y + 0.35, z], [p.x + 0.3, p.y - 0.2, z + 0.35], C.greyLight, 0.03);
-        stick(ctx, [p.x + 0.3, p.y + 0.35, z], [p.x - 0.3, p.y - 0.2, z + 0.35], C.greyLight, 0.03);
-        face(ctx, [[p.x - 0.3, p.y + 0.3, z + 0.3], [p.x + 0.3, p.y + 0.3, z + 0.3], [p.x + 0.3, p.y + 0.24, z + 0.78], [p.x - 0.3, p.y + 0.24, z + 0.78]], cc, { lw: 0.035, dots: shade(cc, 0.4), density: 0.2 });
-        if (Q.detail) face(ctx, [[p.x - 0.1, p.y + 0.3, z + 0.3], [p.x + 0.1, p.y + 0.3, z + 0.3], [p.x + 0.1, p.y + 0.24, z + 0.78], [p.x - 0.1, p.y + 0.24, z + 0.78]], C.white, { stroke: false });
+        stick(ctx, [p.x - 0.05, p.y + 0.35, z], [p.x + 0.55, p.y - 0.2, z + 0.35], C.greyLight, 0.03);
+        stick(ctx, [p.x + 0.55, p.y + 0.35, z], [p.x - 0.05, p.y - 0.2, z + 0.35], C.greyLight, 0.03);
+        face(ctx, [[p.x - 0.05, p.y + 0.3, z + 0.35], [p.x + 0.55, p.y + 0.3, z + 0.35], [p.x + 0.55, p.y + 0.22, z + 1.05], [p.x - 0.05, p.y + 0.22, z + 1.05]], cc, { lw: 0.035, dots: shade(cc, 0.4), density: 0.2 });
+        if (Q.detail) face(ctx, [[p.x + 0.15, p.y + 0.3, z + 0.35], [p.x + 0.35, p.y + 0.3, z + 0.35], [p.x + 0.35, p.y + 0.22, z + 1.05], [p.x + 0.15, p.y + 0.22, z + 1.05]], C.white, { stroke: false });
       });
     });
 
@@ -695,7 +705,7 @@ export default {
         face(ctx, [[x0, y, z], [x1, y, z], [x1, y + 0.3, z], [x0, y + 0.3, z]], tint(C.woodLight, 0.1), { lw: 0.03 });
       }
     });
-    const launchSign = notice(null, 38.6, 27.6, ['KAYAK LAUNCH', 'HIGH TIDE ONLY', 'OTHERWISE, MUD'], { w: 2.1, size: 0.24, board: C.white, head: C.coral });
+    const launchSign = notice(null, 38.6, 27.6, ['KAYAK LAUNCH', 'HIGH TIDE ONLY', 'OTHERWISE, MUD'], { w: 2.5, size: 0.24, board: C.white, head: C.coral });
     R.thing(39.7, 27.7, (ctx) => {
       const z = h(37.6, 27.2);
       for (const [dx, dy] of [[0, 0], [1.6, 0], [0, 0.6], [1.6, 0.6]]) box(ctx, 36.8 + dx, 26.6 + dy, z, 0.1, 0.1, 1.4, C.wood, { flat: true, lw: 0.03 });
@@ -774,7 +784,7 @@ export default {
     // sticks out of the brush. A tap drops the front flap. Out in front of
     // the gunner's blind, his wooden decoy, sat on the mud at low water and
     // floating at high.
-    signpost(R, 29, 19.4, 'BIRDS ONLY', { w: 1.3, h: 0.42, post: 0.75, size: 0.22, font: FONT, board: C.white });
+    signpost(R, 28.3, 19.4, 'BIRDS ONLY', { w: 1.3, h: 0.42, post: 0.75, size: 0.22, font: FONT, board: C.white });
     R.thing(31.6, 22.4, (ctx) => tufts(ctx, [[27.6, 19.2, 5], [28.2, 21.9, 4], [31.4, 21.6, 5], [30.2, 18.6, 4], [29, 22.2, 3]]));
     const HAY = mix(C.mustard, C.woodLight, 0.45), HAYD = shade(HAY, 0.3);
     const BF = 1.05, BW = 0.95; // the blinds' floor, over the king tide, and their brush walls
@@ -822,8 +832,12 @@ export default {
         ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(FX, FY); ctx.lineTo(FX + sw, FY + 0.3); ctx.stroke();
         ctx.strokeStyle = C.coral; ctx.lineWidth = 0.07; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(FX - 0.14 + sw, FY + 0.32); ctx.lineTo(FX + 0.2 + sw, FY + 0.3); ctx.lineTo(FX + 0.02 + sw, FY + 0.46); ctx.closePath();
-        paint(ctx, C.coral, { lw: 0.03 });
+        // A webbed foot, toes spread: three toes and the web between them.
+        const fx = FX + sw, fy = FY + 0.3;
+        ctx.beginPath(); ctx.moveTo(fx, fy);
+        ctx.lineTo(fx - 0.17, fy + 0.13); ctx.quadraticCurveTo(fx - 0.09, fy + 0.11, fx - 0.04, fy + 0.18);
+        ctx.quadraticCurveTo(fx + 0.02, fy + 0.13, fx + 0.1, fy + 0.18); ctx.quadraticCurveTo(fx + 0.13, fy + 0.11, fx + 0.22, fy + 0.11);
+        ctx.closePath(); paint(ctx, C.coral, { lw: 0.03 });
       }
       // The tail tip, up over the brush at the back.
       if (k < 0.35) {
@@ -839,7 +853,10 @@ export default {
     R.thing(BLIND_B.x + 0.2, BLIND_B.y + 0.2, (ctx) => blindBack(ctx, BLIND_B));
     R.thing(BLIND_B.x + BLIND_B.w, BLIND_B.y + BLIND_B.d, (ctx, t) => {
       const k = blindB.k(), { x, y, w, d } = BLIND_B;
+      // (Clipped to the blind, floor up, so his boots don't poke out under it.)
+      ctx.save(); hull(ctx, [[x, y, BF], [x + w, y, BF], [x + w, y + d, BF], [x, y + d, BF], [x, y, BF + 3], [x + w, y, BF + 3], [x + w, y + d, BF + 3], [x, y + d, BF + 3]]); ctx.clip();
       person(ctx, x + 0.75, y + 0.55, BF - 0.75, { ...gunner, pose: 'sit', dir: 'r', arms: [0.4, 0.35] }, 0);
+      ctx.restore();
       blindFront(ctx, BLIND_B, k);
       // His thermos, steaming on the rim.
       cylinder(ctx, x + w - 0.25, y + 0.25, BF + BW, 0.08, 0.26, C.red, { flat: true });
@@ -858,7 +875,10 @@ export default {
       const [x, y, z] = decoyAt(t), afloat = level(t) > h(...DEC);
       const [X, Y] = P(x, y, z);
       // The anchor line, off to its weight.
-      stick(ctx, [x - 0.3, y, z + 0.05], [x - 1.1, y + 0.5, h(x - 1.1, y + 0.5)], C.ink, 0.02);
+      // (Off to the back, away from the clammers walking by, to its lead weight.)
+      const ax = x - 0.9, ay = y - 0.6, az = h(ax, ay);
+      stick(ctx, [x - 0.3, y, z + 0.05], [ax, ay, az + 0.05], C.ink, 0.02);
+      if (level(t) < az) disc(ctx, ax, ay, az + 0.04, 0.08, C.grey, { lw: 0.02 });
       // The keel block under it.
       ctx.beginPath(); ctx.ellipse(X, Y - 0.02, 0.4, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.wood, { lw: 0.03 });
       ctx.save(); ctx.translate(X, Y); ctx.rotate(afloat ? 0.04 * Math.sin(t * 1.3) : -0.08); ctx.translate(-X, -Y);

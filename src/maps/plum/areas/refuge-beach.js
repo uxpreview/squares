@@ -336,15 +336,14 @@ export default {
       const k = nest.k();
       hide(ctx, HA[0], HA[1], t, k);
       if (k > 0.4) return;
-      // The tell: a white tail tip out of the right side, a foot under the flap.
-      const g = h(...HA), [X, Y] = P(HA[0] + 0.55, HA[1] - 0.1, g + 0.45);
-      ctx.beginPath(); ctx.moveTo(X - 0.02, Y - 0.16); ctx.quadraticCurveTo(X + 0.2, Y - 0.2, X + 0.42, Y - 0.36); ctx.quadraticCurveTo(X + 0.32, Y - 0.04, X - 0.02, Y + 0.12); ctx.closePath();
-      paint(ctx, C.white, { lw: 0.035 });
-      if (Q.detail) { ctx.beginPath(); ctx.moveTo(X + 0.04, Y - 0.04); ctx.lineTo(X + 0.26, Y - 0.2); ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.03; ctx.stroke(); }
-      // A webbed foot, three toes, out under the flap.
-      const [fx, fy] = P(HA[0] + 0.1, HA[1] + 0.58, Math.max(g, level(t)) + 0.02);
-      ctx.beginPath(); ctx.moveTo(fx - 0.06, fy - 0.05); ctx.lineTo(fx + 0.26, fy - 0.02); ctx.lineTo(fx + 0.2, fy + 0.07); ctx.lineTo(fx + 0.24, fy + 0.15); ctx.lineTo(fx + 0.08, fy + 0.1); ctx.lineTo(fx - 0.08, fy + 0.06); ctx.closePath();
-      paint(ctx, C.coral, { lw: 0.03 });
+      // The tell: a white tail tip out through the right side, a foot under the flap.
+      // (Both drawn on the ground's planes, so they stick out of the tent, not onto it.)
+      const g = h(...HA), xr = HA[0] + 0.55, ty = HA[1] - 0.1, wag = 0.03 * Math.sin(t * 1.6);
+      shape(ctx, [[xr, ty - 0.2, g + 0.58], [xr + 0.28, ty - 0.12, g + 0.66 + wag], [xr + 0.5, ty - 0.06, g + 0.78 + wag], [xr + 0.36, ty + 0.02, g + 0.6 + wag], [xr, ty + 0.12, g + 0.36]], C.white, { lw: 0.035 });
+      if (Q.detail) shape(ctx, [[xr + 0.3, ty - 0.08, g + 0.68 + wag], [xr + 0.5, ty - 0.06, g + 0.78 + wag], [xr + 0.38, ty - 0.01, g + 0.64 + wag]], C.greyLight, { stroke: false });
+      // A webbed foot, flat on the sand, three toes spread toward you.
+      const fx = HA[0] + 0.12, fy = HA[1] + 0.5, fz = Math.max(g, level(t)) + 0.02;
+      shape(ctx, [[fx - 0.04, fy, fz], [fx - 0.2, fy + 0.3, fz], [fx - 0.06, fy + 0.26, fz], [fx + 0.02, fy + 0.38, fz], [fx + 0.1, fy + 0.25, fz], [fx + 0.26, fy + 0.28, fz], [fx + 0.06, fy, fz]], C.coral, { lw: 0.03 });
     }, { anim: true, depth: HA[0] + HA[1] });
     // The goose, on its nest in the doorway, honking now and then once it's
     // been found out. At the king tide it floats in there.

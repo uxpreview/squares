@@ -387,8 +387,8 @@ export default {
     // a back, and now and then the white flag of its tail.)
     R.thing(dx, dy, (ctx, t) => deer(ctx, dx, dy, h(dx, dy), t), { anim: true });
     R.thing(dx + 0.7, dy + 0.7, (ctx) => {
-      bush(ctx, dx - 0.2, dy + 0.8, h(dx, dy + 0.7), 1.08, BUSH[0]);
-      bush(ctx, dx + 0.8, dy + 0.6, h(dx + 0.7, dy + 0.5), 0.98, BUSH[1]);
+      bush(ctx, dx - 0.2, dy + 0.8, h(dx, dy + 0.7), 1.3, BUSH[0]);
+      bush(ctx, dx + 0.8, dy + 0.6, h(dx + 0.7, dy + 0.5), 1.2, BUSH[1]);
     });
 
     // ---------- Signs along the refuge road ----------
@@ -701,7 +701,7 @@ export default {
     const snapper = folk(245, { top: KHAKI, bottom: C.brown, hat: 'sun', wear: vest });
     R.thing(qx + 1.3, qy + 0.9, (ctx) => {
       const x = qx + 1.1, y = qy + 0.6;
-      who(ctx, x, y, qz, { ...snapper, arms: [1.9, 1.7] }, null, { pose: 'stand', dir: 'r', back: true });
+      // (The lens points away from you, so it goes in first, behind his head.)
       const a = P(x + 0.15, y - 0.15, qz + 1.8), b = P(x + 0.5, y - 0.6, qz + 1.92), c = P(x + 0.62, y - 0.76, qz + 1.95);
       ctx.lineCap = 'butt';
       ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
@@ -709,10 +709,11 @@ export default {
       ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.2; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(...b); ctx.lineTo(...c);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.36; ctx.stroke();
+      who(ctx, x, y, qz, { ...snapper, arms: [1.9, 1.7] }, null, { pose: 'stand', dir: 'r', back: true });
     }, { on: (t) => { const hr = hour(t); return hr >= 5.6 && hr < 20.95; } });
     // A couple strolling the boardwalk; they stop to watch the sunset.
     const stroll = route([[23.4, 30, 3], [29.4, 30, 5]], { loop: false, speed: 0.55 });
-    [[0, 247, 0], [0.9, 249, 0.28]].forEach(([lag, s, off]) => {
+    [[0, 247, 0], [1.8, 249, 0.28]].forEach(([lag, s, off]) => {
       const look = folk(s);
       R.mover((t) => {
         const tt = sunsetWatch(t) ? at(19.8) : t, p = stroll(tt - lag);
@@ -859,7 +860,7 @@ export default {
     const out = (t) => { const hr = hour(t); return hr >= 22.4 || hr < 1.3; };
     [[0, 251], [0.9, 253]].forEach(([lag, s], i) => {
       const look = folk(s, { top: i ? C.navy : C.purple });
-      R.mover((t) => { const p = sneak(t - lag); return { ...p, x: p.x + (i ? 0.35 : 0) }; }, (ctx, t, p) => {
+      R.mover((t) => { const p = sneak(t - lag); return { ...p, x: p.x + (i ? 0.4 : -0.15), y: p.y + (i ? 0.45 : 0) }; }, (ctx, t, p) => {
         if (!out(t)) return;
         const z = onL(p.x, p.y);
         who(ctx, p.x, p.y, z, look, null, { pose: p.moving ? 'walk' : p.pose, dir: p.dir, back: p.back }, t);

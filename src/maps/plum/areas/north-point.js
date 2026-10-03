@@ -488,7 +488,7 @@ export default {
     const hz = footing(R, 97, 27.4, 2.4, 2);
     house(R, 97, 27.4, 2.4, 2, 4, { ridge: 'x' });
     R.thing(99.42, 29.42, (ctx) => {
-      notice(ctx, 'x', 98.2, 29.43, hz + 1.95, 1.3, 0.32, [['THE REEL DEAL', 0.18, C.navy]], { board: C.white, font: 'Bagel Fat One' });
+      notice(ctx, 'x', 97.95, 29.43, hz + 1.95, 1.5, 0.32, [['THE  REEL  DEAL', 0.18, C.navy]], { board: C.white, font: 'Bagel Fat One' });
       if (Q.detail) for (const [x, lean] of [[99.0, 0.25], [99.15, 0.4], [99.28, 0.3]]) line(ctx, [[x, 29.5, hz], [x - lean, 29.5, hz + 2.3]], C.ink, 0.04);
     });
     // Two outdoor shower stalls in front of the house, both always in use.
@@ -510,17 +510,19 @@ export default {
       post(ctx, x0 + 0.1, SY + 0.1, sz, 2.15, C.grey, 0.06);
       disc(ctx, x0 + 0.25, SY + 0.25, sz + 2.15, 0.12, C.grey, { lw: 0.03 });
     };
+    // (The pipe stands in the back corner: drawn first, so the walls and
+    // whoever's in there go in front of it.)
     const stall = (ctx, x0) => {
       box(ctx, x0, SY, sz + GAP, 0.8, 0.8, SH, C.woodLight, { flat: true, lw: 0.04, top: alpha(C.woodLight, 0) });
       slats(ctx, x0);
       // The door's latch.
       face(ctx, [[x0 + 0.62, SY + 0.8, sz + 1.05], [x0 + 0.7, SY + 0.8, sz + 1.05], [x0 + 0.7, SY + 0.8, sz + 1.2], [x0 + 0.62, SY + 0.8, sz + 1.2]], C.ink, { stroke: false });
-      head(ctx, x0);
     };
     const drops = (ctx, t, x0) => {
       if (Q.detail) for (let i = 0; i < 5; i++) { const k = (t * 1.6 + i / 5) % 1; disc(ctx, x0 + 0.3 + (i % 2) * 0.1, SY + 0.22 + (i % 3) * 0.1, sz + 2.05 - k * 0.5, 0.03, C.sky, { stroke: false }); }
     };
     R.thing(A0 + 0.8, SY + 0.8, (ctx, t) => {
+      head(ctx, A0);
       man(ctx, A0 + 0.4, SY + 0.4, sz, { ...showerer, arms: [2.8 + Math.sin(t * 5) * 0.2, -2.6] }, { pose: 'stand', dir: 'l' }, t);
       stall(ctx, A0);
       drops(ctx, t, A0);
@@ -530,6 +532,7 @@ export default {
     const shower = R.poke({ id: 'stall', at: [B0 + 0.4, SY + 0.8, sz + 0.8], r: 0.7, sound: 'clunk' });
     R.thing(B0 + 0.8, SY + 0.8, (ctx, t) => {
       const k = shower.k();
+      if (k < 0.05) head(ctx, B0);
       drops(ctx, t, B0);
       if (k < 0.05) {
         stall(ctx, B0);
@@ -738,13 +741,16 @@ export default {
       R.thing(x + 0.62, y + 0.62, (ctx, t) => legs(ctx, level(t)), { anim: true, on: (t) => !legsDry(t) });
       R.thing(x + 0.63, y + 0.64, (ctx) => {
         box(ctx, x - 0.52, y - 0.52, deck, 1.04, 1.04, 0.14, C.white, { flat: true, lw: 0.04 });
+        // The umbrella's pole (behind the seat and the sea stand's back
+        // board, so its lettering stays in front), the rescue can hanging off the side.
+        const pole = () => post(ctx, x, sea ? y - 0.46 : y + 0.46, deck, 2.2, C.white, 0.07);
+        if (sea) pole();
         box(ctx, x - 0.42, y - 0.3, deck + 0.14, 0.84, 0.5, 0.3, C.white, { flat: true, lw: 0.035 });
+        if (!sea) pole();
         if (sea) {
           box(ctx, x - 0.46, y - 0.52, deck + 0.14, 0.92, 0.12, 1.15, C.coral, { flat: true, lw: 0.04 });
           write(ctx, 'x', x, y - 0.4, deck + 0.95, 'GUARD', 0.26, C.white, 'Bagel Fat One');
         }
-        // The umbrella's pole, the rescue can hanging off the side.
-        post(ctx, x, sea ? y - 0.46 : y + 0.46, deck, 2.2, C.white, 0.07);
         const [rx, ry, rz2] = [x + 0.56, y + 0.3, deck - 0.35];
         box(ctx, rx - 0.08, ry - 0.3, rz2, 0.16, 0.6, 0.16, C.coral, { flat: true, lw: 0.03 });
       });
