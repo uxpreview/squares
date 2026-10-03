@@ -474,7 +474,7 @@ export default {
     // The goose: crouched behind the booth, plugged into the mixer (its pink
     // cable runs over the back edge, twitching to the beat). A tap on the
     // booth and up it pops, dancing in its own headphones.
-    const booth = R.poke({ id: 'booth', at: [9.4, 1.9, 1.0], r: 0.9 });
+    const booth = R.poke({ id: 'booth', at: [9.6, 1.6, 0.9], r: 1.3 }); // (reaches the tail at its end)
     const gpos = (t) => {
       const k = booth.k();
       const beat = t * 2;
@@ -483,6 +483,20 @@ export default {
       return { x: 9.3, y: 0.85, z: k * 0.9 + hop * (big ? 0.6 : 0.3), dir: Math.floor(beat / 2) % 2 ? 'l' : 'r', pose: k > 0.5 && big && hop > 0.6 ? 'honk' : 'stand', hidden: k < 0.3 };
     };
     R.goose(gpos, { bias: 0, kind: 'poke', inside: booth, hint: "The DJ isn't the only one plugged into that mixer." });
+    // What a still frame shows of it: the tip of a white tail and one orange
+    // foot, out past the booth's end, there all the time while it hides.
+    R.thing(10.15, 1.0, (ctx, t) => {
+      if (booth.k() >= 0.3) return;
+      const wag = Math.sin(t * Math.PI * 4) * 0.04;
+      const [FX, FY] = P(10.0, 1.22, 0);
+      ctx.beginPath(); ctx.moveTo(FX - 0.12, FY - 0.04); ctx.lineTo(FX + 0.32, FY - 0.1); ctx.lineTo(FX + 0.27, FY + 0.12); ctx.lineTo(FX - 0.1, FY + 0.07); ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.035 });
+      const [X, Y] = P(9.9, 1.15, 0.34);
+      ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.3 + wag); ctx.scale(1.35, 1.35);
+      ctx.beginPath(); ctx.moveTo(-0.1, -0.13); ctx.quadraticCurveTo(0.22, -0.12, 0.4, -0.3); ctx.lineTo(0.3, 0.02); ctx.quadraticCurveTo(0.12, 0.12, -0.1, 0.12); ctx.closePath();
+      paint(ctx, C.white, { dots: Q.detail ? C.grey : null, density: 0.1, lw: 0.035 });
+      ctx.restore();
+    }, { anim: true });
     // the goose's cable, and a feather drifting up from behind the booth
     R.thing(10, 2.5, (ctx, t) => {
       const tw = Math.sin(t * Math.PI * 4) * 0.03;

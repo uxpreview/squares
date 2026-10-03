@@ -142,11 +142,11 @@ function gnome(ctx, x, y, z, s = 0.55) {
   ctx.restore();
 }
 
-function wateringCan(ctx, x, y, z, s = 1) {
+function wateringCan(ctx, x, y, z, s = 1, flip = false) {
   const [X, Y] = P(x, y, z);
   ctx.save();
   ctx.translate(X, Y);
-  ctx.scale(s, s);
+  ctx.scale(flip ? -s : s, s);
   // spout
   ctx.beginPath();
   ctx.moveTo(0.25, -0.2); ctx.lineTo(0.72, -0.62); ctx.lineTo(0.78, -0.55); ctx.lineTo(0.3, -0.1);
@@ -191,8 +191,9 @@ function snail(ctx, X, Y, s, shell, num, bob = 0, stripe, turn = 0) {
     ctx.save();
     ctx.translate(-0.05, -0.34);
     ctx.rotate(-turn);
-    ctx.beginPath(); ctx.arc(0, 0, 0.19, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-    txt(ctx, 0, 0.01, num, 0.28, C.coral);
+    // a big race bib, so the number reads pinched in
+    ctx.beginPath(); ctx.arc(0, 0, 0.25, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+    txt(ctx, 0, 0.02, num, 0.4, C.red);
     ctx.restore();
   } else if (Q.detail) {
     ctx.beginPath();
@@ -283,7 +284,7 @@ function tierSeg(ctx, y0, y1, seed, skip) {
         const k = r();
         const pc = pick(r, [TERRA, TERRA, C.white, C.coral, C.mustard]);
         if (k < 0.3) flowerPot(ctx, x0 + 0.4, yy, z, pick(r, [C.pink, C.coral, C.lilac, C.mustard, C.red]), pc, 0.5);
-        else plant(ctx, x0 + 0.4, yy, z, 0, { kind: pick(r, ['leafy', 'spiky', 'bush', 'cactus', 'fern']), scale: 0.4 + r() * 0.18, potColor: pc, leaf: pick(r, [C.green, C.leaf, C.teal]) });
+        else plant(ctx, x0 + 0.4, yy, z, 0, { kind: pick(r, ['leafy', 'spiky', 'bush', 'palm', 'fern']), scale: 0.4 + r() * 0.18, potColor: pc, leaf: pick(r, [C.green, C.leaf, C.teal]) });
       }
       yy += 0.55 + r() * 0.2;
     }
@@ -617,17 +618,21 @@ export default {
 
     // Two big pots upturned by the ladder. The watering can is under one, its
     // spout poking out under the rim (a poke); the other is woodlice.
-    const potA = R.poke({ id: 'pot', at: [10.9, 4.3, 0.5], r: 0.8, sound: 'clunk' });
-    const potB = R.poke({ id: 'pot2', at: [8.5, 3.0, 0.5], r: 0.8, sound: 'clunk', say: ['Woodlice. Hundreds.', 'Still woodlice. Busy ones.'] });
+    const potA = R.poke({ id: 'pot', at: [10.8, 4.4, 0.45], r: 1.2, sound: 'clunk' });
+    const potB = R.poke({ id: 'pot2', at: [8.5, 3.0, 0.45], r: 1.0, sound: 'clunk', say: ['Woodlice. Hundreds.', 'Still woodlice. Busy ones.'] });
     R.thing(10.9, 4.3, (ctx) => {
       const k = potA.k();
-      if (k > 0.02) wateringCan(ctx, 10.85, 4.3, 0, 0.8);
+      if (k > 0.02) wateringCan(ctx, 10.85, 4.3, 0, 0.8, true);
       else {
-        // the spout's tip, out under the rim
+        // The spout, out under the rim on the path side, where the deckchair
+        // can't hide it: a teal stalk and its rose, with a damp patch under it.
         const [X, Y] = P(10.9, 4.3, 0);
-        ctx.beginPath(); ctx.moveTo(X + 0.62, Y - 0.08); ctx.lineTo(X + 0.95, Y - 0.3); ctx.lineTo(X + 1.0, Y - 0.24); ctx.lineTo(X + 0.7, Y + 0.0); ctx.closePath();
-        paint(ctx, C.teal, { lw: 0.04 });
-        ctx.beginPath(); ctx.ellipse(X + 0.98, Y - 0.28, 0.05, 0.08, -0.8, 0, Math.PI * 2); paint(ctx, C.tealLight, { lw: 0.03 });
+        ctx.beginPath(); ctx.ellipse(X - 1.12, Y + 0.12, 0.26, 0.09, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.sky, 0.55); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(X - 0.6, Y + 0.02); ctx.lineTo(X - 1.12, Y - 0.36); ctx.lineTo(X - 1.04, Y - 0.46); ctx.lineTo(X - 0.52, Y - 0.12); ctx.closePath();
+        paint(ctx, C.teal, { lw: 0.045 });
+        ctx.beginPath(); ctx.ellipse(X - 1.12, Y - 0.43, 0.08, 0.13, 0.8, 0, Math.PI * 2); paint(ctx, C.tealLight, { lw: 0.04 });
+        ctx.fillStyle = C.ink;
+        for (const [dx, dy] of [[-0.03, -0.03], [0.03, 0.02], [0, 0.08], [0.02, -0.08]]) { ctx.beginPath(); ctx.arc(X - 1.12 + dx, Y - 0.43 + dy, 0.016, 0, Math.PI * 2); ctx.fill(); }
       }
       upPot(ctx, 10.9, 4.3, k);
     }, { anim: true });

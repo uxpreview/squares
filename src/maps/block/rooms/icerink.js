@@ -949,7 +949,7 @@ export default {
       const tw = alongX ? w * 0.6 : w, td = alongX ? d : d * 0.6;
       return { x: tx + tw / 2, y: ty + td / 2, tx, ty, tw, td, hx, hy };
     };
-    const lid = R.poke({ id: 'tank', at: (t) => { const k = tank(t); return [k.x, k.y, 1.7]; }, r: 1.0, sound: 'clunk', say: ['HONK.', 'HONK. (Faster.)'] });
+    const lid = R.poke({ id: 'tank', at: (t) => { const k = tank(t); return [k.x, k.y, 1.6]; }, r: 1.4, sound: 'clunk', say: ['HONK.', 'HONK. (Faster.)'] });
     R.mover(machine, (ctx, t, p) => {
       const [hx, hy] = heading(t);
       const alongX = Math.abs(hx) > Math.abs(hy);
@@ -976,13 +976,29 @@ export default {
       if (k < 0.5) {
         const bump = pulse(t, 5) > 0.9 ? Math.sin(t * 20) * 0.04 + 0.04 : 0;
         rect(ctx, tx + 0.1, ty + 0.1, tw - 0.2, td - 0.2, 1.62 + bump, C.teal, { lw: 0.035, dots: shade(C.teal, 0.3), density: 0.2 });
-        // the scarf's end, trailing out over the tank's side and flapping
-        const ex = tx + tw / 2 - hx * (tw / 2 - 0.05), ey = ty + td / 2 - hy * (td / 2 - 0.05);
-        const flap = Math.sin(t * 10) * 0.06;
-        const [SX, SY] = P(ex, ey, 1.6);
-        const [EX, EY] = P(ex - hx * 0.45, ey - hy * 0.45, 1.25 + flap);
-        ctx.beginPath(); ctx.moveTo(SX - 0.08, SY); ctx.lineTo(EX - 0.07, EY); ctx.lineTo(EX + 0.07, EY + 0.06); ctx.lineTo(SX + 0.08, SY); ctx.closePath();
-        paint(ctx, C.red, { dots: C.white, density: 0.35, lw: 0.03 });
+        // The scarf, a long striped one, out from under the lid's corner on
+        // the side facing us, over the machine's side and streaming out
+        // behind in its wind, fringe and all. There in any still frame: no
+        // snowman or skater has a scarf like it.
+        const [sx0, sy0] = Math.abs(hy) > Math.abs(hx) ? [1, 0] : [0, 1]; // the near side
+        const ex = tx + tw / 2 - hx * (tw / 2 - 0.25) + sx0 * (tw / 2 - 0.05), ey = ty + td / 2 - hy * (td / 2 - 0.25) + sy0 * (td / 2 - 0.05);
+        const wave = (i) => Math.sin(t * 10 - i * 1.6) * 0.07 * i;
+        const pts = [[0, 0, 1.64], [0.15, 0.25, 1.45], [0.55, 0.45, 1.25], [1.0, 0.55, 1.15], [1.45, 0.62, 1.1]]
+          .map(([b, o, z], i) => P(ex - hx * b + sx0 * o, ey - hy * b + sy0 * o, z + wave(i)));
+        const ribbon = () => { ctx.beginPath(); pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y))); };
+        ctx.save();
+        ctx.lineJoin = 'round'; ctx.lineCap = 'butt';
+        ribbon(); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.24; ctx.stroke();
+        ribbon(); ctx.strokeStyle = C.red; ctx.lineWidth = 0.17; ctx.stroke();
+        ribbon(); ctx.setLineDash([0.1, 0.14]); ctx.strokeStyle = C.white; ctx.lineWidth = 0.17; ctx.stroke();
+        ctx.setLineDash([]);
+        // fringe on the end
+        const [FX, FY] = pts[pts.length - 1], [GX, GY] = pts[pts.length - 2];
+        const ux = FX - GX, uy = FY - GY, un = Math.hypot(ux, uy) || 1;
+        ctx.beginPath();
+        for (const o of [-0.07, 0, 0.07]) { ctx.moveTo(FX - (uy / un) * o, FY + (ux / un) * o); ctx.lineTo(FX - (uy / un) * o + (ux / un) * 0.14, FY + (ux / un) * o + (uy / un) * 0.14); }
+        ctx.strokeStyle = C.red; ctx.lineWidth = 0.04; ctx.stroke();
+        ctx.restore();
       } else {
         // (hinged on the far long side, so it never hides what's inside)
         const ax = Math.abs(hx) > Math.abs(hy), z0 = 1.62, z1 = 1.62 + 0.85 * k;
