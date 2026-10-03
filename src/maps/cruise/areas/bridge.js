@@ -12,8 +12,8 @@ import { route, particles, pulse, ease, clamp } from '../../../engine/actors.js'
 import { ZK } from '../../../engine/iso.js';
 import { deck, outline, lifeboat } from '../ship.js';
 import { HOUR } from '../plan.js';
-import { INK, MAT, at, wrap, hourOf, green, queasy, COSTUME } from '../style.js';
-import { P, lettering, board, lifebuoy, bucket, gull, CREW_LOOK, onY, words, inked, hand } from '../kit.js';
+import { INK, MAT, at, wrap, hourOf, green, queasy, COSTUME, CHASE, chase, chaseOpen, caught } from '../style.js';
+import { P, lettering, board, lifebuoy, bucket, gull, CREW_LOOK, onY, onX, words, inked, hand } from '../kit.js';
 
 // ---------- Little drawing helpers (in this area's own units) ----------
 // Someone who stays on the bridge, drawn every frame. o.pose(t) returns the
@@ -110,6 +110,141 @@ function sticky(g, u, v, s, color, lines, tilt) {
   g.restore();
 }
 
+// A bit of paper taped up between the screens, in colour (not a camera
+// still): u, v its top left, tilted; art(g, w, h) draws on it.
+function taped(g, u, v, w, h, tilt, art) {
+  g.save();
+  g.translate(u + w / 2, v + h / 2); g.rotate(tilt); g.translate(-w / 2, -h / 2);
+  g.beginPath(); g.rect(0, 0, w, h);
+  paint(g, C.white, { lw: 0.02 });
+  if (Q.detail) {
+    g.save(); g.beginPath(); g.rect(0.03, 0.03, w - 0.06, h - 0.06); g.clip(); art(g, w, h); g.restore();
+    g.save(); g.translate(w / 2, 0); g.rotate(-0.08);
+    g.fillStyle = alpha(C.butter, 0.75); g.fillRect(-0.13, -0.04, 0.26, 0.08);
+    g.restore();
+  }
+  g.restore();
+}
+
+// ---------- The stress gecko ----------
+// A squeezy rubber gecko, green, sitting up on the console: big painted eyes,
+// splayed toes, a curl of a tail. k: how squeezed (0..1).
+function stressGecko(ctx, x, y, z, k) {
+  const [X, Y] = P(x, y, z);
+  const sq = 1 - k * 0.35;
+  const skin = INK.queasyGreen, dark = shade(INK.queasyGreen, 0.35);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(1 + k * 0.25, sq);
+  // The tail, curling up behind.
+  ctx.beginPath();
+  ctx.moveTo(-0.12, -0.06); ctx.quadraticCurveTo(-0.42, -0.02, -0.4, -0.2); ctx.quadraticCurveTo(-0.38, -0.3, -0.3, -0.26);
+  ctx.lineCap = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+  ctx.strokeStyle = skin; ctx.lineWidth = 0.06; ctx.stroke();
+  // Legs, splayed, round toe pads.
+  for (const [a, b, c] of [[-0.1, -0.05, -0.2], [0.1, -0.06, 0.2]]) {
+    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, 0);
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke(); }
+    ctx.strokeStyle = dark; ctx.lineWidth = 0.05; ctx.stroke();
+    ctx.beginPath(); ctx.arc(c, 0, 0.035, 0, Math.PI * 2); paint(ctx, skin, { lw: 0.012 });
+  }
+  // The body, a fat squeezy bean.
+  ctx.beginPath(); ctx.ellipse(0, -0.14, 0.17, 0.13, 0, 0, Math.PI * 2);
+  paint(ctx, skin, { lw: 0.025, dots: dark, density: 0.12 });
+  // The head, big, and the eyes on top of it.
+  ctx.beginPath(); ctx.ellipse(0.13, -0.3, 0.14, 0.11, -0.2, 0, Math.PI * 2);
+  paint(ctx, skin, { lw: 0.025 });
+  const pop = 1 + k * 0.6;
+  for (const u of [0.06, 0.2]) {
+    ctx.beginPath(); ctx.arc(u, -0.39, 0.05 * pop, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.015 });
+    ctx.beginPath(); ctx.arc(u + 0.01, -0.39, 0.022 * pop, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+  }
+  if (Q.detail) {
+    ctx.beginPath(); ctx.arc(0.15, -0.28, 0.06, 0.3, Math.PI - 0.3);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.015; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-0.06, -0.2, 0.05, 0.025, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.white, 0.5); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------- The Lizard Cam ----------
+// Security put it up this morning: a plan of the ship, deck by deck, and a
+// green dot where the iguana is (the sighting the player is on, style.js's
+// chase). Caught, the dot sits at the Casino. A hint for anyone who looks.
+const LC = { x: 4.5, y: 1.3, top: 5.6, w: 3.5, h: 1.6 };
+const DECKS = [
+  ['SUN', [['waterslide', 0, 16, 'THE WATERSLIDE'], ['pool', 16, 48, 'THE POOL'], ['bridge', 48, 80, 'THE BRIDGE']]],
+  ['CABINS', [['cabins', 0, 48, 'THE CABINS'], ['adults-only', 48, 80, 'ADULTS ONLY']]],
+  ['PROM', [['theater', 0, 16, 'THE THEATER'], ['buffet', 16, 48, 'THE BUFFET'], ['casino', 48, 80, 'THE CASINO']]],
+  ['CREW', [['engine-room', 0, 16, 'THE ENGINE ROOM'], ['crew-bar', 16, 48, 'THE CREW BAR'], ['sick-bay', 48, 80, 'THE SICK BAY']]],
+];
+function lizardCam(g, t) {
+  const { w: W, h: H } = LC;
+  const lit = tint(C.sky, 0.2), dim = shade(C.sky, 0.35);
+  g.beginPath(); g.rect(0, 0, W, H);
+  g.fillStyle = C.night; g.fill();
+  g.save(); g.clip();
+  const got = caught();
+  const zone = got ? 'casino' : CHASE[chase.step].zone;
+  const live = !got && chaseOpen(chase.step, t);
+  // The ship, a strip a deck, the bow tapering to the right.
+  const u = (x) => 0.62 + (x / 80) * (W - 0.75);
+  const S0 = 0.3, SH = 0.2, GAP = 0.27;
+  const hull = (v0) => {
+    g.beginPath();
+    g.moveTo(u(0), v0); g.lineTo(u(62), v0); g.lineTo(u(80), v0 + SH / 2); g.lineTo(u(62), v0 + SH); g.lineTo(u(0), v0 + SH);
+    g.closePath();
+  };
+  let dot = null;
+  DECKS.forEach(([name, areas], d) => {
+    const v0 = S0 + d * GAP;
+    hull(v0);
+    g.fillStyle = alpha(lit, 0.14); g.fill();
+    g.save(); g.clip();
+    for (const [id, x0, x1] of areas) {
+      if (id === zone) {
+        g.fillStyle = alpha(INK.queasyGreen, got || live ? 0.4 : 0.22);
+        g.fillRect(u(x0), v0, u(x1) - u(x0), SH);
+        dot = [u((x0 + Math.min(x1, 70)) / 2), v0 + SH / 2, areas.find((a) => a[0] === id)[3]];
+      }
+      if (x0 > 0) { g.fillStyle = dim; g.fillRect(u(x0) - 0.01, v0, 0.02, SH); }
+    }
+    g.restore();
+    hull(v0);
+    g.strokeStyle = lit; g.lineWidth = 0.02; g.stroke();
+    words(g, name, 0.55, v0 + SH / 2 + 0.005, 0.075, lit, 'right', 800);
+  });
+  // The dot: blinking while it's there, a ping going out from it.
+  if (dot) {
+    const [X, Y] = dot;
+    const k = (t * 0.8) % 1;
+    if (!got) {
+      g.beginPath(); g.arc(X, Y, 0.06 + k * 0.2, 0, Math.PI * 2);
+      g.strokeStyle = alpha(INK.queasyGreen, 1 - k); g.lineWidth = 0.025; g.stroke();
+    }
+    if (got || Math.sin(t * 7) > -0.4) {
+      g.beginPath(); g.arc(X, Y, 0.075, 0, Math.PI * 2);
+      g.fillStyle = INK.queasyGreen; g.fill();
+      g.strokeStyle = C.white; g.lineWidth = 0.015; g.stroke();
+    }
+  }
+  // The title, and what it says underneath.
+  words(g, 'LIZARD CAM', 0.1, 0.14, 0.15, C.butter, 'left', 900);
+  if (Math.sin(t * 3) > 0) { g.beginPath(); g.arc(W - 0.12, 0.13, 0.04, 0, Math.PI * 2); g.fillStyle = C.red; g.fill(); }
+  words(g, 'LIVE', W - 0.2, 0.14, 0.08, C.white, 'right', 900);
+  if (got) {
+    if (Math.sin(t * 5) > -0.5) words(g, 'CAUGHT', W / 2, H - 0.16, 0.2, C.butter, 'center', 900, 'Bagel Fat One');
+  } else if (dot) {
+    words(g, `${live ? "IT'S IN" : 'HEADED FOR'}: ${dot[2]}`, W / 2, H - 0.15, 0.1, live ? INK.queasyGreen : lit, 'center', 900);
+  }
+  // A roll of interference, like the rest.
+  const sv = ((t * 0.25) % 1) * (H + 0.2) - 0.1;
+  g.fillStyle = alpha(C.white, 0.06); g.fillRect(0, sv, W, 0.1);
+  g.restore();
+}
+
 // The still pictures: what's taped up between the screens (drawn once).
 function monitorPanel(ctx) {
   box(ctx, MON.x, 0.9, 0, 4.5, 0.7, MON.top, MAT.steelDark, { top: MAT.steel, dens: 0.18 });
@@ -135,30 +270,51 @@ function monitorPanel(ctx) {
       p.fillStyle = alpha(INK.queasyGreen, 0.9);
       p.beginPath(); p.ellipse(0.33, h * 0.48, 0.055, 0.03, -0.2, 0, Math.PI * 2); p.fill();
     });
-    // Look-alikes: other nights' frames, all grey.
-    printout(g, 1.72, 1.02, 0.6, 0.48, '05:10', (p, w, h) => { // the pool, a towel on every lounger
-      p.fillStyle = C.greyLight; p.fillRect(0.05, 0.05, w * 0.5, h * 0.35);
-      p.fillStyle = shade(C.grey, 0.35);
-      for (let i = 0; i < 3; i++) p.fillRect(0.05 + i * 0.16, h * 0.62, 0.11, 0.05);
-      p.fillStyle = C.white;
-      for (let i = 0; i < 3; i++) p.fillRect(0.07 + i * 0.16, h * 0.62, 0.07, 0.04);
+    // The rest of the strip is anything but photos (the 6:52 still is the
+    // only grey picture up here): a postcard, the crossword, a kid's drawing.
+    taped(g, 1.72, 1.02, 0.6, 0.46, 0.06, (p, w, h) => { // a postcard from the port
+      p.fillStyle = C.sky; p.fillRect(0, 0, w, h * 0.6);
+      p.fillStyle = C.teal; p.fillRect(0, h * 0.6, w, h * 0.2);
+      p.fillStyle = C.butter; p.fillRect(0, h * 0.8, w, h * 0.2);
+      p.strokeStyle = C.brown; p.lineWidth = 0.03;
+      p.beginPath(); p.moveTo(w * 0.62, h * 0.86); p.quadraticCurveTo(w * 0.55, h * 0.5, w * 0.62, h * 0.25); p.stroke();
+      p.fillStyle = C.leaf;
+      for (const a of [-2.6, -1.9, -1.2, -0.5]) { p.beginPath(); p.ellipse(w * 0.62 + Math.cos(a) * 0.08, h * 0.25 + Math.sin(a) * 0.03 + 0.02, 0.09, 0.025, a + 1.57, 0, Math.PI * 2); p.fill(); }
+      words(p, 'WISH YOU', w * 0.28, 0.08, 0.06, C.white, 'center', 900);
+      words(p, 'WERE HERE', w * 0.28, 0.15, 0.06, C.white, 'center', 900);
     });
     sticky(g, 2.44, 1.1, 0.34, INK.flamingo, ['LEFT =', 'PORT'], 0.12);
-    printout(g, 2.92, 1.0, 0.56, 0.5, '04:47', (p, w, h) => { // a man in a corridor with a suitcase
-      p.fillStyle = C.greyLight; p.fillRect(0, h * 0.7, w, h * 0.3);
-      p.fillStyle = shade(C.grey, 0.45);
-      p.beginPath(); p.arc(0.2, h * 0.3, 0.04, 0, Math.PI * 2); p.fill();
-      p.fillRect(0.17, h * 0.36, 0.06, 0.13);
-      p.fillStyle = shade(C.grey, 0.25); p.fillRect(0.26, h * 0.5, 0.1, 0.08);
+    taped(g, 2.92, 1.0, 0.54, 0.5, -0.05, (p, w, h) => { // the crossword, one clue done
+      const n = 6, s = Math.min(w, h - 0.08) / n;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        if ((i * 7 + j * 3) % 5 === 0) { p.fillStyle = C.ink; p.fillRect(0.04 + i * s, 0.04 + j * s, s, s); }
+      }
+      p.strokeStyle = alpha(C.ink, 0.5); p.lineWidth = 0.008;
+      for (let i = 0; i <= n; i++) {
+        p.beginPath(); p.moveTo(0.04 + i * s, 0.04); p.lineTo(0.04 + i * s, 0.04 + n * s);
+        p.moveTo(0.04, 0.04 + i * s); p.lineTo(0.04 + n * s, 0.04 + i * s); p.stroke();
+      }
+      words(p, 'AHOY', 0.04 + s * 2.5, 0.04 + s * 1.5, 0.05, C.navy, 'center', 900);
     });
-    printout(g, 3.6, 1.04, 0.52, 0.46, '03:30', (p, w, h) => { // a gull on a rail
-      p.strokeStyle = C.greyLight; p.lineWidth = 0.03;
-      p.beginPath(); p.moveTo(0, h * 0.7); p.lineTo(w, h * 0.7); p.stroke();
-      p.fillStyle = C.white;
-      p.beginPath(); p.ellipse(w * 0.5, h * 0.55, 0.09, 0.05, 0, 0, Math.PI * 2); p.fill();
-      p.beginPath(); p.arc(w * 0.62, h * 0.42, 0.035, 0, Math.PI * 2); p.fill();
+    taped(g, 3.6, 1.04, 0.52, 0.46, 0.1, (p, w, h) => { // a kid's drawing of the captain, green
+      p.strokeStyle = C.navy; p.lineWidth = 0.02; p.lineCap = 'round';
+      p.beginPath(); p.moveTo(w * 0.5, h * 0.42); p.lineTo(w * 0.5, h * 0.72);
+      p.moveTo(w * 0.32, h * 0.5); p.lineTo(w * 0.68, h * 0.5);
+      p.moveTo(w * 0.5, h * 0.72); p.lineTo(w * 0.38, h * 0.92); p.moveTo(w * 0.5, h * 0.72); p.lineTo(w * 0.62, h * 0.92);
+      p.stroke();
+      p.beginPath(); p.arc(w * 0.5, h * 0.3, 0.07, 0, Math.PI * 2); p.fillStyle = INK.queasyGreen; p.fill(); p.stroke();
+      p.fillStyle = C.white; p.fillRect(w * 0.38, h * 0.1, w * 0.24, 0.04);
+      words(p, 'MY CAPTAN', w * 0.5, h - 0.03, 0.05, C.red, 'center', 900);
     });
     words(g, 'EVERY DECK, EVERY MINUTE', 2.25, 0.1, 0.1, C.butter, 'center', 800);
+  });
+  // The Lizard Cam: a bigger screen on top of the bank, put up this morning.
+  box(ctx, LC.x - 0.12, LC.y - 0.25, MON.top, LC.w + 0.24, 0.25, LC.h + 0.3, C.black, { top: MAT.steelDark, flat: true });
+  onY(ctx, LC.x, LC.y, LC.top + 0.1, (g) => {
+    g.save(); g.translate(LC.w / 2 + 0.95, -0.02); g.rotate(0.06);
+    g.beginPath(); g.rect(-0.62, -0.1, 1.24, 0.22); paint(g, C.white, { lw: 0.02 });
+    words(g, 'TEMPORARY. DO NOT TOUCH', 0, 0.01, 0.07, INK.funnelRed, 'center', 900);
+    g.restore();
   });
   // Things on the desk: a keyboard in front of the officer's stool (at the
   // desk's aft end, so the captain's words never land on his face), a phone,
@@ -308,6 +464,8 @@ function shifted(R, dx) {
       o,
     ),
     find: (f) => R.find({ ...f, at: [f.at[0] + dx, f.at[1], f.at[2]] }),
+    poke: (o) => R.poke({ ...o, at: [o.at[0] + dx, o.at[1], o.at[2]] }),
+    decoy: (o) => R.decoy({ ...o, at: [o.at[0] + dx, o.at[1], o.at[2]] }),
   };
 }
 
@@ -358,13 +516,14 @@ export default {
     // The ship's bell: rung on the hour.
     const BELL = { x: 6.8, y: 5.6 };
     const ringing = (t) => { const s = pulse(t, HOUR) * HOUR; return s < 2.5 ? s : -1; };
+    const ding = R.poke({ id: 'bell', at: [BELL.x, BELL.y - 0.7, 2.0], r: 0.7, hold: 1.6, sound: 'tick', say: ['DING.', 'DING DING.', 'That means lunch. Or a fire.'] });
     R.thing(BELL.x, BELL.y, (ctx) => {
       face(ctx, [[BELL.x, BELL.y, 0], [BELL.x, BELL.y, 2.4]], null, { lw: 0.08, stroke: MAT.teakDark });
       face(ctx, [[BELL.x, BELL.y, 2.4], [BELL.x, BELL.y - 0.8, 2.4]], null, { lw: 0.08, stroke: MAT.teakDark });
     });
     R.thing(BELL.x, BELL.y + 0.05, (ctx, t) => {
-      const s = ringing(t);
-      const sw = s >= 0 ? Math.sin(s * 9) * 0.35 * (1 - s / 2.5) : 0;
+      const s = ringing(t), d = ding.k();
+      const sw = s >= 0 ? Math.sin(s * 9) * 0.35 * (1 - s / 2.5) : d > 0 ? Math.sin(t * 9) * 0.35 * d : 0;
       const [X, Y] = P(BELL.x, BELL.y - 0.7, 2.35);
       ctx.save(); ctx.translate(X, Y); ctx.rotate(sw);
       // A ship's bell (a dome, a flared lip, the clapper and its rope), not a
@@ -382,11 +541,11 @@ export default {
       ctx.restore();
     }, { anim: true });
     R.air((ctx, t) => {
-      const s = ringing(t);
-      if (s < 0 || !Q.detail) return;
+      const s = ringing(t), d = ding.k();
+      if ((s < 0 && d <= 0) || !Q.detail) return;
       const [X, Y] = P(BELL.x, BELL.y - 0.7, 2.35);
-      ctx.globalAlpha = 1 - s / 2.5;
-      words(ctx, 'DING', X - 0.8, Y - 0.2 - s * 0.3, 0.34, C.white, 'center', 900);
+      ctx.globalAlpha = s >= 0 ? 1 - s / 2.5 : d;
+      words(ctx, 'DING', X - 0.8, Y - 0.2 - (s >= 0 ? s : (t * 0.6) % 1) * 0.3, 0.34, C.white, 'center', 900);
       ctx.globalAlpha = 1;
     });
     // A telescope on the far rail, and a kid on tiptoe looking for land.
@@ -548,6 +707,18 @@ export default {
 
     // ---------- The radar mast ----------
     S.thing(MAST.x + 0.55, MAST.y + 0.55, (ctx) => mast(ctx));
+    // The horn's pull cord, hanging beside the mast to a wooden toggle. A
+    // tap toots the horn, and the lookout right under it jumps.
+    const toot = S.poke({ id: 'horn', at: [MAST.x + 0.8, MAST.y, 1.4], r: 0.8, hold: 1.8, sound: 'clunk', say: ['BWAAAMP.', 'Sorry. SORRY.', 'Every deck heard that.'] });
+    S.thing(MAST.x + 0.8, MAST.y + 0.1, (ctx) => {
+      const pull = toot.k() * 0.3;
+      const [a, b] = P(MAST.x + 0.8, MAST.y, HORN - 0.2), [c, d] = P(MAST.x + 0.8, MAST.y, 1.5 - pull);
+      ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d - 0.2);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(c - 0.06, d - 0.22, 0.12, 0.3, 0.05);
+      paint(ctx, MAT.teakDark, { lw: 0.02 });
+      board(ctx, 'y', MAST.x + 0.8, MAST.y, 1.0 - pull, 0.7, 0.22, 'HORN', { size: 0.12, board: INK.sunYellow, edge: 0.02 });
+    }, { anim: true, depth: 7.5 });
     // The radar turns, with a gull riding it round.
     S.thing(MAST.x + 0.6, MAST.y + 0.6, (ctx, t) => {
       const a = t * 1.6, L = 1.3, { x, y } = MAST;
@@ -562,8 +733,9 @@ export default {
       ctx.beginPath(); ctx.ellipse(X, Yt, rx, ry, 0, Math.PI, 0);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
       const dir = pulse(t, 14) < 0.5 ? 'r' : 'l';
-      person(ctx, x + 0.2, y + 0.55, z, { ...folk(51), ...CREW_LOOK, face: CAP, pose: 'stand', dir, arms: [2.6, 2.5] }, t);
-      if (Q.detail) {
+      const jump = toot.k() * (0.3 + Math.abs(Math.sin(t * 9)) * 0.15);
+      person(ctx, x + 0.2, y + 0.55, z + jump, { ...folk(51), ...CREW_LOOK, face: CAP, pose: 'stand', dir, arms: jump > 0.2 ? [2.9, -2.9] : [2.6, 2.5] }, t);
+      if (Q.detail && jump <= 0.2) {
         const f = dir === 'l' ? -1 : 1, [px, py] = P(x + 0.2, y + 0.55, z);
         for (const dx of [0.36, 0.5]) { ctx.beginPath(); ctx.ellipse(px + f * dx, py - 1.98, 0.07, 0.09, 0, 0, Math.PI * 2); paint(ctx, C.black, { lw: 0.02 }); }
       }
@@ -601,12 +773,19 @@ export default {
       const hr = hourOf(t);
       onY(ctx, MON.x, MON.y, MON.top, (g) => { for (let i = 0; i < 6; i++) cctv(g, i, t, hr); });
     }, { anim: true, depth: 8.86 });
-    S.find({ id: 'camera-still', label: 'A security camera still', at: [5.2, 1.6, 2.4], r: 0.8 });
+    // The Lizard Cam, live: drawn from the chase, so it's always animated.
+    S.thing(6.25, 2.6, (ctx, t) => onY(ctx, LC.x, LC.y + 0.005, LC.top, (g) => lizardCam(g, t)), { anim: true, depth: 8.87 });
+    S.find({
+      id: 'camera-still', label: 'A camera still', kind: 'hard', at: [5.2, 1.6, 2.45], r: 0.8,
+      riddle: 'Taped up where the captain watches TV.',
+      hint: 'Every picture on the monitors moves but one. It says 6:52.',
+    });
     // The officer on the monitors, on a stool, eating popcorn: it's the best
     // show on the ship.
     S.thing(4.75, 3.1, (ctx) => {
       cylinder(ctx, 4.75, 3.3, 0, 0.3, 0.72, MAT.steel);
     });
+    S.poke({ id: 'popcorn', at: [4.75, 3.35, 1.4], r: 0.8, say: ['Best show on the ship.', 'Keep an eye on the lizard cam.', 'Shh. Cabin 7 is on.'] });
     body(S, 4.75, 3.35, { ...folk(52), ...CREW_LOOK, hair: HAIR[3], style: 'curly' }, {
       pose: (t) => {
         const k = pulse(t, 2.6);
@@ -659,8 +838,10 @@ export default {
       const k = pulse(t, STEER);
       return k < 0.62 ? (k / 0.62) * 0.5 : k < 0.8 ? 0.5 * (1 - ease((k - 0.62) / 0.18)) : 0;
     };
+    // A tap spins it: the first thing on the bridge that answers back.
+    const spin = S.poke({ id: 'wheel', at: [10, 4.45, 1.5], r: 1.1, hold: 1.6, teach: true, sound: 'clunk', say: ['Hard to port!', 'Wheee.', 'Hands off. That is the ship.'] });
     S.thing(10, 4.5, (ctx, t) => {
-      wheel(ctx, 10, 4.45, 1.5, 0.72, wheelAng(t));
+      wheel(ctx, 10, 4.45, 1.5, 0.72, wheelAng(t) + spin.k() * ((t * 7) % (Math.PI / 4))); // (eight spokes: a turn of a spoke looks like a full spin)
       if (!Q.detail) return;
       const pp = (u, w, dz = 0.02) => [8.5 + u, 4.3 - 1.3 * w, 1.1 + 0.55 * w + dz];
       const [SX, SY] = P(...pp(1.0, 0.5));
@@ -727,17 +908,47 @@ export default {
       // Binoculars.
       cylinder(ctx, 12.55, 2.0, 1.1, 0.07, 0.2, C.black);
       cylinder(ctx, 12.7, 2.1, 1.1, 0.07, 0.2, C.black);
-      // The patches: a small blue box marked 500.
-      box(ctx, 12.35, 2.48, 1.1, 0.5, 0.26, 0.26, C.sky, { flat: true });
-      lettering(ctx, 'x', 12.6, 2.74, 1.28, 'SEASICK', 0.075, C.navy);
-      lettering(ctx, 'x', 12.6, 2.74, 1.18, '500', 0.08, C.navy);
       // A tin of crackers.
       cylinder(ctx, 12.2, 3.05, 1.1, 0.17, 0.18, INK.funnelRed, { top: C.butter });
       // The manual.
       box(ctx, 12.95, 2.75, 1.1, 0.45, 0.34, 0.1, C.navy, { flat: true });
       if (Q.detail) rect(ctx, 13.05, 2.82, 0.25, 0.2, 1.201, C.white, { stroke: false });
     });
-    S.find({ id: 'patches', label: 'A box of seasickness patches', at: [12.6, 2.6, 1.3], r: 0.8 });
+    // The drawer on its end, never quite shut: the captain's patches are in
+    // it (a blue corner shows in the gap, and he's stuck a used one on the front).
+    const DR = { x: 13.6, y0: 2.0, y1: 3.2, z0: 0.5, z1: 0.92 };
+    const drawer = S.poke({ id: 'drawer', at: [14.05, 2.6, 0.75], r: 0.7, sound: 'clunk' });
+    S.thing(14.4, 3.3, (ctx) => {
+      const out = 0.2 + drawer.k() * 0.6;
+      const { x, y0, y1, z0, z1 } = DR;
+      // What's out of the console: its side, its front, and the dark inside.
+      box(ctx, x - 0.02, y0, z0, out + 0.02, y1 - y0, z1 - z0, INK.hullWhite, { top: shade(MAT.steelDark, 0.4), flat: true, lw: 0.025 });
+      // The box of patches: just its lid's corner in the gap; all of it, open.
+      if (out < 0.4) {
+        rect(ctx, x, 2.25, out - 0.04, 0.6, z1 + 0.005, C.sky, { lw: 0.015 });
+      } else {
+        const bx = x + out - 0.62;
+        box(ctx, bx, 2.3, z1 - 0.18, 0.5, 0.62, 0.3, C.sky, { flat: true, lw: 0.02 });
+        onX(ctx, bx + 0.5, 2.92, z1 + 0.1, (g) => {
+          words(g, 'SEASICK', 0.31, 0.08, 0.085, C.navy, 'center', 900);
+          words(g, '500', 0.31, 0.19, 0.1, C.navy, 'center', 900);
+        });
+      }
+      // The front: a handle, and a used patch stuck on it.
+      onX(ctx, x + out, y1, z1, (g) => {
+        g.beginPath(); g.rect(0.42, 0.12, 0.36, 0.06); paint(g, MAT.chrome, { lw: 0.012 });
+        g.beginPath(); g.arc(0.95, 0.26, 0.08, 0, Math.PI * 2); paint(g, tint(C.butter, 0.4), { lw: 0.012 });
+        g.fillStyle = C.sky; g.fillRect(0.93, 0.2, 0.04, 0.12); g.fillRect(0.89, 0.24, 0.12, 0.04);
+      });
+    }, { anim: true, depth: 17.75 });
+    S.find({
+      id: 'patches', label: 'A box of seasickness patches', kind: 'poke', inside: drawer, at: [14.1, 2.6, 0.9], r: 0.8,
+      hint: "The captain keeps his cure close to hand. One drawer won't quite shut.",
+    });
+    // A stress toy on the console, a rubber gecko the captain squeezes. Not an
+    // iguana. Tapped, it squeaks.
+    const squeak = S.decoy({ id: 'gecko', at: [12.45, 2.55, 1.25], r: 0.55, hold: 0.5, say: ['A stress gecko. Not an iguana.', 'SQUEAK.', 'The captain needs that.'] });
+    S.thing(12.6, 2.7, (ctx, t) => stressGecko(ctx, 12.45, 2.55, 1.1, squeak.k()), { anim: true, depth: 17.4 });
 
     // ---------- The buckets by the wheel ----------
     // The captain's: plain, a gold anchor on it.
@@ -754,7 +965,7 @@ export default {
       ctx.beginPath(); ctx.arc(0, -0.32, 0.05, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     });
-    S.find({ id: 'captain-bucket', label: 'A bucket by the wheel', at: [11.8, 6.4, 0.3], r: 0.8 });
+    S.find({ id: 'captain-bucket', label: 'A bucket by the wheel', kind: 'spot', at: [11.8, 6.4, 0.3], r: 0.8 });
     // A fire bucket, full of sand.
     S.thing(10.4, 7.4, (ctx) => {
       bucket(ctx, 10.4, 7.4, 0, { color: INK.funnelRed });
@@ -890,6 +1101,7 @@ export default {
     // The couple on the very tip of the bow, arms out, all day, through spray,
     // wind and a gull. She's in front; he's holding on.
     const HER = { x: 19.5, y: 7.6 }, HIM = { x: 18.7, y: 8.2 };
+    S.poke({ id: 'pose', at: [19.3, 7.7, 1.5], r: 0.9, say: ["I'm flying!", 'We paid for forty minutes.', 'Is there a gull on him?'] });
     S.thing(HER.x, HER.y, (ctx, t) => {
       person(ctx, HIM.x, HIM.y, 0, { skin: SKIN[0], hair: HAIR[1], style: 'short', top: C.white, bottom: C.navy, dir: 'r', arms: [1.0, 0.85] }, t);
       const k = green(t, at(13.3));
@@ -971,7 +1183,9 @@ export default {
     // The horn: at seven as the buffet opens, and at six as she docks.
     S.air((ctx, t) => {
       const tt = wrap(t);
-      const blast = tt < 3.5 ? tt / 3.5 : tt >= at(18) && tt < at(18) + 4 ? (tt - at(18)) / 4 : -1;
+      const tooted = toot.k();
+      let blast = tt < 3.5 ? tt / 3.5 : tt >= at(18) && tt < at(18) + 4 ? (tt - at(18)) / 4 : -1;
+      if (blast < 0 && tooted > 0) blast = (t * 0.5) % 1;
       if (blast < 0) return;
       const [X, Y] = P(MAST.x + 1.35, MAST.y, HORN);
       ctx.strokeStyle = alpha(C.white, 0.9); ctx.lineWidth = 0.08;
