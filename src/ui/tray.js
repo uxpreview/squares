@@ -119,6 +119,8 @@ export function createTray(o) {
     li.append(mark(f, found), t);
     if (f.note && !found) {
       // Away: the tag is a button that skips to when it's back.
+      const tide = document.createElement('span');
+      tide.className = 'row-tide';
       const skip = away(room, f) && o.skipFor && o.skipFor(room, f);
       if (skip) {
         const b = document.createElement('button');
@@ -127,8 +129,10 @@ export function createTray(o) {
         b.textContent = `Skip to ${skip}`;
         b.setAttribute('aria-label', `Skip ahead to ${skip}, when ${o.label(room, f)} is back`);
         b.addEventListener('click', () => o.onSkip(room, f));
-        li.append(b);
-      } else li.append(noteOf(room, f));
+        tide.append(b);
+      } else tide.append(noteOf(room, f));
+      // (Under its name, so a narrow list doesn't squeeze it.)
+      t.append(tide);
       if (away(room, f)) li.classList.add('is-away');
       const e = document.createElement('span');
       e.className = 'sr-only';

@@ -817,6 +817,8 @@ button.lift-floor[aria-current]:hover .lift-btn {
 @media (max-width: 520px) {
   .story { padding: 10px 14px; }
   .story p { font-size: 13.5px; line-height: 1.38; }
+  /* A place with a dial (the tide) keeps it in view: the card drops under it. */
+  body[data-mode="zone"]:has(#dial:not([hidden])) .story { top: calc(var(--safe-top) + 118px); }
 }
 
 /* ---------- The tray (find list) ---------- */
@@ -1011,6 +1013,8 @@ button.tray-grip:active { transform: none; }
   white-space: nowrap;
 }
 .row .find-note { margin-right: 8px; }
+.row-tide { display: block; margin-top: 4px; }
+.row-tide .find-note { display: inline-block; }
 /* Here now: lit, with a dot that breathes. Away (under the tide): pale, and
    the thing's name goes soft with it. */
 .find-note.is-now { background: var(--teal); box-shadow: 0 0 0 2px #fff8; }
