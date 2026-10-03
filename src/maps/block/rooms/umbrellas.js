@@ -1,6 +1,8 @@
 // Umbrella Shop: it rains indoors here, which is great for business.
 // Two little clouds drift under the ceiling, the shopkeeper mops forever,
-// and a line of ducklings has picked up one extra, much larger duckling.
+// a mother duck marches her ducklings round the puddles, and one of the
+// umbrellas set down to dry is the only dry spot in the shop. Somebody's
+// noticed.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker, tiles,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, windowR, frame, clockL, shelfR,
@@ -97,6 +99,91 @@ function umbrella(ctx, x, y, z, o = {}) {
   // ferrule
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, ay - 0.2);
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+}
+
+// Which umbrella on the wall rack's low row is really a boot.
+const BOOT_I = 9;
+
+// A yellow wellington hung on the left wall's rack by its pull loop, toe
+// out along the wall, where a furled umbrella would hang. (yy: along the
+// wall, rz: the rail's height.)
+function rackBoot(ctx, yy, rz) {
+  const W = (y, z) => [0.05, yy + y, rz + z];
+  // hook and pull loop
+  const [hx, hy] = P(0.05, yy, rz);
+  ctx.beginPath(); ctx.arc(hx + 0.08, hy + 0.02, 0.09, Math.PI, 0.2);
+  ctx.strokeStyle = C.brown; ctx.lineWidth = 0.05; ctx.stroke();
+  const loop = [];
+  for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; loop.push(W(Math.cos(a) * 0.06, -0.14 + Math.sin(a) * 0.09)); }
+  face(ctx, loop, null, { lw: 0.035 });
+  // shaft and foot, toe along the wall
+  face(ctx, [W(-0.15, -0.22), W(0.15, -0.22), W(0.17, -0.78), W(0.42, -0.84), W(0.46, -0.96), W(-0.15, -0.96)], C.mustard, { lw: 0.035, dots: shade(C.mustard, 0.4), density: 0.15 });
+  // the cuff
+  face(ctx, [W(-0.15, -0.22), W(0.15, -0.22), W(0.15, -0.31), W(-0.15, -0.31)], shade(C.mustard, 0.2), { lw: 0.03 });
+  // the black sole, with the heel stepped down
+  face(ctx, [W(-0.16, -0.95), W(0.47, -0.95), W(0.45, -1.02), W(0.06, -1.02), W(0.04, -1.07), W(-0.16, -1.07)], C.ink, { lw: 0.02 });
+}
+
+// An umbrella set down open on the floor to dry, canopy over whatever is
+// under it, its handle peeking out at the front. lift: how far it's tipped up.
+function dryingUmbrella(ctx, x, y, lift, cols, rot) {
+  if (Q.detail) {
+    const [X, Y] = P(x, y, 0);
+    ctx.beginPath(); ctx.ellipse(X, Y, 1.1, 0.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.navy, 0.12); ctx.fill();
+  }
+  if (lift < 0.05) {
+    const [hx, hy] = P(x + 0.72, y + 0.72, 0.02);
+    ctx.beginPath(); ctx.arc(hx + 0.1, hy - 0.04, 0.1, Math.PI, 0.1, true);
+    ctx.strokeStyle = C.brown; ctx.lineWidth = 0.08; ctx.lineCap = 'round'; ctx.stroke();
+  }
+  umbrella(ctx, x, y, 0.82 + lift, { open: 0.55, r: 1.75, shaft: false, cols, rot });
+}
+
+// The frog: sat, eyes up, flicking its tongue at a raindrop now and then.
+function frog(ctx, x, y, z, t, dir) {
+  const [X, Y] = P(x, y, z);
+  const f = dir === 'l' ? -1 : 1;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(f * 0.9, 0.9);
+  ctx.beginPath();
+  ctx.ellipse(0, -0.2, 0.34, 0.22, -0.15, 0, Math.PI * 2);
+  paint(ctx, C.green, { dots: shade(C.green, 0.4), density: 0.2, lw: 0.05 });
+  for (const ex of [0.05, 0.28]) {
+    ctx.beginPath(); ctx.arc(ex, -0.42, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
+    ctx.beginPath(); ctx.arc(ex + 0.02, -0.42, 0.045, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(0.22, -0.2, 0.1, 0.2, Math.PI - 0.6); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+  const tq = pulse(t, 3.1);
+  if (tq > 0.85) {
+    const k = Math.sin(((tq - 0.85) / 0.15) * Math.PI);
+    ctx.beginPath(); ctx.moveTo(0.3, -0.18); ctx.lineTo(0.3 + k * 0.5, -0.18 - k * 0.8);
+    ctx.strokeStyle = C.pink; ctx.lineWidth = 0.06; ctx.lineCap = 'round'; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// A white umbrella hooked over a stand's rim by its handle, a carved goose
+// neck and head, the size of the real thing. (x, y): where it hangs.
+function gooseHandle(ctx, x, y, t) {
+  // the furled canopy, hanging down the outside of the stand
+  const [tx, ty] = P(x, y, 0.92), [bx, by] = P(x, y, 0.12);
+  ctx.beginPath();
+  ctx.moveTo(tx - 0.17, ty); ctx.lineTo(tx + 0.17, ty); ctx.lineTo(bx + 0.03, by); ctx.lineTo(bx - 0.03, by); ctx.closePath();
+  paint(ctx, C.white, { dots: Q.detail ? C.grey : null, density: 0.1, lw: 0.04 });
+  ctx.beginPath(); ctx.moveTo(tx - 0.05, ty); ctx.lineTo(bx, by); ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.05; ctx.stroke();
+  ctx.beginPath(); ctx.rect(tx - 0.17, ty, 0.34, 0.08); paint(ctx, C.greyLight, { lw: 0.03 });
+  // the handle: neck up over the rim, and the head, looking about
+  const look = Math.sin(t * 0.6) * 0.03;
+  const nx = tx + 0.12 + look, ny = ty - 0.62;
+  ctx.beginPath(); ctx.moveTo(tx, ty + 0.02); ctx.quadraticCurveTo(tx - 0.12, ty - 0.32, nx, ny);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.2; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.13; ctx.stroke();
+  ctx.beginPath(); ctx.arc(nx, ny, 0.12, 0, Math.PI * 2); paint(ctx, C.white);
+  ctx.beginPath(); ctx.moveTo(nx + 0.08, ny - 0.05); ctx.lineTo(nx + 0.3, ny + 0.01); ctx.lineTo(nx + 0.08, ny + 0.06);
+  paint(ctx, C.coral);
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(nx + 0.03, ny - 0.03, 0.03, 0, Math.PI * 2); ctx.fill();
 }
 
 // A duck (or duckling). s = scale.
@@ -247,7 +334,10 @@ export default {
         face(ctx, [[0.02, 1.0, rz], [0.02, 9.2, rz]], null, { lw: 0.1, stroke: C.brown });
         for (let i = 0; i < 12; i++) {
           const yy = 1.35 + i * 0.66;
-          const [ca, cb] = UCOLS[(i * 5 + (rz > 4 ? 3 : 0)) % UCOLS.length];
+          const low = rz < 4;
+          if (low && i === BOOT_I) continue; // (the boot hangs here: see below)
+          // (the boot's neighbors are yellow too, so it hides in the row)
+          const [ca, cb] = low && Math.abs(i - BOOT_I) === 1 ? UCOLS[3] : UCOLS[(i * 5 + (rz > 4 ? 3 : 0)) % UCOLS.length];
           // hook
           const [hx, hy] = P(0.05, yy, rz);
           ctx.beginPath(); ctx.arc(hx + 0.08, hy + 0.02, 0.09, Math.PI, 0.2);
@@ -256,6 +346,7 @@ export default {
           face(ctx, [[0.05, yy - 0.03, rz - 0.15], [0.05, yy + 0.07, rz - 0.15], [0.05, yy + 0.02, rz - 1.35]], cb, { lw: 0.02 });
         }
       }
+      rackBoot(ctx, 1.35 + BOOT_I * 0.66, 3.3);
       onLeft(ctx, 9.9, 3.2, 2.4, 1.2, C.butter, { lw: 0.05 });
       paintText(ctx, 'left', 11.1, 4.0, 'NO REFUNDS', 0.32, C.coral);
       paintText(ctx, 'left', 11.1, 3.58, 'IF DRY', 0.32, C.coral);
@@ -369,11 +460,19 @@ export default {
     });
     stand(1.0, 11.8, 3);
     stand(14.9, 14.6, 4);
+    // A white umbrella hooked over the rim of the stand by its handle, which
+    // is a carved goose's head and neck (a decoy): just where a goose's head
+    // would be, if one were standing behind the stand.
+    R.thing(15.5, 15.1, (ctx, t) => gooseHandle(ctx, 15.4, 14.95, t), { anim: true });
+    R.decoy({ id: 'handle', at: [15.4, 14.95, 1.15], r: 0.8, say: ['A goose-head handle. Classy.', 'Hand carved. Not a goose.', 'Still a handle.'] });
     stand(8.6, 1.5, 5);
 
     // ---------- Display: umbrellas that open and close by themselves ----------
     const DX = 7.4, DY = 7.6;
+    // (The room's first lesson: tap the display and all three go off at once.)
+    const auto = R.poke({ id: 'display', at: [DX, DY, 1.8], r: 1.4, teach: true, hold: 2.2, say: ['FWOOMP!', 'Opens itself. Mostly.', 'Indoor use only.'] });
     R.thing(DX + 1.3, DY + 1.3, (ctx, t) => {
+      const go = auto.k();
       cylinder(ctx, DX, DY, 0, 1.4, 0.4, C.white, { top: C.coral });
       label(ctx, DX + 1.0, DY + 1.0, 0.2, 'AUTO-OPEN!', 0.26, C.navy);
       const spots = [[DX - 0.55, DY - 0.45, 0, UCOLS[1]], [DX + 0.6, DY - 0.2, 1.3, UCOLS[4]], [DX - 0.05, DY + 0.6, 2.6, UCOLS[5]]];
@@ -386,8 +485,11 @@ export default {
           const n = Math.floor((t + off) / 4.2);
           if (n % 2 === 1 && q > 0.12 && q < 0.6) inv = clamp((q - 0.12) / 0.06);
         }
+        // a tap: every one bursts open, and the keen one turns inside out
+        open = Math.max(open, go);
+        if (i === 2) inv = Math.max(inv, go);
         box(ctx, x - 0.06, y - 0.06, 0.4, 0.12, 0.12, 0.6, C.ink, { flat: true, stroke: false });
-        umbrella(ctx, x, y, 2.6, { open, inv, r: 0.85, cols, len: 1.6, rot: i });
+        umbrella(ctx, x, y, 2.6 + go * 0.25, { open, inv, r: 0.85, cols, len: 1.6, rot: i + go * 0.6 });
       });
     }, { anim: true });
 
@@ -406,40 +508,9 @@ export default {
         umbrella(ctx, x + sw, y - sw, 5.85, { open: 1, r: 0.8, cols: UCOLS[c], len: 1.1, rot: i * 0.4 });
       }, { anim: true, depth: x + y - 2 });
     });
-    // the yellow boot, hung up by its pull loop where an umbrella should be
-    // (a find): a wellington, clear as day, with its cuff, black sole and heel
-    const BOOT = [5.6, 6.4];
-    R.thing(BOOT[0], BOOT[1], (ctx, t) => {
-      const sw = Math.sin(t * 1.3) * 0.1;
-      const [wx, wy] = P(BOOT[0], BOOT[1], 6.6);
-      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx, wy + 0.5);
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
-      ctx.save();
-      ctx.translate(wx, wy + 0.5);
-      ctx.rotate(sw);
-      // the pull loop
-      ctx.beginPath(); ctx.ellipse(0.02, 0.02, 0.07, 0.1, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
-      // the shaft and foot, toe to the left
-      ctx.beginPath();
-      ctx.moveTo(-0.2, 0.1); ctx.lineTo(0.2, 0.1); ctx.lineTo(0.22, 0.78);
-      ctx.lineTo(0.22, 0.9); ctx.lineTo(-0.5, 0.9);
-      ctx.quadraticCurveTo(-0.64, 0.9, -0.62, 0.78);
-      ctx.quadraticCurveTo(-0.58, 0.64, -0.3, 0.6); ctx.lineTo(-0.22, 0.52); ctx.closePath();
-      paint(ctx, C.mustard, { dots: shade(C.mustard, 0.4), density: 0.15, lw: 0.045 });
-      // the cuff
-      ctx.beginPath(); ctx.rect(-0.22, 0.08, 0.44, 0.12); paint(ctx, shade(C.mustard, 0.2), { lw: 0.035 });
-      // a shine down the shaft
-      ctx.beginPath(); ctx.moveTo(0.1, 0.28); ctx.lineTo(0.12, 0.62);
-      ctx.strokeStyle = C.white; ctx.lineWidth = 0.04; ctx.lineCap = 'round'; ctx.stroke();
-      // the sole: thick, black, with the heel stepped down at the back
-      ctx.beginPath();
-      ctx.moveTo(-0.62, 0.86); ctx.lineTo(0.24, 0.86); ctx.lineTo(0.24, 1.02); ctx.lineTo(-0.02, 1.02);
-      ctx.lineTo(-0.06, 0.95); ctx.lineTo(-0.56, 0.95); ctx.quadraticCurveTo(-0.66, 0.93, -0.62, 0.86); ctx.closePath();
-      paint(ctx, C.ink, { lw: 0.02 });
-      ctx.restore();
-    }, { anim: true, depth: BOOT[0] + BOOT[1] - 2 });
-    R.find({ id: 'boot', label: 'A yellow rain boot', at: [BOOT[0], BOOT[1], 5.9], r: 0.7 });
+    // The yellow rain boot, hung on the wall rack by its pull loop as one of
+    // the furled umbrellas, between two yellow ones (a find).
+    R.find({ id: 'boot', label: 'A yellow rain boot', kind: 'hard', at: [0.05, 1.35 + BOOT_I * 0.66, 2.75], r: 0.6, riddle: 'Hung up with the brollies, heel and all.', hint: 'One of the umbrellas on the wall rack has a heel.' });
 
     // restocking the ceiling from a stepladder
     R.thing(3.3, 3.3, (ctx, t) => {
@@ -469,6 +540,7 @@ export default {
       const lq = pulse(t, 13);
       if (Q.detail && pulse(t, 11) > 0.72 && !(lq < 0.25)) speech(ctx, p.x, p.y, 2.75, 'almost dry', { size: 0.34 });
     });
+    R.poke({ id: 'mop', at: (t) => { const m = mop(t); return [m.x, m.y, 1.4]; }, r: 1.0, sound: 'tick', say: ['Mind the wet floor.', 'Mopping since 1903.', 'Almost dry. Almost.'] });
     R.thing(5.1, 5.1, (ctx, t) => {
       cylinder(ctx, 4.8, 4.8, 0, 0.35, 0.55, C.mustard, { top: C.water });
       if (Q.detail) {
@@ -567,44 +639,31 @@ export default {
       if (Q.detail && q > 0.3 && q < 0.6) speech(ctx, 11.9, 10.4, 2.8, 'BISCUIT!', { size: 0.34 });
     }, { anim: true });
 
-    // ---------- The frog (a find) ----------
-    const frogAt = (t) => {
-      const q = pulse(t, 12) * 12;
-      const A = [8.9, 12.3], B = [10.4, 13.4];
-      if (q < 5.5) return { x: A[0], y: A[1], z: 0.05, dir: 'r', q };
-      if (q < 6.2) { const k = (q - 5.5) / 0.7; return { x: lerp(A[0], B[0], k), y: lerp(A[1], B[1], k), z: 0.05 + Math.sin(k * Math.PI) * 0.9, dir: 'r', jump: true, q }; }
-      if (q < 11.3) return { x: B[0], y: B[1], z: 0.05, dir: 'l', q };
-      const k = (q - 11.3) / 0.7;
-      return { x: lerp(B[0], A[0], k), y: lerp(B[1], A[1], k), z: 0.05 + Math.sin(k * Math.PI) * 0.9, dir: 'l', jump: true, q };
-    };
-    R.mover(frogAt, (ctx, t, p) => {
-      const [X, Y] = P(p.x, p.y, p.z);
-      const f = p.dir === 'l' ? -1 : 1;
-      ctx.save();
-      ctx.translate(X, Y);
-      ctx.scale(f * 0.9, 0.9);
-      if (p.jump) {
-        ctx.beginPath(); ctx.moveTo(-0.2, -0.1); ctx.lineTo(-0.55, 0.15); ctx.moveTo(0.1, -0.1); ctx.lineTo(-0.2, 0.2);
-        ctx.strokeStyle = C.green; ctx.lineWidth = 0.1; ctx.lineCap = 'round'; ctx.stroke();
+    // ---------- The frog, under a bucket by the pond (a find) ----------
+    // The lily pads are empty: the frog is under the upturned bucket, which
+    // hops now and then. A tap knocks the bucket aside, and there it sits.
+    const BK = [7.6, 14.3];
+    const bucket = R.poke({ id: 'bucket', at: [BK[0], BK[1], 0.4], r: 0.8, sound: 'clunk' });
+    R.thing(BK[0] + 0.4, BK[1] + 0.4, (ctx, t) => {
+      const k = bucket.k();
+      // the frog, sat where the bucket was
+      if (k > 0.1) frog(ctx, BK[0], BK[1], 0.02, t, 'r');
+      // the bucket: hopping when the frog jumps inside, then knocked aside
+      const q = pulse(t, 5.3);
+      const hop = k < 0.05 && q > 0.9 ? Math.sin(((q - 0.9) / 0.1) * Math.PI) * 0.18 : 0;
+      const bx = BK[0] + k * 0.6, by = BK[1] + k * 0.9, bz = hop + Math.sin(k * Math.PI) * 0.6;
+      if (Q.detail && k < 0.05) {
+        // a puddle seeping out from under it
+        const [X, Y] = P(BK[0], BK[1], 0.01);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.55, 0.24, 0, 0, Math.PI * 2); ctx.fillStyle = WET; ctx.fill();
       }
-      ctx.beginPath();
-      ctx.ellipse(0, -0.2, 0.34, 0.22, -0.15, 0, Math.PI * 2);
-      paint(ctx, C.green, { dots: shade(C.green, 0.4), density: 0.2, lw: 0.05 });
-      for (const ex of [0.05, 0.28]) {
-        ctx.beginPath(); ctx.arc(ex, -0.42, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
-        ctx.beginPath(); ctx.arc(ex + 0.02, -0.42, 0.045, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
-      }
-      ctx.beginPath(); ctx.arc(0.22, -0.2, 0.1, 0.2, Math.PI - 0.6); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
-      // tongue flick at a raindrop
-      const tq = pulse(t, 3.1);
-      if (!p.jump && tq > 0.85) {
-        const k = Math.sin(((tq - 0.85) / 0.15) * Math.PI);
-        ctx.beginPath(); ctx.moveTo(0.3, -0.18); ctx.lineTo(0.3 + k * 0.5, -0.18 - k * 0.8);
-        ctx.strokeStyle = C.pink; ctx.lineWidth = 0.06; ctx.stroke();
-      }
-      ctx.restore();
-    }, { bias: 0.2 });
-    R.find({ id: 'frog', label: 'A frog', at: (t) => { const p = frogAt(t); return [p.x, p.y, p.z + 0.25]; }, r: 0.7 });
+      cylinder(ctx, bx, by, bz, 0.36, 0.5, C.coral, { top: C.coralLight, dots: shade(C.coral, 0.35) });
+      const [hx, hy] = P(bx, by, bz + 0.12);
+      ctx.beginPath(); ctx.arc(hx, hy + 0.05, 0.42, 0.2, Math.PI - 0.2);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+      if (Q.detail && hop > 0.05) label(ctx, bx + 0.5, by - 0.5, bz + 0.9, 'ribbit', 0.2, C.green, 'Rethink Sans');
+    }, { anim: true });
+    R.find({ id: 'frog', label: 'A frog', kind: 'poke', inside: bucket, at: [BK[0], BK[1], 0.3], r: 0.7, hint: 'The lily pads are empty, and that bucket keeps jumping.' });
 
     // ---------- Mother duck, ducklings, and one very large duckling ----------
     const duckRoute = route([[2.6, 6.2], [3.2, 10.4], [6.8, 12.6], [9.6, 12.9], [12.6, 13.4], [14.2, 11.2], [13.6, 6.8], [10.8, 5.6], [5.8, 5.6], [3.6, 5.0]], { speed: 0.85 });
@@ -617,10 +676,35 @@ export default {
         duck(ctx, p.x, p.y, 0, t, { scale: 0.36, dir: p.dir, swim: inPond(p.x, p.y), col: C.butter, phase: i * 1.3 });
       });
     }
+
+    // ---------- Two umbrellas set down open to dry ----------
+    // One is just drying. The other is the only dry spot in the shop, and the
+    // goose has taken it: now and then it shuffles along an inch, on orange
+    // feet. A tap tips it aside and up the goose sits, honking now and then.
+    const dry = R.poke({ id: 'drying', at: [3.6, 6.4, 0.5], r: 1.0, say: 'HONK?' });
+    const dry2 = R.poke({ id: 'drying2', at: [6.3, 11.7, 0.5], r: 1.0, say: ['Just drying.', 'Still drying.', 'Nobody under here.'] });
+    const shuffle = (t) => { const q = pulse(t, 8.5, 2); return q > 0.86 ? Math.sin(((q - 0.86) / 0.14) * Math.PI) : 0; };
     R.goose((t) => {
-      const p = duckRoute(t - 6 * GAP - 0.4);
-      return { ...p, z: 0, pose: inPond(p.x, p.y) ? 'swim' : 'walk' };
-    }, {});
+      const k = dry.k();
+      return { x: 3.6, y: 6.4, z: 0, dir: 'r', hidden: k < 0.35, pose: k > 0.5 && pulse(t, 9) > 0.82 ? 'honk' : 'sit' };
+    }, { bias: 0.1, kind: 'poke', inside: dry, hint: 'Two umbrellas are drying on the floor. One of them has feet.' });
+    R.thing(3.6 + 0.5, 6.4 + 0.5, (ctx, t) => {
+      const k = dry.k(), sh = shuffle(t);
+      dryingUmbrella(ctx, 3.6 + sh * 0.12 + k * 0.5, 6.4 - sh * 0.04 + k * 1.3, Math.sin(k * Math.PI) * 0.8, UCOLS[7], 0.4 + sh * 0.2);
+      if (k < 0.05 && sh > 0.05) {
+        // orange feet, paddling under the rim
+        const [X, Y] = P(3.6 + 0.8, 6.4 + 0.8, 0);
+        for (const [dx, ph] of [[-0.2, 0], [0.18, Math.PI]]) {
+          const lift = Math.max(0, Math.sin(t * 14 + ph)) * 0.06;
+          ctx.beginPath(); ctx.moveTo(X + dx - 0.13, Y - 0.02 - lift); ctx.lineTo(X + dx + 0.15, Y - 0.07 - lift); ctx.lineTo(X + dx + 0.08, Y + 0.09 - lift); ctx.closePath();
+          paint(ctx, C.coral, { lw: 0.03 });
+        }
+      }
+    }, { anim: true, depth: 3.6 + 6.4 + 1.0 });
+    R.thing(6.3 + 0.5, 11.7 + 0.5, (ctx) => {
+      const k = dry2.k();
+      dryingUmbrella(ctx, 6.3 - k * 0.15, 11.7 + k * 0.15, Math.sin(k * Math.PI) * 0.5, UCOLS[2], 1.1 + k * 0.8);
+    }, { anim: true, depth: 6.3 + 11.7 + 1.0 });
 
     // ---------- Air: two small rain clouds, and a lot of rain ----------
     const clouds = [
@@ -672,6 +756,7 @@ export default {
       }
       clouds.forEach((cf, ci) => { const [x, y, z] = cf(t); cloud(ctx, x, y, z, t, ci ? 0.9 : 1.1); });
     });
+    R.poke({ id: 'cloud', at: (t) => { const [x, y, z] = clouds[0](t); return [x, y, z - 0.2]; }, r: 1.4, sound: 'clunk', say: ['Drizzle.', 'Scattered showers.', '100% chance of me.'] });
     R.air((ctx, t) => {
       const lq = pulse(t, 13);
       if (lq > 0.05 && lq < 0.2 && Q.detail) { const m = mop(t); speech(ctx, m.x, m.y, 2.75, 'NOT AGAIN', { size: 0.34 }); }

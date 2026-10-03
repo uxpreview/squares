@@ -1,9 +1,10 @@
 // Aquarium: a dark blue hall of glass. The walls are tanks full of fish, a
-// shark does laps, the jellyfish pulse, and the octopus has somewhere to be.
+// shark does laps, the jellyfish pulse, the octopus is hiding from its keeper,
+// and in the kelp forest a school of white fish has one very large member.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
   speech, shade, tint, alpha, dots, Q, label, P, paintText, onLeft, onRight, frame,
-  hash, rng, pick, SKIN,
+  hash, rng, pick, SKIN, goose,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -229,7 +230,7 @@ function octopus(ctx, X, Y, t, o = {}) {
 export default {
   id: 'aquarium',
   name: 'Aquarium',
-  blurb: 'The shark is on lap nine hundred. The octopus has escaped four times today and would like to talk to a manager.',
+  blurb: 'The shark is on lap nine hundred. The octopus has escaped four times today, and now the keeper has lost it again.',
 
   build(R) {
     // ---------- Floor and walls ----------
@@ -246,9 +247,6 @@ export default {
       tankBack(ctx, TANKS.B, 2);
       tankBack(ctx, TANKS.C, 3);
       tankBack(ctx, TANKS.D, 4);
-      // treasure chest in the deep tank
-      onLeft(ctx, 10.6, 0.9, 1.0, 0.55, C.wood, { dots: C.brown, density: 0.3, lw: 0.04 });
-      onLeft(ctx, 10.6, 1.45, 1.0, 0.2, C.mustard, { lw: 0.04 });
       // the lost snorkel, on the sand in the diver's tank
       inPlane(ctx, 'R', () => {
         ctx.beginPath();
@@ -287,6 +285,9 @@ export default {
       paintText(ctx, 'right', 9.7, 3.05, 'FEED', 0.12, C.navy);
       paintText(ctx, 'right', 9.7, 2.85, '10:30', 0.1, C.coral, 'Rethink Sans');
     }, { anim: true });
+
+    // The deep tank's treasure chest answers a tap (the octopus isn't in it).
+    const chest2 = R.poke({ id: 'deepchest', at: [0.1, 11.1, 1.2], r: 0.8, sound: 'clunk', say: ['Just treasure.', 'Fake gold. Do not tell.', 'No octopus. Only doubloons.'] });
 
     // Fish, sharks and weeds: animated wall layers
     const shark1 = (t) => { const q = pulse(t, 22); return { u: lerp(-3, 12.5, q), v: 3.4 + Math.sin(q * TAU) * 0.5 }; };
@@ -348,15 +349,30 @@ export default {
         for (let i = 0; i < 9; i++) seaweed(ctx, T.u0 + 0.4 + i * 0.85, T.v0 + 0.5, 3.4 + (i % 3) * 1.1, t, i % 2 ? C.green : shade(C.leaf, 0.1), 9);
         const g = gooseAt(t);
         const dir = g.vy < 0 ? 1 : -1;
-        for (let i = 0; i < 7; i++) {
-          const back = 0.9 + (i % 3) * 0.6 + Math.floor(i / 3) * 0.5;
-          fish(ctx, -g.y - dir * back, g.z + 0.3 + ((i * 37) % 5 - 2) * 0.28, 0.28, C.mustard, dir, t);
+        // a school of white fish, round and ahead of and behind the goose
+        for (let i = 0; i < 14; i++) {
+          const back = (i % 2 ? 1 : -1) * (0.55 + (i % 4) * 0.42) + Math.floor(i / 4) * 0.3;
+          fish(ctx, -g.y - dir * back, g.z + 0.3 + ((i * 37) % 5 - 2) * 0.34, 0.42 + (i % 3) * 0.07, i % 3 ? C.white : C.greyLight, dir, t);
         }
         for (let i = 0; i < 3; i++) {
           const q = pulse(t + i * 4, 12);
           fish(ctx, lerp(-8.2, -0.2, q), 1.6 + i * 1.5, 0.45, [C.coral, C.lilac, C.sky][i], 1, t, 2);
         }
         bubbles(ctx, t, -7.5, -1, 0.8, 6.3, 6, 13);
+        ctx.restore();
+      });
+      // the goose, swimming with them, inside the glass
+      ctx.save();
+      poly(ctx, [[0, -T.u1, T.v0], [0, -T.u0, T.v0], [0, -T.u0, T.v1], [0, -T.u1, T.v1]]);
+      ctx.clip();
+      const g = gooseAt(t);
+      goose(ctx, 0.05, g.y, g.z, t, { dir: g.dir, pose: 'swim' });
+      ctx.restore();
+      // and a few fronds of kelp in front of them all
+      inPlane(ctx, 'L', () => {
+        ctx.save();
+        clipTank(ctx, T);
+        for (let i = 0; i < 6; i++) seaweed(ctx, T.u0 + 0.5 + i * 1.3, T.v0 + 0.4, 4.0 + (i % 3) * 0.7, t + 2, shade(C.green, 0.15), 9);
         ctx.restore();
       });
       glassShine(ctx, T);
@@ -391,7 +407,15 @@ export default {
           const qq = pulse(t + i * 2.3, 10);
           fish(ctx, lerp(-8.4, -15.6, qq), 1.8 + i * 0.8, 0.22, alpha(C.mint, 0.9), -1, t);
         }
-        // the chest burps bubbles
+        // the treasure chest, which burps bubbles (and answers a tap)
+        const ck = chest2.k();
+        ctx.beginPath(); ctx.rect(-11.6, 0.9, 1.0, 0.55); paint(ctx, C.wood, { dots: C.brown, density: 0.3, lw: 0.04 });
+        ctx.save();
+        ctx.translate(-11.6, 1.45);
+        ctx.rotate(ck * 0.9);
+        ctx.beginPath(); ctx.rect(0, 0, 1.0, 0.2); paint(ctx, C.mustard, { lw: 0.04 });
+        ctx.restore();
+        if (ck > 0.3) for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(-11.45 + i * 0.22, 1.5, 0.08, 0, TAU); paint(ctx, C.butter, { lw: 0.03 }); }
         const cq = pulse(t, 7);
         if (cq < 0.4) bubbles(ctx, t, -11.3, -11.0, 1.6, 4.5, 4, 14);
         ctx.restore();
@@ -420,7 +444,10 @@ export default {
     }, { anim: true });
 
     // ---------- The goose, swimming with the school ----------
-    R.goose((t) => gooseAt(t), {});
+    // (drawn in the kelp tank with its school, above; this is where to tap)
+    R.goose((t) => { const g = gooseAt(t); return { x: 0.05, y: g.y, z: g.z - 0.25, dir: g.dir, hidden: true }; },
+      { kind: 'hard', hint: 'In the kelp forest, one of the school of white fish is much too big.' });
+    R.poke({ id: 'shark', at: (t) => { const sh = shark1(t); return [sh.u, 0.15, sh.v]; }, r: 1.2, sound: 'clunk', say: ['Lap nine hundred and one.', "Don't tap the glass.", 'I only eat fish. Mostly.'] });
 
     // ---------- Diver cleaning the glass in tank B ----------
     const diverAt = (t) => {
@@ -479,6 +506,7 @@ export default {
       ctx.restore();
     }, { bias: -0.1 });
     R.find({ id: 'snorkel', label: 'A lost snorkel', at: [12.8, 0.05, 1.15], r: 0.8 });
+    R.poke({ id: 'diver', at: (t) => { const d = diverAt(t); return [d.x, 0.15, d.z + 1.3]; }, r: 0.9, sound: 'tick', say: ['Glub.', 'Glub glub.', 'Seen my snorkel?'] });
 
     // ---------- Central jellyfish tank ----------
     const JX = 8.2, JY = 8.2, JR = 1.7, JZ0 = 0.6, JH = 5.0;
@@ -488,7 +516,12 @@ export default {
     pressKids.forEach(([x, y, seed], i) => {
       R.thing(x, y, (ctx, t) => person(ctx, x, y, 0, folk(seed, { scale: 0.7, pose: 'stand', arms: [2.5 + Math.sin(t * 3 + i) * 0.1, -2.5], dir: i ? 'l' : 'r' }), t), { anim: true });
     });
+    // (The room's first lesson: tap the jellyfish tank and the jellies dance.)
+    const jt = R.poke({ id: 'jellies', at: [JX + 0.8, JY + 0.8, 2.4], r: 1.5, teach: true, hold: 2.5, say: ['Bloop.', 'The jellies say hi.', 'It says no flash. Not no tap.'] });
+    // A wooden decoy duck bobbing on the jelly tank's surface (a decoy).
+    R.decoy({ id: 'duck', at: [JX, JY, JZ0 + JH + 0.35], r: 0.8, say: ['A wooden duck. Literally a decoy.', 'Still wood.', 'It floats. That is all it does.'] });
     R.thing(JX, JY, (ctx, t) => {
+      const go = jt.k();
       cylinder(ctx, JX, JY, 0, JR + 0.25, JZ0, C.navy, { top: C.night });
       label(ctx, JX + 1.3, JY + 1.3, 0.28, 'NO FLASH', 0.22, C.butter);
       const [X, Yb] = P(JX, JY, JZ0);
@@ -519,9 +552,9 @@ export default {
       });
       // jellies
       JELLY.forEach(([dx, dy, z, col, ph]) => {
-        const zz = z + Math.sin(t * 0.5 + ph) * 0.5;
-        const [jx, jy] = P(JX + dx, JY + dy, JZ0 + zz);
-        jelly(ctx, jx, jy, 0.9, col, t, ph);
+        const zz = z + Math.sin(t * 0.5 + ph) * 0.5 + go * Math.sin(t * 5 + ph * 2) * 0.6;
+        const [jx, jy] = P(JX + dx + go * Math.cos(t * 3 + ph) * 0.3, JY + dy, JZ0 + zz);
+        jelly(ctx, jx, jy, 0.9, col, t * (1 + go * 2), ph);
       });
       // bubbles
       if (Q.detail) {
@@ -547,6 +580,9 @@ export default {
       // lid ring
       ctx.beginPath(); ctx.ellipse(X, Yt, rx + 0.1, ry + 0.05, 0, 0, TAU);
       ctx.strokeStyle = C.navy; ctx.lineWidth = 0.15; ctx.stroke();
+      // the decoy duck, bobbing on top
+      const [dX, dY] = P(JX - 0.2, JY + 0.2, JZ0 + JH + 0.02 + Math.sin(t * 1.4) * 0.04);
+      decoyDuck(ctx, dX, dY, Math.sin(t * 1.1) * 0.06);
     }, { anim: true });
 
     // flash photographer, ignoring the sign
@@ -600,31 +636,13 @@ export default {
     }, { anim: true });
 
     // ---------- The octopus and its long-suffering keeper ----------
+    // Four escapes today. Now it's hiding in the treasure chest in its own
+    // tank, and the keeper is searching the whole hall for it. The chest
+    // blows bubbles and an arm tip curls out from under the lid; a tap lifts
+    // the lid and it peeks out, shifty.
     const OT = { x0: 2.0, x1: 3.8, y0: 12.3, y1: 13.9, z0: 1.0, z1: 2.3 };
-    const OCT_T = 26;
-    const POST = [5.2, 15.1];
-    const octo = memo((t) => {
-      const s = pulse(t, OCT_T) * OCT_T;
-      if (s < 3.5) return { x: 2.9, y: 13.1, z: 1.25 + Math.sin(t * 1.4) * 0.1, mode: 'tank', reach: s > 2.2 };
-      if (s < 6.5) return { x: 3.85, y: 13.1, z: OT.z1 - 0.05, mode: 'rim', drape: true, shifty: true };
-      if (s < 8) { const k = (s - 6.5) / 1.5; return { x: 4.1, y: 13.1, z: lerp(OT.z1 - 0.3, 0, k), mode: 'floor', drape: true }; }
-      if (s < 15) { const k = (s - 8) / 7; return { x: lerp(4.2, 8.4, k), y: lerp(13.2, 13.4, k), z: 0, mode: 'floor', crawl: true, shifty: true, dir: 'r' }; }
-      if (s < 16) return { x: 8.4, y: 13.4, z: 0, mode: 'floor', shifty: true };
-      if (s < 21.5) { const k = (s - 16) / 5.5; return { x: lerp(8.4, 4.6, k), y: lerp(13.4, 13.1, k), z: 1.45, mode: 'carried' }; }
-      if (s < 22.4) { const k = (s - 21.5) / 0.9; return { x: lerp(4.6, 2.9, k), y: 13.1, z: 1.5 + Math.sin(k * Math.PI) * 1.4, mode: 'toss' }; }
-      return { x: 2.9, y: 13.1, z: 1.25, mode: 'tank', splash: (s - 22.4) / 1.2 };
-    });
-    const keeper = memo((t) => {
-      const s = pulse(t, OCT_T) * OCT_T;
-      if (s < 13) return { x: POST[0], y: POST[1], pose: 'read', dir: 'r' };
-      if (s < 13.8) return { x: POST[0], y: POST[1], pose: 'point', dir: 'r', alarm: true };
-      if (s < 16) { const k = (s - 13.8) / 2.2; return { x: lerp(POST[0], 8.1, k), y: lerp(POST[1], 13.9, k), pose: 'walk', dir: 'r', moving: true }; }
-      if (s < 21.5) { const k = (s - 16) / 5.5; return { x: lerp(8.1, 4.4, k), y: lerp(13.9, 13.5, k), pose: 'carry', dir: 'l', back: true, moving: true }; }
-      if (s < 22.6) return { x: 4.4, y: 13.5, pose: 'cheer', dir: 'l', back: true };
-      const k = (s - 22.6) / (OCT_T - 22.6);
-      return { x: lerp(4.4, POST[0], k), y: lerp(13.5, POST[1], k), pose: 'walk', dir: 'r', moving: true };
-    });
-    // the little tank on its stand, drawn in two parts around the octopus
+    const CH = { x: 2.9, y: 13.1 };
+    const chest = R.poke({ id: 'chest', at: [CH.x, CH.y, 1.4], r: 0.8, sound: 'clunk' });
     R.thing(OT.x1, OT.y1, (ctx, t) => {
       box(ctx, OT.x0, OT.y0, 0, OT.x1 - OT.x0, OT.y1 - OT.y0, OT.z0, C.navy, { top: C.night });
       label(ctx, (OT.x0 + OT.x1) / 2 + 0.9, OT.y1, 0.5, 'OCTOPUS', 0.2, C.butter);
@@ -632,10 +650,35 @@ export default {
       face(ctx, [[OT.x0, OT.y0, OT.z0], [OT.x1, OT.y0, OT.z0], [OT.x1, OT.y0, OT.z1], [OT.x0, OT.y0, OT.z1]], alpha(C.teal, 0.6), { lw: 0.04 });
       face(ctx, [[OT.x0, OT.y0, OT.z0], [OT.x0, OT.y1, OT.z0], [OT.x0, OT.y1, OT.z1], [OT.x0, OT.y0, OT.z1]], alpha(C.teal, 0.7), { lw: 0.04 });
       rect(ctx, OT.x0, OT.y0, OT.x1 - OT.x0, OT.y1 - OT.y0, OT.z0 + 0.02, alpha(C.butter, 0.8), { stroke: false });
-      const o = octo(t);
-      if (o.mode === 'tank') {
-        const [X, Y] = P(o.x, o.y, o.z);
-        octopus(ctx, X, Y, t, { scale: 0.7, reach: o.reach });
+      // the chest
+      const k = chest.k();
+      const cx0 = CH.x - 0.4, cy0 = CH.y - 0.28, ch = 0.36;
+      box(ctx, cx0, cy0, OT.z0, 0.8, 0.56, ch, C.wood, { top: C.brown, dots: C.brown, lw: 0.035 });
+      face(ctx, [[cx0, cy0 + 0.56, OT.z0 + 0.12], [cx0 + 0.8, cy0 + 0.56, OT.z0 + 0.12]], null, { lw: 0.05, stroke: C.mustard });
+      // the lid, hinged at the back, lifting
+      const lz = OT.z0 + ch, back = cy0;
+      const ly = back + 0.56 * Math.cos(k * 1.3), lzz = lz + 0.56 * Math.sin(k * 1.3);
+      face(ctx, [[cx0, back, lz], [cx0 + 0.8, back, lz], [cx0 + 0.8, ly, lzz + 0.1], [cx0, ly, lzz + 0.1]], C.mustard, { lw: 0.035 });
+      if (k > 0.05) {
+        // up it comes, eyes first (in front of the open lid)
+        const [X, Y] = P(CH.x, CH.y + 0.1, OT.z0 + ch - 0.2 + k * 0.35);
+        octopus(ctx, X, Y, t, { scale: 0.6, shifty: true, drape: true });
+      } else {
+        // an arm tip, curling out from under the lid and down the front
+        const [X, Y] = P(cx0 + 0.62, cy0 + 0.56, lz + 0.05);
+        const w = Math.sin(t * 2.1) * 0.05;
+        ctx.beginPath(); ctx.moveTo(X - 0.05, Y - 0.02); ctx.quadraticCurveTo(X + 0.3, Y + 0.02 + w, X + 0.2, Y + 0.3 + w);
+        ctx.quadraticCurveTo(X + 0.14, Y + 0.36 + w, X + 0.1, Y + 0.28 + w);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.15; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.09; ctx.stroke();
+      }
+      // bubbles out of the chest
+      if (Q.detail) {
+        ctx.strokeStyle = alpha(C.white, 0.85); ctx.lineWidth = 0.03;
+        particles(t, 3, 2.2, (q, r) => {
+          const [bx, by] = P(CH.x + (r() - 0.5) * 0.3, CH.y, lz + 0.1 + q * (OT.z1 - lz - 0.3));
+          ctx.beginPath(); ctx.arc(bx, by, 0.04 + r() * 0.04, 0, TAU); ctx.stroke();
+        }, 27);
       }
       // front water and glass
       face(ctx, [[OT.x0, OT.y1, OT.z0], [OT.x1, OT.y1, OT.z0], [OT.x1, OT.y1, OT.z1 - 0.2], [OT.x0, OT.y1, OT.z1 - 0.2]], alpha(C.teal, 0.45), { stroke: false });
@@ -643,43 +686,16 @@ export default {
       rect(ctx, OT.x0, OT.y0, OT.x1 - OT.x0, OT.y1 - OT.y0, OT.z1 - 0.2, alpha(C.tealLight, 0.45), { stroke: false });
       face(ctx, [[OT.x0, OT.y1, OT.z0], [OT.x1, OT.y1, OT.z0], [OT.x1, OT.y1, OT.z1], [OT.x0, OT.y1, OT.z1]], alpha(C.white, 0.08), { lw: 0.04 });
       face(ctx, [[OT.x1, OT.y0, OT.z0], [OT.x1, OT.y1, OT.z0], [OT.x1, OT.y1, OT.z1], [OT.x1, OT.y0, OT.z1]], alpha(C.white, 0.08), { lw: 0.04 });
-      if (o.splash !== undefined && o.splash < 1 && Q.detail) {
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * TAU;
-          const [X, Y] = P(2.9 + Math.cos(a) * o.splash * 0.8, 13.1 + Math.sin(a) * o.splash * 0.8, OT.z1 + Math.sin(o.splash * Math.PI) * 0.8);
-          ctx.beginPath(); ctx.arc(X, Y, 0.07, 0, TAU); ctx.fillStyle = C.tealLight; ctx.fill();
-        }
-      }
     }, { anim: true });
-    // the octopus out of the tank
-    R.mover((t) => octo(t), (ctx, t, p) => {
-      if (p.mode === 'tank' || p.mode === 'carried') return;
-      const [X, Y] = P(p.x, p.y, p.z);
-      octopus(ctx, X, Y, t, { scale: 0.7, drape: p.drape, crawl: p.crawl, shifty: p.shifty, dir: p.dir });
-      if (Q.detail && p.mode === 'floor' && p.crawl) {
-        // wet footprints (armprints?)
-        for (let i = 1; i < 5; i++) {
-          const [fx, fy] = P(p.x - i * 0.6, p.y - i * 0.03, 0.01);
-          ctx.beginPath(); ctx.ellipse(fx, fy, 0.18, 0.07, 0, 0, TAU);
-          ctx.fillStyle = alpha(C.tealLight, 0.35 - i * 0.07); ctx.fill();
-        }
-      }
-    }, { bias: 0.3 });
     // (A big octopus escapes up the alley too, so this one's the little one.)
-    R.find({ id: 'octopus', label: 'A little octopus', r: 0.9, at: (t) => { const p = octo(t); return [p.x, p.y, p.z + 0.45]; } });
-    // the keeper
-    R.mover((t) => keeper(t), (ctx, t, p) => {
-      const o = octo(t);
+    R.find({ id: 'octopus', label: 'A little octopus', kind: 'poke', inside: chest, at: [CH.x, CH.y, 1.55], r: 0.7, hint: 'The octopus tank looks empty. Something in it keeps blowing bubbles.' });
+    // the keeper, searching the hall, looking under things
+    const search = route([[5.2, 15.1, 2.5], [8.8, 14.0, 2], [9.6, 11.0, 2], [5.4, 11.6, 2]], { speed: 0.7 });
+    R.mover(search, (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, folk(310, {
-        pose: p.pose, dir: p.dir, back: p.back, top: C.teal, bottom: C.navy, hat: 'cap', style: 'pony', hair: C.brown, speed: 8,
-        hold: p.pose === 'read' ? (g) => { g.beginPath(); g.rect(0.0, -0.2, 0.4, 0.5); paint(g, C.white, { lw: 0.02 }); } : undefined,
+        pose: p.moving ? 'walk' : 'point', dir: p.dir, back: p.back, top: C.teal, bottom: C.navy, hat: 'cap', style: 'pony', hair: C.brown, speed: 8,
       }), t);
-      if (o.mode === 'carried') {
-        const [X, Y] = P(p.x + 0.45, p.y + 0.45, 0.75);
-        octopus(ctx, X, Y, t, { scale: 0.62, drape: true, dir: 'l', shifty: true });
-      }
-      if (p.alarm && Q.detail) speech(ctx, p.x, p.y, 2.8, 'NOT AGAIN, GARY', { size: 0.3 });
-      if (o.mode === 'carried' && Q.detail && pulse(t, OCT_T) * OCT_T < 18) speech(ctx, p.x, p.y, 2.9, 'we talked about this', { size: 0.28 });
+      if (!p.moving && Q.detail) speech(ctx, p.x, p.y, 2.8, pulse(t, 9) < 0.5 ? 'OTTO?' : 'not funny, Otto', { size: 0.3 });
     }, { bias: 0.2 });
 
     R.thing(6.9, 12.2, (ctx) => {
@@ -697,6 +713,14 @@ export default {
       const k = q < 0.5 ? ease(q * 2) : ease(2 - q * 2);
       return { x: lerp(11.5, 12.9, k), y: lerp(12.2, 12.6, k), q };
     };
+    const hermitAt = (t) => {
+      const q = pulse(t, 13);
+      const A = [13.25, 12.45], B = [13.85, 13.0];
+      const k = q < 0.12 ? ease(q / 0.12) : q < 0.5 ? 1 : q < 0.62 ? 1 - ease((q - 0.5) / 0.12) : 0;
+      return { x: lerp(A[0], B[0], k), y: lerp(A[1], B[1], k), dir: q < 0.5 ? 'r' : 'l', moving: (q < 0.12) || (q > 0.5 && q < 0.62) };
+    };
+    R.find({ id: 'hermit', label: 'A hermit crab', kind: 'hard', r: 0.6, at: (t) => { const h = hermitAt(t); return [h.x, h.y, 0.4]; }, riddle: 'Lying low in the touch pool, house and all.', hint: 'One of the rocks in the touch pool has legs, now and then.' });
+    R.poke({ id: 'crab', at: (t) => { const c = crabAt(t); return [c.x, c.y, 0.5]; }, r: 0.6, sound: 'tick', say: ['Pinch.', 'Two fingers PLEASE.', 'Not a hermit. Just cross.'] });
     R.thing(TP.x0, TP.y0, (ctx) => {
       box(ctx, TP.x0, TP.y0, 0, TP.x1 - TP.x0, 0.3, TP.h, C.grey, { top: C.greyLight });
       box(ctx, TP.x0, TP.y0 + 0.3, 0, 0.3, TP.y1 - TP.y0 - 0.3, TP.h, C.grey, { top: C.greyLight });
@@ -729,6 +753,10 @@ export default {
       ctx.beginPath(); ctx.ellipse(0, -0.15, 0.3, 0.18, 0, 0, TAU); paint(ctx, C.coral, { dots: C.red, density: 0.2, lw: 0.04 });
       ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(-0.08, -0.34, 0.04, 0, TAU); ctx.arc(0.08, -0.34, 0.04, 0, TAU); ctx.fill();
       ctx.restore();
+      // the hermit crab (a find): its shell one of the pool's purple rocks,
+      // and now and then it gets up and walks a little way
+      const h = hermitAt(t);
+      hermitCrab(ctx, h.x, h.y, 0.22, t, h.dir, h.moving);
       // water surface over it
       rect(ctx, TP.x0 + 0.3, TP.y0 + 0.3, TP.x1 - TP.x0 - 0.3, TP.y1 - TP.y0 - 0.3, TP.h - 0.12, alpha(C.water, 0.45), { stroke: false });
       if (Q.detail) {
@@ -816,29 +844,6 @@ export default {
       if (Q.detail) speech(ctx, p.x, p.y, 2.75, q < 0.5 ? '...11, 12, 13' : 'yes, Milo?', { size: 0.28 });
     });
 
-    // ---------- Hermit crab, on a long walk (a find) ----------
-    const hermit = route([[11.0, 8.2, 2], [12.4, 9.0], [13.4, 8.0, 2], [12.0, 7.4]], { speed: 0.22 });
-    R.mover(hermit, (ctx, t, p) => {
-      const [X, Y] = P(p.x, p.y, 0);
-      const f = p.dir === 'l' ? -1 : 1;
-      ctx.save();
-      ctx.translate(X, Y);
-      ctx.scale(f, 1);
-      ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05;
-      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(0.1 + i * 0.07, -0.1); ctx.lineTo(0.25 + i * 0.08, 0.0 + Math.sin(t * 10 + i) * 0.03); ctx.stroke(); }
-      ctx.beginPath(); ctx.arc(0.32, -0.16, 0.08, 0, TAU); paint(ctx, C.coral, { lw: 0.03 });
-      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.3, -0.3, 0.035, 0, TAU); ctx.arc(0.38, -0.29, 0.035, 0, TAU); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(0.18, -0.05);
-      ctx.bezierCurveTo(0.2, -0.5, -0.35, -0.55, -0.35, -0.2);
-      ctx.bezierCurveTo(-0.35, -0.02, -0.1, 0.0, 0.18, -0.05);
-      paint(ctx, C.lilac, { dots: C.purple, density: 0.25, lw: 0.04 });
-      ctx.beginPath(); ctx.arc(-0.1, -0.23, 0.12, 0, Math.PI * 1.6);
-      ctx.strokeStyle = C.purple; ctx.lineWidth = 0.035; ctx.stroke();
-      ctx.restore();
-    });
-    R.find({ id: 'hermit', label: 'A hermit crab', r: 0.7, at: (t) => { const p = hermit(t); return [p.x, p.y, 0.2]; } });
-
     // ---------- Air: light shafts from the tank tops ----------
     R.air((ctx, t) => {
       if (!Q.detail) return;
@@ -867,5 +872,64 @@ function onPost(ctx, x, y, z) {
   ctx.translate(x + 0.06, (x + 0.06) / 2);
   paintText(ctx, 'left', y, z - 0.05, 'TWO FINGERS', 0.2, C.coral);
   paintText(ctx, 'left', y, z - 0.35, 'PLEASE', 0.2, C.coral);
+  ctx.restore();
+}
+
+// A hermit crab in a purple shell that matches the touch pool's rocks. Legs
+// and eyes only show while it's walking; stopped, it's one more rock.
+function hermitCrab(ctx, x, y, z, t, dir, moving) {
+  const [X, Y] = P(x, y, z);
+  const f = dir === 'l' ? -1 : 1;
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(f * 0.85, 0.85);
+  if (moving) {
+    ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05;
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(0.1 + i * 0.07, -0.1); ctx.lineTo(0.25 + i * 0.08, 0.0 + Math.sin(t * 10 + i) * 0.03); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(0.32, -0.16, 0.08, 0, TAU); paint(ctx, C.coral, { lw: 0.03 });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.3, -0.3, 0.035, 0, TAU); ctx.arc(0.38, -0.29, 0.035, 0, TAU); ctx.fill();
+  } else if (Q.detail) {
+    // (just the claw tip, peeking)
+    ctx.beginPath(); ctx.arc(0.2, -0.06, 0.05, 0, TAU); ctx.fillStyle = C.coral; ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.moveTo(0.18, -0.05);
+  ctx.bezierCurveTo(0.2, -0.5, -0.35, -0.55, -0.35, -0.2);
+  ctx.bezierCurveTo(-0.35, -0.02, -0.1, 0.0, 0.18, -0.05);
+  paint(ctx, C.purple, { dots: shade(C.purple, 0.35), density: 0.25, lw: 0.04 });
+  ctx.beginPath(); ctx.arc(-0.1, -0.23, 0.12, 0, Math.PI * 1.6);
+  ctx.strokeStyle = shade(C.purple, 0.35); ctx.lineWidth = 0.035; ctx.stroke();
+  ctx.restore();
+}
+
+// A wooden decoy duck, painted white with an orange bill, the size of the
+// goose: only the wood grain, the flat keel and the screw eye give it away.
+function decoyDuck(ctx, X, Y, rock) {
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(rock);
+  ctx.beginPath(); ctx.ellipse(0, 0.02, 0.55, 0.14, 0, 0, TAU); ctx.fillStyle = alpha(C.white, 0.35); ctx.fill();
+  // keel
+  ctx.beginPath(); ctx.rect(-0.3, -0.06, 0.6, 0.08); paint(ctx, C.wood, { lw: 0.03 });
+  // body and tail
+  ctx.beginPath();
+  ctx.ellipse(0, -0.22, 0.44, 0.22, -0.06, 0, TAU);
+  ctx.moveTo(-0.32, -0.26); ctx.lineTo(-0.56, -0.38); ctx.lineTo(-0.4, -0.14);
+  paint(ctx, C.white, { dots: Q.detail ? C.woodLight : null, density: 0.12 });
+  // painted wing and grain lines
+  ctx.beginPath(); ctx.ellipse(-0.06, -0.24, 0.24, 0.11, -0.15, 0, TAU); paint(ctx, C.greyLight);
+  if (Q.detail) {
+    ctx.strokeStyle = alpha(C.wood, 0.7); ctx.lineWidth = 0.02;
+    for (const dy of [-0.12, -0.32]) { ctx.beginPath(); ctx.moveTo(-0.3, dy); ctx.quadraticCurveTo(0, dy - 0.04, 0.3, dy); ctx.stroke(); }
+  }
+  // neck, head and bill
+  ctx.beginPath(); ctx.moveTo(0.22, -0.3); ctx.quadraticCurveTo(0.3, -0.48, 0.3, -0.62);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.22; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.15; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0.3, -0.66, 0.13, 0, TAU); paint(ctx, C.white);
+  ctx.beginPath(); ctx.moveTo(0.4, -0.7); ctx.lineTo(0.62, -0.64); ctx.lineTo(0.4, -0.6); paint(ctx, C.coral);
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.33, -0.69, 0.03, 0, TAU); ctx.fill();
+  // the screw eye on its back, for the string
+  ctx.beginPath(); ctx.arc(-0.05, -0.46, 0.04, 0, TAU); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.025; ctx.stroke();
   ctx.restore();
 }
