@@ -944,12 +944,8 @@ export default {
         face(ctx, [hand, [bx, by, bz - 0.3]], null, { lw: 0.025 });
         const [X, Y] = P(bx, by, bz);
         ctx.beginPath(); ctx.arc(X, Y, 0.34, 0, Math.PI * 2);
+        // (no ringed Saturn among them: the only ring in the room is the missing one)
         paint(ctx, col, { dots: shade(col, 0.35), density: 0.2, lw: 0.04 });
-        if (i === 2) {
-          ctx.beginPath(); ctx.ellipse(X, Y, 0.62, 0.14, -0.3, 0, Math.PI * 2);
-          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke();
-          ctx.strokeStyle = C.butter; ctx.lineWidth = 0.05; ctx.stroke();
-        }
       }
     });
 

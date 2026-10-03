@@ -474,7 +474,7 @@ export default {
     // The goose: crouched behind the booth, plugged into the mixer (its pink
     // cable runs over the back edge, twitching to the beat). A tap on the
     // booth and up it pops, dancing in its own headphones.
-    const booth = R.poke({ id: 'booth', at: [9.6, 1.6, 0.9], r: 1.3 }); // (reaches the tail at its end)
+    const booth = R.poke({ id: 'booth', at: [9.6, 1.3, 1.1], r: 1.3 }); // (reaches the head over its edge and the tail at its end)
     const gpos = (t) => {
       const k = booth.k();
       const beat = t * 2;
@@ -515,6 +515,21 @@ export default {
         ctx.restore();
       }
     }, { anim: true, depth: 12.6 });
+    // ...and the crown of its head in its headphones, bobbing to the beat just
+    // over the booth's back edge (drawn after the booth, so a still shows it).
+    R.thing(10, 2.5, (ctx, t) => {
+      if (booth.k() >= 0.3) return;
+      const bob = Math.abs(Math.sin(t * 2 * Math.PI)) * 0.05;
+      const [X, Y] = P(9.45, 0.95, 1.36 + bob);
+      ctx.beginPath(); ctx.arc(X, Y, 0.26, Math.PI, 0); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.04 });
+      ctx.fillStyle = C.ink;
+      ctx.beginPath(); ctx.arc(X + 0.09, Y - 0.1, 0.035, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(X, Y - 0.03, 0.3, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(X - 0.26, Y - 0.05, 0.08, 0.11, 0, 0, Math.PI * 2);
+      paint(ctx, C.pink, { lw: 0.03 });
+    }, { anim: true, depth: 12.7 });
     R.mover(gpos, (ctx, t, p) => {
       if (p.pose === 'honk' || p.hidden) return;
       const f = p.dir === 'l' ? -1 : 1;

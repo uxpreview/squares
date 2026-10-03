@@ -484,18 +484,17 @@ export default {
     R.thing(1.6, 7.6, (ctx, t) => parasol(ctx, 1.6, 7.6, t, C.coral, C.white));
     R.thing(1.6, 13.6, (ctx, t) => parasol(ctx, 1.6, 13.6, t, C.teal, C.butter));
 
-    // Towels on the front deck, one pink flip-flop on the coral one. Its twin
-    // got handed in to the lost property box (a find).
+    // Towels on the front deck. The flip-flop got handed in to the lost
+    // property box (a find); no loose one lies about to be taken for it.
     R.rug((ctx) => {
       rect(ctx, 5.2, 13.4, 1.4, 2.2, 0.02, C.coral, { dots: C.white, density: 0.4 });
       rect(ctx, 7.2, 13.6, 1.4, 2.2, 0.02, C.teal, { dots: C.butter, density: 0.3 });
       rect(ctx, 9.6, 13.3, 1.4, 2.2, 0.02, C.mustard, { dots: C.coral, density: 0.25 });
-      flipflop(ctx, 6.1, 15.1, 0.03);
     });
     // (its tap area covers the whole box, flaps and all)
     const lost = R.poke({ id: 'lost', at: [LOST[0] + 0.55, LOST[1] + 0.4, 0.35], r: 1.15, sound: 'clunk' });
     R.thing(LOST[0] + 1.1, LOST[1] + 0.8, (ctx, t) => lostBox(ctx, t, lost.k()), { anim: true });
-    R.find({ id: 'flipflop', label: 'One lost flip-flop', kind: 'poke', inside: lost, at: [LOST[0] + 0.55, LOST[1] + 0.5, 0.75], r: 0.6, hint: 'Its twin is lying on a towel. Somebody handed the other one in.' });
+    R.find({ id: 'flipflop', label: 'One lost flip-flop', kind: 'poke', inside: lost, at: [LOST[0] + 0.55, LOST[1] + 0.5, 0.75], r: 0.6, hint: 'Somebody handed it in. Lost things end up in a box.' });
 
     // Sunglasses on the bottom of the pool (a hard find): small, dark on
     // dark, half under a lane line (drawn with the water, above), in the
