@@ -279,6 +279,13 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#invite');
   await wait(page, 1800);
   check('tapping the invitation steps into its room', (await S(page, () => location.hash)) === '#/block/observatory');
+  // The first verb: sit a few seconds without tapping and something that
+  // answers back gets a tap ripple; tap it and the ripple's gone.
+  const taught = await page.waitForFunction(() => window.__squares.play.teaching(), null, { timeout: 8000 }).then((h) => h.jsonValue(), () => null);
+  const teachable = await S(page, (id) => { const z = window.__squares.world.zones.find((q) => q.id === 'observatory'); const pk = z.pokes.find((q) => q.id === id); return !!pk && !pk.decoy && !z.finds.some((f) => f.inside === pk); }, taught);
+  check('a new player is nudged to tap something that answers back', !!taught && teachable, String(taught));
+  await S(page, (id) => window.__squares.play.poke('observatory', id), taught);
+  check('the nudge goes once they poke something', (await S(page, () => window.__squares.play.teaching())) === null);
   await page.click('#to-places');
   await wait(page, 1800);
   check('once you have been in a room, the invitation is gone', !(await page.isVisible('#invite')) && (await S(page, () => location.hash)) === '#/block');

@@ -1,5 +1,12 @@
 // Greenhouse: glass walls, a flytrap with a grudge, a snail derby, a prize
 // pumpkin, a gardener on a ladder and a sprinkler that runs on its own schedule.
+//
+// Retuned for the difficulty rules (session 10): the goose hides in the
+// giant leaves of the raised bed and only pops up now and then (hard); the
+// gnome on the plant stand is a spot find; the watering can is under one of
+// two upturned pots (poke); snail No. 4 is small and climbing the glass
+// (hard). A goose-shaped topiary is the decoy; the flytrap and the prize
+// pumpkin answer a tap.
 import {
   C, box, rect, disc, cylinder, face, paint, person, folk, plant, slab, floor,
   onLeft, onRight, speech, paintText, shade, tint, mix, alpha, dots, Q, P, rng, pick, HAIR, SKIN,
@@ -8,6 +15,8 @@ import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js'
 import { ZK } from '../../../engine/iso.js';
 
 const H = 6.4; // glass wall height
+// The goose's clock: down in the leaves, up for a look from 7s to 11s of 13.
+const gooseS = (t) => pulse(t, 13) * 13;
 const TERRA = mix(C.coral, C.brown, 0.35);
 const ORANGE = mix(C.coral, C.mustard, 0.45);
 const BRICK = mix(C.coral, C.paper, 0.45);
@@ -133,11 +142,11 @@ function gnome(ctx, x, y, z, s = 0.55) {
   ctx.restore();
 }
 
-function wateringCan(ctx, x, y, z, s = 1) {
+function wateringCan(ctx, x, y, z, s = 1, flip = false) {
   const [X, Y] = P(x, y, z);
   ctx.save();
   ctx.translate(X, Y);
-  ctx.scale(s, s);
+  ctx.scale(flip ? -s : s, s);
   // spout
   ctx.beginPath();
   ctx.moveTo(0.25, -0.2); ctx.lineTo(0.72, -0.62); ctx.lineTo(0.78, -0.55); ctx.lineTo(0.3, -0.1);
@@ -182,8 +191,9 @@ function snail(ctx, X, Y, s, shell, num, bob = 0, stripe, turn = 0) {
     ctx.save();
     ctx.translate(-0.05, -0.34);
     ctx.rotate(-turn);
-    ctx.beginPath(); ctx.arc(0, 0, 0.19, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
-    txt(ctx, 0, 0.01, num, 0.28, C.coral);
+    // a big race bib, so the number reads pinched in
+    ctx.beginPath(); ctx.arc(0, 0, 0.25, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+    txt(ctx, 0, 0.02, num, 0.4, C.red);
     ctx.restore();
   } else if (Q.detail) {
     ctx.beginPath();
@@ -274,7 +284,7 @@ function tierSeg(ctx, y0, y1, seed, skip) {
         const k = r();
         const pc = pick(r, [TERRA, TERRA, C.white, C.coral, C.mustard]);
         if (k < 0.3) flowerPot(ctx, x0 + 0.4, yy, z, pick(r, [C.pink, C.coral, C.lilac, C.mustard, C.red]), pc, 0.5);
-        else plant(ctx, x0 + 0.4, yy, z, 0, { kind: pick(r, ['leafy', 'spiky', 'bush', 'cactus', 'fern']), scale: 0.4 + r() * 0.18, potColor: pc, leaf: pick(r, [C.green, C.leaf, C.teal]) });
+        else plant(ctx, x0 + 0.4, yy, z, 0, { kind: pick(r, ['leafy', 'spiky', 'bush', 'palm', 'fern']), scale: 0.4 + r() * 0.18, potColor: pc, leaf: pick(r, [C.green, C.leaf, C.teal]) });
       }
       yy += 0.55 + r() * 0.2;
     }
@@ -451,24 +461,27 @@ export default {
     }, { anim: true, depth: 6.9 });
     R.thing(5.1, 5.1, (ctx, t) => {
       const [X, Y] = P(4.2, 4.2, 0.8);
+      // (they rustle while the goose is moving about underneath)
+      const rs = gooseS(t), rustle = (rs > 5.6 && rs < 7.2) || (rs > 10.6 && rs < 11.6) ? 0.16 : 0;
       [[-1.3, 1.5, -1.0, C.leaf], [1.2, 1.5, 1.05, C.green], [-0.5, 1.4, -0.35, C.green], [0.45, 1.35, 0.4, C.leaf]].forEach(([dx, len, a, col], i) => {
-        const sw = Math.sin(t * 1.3 + i * 2) * 0.05;
+        const sw = Math.sin(t * 1.3 + i * 2) * 0.05 + Math.sin(t * 17 + i * 1.7) * rustle;
         stem(ctx, X, Y + 0.1, X + dx * 0.25, Y - 0.1, C.green, 0.08);
         leafShape(ctx, X + dx * 0.25, Y, a + sw, len, len * 0.5, col, false);
       });
     }, { anim: true, depth: 9.2 });
-    // The goose ducks down among the giant leaves, then pops up and looks around.
+    // The goose keeps down among the giant leaves, and only now and then pops
+    // up for a look round (a hard find): the leaves rustle first.
     R.goose((t) => {
-      const s = pulse(t, 9) * 9;
-      let z = 0.05, dir = 'r', pose = 'stand';
-      if (s > 2.5 && s < 7.8) {
-        const up = clamp((s - 2.5) / 0.35) * (1 - clamp((s - 7.4) / 0.4));
-        z = 0.05 + ease(up) * 0.75;
-        dir = s < 4 ? 'r' : s < 5.5 ? 'l' : 'r';
-        if (s > 5.6 && s < 6.4) pose = 'honk';
+      const s = gooseS(t);
+      let z = 0.05, dir = 'r', pose = 'stand', up = 0;
+      if (s > 7 && s < 11) {
+        up = clamp((s - 7) / 0.35) * (1 - clamp((s - 10.6) / 0.4));
+        z = 0.05 + ease(up) * 1.1;
+        dir = s < 8.2 ? 'r' : s < 9.4 ? 'l' : 'r';
+        if (s > 8.8 && s < 9.5) pose = 'honk';
       }
-      return { x: 3.8, y: 3.7, z, dir, pose };
-    }, { bias: 0 });
+      return { x: 3.8, y: 3.7, z, dir, pose, hidden: up < 0.15 };
+    }, { bias: 0, kind: 'hard', hint: 'The big leaves in the back corner rustle sometimes. Wait and watch.' });
 
     // ---------- tiered plant stand on the left wall ----------
     for (let i = 0; i < 4; i++) {
@@ -478,7 +491,7 @@ export default {
         if (i === 1) gnome(ctx, 2.0, 9.3, 0.7, 0.5);
       });
     }
-    R.find({ id: 'gnome', label: 'A garden gnome', at: [2.0, 9.3, 1.2], r: 0.7 });
+    R.find({ id: 'gnome', label: 'A garden gnome', kind: 'spot', at: [2.0, 9.3, 1.2], r: 0.7 });
 
     // Hanging baskets (swaying). The one by the ladder is getting watered.
     for (const y of [7, 10.5, 14]) R.thing(1.0, y, (ctx, t) => basket(ctx, 1.0, y, 5.4, t, y === 10.5 ? C.mustard : C.pink), { anim: true });
@@ -603,9 +616,39 @@ export default {
       }, { anim: true });
     }
 
-    // The watering can nobody is using (a find), by the ladder.
-    R.thing(10.9, 4.2, (ctx) => wateringCan(ctx, 10.9, 4.2, 0, 0.8));
-    R.find({ id: 'can', label: 'A watering can', at: [10.9, 4.2, 0.3], r: 0.7 });
+    // Two big pots upturned by the ladder. The watering can is under one, its
+    // spout poking out under the rim (a poke); the other is woodlice.
+    const potA = R.poke({ id: 'pot', at: [10.8, 4.4, 0.45], r: 1.2, sound: 'clunk' });
+    const potB = R.poke({ id: 'pot2', at: [8.5, 3.0, 0.45], r: 1.0, sound: 'clunk', say: ['Woodlice. Hundreds.', 'Still woodlice. Busy ones.'] });
+    R.thing(10.9, 4.3, (ctx) => {
+      const k = potA.k();
+      if (k > 0.02) wateringCan(ctx, 10.85, 4.3, 0, 0.8, true);
+      else {
+        // The spout, out under the rim on the path side, where the deckchair
+        // can't hide it: a teal stalk and its rose, with a damp patch under it.
+        const [X, Y] = P(10.9, 4.3, 0);
+        ctx.beginPath(); ctx.ellipse(X - 1.12, Y + 0.12, 0.26, 0.09, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.sky, 0.55); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(X - 0.6, Y + 0.02); ctx.lineTo(X - 1.12, Y - 0.36); ctx.lineTo(X - 1.04, Y - 0.46); ctx.lineTo(X - 0.52, Y - 0.12); ctx.closePath();
+        paint(ctx, C.teal, { lw: 0.045 });
+        ctx.beginPath(); ctx.ellipse(X - 1.12, Y - 0.43, 0.08, 0.13, 0.8, 0, Math.PI * 2); paint(ctx, C.tealLight, { lw: 0.04 });
+        ctx.fillStyle = C.ink;
+        for (const [dx, dy] of [[-0.03, -0.03], [0.03, 0.02], [0, 0.08], [0.02, -0.08]]) { ctx.beginPath(); ctx.arc(X - 1.12 + dx, Y - 0.43 + dy, 0.016, 0, Math.PI * 2); ctx.fill(); }
+      }
+      upPot(ctx, 10.9, 4.3, k);
+    }, { anim: true });
+    R.thing(8.5, 3.0, (ctx, t) => {
+      const k = potB.k();
+      if (k > 0.02 && Q.detail) {
+        // woodlice, going about their business
+        for (let i = 0; i < 9; i++) {
+          const a = i * 2.1 + t * 0.6 * (i % 2 ? 1 : -1), d = 0.12 + (i % 4) * 0.1;
+          const [X, Y] = P(8.5 + Math.cos(a) * d, 3.0 + Math.sin(a) * d, 0.03);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.07, 0.04, a, 0, Math.PI * 2); paint(ctx, C.grey, { lw: 0.02 });
+        }
+      }
+      upPot(ctx, 8.5, 3.0, k);
+    }, { anim: true });
+    R.find({ id: 'can', label: 'A watering can', kind: 'poke', inside: potA, at: [10.9, 4.3, 0.35], r: 0.6, hint: 'Two pots upside down by the ladder, and one of them has a spout.' });
 
     // ---------- the venus flytrap ----------
     const TRAP = 6;
@@ -617,6 +660,8 @@ export default {
       return 0.8 * ease((s - 5) / 1);
     };
     const TX = 7.2, TY = 8.8;
+    // A tap and it snaps (the one a first visit is nudged to tap).
+    const snap = R.poke({ id: 'flytrap', at: [TX + 0.6, TY - 0.5, 2.6], r: 1.1, hold: 1.2, teach: true, say: ['SNAP.', 'Missed. Again.', 'It was aiming for the fly.'] });
     R.thing(TX + 0.9, TY + 0.9, (ctx, t) => {
       cylinder(ctx, TX, TY, 0, 0.85, 1.0, TERRA, { top: C.brown });
       // baby traps round the rim
@@ -630,7 +675,7 @@ export default {
       const [hx, hy] = P(TX + 0.7, TY - 0.5, 2.9);
       const bob = Math.sin(t * 2) * 0.05;
       stem(ctx, bx, by, hx, hy + bob, C.green, 0.22);
-      const open = trapOpen(t);
+      const open = trapOpen(t) * (1 - snap.k());
       const lobe = (sgn) => {
         ctx.save();
         ctx.translate(hx - 0.1, hy + bob);
@@ -855,6 +900,7 @@ export default {
       txt(ctx, rx, ry + 0.02, '1ST', 0.2, C.white);
       sign(ctx, 3.9, 14.9, '812 LB', { z: 0.8, w: 1.2, size: 0.3, fill: C.ink, color: C.butter });
     }, { depth: 20.3 });
+    R.poke({ id: 'pumpkin', at: [5.4, 13.4, 1.2], r: 1.2, sound: 'clunk', say: ['Talk to my agent.', 'No photos. Fine, one photo.', '812 pounds of pure talent.'] });
     // proud grower, posing
     R.mover(() => ({ x: 3.5, y: 12.4 }), (ctx, t) => {
       const snap = pulse(t, 3.2) > 0.85;
@@ -956,14 +1002,18 @@ export default {
       ctx.save();
       ctx.globalAlpha = clamp(k / 0.03) * clamp((1 - k) / 0.04);
       ctx.beginPath(); ctx.moveTo(X0, Y0); ctx.lineTo(X, Y + 0.2);
-      ctx.strokeStyle = alpha(C.white, 0.9); ctx.lineWidth = 0.16; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = alpha(C.white, 0.6); ctx.lineWidth = 0.1; ctx.lineCap = 'round'; ctx.stroke();
       ctx.translate(X, Y);
       ctx.rotate(-Math.PI / 2 + 0.46);
-      // Big enough to read its number, which stays upright as it climbs.
-      snail(ctx, 0, 0.1, 1.0, C.mustard, '4', Math.abs(Math.sin(t * 1.5)), null, -Math.PI / 2 + 0.46);
+      // Small now, but its number still reads, and stays upright as it climbs.
+      snail(ctx, 0, 0.1, 0.72, C.mustard, '4', Math.abs(Math.sin(t * 1.5)), null, -Math.PI / 2 + 0.46);
       ctx.restore();
     }, { anim: true });
-    R.find({ id: 'snail', label: 'A snail wearing a number', r: 0.8, at: (t) => { const [x, y, z] = esc(t); return [x, y, z]; } });
+    R.find({ id: 'snail', label: 'A snail wearing a number', kind: 'hard', r: 0.8, at: (t) => { const [x, y, z] = esc(t); return [x, y, z]; }, riddle: 'No. 4 quit the race. Going up in the world.', hint: 'One of the derby snails left the track. Snails can climb glass.' });
+
+    // ---------- a topiary trimmed into a goose (a decoy) ----------
+    R.thing(TOPI[0], TOPI[1], (ctx, t) => topiary(ctx, TOPI[0], TOPI[1], t), { anim: true });
+    R.decoy({ id: 'topiary', at: [TOPI[0], TOPI[1], 1.4], r: 0.9, say: ['Topiary. Mostly hedge.', 'Still hedge.', 'The gardener is very proud.'] });
 
     // ---------- a wheelbarrow of compost, and sacks in the corner ----------
     R.thing(5.0, 7.8, (ctx) => {
@@ -1005,6 +1055,73 @@ export default {
 };
 
 const HAIRC = HAIR[3];
+const TOPI = [12.4, 8.6];
+
+// A big terracotta pot upside down at (x, y), lifted off the floor by k (0
+// sitting, 1 up and tipped back, to show what's under it).
+function upPot(ctx, x, y, k) {
+  const lift = ease(k) * 1.2, rb = 0.55, rt = 0.38, h = 0.85;
+  const [X0, Y0] = P(x, y, lift);
+  ctx.save();
+  ctx.translate(X0, Y0);
+  ctx.rotate(-k * 0.35);
+  const bx = rb * Math.SQRT2, tx = rt * Math.SQRT2, Yt = -h * ZK;
+  const body = (r0, r1, top) => {
+    ctx.beginPath();
+    ctx.moveTo(-r0, 0);
+    ctx.lineTo(-r1, top);
+    ctx.ellipse(0, top, r1, r1 / 2, 0, Math.PI, Math.PI * 2);
+    ctx.lineTo(r0, 0);
+    ctx.ellipse(0, 0, r0, r0 / 2, 0, 0, Math.PI);
+    ctx.closePath();
+  };
+  body(bx, tx, Yt);
+  paint(ctx, TERRA, { dots: shade(TERRA, 0.45), density: 0.2, lw: 0.05 });
+  // its base, now on top, with the drainage hole
+  ctx.beginPath(); ctx.ellipse(0, Yt, tx, tx / 2, 0, 0, Math.PI * 2); paint(ctx, shade(TERRA, 0.12), { lw: 0.04 });
+  ctx.beginPath(); ctx.ellipse(0, Yt, 0.1, 0.05, 0, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+  // the rim, at the bottom
+  body(bx * 1.08, bx * 1.06, -0.16 * ZK);
+  paint(ctx, mix(TERRA, C.coral, 0.3), { lw: 0.045 });
+  ctx.restore();
+}
+
+// A topiary goose in a white planter, trimmed to the size and shape of the
+// real thing, in a silvery green, with a bow.
+function topiary(ctx, x, y, t) {
+  box(ctx, x - 0.35, y - 0.35, 0, 0.7, 0.7, 0.55, C.white, { top: C.brown, dotsT: C.ink, densT: 0.3 });
+  const [X, Y] = P(x, y, 0.55);
+  ctx.beginPath(); ctx.moveTo(X, Y - 0.05); ctx.lineTo(X, Y - 0.5);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.stroke(); ctx.strokeStyle = C.brown; ctx.lineWidth = 0.07; ctx.stroke();
+  const leaf = mix(C.leaf, C.white, 0.5), sw = Math.sin(t * 1.1) * 0.015;
+  ctx.save();
+  ctx.translate(X, Y - 0.25);
+  ctx.scale(-1.05, 1.05); // faces screen-left, toward the room
+  const by = -0.45;
+  // a hedge's edge: each shape painted with clipped-leaf dots
+  const bushy = (draw) => {
+    draw();
+    paint(ctx, leaf, { dots: shade(leaf, 0.4), density: 0.22, lw: 0.05 });
+  };
+  bushy(() => { ctx.beginPath(); ctx.ellipse(0, by, 0.44, 0.27, -0.12, 0, Math.PI * 2); ctx.moveTo(-0.3, by - 0.05); ctx.lineTo(-0.6, by - 0.26); ctx.lineTo(-0.38, by + 0.1); });
+  // neck
+  ctx.beginPath(); ctx.moveTo(0.22, by - 0.1); ctx.quadraticCurveTo(0.36 + sw, by - 0.32, 0.29 + sw, by - 0.64);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.24; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = leaf; ctx.lineWidth = 0.16; ctx.stroke();
+  bushy(() => { ctx.beginPath(); ctx.arc(0.29 + sw, by - 0.66, 0.14, 0, Math.PI * 2); });
+  bushy(() => { ctx.beginPath(); ctx.moveTo(0.4 + sw, by - 0.7); ctx.lineTo(0.62 + sw, by - 0.64); ctx.lineTo(0.4 + sw, by - 0.58); ctx.closePath(); });
+  if (Q.detail) {
+    // clipped-leaf texture, and an eye
+    ctx.fillStyle = shade(leaf, 0.3);
+    for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.arc(-0.3 + (i % 5) * 0.15, by - 0.1 + Math.floor(i / 5) * 0.16, 0.035, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.33 + sw, by - 0.69, 0.025, 0, Math.PI * 2); ctx.fill();
+  }
+  // the gardener's bow
+  ctx.beginPath(); ctx.moveTo(0.28, by - 0.42); ctx.lineTo(0.12, by - 0.5); ctx.lineTo(0.12, by - 0.34); ctx.closePath();
+  ctx.moveTo(0.28, by - 0.42); ctx.lineTo(0.44, by - 0.5); ctx.lineTo(0.44, by - 0.34); ctx.closePath();
+  paint(ctx, C.mustard, { lw: 0.03 });
+  ctx.restore();
+}
 
 function table(ctx, x, y, w, d, h, color) {
   const lw = 0.14;

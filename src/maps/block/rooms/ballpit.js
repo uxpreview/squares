@@ -1,10 +1,11 @@
 // Ball Pit: an indoor play center. A twisty slide feeds a pit full of balls,
-// kids pop up like periscopes, a castle wobbles, and one parent is fast asleep
-// while a small child builds a tower of balls on his tummy.
+// kids pop up like periscopes (and so, now and then, does the goose), a
+// castle wobbles, and one parent is fast asleep while a small child builds a
+// tower of balls on his tummy.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, checker, tiles,
   speech, shade, tint, alpha, Q, label, P, paintText, onLeft, onRight, frame, clockL, shelfL,
-  hash, rng, pick, note, SKIN,
+  hash, rng, pick, note, SKIN, goose,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, ease } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -165,6 +166,34 @@ function towerFront(ctx) {
   // flag on top
   face(ctx, [[cx, cx, 7.4], [cx, cx, 8.3]], null, { lw: 0.06 });
   face(ctx, [[cx, cx, 8.3], [cx + 0.7, cx - 0.1, 8.05], [cx, cx, 7.8]], C.teal, { lw: 0.04 });
+}
+
+// A red sneaker, side on, toe to the right, sole down at (0, 0). s: scale.
+function sneaker(ctx, X, Y, s = 1, rot = 0) {
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(rot);
+  ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(-0.3, 0.0); ctx.lineTo(-0.3, -0.19); ctx.quadraticCurveTo(-0.15, -0.34, 0.0, -0.26);
+  ctx.lineTo(0.2, -0.14); ctx.quadraticCurveTo(0.34, -0.1, 0.32, 0.0); ctx.closePath();
+  paint(ctx, C.red, { lw: 0.04 });
+  ctx.beginPath(); ctx.rect(-0.3, -0.04, 0.62, 0.07); paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(-0.08, -0.25); ctx.lineTo(0.02, -0.17); ctx.moveTo(-0.02, -0.28); ctx.lineTo(0.08, -0.2);
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.03; ctx.stroke();
+  ctx.restore();
+}
+
+// A crawl hole in the tower's front, as a screen path (plane: 'y' faces the
+// front left, 'x' the front right).
+function holePath(ctx, c, cz, plane, r = 0.55) {
+  ctx.beginPath();
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    const [X, Y] = plane === 'y' ? P(c + Math.cos(a) * r, TX1 + 0.002, cz + Math.sin(a) * r) : P(TX1 + 0.002, c + Math.cos(a) * r, cz + Math.sin(a) * r);
+    i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+  }
+  ctx.closePath();
 }
 
 // ---------- The twisty slide ----------
@@ -329,6 +358,36 @@ export default {
     R.thing(TX1, TX1, (ctx) => towerBody(ctx), { depth: 6.8 });
     R.thing(TX1, TX1, (ctx) => towerFront(ctx), { depth: 7.3 });
 
+    // The two crawl holes answer a tap. Somebody crawled through the left one
+    // and came out a shoe short: its toe and a lace are still in the hole, and
+    // a tap kicks it out onto the floor.
+    const hole = R.poke({ id: 'hole', at: [0.95, TX1, 0.75], r: 0.8, sound: 'pop' });
+    R.poke({ id: 'hole2', at: [TX1, 2.9, 0.75], r: 0.8, sound: 'tick', say: ['Echo.', 'Echo... echo.', 'Nobody in here. Here.'] });
+    const SHOE_OUT = [1.9, 4.9];
+    R.thing(0.95, TX1 + 0.05, (ctx, t) => {
+      const k = hole.k();
+      if (k < 0.02) {
+        // the toe, just showing in the dark of the hole, and a trailing lace
+        ctx.save();
+        holePath(ctx, 0.95, 0.75, 'y', 0.5);
+        ctx.clip();
+        const [X, Y] = P(0.95, TX1, 0.75);
+        sneaker(ctx, X - 0.18, Y + 0.42, 0.95, -0.12 + Math.sin(t * 0.7) * 0.02);
+        ctx.restore();
+        const [lx, ly] = P(1.15, TX1 + 0.01, 0.3);
+        ctx.beginPath(); ctx.moveTo(lx, ly - 0.05);
+        ctx.quadraticCurveTo(lx + 0.12, ly + 0.25 + Math.sin(t * 1.3) * 0.03, lx + 0.02, ly + 0.42);
+        ctx.strokeStyle = C.white; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.stroke();
+        return;
+      }
+      // kicked out: an arc from the hole to the floor
+      const [ax, ay] = P(0.95, TX1 + 0.2, 0.45), [bx, by] = P(SHOE_OUT[0], SHOE_OUT[1], 0);
+      const X = lerp(ax, bx, k), Y = lerp(ay, by, k) - Math.sin(k * Math.PI) * 0.8;
+      if (k > 0.95 && Q.detail) { ctx.beginPath(); ctx.ellipse(bx, by, 0.3, 0.1, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
+      sneaker(ctx, X, Y, 1.2, (1 - k) * 2.4);
+    }, { anim: true, depth: 6.95 });
+    R.find({ id: 'shoe', label: 'A lost shoe', kind: 'poke', inside: hole, at: [SHOE_OUT[0], SHOE_OUT[1], 0.2], r: 0.7, hint: 'Somebody crawled through the tower and came out one shoe short.' });
+
     // Kids that climb, slide, splash, and do it all again.
     const LAD = [2.1, TX1 + 0.3];
     const EXIT = [4.9, 4.7];
@@ -401,6 +460,7 @@ export default {
       list.sort((a, b) => a.d - b.d);
       for (const it of list) it.f();
     }, { depth: 7.8, anim: true });
+    { const m = helixAt(0.45); R.poke({ id: 'slide', at: [m.x, m.y, m.z + 0.3], r: 1.0, say: ['WHEEE.', 'One at a time!', 'No going UP the slide.'] }); }
 
     // The straight run-out into the pit (drawn after the back rim)
     R.thing(CHUTE_X, 4, (ctx) => {
@@ -544,8 +604,9 @@ export default {
         ball(ctx, bx + dx, by + dy, 0.18, ballCol(8, j));
       }
       ctx.globalAlpha = 1;
-      if (collapse >= 0.2 && collapse < 0.9 && Q.detail) speech(ctx, BX + 1.8, BY + 0.2, 2.6, 'five more minutes', { size: 0.34 });
+      if (collapse >= 0.2 && collapse < 0.9 && Q.detail) speech(ctx, BX + 1.8, BY + 0.2, 2.6, 'resting my eyes', { size: 0.34 });
     }, { depth: 17.2 });
+    R.poke({ id: 'dad', at: [2.4, 12.5, 1.2], r: 1.0, sound: 'tick', say: ['Not asleep. Resting my eyes.', 'I can see you. Mostly.', 'Is it home time yet?'] });
 
     // The ball thrower
     R.mover(() => ({ x: HAND[0], y: HAND[1] }), (ctx, t, p) => {
@@ -648,43 +709,31 @@ export default {
         ctx.stroke();
       }
       turret(ctx, CX1, CY1, 3.0, C.teal, C.coral, C.white);
-      // flagpole with a shoe hanging off it by its laces
+      // a flagpole with a pennant, flapping in the castle's own weather
       const tz = CB + 3.0 + 1.25;
       face(ctx, [[CX1, CY1, tz], [CX1, CY1, tz + 0.9]], null, { lw: 0.06 });
-      const sw = Math.sin(t * 2.2) * 0.25;
-      const [px, py] = P(CX1, CY1, tz + 0.85);
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(sw);
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 0.52);
-      ctx.strokeStyle = C.white; ctx.lineWidth = 0.035; ctx.stroke();
-      ctx.translate(0, 0.72);
-      ctx.scale(1.5, 1.5);
-      ctx.beginPath();
-      ctx.moveTo(-0.3, 0.14); ctx.lineTo(-0.3, -0.05); ctx.quadraticCurveTo(-0.15, -0.2, 0.0, -0.12);
-      ctx.lineTo(0.2, 0.0); ctx.quadraticCurveTo(0.34, 0.04, 0.32, 0.14); ctx.closePath();
-      paint(ctx, C.red, { lw: 0.04 });
-      ctx.beginPath(); ctx.rect(-0.3, 0.1, 0.62, 0.07); paint(ctx, C.white, { lw: 0.03 });
-      ctx.restore();
+      const fl = Math.sin(t * 4.2) * 0.08;
+      face(ctx, [[CX1, CY1, tz + 0.9], [CX1 + 0.55, CY1 - 0.55, tz + 0.72 + fl], [CX1, CY1, tz + 0.55]], C.coral, { lw: 0.035 });
       ctx.restore();
     }, { depth: 10, anim: true });
-    R.find({
-      id: 'shoe', label: 'A lost shoe', r: 0.8,
-      at: (t) => {
-        const { k, sq } = castleWob(t);
-        const z = CB + 3.0 + 1.25 + 0.3;
-        const b = P(CX1, CY1, z)[1] - CASTLE_ORIGIN[1];
-        const dX = -k * b, dY = sq * b;
-        return [CX1 + dX / 2, CY1 - dX / 2, z - dY / ZK];
-      },
-    });
 
     // ---------- Coin ride ----------
+    // (The room's first lesson: tap the rocket and it really goes for it.)
+    const ride = R.poke({ id: 'rocket', at: [1.4, 9.75, 1.0], r: 1.2, teach: true, hold: 2.4, sound: 'clunk', say: ['BLAST OFF!', 'That was 20c of fun.', 'To the moon! Or the snack bar.'] });
     R.thing(1.9, 9.8, (ctx, t) => {
+      const go = ride.k();
       box(ctx, 0.7, 9.0, 0, 1.4, 1.5, 0.35, C.grey, { top: C.greyLight });
       label(ctx, 1.9, 10.4, 0.2, '20c', 0.26, C.ink);
       const [X, Y] = P(1.4, 9.75, 0.35);
-      const rock = Math.sin(t * 3.2) * 0.12;
+      const rock = Math.sin(t * (3.2 + go * 9)) * (0.12 + go * 0.16);
+      if (go > 0.05 && Q.detail) {
+        // exhaust puffs out the back
+        for (let i = 0; i < 4; i++) {
+          const q = pulse(t + i * 0.12, 0.5);
+          ctx.beginPath(); ctx.arc(X - 1.2 - q * 0.9, Y - 0.5 + Math.sin(i * 2.1) * 0.25 - q * 0.2, (0.12 + q * 0.2) * go, 0, Math.PI * 2);
+          ctx.fillStyle = alpha(i % 2 ? C.mustard : C.white, 0.9 * (1 - q)); ctx.fill();
+        }
+      }
       ctx.save();
       ctx.translate(X, Y);
       ctx.rotate(rock);
@@ -903,14 +952,50 @@ export default {
       });
     });
 
+    // ---------- Timmy, in his goose onesie (a decoy) ----------
+    // Sat in the balls up to his chest, white hood up, its goose head nodding
+    // on top: from across the room, one more goose in the pit.
+    const TIM = [7.5, 8.7];
+    R.mover(() => ({ x: TIM[0], y: TIM[1] }), (ctx, t, p) => {
+      const sway = Math.sin(t * 1.1) * 0.04;
+      const st = folk(132, { scale: 0.7, top: C.white, pose: 'stand', dir: 'r', arms: [0.9 + Math.sin(t * 2.2) * 0.3, -0.9], style: 'bald', skin: SKIN[2] });
+      sunk(ctx, t, p.x + sway, p.y - sway, 1.05, st, 93);
+      timmyHood(ctx, p.x + sway, p.y - sway, t);
+    });
+    R.decoy({ id: 'timmy', at: [TIM[0], TIM[1], SURF + 1.1], r: 0.9, say: ['Just Timmy. In a onesie.', 'Timmy says HONK.', 'Still Timmy.'] });
+
     // ---------- The goose, periscoping through the balls ----------
+    // It does laps under the balls, a bump going round like a kid underneath,
+    // and every so often comes up for a look about: neck and head only.
     const gpath = route([[10.4, 6.4, 1.5], [12.0, 8.3], [11.2, 10.4, 2], [9.4, 10.0], [8.6, 8.1, 1.5], [9.3, 6.6]], { speed: 0.55 });
-    const gpos = memo((t) => { const p = gpath(t); return { ...p, z: SURF - 0.1 + Math.sin(t * 2.4) * 0.03, pose: 'swim' }; });
-    R.goose(gpos, { bias: 0 });
+    const UP_T = 11;
+    const gpos = memo((t) => {
+      const p = gpath(t);
+      const q = pulse(t, UP_T, 4) * UP_T;
+      const h = q < 0.5 ? ease(q / 0.5) : q < 3.6 ? 1 : q < 4.1 ? 1 - ease((q - 3.6) / 0.5) : 0;
+      // (looking this way, then that, like a periscope)
+      const dir = h > 0 && q > 0.5 && q < 3.6 ? (Math.floor(q / 0.9) % 2 ? 'l' : 'r') : p.dir;
+      return { x: p.x, y: p.y, h, dir };
+    });
+    // The find sits at its head when it's up, at the bump when it's under.
+    R.goose((t) => { const p = gpos(t); return { x: p.x, y: p.y, z: SURF - 0.45 + p.h * 0.32, dir: p.dir, hidden: true }; },
+      { kind: 'hard', hint: 'Something is doing laps under the balls. Watch for a periscope that isn\'t a kid.' });
     R.mover(gpos, (ctx, t, p) => {
-      const [X, Y] = P(p.x, p.y, SURF);
-      const pts = [[-0.5, 0.12], [-0.22, 0.2], [0.08, 0.2], [0.38, 0.14], [-0.62, 0.3], [-0.35, 0.38], [-0.05, 0.4], [0.25, 0.38], [0.52, 0.3]];
-      pts.forEach(([dx, dy], i) => ball(ctx, X + dx * (p.dir === 'l' ? -1 : 1), Y + dy, 0.19, ballCol(55, i)));
+      if (p.h > 0.02) {
+        const [X, Y] = P(p.x, p.y, SURF);
+        // stand it in the balls so only the neck and head clear the surface
+        const z = SURF - (0.62 + (1 - p.h) * 0.67) / ZK;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(X - 2.5, Y - 5, 5, 5.05); ctx.clip();
+        goose(ctx, p.x, p.y, z, t, { dir: p.dir, pose: 'stand' });
+        ctx.restore();
+      }
+      // the balls it pushes along, closing round its neck
+      ballsAround(ctx, t, p.x, p.y, 0.36, 55);
+      if (p.h < 0.3) {
+        const [X, Y] = P(p.x, p.y, SURF + 0.12 + Math.sin(t * 3) * 0.03);
+        ball(ctx, X + 0.05, Y, 0.19, ballCol(56, 1));
+      }
     }, { bias: 0.001 });
   },
 };
@@ -921,4 +1006,24 @@ function paintTextX(ctx, x0, u, v, text, size, color) {
   ctx.translate(x0, x0 / 2);
   paintText(ctx, 'left', u, v, text, size, color);
   ctx.restore();
+}
+
+// Timmy's onesie hood: white, a face opening, and on top a goose's neck and
+// head with an orange beak, nodding as he wriggles. The size of the real one.
+function timmyHood(ctx, x, y, t) {
+  const [X, Y] = P(x, y, SURF);
+  const hy = Y - 0.88, nod = Math.sin(t * 2.2) * 0.04;
+  ctx.beginPath(); ctx.arc(X, hy, 0.25, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
+  ctx.beginPath(); ctx.ellipse(X + 0.05, hy + 0.04, 0.13, 0.14, 0, 0, Math.PI * 2); paint(ctx, SKIN[2], { lw: 0.025 });
+  ctx.fillStyle = C.ink;
+  ctx.beginPath(); ctx.arc(X + 0.01, hy + 0.01, 0.025, 0, Math.PI * 2); ctx.arc(X + 0.1, hy + 0.01, 0.025, 0, Math.PI * 2); ctx.fill();
+  // the goose's neck rising off the hood, and its head
+  const nx = X + 0.08 + nod, ny = hy - 0.62;
+  ctx.beginPath(); ctx.moveTo(X - 0.06, hy - 0.18); ctx.quadraticCurveTo(X + 0.1, hy - 0.4, nx, ny);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.2; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.13; ctx.stroke();
+  ctx.beginPath(); ctx.arc(nx, ny, 0.12, 0, Math.PI * 2); paint(ctx, C.white);
+  ctx.beginPath(); ctx.moveTo(nx + 0.08, ny - 0.05); ctx.lineTo(nx + 0.3, ny + 0.01); ctx.lineTo(nx + 0.08, ny + 0.06);
+  paint(ctx, C.coral);
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(nx + 0.03, ny - 0.03, 0.03, 0, Math.PI * 2); ctx.fill();
 }

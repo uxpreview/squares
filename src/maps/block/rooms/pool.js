@@ -1,8 +1,15 @@
 // The Lido: a water tower, a diving board with a committed diver,
 // a flamingo float, and a lifeguard who has seen enough running today.
+//
+// Retuned in session 10: the goose is in one of two changing huts (poke:
+// big orange webbed feet under its curtain; the other hut's feet are a
+// person's, and it's OCCUPIED). The flip-flop is in the lost property box
+// (poke), the sunglasses are on the bottom of the pool half under a lane line
+// (hard), the duck bobs in the pool's front corner (spot). A towel swan on the empty lounger is the decoy, and the sunbather is
+// the first thing to tap.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, plant, slab, planks,
-  speech, shade, tint, mix, alpha, dots, Q, label, P, SKIN,
+  speech, shade, tint, mix, alpha, dots, Q, label, P, SKIN, goose,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -67,6 +74,152 @@ function waterTower(ctx, t) {
   label(ctx, cx + 1.2, cy + 1.2, 6.1, 'SQ', 0.7, C.coral);
 }
 
+// Two striped changing huts along the right side, doors (curtains) toward
+// you. The goose is in the first: its orange feet show under the curtain.
+const HUTS = [{ y: 6.4, a: C.teal }, { y: 8.4, a: C.coral }];
+const HX0 = 13.9, HX1 = 15.5, HD = 1.4, HH = 2.3;
+function hut(ctx, y, color) {
+  box(ctx, HX0, y, 0, HX1 - HX0, HD, HH, C.white, { top: C.white });
+  // stripes down the sides we can see
+  for (let i = 0; i < 4; i++) {
+    const u = 0.1 + i * 0.4;
+    face(ctx, [[HX0 + u, y + HD, 0], [HX0 + u + 0.2, y + HD, 0], [HX0 + u + 0.2, y + HD, HH], [HX0 + u, y + HD, HH]], color, { stroke: false });
+  }
+  face(ctx, [[HX1, y, 0], [HX1, y + 0.2, 0], [HX1, y + 0.2, HH], [HX1, y, HH]], color, { stroke: false });
+  face(ctx, [[HX1, y + HD - 0.2, 0], [HX1, y + HD, 0], [HX1, y + HD, HH], [HX1, y + HD - 0.2, HH]], color, { stroke: false });
+  // pitched roof, its gable toward you
+  const r0 = [HX0 - 0.1, y - 0.1, HH], r1 = [HX1 + 0.1, y - 0.1, HH], r2 = [HX1 + 0.1, y + HD + 0.1, HH], r3 = [HX0 - 0.1, y + HD + 0.1, HH];
+  const ridgeA = [HX0 - 0.1, y + HD / 2, HH + 0.6], ridgeB = [HX1 + 0.1, y + HD / 2, HH + 0.6];
+  face(ctx, [r3, r2, ridgeB, ridgeA], color, { dots: shade(color, 0.4), density: 0.25 });
+  face(ctx, [r1, r2, ridgeB], C.white);
+  face(ctx, [r0, r1, ridgeB, ridgeA], tint(color, 0.2));
+  // the doorway, dark inside
+  face(ctx, [[HX1 + 0.01, y + 0.25, 0], [HX1 + 0.01, y + HD - 0.25, 0], [HX1 + 0.01, y + HD - 0.25, 2.0], [HX1 + 0.01, y + 0.25, 2.0]], C.navy, { lw: 0.03 });
+}
+// The curtain across a hut's doorway, drawn back k of the way, with a gap at
+// the bottom. feet: 'goose' (orange, webbed, shuffling) or 'person'.
+function curtain(ctx, y, color, k, t, feet) {
+  const y0 = y + 0.25, y1 = y + HD - 0.25, x = HX1 + 0.03;
+  if (k < 0.6) {
+    const sh = Math.sin(t * 3) * 0.04;
+    if (feet === 'goose') {
+      // two big orange webbed feet, toes out past the curtain onto the deck
+      for (const [fy, ph] of [[y0 + 0.12, 0], [y0 + 0.62, 1.6]]) {
+        const lift = Math.max(0, Math.sin(t * 2.2 + ph)) * 0.05;
+        const [X0, Y0] = P(x + 0.05, fy + sh, 0.02 + lift);
+        ctx.save();
+        ctx.translate(X0, Y0); ctx.scale(1.4, 1.4); ctx.translate(-X0, -Y0);
+        const X = X0, Y = Y0;
+        ctx.beginPath();
+        ctx.moveTo(X - 0.08, Y - 0.08);
+        ctx.lineTo(X + 0.36, Y + 0.02);
+        ctx.quadraticCurveTo(X + 0.33, Y + 0.08, X + 0.38, Y + 0.13);
+        ctx.quadraticCurveTo(X + 0.3, Y + 0.15, X + 0.28, Y + 0.24);
+        ctx.lineTo(X - 0.12, Y + 0.06);
+        ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.035 });
+        ctx.beginPath(); ctx.moveTo(X - 0.04, Y - 0.01); ctx.lineTo(X + 0.32, Y + 0.08); ctx.moveTo(X - 0.06, Y + 0.02); ctx.lineTo(X + 0.24, Y + 0.18);
+        ctx.strokeStyle = shade(C.coral, 0.35); ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      for (const [fy, ph] of [[y0 + 0.28, 0], [y0 + 0.6, 2]]) {
+        const wig = Math.sin(t * 4 + ph) > 0.6 ? 0.03 : 0;
+        const [X, Y] = P(x + 0.1, fy, 0.02);
+        ctx.beginPath(); ctx.ellipse(X + 0.06, Y - wig, 0.16, 0.07, 0.4, 0, Math.PI * 2); paint(ctx, SKIN[2], { lw: 0.03 });
+      }
+    }
+  }
+  // the curtain: gathered toward the far end of the rail as it's drawn
+  const w = (y1 - y0) * (1 - k * 0.8);
+  face(ctx, [[x, y0 - 0.05, 2.08], [x, y1 + 0.05, 2.08]], null, { lw: 0.06, stroke: C.ink });
+  // a plain mustard curtain, so it reads apart from the hut's stripes, with
+  // its folds
+  face(ctx, [[x, y0, 0.32], [x, y0 + w, 0.32], [x, y0 + w, 2.05], [x, y0, 2.05]], C.mustard, { lw: 0.03, dots: shade(C.mustard, 0.35), density: 0.2 });
+  for (let i = 1; i < 5; i++) face(ctx, [[x, y0 + (w * i) / 5, 0.36], [x, y0 + (w * i) / 5, 2.0]], null, { lw: 0.025, stroke: shade(C.mustard, 0.4) });
+  void color;
+}
+
+// The lost property box by the left deck: a cardboard box, flaps shut on a
+// lot of odd things, a pink flip-flop strap poking out. k: the flaps.
+const LOST = [2.3, 12.9];
+function lostBox(ctx, t, k) {
+  const [x, y] = LOST, W = 1.1, D = 0.8, H = 0.65;
+  box(ctx, x, y, 0, W, D, H, C.woodLight, { dots: C.wood, density: 0.2 });
+  label(ctx, x + W / 2, y + D, H * 0.62, 'LOST', 0.16, C.ink);
+  label(ctx, x + W / 2, y + D, H * 0.32, 'PROPERTY', 0.13, C.ink);
+  if (k > 0.05) {
+    face(ctx, [[x + 0.05, y + 0.05, H], [x + W - 0.05, y + 0.05, H], [x + W - 0.05, y + D - 0.05, H], [x + 0.05, y + D - 0.05, H]], shade(C.wood, 0.3), { lw: 0.02 });
+    if (k > 0.3) {
+      // a sock, some goggles, and the flip-flop on top
+      const [sx, sy] = P(x + 0.3, y + 0.25, H + 0.03);
+      ctx.beginPath(); ctx.ellipse(sx, sy, 0.16, 0.06, 0.3, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.02 });
+      const [gx, gy] = P(x + 0.8, y + 0.3, H + 0.03);
+      ctx.beginPath(); ctx.arc(gx - 0.07, gy, 0.06, 0, Math.PI * 2); ctx.arc(gx + 0.07, gy, 0.06, 0, Math.PI * 2); paint(ctx, C.sky, { lw: 0.02 });
+      flipflop(ctx, x + 0.55, y + 0.5, H + 0.06);
+    }
+  }
+  // flaps: lying shut, or standing open
+  const a = k * 1.4, c = Math.cos(a) * 0.4, sz = Math.sin(a) * 0.4;
+  face(ctx, [[x, y, H], [x, y + D, H], [x + c, y + D, H + sz], [x + c, y, H + sz]], tint(C.woodLight, 0.15), { lw: 0.03 });
+  face(ctx, [[x + W, y, H], [x + W, y + D, H], [x + W - c, y + D, H + sz], [x + W - c, y, H + sz]], tint(C.woodLight, 0.25), { lw: 0.03 });
+  if (k < 0.3) {
+    // the strap, caught between the flaps
+    const [X, Y] = P(x + W / 2, y + D * 0.7, H + 0.02);
+    ctx.beginPath(); ctx.moveTo(X - 0.12, Y); ctx.quadraticCurveTo(X, Y - 0.22, X + 0.12, Y);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.stroke();
+    ctx.strokeStyle = C.pink; ctx.lineWidth = 0.05; ctx.stroke();
+  }
+}
+function flipflop(ctx, x, y, z) {
+  disc(ctx, x, y, z, 0.2, C.pink, { lw: 0.03 });
+  disc(ctx, x + 0.05, y - 0.15, z + 0.005, 0.12, C.pink, { lw: 0.03 });
+  const [X, Y] = P(x, y - 0.05, z);
+  ctx.beginPath(); ctx.moveTo(X - 0.12, Y); ctx.quadraticCurveTo(X, Y - 0.2, X + 0.12, Y);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
+}
+
+// A towel folded into a swan on the empty lounger, the size and shape of the
+// goose. (A decoy.)
+function towelSwan(ctx, x, y, z) {
+  // the folded towel it sits on
+  rect(ctx, x - 0.55, y - 0.4, 1.1, 0.8, z + 0.03, C.white, { dots: C.sky, density: 0.2, lw: 0.03 });
+  goose(ctx, x, y, z + 0.08, 0, { pose: 'sit', dir: 'l' });
+  // towel folds across the body, so a close look gives it away
+  const X = x - y, Y = (x + y) / 2 - (z + 0.08) * ZK;
+  ctx.strokeStyle = alpha(C.sky, 0.9); ctx.lineWidth = 0.03;
+  for (const d of [-0.18, 0, 0.18]) { ctx.beginPath(); ctx.moveTo(X + d - 0.06, Y - 0.38); ctx.quadraticCurveTo(X + d + 0.04, Y - 0.2, X + d - 0.02, Y - 0.04); ctx.stroke(); }
+  // a little flower tucked in, like a fancy hotel
+  ctx.beginPath(); ctx.arc(X + 0.22, Y - 0.32, 0.06, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.02 });
+}
+
+// The lost sunglasses on the pool floor, drawn inside the water so a lane
+// line runs across them: small, dark lenses, the faintest glint.
+const SHADES = [10.4, 10.47, -1.18];
+const DEEP = alpha(C.navy, 0.22);
+function sunglasses(ctx) {
+  const [X, Y] = P(...SHADES);
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.translate(X, Y); ctx.scale(0.6, 0.6); ctx.translate(-X, -Y);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.05;
+  ctx.beginPath(); // the arms, folded back
+  ctx.moveTo(X - 0.46, Y - 0.1); ctx.lineTo(X - 0.3, Y - 0.26);
+  ctx.moveTo(X + 0.46, Y - 0.1); ctx.lineTo(X + 0.3, Y - 0.26);
+  ctx.moveTo(X - 0.06, Y - 0.1); ctx.quadraticCurveTo(X, Y - 0.17, X + 0.06, Y - 0.1);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(X - 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
+  ctx.ellipse(X + 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  ctx.fillStyle = C.white; // the glint
+  ctx.globalAlpha = 0.4;
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.26 - 0.08, Y - 0.12, 0.05, 0.025, -0.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
 // The sky by the hour: navy night, a blush dawn, day blue, the party's pink
 // sunset, a purple dusk (steps of a twentieth keep the color mixes few).
 const SKY = [[0, C.night], [4.5, C.night], [6, C.blush], [8, C.sky], [17, C.sky], [19, C.pink], [20.5, C.purple], [21.5, C.night], [24, C.night]];
@@ -123,7 +276,10 @@ export default {
       poly(ctx, [[PX0, PY0, WATER_Z], [PX1, PY0, WATER_Z], [PX1, PY1, WATER_Z], [PX0, PY1, WATER_Z]]);
       ctx.fillStyle = alpha(C.water, 0.92);
       ctx.fill();
+      // the lost sunglasses, drawn under the water's speckle and a lane line
+      sunglasses(ctx);
       if (!Q.detail) return;
+      poly(ctx, [[PX0, PY0, WATER_Z], [PX1, PY0, WATER_Z], [PX1, PY1, WATER_Z], [PX0, PY1, WATER_Z]]);
       ctx.save();
       ctx.clip();
       ctx.fillStyle = dots(C.teal, 0.25);
@@ -192,7 +348,7 @@ export default {
 
     // The diver: walk out, bounce, commit, swim to the ladder, climb out.
     const DIVE = 8;
-    R.mover((t) => {
+    const diver = (t) => {
       const k = pulse(t, DIVE);
       const s = k * DIVE;
       if (s < 1.2) return { x: 8, y: 2.6 + (s / 1.2) * 3, z: 1.04, pose: 'walk', a: clamp(s / 0.3), dir: 'l' };
@@ -204,13 +360,16 @@ export default {
       if (s < 4.8) return { x: 8, y: 8.2, z: -3, hidden: true };
       if (s < 7.2) { const q = (s - 4.8) / 2.4; return { x: 8 + q * 4.1, y: 8.2, z: -1.15, pose: 'swim', dir: 'r' }; }
       return { x: 13, y: 8.2, z: 0, pose: 'stand', dir: 'r', a: 1 - clamp((s - 7.2) / 0.6) };
-    }, (ctx, t, p) => {
+    };
+    R.mover(diver, (ctx, t, p) => {
       if (p.hidden) return;
       ctx.save();
       if (p.a !== undefined) ctx.globalAlpha = p.a;
       person(ctx, p.x, p.y, p.z, { skin: SKIN[2], hair: C.ink, style: 'short', top: C.coral, bottom: C.coral, pose: p.pose, dir: p.dir, speed: 9 }, t);
       ctx.restore();
     }, { bias: 0.5 });
+
+    R.poke({ id: 'diver', at: (t) => { const p = diver(t); return [p.x, p.y, Math.max(0, p.z) + 1.3]; }, r: 0.9, sound: 'tick', say: ['Any minute now.', 'Just warming up.', 'I am going. I AM.'] });
 
     // Splash where the diver lands
     R.air((ctx, t) => {
@@ -285,10 +444,14 @@ export default {
       paint(ctx, C.ink);
     });
 
-    // Rubber duck, drifting in a slow circle (a find)
-    const duck = orbit(6, 7.4, 0.9, 0.7, 20, 5);
+    // Rubber duck, bobbing in a small circle in the front corner of the pool,
+    // clear of the swimmers' lanes and the flamingo's round (a find)
+    const duck = orbit(5.3, 11.7, 0.35, 0.25, 20, 5);
     R.mover(duck, (ctx, t, p) => {
-      const [X, Y] = P(p.x, p.y, WATER_Z + Math.sin(t * 2) * 0.03);
+      const [X0, Y0] = P(p.x, p.y, WATER_Z + Math.sin(t * 2) * 0.03);
+      ctx.save();
+      ctx.translate(X0, Y0); ctx.scale(1.35, 1.35); ctx.translate(-X0, -Y0);
+      const X = X0, Y = Y0;
       ctx.beginPath();
       ctx.ellipse(X, Y - 0.12, 0.26, 0.15, 0, 0, Math.PI * 2);
       ctx.arc(X + 0.14, Y - 0.34, 0.12, 0, Math.PI * 2);
@@ -297,53 +460,61 @@ export default {
       ctx.moveTo(X + 0.24, Y - 0.34); ctx.lineTo(X + 0.36, Y - 0.3); ctx.lineTo(X + 0.24, Y - 0.28);
       ctx.fillStyle = C.coral;
       ctx.fill();
+      ctx.beginPath(); ctx.arc(X + 0.16, Y - 0.37, 0.025, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+      ctx.restore();
     });
-    R.find({ id: 'duck', label: 'A rubber duck', r: 0.8, at: (t) => { const p = duck(t); return [p.x, p.y, WATER_Z + 0.2]; } });
+    R.find({ id: 'duck', label: 'A rubber duck', r: 0.8, at: (t) => { const p = duck(t); return [p.x, p.y, WATER_Z + 0.3]; } });
 
     // Loungers, parasols and sunbathers on the left deck
+    // The front sunbather is the first thing to tap: up they sit.
+    const sunbather = R.poke({ id: 'sunbather', at: [2.4, 11.6, 1.0], r: 1.0, teach: true, hold: 4, say: ['Is it lunch yet?', 'I am NOT asleep.', 'Turn me over, please.'] });
     [[0.9, 5.3, C.teal], [0.9, 8.2, C.mustard], [0.9, 11.1, C.coral]].forEach(([x, y, c], i) => {
+      if (i === 1) {
+        R.thing(x + 2.7, y + 1, (ctx) => { lounger(ctx, x, y, c); towelSwan(ctx, x + 1.6, y + 0.5, 0.49); });
+        return;
+      }
       R.thing(x + 2.7, y + 1, (ctx, t) => {
         lounger(ctx, x, y, c);
-        if (i !== 1) person(ctx, x + 1.5, y + 0.5, 0.55, folk(20 + i, { pose: 'lie', dir: 'l', hat: i ? 'sun' : undefined }), t);
+        const up = i === 2 && sunbather.k() > 0.5;
+        if (up) person(ctx, x + 1.0, y + 0.5, 0.49, folk(20 + i, { pose: 'sit', dir: 'r', hat: 'sun', arms: [2.6, 0.4] }), t);
+        else person(ctx, x + 2.4, y + 0.5, 0.55, folk(20 + i, { pose: 'lie', dir: 'r', hat: i ? 'sun' : undefined }), t);
       }, { anim: true });
     });
+    R.decoy({ id: 'towel', at: [2.5, 8.7, 1.0], r: 0.8, say: ['A towel swan. Very fancy.', 'Still a towel.', 'Please do not unfold the swan.'] });
     R.thing(1.6, 7.6, (ctx, t) => parasol(ctx, 1.6, 7.6, t, C.coral, C.white));
     R.thing(1.6, 13.6, (ctx, t) => parasol(ctx, 1.6, 13.6, t, C.teal, C.butter));
 
-    // The lost flip-flop (a find) under the empty lounger, and its twin on a towel
+    // Towels on the front deck. The flip-flop got handed in to the lost
+    // property box (a find); no loose one lies about to be taken for it.
     R.rug((ctx) => {
       rect(ctx, 5.2, 13.4, 1.4, 2.2, 0.02, C.coral, { dots: C.white, density: 0.4 });
       rect(ctx, 7.2, 13.6, 1.4, 2.2, 0.02, C.teal, { dots: C.butter, density: 0.3 });
       rect(ctx, 9.6, 13.3, 1.4, 2.2, 0.02, C.mustard, { dots: C.coral, density: 0.25 });
-      disc(ctx, 3.2, 9.2, 0.03, 0.2, C.pink, { lw: 0.03 });
-      disc(ctx, 3.25, 9.05, 0.035, 0.12, C.pink, { lw: 0.03 });
-      disc(ctx, 6.1, 15.1, 0.03, 0.2, C.pink, { lw: 0.03 });
     });
-    R.find({ id: 'flipflop', label: 'One lost flip-flop', at: [3.2, 9.2, 0], r: 0.7 });
+    // (its tap area covers the whole box, flaps and all)
+    const lost = R.poke({ id: 'lost', at: [LOST[0] + 0.55, LOST[1] + 0.4, 0.35], r: 1.15, sound: 'clunk' });
+    R.thing(LOST[0] + 1.1, LOST[1] + 0.8, (ctx, t) => lostBox(ctx, t, lost.k()), { anim: true });
+    R.find({ id: 'flipflop', label: 'One lost flip-flop', kind: 'poke', inside: lost, at: [LOST[0] + 0.55, LOST[1] + 0.5, 0.75], r: 0.6, hint: 'Somebody handed it in. Lost things end up in a box.' });
 
-    // Sunglasses left on a towel on the front deck (a find), in the open,
-    // where no parasol or shouting can hide them.
-    R.rug((ctx) => {
-      const [X, Y] = P(7.9, 14.5, 0.12);
-      ctx.strokeStyle = C.ink;
-      ctx.lineWidth = 0.05;
-      ctx.beginPath(); // the arms, folded back along the parapet
-      ctx.moveTo(X - 0.46, Y - 0.1); ctx.lineTo(X - 0.3, Y - 0.26);
-      ctx.moveTo(X + 0.46, Y - 0.1); ctx.lineTo(X + 0.3, Y - 0.26);
-      ctx.moveTo(X - 0.06, Y - 0.1); ctx.quadraticCurveTo(X, Y - 0.17, X + 0.06, Y - 0.1);
-      ctx.stroke();
+    // Sunglasses on the bottom of the pool (a hard find): small, dark on
+    // dark, half under a lane line (drawn with the water, above), in the
+    // shadow of deeper water, with a ripple wobbling over them.
+    R.rug((ctx, t) => {
+      if (!Q.detail) return;
+      // the deep patch: a little darker water over them
+      const [X, Y] = P(...SHADES);
+      ctx.beginPath(); ctx.ellipse(X - 0.1, Y + 0.05, 0.95, 0.42, 0, 0, Math.PI * 2);
+      ctx.fillStyle = DEEP; ctx.fill();
+      // a ripple drifting over them
+      const d = Math.sin(t * 0.7) * 0.25;
       ctx.beginPath();
-      ctx.ellipse(X - 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
-      ctx.ellipse(X + 0.26, Y - 0.07, 0.22, 0.14, 0, 0, Math.PI * 2);
-      ctx.fillStyle = C.ink;
-      ctx.fill();
-      ctx.strokeStyle = C.coral;
-      ctx.lineWidth = 0.04;
-      ctx.stroke();
-      ctx.fillStyle = C.white; // the glint
-      for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(X + s * 0.26 - 0.08, Y - 0.12, 0.06, 0.03, -0.5, 0, Math.PI * 2); ctx.fill(); }
-    });
-    R.find({ id: 'shades', label: 'A pair of sunglasses', at: [7.9, 14.5, 0.1], r: 0.7 });
+      for (let k = 0; k <= 6; k++) {
+        const [rx, ry] = P(SHADES[0] - 0.6 + d + k * 0.2, SHADES[1] + Math.sin(t * 2 + k) * 0.06, WATER_Z);
+        k ? ctx.lineTo(rx, ry) : ctx.moveTo(rx, ry);
+      }
+      ctx.strokeStyle = alpha(C.white, 0.7); ctx.lineWidth = 0.06; ctx.lineCap = 'round'; ctx.stroke();
+    }, { anim: true });
+    R.find({ id: 'shades', label: 'A pair of sunglasses', kind: 'hard', at: [SHADES[0], SHADES[1], -1.1], r: 0.6, riddle: 'Went for a dip and never came up.', hint: 'Look down through the water, along the lane lines.' });
 
     // Lifeguard tower
     R.thing(14.6, 5.4, (ctx, t) => {
@@ -357,9 +528,10 @@ export default {
       person(ctx, 14.4, 5.0, 2.95, { skin: SKIN_LG, hair: C.mustard, style: 'short', top: C.red, bottom: C.red, pose: whistle ? 'point' : 'sit', dir: 'l', hat: 'sun' }, t);
       if (whistle && Q.detail) speech(ctx, 14.2, 4.8, 5.6, 'NO RUNNING!', { size: 0.5 });
     }, { bias: 1 });
+    R.poke({ id: 'lifeguard', at: [14.4, 5.0, 4.2], r: 0.9, sound: 'tick', say: ['PHWEEET! No running.', 'PHWEEET! No bombing.', 'PHWEEET! No reason.'] });
 
     // The kid who is running anyway
-    const runner = route([[3.5, 14.6], [14.5, 14.6], [14.6, 9.5]], { speed: 3.2, loop: false, offset: 1 });
+    const runner = route([[3.8, 14.6], [14.5, 14.6], [14.7, 12.0]], { speed: 3.2, loop: false, offset: 1 });
     R.mover(runner, (ctx, t, p) => person(ctx, p.x, p.y, 0, folk(3, { pose: 'run', dir: p.dir, back: p.back, scale: 0.72, top: C.mustard, speed: 12 }), t));
 
     // Beach ball between two kids
@@ -406,8 +578,19 @@ export default {
     // Palms in planters along the back
     for (const [x, y] of [[7.2, 0.9], [10.5, 0.9], [0.9, 14.6]]) R.thing(x, y, (ctx, t) => plant(ctx, x, y, 0, t, { kind: 'palm', scale: 1.7, potColor: C.white, leaf: C.green }), { anim: true });
 
-    // The goose, casing the joint behind the water tower
-    R.goose(route([[5.2, 1.3, 2], [6.8, 1.4], [6.4, 3.4, 1.5], [4.9, 3.9]], { speed: 0.6 }), {});
+    // Two changing huts. The goose is in the first, getting into its trunks:
+    // tap the curtain and it's drawn back on a goose, honking now and then.
+    const hutA = R.poke({ id: 'hut', at: [HX1 + 0.1, HUTS[0].y + HD / 2, 1.0], r: 0.9, sound: 'pop', say: 'HONK!' });
+    const hutB = R.poke({ id: 'hut2', at: [HX1 + 0.1, HUTS[1].y + HD / 2, 1.0], r: 0.9, sound: 'clunk', say: ['OCCUPIED.', 'STILL OCCUPIED.', 'Do you MIND?'] });
+    HUTS.forEach(({ y, a }, i) => {
+      R.thing(HX1, y + HD, (ctx) => hut(ctx, y, a));
+      // (the occupied one stays shut: somebody's holding it)
+      R.thing(HX1 + 0.1, y + HD, (ctx, t) => curtain(ctx, y, a, i ? 0 : hutA.k(), t, i ? 'person' : 'goose'), { anim: true });
+    });
+    R.goose((t) => {
+      const k = hutA.k();
+      return { x: HX1 - 0.15, y: HUTS[0].y + HD / 2, z: 0, dir: 'r', hidden: k < 0.3, pose: k > 0.5 && pulse(t, 7) > 0.85 ? 'honk' : 'stand' };
+    }, { bias: 1.2, kind: 'poke', inside: hutA, hint: 'Two changing huts. Have a look at the feet under the curtains.' });
   },
 };
 
