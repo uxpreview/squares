@@ -228,13 +228,14 @@ export function buildZone(def, place = {}) {
     // o: { id, at: [x, y, z] or (t) => [x, y, z], r: tap radius in units,
     //      say: a line it answers with (or a list, taken in turn),
     //      sound: what it plays (default 'pop'), hold: seconds it stays open
-    //      (default: until tapped again), decoy: true for a goose lookalike }
+    //      (default: until tapped again), decoy: true for a goose lookalike,
+    //      teach: true for the one a first visit is nudged to tap }
     // This is the one thing in a zone that isn't a pure function of t: it
     // follows the player's taps, on the page's own clock.
     poke: (o) => {
       const p = {
         id: o.id, at: o.at, r: o.r ?? 0.9, say: o.say || null, sound: o.sound ?? 'pop', hold: o.hold || 0,
-        decoy: !!o.decoy, open: false, since: -1e9, pinned: false, taps: 0,
+        decoy: !!o.decoy, teach: !!o.teach, open: false, since: -1e9, pinned: false, taps: 0,
         // Open (true) or shut (false), from a tap or a tool.
         set(v) {
           const now = performance.now();
