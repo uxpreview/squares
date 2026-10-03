@@ -694,14 +694,16 @@ function glove(ctx) {
 }
 
 // ---------- The wrench, and what it's lost among ----------
-const WRENCH = [4, 14.8];
+// Half under the oily rag: its handle goes in under the rag's corner, and
+// only the jaw and the neck stick out, toward the nuts.
+const WRENCH = [4.69, 15.21];
 function wrench(ctx) {
-  const [x, y] = WRENCH, z = 0.05;
+  const [x, y] = WRENCH, z = 0.03;
   const [X, Y] = P(x, y, z);
   ctx.save();
   ctx.translate(X, Y);
   ctx.scale(1, 0.55);
-  ctx.rotate(-0.5);
+  ctx.rotate(3.95);
   // The handle and the adjustable jaw at one end.
   ctx.beginPath(); ctx.roundRect(-0.46, -0.07, 0.72, 0.14, 0.07);
   paint(ctx, MAT.chrome, { lw: 0.03 });
@@ -761,20 +763,16 @@ export default {
       for (const [x, y, r] of [[6.5, 9.7, 0.45], [9.2, 9.4, 0.3], [2.2, 13.9, 0.35], [8.6, 14.9, 0.3]]) {
         disc(ctx, x, y, 0.004, r, alpha(C.ink, 0.13), { stroke: false });
       }
-      shape(ctx, [[4.6, 15.2, 0.02], [5.3, 15.0, 0.02], [5.5, 15.5, 0.02], [4.9, 15.75, 0.02], [4.5, 15.55, 0.02]], C.red, { lw: 0.025 });
+      // The wrench's look-alikes: nuts and bolts. (No screwdriver: it pulled the eye.)
+      for (const [x, y, s] of [[3.2, 14.3, 0.11], [3.5, 15.4, 0.09], [4.8, 14.3, 0.1], [2.9, 15.1, 0.13], [5.8, 14.6, 0.09]]) nut(ctx, x, y, s);
+      // The wrench, then the rag over its handle.
+      wrench(ctx);
+      shape(ctx, [[4.6, 15.2, 0.04], [5.3, 15.0, 0.04], [5.5, 15.5, 0.04], [4.9, 15.75, 0.04], [4.5, 15.55, 0.04]], C.red, { lw: 0.025 });
       if (Q.detail) {
         ctx.save();
-        shape(ctx, [[4.7, 15.3, 0.03], [5.2, 15.15, 0.03], [5.3, 15.45, 0.03]], null, { stroke: shade(C.red, 0.4), lw: 0.02 });
+        shape(ctx, [[4.7, 15.3, 0.05], [5.2, 15.15, 0.05], [5.3, 15.45, 0.05]], null, { stroke: shade(C.red, 0.4), lw: 0.02 });
         ctx.restore();
       }
-      // The wrench's look-alikes: nuts, a bolt, a screwdriver.
-      for (const [x, y, s] of [[3.2, 14.3, 0.11], [3.5, 15.4, 0.09], [4.8, 14.3, 0.1], [2.9, 15.1, 0.13], [5.8, 14.6, 0.09]]) nut(ctx, x, y, s);
-      {
-        const a = P(3.0, 14.6, 0.04), b = P(3.0, 15.5, 0.04);
-        inked(ctx, [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]], C.red, 0.1);
-        inked(ctx, [[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], b], MAT.chrome, 0.04);
-      }
-      wrench(ctx);
     });
 
     // ---------- The far wall (the hull, inside) ----------
@@ -1240,6 +1238,6 @@ export default {
       },
     });
     R.find({ id: 'hammock', label: 'A hammock between two pipes', kind: 'spot', at: [12.78, 13.45, 1.55], r: 1.0 });
-    R.find({ id: 'wrench', label: 'A lost wrench', kind: 'hard', at: [4, 14.8, 0.05], r: 0.7, riddle: 'Lying low with the nuts and bolts.', hint: 'The pegboard has a gap. Someone dropped it by the oily rag.' });
+    R.find({ id: 'wrench', label: 'A lost wrench', kind: 'hard', at: [4.5, 15.2, 0.05], r: 0.7, riddle: 'Lying low with the nuts and bolts.', hint: 'The pegboard has a gap. Somebody threw the oily rag over the rest of it.' });
   },
 };

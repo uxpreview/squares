@@ -353,8 +353,9 @@ function towelCroc(ctx, x, y, z) {
 }
 
 // The iguana, posing as a towel animal on the suite's bed (sighting 2): a
-// white towel folded over it like the steward's swans, a flower from the
-// garland in its mouth. Its green snout, one eye (it blinks) and the tip of
+// white towel folded over it like the steward's swans, a bite of Doreen's
+// melon rind in its mouth (no flower: only the garland under the cloche is
+// flowers). Its green snout, one eye (it blinks) and the tip of
 // its tail show the whole time. Facing right; drawn bigger than a towel swan.
 function towelIguana(ctx, x, y, z, t) {
   const [X, Y] = P(x, y, z);
@@ -366,7 +367,7 @@ function towelIguana(ctx, x, y, z, t) {
     ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
     ctx.beginPath(); ctx.moveTo(0.18, 0.0); ctx.lineTo(0.27, 0.01); ctx.moveTo(0.18, 0.0); ctx.lineTo(0.25, -0.04); ctx.stroke();
   }
-  // the snout, out of the towel's fold, with the flower in its mouth
+  // the snout, out of the towel's fold, with the rind in its mouth
   ctx.beginPath();
   ctx.moveTo(0.34, -0.44);
   ctx.bezierCurveTo(0.44, -0.5, 0.6, -0.47, 0.68, -0.38);
@@ -390,16 +391,12 @@ function towelIguana(ctx, x, y, z, t) {
     ctx.beginPath(); ctx.arc(0.5, -0.4, 0.045, 0, Math.PI * 2); paint(ctx, C.coral, { lw: 0.015 });
     ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.51, -0.4, 0.022, 0, Math.PI * 2); ctx.fill();
   }
-  // the flower, a hibiscus from the garland, one petal bitten
-  ctx.save(); ctx.translate(0.72, -0.3);
-  ctx.strokeStyle = C.leaf; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(-0.08, 0.0); ctx.lineTo(0.0, 0.0); ctx.stroke();
-  for (let i = 0; i < 5; i++) {
-    if (i === 3) continue; // eaten
-    const a = (i / 5) * Math.PI * 2 - 0.3;
-    ctx.beginPath(); ctx.ellipse(0.04 + Math.cos(a) * 0.06, Math.sin(a) * 0.06, 0.055, 0.04, a, 0, Math.PI * 2);
-    paint(ctx, INK.flamingo, { lw: 0.012 });
-  }
-  ctx.beginPath(); ctx.arc(0.04, 0, 0.025, 0, Math.PI * 2); paint(ctx, INK.sunYellow, { lw: 0.01 });
+  // the melon rind, Doreen's, a crescent held crossways in its jaws
+  ctx.save(); ctx.translate(0.74, -0.31); ctx.rotate(0.35);
+  ctx.beginPath(); ctx.arc(0, -0.05, 0.13, 0.15, Math.PI - 0.15); ctx.closePath();
+  paint(ctx, C.leaf, { lw: 0.014 });
+  ctx.beginPath(); ctx.arc(0, -0.06, 0.1, 0.25, Math.PI - 0.25); ctx.closePath();
+  paint(ctx, tint(C.coral, 0.5), { lw: 0.01 });
   ctx.restore();
   // the towel: a folded body like the steward's, and a rolled hood over its head
   ctx.beginPath();
@@ -428,14 +425,29 @@ function towelIguana(ctx, x, y, z, t) {
 }
 
 // The suite's breakfast in bed: a tray, a silver cloche (lifted by k), and
-// under it a melon rind and the nibbled garland. One flower has rolled out
-// from under the rim, so the cloche says "lift me".
+// under it a melon rind and the nibbled garland. A loop of the garland has
+// slipped out from under the front of the rim, three flowers on its string
+// (one bitten), so the cloche says "lift me".
 function breakfastInBed(ctx, x, y, z, k) {
   box(ctx, x - 0.6, y - 0.5, z, 1.2, 1.0, 0.05, MAT.chrome, { flat: true, lw: 0.03 });
   const zt = z + 0.06;
-  // the flower that got away, at the front of the tray
-  disc(ctx, x + 0.25, y + 0.5, zt, 0.1, INK.flamingo, { lw: 0.018 });
-  if (Q.detail) disc(ctx, x + 0.25, y + 0.5, zt + 0.003, 0.035, INK.sunYellow, { stroke: false });
+  const gx = x - 0.05, gy = y - 0.05;
+  // the loop's string, from under the rim and back
+  const ring = (a, r) => P(gx + Math.cos(a) * r, gy + Math.sin(a) * r, zt);
+  ctx.beginPath();
+  for (let i = 0; i <= 12; i++) {
+    const a = 0.05 + (i / 12) * 1.45, r = 0.4 + Math.sin((i / 12) * Math.PI) * 0.22;
+    const [X, Y] = ring(a, r); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+  }
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke(); }
+  ctx.strokeStyle = C.green; ctx.lineWidth = 0.03; ctx.stroke();
+  // its three flowers, the middle one bitten
+  [[0.36, 0.58, INK.sunYellow], [0.78, 0.62, INK.flamingo], [1.2, 0.58, C.coral]].forEach(([a, r, ink], i) => {
+    const fx = gx + Math.cos(a) * r, fy = gy + Math.sin(a) * r;
+    disc(ctx, fx, fy, zt + 0.003, 0.14, ink, { lw: 0.02 });
+    if (i === 1) disc(ctx, fx + Math.cos(a) * 0.12, fy + Math.sin(a) * 0.12, zt + 0.004, 0.09, MAT.chrome, { stroke: false });
+    if (Q.detail) disc(ctx, fx, fy, zt + 0.005, 0.045, INK.sunYellow === ink ? C.coral : INK.sunYellow, { stroke: false });
+  });
   if (k > 0.02) {
     garland(ctx, x - 0.05, y - 0.05, zt, MAT.chrome);
     // the melon: a rind, bitten clean
@@ -645,18 +657,12 @@ export default {
       rect(ctx, 0, FY, 8, 16 - FY, 0, tint(INK.flamingo, 0.45), { stroke: false, dots: INK.flamingo, density: 0.14 });
     });
     R.rug((ctx) => {
-      // a heart rug in the suite, and a trail of rose petals to the bed
+      // a heart rug in the suite (no rose petals: loose red petals read as
+      // the garland, which is only under the cloche)
       const [X, Y] = P(4.6, 11.0, 0.01);
       ctx.save(); ctx.translate(X, Y); ctx.scale(1, 0.55);
       heart(ctx, 0, 0.2, 1.3, INK.flamingo);
       ctx.restore();
-      if (Q.detail) {
-        for (let i = 0; i < 16; i++) {
-          const k = i / 15;
-          const px = 6.2 - k * 2.4 + Math.sin(i * 2.1) * 0.35, py = 8.9 + k * 2.6 + Math.cos(i * 1.7) * 0.25;
-          disc(ctx, px, py, 0.012, 0.06, i % 3 ? C.red : INK.flamingo, { stroke: false });
-        }
-      }
       // doormats outside every door, with its number
       for (const n of ROOMS) {
         if (n === 3) continue; // 3 and 4 share one mat, at their double doorway
@@ -830,15 +836,8 @@ export default {
       box(ctx, 1, 12, 0.45, 6, 3.4, 0.35, C.white, { flat: true, lw: 0.05 });
       rect(ctx, 6.1, 12, 0.7, 3.4, 0.805, tint(INK.flamingo, 0.2), { lw: 0.03 });
       for (const py of [12.3, 13.8]) box(ctx, 1.15, py, 0.8, 0.7, 1.3, 0.2, C.white, { flat: true, lw: 0.03 });
-      // chocolates on the pillows, petals on the spread
+      // chocolates on the pillows (and no petals on the spread)
       for (const [cx, cy] of [[1.5, 12.95], [1.5, 14.45]]) box(ctx, cx - 0.1, cy - 0.1, 1.0, 0.2, 0.2, 0.06, C.brown, { flat: true, lw: 0.015 });
-      if (Q.detail) {
-        for (let i = 0; i < 14; i++) {
-          const px = 2.4 + ((i * 2.37) % 3.4), py = 12.3 + ((i * 1.93) % 2.8);
-          if (Math.abs(px - 2.95) < 0.7 && Math.abs(py - 13.55) < 0.6) continue; // not under the tray
-          disc(ctx, px, py, 0.81, 0.07, i % 2 ? C.red : INK.flamingo, { stroke: false });
-        }
-      }
       towel(ctx, 4.5, 12.95, 0.8, 'hearts');
     });
     // Breakfast in bed, with something under the lid that isn't breakfast.
@@ -850,11 +849,11 @@ export default {
       box(ctx, 1.7, 9.1, 0, 3.3, 0.85, 0.72, tint(INK.flamingo, 0.2), { lw: 0.04 });
       for (const x of [1.55, 4.9]) box(ctx, x, 8.9, 0, 0.25, 1.05, 0.95, INK.flamingo, { lw: 0.04 });
     }, { depth: 11.8 });
-    const lei = (ctx, b) => {
-      const inks = [INK.sunYellow, INK.flamingo, C.coral];
-      for (let i = 0; i < 7; i++) {
-        ctx.beginPath(); ctx.arc(-0.24 + i * 0.08, b.top + 0.08 + Math.sin((i / 6) * Math.PI) * 0.14, 0.06, 0, Math.PI * 2);
-        paint(ctx, inks[i % 3], { lw: 0.015 });
+    // Pearls (not a lei: the only flowers in the suite are the garland's).
+    const pearls = (ctx, b) => {
+      for (let i = 0; i < 9; i++) {
+        ctx.beginPath(); ctx.arc(-0.2 + i * 0.05, b.top + 0.06 + Math.sin((i / 8) * Math.PI) * 0.1, 0.03, 0, Math.PI * 2);
+        paint(ctx, C.white, { lw: 0.01 });
       }
     };
     extra(R, 2.6, 9.65, 41, {
@@ -869,7 +868,7 @@ export default {
       say: [(t) => (wrap(t) < at(11.5) ? 'Best. Honeymoon. Ever.' : 'I love you. I need a minute.'), 20, 3.5, 11],
     });
     extra(R, 4.0, 9.65, 42, {
-      pose: 'sit', dir: 'l', look: { top: INK.flamingo, dress: true, style: 'long' }, wear: lei,
+      pose: 'sit', dir: 'l', look: { top: INK.flamingo, dress: true, style: 'long' }, wear: pearls,
       // (her answer to housekeeping, right after every knock; out of the groom's turn)
       say: ['Do NOT disturb!', 20, 3, 17.4], sayZ: 2.1,
       after: (ctx, t) => {
@@ -1410,7 +1409,7 @@ export default {
     // ---------- The finds ----------
     R.find({ id: 'chad-bucket', label: 'A bucket outside cabin 12', kind: 'spot', at: [44.6, 8, 0.3], r: 0.8 });
     // The chase, sighting 2: in the honeymoon suite, at the foot of the bed,
-    // posing as one of the steward's towel animals with a flower in its mouth.
+    // posing as one of the steward's towel animals with a melon rind in its mouth.
     // Its snout, a blinking eye and its tail tip show. Found, it's off the
     // bed, out of the suite's door and up the corridor to the lift.
     sighting(R, 1, {

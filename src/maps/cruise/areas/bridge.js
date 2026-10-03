@@ -776,7 +776,7 @@ export default {
     // The Lizard Cam, live: drawn from the chase, so it's always animated.
     S.thing(6.25, 2.6, (ctx, t) => onY(ctx, LC.x, LC.y + 0.005, LC.top, (g) => lizardCam(g, t)), { anim: true, depth: 8.87 });
     S.find({
-      id: 'camera-still', label: 'A camera still', kind: 'hard', at: [5.2, 1.6, 2.45], r: 0.8,
+      id: 'camera-still', label: 'A camera still', kind: 'hard', at: [5.2, 1.6, 2.45], r: 1.0,
       riddle: 'Taped up where the captain watches TV.',
       hint: 'Every picture on the monitors moves but one. It says 6:52.',
     });

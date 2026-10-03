@@ -135,42 +135,39 @@ function saved(ctx, x, y, o) {
   if (o.note) restNote(ctx, x, y, o.note, o.paper);
 }
 
-// Chad's bar tab: a very long receipt on the bar, over its edge and down the
-// front, a column of little green glasses printed on it, curled at the end.
+// Chad's bar tab: tucked under a tray of his empties at the front of the
+// bar, only its corner showing, over the edge with two green glasses
+// printed on it. The rest of it (and the other twenty-nine) is under the tray.
+const TAB = { x0: 22.44, x1: 22.68, edge: 2.93, top: 1.23 };
 function barTab(ctx) {
-  const x0 = 22.36, x1 = 22.64, top = 1.23, edge = 2.93;
-  face(ctx, [[x0, 1.95, top], [x1, 1.95, top], [x1, edge, top], [x0, edge, top]], C.white, { lw: 0.02 });
-  // Down the front, with a little wave in it.
-  ctx.beginPath();
-  const pts = [];
-  for (let i = 0; i <= 8; i++) {
-    const z = top - i * 0.11, w = Math.sin(i * 0.9) * 0.03;
-    pts.push([w, z]);
+  const { x0, x1, edge, top } = TAB;
+  // The corner, from under the tray to the edge, and a little way down it,
+  // torn on a slant.
+  face(ctx, [[x0, 2.5, top], [x1, 2.5, top], [x1, edge, top], [x0, edge, top]], C.white, { lw: 0.02 });
+  face(ctx, [[x0, edge + 0.01, top], [x1, edge + 0.01, top], [x1, edge + 0.01, top - 0.12], [x0, edge + 0.01, top - 0.22]], C.white, { lw: 0.02 });
+  if (Q.detail) {
+    const glass = (X, Y) => {
+      ctx.beginPath();
+      ctx.moveTo(X - 0.035, Y - 0.07); ctx.lineTo(X + 0.035, Y - 0.07); ctx.lineTo(X + 0.02, Y); ctx.lineTo(X - 0.02, Y);
+      ctx.closePath();
+      ctx.fillStyle = INK.queasyGreen; ctx.fill();
+    };
+    for (const y of [2.72, 2.86]) { const [X, Y] = P(x0 + 0.08, y, top); glass(X, Y); }
+    ctx.fillStyle = C.grey;
+    for (const y of [2.72, 2.86]) { const [X, Y] = P(x0 + 0.17, y, top); ctx.fillRect(X, Y - 0.05, 0.06, 0.02); }
   }
-  pts.forEach(([w, z], i) => { const [X, Y] = P(x0 + w, edge + 0.02, z); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
-  for (let i = pts.length - 1; i >= 0; i--) { const [w, z] = pts[i]; const [X, Y] = P(x1 + w, edge + 0.02, z); ctx.lineTo(X, Y); }
-  ctx.closePath();
-  paint(ctx, C.white, { lw: 0.02 });
-  // The curl at the bottom.
-  const [cx, cy] = P((x0 + x1) / 2, edge + 0.08, top - 0.92);
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, 0.17, 0.1, 0, 0, Math.PI * 2);
-  paint(ctx, C.white, { lw: 0.02 });
+  // The tray of empties over the rest of it.
+  disc(ctx, 22.56, 2.36, top + 0.01, 0.3, MAT.chrome, { lw: 0.025 });
   if (!Q.detail) return;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, 0.08, 0.045, 0, 0, Math.PI * 2);
-  ctx.strokeStyle = C.grey; ctx.lineWidth = 0.015; ctx.stroke();
-  // The printing: a column of green glasses, one per Mermaid, and a total.
-  const glass = (X, Y) => {
+  for (const [dx, dy] of [[-0.1, -0.08], [0.1, -0.02], [-0.02, 0.1]]) {
+    const [X, Y] = P(22.56 + dx, 2.36 + dy, top + 0.03);
     ctx.beginPath();
-    ctx.moveTo(X - 0.035, Y - 0.07); ctx.lineTo(X + 0.035, Y - 0.07); ctx.lineTo(X + 0.02, Y); ctx.lineTo(X - 0.02, Y);
+    ctx.moveTo(X - 0.08, Y - 0.34); ctx.lineTo(X - 0.05, Y); ctx.lineTo(X + 0.05, Y); ctx.lineTo(X + 0.08, Y - 0.34);
     ctx.closePath();
-    ctx.fillStyle = INK.queasyGreen; ctx.fill();
-  };
-  for (let i = 0; i < 4; i++) { const [X, Y] = P(22.46, 2.1 + i * 0.22, top); glass(X, Y); }
-  for (let i = 0; i < 7; i++) { const [X, Y] = P(22.46 + Math.sin(i * 0.9) * 0.03, edge + 0.02, top - 0.08 - i * 0.11); glass(X, Y); }
-  ctx.fillStyle = C.grey;
-  for (let i = 0; i < 4; i++) { const [X, Y] = P(22.56, 2.1 + i * 0.22, top); ctx.fillRect(X, Y - 0.05, 0.07, 0.02); }
+    paint(ctx, alpha(MAT.glass, 0.7), { lw: 0.018 });
+    ctx.beginPath(); ctx.ellipse(X, Y - 0.04, 0.05, 0.02, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(INK.queasyGreen, 0.8); ctx.fill(); // the last of the Mermaid
+  }
 }
 
 // The rest of what sits on a bar.
@@ -421,16 +418,31 @@ export default {
         if (tell) tell(ex, ey);
       };
       const ka = jackets.k(), rattle = drillHonk(t) && ka < 0.05 ? Math.sin(t * 40) * 0.05 : 0;
-      door(11.25, 1, 0.12 + rattle + ka * 1.45, [['LIFE', 0.17, 1.17, C.ink], ['JACKETS', 0.17, 0.97], ['(1 LEFT)', 0.11, 0.8, INK.funnelRed]], (ex, ey) => {
-        // Its beak, out of the gap at the door's edge, and a strap under it.
-        const [X, Y] = P(ex + 0.02, ey - 0.02, 0.98);
-        const open = drillHonk(t) ? 0.07 : 0;
-        ctx.beginPath(); ctx.moveTo(X - 0.05, Y - 0.06); ctx.lineTo(X + 0.26, Y - 0.01 - open); ctx.lineTo(X - 0.05, Y + 0.02); ctx.closePath();
-        paint(ctx, C.coral, { lw: 0.02 });
-        if (open) { ctx.beginPath(); ctx.moveTo(X - 0.05, Y + 0.02); ctx.lineTo(X + 0.22, Y + 0.06 + open); ctx.lineTo(X - 0.05, Y + 0.05); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02 }); }
-        face(ctx, [[ex - 0.35, ey - 0.03, 0.09], [ex - 0.22, ey - 0.03, 0.09], [ex - 0.24, ey + 0.02, -0.05], [ex - 0.37, ey + 0.02, -0.05]], JACKET, { lw: 0.015 });
-      });
+      let gap = null;
+      door(11.25, 1, 0.16 + rattle + ka * 1.4, [['LIFE', 0.17, 1.17, C.ink], ['JACKETS', 0.17, 0.97], ['(1 LEFT)', 0.11, 0.8, INK.funnelRed]], (ex, ey) => { gap = [ex, ey]; });
       door(13.35, -1, towels.k() * 1.45, [['SPARE', 0.17, 1.17, C.ink], ['TOWELS', 0.17, 0.97]]);
+      if (gap) {
+        // The tell, over both doors (it sticks out of the gap toward you): a
+        // strap of its jacket hanging out under the door to the deck, buckle
+        // and all, and a big orange beak out of the gap at head height, with
+        // a sliver of white head and an eye behind it.
+        const [ex, ey] = gap;
+        const strap = [[ex - 0.3, ey + 0.01, 0.42], [ex - 0.14, ey + 0.01, 0.42], [ex - 0.14, ey + 0.03, 0.02], [ex - 0.3, ey + 0.03, 0.02]];
+        face(ctx, strap, JACKET, { lw: 0.02 });
+        face(ctx, [[ex - 0.3, ey + 0.03, 0.012], [ex - 0.14, ey + 0.03, 0.012], [ex - 0.14, ey + 0.55, 0.012], [ex - 0.3, ey + 0.55, 0.012]], JACKET, { lw: 0.02 });
+        if (Q.detail) face(ctx, [[ex - 0.3, ey + 0.2, 0.014], [ex - 0.14, ey + 0.2, 0.014], [ex - 0.14, ey + 0.26, 0.014], [ex - 0.3, ey + 0.26, 0.014]], C.white, { stroke: false });
+        box(ctx, ex - 0.34, ey + 0.5, 0.012, 0.24, 0.16, 0.04, MAT.chrome, { flat: true, lw: 0.02 }); // the buckle
+        // (Its head is bowed under the shelf: the beak comes out between the
+        // door's lettering and its vents.)
+        const [X, Y] = P(ex + 0.01, ey, 0.7);
+        const open = drillHonk(t) ? 0.1 : 0;
+        ctx.beginPath(); ctx.ellipse(X - 0.05, Y - 0.04, 0.06, 0.12, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+        ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X - 0.05, Y - 0.1, 0.025, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(X - 0.02, Y - 0.1); ctx.lineTo(X + 0.5, Y - 0.01 - open); ctx.lineTo(X - 0.02, Y + 0.06); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.025 });
+        if (open) { ctx.beginPath(); ctx.moveTo(X - 0.02, Y + 0.06); ctx.lineTo(X + 0.44, Y + 0.1 + open); ctx.lineTo(X - 0.02, Y + 0.11); ctx.closePath(); paint(ctx, C.coral, { lw: 0.025 }); }
+        if (Q.detail) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.ellipse(X + 0.14, Y - 0.05, 0.03, 0.014, 0.15, 0, Math.PI * 2); ctx.fill(); }
+      }
     }, { anim: true, depth: 12.95 });
     // The drill's beacon, on the muster sign: it flashes from 10 till 11.
     R.thing(18, 0.4, (ctx, t) => {
@@ -670,20 +682,15 @@ export default {
     });
     R.find({ id: 'towel', label: 'A lounger reserved since day one', at: [2.5, 13.8, 0.6], r: 0.8 });
 
-    // The iguana's lounger, saved since it came aboard: a damp print of it
-    // on the towel, tail and all, its sunglasses left on the pillow end, a
-    // note, and a Green Mermaid on the side table. It's off at the limbo.
+    // The iguana's lounger, saved since it came aboard: its sunglasses left
+    // on the pillow end, a note, and a Green Mermaid on the side table. It's
+    // off at the limbo. (No print of it on the towel: a grey lizard shape in
+    // sunglasses read as the goose.)
     R.thing(IGUANA_LOUNGER[0], IGUANA_LOUNGER[1], (ctx) => {
       const [x, y] = IGUANA_LOUNGER;
       saved(ctx, x, y, { towel: C.white, stripe: INK.funnelRed });
       const z = 0.48;
       const cx = x + 0.5;
-      ctx.fillStyle = alpha(C.grey, 0.45);
-      // Body, head toward the back rest, legs out, and a tail off the end.
-      const blob = (pts) => { ctx.beginPath(); pts.forEach(([a, b], i) => { const [X, Y] = P(a, b, z); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.closePath(); ctx.fill(); };
-      blob([[cx - 0.12, y + 0.5], [cx + 0.12, y + 0.5], [cx + 0.17, y + 0.75], [cx + 0.14, y + 1.25], [cx + 0.05, y + 1.45], [cx - 0.05, y + 1.45], [cx - 0.14, y + 1.25], [cx - 0.17, y + 0.75]]);
-      for (const [a, b, c, d] of [[0.14, 0.85, 0.36, 0.7], [-0.14, 0.85, -0.36, 0.7], [0.12, 1.25, 0.34, 1.4], [-0.12, 1.25, -0.34, 1.4]]) blob([[cx + a, y + b - 0.05], [cx + c, y + d], [cx + c, y + d + 0.08], [cx + a, y + b + 0.07]]);
-      blob([[cx - 0.05, y + 1.45], [cx + 0.05, y + 1.45], [cx + 0.22, y + 1.8], [cx + 0.1, y + 2.08], [cx + 0.04, y + 2.06], [cx + 0.14, y + 1.8]]);
       // The sunglasses, folded on the towel.
       if (Q.detail) {
         const [X, Y] = P(cx, y + 0.45, z + 0.02);
@@ -1187,11 +1194,11 @@ export default {
       gull(ctx, p.x, p.y, 7.5 + Math.sin(t * 0.8) * 0.4, t, { fly: true, dir: p.dir, phase: 1 });
     });
 
-    // Chad's bar tab: the long one, curled over the bar's edge.
+    // Chad's bar tab: under a tray of his empties, its corner over the bar's edge.
     R.find({
-      id: 'bar-tab', label: "Chad's bar tab", kind: 'hard', at: [22.5, 2.6, 1.1], r: 0.8,
+      id: 'bar-tab', label: "Chad's bar tab", kind: 'hard', at: [22.56, 2.85, 1.18], r: 0.8,
       riddle: 'Thirty-one Green Mermaids and counting.',
-      hint: "Chad's been at the bar since last night. His bill is the longest thing on it.",
+      hint: "Chad's been at the bar since last night. Look under what he's finished.",
     });
   },
 };

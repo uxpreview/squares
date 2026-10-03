@@ -526,10 +526,14 @@ export default {
       // in the files when it's open.
       const sy = y + out - 0.25;
       if (out < 0.3) {
+        // (Big and plain: white paper, the lab's blue band, a red LAB stamp.)
         onY(ctx, x, y + out + 0.005, z1, (g) => {
-          g.beginPath(); g.moveTo(0.55, 0.02); g.lineTo(0.62, -0.17); g.lineTo(0.86, -0.13); g.lineTo(0.84, 0.02); g.closePath();
-          paint(g, C.white, { lw: 0.012 });
-          g.beginPath(); g.arc(0.76, -0.08, 0.04, 0, Math.PI * 2); g.strokeStyle = INK.funnelRed; g.lineWidth = 0.015; g.stroke();
+          g.save(); g.translate(0.64, 0.03); g.rotate(-0.14);
+          g.beginPath(); g.rect(-0.24, -0.4, 0.48, 0.42); paint(g, C.white, { lw: 0.016 });
+          g.fillStyle = MAT.crewBlue; g.fillRect(-0.24, -0.4, 0.48, 0.06);
+          g.beginPath(); g.arc(0.02, -0.18, 0.11, 0, Math.PI * 2); g.strokeStyle = INK.funnelRed; g.lineWidth = 0.022; g.stroke();
+          words(g, 'LAB', 0.02, -0.18, 0.08, INK.funnelRed, 'center', 900);
+          g.restore();
         });
       } else {
         // The other files, a row of folders.
@@ -711,9 +715,9 @@ export default {
         box(ctx, bx, BED_Y + 2.92, 0.3, 2, 0.1, 0.72, MAT.chrome, { flat: true, lw: 0.02 });
         onY(ctx, bx + 1.2, BED_Y + 3.03, 0.95, (g) => {
           g.beginPath(); g.rect(0, 0, 0.45, 0.55); paint(g, MAT.teakDark, { lw: 0.02 });
-          g.beginPath(); g.rect(0.05, 0.08, 0.35, 0.42); paint(g, C.white, { lw: 0.012 });
+          g.beginPath(); g.rect(0.05, 0.08, 0.35, 0.42); paint(g, tint(C.butter, 0.4), { lw: 0.012 });
           words(g, 'CHART', 0.22, 0.16, 0.06, C.ink, 'center', 900);
-          words(g, i % 2 ? 'SEE ABOVE' : 'GREEN', 0.22, 0.3, 0.05, INK.funnelRed, 'center', 900);
+          words(g, i % 2 ? 'SEE ABOVE' : 'GREEN', 0.22, 0.3, 0.05, C.navy, 'center', 900);
         });
         // The tray: a bed table across the blanket, jelly and crackers.
         const tx = bx + 0.25, ty = 13.15, tz = 0.95;
@@ -730,20 +734,30 @@ export default {
           cup(bx + 0.6, 13.4, C.brown);
           cup(tx + 0.75, 13.35, INK.flamingo);
           if (b.tray === 'find') {
-            const [a, c] = P(bx + 0.6, 13.4, zt + 0.13), [d, e] = P(bx + 0.72, 13.34, zt + 0.52);
-            inked(ctx, [[a, c], [d, e]], C.white, 0.05);
+            // The thermometer: a big glass one, standing well up out of the
+            // pudding, a red line up its middle and the scale marked on it.
+            // (Nothing else on any tray has a stick in it.)
+            const [a, c] = P(bx + 0.6, 13.4, zt + 0.1), [d, e] = P(bx + 0.7, 13.36, zt + 0.95);
+            const dx = d - a, dy = e - c, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
+            inked(ctx, [[a, c], [d, e]], alpha(MAT.glass, 0.95), 0.1);
+            // the red line, from the pudding up past halfway
+            inked(ctx, [[a + dx * 0.08, c + dy * 0.08], [a + dx * 0.62, c + dy * 0.62]], INK.funnelRed, 0.035);
             if (Q.detail) {
-              ctx.strokeStyle = INK.funnelRed; ctx.lineWidth = 0.018;
-              ctx.beginPath(); ctx.moveTo(a + (d - a) * 0.15, c + (e - c) * 0.15); ctx.lineTo(a + (d - a) * 0.6, c + (e - c) * 0.6); ctx.stroke();
+              ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012;
+              for (let k = 0; k < 6; k++) {
+                const u = 0.2 + k * 0.12, w = k % 2 ? 0.025 : 0.045;
+                ctx.beginPath(); ctx.moveTo(a + dx * u + nx * 0.02, c + dy * u + ny * 0.02); ctx.lineTo(a + dx * u + nx * (0.02 + w), c + dy * u + ny * (0.02 + w)); ctx.stroke();
+              }
+              // a glint down the glass
+              ctx.strokeStyle = alpha(C.white, 0.85); ctx.lineWidth = 0.015;
+              ctx.beginPath(); ctx.moveTo(a + dx * 0.68 - nx * 0.025, c + dy * 0.68 - ny * 0.025); ctx.lineTo(a + dx * 0.92 - nx * 0.025, c + dy * 0.92 - ny * 0.025); ctx.stroke();
             }
-            ctx.beginPath(); ctx.arc(d, e, 0.035, 0, Math.PI * 2); paint(ctx, MAT.chrome, { lw: 0.012 });
+            // the red bulb, just above the pudding
+            ctx.beginPath(); ctx.arc(a + dx * 0.06, c + dy * 0.06, 0.055, 0, Math.PI * 2); paint(ctx, INK.funnelRed, { lw: 0.015 });
           }
         } else if (b.tray === 'spoon') {
-          // A jelly with a spoon standing up in it.
+          // A red jelly and a yellow one.
           cup(tx + 0.35, 13.4, C.red);
-          const [a, c] = P(tx + 0.35, 13.4, zt + 0.13), [d, e] = P(tx + 0.44, 13.35, zt + 0.48);
-          inked(ctx, [[a, c], [d, e]], MAT.chrome, 0.04);
-          ctx.beginPath(); ctx.ellipse(d, e, 0.04, 0.06, 0.3, 0, Math.PI * 2); paint(ctx, MAT.chrome, { lw: 0.012 });
           cup(tx + 0.75, 13.35, INK.sunYellow);
         } else {
           // A juice box and its straw, and a jelly.
@@ -781,7 +795,7 @@ export default {
         ctx.fillStyle = alpha(MAT.glass, 1 - k); ctx.fill();
       }
     }, { anim: true, depth: 8 + BED_Y + 0.35 });
-    R.find({ id: 'pudding', label: 'A thermometer in a pudding', kind: 'spot', at: [13.25, 13.4, 1.1], r: 0.8 });
+    R.find({ id: 'pudding', label: 'A thermometer in a pudding', kind: 'spot', at: [13.25, 13.38, 1.4], r: 0.8 });
 
     // A hot-water bottle on bed 2, lizard shaped, green: the decoy.
     const bottle = R.decoy({ id: 'bottle', at: [7.2, 14.1, 1.05], r: 0.65, hold: 0.6, say: ['A hot-water bottle. Not an iguana.', 'Still warm. Still not an iguana.', 'Hands off. It is HIS.'] });
@@ -1064,8 +1078,9 @@ export default {
         g.beginPath(); g.rect(1.3, 1.3, 0.12, 0.35); paint(g, MAT.chrome, { lw: 0.015 });
       });
       // A tray of jelly left by the slot.
-      box(ctx, QB.x + 2.0, QB.y + QB.d + 0.2, 0, 0.6, 0.4, 0.04, C.white, { flat: true, lw: 0.015 });
-      cylinder(ctx, QB.x + 2.3, QB.y + QB.d + 0.4, 0.04, 0.1, 0.1, C.white, { flat: true, top: C.red });
+      // (A steel tray and a proper cup: a white sheet with a red dot read as the lab slip.)
+      box(ctx, QB.x + 2.0, QB.y + QB.d + 0.2, 0, 0.6, 0.4, 0.05, MAT.chrome, { flat: true, lw: 0.015 });
+      cylinder(ctx, QB.x + 2.3, QB.y + QB.d + 0.4, 0.05, 0.12, 0.16, alpha(MAT.glass, 0.9), { flat: true, top: C.red });
     });
     // His face at the porthole, now and then, and his knocking.
     const PRISONER = { skin: SKIN[5], hair: HAIR[2] };
@@ -1220,9 +1235,9 @@ export default {
       const k = green(t, at(10.4));
       person(ctx, 18.0, 13.1, 0.1, { ...WHEELIE, skin: qz(WHEELIE.skin, k), pose: 'sit', dir: 'l', arms: [1.4 + Math.sin(t * 6) * 0.3, 0.6] }, t);
       const [X, Y] = P(18.0, 13.1, 0.1), [hx, hy] = handAt(X, Y, -1, 1.4 + Math.sin(t * 6) * 0.3);
-      ctx.beginPath(); ctx.rect(hx - 0.16, hy - 0.3, 0.3, 0.38); paint(ctx, C.white, { lw: 0.015 });
+      ctx.beginPath(); ctx.rect(hx - 0.16, hy - 0.3, 0.3, 0.38); paint(ctx, INK.sunYellow, { lw: 0.015 });
       if (Q.detail) {
-        words(ctx, 'MENU', hx - 0.01, hy - 0.2, 0.07, INK.funnelRed, 'center', 900);
+        words(ctx, 'MENU', hx - 0.01, hy - 0.2, 0.07, C.ink, 'center', 900);
         if (pulse(t, 15, 7) < 0.22) speech(ctx, 18.0, 13.1, 2.4, k > 0.5 ? 'Is lunch included?' : 'Is it lunch yet?', { size: 0.3 });
       }
     }, { anim: true, depth: 31.5 });
