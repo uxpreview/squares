@@ -1,8 +1,10 @@
-// Band Practice: a garage rock band fronted by a goose, a drummer with no
-// volume knob, a dog on backing vocals and a neighbor who has had enough.
+// Band Practice: a garage rock band whose singer, a goose, has stage fright
+// and sings from inside a flight case (a cardboard cut-out takes the mic), a
+// drummer with no volume knob, a dog on backing vocals and a neighbor who has
+// had enough.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, floor, tiles,
-  speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table, mix, SKIN,
+  speech, shade, tint, alpha, Q, label, P, goose, onLeft, onRight, frame, paintText, note, rng, pick, shelfR, table, mix, SKIN,
 } from '../../../engine/art.js';
 import { route, particles, pulse, clamp, wave } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -149,7 +151,7 @@ function ampSpot(ctx, x, y, w, d) {
 export default {
   id: 'band',
   name: 'Band Practice',
-  blurb: 'The band is called The Honks and the lead singer only knows one word. The neighbor has asked nicely nine times.',
+  blurb: 'The Honks are rehearsing without their lead singer, who only knows one word anyway. The neighbor has asked nicely nine times.',
 
   build(R) {
     // The band carries both amps out to the stage at 2pm (day.js) and
@@ -361,6 +363,8 @@ export default {
     }, { anim: true });
 
     // ---------- Floor stuff: rugs, cables, clutter ----------
+    const PEPPERONI = [[3.6, 12.9], [3.9, 13.2], [3.55, 13.25], [3.95, 12.8], [3.75, 13.4], [3.35, 13.05]];
+    const PICK = [4.12, 13.05];
     R.rug((ctx) => {
       // drum rug
       rect(ctx, 1.3, 1.3, 5.0, 5.0, 0.01, C.red, { dots: shade(C.red, 0.4), density: 0.2 });
@@ -418,7 +422,14 @@ export default {
       // pizza box and cans
       rect(ctx, 3.1, 12.4, 1.3, 1.3, 0.02, C.woodLight, { lw: 0.04 });
       disc(ctx, 3.75, 13.05, 0.04, 0.5, C.mustard, { lw: 0.03 });
-      for (const [px, py] of [[3.6, 12.9], [3.9, 13.2], [3.55, 13.25]]) disc(ctx, px, py, 0.05, 0.08, C.red, { stroke: false });
+      for (const [px, py] of PEPPERONI) disc(ctx, px, py, 0.05, 0.08, C.red, { stroke: false });
+      // the guitar pick, one of the toppings (a find)
+      {
+        const [X, Y] = P(PICK[0], PICK[1], 0.06);
+        ctx.beginPath();
+        ctx.moveTo(X - 0.11, Y - 0.04); ctx.quadraticCurveTo(X, Y - 0.11, X + 0.11, Y - 0.04); ctx.lineTo(X + 0.01, Y + 0.09); ctx.closePath();
+        paint(ctx, C.red, { lw: 0.02 });
+      }
       // skateboard
       box(ctx, 6.2, 14.4, 0.12, 1.5, 0.45, 0.06, C.teal, { top: C.coral });
       for (const [wx, wy] of [[6.4, 14.5], [7.5, 14.5]]) disc(ctx, wx, wy + 0.4, 0.06, 0.07, C.ink, { stroke: false });
@@ -470,6 +481,11 @@ export default {
       }
       ctx.restore();
     }, { anim: true });
+
+    // The stack answers a tap (while it's here, not at the gig).
+    R.poke({ id: 'amp', at: (t) => (gone(t) ? [-60, -60, 0] : [5.8, 0.85, 2.0]), r: 1.2, sound: 'clunk', say: ['TOO LOUD.', 'IT GOES TO ELEVEN.', 'STILL TOO LOUD.'] });
+    // The neighbor's side of the wall knocks back.
+    R.poke({ id: 'wall', at: [0, 12.1, 1.7], r: 1.1, sound: 'clunk', say: ['PLEASE.', 'Ten times now.', 'I have a pot roast in.'] });
 
     // Bass amp against the left wall, cone faces the room
     R.thing(1.6, 6.6, (ctx, t) => {
@@ -693,9 +709,11 @@ export default {
         ctx.fill();
       }, 3);
     });
+    // The kit answers a tap with a rimshot (the one a first visit is nudged to).
+    const rimshot = R.poke({ id: 'kit', at: [KX + 0.2, KY + 0.2, 1.0], r: 1.4, sound: 'tick', hold: 0.7, teach: true, say: ['BA DUM TSS.', 'BA DUM TSS!', 'Thank you, we are The Honks.'] });
     // Kit (in front of the drummer)
     R.thing(KX + 1.1, KY + 1.1, (ctx, t) => {
-      const on = playing(t);
+      const on = playing(t) || rimshot.k() > 0.01;
       const k = on ? kick(t) : 0;
       const hit = (off) => (on ? Math.sin(t * 12.57 + off) * 0.14 : 0);
       cymbal(ctx, KX - 1.3, KY + 0.6, 1.7, 0.42, hit(0.5)); // hi-hat
@@ -708,6 +726,18 @@ export default {
       tom(ctx, KX - 0.15, KY - 0.35, 1.25, 0.26, 0.3, C.coral);
       tom(ctx, KX + 0.35, KY - 0.75, 1.3, 0.26, 0.3, C.coral);
       cymbal(ctx, KX - 0.2, KY + 1.2, 2.2, 0.55, hit(2.9)); // ride
+      // the rimshot's crash: a burst off the crash cymbal
+      const rk = rimshot.k();
+      if (rk > 0.01) {
+        const [X, Y] = P(KX + 0.9, KY - 1.1, 2.5);
+        ctx.beginPath();
+        for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2, rr = (i % 2 ? 0.35 : 0.9) * rk;
+          ctx.lineTo(X + Math.cos(a) * rr * 1.3, Y + Math.sin(a) * rr * 0.7);
+        }
+        ctx.closePath();
+        paint(ctx, alpha(C.butter, 0.85), { lw: 0.03 });
+      }
     }, { anim: true });
 
     // Guitarist: jumping on the beat
@@ -735,7 +765,7 @@ export default {
     });
 
     // Musical notes pouring out of the amps and the singer
-    const sources = [[5.8, 1.5, 3.4], [1.7, 5.9, 1.9], [9.7, 10.2, 2.0], [7.6, 12.2, 1.6]];
+    const sources = [[5.8, 1.5, 3.4], [1.7, 5.9, 1.9], [9.0, 11.8, 0.9], [7.6, 12.2, 1.6]];
     R.air((ctx, t) => {
       if (!Q.detail || !playing(t)) return;
       const cols = [C.coral, C.navy, C.teal, C.purple, C.red];
@@ -754,7 +784,8 @@ export default {
       }, 11);
     });
 
-    // Lead singer: the goose on a milk crate, honking on beats one and three
+    // The mic on the milk crate: the singer has stage fright, so the band's
+    // cardboard cut-out of it stands in (a decoy, mid-honk, in shades).
     const GS = { x: 10.5, y: 9.6, z: 0.72 };
     R.thing(GS.x + 0.4, GS.y + 0.4, (ctx) => {
       box(ctx, GS.x - 0.4, GS.y - 0.4, 0, 0.8, 0.8, 0.72, C.teal);
@@ -762,13 +793,90 @@ export default {
         for (let i = 1; i < 4; i++) face(ctx, [[GS.x - 0.4 + i * 0.2, GS.y + 0.4, 0.1], [GS.x - 0.4 + i * 0.2, GS.y + 0.4, 0.62]], null, { lw: 0.05, stroke: shade(C.teal, 0.4) });
       }
     }, { depth: GS.x + GS.y - 0.01 });
+    R.thing(GS.x, GS.y, (ctx) => {
+      const [X, Y] = P(GS.x, GS.y, GS.z);
+      // the strut behind it
+      ctx.beginPath(); ctx.moveTo(X + 0.05, Y - 0.55); ctx.lineTo(X + 0.38, Y - 0.02);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = C.woodLight; ctx.lineWidth = 0.05; ctx.stroke();
+      ctx.save();
+      ctx.translate(X, Y); ctx.rotate(0.05); ctx.translate(-X, -Y);
+      goose(ctx, GS.x, GS.y, GS.z, 0, { dir: 'l', pose: 'honk' });
+      // the band's shades
+      ctx.beginPath(); ctx.roundRect(X - 0.62, Y - 0.97, 0.2, 0.07, 0.025);
+      ctx.fillStyle = C.ink; ctx.fill();
+      ctx.restore();
+      // the cardboard tab it stands on
+      ctx.beginPath(); ctx.rect(X - 0.36, Y - 0.04, 0.72, 0.06);
+      paint(ctx, C.woodLight, { lw: 0.025 });
+    }, { depth: GS.x + GS.y + 0.02 });
+    R.decoy({ id: 'cutout', at: [GS.x, GS.y, GS.z + 0.6], r: 0.9, say: ['Cardboard. Signs autographs.', 'Still cardboard.', 'Best member of the band.'] });
     const honking = (t) => {
       const s = sOf(t);
       if (playing(t)) return pulse(t, 1) < 0.35;
       return s > 13.2 && s < 13.8;
     };
-    R.goose((t) => ({ x: GS.x, y: GS.y, z: GS.z, dir: 'l', pose: honking(t) ? 'honk' : 'stand' }), { bias: 0 });
-    // mic stand in front of the goose
+    const lone = (t) => { const s = sOf(t); return s > 13.2 && s < 13.8; };
+
+    // Two flight cases by the mixing desk. One is cables. The other is the
+    // singer, keeping time from inside: its lid rattles on every honk.
+    const CW = 1.4, CD = 1.0, CH = 0.85;
+    const flightCase = (x0, y0, id, say, word, singer) => {
+      const cx = x0 + CW / 2, cy = y0 + CD / 2, x1 = x0 + CW, y1 = y0 + CD;
+      const pk = R.poke({ id, at: [cx, cy, CH * 0.7], r: 1.0, sound: 'clunk', say });
+      const lid = (t) => {
+        const k = pk.k();
+        if (k > 0.01) return k * 1.9;
+        if (!singer) return 0;
+        // (a rattle on each honk, a big one on the lone honk)
+        if (lone(t)) return 0.16 + Math.sin(t * 40) * 0.05;
+        return honking(t) && playing(t) ? 0.06 : 0;
+      };
+      // Back: the open top, what's inside and the lid swinging up.
+      R.thing(cx, cy, (ctx, t) => {
+        const a = lid(t);
+        if (a > 0.005) {
+          face(ctx, [[x0, y0, CH], [x1, y0, CH], [x1, y1, CH], [x0, y1, CH]], C.black, { lw: 0.03 });
+          if (!singer && a > 0.3 && Q.detail) {
+            // a nest of cables
+            ctx.beginPath();
+            for (let i = 0; i <= 60; i++) {
+              const q = i * 0.45, rr = 0.15 + 0.25 * Math.abs(Math.sin(i * 0.21));
+              const [X, Y] = P(cx + Math.cos(q) * rr * 1.3, cy + Math.sin(q * 1.2) * rr, CH + 0.02);
+              i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+            }
+            ctx.strokeStyle = C.coral; ctx.lineWidth = 0.05; ctx.stroke();
+          }
+        }
+        const yf = y0 + CD * Math.cos(a), zf = CH + CD * Math.sin(a);
+        const under = a > Math.PI / 2;
+        face(ctx, [[x0, y0, CH], [x1, y0, CH], [x1, yf, zf], [x0, yf, zf]], under ? C.grey : C.ink, { lw: 0.03, dots: under ? C.greyLight : C.black, density: under ? 0.4 : 0.2 });
+        // the lid's aluminium edge
+        face(ctx, [[x0, yf, zf], [x1, yf, zf]], null, { lw: 0.07, stroke: C.greyLight });
+      }, { anim: true, depth: cx + cy - 0.5 });
+      // Front: the two sides we see, with aluminium corners and a stencil.
+      R.thing(cx, cy, (ctx) => {
+        face(ctx, [[x1, y0, 0], [x1, y1, 0], [x1, y1, CH], [x1, y0, CH]], C.black, { lw: 0.03, dots: C.ink, density: 0.2 });
+        face(ctx, [[x0, y1, 0], [x1, y1, 0], [x1, y1, CH], [x0, y1, CH]], C.ink, { lw: 0.03, dots: C.black, density: 0.2 });
+        for (const pts of [[[x0, y1, 0], [x0, y1, CH]], [[x1, y1, 0], [x1, y1, CH]], [[x1, y0, 0], [x1, y0, CH]], [[x0, y1, CH], [x1, y1, CH], [x1, y0, CH]], [[x0, y1, 0.04], [x1, y1, 0.04], [x1, y0, 0.04]]]) {
+          face(ctx, pts, null, { lw: 0.07, stroke: C.greyLight });
+        }
+        // latches
+        for (const u of [0.3, CW - 0.3]) box(ctx, x0 + u - 0.07, y1, CH - 0.22, 0.14, 0.03, 0.14, C.greyLight, { lw: 0.02 });
+        label(ctx, cx, y1, CH * 0.42, word, 0.2, C.mustard);
+      }, { depth: cx + cy + 0.5 });
+      return pk;
+    };
+    const CA = [9.0, 6.0], CB = [10.7, 6.0];
+    const singerCase = flightCase(CA[0], CA[1], 'case', null, 'FRAGILE', true);
+    flightCase(CB[0], CB[1], 'cables', ['Just cables.', 'Still just cables.', 'Do not untangle. Ever.'], 'CABLES', false);
+    const SC = { x: CA[0] + CW / 2, y: CA[1] + CD / 2 };
+    R.goose((t) => {
+      const k = singerCase.k();
+      return { x: SC.x, y: SC.y, z: 0.3, dir: 'l', pose: honking(t) ? 'honk' : 'stand', hidden: k < 0.5 };
+    }, { bias: 0, kind: 'poke', inside: singerCase, hint: 'Two flight cases. One of them keeps time with the band.' });
+
+    // mic stand in front of the cut-out
     R.thing(GS.x - 0.45, GS.y + 0.55, (ctx, t) => {
       const mx = GS.x - 0.5, my = GS.y + 0.5;
       disc(ctx, mx, my, 0.02, 0.35, C.ink, { stroke: false });
@@ -785,13 +893,15 @@ export default {
       paint(ctx, C.grey, { dots: C.ink, density: 0.4, lw: 0.03 });
       ctx.restore();
     }, { depth: GS.x + GS.y + 0.05 });
-    // HONK! marks
+    // HONK! marks: from the case once it's open; before that only the lone
+    // honk gets out, muffled.
     R.air((ctx, t) => {
       if (!Q.detail || !honking(t)) return;
-      const s = sOf(t);
-      const lone = !playing(t);
-      const k = lone ? (s - 13.2) / 0.6 : pulse(t, 1) / 0.35;
-      label(ctx, GS.x - 0.2, GS.y + 0.1, 2.35 + k * 0.4, lone ? 'honk.' : 'HONK!', lone ? 0.34 : 0.42, alpha(C.coral, 1 - k * 0.6));
+      const open = singerCase.k() > 0.5;
+      const one = !playing(t);
+      if (!open && !one) return;
+      const k = one ? (sOf(t) - 13.2) / 0.6 : pulse(t, 1) / 0.35;
+      label(ctx, SC.x - 0.3, SC.y + 0.1, (open ? 1.9 : 1.4) + k * 0.4, one ? 'honk.' : 'HONK!', one ? (open ? 0.34 : 0.24) : 0.42, alpha(C.coral, 1 - k * 0.6));
     });
     // floor monitor wedge
     R.thing(9.2, 12.2, (ctx) => {
@@ -826,23 +936,17 @@ export default {
       const howl = playing(t);
       dog(ctx, p.x, p.y, 0, t, howl);
     });
-    // Dog bowl with a lost drumstick in it (a find)
-    R.thing(6.3, 13.9, (ctx) => {
-      cylinder(ctx, 6.1, 13.6, 0, 0.32, 0.16, C.red, { top: shade(C.red, 0.3) });
-      face(ctx, [[5.8, 13.3, 0.25], [6.55, 14.25, 0.12]], null, { lw: 0.12, stroke: C.ink });
-      face(ctx, [[5.8, 13.3, 0.25], [6.55, 14.25, 0.12]], null, { lw: 0.07, stroke: C.woodLight });
-      if (Q.detail) label(ctx, 6.1, 13.6, 0.08, 'DOG', 0.12, C.white, 'Rethink Sans');
+    // Dog bowl by the dog, with a lost drumstick in it (a find)
+    R.thing(8.5, 13.6, (ctx) => {
+      cylinder(ctx, 8.3, 13.3, 0, 0.32, 0.16, C.red, { top: shade(C.red, 0.3) });
+      face(ctx, [[8.0, 13.0, 0.25], [8.75, 13.95, 0.12]], null, { lw: 0.12, stroke: C.ink });
+      face(ctx, [[8.0, 13.0, 0.25], [8.75, 13.95, 0.12]], null, { lw: 0.07, stroke: C.woodLight });
+      if (Q.detail) label(ctx, 8.3, 13.3, 0.08, 'DOG', 0.12, C.white, 'Rethink Sans');
     });
-    R.find({ id: 'drumstick', label: 'A lost drumstick', at: [6.15, 13.75, 0.2], r: 0.7 });
+    R.find({ id: 'drumstick', label: 'A lost drumstick', at: [8.35, 13.45, 0.2], r: 0.7 });
 
-    // Guitar pick on the floor near the front (a find)
-    R.rug((ctx) => {
-      const [X, Y] = P(9.8, 14.4, 0.02);
-      ctx.beginPath();
-      ctx.moveTo(X - 0.2, Y - 0.08); ctx.quadraticCurveTo(X, Y - 0.2, X + 0.2, Y - 0.08); ctx.lineTo(X + 0.02, Y + 0.16); ctx.closePath();
-      paint(ctx, C.mustard, { lw: 0.035 });
-    });
-    R.find({ id: 'pick', label: 'A guitar pick', at: [9.8, 14.4, 0.05], r: 0.6 });
+    // The guitar pick is on the pizza, among the pepperoni (drawn with it)
+    R.find({ id: 'pick', label: 'A guitar pick', kind: 'hard', at: [PICK[0], PICK[1], 0.06], r: 0.6, riddle: 'Extra crunchy topping.', hint: 'Somebody ordered pizza. One of the toppings is not pepperoni.' });
 
     // Mom with a tray of juice, heading for the couch
     const mom = route([[5.0, 15.3], [2.9, 12.0], [2.7, 9.0, 3]], { speed: 0.9, loop: false, offset: 2 });
@@ -1009,7 +1113,7 @@ export default {
       ctx.restore();
     });
 
-    // Garage leftovers along the parking line: tires, boxes, a flight case
+    // Garage leftovers along the parking line: tires and boxes
     R.thing(15.3, 15.3, (ctx) => {
       for (let i = 0; i < 3; i++) {
         cylinder(ctx, 14.7, 14.7, i * 0.32, 0.6, 0.3, C.black, { top: C.ink });
@@ -1024,11 +1128,6 @@ export default {
       label(ctx, 15.45, 10.05, 1.1, 'MISC', 0.2, C.navy);
       // a string of tinsel escaping the top box
       face(ctx, [[14.9, 9.9, 1.86], [15.3, 10.5, 1.2], [15.1, 10.4, 0.7]], null, { lw: 0.05, stroke: C.pink });
-    });
-    R.thing(10.2, 6.9, (ctx) => {
-      box(ctx, 9.2, 6.2, 0, 1.0, 0.7, 0.8, C.ink, { top: C.navy });
-      for (const [cx, cz] of [[9.2, 0.02], [10.2, 0.02]]) face(ctx, [[cx, 6.9, cz], [cx, 6.9, 0.78]], null, { lw: 0.1, stroke: C.grey });
-      label(ctx, 9.7, 6.9, 0.4, 'FRAGILE', 0.2, C.mustard);
     });
 
     // Superfan with a homemade sign, bouncing

@@ -1,9 +1,10 @@
 // Model Railway: a whole tiny world on one big table. A train loops through
-// a papier-mache mountain, a cat lies in wait, and a real goose has wandered
-// into town like a monster movie.
+// a papier-mache mountain, a cat lies in wait, and the club's newest model, a
+// plastic goose at monster scale, terrorizes the town on a turntable. The
+// real goose is asleep under the layout.
 import {
   C, box, rect, disc, cylinder, face, poly, paint, person, folk, slab, planks,
-  speech, shade, tint, alpha, Q, label, P, onLeft, onRight, frame, paintText, rng, pick, shelfR, clockL, windowL, mix, dots,
+  speech, shade, tint, alpha, Q, label, P, goose, onLeft, onRight, frame, paintText, rng, pick, shelfR, clockL, windowL, mix, dots,
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp, wave } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -276,7 +277,7 @@ function dayClockL(ctx, y, z, r, h) {
 export default {
   id: 'trains',
   name: 'Model Railway',
-  blurb: 'The club has spent eleven years on this tiny town. Tonight a goose is in it, and the 8:15 is still running on time.',
+  blurb: 'Eleven years on this tiny town, and the club finally bought it a monster. The 8:15 is still running on time.',
 
   build(R) {
     const back = (x, y, draw, o = {}) => R.thing(x, y, draw, { depth: BACK + x + y, ...o });
@@ -630,9 +631,18 @@ export default {
       if (Q.detail) label(ctx, 4.9, 5.4, TZ + 1.2, 'MT. PAPIER', 0.18, alpha(C.ink, 0.55), 'Rethink Sans');
     }, { depth: 9 });
 
-    // A tiny cow, somehow on the summit (a find)
-    R.thing(PEAK[0] + 0.2, PEAK[1] + 0.2, (ctx) => tinyCow(ctx, PEAK[0] + 0.05, PEAK[1] + 0.05, PEAK[2] - 0.08), { depth: 9.2 });
-    R.find({ id: 'cow', label: 'A tiny cow', at: [PEAK[0] + 0.05, PEAK[1] + 0.05, PEAK[2] + 0.1], r: 0.6 });
+    // A tiny cow, somehow up in the snow, white on white (a find)
+    const COW = [4.37, 4.32, TZ + 2.55];
+    R.thing(COW[0] + 0.2, COW[1] + 0.2, (ctx) => {
+      // rocks poking through the snow, cow-patch sized, so the cow blends in
+      for (const [dx, dy, dz, rr] of [[-0.55, 0.1, 0.12, 0.07], [0.35, -0.45, 0.05, 0.05], [-0.2, -0.6, 0.3, 0.06], [0.45, 0.2, -0.15, 0.06], [-0.75, -0.35, 0.2, 0.045]]) {
+        const [X, Y] = P(COW[0] + dx, COW[1] + dy, COW[2] + dz);
+        ctx.beginPath(); ctx.ellipse(X, Y - 0.05, rr * 1.3, rr, 0, 0, Math.PI * 2);
+        ctx.fillStyle = C.ink; ctx.fill();
+      }
+      tinyCow(ctx, COW[0], COW[1], COW[2]);
+    }, { depth: 9.2 });
+    R.find({ id: 'cow', label: 'A tiny cow', kind: 'hard', at: [COW[0], COW[1], COW[2] + 0.18], r: 0.6, riddle: 'Moo-ving up in the world.', hint: 'Not every white patch on the mountain is snow. One has spots.' });
 
     // ---------- Town ----------
     const houses = [
@@ -869,14 +879,28 @@ export default {
       }, 5);
     });
 
-    // ---------- The goose, and the town running for its life ----------
+    // ---------- The monster, and the town running for its life ----------
+    // A plastic goose, life size, so a monster to the town, on a little
+    // turntable that swings it round to face each side of the square (a decoy).
     const GC = [9.2, 6.95];
-    const gooseWalk = route([[8.8, 6.6, 2.6], [9.6, 7.2, 2.2], [9.0, 7.6, 2.8]], { speed: 0.35 });
-    R.goose((t) => {
-      const p = gooseWalk(t);
-      const pose = p.moving ? 'walk' : pulse(t, 1.8) < 0.45 ? 'honk' : pulse(t, 1.8) < 0.7 ? 'stand' : 'peck';
-      return { ...p, z: TZ, pose };
-    }, {});
+    R.thing(GC[0], GC[1], (ctx, t) => {
+      disc(ctx, GC[0], GC[1], TZ, 0.5, C.grey, { lw: 0.025 });
+      cylinder(ctx, GC[0], GC[1], TZ, 0.42, 0.08, C.greyLight, { top: C.white });
+      if (Q.detail) label(ctx, GC[0] + 0.3, GC[1] + 0.3, TZ + 0.04, 'GOOSEZILLA', 0.09, C.ink, 'Rethink Sans');
+      const turn = pulse(t, 6);
+      const dir = turn < 0.5 ? 'l' : 'r';
+      goose(ctx, GC[0], GC[1], TZ + 0.08, 0, { dir, pose: 'honk' });
+      // a moulding seam down its middle, and the shine of plastic
+      if (Q.detail) {
+        const [X, Y] = P(GC[0], GC[1], TZ + 0.08);
+        const f = dir === 'l' ? -1 : 1;
+        ctx.beginPath(); ctx.ellipse(X - 0.08 * f, Y - 0.56, 0.12, 0.05, -0.12 * f, Math.PI * 1.1, Math.PI * 1.7);
+        ctx.strokeStyle = C.white; ctx.lineWidth = 0.04; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(X - 0.4 * f, Y - 0.46); ctx.lineTo(X + 0.36 * f, Y - 0.5);
+        ctx.strokeStyle = alpha(C.grey, 0.7); ctx.lineWidth = 0.015; ctx.stroke();
+      }
+    }, { anim: true });
+    R.decoy({ id: 'monster', at: [GC[0], GC[1], TZ + 0.6], r: 0.9, say: ['Plastic. 1:87 scale.', 'Still plastic.', 'The town is terrified anyway.'] });
     // Fleeing townsfolk, arms up
     for (let i = 0; i < 8; i++) {
       const o = orbit(GC[0], GC[1], 1.05 + (i % 3) * 0.12, 1.0 + (i % 2) * 0.12, 6 + (i % 3), i * 0.9, i % 2 === 0);
@@ -914,11 +938,10 @@ export default {
       ctx.beginPath(); ctx.arc(X, Y, on ? 0.12 : 0.05, 0, Math.PI * 2);
       ctx.fillStyle = on ? alpha(C.sky, 0.9) : C.navy; ctx.fill();
     }, { anim: true });
-    // Two tiny tanks aiming at the goose, firing tiny puffs
+    // Two tiny tanks aiming at the monster, firing tiny puffs
     [[7.7, 7.9], [10.7, 6.1]].forEach(([x, y], i) => {
       R.thing(x + 0.2, y + 0.2, (ctx, t) => {
-        const g = gooseWalk(t);
-        let dx = g.x - x, dy = g.y - y;
+        let dx = GC[0] - x, dy = GC[1] - y;
         const l = Math.hypot(dx, dy) || 1;
         dx /= l; dy /= l;
         obox(ctx, { x: x - dx * 0.18, y: y - dy * 0.18 }, { x: x + dx * 0.18, y: y + dy * 0.18 }, 0.24, TZ, 0.1, C.green, { lw: 0.02 });
@@ -936,7 +959,7 @@ export default {
         }
       }, { anim: true });
     });
-    // News helicopter circling the goose
+    // News helicopter circling the monster
     const heli = orbit(GC[0], GC[1], 1.6, 1.4, 9, 0);
     R.mover((t) => { const p = heli(t); return { ...p, z: TZ + 1.9 + Math.sin(t * 1.5) * 0.08 }; }, (ctx, t, p) => {
       const [X, Y] = P(p.x, p.y, p.z);
@@ -1046,7 +1069,7 @@ export default {
       person(ctx, p.x, p.y, up, folk(121, { pose: 'stand', dir: 'l', scale: 0.66, top: C.mustard, style: 'pony', arms: [1.5, 1.4] }), t);
     });
     // Kid on a step stool shouting train noises
-    R.mover(() => ({ x: 8.0, y: 14.4 }), (ctx, t, p) => {
+    R.mover(() => ({ x: 9.6, y: 14.4 }), (ctx, t, p) => {
       box(ctx, p.x - 0.35, p.y - 0.35, 0, 0.7, 0.7, 0.5, C.coral);
       person(ctx, p.x, p.y, 0.5, folk(122, { pose: pulse(t, 4) < 0.5 ? 'cheer' : 'point', dir: 'r', back: false, scale: 0.7, top: C.teal, hat: 'cap' }), t);
     });
@@ -1066,6 +1089,72 @@ export default {
       ctx.beginPath(); ctx.arc(X, Y, 0.3 + k * 8, 0, Math.PI * 2);
       ctx.fillStyle = alpha(C.white, 0.9 - k * 10); ctx.fill();
     });
+
+    // ---------- The real goose: asleep under the layout ----------
+    // A stretch of the table's skirt breathes, and a z drifts out from under
+    // it now and then. A tap rolls the skirt up: the goose is napping among
+    // the club's boxes, and wakes to honk back whenever the 8:15 toots.
+    const SK0 = 6.2, SK1 = 7.8, SKM = (SK0 + SK1) / 2, HT = TZ - 0.2;
+    const skirt = R.poke({ id: 'skirt', at: [SKM, T1, 0.5], r: 1.0 });
+    const hole = [[SK0, T1, 0], [SK1, T1, 0], [SK1, T1, HT], [SK0, T1, HT]];
+    // Behind the skirt: the dark under the table and the club's boxes.
+    R.thing(SKM, T1, (ctx) => {
+      if (skirt.k() < 0.01) return;
+      face(ctx, hole, shade(C.brown, 0.55), { lw: 0.03 });
+      ctx.save();
+      poly(ctx, hole);
+      ctx.clip();
+      box(ctx, SK0 + 0.05, 12.5, 0, 0.55, 0.7, 0.6, C.woodLight, { lw: 0.025 });
+      box(ctx, SK1 - 0.5, 12.6, 0, 0.45, 0.6, 0.45, C.wood, { lw: 0.025 });
+      box(ctx, SK1 - 0.45, 12.65, 0.45, 0.4, 0.5, 0.3, C.woodLight, { lw: 0.025 });
+      if (Q.detail) {
+        label(ctx, SK0 + 0.32, 13.2, 0.32, 'TREES', 0.1, C.ink, 'Rethink Sans');
+        label(ctx, SK1 - 0.27, 13.2, 0.22, 'TRACK', 0.1, C.ink, 'Rethink Sans');
+      }
+      ctx.restore();
+    }, { anim: true, depth: TABLE_D + 0.3 });
+    const toot = (t) => tauOf(t) < 1.4;
+    R.goose((t) => {
+      const k = skirt.k();
+      return { x: SKM, y: T1 - 0.1, z: 0, dir: 'l', pose: toot(t) ? 'honk' : 'sit', hidden: k < 0.5 };
+    }, { scale: 0.85, kind: 'poke', inside: skirt, hint: 'Someone under the layout is snoring, and it is not the man fixing the wiring.' });
+    // The skirt itself: breathing while it's down, rolled up once it's lifted.
+    R.thing(SKM, T1 + 0.3, (ctx, t) => {
+      const k = skirt.k();
+      const hb = 0.05 + k * (HT - 0.13);
+      const b = k > 0.01 ? 0 : 0.12 + Math.sin(t * 1.5) * 0.08;
+      face(ctx, [[SK0, T1, hb], [SKM, T1 + b, hb], [SK1, T1, hb], [SK1, T1, HT], [SKM, T1 + b * 0.3, HT], [SK0, T1, HT]], C.navy, { lw: 0.025, dots: C.ink, density: 0.25 });
+      if (Q.detail) {
+        for (let u = SK0 + 0.4; u < SK1 - 0.01; u += 0.4) {
+          const bb = b * (1 - Math.abs(u - SKM) / (SKM - SK0));
+          face(ctx, [[u, T1 + bb, hb], [u, T1 + bb * 0.3, HT]], null, { lw: 0.025, stroke: C.ink });
+        }
+      }
+      if (k > 0.01) {
+        // the rolled hem
+        face(ctx, [[SK0, T1 + 0.02, hb], [SK1, T1 + 0.02, hb]], null, { lw: 0.13, stroke: C.ink });
+        face(ctx, [[SK0, T1 + 0.02, hb], [SK1, T1 + 0.02, hb]], null, { lw: 0.08, stroke: tint(C.navy, 0.2) });
+      }
+    }, { anim: true });
+    // Snoring: a z from under the skirt, then from the goose once it's found.
+    R.air((ctx, t) => {
+      if (!Q.detail || toot(t)) return;
+      const open = skirt.k() > 0.5;
+      const q = (t * 0.45) % 1;
+      if (!open && q > 0.6) return;
+      const z0 = open ? 0.9 : 0.15;
+      label(ctx, SKM - 0.2 + q * 0.2, T1 + (open ? 0 : 0.35) + q * 0.3, z0 + q * 0.7, 'z', 0.28 + q * 0.14, alpha(C.ink, 1 - q));
+    });
+    R.air((ctx, t) => {
+      if (!Q.detail || !toot(t) || skirt.k() < 0.5) return;
+      label(ctx, SKM - 0.3, T1 - 0.1, 1.5 + tauOf(t) * 0.3, 'HONK!', 0.3, C.coral);
+    });
+
+    // A few things that answer back: the 8:15, the man under the table, and
+    // the conductor's controller (the one a first visit is nudged to).
+    R.poke({ id: 'train', at: (t) => { const p = trackPt(locoS(t)); return [p.x, p.y, TZ + 0.35]; }, r: 0.8, say: ['TOOT TOOT!', 'ON TIME. ALWAYS.', 'TOOT.'] });
+    R.poke({ id: 'legs', at: [11.4, 14.1, 0.25], r: 0.8, sound: 'clunk', say: ['OW!', 'Busy. Wiring.', 'Has anyone seen my screwdriver?'] });
+    R.poke({ id: 'controller', at: [14.4, 8.3, 1.4], r: 1.1, sound: 'tick', teach: true, say: ['Hands off the controller.', 'Eleven years. Nobody touches it.', 'Fine. Watch the 8:15.'] });
 
     // A member under the table, only his legs sticking out, fixing the wiring
     R.thing(11.4, 14.6, (ctx, t) => {
@@ -1123,16 +1212,43 @@ export default {
       }
     }, { depth: 18.05 });
 
-    // A lost train ticket on the floor (a find)
-    R.rug((ctx) => {
-      rect(ctx, 6.3, 15.0, 0.55, 0.32, 0.02, C.butter, { lw: 0.03 });
-      if (Q.detail) {
-        face(ctx, [[6.4, 15.1, 0.03], [6.7, 15.1, 0.03]], null, { lw: 0.03, stroke: C.coral });
-        face(ctx, [[6.4, 15.2, 0.03], [6.6, 15.2, 0.03]], null, { lw: 0.03, stroke: C.navy });
-        disc(ctx, 6.78, 15.26, 0.035, 0.04, C.woodLight, { stroke: false });
-      }
+    // The club's ticket machine, in the back corner, has eaten a ticket: its
+    // corner shows in the slot. A thump and it drops into the tray (a find).
+    const TM = { x0: 14.0, y0: 0.25, w: 0.9, d: 0.7, h: 1.75 };
+    const TMY = TM.y0 + TM.d, TMU = TM.x0 + TM.w / 2;
+    R.thing(TM.x0 + TM.w, TMY, (ctx) => {
+      box(ctx, TM.x0, TM.y0, 0, TM.w, TM.d, TM.h, C.red, { top: shade(C.red, 0.1) });
+      // the sign on top
+      box(ctx, TM.x0 + 0.05, TM.y0 + 0.3, TM.h, TM.w - 0.1, 0.12, 0.34, C.navy, { lw: 0.025 });
+      label(ctx, TMU, TM.y0 + 0.42, TM.h + 0.17, 'TICKETS', 0.15, C.butter);
+      inY(ctx, TMY + 0.005, () => {
+        // a little screen, the coin slot, the ticket slot and the tray
+        ctx.beginPath(); ctx.rect(TM.x0 + 0.15, 1.2, 0.6, 0.32); paint(ctx, C.ink, { lw: 0.03 });
+        ctx.fillStyle = C.leaf; ctx.fillRect(TM.x0 + 0.22, 1.36, 0.3, 0.06);
+        ctx.beginPath(); ctx.rect(TM.x0 + 0.65, 1.0, 0.06, 0.14); paint(ctx, C.greyLight, { lw: 0.02 });
+        ctx.beginPath(); ctx.rect(TM.x0 + 0.22, 0.86, 0.46, 0.06); paint(ctx, C.black, { lw: 0.02 });
+        ctx.beginPath(); ctx.rect(TM.x0 + 0.15, 0.22, 0.6, 0.3); paint(ctx, C.black, { lw: 0.03, dots: C.ink, density: 0.3 });
+      });
     });
-    R.find({ id: 'ticket', label: 'A lost train ticket', at: [6.57, 15.16, 0.05], r: 0.6 });
+    const machine = R.poke({ id: 'machine', at: [TMU, TMY, 1.0], r: 1.0, sound: 'clunk' });
+    R.thing(TM.x0 + TM.w + 0.01, TMY + 0.01, (ctx) => {
+      const k = machine.k();
+      inY(ctx, TMY + 0.01, () => {
+        if (k < 0.02) {
+          // just the corner, stuck in the slot
+          ctx.beginPath(); ctx.rect(TMU - 0.12, 0.78, 0.24, 0.1); paint(ctx, C.butter, { lw: 0.02 });
+          return;
+        }
+        // the whole ticket, dropping into the tray
+        const v = 0.78 - k * 0.48;
+        ctx.save(); ctx.translate(TMU, v); ctx.rotate(0.15 * k);
+        ctx.beginPath(); ctx.rect(-0.2, 0, 0.4, 0.22); paint(ctx, C.butter, { lw: 0.025 });
+        ctx.fillStyle = C.coral; ctx.fillRect(-0.15, 0.13, 0.2, 0.04);
+        ctx.fillStyle = C.navy; ctx.fillRect(-0.15, 0.05, 0.14, 0.04);
+        ctx.restore();
+      });
+    }, { anim: true });
+    R.find({ id: 'ticket', label: 'A lost train ticket', kind: 'poke', inside: machine, at: [TMU, TMY, 0.42], r: 0.6, hint: 'The club ticket machine has been chewing on one for ages. Give it a thump.' });
 
     // A toddler on a ride-on train doing laps of the aisles
     const toddler = route([[3.2, 15.3], [15.3, 15.3, 0.6], [15.3, 3.4, 1.5]], { speed: 1.3, loop: false, offset: 6 });
@@ -1173,7 +1289,7 @@ export default {
         const p = trackPt(locoS(t));
         label(ctx, p.x, p.y, TZ + 1.4 + tau * 0.4, 'TOOT TOOT', 0.24, alpha(C.coral, 1 - tau / 1.2));
       }
-      if (pulse(t, 4) < 0.5) speech(ctx, 7.9, 14.4, 2.75, 'CHOO CHOO!', { size: 0.3, dx: -0.9 });
+      if (pulse(t, 4) < 0.5) speech(ctx, 9.5, 14.4, 2.75, 'CHOO CHOO!', { size: 0.3, dx: -0.9 });
     });
   },
 };
