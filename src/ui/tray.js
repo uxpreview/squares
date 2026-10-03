@@ -14,7 +14,8 @@ const EASE = 'cubic-bezier(.2, .8, .2, 1)';
 export function createTray(o) {
   // o: { isFound(room, f), foundAge(room, f), label(room, f), onHint(room, f),
   //      hintStep(room, f) 0..2, hintLine(room, f), placeLine(), hintsLeft(),
-  //      onNoPick(), onGoRoom(i), onStateChange(prev, next), reduceMotion }
+  //      onNoPick(), onGoRoom(i), onStateChange(prev, next), reduceMotion,
+  //      shows(room, f): false to leave a find off the list for now (a trail's later sightings) }
   // A hint goes in two steps (see rules.js): its line shows on the list, by
   // the thing it's for (the note over the chips, and under its row); the
   // next press rings it in the room.
@@ -53,12 +54,12 @@ export function createTray(o) {
   // gets a magnifying glass for a mark, and comes first.
   function mark(f, found) {
     const m = document.createElement('span');
-    m.className = 'find-mark' + (f.goose ? ' is-goose' : '') + (f.group === 'evidence' ? ' is-evidence' : '') + (found ? ' is-found' : '');
+    m.className = 'find-mark' + (f.goose ? ' is-goose' : '') + (f.group === 'evidence' || f.group === 'sighting' ? ' is-evidence' : '') + (found ? ' is-found' : '');
     m.setAttribute('aria-hidden', 'true');
     return m;
   }
   const grouped = () => o.rooms.some((r) => r.finds.some((f) => f.group));
-  const said = (f) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : '') + (f.note ? ` (at ${f.note})` : '');
+  const said = (f) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : f.group === 'sighting' ? ' (a sighting)' : '') + (f.note ? ` (at ${f.note})` : '');
   // A find that only shows some of the time (at low tide) says when, small, after its name.
   function noteOf(f) {
     const n = document.createElement('span');
@@ -82,7 +83,7 @@ export function createTray(o) {
     t.textContent = o.label(room, f);
     b.append(mark(f, found), t);
     if (f.note && !found) b.append(noteOf(f));
-    if (f.group === 'evidence' || f.note) b.setAttribute('aria-label', said(f));
+    if (f.group || f.note) b.setAttribute('aria-label', said(f));
     if (found) {
       b.disabled = true;
       b.setAttribute('aria-label', said(f) + ', found');
@@ -145,8 +146,9 @@ export function createTray(o) {
   // hard find's riddle.
   const lineOf = (room, f) => (o.hintStep(room, f) ? o.hintLine(room, f) : f.riddle || '');
 
-  const rank = (f) => (f.goose ? 0 : f.group === 'evidence' ? 1 : 2);
-  const sortFinds = (room) => room.finds.slice().sort((a, b) => rank(a) - rank(b));
+  const rank = (f) => (f.group === 'sighting' ? -1 : f.goose ? 0 : f.group === 'evidence' ? 1 : 2);
+  const shows = (room, f) => !o.shows || o.shows(room, f);
+  const sortFinds = (room) => room.finds.filter((f) => shows(room, f)).sort((a, b) => rank(a) - rank(b));
 
   function group(i, here) {
     const room = o.rooms[i];
@@ -240,7 +242,8 @@ export function createTray(o) {
     if (grouped()) {
       const p = document.createElement('p');
       p.className = 'tray-legend';
-      for (const [cls, text] of [['is-evidence', 'Evidence for the case'], ['', 'Curiosities, for fun']]) {
+      const trail = o.rooms.some((r) => r.finds.some((f) => f.group === 'sighting'));
+      for (const [cls, text] of trail ? [['is-evidence', 'Sightings, one at a time'], ['', 'Things to find']] : [['is-evidence', 'Evidence for the case'], ['', 'Curiosities, for fun']]) {
         const sp = document.createElement('span');
         const m = document.createElement('span');
         m.className = 'find-mark ' + cls;
@@ -263,7 +266,7 @@ export function createTray(o) {
 
   el.hint.addEventListener('click', () => {
     const room = o.rooms[shown];
-    const f = room && room.finds.find((x) => key(room, x) === sel && !o.isFound(room, x));
+    const f = room && room.finds.find((x) => key(room, x) === sel && !o.isFound(room, x) && shows(room, x));
     if (f) o.onHint(room, f);
     else {
       o.onNoPick();

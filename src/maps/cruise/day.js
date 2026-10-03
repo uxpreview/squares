@@ -4,7 +4,7 @@
 //
 // The beats (seconds into the loop; 20 seconds an hour):
 //     0  7am. The buffet opens. Doreen first through the doors (she's number 2),
-//        Pidge questioning the butter swan, the iguana heading up to the pool
+//        Pidge questioning the butter swan
 //    40  9am. Ray thrown out of cabin 7 (later, to the roulette wheel)
 //    60  10am. The lifeboat drill on the Sun Deck; the kids' show in the theater
 //    80  11am. Chad carried from the pool bar to his cabin by a steward
@@ -151,13 +151,8 @@ const DAYS = {
     .to(12, 5).lift(SUN).to(14, 7).door('slide-pool').to(26.2, 9.7).until(at(12), { dir: 'r' }).until(at(12.3), { pose: 'lie' }).say(at(12.3), at(12.8), 'For the investigation.', { pose: 'lie' }).to(27, 11.8).to(44, 11.8).door('pool-bridge').to(62, 7).say(at(14.1), at(14.7), 'Captain. Why are you green?', { dir: 'r' })
     .door('pool-bridge').to(44, 11.8).to(22, 11.8).to(18, 8).door('slide-pool').to(12, 5).lift(P).to(14, 12).door('theater-buffet-2').to(19, 11.3).to(25.8, 10.9).to(26.5, 9.5)
     .until(at(17.4), { dir: 'l' }).say(at(17.4), at(18), 'I feel fine. Is it hot in here?', { dir: 'l' }).until(LOOP, { dir: 'l' }),
-
-  // Patient zero. Out of the salad bar before the doors opened, up to the
-  // pool all day, and back down for dinner.
-  iguana: from(18, 3.2, P).speed(1.3)
-    .door('theater-buffet').to(12, 4).lift(SUN).to(14, 5).door('slide-pool').to(22, 11.8).to(39.5, 11.8).to(40, 12.5)
-    .until(at(15.9), { dir: 'r' })
-    .to(26, 11.8).to(20, 8).door('slide-pool').to(12, 4).lift(P).to(14, 3.2).door('theater-buffet').to(18, 3.2).until(LOOP, { dir: 'r' }),
+  // (The iguana isn't on the clock: it's wherever the chase has got to, and
+  // each area draws its own sighting; kit.js's sighting().)
 };
 
 // In the lift shaft between decks, nobody's drawn (they're behind its doors).
@@ -190,8 +185,7 @@ export const walkers = Object.entries(DAYS).map(([id, b]) => {
       const mid = p.pose === 'sleep' || p.pose === 'lie' ? 0.4 * (p.dir === 'l' ? -1 : 1) : 0;
       const x = p.x - mid, y = p.y + mid;
       if (p.say) speech(ctx, x, y, top + 0.1, p.say, { size: 0.5 });
-      // (No name over the iguana: it's patient zero, and a tag would say so.)
-      else if (id !== 'iguana') tag(ctx, x, y, top, c.name, { size: 0.34 });
+      else tag(ctx, x, y, top, c.name, { size: 0.34 });
     },
   };
 }).filter(Boolean);

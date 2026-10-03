@@ -19,7 +19,7 @@ import { ZK } from '../../../engine/iso.js';
 import { deck } from '../ship.js';
 import { HOUR } from '../plan.js';
 import { INK, MAT, at, wrap, hourOf, readable } from '../style.js';
-import { P, shape, board, porthole, bucket, onY, onX, inked, hand, words as wordsAt } from '../kit.js';
+import { P, shape, board, porthole, bucket, onY, onX, inked, hand, words as wordsAt, sighting } from '../kit.js';
 
 // The engine room letters a little heavier than the rest of the ship (stencils).
 const words = (ctx, s, u, v, size, color = C.ink, align = 'center', weight = 800, font) => wordsAt(ctx, s, u, v, size, color, align, weight, font);
@@ -1049,6 +1049,8 @@ export default {
     });
 
     // ---------- Finds ----------
+    // The chase: sighting 7 (greybox; the area's artist hides it).
+    sighting(R, 6, { at: [12.6, 13.4, 1.4] });
     R.find({ id: 'hammock', label: 'A hammock between two pipes', at: [12.78, 13.45, 1.55], r: 1.0 });
     R.find({ id: 'wrench', label: 'A lost wrench', at: [4, 14.8, 0.05], r: 0.7 });
   },

@@ -257,7 +257,9 @@ export function createCasefile(o) {
   }
 
   close.innerHTML = X;
-  close.addEventListener('click', () => { o.sound('tick'); hide(); });
+  // (The same sheet shows a trail's log, ui/traillog.js, which closes itself.)
+  const theirs = () => root.dataset.view === 'trail';
+  close.addEventListener('click', () => { if (theirs()) return; o.sound('tick'); hide(); });
   // Keep Tab inside the case file while it's open (it's a modal).
   root.addEventListener('keydown', (e) => {
     if (e.key !== 'Tab') return;
@@ -269,21 +271,21 @@ export function createCasefile(o) {
     else if (!sheet.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
   });
   // A click on the dimmed map around the sheet closes it too.
-  root.addEventListener('click', (e) => { if (e.target === root) hide(); });
+  root.addEventListener('click', (e) => { if (e.target === root && !theirs()) hide(); });
 
   return {
     open,
     close: hide,
     // Escape: step back a view, then close.
     back() {
-      if (root.hidden) return false;
+      if (root.hidden || theirs()) return false;
       if (view === 'board') hide();
       else show('board');
       return true;
     },
     // Redraw what's showing (after a find, say).
     refresh() { if (!root.hidden && view === 'board') show('board'); },
-    get isOpen() { return !root.hidden; },
+    get isOpen() { return !root.hidden && !theirs(); },
     get view() { return view; },
   };
 }

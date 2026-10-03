@@ -8,7 +8,7 @@
 // rather than imported so the ship doesn't load the island's land.
 import { C, Q, box, face, person, paint, paintText, alpha, shade, folk, cylinder } from '../../engine/art.js';
 import { ZK } from '../../engine/iso.js';
-import { INK, MAT, queasy, green } from './style.js';
+import { INK, MAT, queasy, green, chase, chaseOpen, CHASE, iguana } from './style.js';
 
 export const P = (x, y, z = 0) => [x - y, (x + y) / 2 - z * ZK];
 // A flat shape through points, filled and outlined.
@@ -280,3 +280,42 @@ export function crew(R, x, y, seed, o = {}) {
   passenger(R, x, y, seed, { ...o, sick: null, look: { ...CREW_LOOK, ...(o.look || {}) } });
 }
 
+// ---------- The chase ----------
+// A sighting of the iguana (style.js, CHASE; the format is src/game/trail.js):
+// its find, and the iguana drawn at its hiding place while it's the sighting
+// the player is on, in that sighting's hours. Found, it runs off along run
+// for a second and a half, and it's gone. n: which sighting (0 to 7).
+// o: { at: [x, y, z] where it hides (its tap lands a little above),
+//      r, kind ('poke', 'hard' or 'spot'), hint, inside (a poke it's in),
+//      draw(ctx, t, p): draws it hiding (default: the iguana standing at p,
+//        facing p.dir); it must show a tell in a still (a tail, an eye),
+//      dir, run: [[x, y, z], ...] its getaway, in the area's units (default
+//        four units toward the far wall), depth, bias: as R.mover }
+const RUN_MS = 1500;
+export function sighting(R, n, o) {
+  const [hx, hy, hz] = o.at;
+  const run = [o.at, ...(o.run || [[hx, Math.max(0.5, hy - 4), hz]])];
+  // Lengths along the getaway, so it runs at one speed.
+  const legs = run.slice(1).map((q, i) => Math.hypot(q[0] - run[i][0], q[1] - run[i][1], q[2] - run[i][2]));
+  const total = legs.reduce((a, b) => a + b, 0) || 1;
+  const pos = (t) => {
+    if (chase.step === n && chaseOpen(n, t)) return { x: hx, y: hy, z: hz, dir: o.dir || 'r', mode: 'hide' };
+    const f = chase.found[n];
+    const k = f == null ? 1 : (performance.now() - f) / RUN_MS;
+    if (k >= 1) return { x: hx, y: hy, z: hz, mode: 'gone' };
+    let d = k * total, i = 0;
+    while (i < legs.length - 1 && d > legs[i]) d -= legs[i++];
+    const a = run[i], b = run[i + 1], u = Math.min(1, d / (legs[i] || 1));
+    const dx = (b[0] - a[0]) - (b[1] - a[1]);
+    return { x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: a[2] + (b[2] - a[2]) * u, dir: dx < 0 ? 'l' : 'r', moving: true, mode: 'run' };
+  };
+  R.mover(pos, (ctx, t, p) => {
+    if (p.mode === 'gone') return;
+    if (p.mode === 'hide' && o.draw) return o.draw(ctx, t, p);
+    iguana(ctx, p.x, p.y, p.z, p.dir, t, { moving: !!p.moving });
+  }, { bias: o.bias || 0, ...(o.depth != null ? { depth: o.depth } : {}) });
+  R.find({
+    id: 'iguana', label: 'The iguana', at: [hx, hy, hz + 0.3], r: o.r ?? 0.9, kind: o.kind || 'hard',
+    when: (t) => chaseOpen(n, t), note: CHASE[n].note, ...(o.hint ? { hint: o.hint } : {}), ...(o.inside ? { inside: o.inside } : {}),
+  });
+}

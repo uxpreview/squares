@@ -112,32 +112,35 @@ export function createStore() {
       return true;
     },
     // How much of a map is found (needs its world for totals). done: the place's
-    // goal is met (every goose and most of its things, or the case solved), or
-    // was when it was finished. all: every find. Places with grouped finds (a
-    // whodunit) also count evidence and curiosities. hints: how many are left
+    // goal is met (every goose and most of its things, the case solved, or
+    // the trail's last sighting found), or was when it was finished. all:
+    // every find. Places with grouped finds (a whodunit, a trail) also count
+    // evidence and curiosities, or sightings. hints: how many are left
     // to spend (see HINTS in rules.js).
     progress(world) {
       const s = setFor(world.id);
-      let geese = 0, things = 0, evidence = 0, curios = 0;
+      let geese = 0, things = 0, evidence = 0, curios = 0, sightings = 0;
       for (const z of world.zones) {
         for (const f of z.finds) {
           if (!s.has(z.id + ':' + f.id)) continue;
           if (f.goose) geese++; else things++;
           if (f.group === 'evidence') evidence++;
           else if (f.group === 'curiosity') curios++;
+          else if (f.group === 'sighting') sightings++;
         }
       }
       if (data.oldRules && data.oldRules.includes(world.id)) {
         data.oldRules = data.oldRules.filter((id) => id !== world.id);
-        if (world.goal !== 'case' && world.totalGeese > 0 && geese === world.totalGeese) data.finished[world.id] = true;
+        if (world.goal === 'geese' && world.totalGeese > 0 && geese === world.totalGeese) data.finished[world.id] = true;
         save();
       }
       const met = world.goal === 'case' ? caseOf(world.id).solved
+        : world.goal === 'trail' ? sightings === world.sightings.length
         : world.totalGeese > 0 && geese === world.totalGeese && things >= world.need;
       const done = met || !!data.finished[world.id];
       const h = hintsOf(world.id), earned = HINTS.start + Math.floor((geese + things) / HINTS.every);
       return {
-        geese, things, evidence, curios, done, met,
+        geese, things, evidence, curios, sightings, done, met,
         all: geese === world.totalGeese && things === world.totalThings,
         hints: Math.max(0, earned - h.used), hintsUsed: h.used,
         // finds until the next hint comes

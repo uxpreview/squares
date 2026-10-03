@@ -112,11 +112,15 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
       // Load the map to draw its picture and exact counts.
       getWorld(m.id).then((w) => {
         const p = store.progress(w);
-        // A whodunit shows its case; everywhere else counts geese and things.
+        // A whodunit shows its case, a trail how far along it you are;
+        // everywhere else counts geese and things.
+        const things = p.things - p.sightings, total = w.totalThings - (w.sightings ? w.sightings.length : 0);
         stat.textContent = w.goal === 'case'
           ? (p.done ? `Case closed · ${p.curios}/${w.totals.curiosity} curiosities` : `Case open · ${p.evidence}/${w.totals.evidence} evidence`)
-          : `${p.geese}/${w.totalGeese} geese · ${p.things}/${w.totalThings} things`;
-        if (p.done) { badge.textContent = w.goal === 'case' ? 'Solved' : 'Complete'; badge.dataset.kind = 'done'; }
+          : w.goal === 'trail'
+            ? (p.done ? `Caught · ${things}/${total} things` : `Sighting ${p.sightings}/${w.sightings.length} · ${things}/${total} things`)
+            : `${p.geese}/${w.totalGeese} geese · ${p.things}/${w.totalThings} things`;
+        if (p.done) { badge.textContent = w.goal === 'case' ? 'Solved' : w.goal === 'trail' ? 'Caught' : 'Complete'; badge.dataset.kind = 'done'; }
         b.setAttribute('aria-label', `${m.name}${m.subtitle ? `: ${m.subtitle}` : ''}. ${m.tagline} ${badge.textContent}, ${stat.textContent}.`);
         drawThumb(pic, m.id, w);
       }).catch(() => {});
@@ -162,12 +166,17 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   function showComplete(world) {
     const p = store.progress(world);
     el.completeTitle.textContent = world.map.name;
-    el.completeKicker.textContent = world.goal === 'case' ? 'Case closed' : 'Place complete';
+    el.completeKicker.textContent = world.goal === 'case' ? 'Case closed' : world.goal === 'trail' ? 'Caught' : 'Place complete';
     const left = world.totalThings - p.things + (world.totalGeese - p.geese);
     if (world.goal === 'case') {
       const all = world.totalThings + world.totalGeese;
       el.completeText.textContent = `${world.map.case.reveal.text} ${left > 0
         ? `You found ${all - left} of the ${all} things ${world.map.words?.inside || 'in the house'}.`
+        : 'You found everything, too.'}`;
+    } else if (world.goal === 'trail') {
+      const all = world.totalThings + world.totalGeese;
+      el.completeText.textContent = `${world.map.words.complete} ${left > 0
+        ? `You found ${all - left} of the ${all} things ${world.map.words.inside || 'here'}.`
         : 'You found everything, too.'}`;
     } else {
       el.completeText.textContent = left > 0

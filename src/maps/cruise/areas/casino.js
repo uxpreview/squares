@@ -11,7 +11,7 @@ import {
 import { route, particles, pulse, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { deck, outline } from '../ship.js';
-import { board, lettering, porthole, bucket, P, CREW_LOOK } from '../kit.js';
+import { board, lettering, porthole, bucket, P, CREW_LOOK, sighting } from '../kit.js';
 import { INK, MAT, at, wrap, green, queasy, hourOf } from '../style.js';
 
 // ---------- The day in here ----------
@@ -1164,6 +1164,8 @@ export default {
 
     // ---------- The finds ----------
     // The gangway clicker: 2401, beside a manifest that ends at 2400.
+    // The chase: sighting 8 (greybox; the area's artist hides it).
+    sighting(R, 7, { at: [10.5, 12.5, 0] });
     R.find({ id: 'clicker', label: 'The gangway clicker', at: [11.8, 13.7, 1.3], r: 0.8 });
     // Tyler's hands, on the glass of the second machine in the middle bank.
     R.find({ id: 'handprints', label: 'Sticky handprints on a slot machine', at: [13.75, 7.4, 1.55], r: 0.8 });

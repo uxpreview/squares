@@ -20,7 +20,7 @@ import {
 } from '../../../engine/art.js';
 import { particles, pulse, clamp } from '../../../engine/actors.js';
 import { deck, outline, lifeboat } from '../ship.js';
-import { bucket, cocktail, board, lettering, gull, P, CREW_LOOK } from '../kit.js';
+import { bucket, cocktail, board, lettering, gull, P, CREW_LOOK, sighting } from '../kit.js';
 import { INK, MAT, green, queasy } from '../style.js';
 
 // ---------- The layout ----------
@@ -827,6 +827,8 @@ export default {
         ctx.restore();
       }
     }, { depth: 5.5 });
+    // The chase: sighting 3 (greybox; the area's artist hides it).
+    sighting(R, 2, { at: [4.4, 6.0, 8.6] });
     R.find({ id: 'shed-skin', label: 'A patch of shed skin', at: [3.6, 6.4, 8.6], r: 0.7 });
 
     // Flight B, down the tower's right side to the landing, and flight A,

@@ -738,7 +738,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
-// ---------- All-You-Can-Eat: a whodunit on four decks (docs/levels/cruise.md) ----------
+// ---------- All-You-Can-Eat: a chase on four decks (docs/levels/cruise.md) ----------
 {
   const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
   await page.goto(base + '#/cruise');
@@ -746,13 +746,58 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 1200);
   const ship = await S(page, () => {
     const w = window.__squares.world;
-    return { storeys: w.storeys.length, on: window.__squares.play.storey && window.__squares.play.storey.id, goal: w.goal, evidence: w.totals.evidence, dial: document.getElementById('dial-label').textContent };
+    return { storeys: w.storeys.length, on: window.__squares.play.storey && window.__squares.play.storey.id, goal: w.goal, sightings: w.sightings.length, trail: document.getElementById('tally-case').hidden ? null : document.getElementById('tally-case').textContent.replace(/\s+/g, ' ').trim(), dial: document.getElementById('dial-label').textContent };
   });
-  check('the cruise ship opens on the Promenade, four decks, a case with 17 pieces of evidence, the ship\'s clock on the dial',
-    ship.storeys === 4 && ship.on === 'promenade' && ship.goal === 'case' && ship.evidence === 17 && /AM|PM/.test(ship.dial), JSON.stringify(ship));
+  check('the cruise ship opens on the Promenade, four decks, a trail of 8 sightings on the Trail button, the ship\'s clock on the dial',
+    ship.storeys === 4 && ship.on === 'promenade' && ship.goal === 'trail' && ship.sightings === 8 && ship.trail === 'Trail 0/8' && /AM|PM/.test(ship.dial), JSON.stringify(ship));
   await S(page, () => window.__squares.play.setStorey('sun'));
   await wait(page, 600);
   check('the lift takes it to the Sun Deck', (await S(page, () => window.__squares.play.storey.id)) === 'sun');
+
+  // The chase: only the next sighting is on the list, or can be found.
+  await S(page, () => window.__squares.play.enterZone('cabins', { dur: 0.01 }));
+  await wait(page, 900);
+  const listed = await S(page, () => [...document.querySelectorAll('#tray-full .row-label')].filter((e) => e.firstChild.textContent === 'The iguana').length);
+  check('the list shows only the next sighting of the iguana', listed === 1, `${listed} on the list`);
+  const tapIguana = async (zoneId, hour) => {
+    await S(page, (h) => window.__squares.clock.set((h - 7) * 20), hour);
+    // (A long area is framed a room's worth at a time: frame it round the spot.)
+    await S(page, (z) => { const s = window.__squares, f = s.world.zones.find((q) => q.id === z).finds.find((q) => q.id === 'iguana'), zone = s.world.zones.find((q) => q.id === z); s.play.enterZone(z, { dur: 0.01, near: [zone.ox + f.at[0], zone.oy + f.at[1]] }); }, zoneId);
+    await wait(page, 500);
+    const [x, y] = await S(page, (z) => {
+      const s = window.__squares, zone = s.world.zones.find((q) => q.id === z), f = zone.finds.find((q) => q.id === 'iguana');
+      const [a, b, h] = f.at;
+      return s.camera.toScreen(zone.anchor[0] + (a - b), zone.anchor[1] + (a + b) / 2 - h * 1.12);
+    }, zoneId);
+    await page.mouse.click(x, y);
+    await wait(page, 400);
+  };
+  const seen = (z) => S(page, (k) => window.__squares.store.isFound('cruise', k + ':iguana'), z);
+  await tapIguana('cabins', 9.5);
+  check('a later sighting can\'t be found before the one before it', !(await seen('cabins')));
+  await S(page, () => { const w = window.__squares.world, z = w.zones.find((q) => q.id === 'buffet'); window.__squares.play.markFound(z, z.finds.find((f) => f.id === 'iguana')); });
+  await wait(page, 300);
+  const told = await S(page, () => ({ toast: document.getElementById('toast').textContent, trail: document.getElementById('tally-case-count').textContent }));
+  check('a sighting says who saw it go where next, and the Trail button counts it', /Doreen/.test(told.toast) && told.trail === '1/8', JSON.stringify(told));
+  await tapIguana('cabins', 7.5);
+  check('the next sighting only shows in its hours', !(await seen('cabins')));
+  await tapIguana('cabins', 9.5);
+  check('in its hours, the next sighting is found with a tap', await seen('cabins'));
+  await page.click('#tally-case');
+  await wait(page, 500);
+  const log = await S(page, () => ({ open: !document.getElementById('case').hidden, found: document.querySelectorAll('.sighting.is-found').length, next: document.querySelectorAll('.sighting.is-next').length, later: document.querySelectorAll('.sighting.is-later').length }));
+  check('the Trail button opens the log: two seen, the next lit, five to come', log.open && log.found === 2 && log.next === 1 && log.later === 5, JSON.stringify(log));
+  await page.keyboard.press('Escape');
+  await wait(page, 300);
+  check('Escape closes the log', await S(page, () => document.getElementById('case').hidden));
+  // The rest of the trail, and it's caught: the ending at the gangway, then the card.
+  await S(page, () => {
+    const s = window.__squares, w = s.world;
+    for (const t of w.sightings.slice(2)) s.play.markFound(t.zone, t.f);
+  });
+  const done = await page.waitForFunction(() => !document.getElementById('complete').hidden, null, { timeout: 16000 }).then(() => true, () => false);
+  const end = await S(page, () => ({ kicker: document.querySelector('.complete-kicker').textContent, hour: 7 + (((window.__squares.clock.now() % 240) + 240) % 240) / 20 }));
+  check('the last sighting corners it: the clock goes to docking and the card says caught', done && end.kicker === 'Caught' && end.hour > 18 && end.hour < 19, JSON.stringify(end));
   await page.close();
 }
 {

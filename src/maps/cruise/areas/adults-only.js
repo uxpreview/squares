@@ -17,7 +17,7 @@ import { ZK } from '../../../engine/iso.js';
 import { deck, outline } from '../ship.js';
 import { LOOP } from '../plan.js';
 import { INK, MAT, at, wrap, green, queasy } from '../style.js';
-import { P, lettering, board, porthole, lounger, cocktail, bucket, gull, CREW_LOOK, onY, onBow, farY, words, inked } from '../kit.js';
+import { P, lettering, board, porthole, lounger, cocktail, bucket, gull, CREW_LOOK, onY, onBow, farY, words, inked, sighting } from '../kit.js';
 
 // ---------- Little drawing helpers (in this area's own units) ----------
 
@@ -743,6 +743,8 @@ export default {
       card(19.38, 6.78, 0.5, ['MANICURE', '3 TO 4'], false);
       card(19.6, 6.4, 0.1, ['GLORIA', 'CUCUMBER MASK', '6 TO 11'], true);
     });
+    // The chase: sighting 5 (greybox; the area's artist hides it).
+    sighting(R, 4, { at: [17, 7, 0] });
     R.find({ id: 'spa-card', label: "Gloria's spa card", at: [19.6, 6.4, 0.7], r: 0.8 });
 
     // ---------- The loud end ----------

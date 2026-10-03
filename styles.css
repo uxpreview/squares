@@ -1455,6 +1455,28 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
   color: var(--case-ink);
 }
 .bubble-text { display: block; margin-top: 2px; font-size: 15.5px; font-weight: 600; line-height: 1.38; text-wrap: pretty; }
+/* A trail's log (ui/traillog.js): the sightings in order, the next one lit. */
+.sightings { display: flex; flex-direction: column; gap: 12px; margin: 20px 0 0; padding: 0; list-style: none; }
+.sighting { position: relative; display: flex; align-items: flex-start; gap: 10px; }
+.sighting-n {
+  flex: none; display: grid; place-items: center; width: 26px; height: 26px; margin-top: 4px;
+  border: 2px solid var(--ink); border-radius: 50%; background: var(--card);
+  font-size: 13px; font-weight: 800;
+}
+.sighting.is-found .sighting-n { background: var(--coral); border-color: var(--coral); color: var(--paper); }
+.sighting.is-next .sighting-n { background: var(--mustard); }
+.sighting.is-later { opacity: 0.55; }
+.sighting-later { margin: 7px 0 0; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.sighting-text { flex: 1; min-width: 0; }
+.sighting-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 2px 0 6px; }
+.sighting-zone { font-size: 14px; font-weight: 800; }
+.sighting-note { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
+.sighting .bubble { border-radius: 4px 16px 16px 16px; }
+.sighting.is-next .bubble { background: var(--card); box-shadow: 3px 3px 0 var(--case-ink); }
+.sighting-seen { margin: 6px 0 0; font-size: 13.5px; font-weight: 600; line-height: 1.4; color: var(--ink-soft); text-wrap: pretty; }
+.sighting-seen.is-next { color: var(--ink); font-weight: 700; }
+.sighting > .stamp { position: absolute; top: 0; right: 4px; }
+@media (max-width: 420px) { .sighting > .portrait { display: none; } }
 .scene-end { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 24px; }
 .scene-skip { margin-top: 14px; opacity: 0.8; }
 
@@ -1488,6 +1510,8 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* A long one (a trail's next witness) wraps, as a card rather than a pill. */
+.toast.is-long { width: max-content; max-width: min(calc(100% - 32px), 460px); border-radius: 16px; white-space: normal; text-align: center; text-wrap: balance; line-height: 1.35; }
 .toast.show { animation: pop 0.35s cubic-bezier(.2,1.6,.4,1); }
 @keyframes pop {
   from { transform: translateX(-50%) scale(0.6); opacity: 0; }

@@ -15,7 +15,7 @@ import {
 import { route, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { deck } from '../ship.js';
-import { P, shape, lettering, board, porthole, lifebuoy, bucket, cocktail, towelAnimal } from '../kit.js';
+import { P, shape, lettering, board, porthole, lifebuoy, bucket, cocktail, towelAnimal, sighting } from '../kit.js';
 import { INK, MAT, at, wrap, green, queasy, seaAt } from '../style.js';
 
 // ---------- The plan of the row ----------
@@ -1136,6 +1136,8 @@ export default {
 
     // ---------- The finds ----------
     R.find({ id: 'chad-bucket', label: 'A bucket outside cabin 12', at: [44.6, 8, 0.3], r: 0.8 });
+    // The chase: sighting 2 (greybox; the area's artist hides it).
+    sighting(R, 1, { at: [4.2, 12.8, 0.75] });
     R.find({ id: 'garland', label: 'A nibbled flower garland', at: [3, 13.4, 0.9], r: 0.8 });
     R.find({ id: 'towel-monkey', label: 'A towel monkey', at: [34.5, 14.3, 1.2], r: 0.9 });
   },

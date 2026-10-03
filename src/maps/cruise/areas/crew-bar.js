@@ -23,7 +23,7 @@ import {
 import { particles, clamp, pulse } from '../../../engine/actors.js';
 import { deck } from '../ship.js';
 import { INK, MAT, at, wrap, readable } from '../style.js';
-import { porthole, lettering, board, lifebuoy, towelAnimal, CREW_LOOK, shape } from '../kit.js';
+import { porthole, lettering, board, lifebuoy, towelAnimal, CREW_LOOK, shape, sighting } from '../kit.js';
 
 const STEEL = MAT.steel, CHROME = MAT.chrome;
 const PARTY = at(15); // 3pm: the off-shift crew arrive
@@ -915,6 +915,8 @@ export default {
     waiter(R);
 
     // ---------- The finds ----------
+    // The chase: sighting 6 (greybox; the area's artist hides it).
+    sighting(R, 5, { at: [10, 8, 0] });
     R.find({ id: 'plastic-shrimp', label: 'A box of plastic shrimp', at: [21.5, 1, 1.7], r: 0.8 });
     R.find({ id: 'spoon-ball', label: 'A disco ball made of spoons', at: [14, 7, 5], r: 0.75 });
   },

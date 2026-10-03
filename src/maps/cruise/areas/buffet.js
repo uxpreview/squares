@@ -16,7 +16,7 @@ import {
 import { particles, clamp, pulse } from '../../../engine/actors.js';
 import { deck } from '../ship.js';
 import { INK, MAT, at, wrap, hourOf, green, queasy } from '../style.js';
-import { porthole, lettering, board, bucket, lifebuoy, CREW_LOOK, shape } from '../kit.js';
+import { porthole, lettering, board, bucket, lifebuoy, CREW_LOOK, shape, sighting } from '../kit.js';
 
 const SEAM = 16; // where the engine cuts the area in two
 const STEEL = MAT.steel, CHROME = MAT.chrome;
@@ -1032,6 +1032,8 @@ export default {
     crew(R, 31.0, 13.3, 88, { dir: 'l', back: true, arms: [1.2, 1.0] });
 
     // ---------- The finds ----------
+    // The chase: sighting 1 (greybox; the area's artist hides it).
+    sighting(R, 0, { at: [14, 6.2, 1.0] });
     R.find({ id: 'tongs', label: 'Tongs with a pink scrunchie', at: [15.2, 7.9, 1.25], r: 0.8 });
     R.find({ id: 'queue-ticket', label: 'A queue ticket', at: [3.4, 14.4, 0.05], r: 0.8 });
     R.find({ id: 'butter-prints', label: 'Claw prints in the butter', at: [8.5, 9.2, 1.5], r: 0.75 });

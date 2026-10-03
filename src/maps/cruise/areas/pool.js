@@ -9,8 +9,8 @@ import {
 } from '../../../engine/art.js';
 import { route, orbit, particles, pulse, clamp } from '../../../engine/actors.js';
 import { deck, outline, lifeboat } from '../ship.js';
-import { lounger, cocktail, bucket, towelAnimal, lifebuoy, board, lettering, gull, P, CREW_LOOK } from '../kit.js';
-import { INK, MAT, green, queasy, verdict, wrap } from '../style.js';
+import { lounger, cocktail, bucket, towelAnimal, lifebuoy, board, lettering, gull, P, CREW_LOOK, sighting } from '../kit.js';
+import { INK, MAT, green, queasy, wrap } from '../style.js';
 
 // The pool (the hero), sunk in the deck: its edges, the water, its floor.
 const PX0 = 12, PY0 = 5, PX1 = 24, PY1 = 11, WZ = -0.3, BED = -1.4;
@@ -1023,6 +1023,8 @@ export default {
     });
 
     // Chad's bar tab (it clears him): the long one, curled over the bar's edge.
+    // The chase: sighting 4 (greybox; the area's artist hides it).
+    sighting(R, 3, { at: [24.5, 8.5, 0] });
     R.find({ id: 'bar-tab', label: "Chad's bar tab", at: [22.5, 2.6, 1.1], r: 0.8 });
   },
 };

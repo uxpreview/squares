@@ -69,14 +69,42 @@ export function clockLabel(t) {
   return `${hh}:${String(mm).padStart(2, '0')} ${pm ? 'PM' : 'AM'}`;
 }
 
-// The day's moments (the dial skips to them; the sound cues from them).
+// The day's moments: the dial skips to them, one in each of the chase's
+// sightings' hours (CHASE, below), so a skip always lands where it can be.
 export const MOMENTS = [
   { at: at(7), label: 'breakfast', say: '7am. The buffet opens. Doreen is number 2.' },
+  { at: at(9), label: '9am', say: '9am. The casino opens. The stewards do the cabins.' },
   { at: at(10), label: 'the drill', say: '10am. The lifeboat drill. Only one passenger is listening.' },
   { at: at(12), label: 'noon', say: 'Noon. The limbo. Half the ship is green.' },
-  { at: at(15), label: 'bingo', say: '3pm. Bingo in the theater, a party below the waterline.' },
-  { at: at(18), label: 'docking', say: '6pm. The port. Nobody is getting off.' },
+  { at: at(14), label: '2pm', say: '2pm. The salad bar is taped off. Adults Only is quiet.' },
+  { at: at(15), label: 'the crew party', say: '3pm. Bingo in the theater, a party below the waterline.' },
+  { at: at(17), label: '5pm', say: '5pm. Land ho. The engines slow.' },
+  { at: at(17.8), label: 'docking', say: 'The port. Nobody is getting off.' },
 ];
+
+// ---------- The chase ----------
+// The iguana is loose (trail.js, the format in src/game/trail.js): eight
+// sightings through the day, in order, each in its own hours. The art draws
+// it only at the sighting the player is on, in that sighting's hours, and for
+// a moment after it's found, running off; so every iguana anyone sees is the
+// one to tap. chase.step is the sighting the player is on (8: caught);
+// chase.found[n] is when sighting n was found this visit (page time, ms), for
+// the getaway. kit.js's sighting() draws and registers one.
+export const CHASE = [
+  { zone: 'buffet', from: 7, to: 9, note: 'breakfast' },
+  { zone: 'cabins', from: 8.75, to: 10.5, note: '9am' },
+  { zone: 'waterslide', from: 10, to: 12, note: 'the drill' },
+  { zone: 'pool', from: 11.75, to: 13.5, note: 'noon' },
+  { zone: 'adults-only', from: 13.5, to: 15, note: '2pm' },
+  { zone: 'crew-bar', from: 15, to: 16.75, note: 'the crew party' },
+  { zone: 'engine-room', from: 16.75, to: 18, note: '5pm' },
+  { zone: 'casino', from: 17.75, to: 19, note: 'docking' },
+];
+export const chase = { step: 0, found: [] };
+// Is sighting n's hour now?
+export const chaseOpen = (n, t) => { const w = wrap(t), c = CHASE[n]; return w >= at(c.from) && w < at(c.to); };
+// Caught: every sighting found (the casino's ending shows from then on).
+export const caught = () => chase.step >= CHASE.length;
 
 // The sea, through the day: turquoise at breakfast, bright by noon, gold at
 // five, pink as it docks, and back.
@@ -110,10 +138,6 @@ export const sickness = (id, t) => Math.max(green(t, SICK[id]), HERRING[id] ? HE
 // A face at that much green.
 export const queasy = (skin, k) => (k > 0 ? mix(skin, INK.queasyGreen, 0.75 * k) : skin);
 
-// What the case file tells the art: when it was solved (the reveal at the
-// pool puts a towel over the iguana from then on), or null.
-export const verdict = { solved: null };
-
 // ---------- The cast ----------
 // Everyone on the day's clock (day.js), their name and look. The look is the
 // plain person; COSTUME (below) is what makes them who they are.
@@ -138,9 +162,6 @@ export const CAST = {
 const carried = (p, t) => p.moving && wrap(t) >= at(11) && wrap(t) < at(15.5);
 // The steward's arms are full for the same trip, until he's back out of cabin 12.
 const carrying = (p, t) => p.moving && wrap(t) >= at(11) && wrap(t) < at(13.6);
-// The iguana is on its lounger from when it gets to the pool until 4pm: still,
-// and not at the end of the day (it stands by the buffet then).
-const lounging = (p, t) => !p.moving && wrap(t) > 1 && wrap(t) <= at(16);
 
 // Everything person() needs to draw someone from the cast, in costume, at t
 // (which also decides how green they are). p: where and how, as a walker
@@ -162,12 +183,6 @@ export function dressed(id, t, p = {}) {
 
 // Someone from the cast at p (in the zone's own units), their face as green as they are.
 export function drawCast(ctx, id, p, t) {
-  if (id === 'iguana') {
-    if (!lounging(p, t)) return iguana(ctx, p.x, p.y, p.z, p.dir, t, { moving: p.moving });
-    // Stretched out on its lounger (the pool's, just behind where it stops),
-    // head up by the back rest: sunglasses on, and after the verdict a towel.
-    return iguana(ctx, p.x + 0.5, p.y + 0.75, p.z + 0.5, 'r', t, { lounge: true, towel: verdict.solved != null });
-  }
   const o = dressed(id, t, p);
   let z = p.z;
   if (id === 'chad' && carried(p, t)) {
