@@ -22,13 +22,13 @@
 // goose.
 //
 // World units, like plan.js and land.js (this area sits at the map's corner).
-import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha } from '../../../engine/art.js';
+import { C, Q, goose as drawGoose, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { drawLand } from '../../../engine/terrain.js';
 import { route } from '../../../engine/actors.js';
 import { land, h } from '../land.js';
 import { MCKAY, SUGAR_BOWL, GROUND, LOOP } from '../plan.js';
-import { hour, at, between, nightK, rainK, wetK } from '../clock.js';
+import { hour, at, between, nightK, rainK, wetK, AFTER } from '../clock.js';
 import { car, lawnChair, lettering, umbrella, bench, LAMP_H, streetlight as kitLight, gullStand, cupHeld, line3 as line } from '../kit.js';
 import { CARS, INK, LIT, LAND, EVENING, CUP, BRAND } from '../style.js';
 import { planeAt } from '../ambient.js';
@@ -283,6 +283,61 @@ function dog(ctx, x, y, z, t, dir, bark) {
   ctx.restore();
 }
 
+// The goose's umbrella, tipped toward you like a shield: a navy canopy seen
+// from the front (ribs, scalloped rim, the tip), covering its body and head
+// and leaving the feet below and the tail tip behind. f: which way it faces.
+const BROLLY = mix(C.navy, C.purple, 0.25);
+function gooseBrolly(ctx, x, y, z, f, wob = 0) {
+  const [X, Y] = P3(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f, 1);
+  const cx = 0.14, cy = -0.76 + wob, rx = 0.56, ry = 0.52, n = 8;
+  // The tail tip out behind, drawn again so it clears the rim.
+  ctx.beginPath(); ctx.moveTo(-0.36, -0.62); ctx.lineTo(-0.62, -0.74); ctx.lineTo(-0.4, -0.52); ctx.closePath();
+  paint(ctx, C.white, { lw: 0.035 });
+  // The canopy: scallops between the rib tips.
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * TAU - Math.PI / 2, px = cx + Math.cos(a) * rx, py = cy + Math.sin(a) * ry;
+    if (i === 0) { ctx.moveTo(px, py); continue; }
+    const m = a - Math.PI / n;
+    ctx.quadraticCurveTo(cx + Math.cos(m) * rx * 0.86, cy + Math.sin(m) * ry * 0.86, px, py);
+  }
+  ctx.closePath();
+  paint(ctx, BROLLY, { lw: 0.04, dots: shade(BROLLY, 0.45), density: 0.12 });
+  if (Q.detail) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) { const a = (i / n) * TAU - Math.PI / 2; ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry); }
+    ctx.strokeStyle = alpha(C.ink, 0.45); ctx.lineWidth = 0.02; ctx.stroke();
+    // Every other panel a stripe, so it reads as an umbrella, not a shield.
+    for (let i = 0; i < n; i += 2) {
+      const a0 = (i / n) * TAU - Math.PI / 2, a1 = ((i + 1) / n) * TAU - Math.PI / 2;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a0) * rx * 0.97, cy + Math.sin(a0) * ry * 0.97);
+      ctx.quadraticCurveTo(cx + Math.cos((a0 + a1) / 2) * rx * 0.84, cy + Math.sin((a0 + a1) / 2) * ry * 0.84, cx + Math.cos(a1) * rx * 0.97, cy + Math.sin(a1) * ry * 0.97);
+      ctx.closePath(); ctx.fillStyle = alpha(C.mustard, 0.85); ctx.fill();
+    }
+  }
+  disc2(ctx, cx, cy, 0.05, C.ink);
+  ctx.restore();
+}
+function disc2(ctx, x, y, r, color) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = color; ctx.fill(); }
+
+// A hot dog with everything, lying in its box at (x, y, z): the bun, the
+// sausage, a zigzag of mustard, relish, onions and a tomato slice or two.
+function loadedDog(ctx, x, y, z) {
+  const [X, Y] = P3(x, y, z);
+  ctx.save(); ctx.translate(X, Y);
+  ctx.beginPath(); ctx.ellipse(0, 0, 0.34, 0.11, 0, 0, TAU); paint(ctx, C.wood, { lw: 0.025 });
+  ctx.beginPath(); ctx.ellipse(0, -0.05, 0.36, 0.07, 0, 0, TAU); paint(ctx, C.red, { lw: 0.025 });
+  if (Q.detail) {
+    ctx.beginPath(); for (let i = 0; i <= 8; i++) ctx.lineTo(-0.28 + i * 0.07, -0.07 + (i % 2 ? -0.03 : 0.02));
+    ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.035; ctx.stroke();
+    for (const [u, v, c] of [[-0.18, -0.02, C.leaf], [0.05, -0.1, C.leaf], [0.2, -0.03, C.leaf], [-0.06, -0.03, C.white], [0.12, -0.09, C.white], [-0.24, -0.08, C.white]]) { ctx.beginPath(); ctx.arc(u, v, 0.03, 0, TAU); ctx.fillStyle = c; ctx.fill(); }
+    for (const u of [-0.1, 0.16]) { ctx.beginPath(); ctx.ellipse(u, -0.08, 0.06, 0.03, 0, 0, TAU); paint(ctx, C.coral, { lw: 0.015 }); }
+  }
+  ctx.restore();
+}
+
 // ---------- Where things are ----------
 // The stand (plan.js STAND is its back corner): a low white-and-red box,
 // its service window on the south face, the line running east from it.
@@ -380,7 +435,7 @@ function shipBow(t) {
 export default {
   id: 'castle-island',
   name: 'Castle Island',
-  blurb: 'The hot dog line is the same length at noon, in the rain and at midnight. Every minute a plane comes over and everyone looks up.',
+  blurb: 'The hot dog line is the same length at noon, in the rain and at midnight. Flip to after noon: the Courier is on his lunch break.',
   home: [76, 6],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: { ...EVENING, island: EVENING.lawn } });
@@ -682,14 +737,20 @@ export default {
       });
     }
     // The goose, in line forever: to the window, a hot dog, back round to
-    // the end, eating it, in line again. Asleep in line at night.
-    R.goose((t) => {
+    // the end, eating it, in line again. It keeps a little umbrella tipped
+    // at you all day, rain or shine (the hard find): only its orange feet
+    // and its tail show past the canopy, and its beak when it honks at a
+    // plane. Standing all night, so the feet still show.
+    const gooseAt = (t) => {
       const s = qstate(GOOSE_M, t) || { ...slot(N), x: slot(N)[0], y: slot(N)[1], dir: 'l' };
-      const hr = hh(t);
-      const night = !isOpen(t) && (hr >= 21.2 || hr < 6.5);
-      const pose = s.moving ? 'walk' : overhead(t) || (s.p === 0 && isOpen(t)) ? 'honk' : night ? 'sit' : 'stand';
+      const pose = s.moving ? 'walk' : overhead(t) || (s.p === 0 && isOpen(t)) ? 'honk' : 'stand';
       return { x: s.x, y: s.y, z: gz(s.x, s.y), dir: s.p === 0 && !s.moving ? 'r' : s.dir, pose, moving: !!s.moving };
-    });
+    };
+    R.goose((t) => ({ ...gooseAt(t), hidden: true }), { kind: 'hard', hint: 'One regular in the hot dog line keeps an umbrella up, rain or shine. Look at the feet.' });
+    R.mover(gooseAt, (ctx, t, p) => {
+      drawGoose(ctx, p.x, p.y, p.z, t, { dir: p.dir, pose: p.pose });
+      gooseBrolly(ctx, p.x, p.y, p.z, p.dir === 'l' ? -1 : 1, p.moving ? Math.sin(t * 9) * 0.03 : 0);
+    }, { bias: 0.005 });
     R.mover((t) => { const s = qstate(GOOSE_M, t); return s && s.served ? { x: s.x, y: s.y, bias: 0.01, s } : HIDE; }, (ctx, t, p) => {
       if (p.hide) return;
       const s = p.s, f = s.moving ? (s.dir === 'l' ? -1 : 1) : 1;
@@ -753,6 +814,36 @@ export default {
       }
     }, { depth: 69.6 });
     R.thing(67.951, 4.65, (ctx) => veil(ctx, [boxPts(65.0, 2.35, G, 2.95, 2.3, 3.0)], alpha(C.night, 0.2)), { ...byNight, depth: 69.601 });
+    // The decoy: a foil goose balloon from somebody's birthday, tied to the
+    // canopy's front post, bobbing over the tables all day and all night.
+    const BAL = [64.55, 5.15, G + 3.75];
+    const balAt = (t) => [BAL[0] + Math.sin(t * 0.9) * 0.08, BAL[1] + Math.cos(t * 0.7) * 0.05, BAL[2] + Math.sin(t * 1.3) * 0.08];
+    R.thing(BAL[0] + 0.6, BAL[1] + 0.6, (ctx, t) => {
+      const [x, y, z] = balAt(t);
+      // The string, curling down to the post.
+      const [X0, Y0] = P3(65.0, 4.65, G + 2.2), [X1, Y1] = P3(x, y, z - 0.05);
+      ctx.beginPath(); ctx.moveTo(X0, Y0); ctx.quadraticCurveTo(X0 - 0.3, (Y0 + Y1) / 2 + Math.sin(t * 1.1) * 0.1, X1, Y1);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+      ctx.save(); ctx.translate(X1, Y1); ctx.rotate(Math.sin(t * 0.8) * 0.06);
+      // Puffy, seamed foil: body, neck, head, the beak, a shine.
+      ctx.beginPath(); ctx.ellipse(0, -0.42, 0.44, 0.3, -0.1, 0, TAU);
+      ctx.moveTo(-0.34, -0.48); ctx.lineTo(-0.62, -0.66); ctx.lineTo(-0.4, -0.3);
+      paint(ctx, C.white, { lw: 0.04, dots: Q.detail ? C.greyLight : null, density: 0.15 });
+      ctx.beginPath(); ctx.moveTo(0.22, -0.55); ctx.quadraticCurveTo(0.36, -0.8, 0.3, -1.02);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.22; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = C.white; ctx.lineWidth = 0.15; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0.32, -1.08, 0.15, 0, TAU); paint(ctx, C.white, { lw: 0.04 });
+      ctx.beginPath(); ctx.moveTo(0.43, -1.12); ctx.lineTo(0.66, -1.06); ctx.lineTo(0.43, -1.0); ctx.closePath(); paint(ctx, C.coral, { lw: 0.03 });
+      ctx.beginPath(); ctx.arc(0.34, -1.12, 0.03, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
+      if (Q.detail) {
+        ctx.beginPath(); ctx.ellipse(0.1, -0.55, 0.12, 0.05, -0.5, 0, TAU); ctx.fillStyle = alpha(C.sky, 0.6); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, -0.42, 0.44, 0.3, -0.1, 0.2, 2.6); ctx.strokeStyle = alpha(C.ink, 0.3); ctx.lineWidth = 0.02; ctx.stroke();
+      }
+      // The knot.
+      ctx.beginPath(); ctx.moveTo(-0.05, -0.12); ctx.lineTo(0.05, -0.12); ctx.lineTo(0, -0.02); ctx.closePath(); paint(ctx, C.white, { lw: 0.02 });
+      ctx.restore();
+    }, { anim: true, depth: BAL[0] + BAL[1] + 1.2 });
+    R.decoy({ id: 'balloon', at: [BAL[0] + 0.1, BAL[1], BAL[2] + 0.4], r: 0.8, say: ['Helium. It honks higher.', 'A balloon. Mostly hot air.'] });
     // A gull, every so often, for a fry.
     R.mover((t) => {
       const k = frac(t / 26 + 0.3);
@@ -796,6 +887,40 @@ export default {
       }, { bias: 0.05 });
     }
 
+    // ---------- The one for later (after noon) ----------
+    // He orders two, eats one, and leaves the other in its foam box on the
+    // bin's lid, FOR LATER in marker. Later never comes. The bin's lid is
+    // bare all morning, so the flip shows it. A tap opens the box: a hot dog
+    // with everything.
+    const CL = [80.62, 2.78, G + 1.08], CW = 0.56, CD = 0.42, CH = 0.12;
+    const shell = R.poke({ id: 'clamshell', at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, when: AFTER.when, sound: 'clunk', say: ['FOR LATER, it says.', 'Still warm. Somehow.'] });
+    R.thing(81.25, 3.36, (ctx, t) => {
+      if (!AFTER.when(t)) return;
+      const [x, y, z] = CL, k = shell.k();
+      const foam = tint(C.greyLight, 0.55);
+      box(ctx, x, y, z, CW, CD, CH, foam, { lw: 0.025, top: shade(foam, 0.12) });
+      // The lid, hinged along the back: ajar a crack when shut (a smear of
+      // mustard in the gap says there's lunch in it), up when tapped.
+      const th = 0.14 + k * 1.75, hz = z + CH;
+      const lid = () => {
+        const dy = Math.cos(th) * CD, dz = Math.sin(th) * CD;
+        face(ctx, [[x, y, hz], [x + CW, y, hz], [x + CW, y + dy, hz + dz], [x, y + dy, hz + dz]], foam, { lw: 0.025 });
+        if (Q.detail && k < 0.5) {
+          // In marker, lying on the lid along x.
+          const [X, Y] = P3(x + CW / 2, y + dy / 2, hz + dz / 2 + 0.01);
+          ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, -1, 0.5, 0, 0); ctx.scale(1 / 105, 1 / 105);
+          ctx.font = '8px "Bagel Fat One", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.ink;
+          ctx.fillText('FOR LATER', 0, 0); ctx.restore();
+        }
+      };
+      const dog = () => {
+        if (k < 0.25) { if (Q.detail) line(ctx, [[x + 0.12, y + CD - 0.01, hz + 0.02], [x + 0.36, y + CD - 0.01, hz + 0.03]], C.mustard, 0.03); return; }
+        loadedDog(ctx, x + CW / 2, y + CD / 2, hz + 0.02);
+      };
+      if (th > Math.PI / 2) { lid(); dog(); } else { dog(); lid(); }
+    }, { anim: true, on: AFTER.when, depth: 81.25 + 3.36 + 0.02 });
+    R.find({ id: 'hotdog', label: 'A hot dog with everything', kind: 'poke', ...AFTER, at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, inside: shell, hint: 'The Courier bought two and only ate one. He set the other one down for later.' });
+
     // ---------- The plane spotters, by the fence ----------
     const spot = between(6.5, 20.5);
     const s1 = folk(781, { top: C.green, bottom: C.brown, hat: 'sun' });
@@ -836,6 +961,17 @@ export default {
       line(ctx, [[58.25, 3.1, G + 0.72], [58.1, 3.05, G + 1.25]], C.ink, 0.02);
     }, { on: spot });
     talk(R, 58.4, 3.2, G + 1.4, (t) => (spot(t) && PL(t) > 1.2 && PL(t) < 4.8 ? '...four right, cleared to land...' : null), { size: 0.34 });
+    // Tap it and it turns up: the tower, loud, and the dial's light.
+    const radio = R.poke({ id: 'radio', at: [58.4, 3.15, G + 0.65], r: 0.9, teach: true, when: spot, sound: 'tick', hold: 3,
+      say: ['...four right, cleared to land...', '...unidentified goose, two o\'clock...', '...hold short, hold short...'] });
+    R.thing(58.31, 3.31, (ctx) => {
+      const k = radio.k();
+      const [X, Y] = P3(58.38, 3.05, G + 0.62);
+      ctx.beginPath(); ctx.arc(X + 0.02, Y, 0.035, 0, TAU); ctx.fillStyle = k > 0.1 ? C.red : shade(C.red, 0.5); ctx.fill();
+      if (k < 0.1 || !Q.detail) return;
+      ctx.strokeStyle = alpha(C.ink, 0.6 * k); ctx.lineWidth = 0.03;
+      for (const r of [0.22, 0.38, 0.54]) { ctx.beginPath(); ctx.arc(X - 0.1, Y - 0.2, r * k, -2.4, -0.7); ctx.stroke(); }
+    }, { anim: true, on: spot });
     // Inspector Pidge: trench coat, deerstalker, a magnifying glass, and a
     // theory about the planes.
     const pidge = folk(19, {
@@ -896,26 +1032,26 @@ export default {
       for (let v = y - 0.22; v < y + 0.26; v += 0.1) line(ctx, [[x - 0.4, v, z + 0.045], [x - 0.15, v, z + 0.045]], C.ink, 0.025);
       for (let v = y - 0.22; v < y + 0.26; v += 0.1) line(ctx, [[x + 0.14, v, z + 0.045], [x + 0.2, v + 0.04, z + 0.045], [x + 0.34, v - 0.06, z + 0.045]], C.red, 0.035);
     });
-    R.find({ id: 'logbook', label: "A plane spotter's logbook", at: [LOG[0], LOG[1], G + 0.1], r: 0.9 });
+    R.find({ id: 'logbook', label: "A plane spotter's logbook", kind: 'spot', at: [LOG[0], LOG[1], G + 0.1], r: 0.9 });
 
     // ---------- The relish packet, by the picnic tables ----------
+    // Small and green on grey, a step off the canopy (the hard one).
     const REL = [66.3, 4.95];
     R.rug((ctx) => {
-      const z = gz(...REL) + 0.03, [x, y] = REL;
-      face(ctx, [[x - 0.42, y - 0.24, z], [x + 0.42, y - 0.24, z], [x + 0.42, y + 0.24, z], [x - 0.3, y + 0.24, z], [x - 0.42, y + 0.1, z]], C.leaf, { lw: 0.035 });
-      face(ctx, [[x - 0.3, y - 0.16, z + 0.01], [x + 0.3, y - 0.16, z + 0.01], [x + 0.3, y + 0.16, z + 0.01], [x - 0.3, y + 0.16, z + 0.01]], C.white, { stroke: false });
+      const z = gz(...REL) + 0.03, [x, y] = REL, k = 0.62;
+      face(ctx, [[x - 0.42 * k, y - 0.24 * k, z], [x + 0.42 * k, y - 0.24 * k, z], [x + 0.42 * k, y + 0.24 * k, z], [x - 0.3 * k, y + 0.24 * k, z], [x - 0.42 * k, y + 0.1 * k, z]], C.leaf, { lw: 0.03 });
+      face(ctx, [[x - 0.3 * k, y - 0.16 * k, z + 0.01], [x + 0.3 * k, y - 0.16 * k, z + 0.01], [x + 0.3 * k, y + 0.16 * k, z + 0.01], [x - 0.3 * k, y + 0.16 * k, z + 0.01]], C.white, { stroke: false });
       if (Q.detail) {
         // The word, lying flat on it.
         const [X, Y] = P3(x, y, z + 0.02);
-        ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, -1, 0.5, 0, 0); ctx.scale(1 / 40, 1 / 40);
+        ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, -1, 0.5, 0, 0); ctx.scale(k / 40, k / 40);
         ctx.font = '7px "Bagel Fat One", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.green;
         ctx.fillText('RELISH', 0, 0); ctx.restore();
         // A squirt of it, escaped.
-        disc(ctx, x - 0.62, y + 0.2, z, 0.14, C.leaf, { lw: 0.02 });
-        disc(ctx, x - 0.8, y + 0.32, z, 0.07, C.leaf, { stroke: false });
+        disc(ctx, x - 0.4, y + 0.14, z, 0.09, C.leaf, { lw: 0.02 });
       }
     });
-    R.find({ id: 'relish', label: 'A relish packet', at: [REL[0], REL[1], G + 0.1], r: 0.9 });
+    R.find({ id: 'relish', label: 'A relish packet', kind: 'hard', at: [REL[0], REL[1], G + 0.1], r: 0.8, riddle: 'Somebody\'s lunch lost a little green.', hint: 'Where people eat under the stripes, something small and green fell on the ground.' });
 
     // ---------- The causeway's south side: a bench, the rail, fishermen ----------
     R.thing(58.3, 6.3, (ctx) => bench(ctx, 58.3, 6.35, gz(58.3, 6.5)));
@@ -1168,7 +1304,7 @@ export default {
       ctx.beginPath(); ctx.arc(X - 0.03, Y - 0.2, 0.035, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
       ctx.restore();
     });
-    R.find({ id: 'earbud', label: 'A lost earbud', at: [BUD[0], BUD[1], gz(...BUD) + 0.15], r: 0.9 });
+    R.find({ id: 'earbud', label: 'A lost earbud', kind: 'hard', at: [BUD[0], BUD[1], gz(...BUD) + 0.15], r: 0.8, riddle: 'One ear in, one ear out, round and round.', hint: 'The jogger lapping the Sugar Bowl is one short. Look on the ground inside the ring of benches.' });
 
     // ---------- Fort Independence ----------
     // The 1851 fort: five granite curtain walls and an arrowhead bastion at
@@ -1447,6 +1583,7 @@ export default {
     // A tourist at the door, trying it anyway.
     const tourist = folk(851, { top: C.sky, bottom: C.brown, hat: 'sun' });
     stay(R, DOOR_X + 0.25, FRONT_Y + 0.7, tourist, { dir: 'r', back: true, arms: [1.7, 1.5], hours: between(9.5, 17), umb: C.red, hold: phoneHeld });
+    R.poke({ id: 'fortdoor', at: [DOOR_X - 0.2, FRONT_Y + 0.05, gz(DOOR_X, FRONT_Y + 0.3) + 0.8], r: 0.8, sound: 'thump', say: ['Closed. It\'s a Tuesday.', 'Still Tuesday.', 'Tours Saturday and Sunday.'] });
     talk(R, DOOR_X + 0.25, FRONT_Y + 0.7, gz(DOOR_X, FRONT_Y + 0.7) + 2.8, (t) => (between(9.5, 17)(t) && every(16, 3.4, 0.5)(t) && !overhead(t) ? (frac(t / 32) < 0.5 ? 'Closed Tuesdays?' : 'Hello? Anyone?') : null), { size: 0.38 });
     // A kid on the grass, rolling down the hill (it's the best hill), timed
     // to the planes: when one comes over he stops and covers his ears.
