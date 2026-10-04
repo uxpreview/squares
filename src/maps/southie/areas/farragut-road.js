@@ -559,9 +559,10 @@ export default {
       if (Q.detail) for (let zz = bot + 0.2; zz < DOOR_Z1 - 0.05; zz += 0.2) line(ctx, [[x0 + 0.04, y + 0.001, zz], [x1 - 0.04, y + 0.001, zz]], alpha(C.ink, 0.35), 0.02);
       box(ctx, SX - 0.25, y, bot + 0.08, 0.5, 0.06, 0.1, C.ink, { flat: true, stroke: false });
       if (k < 0.3) {
-        panel(ctx, 'x', SX, y + 0.01, G + 2.3, 1.1, 0.42, C.white, { lw: 0.025 });
-        lettering(ctx, 'x', SX, y + 0.02, G + 2.36, 'DO NOT OPEN', 0.11, C.red, 'Bagel Fat One');
-        lettering(ctx, 'x', SX, y + 0.02, G + 2.2, '(it honked)', 0.08, C.ink);
+        // Big enough to read on a phone from the street's own framing.
+        panel(ctx, 'x', SX, y + 0.01, G + 2.35, 1.9, 0.8, C.white, { lw: 0.035 });
+        lettering(ctx, 'x', SX, y + 0.02, G + 2.5, 'DO NOT OPEN', 0.24, C.red, 'Bagel Fat One');
+        lettering(ctx, 'x', SX, y + 0.02, G + 2.15, '(IT HONKED)', 0.17, C.ink, 'Bagel Fat One');
       }
     }, { anim: true, depth: SX + RY + 1.3 });
     // The tell: a tail through a fresh tear in the roof, all day (gone
@@ -570,16 +571,16 @@ export default {
     R.thing(SX + 1.23, RY + 0.03, (ctx, t) => {
       if (cargo.k() > 0.5) return;
       const [x, y, z] = TAIL;
-      face(ctx, [[x - 0.4, y - 0.3, z + 0.01], [x + 0.3, y - 0.35, z + 0.01], [x + 0.45, y + 0.25, z + 0.01], [x - 0.3, y + 0.35, z + 0.01]], C.ink, { lw: 0.02 });
+      face(ctx, [[x - 0.55, y - 0.45, z + 0.01], [x + 0.45, y - 0.5, z + 0.01], [x + 0.6, y + 0.35, z + 0.01], [x - 0.45, y + 0.5, z + 0.01]], C.ink, { lw: 0.025 });
       // Torn tin, curled up round it.
-      face(ctx, [[x - 0.4, y + 0.35, z], [x + 0.45, y + 0.25, z], [x + 0.3, y + 0.32, z + 0.22], [x - 0.2, y + 0.42, z + 0.16]], tint(C.greyLight, 0.3), { lw: 0.025 });
+      face(ctx, [[x - 0.55, y + 0.5, z], [x + 0.6, y + 0.35, z], [x + 0.45, y + 0.45, z + 0.3], [x - 0.3, y + 0.6, z + 0.22]], tint(C.greyLight, 0.3), { lw: 0.03 });
       // The tail: the goose's own back end, bottoms up, as goose() draws it
       // (a white rump, the pointed tail cocked, its coral feet in the air),
       // up through the tear and paddling now and then. A plain fan read as a
       // hard hat, and white on the white roof needed the feet to say goose.
       const [X, Y] = P3(x, y, z + 0.05);
       const kick = frac(t / 4) < 0.1 ? Math.sin(t * 30) * 0.08 : 0;
-      ctx.save(); ctx.translate(X, Y); ctx.scale(1.35, 1.35);
+      ctx.save(); ctx.translate(X, Y); ctx.scale(2.1, 2.1);
       ctx.lineCap = 'round';
       for (const [lx, sw] of [[-0.04, kick], [0.14, -kick]]) {
         const fx = lx + 0.04 + sw, fy = -0.66;
@@ -597,12 +598,12 @@ export default {
       paint(ctx, C.greyLight, { lw: 0.025 });
       ctx.restore();
       if (Q.detail) {
-        const [FX, FY] = P3(x + 0.5, y + 0.5, z + 0.02);
-        ctx.beginPath(); ctx.ellipse(FX, FY, 0.16, 0.05, 0.4, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+        const [FX, FY] = P3(x + 0.75, y + 0.7, z + 0.02);
+        ctx.beginPath(); ctx.ellipse(FX, FY, 0.22, 0.07, 0.4, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
       }
     }, { anim: true, depth: SX + RY + 1.31 });
     // When the queue honks, the truck honks back, muffled.
-    talk(R, SX + 0.3, RY - 1.1, G + 4.3, (t) => (cargo.k() < 0.5 && stuck(t) && frac(t / 5.3 + 0.9) < 0.15 ? 'honk' : null), { size: 0.34 });
+    talk(R, SX + 0.3, RY - 1.1, G + 5.0, (t) => (cargo.k() < 0.5 && stuck(t) && frac(t / 5.3 + 0.9) < 0.15 ? 'honk' : null), { size: 0.34 });
     R.goose((t) => {
       const open = cargo.k() > 0.5, night = nightK(t) > 0.6;
       const honk = stuck(t) && frac(t / 5.3 + 0.9) < 0.2;
@@ -680,27 +681,45 @@ export default {
       }],
     ];
     GADGETS.forEach(([y, gone, draw]) => R.thing(AX + 0.4, y + 0.45, (ctx) => draw(ctx, y), { on: out(8, gone) }));
-    // The bread maker: cream, a domed lid with a little window, a dial, its
-    // cord wound round it. All day and all night.
-    const BM = [AX, 31.55];
+    // The bread maker: cream, its lid flipped open and a big golden loaf
+    // risen out of it like a muffin, a dial, its cord wound round it. All day
+    // and all night. Bigger than the other gadgets, and the only one with a
+    // loaf on top, so a player comparing the two halves picks it out fast
+    // (a cream box the size of the toaster read as one more curb thing).
+    const BM = [AX - 0.12, 31.5];
     const breadMaker = (late) => (ctx) => {
-      const [x, y] = BM, w = 0.62, d = 0.8;
-      box(ctx, x - w / 2, y - d / 2, G, w, d, 0.62, BREAD, { lw: 0.035, dens: 0.1 });
-      box(ctx, x - w / 2 + 0.04, y - d / 2 + 0.04, G + 0.62, w - 0.08, d - 0.08, 0.1, tint(BREAD, 0.2), { flat: true, lw: 0.03 });
-      face(ctx, [[x - 0.14, y - 0.2, G + 0.721], [x + 0.14, y - 0.2, G + 0.721], [x + 0.14, y + 0.2, G + 0.721], [x - 0.14, y + 0.2, G + 0.721]], shade(C.teal, 0.5), { lw: 0.02 });
+      const [x, y] = BM, w = 0.72, d = 1.0, h = 0.78, top = G + h;
+      box(ctx, x - w / 2, y - d / 2, G, w, d, h, BREAD, { lw: 0.04, dens: 0.1 });
+      // A coral band round its middle, so it isn't one more white box.
+      face(ctx, [[x + w / 2 + 0.003, y - d / 2, G + 0.12], [x + w / 2 + 0.003, y + d / 2, G + 0.12], [x + w / 2 + 0.003, y + d / 2, G + 0.22], [x + w / 2 + 0.003, y - d / 2, G + 0.22]], C.coral, { lw: 0.02 });
+      face(ctx, [[x - w / 2, y + d / 2 + 0.003, G + 0.12], [x + w / 2, y + d / 2 + 0.003, G + 0.12], [x + w / 2, y + d / 2 + 0.003, G + 0.22], [x - w / 2, y + d / 2 + 0.003, G + 0.22]], shade(C.coral, 0.15), { lw: 0.02 });
+      // Its lid, flipped open against the back.
+      face(ctx, [[x - w / 2 + 0.04, y - d / 2 + 0.02, top], [x + w / 2 - 0.04, y - d / 2 + 0.02, top], [x + w / 2 - 0.04, y - d / 2 - 0.12, top + 0.62], [x - w / 2 + 0.04, y - d / 2 - 0.12, top + 0.62]], tint(BREAD, 0.25), { lw: 0.035 });
+      face(ctx, [[x - 0.16, y - d / 2 - 0.02, top + 0.2], [x + 0.16, y - d / 2 - 0.02, top + 0.2], [x + 0.16, y - d / 2 - 0.08, top + 0.48], [x - 0.16, y - d / 2 - 0.08, top + 0.48]], shade(C.teal, 0.5), { lw: 0.02 });
+      // The pan's dark mouth, and the loaf risen out of it: a golden dome.
+      face(ctx, [[x - w / 2 + 0.08, y - d / 2 + 0.1, top + 0.002], [x + w / 2 - 0.08, y - d / 2 + 0.1, top + 0.002], [x + w / 2 - 0.08, y + d / 2 - 0.1, top + 0.002], [x - w / 2 + 0.08, y + d / 2 - 0.1, top + 0.002]], C.ink, { lw: 0.02 });
+      const [X, Y] = P3(x, y, top + 0.02);
+      ctx.beginPath(); ctx.moveTo(X - 0.62, Y); ctx.bezierCurveTo(X - 0.66, Y - 0.62, X + 0.66, Y - 0.62, X + 0.62, Y);
+      ctx.bezierCurveTo(X + 0.4, Y + 0.16, X - 0.4, Y + 0.16, X - 0.62, Y); ctx.closePath();
+      paint(ctx, C.wood, { lw: 0.04 });
+      ctx.beginPath(); ctx.ellipse(X - 0.08, Y - 0.3, 0.32, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.woodLight, { stroke: false });
+      if (Q.detail) for (const dx of [-0.24, 0, 0.24]) { ctx.beginPath(); ctx.moveTo(X + dx - 0.1, Y - 0.2); ctx.lineTo(X + dx + 0.1, Y - 0.36); ctx.strokeStyle = C.brown; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.stroke(); }
       // Its panel and dial, facing the road.
-      face(ctx, [[x + w / 2 + 0.002, y - 0.3, G + 0.3], [x + w / 2 + 0.002, y + 0.3, G + 0.3], [x + w / 2 + 0.002, y + 0.3, G + 0.52], [x + w / 2 + 0.002, y - 0.3, G + 0.52]], shade(BREAD, 0.25), { lw: 0.02 });
-      disc(ctx, x + w / 2 + 0.01, y + 0.15, G + 0.41, 0.07, C.coral, { lw: 0.015 });
-      lettering(ctx, 'y', x + w / 2 + 0.01, y - 0.08, G + 0.41, 'BREAD', 0.08, C.white, 'Bagel Fat One');
+      face(ctx, [[x + w / 2 + 0.004, y - 0.36, G + 0.36], [x + w / 2 + 0.004, y + 0.36, G + 0.36], [x + w / 2 + 0.004, y + 0.36, G + 0.66], [x + w / 2 + 0.004, y - 0.36, G + 0.66]], shade(BREAD, 0.3), { lw: 0.02 });
+      disc(ctx, x + w / 2 + 0.01, y + 0.2, G + 0.51, 0.09, C.coral, { lw: 0.015 });
+      lettering(ctx, 'y', x + w / 2 + 0.01, y - 0.1, G + 0.51, 'BREAD', 0.12, C.white, 'Bagel Fat One');
       if (Q.detail) line(ctx, [[x + w / 2, y + d / 2 - 0.05, G + 0.1], [x + w / 2 + 0.2, y + d / 2 + 0.2, G + 0.01], [x + 0.1, y + d / 2 + 0.35, G + 0.01]], C.ink, 0.025);
-      // A card leaning on it: FREE, WORKS by day, PLEASE by evening.
-      panel(ctx, 'y', x + w / 2 + 0.05, y - 0.62, G + 0.25, 0.42, 0.34, C.woodLight, { lw: 0.02 });
-      lettering(ctx, 'y', x + w / 2 + 0.06, y - 0.62, G + 0.3, late ? 'PLEASE' : 'FREE', late ? 0.08 : 0.11, C.red, 'Bagel Fat One');
-      if (!late) lettering(ctx, 'y', x + w / 2 + 0.06, y - 0.62, G + 0.17, 'WORKS', 0.06, C.ink);
+      // A big card on a stake beside it, facing the road: FREE BREAD MAKER
+      // by day, PLEASE TAKE ME by evening.
+      const sy = y - d / 2 - 0.55, sx = x + 0.1;
+      pole(ctx, sx, sy, G, 1.1, C.wood, 0.04);
+      panel(ctx, 'y', sx + 0.05, sy - 0.1, G + 1.15, 1.3, 0.85, C.white, { lw: 0.035 });
+      lettering(ctx, 'y', sx + 0.06, sy - 0.1, G + 1.3, late ? 'PLEASE' : 'FREE', late ? 0.28 : 0.34, C.red, 'Bagel Fat One');
+      lettering(ctx, 'y', sx + 0.06, sy - 0.1, G + 0.95, late ? 'TAKE ME' : 'BREAD MAKER', late ? 0.2 : 0.15, C.ink, 'Bagel Fat One');
     };
-    R.thing(BM[0] + 0.4, BM[1] + 0.5, breadMaker(false), { on: (t) => { const x = hh(t); return x >= 8 && x < 17; } });
-    R.thing(BM[0] + 0.4, BM[1] + 0.5, breadMaker(true), { on: (t) => { const x = hh(t); return x >= 17 || x < 5; } });
-    R.find({ id: 'breadmaker', label: 'The one thing nobody took', ...AFTER, at: [BM[0], BM[1], G + 0.4], r: 0.9, riddle: 'It was on the curb at breakfast. Flip back and look.', hint: 'This morning four kitchen gadgets sat by the curb pile. Flip to the evening: one is still waiting.' });
+    R.thing(BM[0] + 0.45, BM[1] + 0.55, breadMaker(false), { on: (t) => { const x = hh(t); return x >= 8 && x < 17; } });
+    R.thing(BM[0] + 0.45, BM[1] + 0.55, breadMaker(true), { on: (t) => { const x = hh(t); return x >= 17 || x < 5; } });
+    R.find({ id: 'breadmaker', label: 'The one thing nobody took', ...AFTER, at: [BM[0], BM[1] - 0.2, G + 0.7], r: 1.0, riddle: 'It was on the curb at breakfast. Flip back and look.', hint: 'This morning four kitchen gadgets sat by the curb pile. Flip to the evening: one is still waiting.' });
     // The tarp, over what's left while it rains.
     R.thing(PX + 1.2, 35.4, (ctx) => {
       const x0 = PX, x1 = PX + 1.15, y0 = 32.2, y1 = 35.3, top = G + 1.5;

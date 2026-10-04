@@ -218,11 +218,25 @@ function chairBack(ctx, x, y, z, color) {
   }
 }
 // A scorecard on a paint stirrer, held up over the head, facing us.
-function scoreCard(ctx, x, y, z, text, red = false) {
+// (big: the goose's HONK card, bigger than the rest so it reads on a phone.)
+function scoreCard(ctx, x, y, z, text, red = false, big = 1) {
   line(ctx, [[x + 0.06, y + 0.1, z + 1.45], [x + 0.06, y + 0.1, z + 2.35]], C.wood, 0.07);
-  const cz = z + 2.7;
-  panel(ctx, 'y', x + 0.08, y + 0.1, cz, 0.8, 0.62, C.white, { lw: 0.035 });
-  lettering(ctx, 'y', x + 0.09, y + 0.1, cz - 0.02, text, text.length > 2 ? 0.3 : 0.46, red ? C.red : C.ink, 'Bagel Fat One');
+  const cz = z + 2.7 + (big - 1) * 0.3;
+  panel(ctx, 'y', x + 0.08, y + 0.1, cz, 0.8 * big, 0.62 * big, C.white, { lw: 0.035 });
+  lettering(ctx, 'y', x + 0.09, y + 0.1, cz - 0.02, text, (text.length > 2 ? 0.3 : 0.46) * big, red ? C.red : C.ink, 'Bagel Fat One');
+}
+// A jar of pickles: green glass, three pickles standing in it, a gold lid.
+function pickleJar(ctx, x, y, z) {
+  const r = 0.2, h = 0.6;
+  cylinder(ctx, x, y, z, r, h, mix(C.mint, C.leaf, 0.4), { side: alpha(mix(C.mint, C.leaf, 0.55), 0.95), flat: true });
+  if (Q.detail) {
+    const [X, Y] = P3(x, y, z);
+    for (const [dx, tall] of [[-0.14, 0.62], [0.02, 0.7], [0.16, 0.56]]) {
+      ctx.beginPath(); ctx.ellipse(X + dx, Y - tall * ZK * 0.55, 0.085, tall * ZK * 0.44, 0, 0, Math.PI * 2);
+      paint(ctx, shade(C.green, 0.2), { lw: 0.02, dots: shade(C.green, 0.5), density: 0.25 });
+    }
+  }
+  cylinder(ctx, x, y, z + h, r + 0.02, 0.1, C.mustard, { flat: true });
 }
 
 // A yellow rain poncho, hood up, over someone seen from behind (in the
@@ -255,6 +269,12 @@ function ponchoGoose(ctx, x, y, z) {
   // The hood, round the back of the head; its face and beak out the front.
   ctx.beginPath(); ctx.moveTo(0.27, -0.84); ctx.arc(0.25, -0.84, 0.22, 0.95, Math.PI * 2 - 0.95, false); ctx.closePath();
   paint(ctx, PONCHO, { lw: 0.035 });
+  // Its white face and a big orange beak out of the hood, drawn over the
+  // engine's (too small to read at phone size under all that yellow).
+  ctx.beginPath(); ctx.arc(0.36, -0.84, 0.13, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+  ctx.beginPath(); ctx.moveTo(0.44, -0.93); ctx.lineTo(0.8, -0.83); ctx.lineTo(0.44, -0.74); ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.beginPath(); ctx.arc(0.37, -0.88, 0.035, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
   ctx.restore();
 }
 // A real Canada goose (the decoy): brown, a black stocking on its neck and
@@ -647,7 +667,7 @@ export default {
       lawnChair(ctx, GC[0], GC[1], gcz, C.coral, { face: -1 });
       ponchoGoose(ctx, GC[0] - 0.05, GC[1], gcz + 0.46);
       chairBack(ctx, GC[0], GC[1], gcz, C.coral);
-      scoreCard(ctx, GC[0] - 0.05, GC[1] - 0.1, gcz - 0.75, 'HONK');
+      scoreCard(ctx, GC[0] - 0.05, GC[1] - 0.1, gcz - 0.75, 'HONK', true, 1.5);
     }, { depth: GC[0] + GC[1] + 0.35 });
     R.goose([GC[0] - 0.05, GC[1], gcz + 0.4], { kind: 'hard', hidden: true, hint: 'Two judges in yellow ponchos. One has a beak, and scores everything HONK.' });
     talk(R, GC[0], GC[1], gcz + 3.6, (t) => (CHEER(t) ? 'HONK!' : null), { size: 0.5 });
@@ -706,7 +726,9 @@ export default {
       R.thing(cx + 0.42, cy + 0.32, (ctx) => {
         const k = cooler.k(), a = k * 1.75, hx = cx - 0.42, top = cz + 0.45;
         if (k > 0.05) {
-          cylinder(ctx, cx + 0.12, cy, top - 0.15, 0.16, 0.38, mix(C.leaf, C.green, 0.4), { top: C.red });
+          // A big green glass jar standing up out of the ice, the pickles
+          // showing through it, a gold lid (a red lid read as a soda can).
+          pickleJar(ctx, cx + 0.14, cy + 0.02, top - 0.12);
           if (Q.detail) { box(ctx, cx - 0.25, cy - 0.15, top - 0.1, 0.12, 0.12, 0.28, C.red, { flat: true, lw: 0.02 }); disc(ctx, cx - 0.2, cy + 0.12, top, 0.08, C.butter, { lw: 0.015 }); }
         }
         // The lid, hinged at its back edge (shut, a crack shows, a fork handle in it).
@@ -729,11 +751,13 @@ export default {
     {
       const [x, y] = [31.6, 29.4], z = gz(x, y) + 0.03;
       R.rug((ctx) => {
-        face(ctx, [[x - 0.4, y - 0.32, z], [x + 0.42, y - 0.26, z], [x + 0.38, y + 0.34, z], [x - 0.44, y + 0.28, z]], C.white, { lw: 0.035 });
-        line(ctx, [[x + 0.1, y + 0.3, z + 0.01], [x + 0.95, y + 0.85, z + 0.01]], C.wood, 0.07);
-        if (Q.detail) { ctx.save(); ctx.translate(0, -z * ZK); paintText(ctx, 'floor', x, y, '2', 0.5, C.red); ctx.restore(); }
+        // Bigger than the judges' cards held up, so it reads as one lying
+        // in the grass at phone size: a fat red 2 on white, its stirrer out.
+        face(ctx, [[x - 0.66, y - 0.52, z], [x + 0.68, y - 0.42, z], [x + 0.62, y + 0.56, z], [x - 0.72, y + 0.46, z]], C.white, { lw: 0.045 });
+        line(ctx, [[x + 0.15, y + 0.5, z + 0.01], [x + 1.25, y + 1.2, z + 0.01]], C.wood, 0.1);
+        if (Q.detail) { ctx.save(); ctx.translate(0, -z * ZK); paintText(ctx, 'floor', x, y, '2', 0.9, C.red); ctx.restore(); }
       });
-      R.find({ id: 'scorecard', label: 'A scorecard in the grass', at: [x, y, z + 0.05], r: 0.9 });
+      R.find({ id: 'scorecard', label: 'A scorecard in the grass', at: [x, y, z + 0.05], r: 1.0 });
     }
 
     // ---------- The kite in the tree (a find), and whose it is ----------
