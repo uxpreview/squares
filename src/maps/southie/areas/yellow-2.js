@@ -420,12 +420,13 @@ export default {
       if (!p.moving && p.pose === 'stand') says(ctx, p.x, p.y, 2.8, t, ['Two toasters. Nice.'], 13, 3);
     }, { bias: 0.8 });
 
-    // His friend who said he'd help: asleep on her couch all morning.
+    // His friend who said he'd help: asleep on her couch all morning (his
+    // head on its far arm, so his feet don't run into the TVs).
     R.mover(() => ({ x: 10.1, y: 3.95 }), (ctx, t) => {
       const x = h(t);
       if (x < 5 || x >= 11) return;
-      person(ctx, 11.05, 3.8, 0.78, { ...folk(55, { style: 'curly', top: C.green, bottom: C.ink }), pose: 'lie', dir: 'r' }, t);
-      if (Q.detail) says(ctx, 10.4, 3.9, 1.9, t, ['zzz', 'Five more minutes.'], 10, 3.5);
+      person(ctx, 10.15, 3.8, 0.78, { ...folk(55, { style: 'curly', top: C.green, bottom: C.ink }), pose: 'lie', dir: 'r' }, t);
+      if (Q.detail) says(ctx, 9.9, 3.9, 1.9, t, ['zzz', 'Five more minutes.'], 10, 3.5);
     }, { depth: 16.2 });
 
     // Her friends, after noon: one building the flat-pack bookshelf's twin
@@ -468,7 +469,7 @@ export default {
     R.goose((t) => {
       const k = hide.k();
       return { x: BASKETS[0][0] + 0.55, y: BASKETS[0][1] + 0.48, z: 0.2 + 0.45 * k, pose: k > 0.5 && Math.sin(t * 0.5) > 0.8 ? 'honk' : 'sit', dir: 'l', hidden: k < 0.3 };
-    }, { bias: 0.9, kind: 'poke', inside: hide, hint: 'Two of everything here. One of the laundry baskets has a tail.' });
+    }, { bias: 1.5, kind: 'poke', inside: hide, hint: 'Two of everything here. One of the laundry baskets has a tail.' }); // in front of its basket (sorted at the basket's near corner), or the basket paints over it
 
     // The other goose: a ceramic one, on the tape line down the middle of
     // the floor, half on his side and half on hers.

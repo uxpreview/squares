@@ -517,9 +517,9 @@ export default {
       const arms = p.pose === 'rig' ? [2.9, 2.6] : p.pose === 'haul' ? [1.7 + Math.sin(t * 5) * 0.2, 1.5] : [1.2, 0.3];
       person(ctx, p.x, p.y, 0, { ...FLEECE, pose: 'stand', dir: p.pose === 'measure' ? 'l' : 'r', back: p.pose === 'measure', arms, wear: blank }, t);
       if (rain && p.pose === 'measure') {
-        // A clear poncho.
+        // A clear poncho, from the shoulders down (his head and hat clear).
         const [X, Y] = P(p.x, p.y, 0);
-        ctx.beginPath(); ctx.moveTo(X, Y - 2.5); ctx.lineTo(X - 0.5, Y - 0.7); ctx.lineTo(X + 0.5, Y - 0.7); ctx.closePath(); paint(ctx, alpha(C.white, 0.35), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
+        ctx.beginPath(); ctx.moveTo(X - 0.18, Y - 1.95); ctx.lineTo(X + 0.18, Y - 1.95); ctx.lineTo(X + 0.5, Y - 0.7); ctx.lineTo(X - 0.5, Y - 0.7); ctx.closePath(); paint(ctx, alpha(C.white, 0.35), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
       }
       if (p.pose === 'measure') {
         // The tape, up the door frame and back.

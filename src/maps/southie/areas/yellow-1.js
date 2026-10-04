@@ -587,8 +587,10 @@ export default {
     R.thing(3.4, 6.2, (ctx) => {
       chair(ctx, 1.35, 5.0, 0, C.wood, 'r');
       table(ctx, 1.85, 4.55, 1.5, 1.5, 1.15, C.woodLight);
-      chair(ctx, 2.2, 6.1, 0, C.wood, 'l');
     }, { on: neu });
+    // The near chair on its own, sorted after the things on the table, so
+    // its back stands in front of them instead of under them.
+    R.thing(3.0, 6.9, (ctx) => chair(ctx, 2.2, 6.1, 0, C.wood, 'l'), { on: neu, depth: 10.3 });
     R.thing(3.5, 6.3, (ctx) => {
       disc(ctx, 3.0, 5.7, 1.16, 0.2, C.coral, { lw: 0.02 });
       if (Q.detail) for (const [u, v] of [[2.95, 5.65], [3.05, 5.72], [3.0, 5.62]]) disc(ctx, u, v, 1.2, 0.05, C.red, { lw: 0.012, stroke: C.white });
@@ -615,7 +617,7 @@ export default {
     }, { anim: true, on: neu });
     // The teapot, steaming.
     R.thing(3.6, 6.35, (ctx, t) => {
-      const [X, Y] = P(2.35, 5.75, 1.15);
+      const [X, Y] = P(3.12, 5.02, 1.15); // the far corner, clear of the cage and the chairs' backs
       ctx.beginPath(); ctx.ellipse(X, Y - 0.22, 0.22, 0.2, 0, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.025 });
       if (!Q.detail) return;
       ctx.fillStyle = alpha(C.white, 0.7);
@@ -721,7 +723,7 @@ export default {
     };
     const SPEC = { dx: 0.06, dz: 2.12, sit: 1.62 };
     const RW = [RECL[1][0] + 0.8, RECL[1][1] + 0.6];
-    const waltAt = route([[3.7, 3.9, 3], [2.9, 7.2, 3], [5.6, 5.6, 3], [8.9, 5.3, 3], [6.2, 3.8, 2]], { speed: 0.9 });
+    const waltAt = route([[3.7, 3.9, 3], [2.9, 7.2, 3], [5.3, 5.1, 3], [8.9, 5.3, 3], [6.2, 3.8, 2]], { speed: 0.9 });
     const waltPos = (t) => (neu(t) ? (late(t) ? { x: RW[0], y: RW[1], z: 0.05, sleep: true, dir: 'r' } : waltAt(t)) : { x: -99, y: -99 });
     R.mover(waltPos, (ctx, t, p) => {
       if (p.x < -50) return;

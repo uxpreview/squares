@@ -794,7 +794,14 @@ export default {
       const lines = h < 9 ? ['...coffee run, City Point...', 'All quiet. Kssht.'] : h < 12 ? ['Truck stuck on Farragut.', 'Couch on a rope. Farragut.', 'Brown van double-parked.'] : h < 13 ? ['Line on a porch. Farragut.'] : h < 15.2 ? ['Truck with no roof. Day Blvd.', 'Man soaked. Castle Island.'] : h < 21 ? ['Truck\'s out! Farragut\'s clear.', 'Plane low over the bay.', 'Mattress in the road.'] : ['Goose on a porch. Farragut.', 'Say again? A goose?', 'Kssht. All quiet.'];
       const p = t % 8;
       if (p < 3.4 && Q.detail) {
-        speech(ctx, 12.2, 7.35, 3.2, lines[Math.floor(t / 8) % lines.length], { size: 0.36 }); // high, over the window, clear of her chair
+        // High over the window, running off to the right (its tail at its
+        // left end), so it's clear of her chair, the cat on the couch and the
+        // TV's doily (where the new people's gift sits after noon).
+        const text = lines[Math.floor(t / 8) % lines.length], s = 0.36;
+        ctx.save(); ctx.font = `${s * 40}px "Bagel Fat One", "Arial Black", sans-serif`;
+        const w = (ctx.measureText(text).width + s * 36) / 40;
+        ctx.restore();
+        speech(ctx, 12.2, 7.35, 4.0, text, { size: s, dx: w / 2 - s * 0.6 });
         ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
         const [X, Y] = P(12.2, 7.1, 1.6);
         for (const r of [0.18, 0.3]) { ctx.beginPath(); ctx.arc(X, Y, r, -1.2, -0.3); ctx.stroke(); }

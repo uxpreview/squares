@@ -380,7 +380,7 @@ export default {
       if (p.x < -50) return;
       person(ctx, p.x, p.y, 0.15, { ...collector, pose: 'sit', dir: 'r', arms: [2.5 + Math.sin(t * 1.3) * 0.2, 0.3] }, t);
       says(ctx, p.x, p.y, 2.5, t, ['Merry Christmas!', 'Southie Christmas.', 'All of it. Free.'], 9, 3.4);
-    }, { bias: 2.2 });
+    }, { bias: 3.0 }); // in front of the cushions (sorted at the couch's far end), or they paint over him
     R.mover((t) => (night(t) ? { x: cushX(1) + CUSH / 2, y: 3.85 } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
       says(ctx, p.x, p.y, 2.5, t, ['It\'s September.', 'Still a little damp.'], 9, 3.2, 4.5);
@@ -393,7 +393,7 @@ export default {
       const k = hide.k();
       if (has(COUCH)(t)) return { x: cushX(2) + CUSH / 2, y: 3.8, z: 0.72, pose: k > 0.5 && Math.sin(t * 0.6) > 0.8 ? 'honk' : 'sit', dir: 'l', hidden: k < 0.3 };
       return { x: 0.55, y: CLOSETS[0] + 0.55, z: 0, pose: k > 0.5 && Math.sin(t * 0.8) > 0.7 ? 'honk' : 'stand', dir: 'l', hidden: k < 0.3 };
-    }, { bias: 0.9, kind: 'poke', inside: hide, hint: 'Two of a kind, and one of them has feet. Or a beak.' });
+    }, { bias: 1.6, kind: 'poke', inside: hide, hint: 'Two of a kind, and one of them has feet. Or a beak.' }); // in front of the couch and its cushions once it's out
 
     // ---------- The finds ----------
     // The lamp and the TV count once they're up here (later than one

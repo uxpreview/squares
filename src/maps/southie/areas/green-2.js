@@ -419,7 +419,8 @@ export default {
     R.decoy({ id: 'trophy', at: [6.07, 4.75, 1.6], r: 0.6, say: ['That\'s the trophy.', 'Don\'t touch the trophy.', 'We said don\'t.'], when: old });
     // Whoever's asleep in the corner (Mike on the futon, then the nurse in
     // her bed) answers a tap, without waking up.
-    const nap = R.poke({ id: 'sleeper', at: (t) => (hh(t) >= 5 && hh(t) < 12.5 ? [10.7, 3.2, 1.0] : [11.8, 3.75, 0.9]), r: 0.7, teach: true, sound: 'shush', hold: 3, say: ['Mmph.', 'Five more minutes.', 'Zzz. Go away.'] });
+    // (Hers is tapped at the foot of the bed, clear of the sleep mask, a find.)
+    const nap = R.poke({ id: 'sleeper', at: (t) => (hh(t) >= 5 && hh(t) < 12.5 ? [10.7, 3.2, 1.0] : [11.9, 4.1, 0.75]), r: 0.6, teach: true, sound: 'shush', hold: 3, say: ['Mmph.', 'Five more minutes.', 'Zzz. Go away.'] });
     R.thing(11.9, 4.6, (ctx, t) => {
       const k = nap.k();
       if (k < 0.2 || !Q.detail) return;
@@ -567,7 +568,10 @@ export default {
         ...NIECE, pose: 'stand', dir: 'r', arms: [Math.sin(t * 0.7) > 0.4 ? 1.9 : 0.4, 1.1],
         hold: (c) => { c.beginPath(); c.rect(-0.12, -0.2, 0.2, 0.28); paint(c, C.mustard, { lw: 0.02 }); },
       }, t);
-      says(ctx, p.x, p.y, 1.8, t, ['Mom. A couch.', 'It\'s flying.', 'Can I have it?'], 9, 3, 4);
+      // Her bubble hangs high and off to the left, between the porch posts
+      // and the white-noise goose on its crate inside.
+      const nl = ['Mom. A couch.', 'It\'s flying.', 'Can I have it?'], ni = Math.floor((t + 4) / 9), np = t + 4 - ni * 9;
+      if (np < 3 && Q.detail) speech(ctx, p.x, p.y, 2.6, nl[ni % nl.length], { size: 0.4, dx: -1.15 });
     });
     // The nurse, up at eight-twenty: scrubs on, coffee, keys, out the door.
     R.mover((t) => (up(t) ? { x: 7.9, y: 3.4 } : { x: -99, y: -99 }), (ctx, t, p) => {
