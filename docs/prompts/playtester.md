@@ -20,7 +20,7 @@ The level is **{{LEVEL_NAME}}**. {{ONE_LINE}}
    - **You can look closer:** crop and enlarge part of a shot, the way a player pinches in on a phone. Give your coordinates in the full shot.
    - **Some things are hidden inside other things** that open when you tap them: a cupboard, a heap, a door. You can't see those in the shot. If you think something's inside something, give the spot you'd tap to open it.
    - A line under a thing's name in `labels.json` (`riddle`) is printed under it on the list: a clue to roughly where.
-   - **Some things that look like the goose aren't.** Only one is the goose.
+   - **Some things that look like the goose aren't.** Only one is the goose. In the game a lookalike answers back when tapped ("Not a goose."), so for the goose you may give two spots, `[[x, y], [x, y]]`: your first tap, and where you'd look next if it turned out to be a lookalike. The second only counts if the first really was one.
 3. Keep honest notes as you go: which things jumped out, which took a long look, which you never found, and any label that made you look for the wrong thing.
 
 ## Score yourself
