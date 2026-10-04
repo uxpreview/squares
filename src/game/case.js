@@ -23,6 +23,8 @@
 //     }],                                        //   until every clue is found
 //     notYet(have, need): [[who, line], ...],    // naming the culprit too early
 //     reveal: { lines: [[who, line], ...], zone, at, text },  // naming them right
+//                                          // (lines can be lines(isFound), to
+//                                          // follow what the player has seen)
 //     portrait(ctx, id, w, h, t),                // draws anyone in the case, framed
 //     onSolved(at), onOpen(),                    // tell the map's art (the goose takes the chair)
 //   }
@@ -124,6 +126,7 @@ export function caseState(world, isFound, saved) {
     wrong: saved.accused.filter((id) => id !== c.culprit).length,
     evidence: { found, total: world.totals.evidence },
     suspects,
+    isFound,
   };
 }
 
@@ -136,7 +139,8 @@ export function accuse(world, state, id) {
   if (!s || !def) return null;
   if (s.culprit) {
     if (!s.ready) return { kind: 'not-yet', lines: c.notYet(s.cluesFound, s.clues) };
-    return { kind: 'solved', lines: c.reveal.lines };
+    const lines = c.reveal.lines;
+    return { kind: 'solved', lines: typeof lines === 'function' ? lines(state.isFound) : lines };
   }
   return { kind: 'wrong', lines: def.scene };
 }

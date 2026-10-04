@@ -8,9 +8,10 @@
 // in front of the house, the bats, the lightning and its flash, and the
 // victory lap.
 //
-// Both are drawn every frame with nothing cached, so they stay cheap: flat
-// shapes, one path for anything repeated, small things only when Q.detail is
-// on, and nothing drawn that's off screen.
+// Both are drawn every frame, so they stay cheap: flat shapes, one path for
+// anything repeated, small things only when Q.detail is on, and nothing drawn
+// that's off screen. The backdrop's still layer (the night, the lawn, the cut
+// through the ground) is baked once the camera holds still (stamp()).
 import { ZK } from '../../engine/iso.js';
 import { C, Q, box, face, poly, paint, alpha, mix, shade, hash, dots, glow, disc } from '../../engine/art.js';
 import { rain, bolt } from '../../engine/weather.js';
@@ -1168,7 +1169,7 @@ function leaves(ctx, t) {
 const PUDDLES = [[-5, 26, 1.1], [11, 50, 1.3], [37.5, 47.5, 0.9], [24.6, 50.2, 0.6], [-8, 9, 0.9]];
 const STONES = [[14.8, 41.8], [12.4, 41.5], [10, 41.9], [7.6, 41.5], [5.2, 41.8], [2.9, 41.5], [0.6, 41.7], [-1.7, 41.5]];
 
-function lawn(ctx, t) {
+function lawn(ctx) {
   poly(ctx, [[LX0, LY0, 0], [LX1, LY0, 0], [LX1, LY1, 0], [LX0, LY1, 0]]);
   paint(ctx, NIGHT.lawn, { dots: NIGHT.lawnDots, density: 0.12, stroke: false });
   // The house's footings: dark earth where the ground floor sits (seen when
@@ -1191,7 +1192,10 @@ function lawn(ctx, t) {
   }
   ctx.fillStyle = mix(NIGHT.gravel, INK.stormNavy, 0.35);
   ctx.fill();
-  // Puddles, flashing with the lightning, rain rippling them.
+}
+
+// Puddles, flashing with the lightning, rain rippling them.
+function puddles(ctx, t) {
   const f = Math.round(storm.flash(t) * 6) / 6;
   const water = mix(mix(INK.stormNavy, INK.bone, 0.14), NIGHT.flash, f * 0.8);
   for (const [x, y, r] of PUDDLES) disc(ctx, x, y, 0.01, r, water, { stroke: false });
@@ -1259,9 +1263,13 @@ function strata(ctx, side) {
   }
 }
 
-function cut(ctx, t) {
-  const [FX0] = P3(LX0, LY1), [FX1] = P3(LX1, LY1), [RX1] = P3(LX1, LY0);
-  if (!seen(FX0, 0, RX1, PLATE[3])) return;
+const cutSeen = () => {
+  const [FX0] = P3(LX0, LY1), [RX1] = P3(LX1, LY0);
+  return seen(FX0, 0, RX1, PLATE[3]);
+};
+// What stays still in it (baked with the night, see backdrop) ...
+function cut(ctx) {
+  if (!cutSeen()) return;
   strata(ctx, 'right');
   strata(ctx, 'front');
   if (Q.detail) {
@@ -1271,6 +1279,12 @@ function cut(ctx, t) {
     rocksAndBones(ctx);
     pets(ctx);
     fossil(ctx);
+  }
+}
+// ... and what moves, drawn over it every frame, and its edges.
+function cutLive(ctx, t) {
+  if (!cutSeen()) return;
+  if (Q.detail) {
     chest(ctx, t);
     pipes(ctx, t);
     worms(ctx, t);
@@ -1690,19 +1704,24 @@ function washout(ctx, t) {
 // ---------- Backdrop ----------
 export function backdrop(ctx, t, world, fx) {
   VIEW = fx.view || null;
-  plate(ctx);
+  // The night, the lawn and the cut through the ground don't move: once the
+  // camera has held still for a frame they're one stamped picture, which is
+  // what an older laptop's graphics chip needs (with the whole backdrop
+  // switched off, the owner's laptop drew the house at 36 frames a second
+  // rather than 14).
+  // In a room most of it is off screen and it's cheaper drawn live than as a
+  // full-screen stamp, so only from about the whole house out.
+  const wide = VIEW && VIEW[2] - VIEW[0] > WIDE;
+  if (!wide || !stamp(ctx)) still(ctx);
   // The sky: the moon, the clouds and the far bats stay on the plate.
   ctx.save();
   platePath(ctx);
   ctx.clip();
-  haze(ctx);
-  moon(ctx);
   clouds(ctx, t);
   bats(ctx, t, false);
   ctx.restore();
-  lawn(ctx, t);
-  cut(ctx, t);
-  railings(ctx);
+  puddles(ctx, t);
+  cutLive(ctx, t);
   for (const [, draw] of THINGS) draw(ctx, t);
   smoke(ctx, t);
   // Rain on the lawn behind the house (the rest falls in the sky, over the rooms).
@@ -1712,6 +1731,52 @@ export function backdrop(ctx, t, world, fx) {
   ctx.clip();
   leaves(ctx, t);
   ctx.restore();
+}
+
+const WIDE = 60; // iso units across the screen: wider than this, stamp the still layer
+
+// Everything still under the house: the plate, the haze and the moon (the
+// clouds drift over it), the lawn and the cut through the ground.
+function still(ctx) {
+  plate(ctx);
+  ctx.save();
+  platePath(ctx);
+  ctx.clip();
+  haze(ctx);
+  moon(ctx);
+  ctx.restore();
+  lawn(ctx);
+  cut(ctx);
+  railings(ctx);
+}
+
+// Stamp the still layer, baked for exactly this view; false (draw it live)
+// while the camera is moving. A view seen two frames running is baked, once.
+const bakes = new WeakMap(); // canvas -> { last, key, cv }
+function stamp(ctx) {
+  const m = ctx.getTransform(), cvs = ctx.canvas;
+  if (!cvs || ctx.globalAlpha < 1 || Math.abs(m.b) > 1e-9 || Math.abs(m.c) > 1e-9) return false;
+  const key = [m.a, m.d, m.e, m.f, cvs.width, cvs.height, Q.lines, Q.detail].join();
+  let b = bakes.get(cvs);
+  if (!b) bakes.set(cvs, (b = { last: null, key: null, cv: null }));
+  const steady = b.last === key;
+  b.last = key;
+  if (b.key !== key) {
+    if (!steady) return false;
+    const cv = b.cv || (b.cv = document.createElement('canvas'));
+    if (cv.width !== cvs.width || cv.height !== cvs.height) { cv.width = cvs.width; cv.height = cvs.height; }
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.setTransform(m);
+    still(g);
+    b.key = key;
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(b.cv, 0, 0);
+  ctx.restore();
+  return true;
 }
 
 // ---------- Sky ----------

@@ -5,7 +5,7 @@
 // docs/levels/manor.md; the layout is plan.js.
 import { WALL } from '../../engine/iso.js';
 import { INK, NIGHT, storm, MIDNIGHT } from './style.js';
-import { AT, STOREY, LOOP } from './plan.js';
+import { AT, STOREY, LOOP, STAIRS, local } from './plan.js';
 import { walkers } from './evening.js';
 import { backdrop, sky, PLATE } from './ambient.js';
 import manorCase from './case.js';
@@ -53,6 +53,16 @@ export default {
     { id: 'up', name: 'Upstairs', z: STOREY },
   ],
   storey: 'ground',
+  // The house's own way up and down, beside the lift: tap the grand staircase
+  // (from the hall, or from the landing above it) or the cellar steps (from
+  // the kitchen's hatch, or the cellar). On the whole house it changes floors;
+  // in a room it takes you up or down into the room at the other end.
+  stairs: [
+    { zone: 'grand-hall', goes: 'guest-rooms', run: [local('grand-hall', ...STAIRS.grand.bottom), local('grand-hall', ...STAIRS.grand.top)], r: 1.2 },
+    { zone: 'guest-rooms', goes: 'grand-hall', run: [local('guest-rooms', ...STAIRS.grand.top), local('guest-rooms', 22, 17.6, 2.6)], r: 1.2 },
+    { zone: 'kitchen', goes: 'cellar', run: [local('kitchen', ...STAIRS.cellar.top), local('kitchen', 45.2, 10.4, 0)], r: 1.1 },
+    { zone: 'cellar', goes: 'kitchen', run: [local('cellar', ...STAIRS.cellar.bottom), local('cellar', ...STAIRS.cellar.top)], r: 1.1 },
+  ],
   // The lift that changes floors: a brass plate (its lamp is the coral one).
   lift: { plate: INK.candleGold, ink: NIGHT.plate },
   cutaway: { front: true, above: true, walls: 1.2, lift: 16, ghost: 0.05 },

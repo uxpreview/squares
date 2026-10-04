@@ -165,7 +165,10 @@ try {
           clues: [...(c.against || []), ...(c.alibi || [])].map((x) => x.find).filter(Boolean),
           lines: (c.scene || []).map(([who, text]) => [who, text]),
         })),
-        reveal: m.case.reveal.lines.map(([who, text]) => [who, text]),
+        // (Lines that follow what's been found: checked both ways.)
+        reveal: (typeof m.case.reveal.lines === 'function'
+          ? [...m.case.reveal.lines(() => true), ...m.case.reveal.lines(() => false)]
+          : m.case.reveal.lines).map(([who, text]) => [who, text]),
         names: m.case.names || {},
       } : null,
       // A trail (src/game/trail.js): its sightings, in order, and who points to each.

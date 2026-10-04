@@ -710,6 +710,21 @@ button.lift-floor {
 button.lift-floor:hover { background: none; }
 button.lift-floor:active { transform: none; }
 .lift-name { opacity: 0.62; transition: opacity 0.3s ease; }
+/* A whodunit: evidence still on that floor, a glass and a number on a tag. */
+.lift-clues {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px 1px 3px;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.lift-clues[hidden] { display: none; }
+.lift-clues svg { width: 11px; height: 11px; }
 /* The push button: a face in a ring, pressed in when you tap it, and lit
    (like a lamp behind it) on the floor you're on. */
 .lift-btn {
