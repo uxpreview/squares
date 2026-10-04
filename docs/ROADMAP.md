@@ -255,6 +255,8 @@ Nothing. Session 8 folded every open item into the plan or closed it (STRATEGY.m
 
 Made:
 
+- **The rename waits until the game is further along:** the owner is holding off on the domains and the trademark search, so session 11 moves behind the rest of v2; the retunes go first (13 next). *(13, the owner)*
+- **Moving Day's verb is the flip:** the lease clock jumps between the matching before and after, and every apartment has a find that's what changed (southie.md 57 to 59). The owner asked the lead to research the day and make the calls. *(13, the lead)*
 - **The ship's chase before the rename:** gooseatlarge.com wasn't on the owner's Vercel account and the trademark search wasn't done, so session 12 went first, as the plan said. *(12, the owner)*
 - **A trail's quarry is always one step ahead:** it's drawn only at the sighting the player is on, in its hours, so every one anyone sees is the one to tap and nobody finds the ending first. The art reads the game's state for it (`onStep`), as pokes follow taps. *(12, the lead)*
 - **A trail needs no save change:** sightings are finds, and a place's old finds keep their ids when its format changes. *(12, the lead)*
