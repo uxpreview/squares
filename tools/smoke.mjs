@@ -768,11 +768,13 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 900);
   const flipHour = () => S(page, async () => { const { hour } = await import('/src/maps/southie/clock.js'); return Math.round(hour(window.__squares.clock.now()) * 10) / 10; });
   const says0 = await S(page, () => document.getElementById('dial-next').textContent);
+  // (Watched for, not looked for: on a busy machine a frame can outlast it.)
+  await S(page, () => { window.__ghosts = 0; new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.classList && n.classList.contains('flip-ghost')) window.__ghosts++; }).observe(document.body, { childList: true, subtree: true }); });
   await page.click('#dial');
   await wait(page, 120);
-  const ghost = await S(page, () => document.querySelectorAll('.flip-ghost').length);
+  const ghost = await S(page, () => window.__ghosts);
   const evening = await flipHour(), says1 = await S(page, () => document.getElementById('dial-next').textContent);
-  await wait(page, 1800);
+  await page.waitForFunction(() => !document.querySelector('.flip-ghost'), null, { timeout: 8000 }).catch(() => {});
   const cleared = await S(page, () => document.querySelectorAll('.flip-ghost').length);
   await page.click('#dial');
   await wait(page, 300);
