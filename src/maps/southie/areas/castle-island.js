@@ -824,7 +824,9 @@ export default {
     // canopy's front post, bobbing over the tables all day and all night.
     // (On the post nearer the stand: tied to the far one it floated up the
     // screen onto the plane spotters' heads, a goose standing on a hat.)
-    const BAL = [68.5, 5.25, G + 3.3], POST = [67.95, 4.65];
+    // (High over the canopy on a long string: lower, at the canopy's edge, it
+    // read as a real goose sitting under the awning, not a balloon.)
+    const BAL = [68.5, 5.25, G + 4.4], POST = [67.95, 4.65];
     const balAt = (t) => [BAL[0] + Math.sin(t * 0.9) * 0.08, BAL[1] + Math.cos(t * 0.7) * 0.05, BAL[2] + Math.sin(t * 1.3) * 0.08];
     R.thing(BAL[0] + 0.6, BAL[1] + 0.6, (ctx, t) => {
       const [x, y, z] = balAt(t);
@@ -877,8 +879,10 @@ export default {
     // leaves the other. (No second hot dog in his hand: one plain one, eaten
     // over and over beside the box, read as the find.)
     R.thing(80.9, 3.0, (ctx) => {
-      box(ctx, 80.6, 2.7, G, 0.6, 0.6, 1.0, C.green, { lw: 0.03, dens: 0.14 });
-      box(ctx, 80.56, 2.66, G + 1.0, 0.68, 0.68, 0.08, shade(C.green, 0.2), { flat: true, lw: 0.025 });
+      // (A tall one, so it shows over the fort's near rampart.)
+      box(ctx, 80.6, 2.7, G, 0.6, 0.6, 1.35, C.green, { lw: 0.03, dens: 0.14 });
+      box(ctx, 80.56, 2.66, G + 1.35, 0.68, 0.68, 0.08, shade(C.green, 0.2), { flat: true, lw: 0.025 });
+      if (Q.detail) box(ctx, 81.2, 2.85, G + 0.95, 0.01, 0.3, 0.12, shade(C.green, 0.45), { flat: true, stroke: false });
     });
 
     // ---------- The one for later (after noon) ----------
@@ -886,9 +890,10 @@ export default {
     // bin's lid, FOR LATER in marker. Later never comes. The bin's lid is
     // bare all morning, so the flip shows it. A tap opens the box: a hot dog
     // with everything.
-    const CL = [80.62, 2.78, G + 1.08], CW = 0.56, CD = 0.42, CH = 0.12;
+    // (Big enough to read on a phone, overhanging the lid a little.)
+    const CL = [80.42, 2.6, G + 1.43], CW = 0.95, CD = 0.78, CH = 0.24;
     const shell = R.poke({ id: 'clamshell', at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, when: LATER.when, sound: 'clunk', say: ['FOR LATER, it says.', 'Still warm. Somehow.'] });
-    R.thing(81.25, 3.36, (ctx, t) => {
+    R.thing(81.4, 3.4, (ctx, t) => {
       if (!LATER.when(t)) return;
       const [x, y, z] = CL, k = shell.k();
       const foam = tint(C.greyLight, 0.55);
@@ -903,16 +908,16 @@ export default {
           // In marker, lying on the lid along x.
           const [X, Y] = P3(x + CW / 2, y + dy / 2, hz + dz / 2 + 0.01);
           ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, -1, 0.5, 0, 0); ctx.scale(1 / 105, 1 / 105);
-          ctx.font = '8px "Bagel Fat One", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.ink;
-          ctx.fillText('FOR LATER', 0, 0); ctx.restore();
+          ctx.font = '17px "Bagel Fat One", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.red;
+          ctx.fillText('FOR', 0, -10); ctx.fillText('LATER', 0, 9); ctx.restore();
         }
       };
       const dog = () => {
-        if (k < 0.25) { if (Q.detail) line(ctx, [[x + 0.12, y + CD - 0.01, hz + 0.02], [x + 0.36, y + CD - 0.01, hz + 0.03]], C.mustard, 0.03); return; }
+        if (k < 0.25) { if (Q.detail) line(ctx, [[x + 0.15, y + CD - 0.01, hz + 0.03], [x + 0.55, y + CD - 0.01, hz + 0.04]], C.mustard, 0.045); return; }
         loadedDog(ctx, x + CW / 2, y + CD / 2, hz + 0.02);
       };
       if (th > Math.PI / 2) { lid(); dog(); } else { dog(); lid(); }
-    }, { anim: true, on: LATER.when, depth: 81.25 + 3.36 + 0.02 });
+    }, { anim: true, on: LATER.when, depth: 81.4 + 3.4 + 0.02 });
     R.find({ id: 'hotdog', label: 'A hot dog with everything', kind: 'poke', ...LATER, at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, inside: shell, hint: 'The Courier bought two and only ate one. He set the other one down for later.' });
 
     // ---------- The plane spotters, by the fence ----------
@@ -1285,17 +1290,23 @@ export default {
       if (Q.detail && every(18, 3.5, 0.2)(t)) speech(ctx, p.x, p.y, z + 3, 'Anyone seen an earbud?', { size: 0.38 });
     });
     // The earbud.
-    const BUD = [BX + 0.95, BY + 0.95];
+    // (A step clear of the bench beside it, which hid the stem.)
+    const BUD = [BX + 0.7, BY + 1.2];
     R.thing(BUD[0], BUD[1], (ctx) => {
       const z = gz(...BUD) + 0.02, [X0, Y0] = P3(BUD[0], BUD[1], z);
       // (Drawn a size up, so it can be found on a phone.)
       ctx.save(); ctx.translate(X0, Y0); ctx.scale(1.6, 1.6);
       const X = 0, Y = 0;
-      ctx.beginPath(); ctx.ellipse(X, Y + 0.02, 0.36, 0.13, 0, 0, TAU); ctx.fillStyle = alpha(C.ink, 0.18); ctx.fill();
-      ctx.beginPath(); ctx.roundRect(X - 0.02, Y - 0.12, 0.42, 0.13, 0.06); paint(ctx, C.white, { lw: 0.035 });
-      ctx.beginPath(); ctx.arc(X - 0.1, Y - 0.14, 0.2, 0, TAU); paint(ctx, C.white, { lw: 0.035 });
-      ctx.beginPath(); ctx.arc(X - 0.16, Y - 0.2, 0.08, 0, TAU); ctx.fillStyle = C.greyLight; ctx.fill();
-      ctx.beginPath(); ctx.arc(X - 0.03, Y - 0.2, 0.035, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
+      // An earbud, not a ball: a small bud with its grey rubber tip, and a
+      // long thin stem off it at a slant, a dark mic cap on its end.
+      ctx.beginPath(); ctx.ellipse(X + 0.08, Y + 0.02, 0.36, 0.1, 0, 0, TAU); ctx.fillStyle = alpha(C.ink, 0.18); ctx.fill();
+      ctx.save(); ctx.translate(X - 0.12, Y - 0.14); ctx.rotate(0.35);
+      ctx.beginPath(); ctx.roundRect(0.02, -0.045, 0.52, 0.09, 0.045); paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.roundRect(0.46, -0.045, 0.08, 0.09, 0.04); ctx.fillStyle = C.grey; ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.ellipse(X - 0.12, Y - 0.15, 0.14, 0.12, -0.3, 0, TAU); paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.ellipse(X - 0.22, Y - 0.2, 0.07, 0.06, -0.3, 0, TAU); paint(ctx, C.greyLight, { lw: 0.02 });
+      ctx.beginPath(); ctx.arc(X - 0.06, Y - 0.19, 0.025, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
       ctx.restore();
     });
     R.find({ id: 'earbud', label: 'A lost earbud', kind: 'hard', at: [BUD[0], BUD[1], gz(...BUD) + 0.15], r: 0.8, riddle: 'One ear in, one ear out, round and round.', hint: 'The jogger lapping the Sugar Bowl is one short. Look on the ground inside the ring of benches.' });
@@ -1552,25 +1563,26 @@ export default {
       boxPts(FC[0] - 0.1, FC[1] - 0.1, G + PARADE, 0.2, 0.2, 6.5),
     ]), { ...byNight, depth: 99.001 });
     R.light({ at: [FC[0], FRONT_Y + 2.5, G + 2.2], r: 5, color: LIT, k: (t) => nightK(t) * 0.55 });
-    // The flag, in the wind off the harbor.
+    // The flag, in the wind off the harbor. (Flying east, off the bin at
+    // the line's end: flying west it hid the FOR LATER box.)
     R.thing(FC[0], FC[1], (ctx, t) => {
       const X0 = FC[0] - FC[1], Y0 = (FC[0] + FC[1]) / 2 - (G + PARADE + 6.3) * ZK;
       const wv = (u) => Math.sin(t * 4 - u * 3) * 0.12 * u;
       const L = 1.7, H = 1.0, n = 8;
       const top = [], bot = [];
-      for (let i = 0; i <= n; i++) { const u = i / n; top.push([X0 - u * L, Y0 + wv(u)]); bot.push([X0 - u * L, Y0 + H + wv(u)]); }
+      for (let i = 0; i <= n; i++) { const u = i / n; top.push([X0 + u * L, Y0 + wv(u)]); bot.push([X0 + u * L, Y0 + H + wv(u)]); }
       ctx.beginPath(); top.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y))); bot.slice().reverse().forEach(([X, Y]) => ctx.lineTo(X, Y)); ctx.closePath();
       paint(ctx, C.white, { lw: 0.035 });
       if (Q.detail) {
         for (let s = 0; s < 7; s += 2) {
           ctx.beginPath();
-          for (let i = 0; i <= n; i++) { const u = i / n; ctx.lineTo(X0 - u * L, Y0 + (s / 7) * H + wv(u)); }
-          for (let i = n; i >= 0; i--) { const u = i / n; ctx.lineTo(X0 - u * L, Y0 + ((s + 1) / 7) * H + wv(u)); }
+          for (let i = 0; i <= n; i++) { const u = i / n; ctx.lineTo(X0 + u * L, Y0 + (s / 7) * H + wv(u)); }
+          for (let i = n; i >= 0; i--) { const u = i / n; ctx.lineTo(X0 + u * L, Y0 + ((s + 1) / 7) * H + wv(u)); }
           ctx.closePath(); ctx.fillStyle = C.red; ctx.fill();
         }
         ctx.beginPath();
-        for (let i = 0; i <= 4; i++) { const u = (i / 4) * 0.45; ctx.lineTo(X0 - u * L, Y0 + wv(u)); }
-        for (let i = 4; i >= 0; i--) { const u = (i / 4) * 0.45; ctx.lineTo(X0 - u * L, Y0 + 0.55 * H + wv(u)); }
+        for (let i = 0; i <= 4; i++) { const u = (i / 4) * 0.45; ctx.lineTo(X0 + u * L, Y0 + wv(u)); }
+        for (let i = 4; i >= 0; i--) { const u = (i / 4) * 0.45; ctx.lineTo(X0 + u * L, Y0 + 0.55 * H + wv(u)); }
         ctx.closePath(); ctx.fillStyle = C.navy; ctx.fill();
       }
     }, { anim: true, depth: 99.1 });

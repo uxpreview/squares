@@ -402,12 +402,19 @@ function hood(ctx, x, y, z, d, c) {
   const [ex, ez] = arc[0];
   bar(ctx, [ex, y - 0.3, ez], [ex, y + 0.3, ez], C.tealLight, 0.06);
 }
-// A webbed foot over a rim, toes down: the goose's tell.
-function webFoot(ctx, x, y, z) {
+// A webbed foot over a rim, toes down: the goose's tell. Big and orange,
+// a leg and three spread toes with the bones lined in, so it reads as a
+// goose's foot on a phone.
+const FOOT = mix(C.coral, C.mustard, 0.35);
+function webFoot(ctx, x, y, z, s = 1.8) {
   const [X, Y] = P(x, y, z);
-  ctx.beginPath(); ctx.moveTo(X - 0.03, Y - 0.08); ctx.lineTo(X - 0.02, Y + 0.08);
-  ctx.lineTo(X - 0.13, Y + 0.24); ctx.lineTo(X - 0.04, Y + 0.2); ctx.lineTo(X + 0.01, Y + 0.27); ctx.lineTo(X + 0.06, Y + 0.2); ctx.lineTo(X + 0.15, Y + 0.23); ctx.lineTo(X + 0.04, Y + 0.08); ctx.lineTo(X + 0.04, Y - 0.08); ctx.closePath();
-  paint(ctx, C.coral, { lw: 0.025 });
+  ctx.save(); ctx.translate(X, Y); ctx.scale(s, s);
+  ctx.beginPath(); ctx.moveTo(-0.04, -0.1); ctx.lineTo(-0.03, 0.08);
+  ctx.lineTo(-0.17, 0.26); ctx.lineTo(-0.05, 0.21); ctx.lineTo(0.01, 0.3); ctx.lineTo(0.07, 0.21); ctx.lineTo(0.19, 0.25); ctx.lineTo(0.05, 0.08); ctx.lineTo(0.05, -0.1); ctx.closePath();
+  paint(ctx, FOOT, { lw: 0.02 });
+  ctx.strokeStyle = shade(FOOT, 0.35); ctx.lineWidth = 0.012;
+  for (const [tx, ty] of [[-0.15, 0.25], [0.01, 0.28], [0.17, 0.24]]) { ctx.beginPath(); ctx.moveTo(0.01, 0.09); ctx.lineTo(tx, ty); ctx.stroke(); }
+  ctx.restore();
 }
 // o: { hood: 0 folded back .. 1 pulled over, inside(ctx): what's in the
 // bassinet, drawn before its front rim, empty: no dog }
@@ -639,17 +646,18 @@ export default {
     // PH (the penthouse) in red marker that nobody read.
     const HX = 6.95, HY = 7.45;
     R.thing(HX + 0.6, HY + 0.6, (ctx) => {
-      carton(ctx, HX, HY, 0, 0.6, 0.6, 1.85, null);
+      // (No taller than the stack beside it, and its marker small, so it
+      // reads as one more box until you flip back and compare.)
+      carton(ctx, HX, HY, 0, 0.6, 0.6, 1.45, null);
       if (!Q.detail) return;
-      // The heater on its side: a pole, a dish on top, a flame.
+      // The heater on its side: a pole, a dish on top, a flame, printed small.
       const fx = HX + 0.3, fy = HY + 0.61;
-      face(ctx, [[fx - 0.03, fy, 0.3], [fx + 0.03, fy, 0.3], [fx + 0.03, fy, 1.35], [fx - 0.03, fy, 1.35]], C.ink, { stroke: false });
-      face(ctx, [[fx - 0.2, fy, 1.35], [fx + 0.2, fy, 1.35], [fx + 0.12, fy, 1.5], [fx - 0.12, fy, 1.5]], C.ink, { stroke: false });
-      face(ctx, [[fx - 0.12, fy, 0.22], [fx + 0.12, fy, 0.22], [fx + 0.12, fy, 0.3], [fx - 0.12, fy, 0.3]], C.ink, { stroke: false });
-      face(ctx, [[fx - 0.05, fy, 1.18], [fx + 0.05, fy, 1.18], [fx, fy, 1.32]], C.coral, { stroke: false });
-      lettering(ctx, 'x', fx, fy + 0.005, 1.68, 'HEATER', 0.09, C.ink);
-      lettering(ctx, 'y', HX + 0.61, HY + 0.3, 1.45, 'PH', 0.22, C.red);
-      lettering(ctx, 'y', HX + 0.61, HY + 0.3, 1.18, 'FL 3', 0.12, C.red);
+      face(ctx, [[fx - 0.02, fy, 0.35], [fx + 0.02, fy, 0.35], [fx + 0.02, fy, 0.95], [fx - 0.02, fy, 0.95]], C.ink, { stroke: false });
+      face(ctx, [[fx - 0.13, fy, 0.95], [fx + 0.13, fy, 0.95], [fx + 0.08, fy, 1.04], [fx - 0.08, fy, 1.04]], C.ink, { stroke: false });
+      face(ctx, [[fx - 0.08, fy, 0.3], [fx + 0.08, fy, 0.3], [fx + 0.08, fy, 0.35], [fx - 0.08, fy, 0.35]], C.ink, { stroke: false });
+      face(ctx, [[fx - 0.03, fy, 0.84], [fx + 0.03, fy, 0.84], [fx, fy, 0.93]], C.coral, { stroke: false });
+      lettering(ctx, 'x', fx, fy + 0.005, 1.25, 'HEATER', 0.06, C.ink);
+      lettering(ctx, 'y', HX + 0.61, HY + 0.3, 1.2, 'PH FL 3', 0.06, C.red);
     }, { on: after });
     R.find({
       id: 'heater', label: 'Something meant for upstairs', kind: 'hard', at: [HX + 0.3, HY + 0.3, 1.0], r: 0.75, ...AFTER,

@@ -420,7 +420,9 @@ export default {
         // not a scrap of paper, and left of the balcony's corner post, which
         // cut it in two.)
         const [X0, Y0] = P(TUB[0] - 0.02, TUB[1] + 0.8, z + 0.06);
-        ctx.save(); ctx.translate(X0, Y0); ctx.scale(2.3, 2.3);
+        ctx.save(); ctx.translate(X0, Y0); ctx.scale(3.2, 3.2);
+        // A grey rump under the cover's lip first, so it's a bird's back end.
+        ctx.beginPath(); ctx.ellipse(0.04, -0.04, 0.1, 0.07, 0, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.02 });
         ctx.rotate(Math.sin(t * 2.5) > 0.9 ? 0.12 : 0);
         const tips = [[-0.2, -0.2], [-0.25, -0.07], [-0.18, 0.05]];
         ctx.beginPath(); ctx.moveTo(0.06, -0.12);
@@ -491,13 +493,15 @@ export default {
     }, { anim: true, on: during(15.4, 26) });
 
     // The deck box, still inside by the balcony windows (it came today, and
-    // it's raining): dark resin planks, a lid with a handle and a latch,
-    // CUSHIONS on the side. Tap it and the lid lifts: cushions, and the
+    // it's raining): brown resin planks, a lid with a handle, propped ajar
+    // on the cushions with a strap hanging out, CUSHIONS on the side. Tap it and the lid lifts: cushions, and the
     // binoculars on top of them. (The balcony's full: the tub has it.)
-    const box0 = [11.3, 7.0], BW = 0.66, BD = 1.1, BH = 0.6, RESIN = mix(C.grey, C.ink, 0.35);
+    const box0 = [11.3, 7.0], BW = 0.7, BD = 1.2, BH = 0.62, RESIN = mix(C.brown, C.wood, 0.25);
     const lid = R.poke({ id: 'deckbox', at: [box0[0] + BW / 2, box0[1] + BD / 2, 0.55], r: 0.7, sound: 'clunk', say: ['Deck box. Not on the deck yet.', 'Cushions.'] });
     R.thing(box0[0] + BW, box0[1] + BD, (ctx) => {
-      const k = lid.k(), a = k * 1.75, [x0, y0] = box0;
+      // Shut, the lid still sits ajar on the stuffed cushions (a dark gap, and
+      // the binoculars' strap hanging out), so it plainly opens.
+      const k = lid.k(), a = 0.24 + k * 1.51, [x0, y0] = box0;
       box(ctx, x0, y0, 0, BW, BD, BH, RESIN, { lw: 0.035, dots: shade(RESIN, 0.4), density: 0.15, top: tint(RESIN, 0.1) });
       // The lid, hinged at the back (against the house): once it's up it's
       // behind what's inside, so it goes first.
@@ -507,7 +511,7 @@ export default {
         face(ctx, [[fx, y0, fz], [fx, y0 + BD, fz], [fx, y0 + BD, fz - 0.07 * Math.cos(a)], [fx, y0, fz - 0.07 * Math.cos(a)]], RESIN, { lw: 0.02 });
       };
       if (k > 0.5) drawLid();
-      if (k > 0.02) {
+      {
         // The inside: its dark rim, a teal cushion, the binoculars on it.
         rect(ctx, x0 + 0.04, y0 + 0.04, BW - 0.08, BD - 0.08, BH + 0.002, shade(RESIN, 0.45), { lw: 0.02 });
         rect(ctx, x0 + 0.1, y0 + 0.1, BW - 0.2, BD - 0.2, BH + 0.004, C.teal, { lw: 0.015 });
@@ -521,10 +525,17 @@ export default {
         lettering(ctx, 'y', x0 + BW + 0.01, y0 + BD / 2, 0.3, 'CUSHIONS', 0.09, tint(C.greyLight, 0.3));
       }
       if (k <= 0.5) drawLid();
-      // Its handle and latch, on the front edge.
+      // Its handle, on the front edge, and the strap hanging out of the gap
+      // down the front: coral, a loop and a buckle.
       if (k < 0.3) {
-        box(ctx, x0 + BW, y0 + BD / 2 - 0.18, BH - 0.12, 0.04, 0.36, 0.06, C.black, { flat: true, stroke: false });
-        box(ctx, x0 + BW, y0 + BD / 2 - 0.04, BH - 0.24, 0.05, 0.08, 0.14, tint(C.greyLight, 0.2), { flat: true, lw: 0.015 });
+        box(ctx, x0 + BW, y0 + BD / 2 - 0.18, BH - 0.14, 0.04, 0.36, 0.06, C.black, { flat: true, stroke: false });
+        const sx = x0 + BW + 0.02, ya = y0 + 0.22, yb = y0 + 0.42;
+        const pts = [[sx - 0.06, ya, BH + 0.06], [sx, ya, BH - 0.02], [sx, ya - 0.02, 0.22], [sx, (ya + yb) / 2, 0.1], [sx, yb + 0.02, 0.22], [sx, yb, BH - 0.02], [sx - 0.06, yb, BH + 0.06]];
+        ctx.beginPath(); pts.forEach((q, i) => { const [X, Y] = P(...q); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.06; ctx.stroke();
+        box(ctx, sx, ya - 0.05, 0.3, 0.02, 0.1, 0.08, C.greyLight, { flat: true, lw: 0.015 });
       }
     }, { anim: true });
     R.find({

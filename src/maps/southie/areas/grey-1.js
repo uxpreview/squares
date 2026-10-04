@@ -17,7 +17,10 @@ import { at, between, rainK, nightK } from '../clock.js';
 import { ladyLook, OPEN_HOUSE } from '../day.js';
 import { H, during, track, boards, edison, kitchenL, sagaOn, saga, porchDepth, onPorch, rails } from './grey-2.js';
 
-const BOOTIE = tint(C.sky, 0.25);
+// Paper shoe covers: plain blue, so they read as booties at phone size.
+const BOOTIE = shade(C.sky, 0.08);
+// The goose's feet: orange, never red, so they read as feet, not booties.
+const FOOT = mix(C.coral, C.mustard, 0.35);
 const LEMON = mix(C.mustard, C.butter, 0.35); // a lemon yellow, brighter than the badge's gold
 const REAL = C.mustard; // a real lemon: a touch duller
 // When it sells: as the last visitor leaves (the flyer by the door says so).
@@ -182,13 +185,27 @@ function realLemon(ctx, x, y, z, s = 1) {
   paint(ctx, C.leaf, { lw: 0.02 });
   ctx.restore();
 }
-function bootie(ctx, x, y, a = 0) {
-  const [X, Y] = P(x, y, 0.08);
-  ctx.save(); ctx.translate(X, Y); ctx.rotate(a);
-  ctx.beginPath(); ctx.ellipse(0, 0, 0.34, 0.17, 0, 0, Math.PI * 2);
+// A paper shoe cover, seen from the side so it reads as a shoe: a puffy
+// blue slipper, toe forward, with a gathered elastic mouth at the ankle.
+function bootie(ctx, x, y, f = 1, s = 1) {
+  const [X, Y] = P(x, y, 0);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
+  ctx.beginPath();
+  ctx.moveTo(-0.3, 0); ctx.lineTo(0.3, 0);
+  ctx.quadraticCurveTo(0.42, -0.02, 0.38, -0.12);
+  ctx.quadraticCurveTo(0.3, -0.22, 0.05, -0.26);
+  ctx.lineTo(-0.02, -0.38); ctx.lineTo(-0.32, -0.38);
+  ctx.quadraticCurveTo(-0.38, -0.18, -0.3, 0); ctx.closePath();
   paint(ctx, BOOTIE, { lw: 0.035, dots: shade(BOOTIE, 0.3), density: 0.25 });
-  ctx.beginPath(); ctx.ellipse(-0.04, -0.03, 0.2, 0.08, 0, 0, Math.PI * 2);
-  paint(ctx, tint(C.white, 0.2), { lw: 0.025 });
+  // The elastic ankle, gathered.
+  ctx.beginPath(); ctx.ellipse(-0.17, -0.38, 0.16, 0.05, 0, 0, Math.PI * 2);
+  paint(ctx, shade(BOOTIE, 0.35), { lw: 0.03 });
+  if (Q.detail) {
+    ctx.strokeStyle = C.white; ctx.lineWidth = 0.02;
+    for (let i = 0; i < 5; i++) { const cx = -0.29 + i * 0.06; ctx.beginPath(); ctx.moveTo(cx, -0.33); ctx.lineTo(cx + 0.01, -0.28); ctx.stroke(); }
+    // The seam along the sole.
+    ctx.beginPath(); ctx.moveTo(-0.28, -0.05); ctx.lineTo(0.32, -0.05); ctx.strokeStyle = shade(BOOTIE, 0.3); ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -274,12 +291,17 @@ export default {
         const px = d.hinge + d.dir * (DW - 0.14) * Math.cos(a), py = FY + (DW - 0.14) * Math.sin(a) + 0.01;
         face(ctx, [[px - 0.02, py, 0.5], [px + 0.02, py, 0.5], [px + 0.02, py, 0.85], [px - 0.02, py, 0.85]], C.black, { lw: 0.015 });
       });
-      // The tell: a coral webbed foot out under the left door, toes twitching.
+      // The tell: a big orange webbed foot out under the left door, toes
+      // spread with the webbing lined in, so a still says goose.
       if (gooseDoor.k() < 0.3) {
-        const w = Math.sin(t * 3) > 0.92 ? 0.04 : 0;
-        const pts = [[1.52, FY - 0.02], [1.44 - w, FY + 0.3], [1.55, FY + 0.24], [1.62, FY + 0.38], [1.7, FY + 0.24], [1.82 + w, FY + 0.3], [1.72, FY - 0.02]];
+        const w = Math.sin(t * 3) > 0.92 ? 0.05 : 0;
+        const toes = [[1.34 - w, FY + 0.52], [1.6, FY + 0.6], [1.86 + w, FY + 0.52]];
+        const pts = [[1.5, FY - 0.02], toes[0], [1.5, FY + 0.42], toes[1], [1.72, FY + 0.42], toes[2], [1.72, FY - 0.02]];
         ctx.beginPath(); pts.forEach(([x, y], j) => { const [X, Y] = P(x, y, 0.02); j ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.closePath();
-        paint(ctx, C.coral, { lw: 0.025 });
+        paint(ctx, FOOT, { lw: 0.03 });
+        // The toes' bones, so it's webbing and not a shoe.
+        ctx.strokeStyle = shade(FOOT, 0.35); ctx.lineWidth = 0.02;
+        for (const [x, y] of toes) { const [A, B] = P(1.61, FY + 0.05, 0.02), [X, Y] = P(x, y, 0.02); ctx.beginPath(); ctx.moveTo(A, B); ctx.lineTo(X, Y); ctx.stroke(); }
       }
     }, { anim: true, depth: 8.02 });
     // The realtor's name tag, left on the island.
@@ -421,8 +443,22 @@ export default {
       lettering(ctx, 'x', 10.37, 3.01, 1.2, 'BOOTIES ON', 0.1, C.ink);
       lettering(ctx, 'x', 10.37, 3.01, 1.04, 'PLEASE', 0.08, C.ink);
     });
-    R.thing(11.9, 3.0, (ctx) => { bootie(ctx, 11.45, 2.7, -0.2); bootie(ctx, 11.8, 2.95, 0.25); });
-    R.find({ id: 'booties', label: 'A pair of shoe booties', kind: 'spot', at: [11.62, 2.82, 0.15], r: 0.85 });
+    // By the door: a cardboard box of them, open, blue covers spilling out,
+    // BOOTIES on its side, and a pair dropped on the floor beside it.
+    R.thing(11.4, 2.55, (ctx) => {
+      const x0 = 10.85, y0 = 1.95, w = 0.55, d = 0.55, h = 0.5, k = C.woodLight;
+      box(ctx, x0, y0, 0, w, d, h, k, { lw: 0.035 });
+      rect(ctx, x0 + 0.05, y0 + 0.05, w - 0.1, d - 0.1, h + 0.001, shade(BOOTIE, 0.2), { lw: 0.02 });
+      for (const [dx, dy, dz] of [[0.15, 0.15, 0.06], [0.38, 0.2, 0.1], [0.25, 0.38, 0.12]]) {
+        const [X, Y] = P(x0 + dx, y0 + dy, h + dz);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.17, 0.09, 0.3, 0, Math.PI * 2); paint(ctx, BOOTIE, { lw: 0.025 });
+      }
+      // Flaps folded open.
+      face(ctx, [[x0, y0 + d, h], [x0 + w, y0 + d, h], [x0 + w, y0 + d + 0.25, h + 0.18], [x0, y0 + d + 0.25, h + 0.18]], tint(k, 0.15), { lw: 0.025 });
+      lettering(ctx, 'y', x0 + w + 0.01, y0 + d / 2, h * 0.5, 'BOOTIES', 0.1, C.navy);
+    });
+    R.thing(11.9, 3.0, (ctx) => { bootie(ctx, 11.4, 2.7, 1, 1.1); bootie(ctx, 11.8, 2.95, -1, 1.1); });
+    R.find({ id: 'booties', label: 'A pair of shoe booties', kind: 'spot', at: [11.5, 2.65, 0.2], r: 0.95 });
 
     // ---------- What changed: the flyer by the door ----------
     // On an easel by the booties: FOR SALE, the house, ASKING in big red, NO
