@@ -11,8 +11,8 @@
 // morning; umbrellas out in the rain; at 3pm, when the truck gets out, they
 // stand up and cheer and every card says 10. A couch from somebody's curb
 // is carried onto the lawn at 1pm and three of them sit on it till the small
-// hours, with a cooler, a radio and a lantern. The goose has its own chair,
-// turned the wrong way round.
+// hours, with a cooler (the old fridge, on ice), a radio and a lantern. The
+// goose is one of the judges, in a yellow poncho like the kid's beside it.
 //
 // Also: the kid whose kite is stuck in a tree (and the dad whose frisbee joins
 // it at four), the playground (empty in the rain, puddles, then back), the
@@ -22,7 +22,7 @@
 // gulls, and pigeons on the Admiral.
 //
 // World units, like plan.js and land.js (this area sits at the map's corner).
-import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha, cylinder, note, paintText } from '../../../engine/art.js';
+import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha, cylinder, note, paintText, goose } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { route } from '../../../engine/actors.js';
 import { drawLand, wade } from '../../../engine/terrain.js';
@@ -225,6 +225,63 @@ function scoreCard(ctx, x, y, z, text, red = false) {
   lettering(ctx, 'y', x + 0.09, y + 0.1, cz - 0.02, text, text.length > 2 ? 0.3 : 0.46, red ? C.red : C.ink, 'Bagel Fat One');
 }
 
+// A yellow rain poncho, hood up, over someone seen from behind (in the
+// person's own units, at their feet): the goose's twin wears one all day.
+const PONCHO = C.mustard;
+function poncho(ctx, x, y, z, s = 1) {
+  const [X, Y] = P3(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(-0.2, -1.66); ctx.quadraticCurveTo(-0.42, -1.5, -0.5, -0.72); ctx.lineTo(0.5, -0.72); ctx.quadraticCurveTo(0.42, -1.5, 0.2, -1.66); ctx.closePath();
+  paint(ctx, PONCHO, { lw: 0.035, dots: Q.detail ? shade(PONCHO, 0.35) : null, density: 0.14 });
+  ctx.beginPath(); ctx.arc(0, -1.97, 0.33, 0, Math.PI * 2); paint(ctx, PONCHO, { lw: 0.035 });
+  if (Q.detail) { ctx.strokeStyle = shade(PONCHO, 0.3); ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(0, -2.28); ctx.lineTo(0, -1.66); ctx.stroke(); }
+  ctx.restore();
+}
+// The goose in the same poncho, sitting, facing the row with everyone else:
+// the hood's up, but its beak and its orange feet stick out (its tell, in
+// any still). Its own art, since the engine's goose is tucked away (hidden).
+function ponchoGoose(ctx, x, y, z) {
+  goose(ctx, x, y, z, 0, { pose: 'sit', dir: 'l' });
+  const [X, Y] = P3(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(-1, 1);
+  // Feet, dangling off the seat's front edge.
+  ctx.fillStyle = C.coral; ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
+  for (const dx of [0.12, 0.3]) { ctx.beginPath(); ctx.moveTo(dx, -0.02); ctx.lineTo(dx + 0.16, 0.1); ctx.lineTo(dx - 0.02, 0.12); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  // The cape, over the body and up the neck.
+  ctx.beginPath();
+  ctx.moveTo(-0.55, 0.02); ctx.quadraticCurveTo(-0.5, -0.42, -0.05, -0.5); ctx.lineTo(0.12, -0.72); ctx.lineTo(0.36, -0.62); ctx.quadraticCurveTo(0.5, -0.25, 0.5, 0.02); ctx.closePath();
+  paint(ctx, PONCHO, { lw: 0.035, dots: Q.detail ? shade(PONCHO, 0.35) : null, density: 0.14 });
+  // The hood, round the back of the head; its face and beak out the front.
+  ctx.beginPath(); ctx.moveTo(0.27, -0.84); ctx.arc(0.25, -0.84, 0.22, 0.95, Math.PI * 2 - 0.95, false); ctx.closePath();
+  paint(ctx, PONCHO, { lw: 0.035 });
+  ctx.restore();
+}
+// A real Canada goose (the decoy): brown, a black stocking on its neck and
+// head, a white chinstrap, grazing now and then.
+function canadaGoose(ctx, x, y, z, t) {
+  const [X, Y] = P3(x, y, z);
+  const down = frac(t / 5) < 0.55;
+  ctx.save(); ctx.translate(X, Y);
+  if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.42, 0.15, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.18); ctx.fill(); }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0.02, -0.3); ctx.lineTo(0.0, 0); ctx.moveTo(0.14, -0.3); ctx.lineTo(0.16, 0); ctx.stroke();
+  const body = mix(C.brown, C.grey, 0.35);
+  ctx.beginPath(); ctx.ellipse(0, -0.45, 0.44, 0.24, -0.08, 0, Math.PI * 2); paint(ctx, body, { dots: Q.detail ? shade(body, 0.4) : null, density: 0.18 });
+  ctx.beginPath(); ctx.ellipse(0.2, -0.4, 0.2, 0.15, 0, 0, Math.PI * 2); paint(ctx, tint(body, 0.45), { stroke: false });
+  ctx.beginPath(); ctx.moveTo(-0.36, -0.5); ctx.lineTo(-0.58, -0.6); ctx.lineTo(-0.4, -0.36); ctx.closePath(); paint(ctx, C.ink, { lw: 0.02 });
+  ctx.beginPath(); ctx.ellipse(-0.3, -0.33, 0.1, 0.05, 0, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-0.06, -0.52, 0.24, 0.11, -0.2, 0, Math.PI * 2); paint(ctx, shade(body, 0.2), { lw: 0.02 });
+  // The neck, up, or down to the grass.
+  const hx = down ? 0.55 : 0.36, hy = down ? -0.12 : -1.05;
+  ctx.beginPath(); ctx.moveTo(0.3, -0.55); ctx.quadraticCurveTo(down ? 0.5 : 0.38, down ? -0.5 : -0.8, hx, hy);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.18; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(hx + 0.04, hy, 0.13, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.ink, { stroke: false });
+  ctx.beginPath(); ctx.ellipse(hx, hy + 0.04, 0.07, 0.04, 0.3, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx + 0.14, hy - 0.03); ctx.lineTo(hx + 0.28, hy + 0.01); ctx.lineTo(hx + 0.14, hy + 0.05); ctx.closePath(); ctx.fillStyle = C.ink; ctx.fill();
+  ctx.restore();
+}
+
 // The audience: [x, y] of the chair, its color, who, when they come and go,
 // what they score, their umbrella. The front row nearest the road.
 const FX = 29.7, BX = 31.3;
@@ -232,7 +289,7 @@ const AUD = [
   { x: FX, y: 24.0, chair: C.teal, look: folk(601, { hair: C.greyLight, style: 'bun', top: C.lilac, dress: true }), a: 7.0, l: 19.4, cards: ['8', '9', '7'], umb: C.pink },
   { x: FX, y: 25.4, chair: C.coral, look: folk(602, { top: C.green, bottom: C.navy, hat: 'cap', style: 'short' }), a: 7.35, l: 18.7, cards: ['4', '6', '5'], umb: C.navy, hold: cupHeld, truck: true },
   { x: FX, y: 26.8, chair: C.mustard, look: folk(603, { top: C.red, style: 'bald', hair: C.grey }), a: 7.9, l: 20.3, cards: ['7', '3', '9'], umb: C.teal },
-  { x: FX, y: 28.2, chair: C.pink, look: folk(604, { top: C.mustard, style: 'pony' }), scale: 0.72, a: 8.3, l: 17.6, cards: ['10', '11', '10'], umb: C.coral },
+  { x: FX, y: 28.2, chair: C.pink, look: folk(604, { top: C.mustard, style: 'pony' }), scale: 0.72, poncho: true, a: 8.3, l: 17.6, cards: ['10', '11', '10'], umb: C.coral },
   { x: FX, y: 30.7, chair: C.purple, look: folk(605, { top: C.teal, style: 'long' }), a: 9.2, l: 19.1, cards: ['6', '5.5', '8'], umb: C.mustard },
   { x: BX, y: 24.7, chair: C.green, look: folk(606, { top: C.navy, hat: 'beanie' }), a: 8.8, l: 19.9, cards: ['9', '7', '8'], umb: C.purple, hold: cupHeld },
   { x: BX, y: 26.1, chair: tint(C.sky, 0.1), look: folk(607, { top: C.pink, style: 'curly' }), a: 10.1, l: 18.0, cards: ['5', '8', '6'], umb: C.coral },
@@ -394,12 +451,13 @@ const SW = { x: PG[0] + 1.0, y0: PG[1] + 0.5, y1: PG[1] + 2.7, top: 2.5, len: 2.
 const SL = { x: PG[0] + 2.6, y: PG[1] + 3.1, top: 1.6, end: PG[0] + 4.6 };
 const SAW = { x: PG[0] + 1.5, y: PG[1] + 4.1 };
 const SANDBOX = [PG[0] + 2.4, PG[1] + 0.3, 1.4, 1.3];
-const swingAngle = (i, t) => (KIDS(t) ? 0.6 * Math.sin(t * 2.1 + i * 1.7) : 0.05 * Math.sin(t * 0.8 + i * 2));
+const CANADA = [39.0, 31.4]; // the decoy's patch of lawn
+const swingAngle =(i, t) => (KIDS(t) ? 0.6 * Math.sin(t * 2.1 + i * 1.7) : 0.05 * Math.sin(t * 0.8 + i * 2));
 
 export default {
   id: 'marine-park',
   name: 'Marine Park',
-  blurb: 'Across the road, the neighbors have brought lawn chairs to score the moves. The truck is getting a two.',
+  blurb: 'Across the road, the neighbors score the moves from lawn chairs, and the truck is getting a two. Flip the clock: by evening a couch has joined the judges.',
   home: [40, 30],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });
@@ -539,6 +597,7 @@ export default {
       const sit = (wet) => (ctx) => {
         lawnChair(ctx, m.x, m.y, z, m.chair, { face: -1 });
         person(ctx, m.x - 0.02, m.y, z + 0.46 - 0.71 * s, { ...look, pose: 'sit', dir: 'l', back: true, ...(m.hold ? { hold: m.hold } : {}) }, 0);
+        if (m.poncho) poncho(ctx, m.x - 0.02, m.y, z + 0.46 - 0.71 * s, s);
         chairBack(ctx, m.x, m.y, z, m.chair);
         if (wet) umbrella(ctx, m.x - 0.05, m.y, z - 0.25 * s, m.umb);
       };
@@ -580,13 +639,18 @@ export default {
     talk(R, A(8).x, A(8).y, gz(A(8).x, A(8).y) + 2.3, (t) => (within(12.5, 13.1)(t) && every(12, 3)(t) ? 'Here come the keys.' : null));
     talk(R, 30.8, 27.4, gz(30.8, 27.4) + 3.3, (t) => (CHEER(t) ? (frac(t / 4) < 0.6 ? 'YAAAY!' : 'TEN! TEN! TEN!') : null), { size: 0.55 });
 
-    // ---------- The goose, in its own lawn chair, turned the wrong way ----------
-    const GC = [BX, 27.55];
-    R.thing(GC[0], GC[1], (ctx) => lawnChair(ctx, GC[0], GC[1], gz(GC[0], GC[1]), C.white));
-    R.goose((t) => {
-      const honk = CHEER(t) || (stuck(t) && frac(t / 5.3 + 0.9) < 0.2);
-      return { x: GC[0] + 0.05, y: GC[1], z: gz(GC[0], GC[1]) + 0.46, dir: 'r', pose: honk ? 'honk' : 'sit' };
-    }, { bias: 0.1 });
+    // ---------- The goose, a judge in a yellow poncho ----------
+    // In the front row between the kid in the matching poncho (its twin) and
+    // the purple chair, all day and all night, its card up: HONK.
+    const GC = [FX, 29.45], gcz = gz(GC[0], GC[1]);
+    R.thing(GC[0], GC[1], (ctx) => {
+      lawnChair(ctx, GC[0], GC[1], gcz, C.coral, { face: -1 });
+      ponchoGoose(ctx, GC[0] - 0.05, GC[1], gcz + 0.46);
+      chairBack(ctx, GC[0], GC[1], gcz, C.coral);
+      scoreCard(ctx, GC[0] - 0.05, GC[1] - 0.1, gcz - 0.75, 'HONK');
+    }, { depth: GC[0] + GC[1] + 0.35 });
+    R.goose([GC[0] - 0.05, GC[1], gcz + 0.4], { kind: 'hard', hidden: true, hint: 'Two judges in yellow ponchos. One has a beak, and scores everything HONK.' });
+    talk(R, GC[0], GC[1], gcz + 3.6, (t) => (CHEER(t) ? 'HONK!' : null), { size: 0.5 });
 
     // ---------- The couch ----------
     // Carried over from somebody's curb at 1pm, the cooler behind it.
@@ -623,16 +687,34 @@ export default {
       const cx = 30.0, cy = 36.4, cz = gz(cx, cy);
       R.thing(cx + 0.4, cy + 0.3, (ctx) => {
         box(ctx, cx - 0.4, cy - 0.28, cz, 0.8, 0.56, 0.45, C.white, { flat: true, lw: 0.035 });
-        box(ctx, cx - 0.42, cy - 0.3, cz + 0.45, 0.84, 0.6, 0.1, C.teal, { flat: true, lw: 0.03 });
-        cylinder(ctx, cx + 0.2, cy + 0.1, cz + 0.55, 0.09, 0.26, BRAND.can);
-        if (Q.detail) { const [X, Y] = P3(cx + 0.2, cy + 0.1, cz + 0.68); ctx.fillStyle = BRAND.ink; ctx.fillRect(X - 0.12, Y - 0.03, 0.24, 0.06); }
-        box(ctx, cx - 0.2, cy - 0.15, cz + 0.55, 0.22, 0.22, 0.3, tint(C.greyLight, 0.2), { flat: true, lw: 0.025 });
+        // Its inside (ice), seen when the lid's up.
+        face(ctx, [[cx - 0.36, cy - 0.22, cz + 0.44], [cx + 0.36, cy - 0.22, cz + 0.44], [cx + 0.36, cy + 0.22, cz + 0.44], [cx - 0.36, cy + 0.22, cz + 0.44]], tint(C.sky, 0.55), { lw: 0.02 });
+        // A can of Gander Cola on the grass by it.
+        cylinder(ctx, cx + 0.62, cy + 0.2, cz, 0.09, 0.26, BRAND.can);
+        if (Q.detail) { const [X, Y] = P3(cx + 0.62, cy + 0.2, cz + 0.13); ctx.fillStyle = BRAND.ink; ctx.fillRect(X - 0.12, Y - 0.03, 0.24, 0.06); }
         // The radio, on the grass.
         const rx = 29.5, ry = 37.1, rz = gz(rx, ry);
         box(ctx, rx - 0.35, ry - 0.15, rz, 0.7, 0.3, 0.42, C.grey, { flat: true, lw: 0.03 });
         for (const dx of [-0.18, 0.18]) { const [X, Y] = P3(rx + dx, ry + 0.151, rz + 0.2); ctx.beginPath(); ctx.ellipse(X, Y, 0.13, 0.13, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 }); }
         line(ctx, [[rx + 0.25, ry, rz + 0.42], [rx + 0.5, ry - 0.2, rz + 1.1]], C.ink, 0.025);
       }, { on: within(COUCH_AT, 29) });
+      // The lid: a tap swings it up. Inside, the fridge they moved out of,
+      // on ice: ketchup, a lemon, and a jar of pickles (a find).
+      const cooler = R.poke({ id: 'cooler', at: [cx, cy, cz + 0.5], r: 0.8, sound: 'clunk', say: ['The whole fridge, on ice.', 'Shut the lid, the ice!', 'Moved: one fridge. Sort of.'] });
+      R.thing(cx + 0.42, cy + 0.32, (ctx) => {
+        const k = cooler.k(), a = k * 1.75, hx = cx - 0.42, top = cz + 0.45;
+        if (k > 0.05) {
+          cylinder(ctx, cx + 0.12, cy, top - 0.15, 0.16, 0.38, mix(C.leaf, C.green, 0.4), { top: C.red });
+          if (Q.detail) { box(ctx, cx - 0.25, cy - 0.15, top - 0.1, 0.12, 0.12, 0.28, C.red, { flat: true, lw: 0.02 }); disc(ctx, cx - 0.2, cy + 0.12, top, 0.08, C.butter, { lw: 0.015 }); }
+        }
+        // The lid, hinged at its back edge (shut, a crack shows, a fork handle in it).
+        const L = 0.84, ux = Math.cos(a) * L, uz = Math.sin(a) * L + (k < 0.05 ? 0.03 : 0);
+        face(ctx, [[hx, cy - 0.3, top], [hx, cy + 0.3, top], [hx + ux, cy + 0.3, top + uz], [hx + ux, cy - 0.3, top + uz]], C.teal, { lw: 0.03 });
+        face(ctx, [[hx + ux, cy - 0.3, top + uz], [hx + ux, cy + 0.3, top + uz], [hx + ux, cy + 0.3, top + uz + 0.1], [hx + ux, cy - 0.3, top + uz + 0.1]], shade(C.teal, 0.15), { lw: 0.025 });
+        face(ctx, [[hx, cy + 0.3, top], [hx + ux, cy + 0.3, top + uz], [hx + ux, cy + 0.3, top + uz + 0.1], [hx, cy + 0.3, top + 0.1]], shade(C.teal, 0.25), { lw: 0.025 });
+        if (k < 0.05 && Q.detail) line(ctx, [[cx + 0.2, cy + 0.3, top + 0.02], [cx + 0.32, cy + 0.55, top + 0.08]], C.greyLight, 0.04);
+      }, { anim: true, on: within(COUCH_AT, 29) });
+      R.find({ id: 'pickles', label: 'A jar of pickles', kind: 'poke', inside: cooler, when: within(COUCH_AT, 29), note: 'after 2pm', at: [cx + 0.12, cy, cz + 0.6], r: 0.8, hint: 'The couch crowd brought their old fridge along, in something with a lid.' });
       R.thing(cx + 0.41, cy + 0.31, (ctx, t) => {
         for (let i = 0; i < 3; i++) { const k = frac(t * 0.5 + i / 3); ctx.save(); ctx.globalAlpha *= 1 - k; note(ctx, 29.5 + k * 0.4, 37.1 - k * 0.2, gz(29.5, 37.1) + 0.6 + k * 1.3, nightK(t) > 0.5 ? C.butter : C.ink, 0.7); ctx.restore(); }
       }, { anim: true, on: within(16, 26) });
@@ -649,7 +731,7 @@ export default {
         line(ctx, [[x + 0.1, y + 0.3, z + 0.01], [x + 0.95, y + 0.85, z + 0.01]], C.wood, 0.07);
         if (Q.detail) { ctx.save(); ctx.translate(0, -z * ZK); paintText(ctx, 'floor', x, y, '2', 0.5, C.red); ctx.restore(); }
       });
-      R.find({ id: 'scorecard', label: 'A scorecard', at: [x, y, z + 0.05], r: 0.9 });
+      R.find({ id: 'scorecard', label: 'A scorecard in the grass', at: [x, y, z + 0.05], r: 0.9 });
     }
 
     // ---------- The kite in the tree (a find), and whose it is ----------
@@ -738,6 +820,7 @@ export default {
         board(ctx, x + 0.3, y, z + 1.55, 0.9, 0.55, C.red, [['OFF', 0.16, C.white], ['DUTY', 0.16, C.white]]);
       });
       R.thing(x + 0.61, y + 0.61, (ctx, t) => gullStand(ctx, x - 0.35, y, z + 3.1, t, false, frac(t / 17) < 0.5 ? 1 : -1), { anim: true });
+      R.poke({ id: 'lifeguard', at: [x, y, z + 2.0], r: 0.9, sound: 'tick', say: ['Off duty. Back in June.', 'The gull is in charge now.', 'Swim at your own risk.'] });
     }
 
     // ---------- The beach ----------
@@ -755,7 +838,7 @@ export default {
         line(ctx, [pt(0.3, -0.24, z + 0.1), pt(-0.05, -0.28, z + 0.01)], C.teal, 0.07);
         line(ctx, [pt(0.3, 0.24, z + 0.1), pt(-0.05, 0.28, z + 0.01)], C.teal, 0.07);
       });
-      R.find({ id: 'flipflop', label: 'A lost flip-flop', at: [x, y, z + 0.1], r: 0.9 });
+      R.find({ id: 'flipflop', label: 'A lost flip-flop', kind: 'hard', at: [x, y, z + 0.1], r: 0.9, riddle: 'One foot went home bare.', hint: 'Follow the footprints across the sand toward the water.' });
     }
     // A sandcastle with a flag; the rain gets it.
     {
@@ -776,6 +859,12 @@ export default {
       };
       R.thing(x + 0.5, y + 0.5, castle(false), { on: (t) => hh(t) < 10.5 });
       R.thing(x + 0.5, y + 0.5, castle(true), { on: (t) => hh(t) >= 10.5 });
+    }
+    // A real Canada goose, grazing the lawn all day (the decoy).
+    {
+      const [x, y] = CANADA, z = gz(x, y);
+      R.thing(x, y, (ctx, t) => canadaGoose(ctx, x, y, z, t), { anim: true });
+      R.decoy({ id: 'canada', at: [x, y, z + 0.5], r: 0.8, say: ["Wrong goose. That one's Canadian.", 'Still Canadian.', 'Sorry. Very sorry. Honk.'] });
     }
     // Gulls at the water's edge, and one working the beach from the air.
     R.thing(48.2, 22.3, (ctx, t) => { gullStand(ctx, 47.8, 21.2, gz(47.8, 21.2), t, true, 1); gullStand(ctx, 48.3, 22.4, gz(48.3, 22.4), t, false, -1); gullStand(ctx, 46.9, 45.3, gz(46.9, 45.3), t, true, -1); }, { anim: true });
@@ -812,17 +901,21 @@ export default {
         const z = gz(...TOWEL) + 0.02;
         face(ctx, [[TOWEL[0] - 0.4, TOWEL[1] - 0.6, z], [TOWEL[0] + 0.4, TOWEL[1] - 0.6, z], [TOWEL[0] + 0.4, TOWEL[1] + 0.6, z], [TOWEL[0] - 0.4, TOWEL[1] + 0.6, z]], C.coral, { lw: 0.03, dots: C.white, density: 0.3 });
         box(ctx, TOWEL[0] - 0.2, TOWEL[1] - 0.45, z, 0.4, 0.35, 0.3, C.navy, { flat: true, lw: 0.025 });
-      }, { on: within(9.7, 16.3) });
-      R.mover((t) => {
-        if (!within(9.9, 15.35)(t)) return HIDE;
-        const k = frac(t / 70), u = k < 0.5 ? k * 2 : 2 - k * 2;
-        return { x: 51.4 + Math.sin(t / 9) * 0.6, y: 22 + 14 * u, dir: k < 0.5 ? 'l' : 'r' };
-      }, (ctx, t, p) => {
+      });
+      // In the bay all day, rain or shine (out at seven, to his towel), and
+      // on his towel all night, waiting for the dawn swim: the park's teach
+      // poke, so he's always somewhere to tap.
+      const swimming = within(6.5, 19);
+      const swimAt = (t) => { const k = frac(t / 70), u = k < 0.5 ? k * 2 : 2 - k * 2; return { x: 51.4 + Math.sin(t / 9) * 0.6, y: 22 + 14 * u, dir: k < 0.5 ? 'l' : 'r' }; };
+      const onTowel = (t) => !swimming(t) && !within(19, 19.35)(t);
+      R.mover((t) => (swimming(t) ? swimAt(t) : HIDE), (ctx, t, p) => {
         if (p.hide) return;
         wade(ctx, p.x, p.y, -1.15, 0, (c) => person(c, p.x, p.y, -1.15, { ...look, pose: 'swim', dir: p.dir }, t));
         if (Q.detail) { const s = lines(['Lovely out!', 'Sixty-one degrees!', 'Come on in!', 'Balmy!'], 14, 3.2)(t); if (s) speech(ctx, p.x, p.y, 1.4, s, { size: 0.42 }); }
       });
-      walker(R, [[15.35, 49.6, 30.4], [15.7, TOWEL[0] + 0.6, TOWEL[1]], [16.3, TOWEL[0] + 0.6, TOWEL[1], { dir: 'l', hold: towelHeld, say: 'Refreshing!' }]], look);
+      walker(R, [[19, 49.6, 30.4], [19.35, TOWEL[0] + 0.6, TOWEL[1], { dir: 'l', hold: towelHeld, say: 'Refreshing!' }]], look);
+      stay(R, TOWEL[0] + 0.1, TOWEL[1] + 0.2, look, { z: gz(...TOWEL) - 0.55, pose: 'sit', dir: 'r', hold: towelHeld, hours: onTowel, depth: TOWEL[0] + TOWEL[1] + 1.2 });
+      R.poke({ id: 'brownie', teach: true, at: (t) => { if (swimming(t)) { const p = swimAt(t); return [p.x, p.y, 0.2]; } return [TOWEL[0] + 0.1, TOWEL[1] + 0.2, gz(...TOWEL) + 0.9]; }, r: 1.1, sound: 'pop', say: ['Sixty-one degrees!', 'Balmy! Come on in!', 'Every day since 1971.'] });
     }
 
     // ---------- A paddleboarder, after the rain ----------
