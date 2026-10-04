@@ -324,6 +324,13 @@ Five artists in worktrees (a house each, the road and the park, Castle Island), 
 
 **Engine and tools, on the way:** the flip (`map.dial.flip`); a poke's lines can follow the clock (`say(t)`); a teach poke only nudges while it's there (`when`); a still flat thing with a time window rebakes the room's cached floor when it comes or goes (it used to stay as at 5am all day); the blind playtest gives the goose a second guess after a lookalike, and shows Moving Day at 9am so its one tap flips to the evening.
 
+### The tour and the playtests (session 13)
+- **The pinched-in tour** (three reviewers, every area at six moments, closed and open): two geese that never showed once their basket or cushion opened (drawn under it), the night tenant painted over by cushions, taps landing on the wrong thing (the landlady's chair found the scanner, the sleeping nurse her mask), the Open House's visitors walking through the sofa, the Roof Deck's owner standing in the decoy, the truck's tail reading as a hard hat, the Storrowed truck's driver drawn inside it, balloons in the shelter's eaves reading as heads, the line goose's feet hidden at night, the Courier holding two hot dogs.
+- **Blind playtest, round 1:** 46 of 60 found, 19 off their band. The flip did its job: the tester found seven of the what-changed finds only by comparing ("helped a lot"). Nine of twelve geese were missed, nearly all on their decoys with the playtest's one guess. Fixed: the landlady's goose too plain under the plastic, tells that didn't read at phone size (a tail like a scrap of paper, bean bag feet drawn under the bag, closet feet), the booties (the goose's red foot read as a bootie), the lava lamp glowing alone, a big FL 3 label, a deck box that didn't look like it opened, the FOR LATER box hidden by the fort's flag, the bread maker lost on the curb, pickles that read as a can.
+- **The playtest's second guess:** a decoy answers back, so a player who taps one keeps looking; the tool now takes two guesses for the goose and counts the second only after a lookalike (decision 60).
+- **Blind playtest, round 2** (a fresh tester): 53 of 59 found, 6 off their band. Ten of twelve geese found. Fixed after it: the truck goose's tap reaching its tail (the tester tapped the tail and missed by 3px), the hamster's box (a chewed hole, a nose, seeds), the pickle jar propping the cooler's lid up, the FOR LATER box moved clear of the fort to the picnic tables, the line goose's beak out past its umbrella all day, clutter round the side mirror and a shorter trail to the flip-flop (both rated too easy), the lamp's and the TV's notes saying when they really arrive (after 5pm, after 4pm), truer riddles for the heater and the level. The Castle Island goose's balloon decoy fooled the tester completely and Marine Park's Canada goose did too: both stay, the owner's call on a phone.
+- **Checks:** `npm run qa -- southie` 16 passed, 0 failed, one warning (Castle Island has three hard finds, by the table); slowest view Castle Island at 31 ms in the cloud, under the 60 budget. `npm run smoke` passes, with the flip checked.
+
 ## Open questions
 None: the lead took its own recommendations (decisions below), and the owner can overturn any of them at the preview.
 
@@ -406,3 +413,8 @@ The owner, at the start of session 13 (Oct 2026), and the retune (the lead's cal
 57. **The lease clock flips** between before and after instead of skipping round the day (above, "The flip"). The owner asked the lead to research the day and decide; the flip is the verb because comparing is what "before and after" asks of a player, and running the day fast blurs exactly what changed.
 58. **A find in every apartment is what changed** (left behind, gone or moved), findable after noon, labeled by the change.
 59. **Every area retuned** to the rules of finding, as the table above has it.
+60. **The blind playtest gives the goose a second guess after a lookalike.** Three retunes in a row scored geese behind good decoys as missed when a player would hear "Not a goose." and keep looking.
+61. **A poke's lines can follow the clock** (`say(t)`), a teach poke only nudges while it's there, and a still flat thing with a time window rebakes the room's floor (engine, every place).
+62. **The Courier eats a plain hot dog** and leaves the one with everything on a bin for later, from 4pm, so the find isn't there before he is.
+63. **Castle Island keeps three hard finds** (the goose, the relish packet, the earbud) against QA's "one or two": the table made them so, and each held its band.
+
