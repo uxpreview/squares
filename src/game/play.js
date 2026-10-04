@@ -714,7 +714,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // teach, else the first that isn't a decoy and has nothing inside it (so the
   // lesson is "things answer back", and no find is given away).
   function teachPoke(zone) {
-    return zone.pokes.find((pk) => pk.teach) || zone.pokes.find((pk) => !pk.decoy && !pk.when && !zone.finds.some((f) => f.inside === pk)) || null;
+    // (Only one that's there now: a teach poke can come and go with the clock.)
+    const t = clock(), now = (pk) => !pk.when || pk.when(t);
+    return zone.pokes.find((pk) => pk.teach && now(pk)) || zone.pokes.find((pk) => !pk.decoy && now(pk) && !zone.finds.some((f) => f.inside === pk)) || null;
   }
   // Is the nudge showing in this zone now?
   function teaching(zone, now) {

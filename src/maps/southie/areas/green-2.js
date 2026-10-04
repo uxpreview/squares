@@ -14,7 +14,7 @@
 // this morning, one is still up there tonight (she's too short to see it).
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha,
-  onLeft, onRight, P, paintText, chair, label,
+  onLeft, onRight, P, paintText, chair, label, goose as drawGoose,
 } from '../../../engine/art.js';
 import { route, particles, clamp } from '../../../engine/actors.js';
 import { apartment, carton, lettering } from '../kit.js';
@@ -500,6 +500,19 @@ export default {
       line3(ctx, [[9.68, 4.45, 1.45], [9.72, 4.6, 0.95], [9.7, 4.52, 0.8]], C.ink, 0.04);
       disc(ctx, 9.7, 4.52, 0.78, 0.07, C.greyLight, { lw: 0.02 });
     }, { on: neu });
+    // Her white-noise machine, on a crate at the foot of the bed: shaped like
+    // a goose, a speaker grille on its chest (the afternoon's decoy, since
+    // the trophy left with the roommates).
+    const NX = 11.7, NY = 2.4;
+    R.thing(NX + 0.3, NY + 0.3, (ctx) => {
+      box(ctx, NX - 0.28, NY - 0.28, 0, 0.56, 0.56, 0.62, C.woodLight, { lw: 0.03, top: tint(C.woodLight, 0.2) });
+      if (Q.detail) line3(ctx, [[NX + 0.28, NY - 0.28, 0.31], [NX + 0.28, NY + 0.28, 0.31]], shade(C.woodLight, 0.3), 0.025);
+      drawGoose(ctx, NX, NY, 0.62, 0, { dir: 'l', pose: 'sit', scale: 0.5 });
+      const [X, Y] = P(NX, NY, 0.82);
+      ctx.beginPath(); ctx.ellipse(X + 0.02, Y, 0.08, 0.06, 0, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.012 });
+      if (Q.detail) { ctx.fillStyle = C.grey; for (const [u, v] of [[-0.03, -0.02], [0.03, -0.02], [0, 0.02], [-0.03, 0.03], [0.04, 0.03]]) ctx.fillRect(X + 0.02 + u - 0.008, Y + v - 0.008, 0.016, 0.016); }
+    }, { on: neu });
+    R.decoy({ id: 'noise', at: [NX, NY, 0.95], r: 0.5, when: neu, say: ['Shhhhhhh.', 'White noise. Not a goose.', 'Shhh. She works nights.'] });
     R.thing(12.1, 4.55, (ctx, t) => {
       sleeper(ctx, 10.2, 3.7, 0.72, 1.6, { blanket: C.lilac, breath: (Math.sin(t * 0.9) + 1) / 2, mask: C.pink, hair: NURSE.hair, skin: NURSE.skin });
     }, { anim: true, on: asleep });
