@@ -8,16 +8,20 @@
 // She herself is on the day's clock (day.js): at her table, up the stairs
 // for the inspection from 11, out at her card table on the porch at noon
 // handing out keys to a queue in the rain, back by one.
-// The goose is the porch goose: she brought it in out of the rain, and she
-// dresses it for the weather (a hard hat for moving day, a sou'wester in the
-// rain, a ball cap for the game, a nightcap).
+// The goose is the porch goose: she brought it in and sealed it into the
+// good armchair's plastic slipcover with the chair (its beak presses the
+// plastic out). Her own chair at the bay is its twin. Out, it's dressed for
+// the weather (a hard hat, a sou'wester, a ball cap, a nightcap).
+// Before and after (the retune, docs/levels/southie.md): nothing here
+// changes in fifty-two years, except one thing after noon, on the TV's
+// doily: a succulent from the new people next door.
 //
 // The whole house is one hand: the helpers the other two floors use (a
 // talk bubble, a window in the back wall, a sofa, a sleeper under a blanket,
 // a pigeon, an umbrella, a cat, the hours) are exported from here.
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha,
-  onLeft, onRight, P, paintText, chair, label, note,
+  onLeft, onRight, P, paintText, chair, label, note, goose as drawGoose,
 } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { particles, clamp } from '../../../engine/actors.js';
@@ -26,7 +30,7 @@ import { apartment, lettering, umbrella, pigeon, cat } from '../kit.js';
 // rooms still ask for them here.
 export { umbrella, pigeon, cat };
 import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
-import { hour, rainK, nightK } from '../clock.js';
+import { hour, rainK, nightK, AFTER } from '../clock.js';
 
 // ---------- Shared by the Green House's three floors ----------
 // The hour, with the small hours after midnight running on past 24.
@@ -166,10 +170,55 @@ const QUEUE = [
 const noon = hours(11.85, 13.05);
 const INK_HARDHAT = C.mustard;
 
+// An armchair facing +x from (x, y): a skirt, a seat cushion, a high back,
+// two arms. Green velvet, the pair of them.
+function armchair(ctx, x, y, col) {
+  box(ctx, x, y, 0, 1.15, 1.1, 0.5, shade(col, 0.1), { lw: 0.04 });
+  box(ctx, x + 0.3, y + 0.2, 0.5, 0.85, 0.7, 0.2, tint(col, 0.15), { lw: 0.03 });
+  box(ctx, x, y, 0.5, 0.35, 1.1, 1.3, col, { lw: 0.04 });
+  box(ctx, x + 0.3, y, 0.5, 0.85, 0.22, 0.45, col, { lw: 0.035 });
+  box(ctx, x + 0.3, y + 0.88, 0.5, 0.85, 0.22, 0.45, col, { lw: 0.035 });
+}
+// Its clear plastic slipcover: a sheen over the back, the arm and the
+// skirt, creases catching the light. seat: over the seat too (the good
+// chair's seat has the goose under it, drawn with the goose).
+function plastic(ctx, x, y, seat = false) {
+  const sheen = alpha(C.white, 0.28), edge = alpha(C.ink, 0.4);
+  face(ctx, [[x + 0.36, y + 0.02, 0.71], [x + 0.36, y + 1.08, 0.71], [x + 0.36, y + 1.08, 1.82], [x + 0.36, y + 0.02, 1.82]], sheen, { lw: 0.015, stroke: edge });
+  face(ctx, [[x, y + 1.11, 0], [x + 1.16, y + 1.11, 0], [x + 1.16, y + 1.11, 0.96], [x + 0.3, y + 1.11, 0.96], [x + 0.3, y + 1.11, 1.81], [x, y + 1.11, 1.81]], alpha(C.white, 0.2), { lw: 0.015, stroke: edge });
+  face(ctx, [[x + 1.16, y, 0], [x + 1.16, y + 1.1, 0], [x + 1.16, y + 1.1, 0.96], [x + 1.16, y, 0.96]], alpha(C.white, 0.22), { lw: 0.015, stroke: edge });
+  if (seat) face(ctx, [[x + 0.36, y + 0.22, 0.71], [x + 1.15, y + 0.22, 0.71], [x + 1.15, y + 0.88, 0.71], [x + 0.36, y + 0.88, 0.71]], sheen, { lw: 0.015, stroke: edge });
+  if (!Q.detail) return;
+  for (const [a, b] of [[[x + 0.37, y + 0.2, 1.6], [x + 0.37, y + 0.5, 1.1]], [[x + 0.37, y + 0.75, 1.7], [x + 0.37, y + 0.95, 1.35]], [[x + 0.6, y + 1.115, 0.85], [x + 0.95, y + 1.115, 0.45]], [[x + 1.165, y + 0.3, 0.8], [x + 1.165, y + 0.6, 0.35]]]) line3(ctx, [a, b], alpha(C.white, 0.9), 0.04);
+}
+// A round cookie tin at (x, y, z), its lid lifted off by k (0 shut, 1 off
+// and set down beside it). inner(ctx, k) draws what's in it, coming up as
+// the lid does; peek(ctx) what's caught under the lid while it's shut.
+function tin(ctx, x, y, z, k, inner, peek) {
+  const r = 0.22, h = 0.3, body = C.navy;
+  const lid = k < 0.02 ? [x, y, z + h] : [x, y - 0.45 * k, z + h + Math.sin(Math.PI * Math.min(1, k)) * 0.3 - (h - 0.0) * k];
+  const drawLid = () => {
+    cylinder(ctx, lid[0], lid[1], lid[2], r + 0.02, 0.07, body, { top: body, flat: true });
+    if (!Q.detail) return;
+    const [X, Y] = P(lid[0], lid[1], lid[2] + 0.07);
+    ctx.beginPath(); ctx.ellipse(X, Y, (r - 0.03) * Math.SQRT2, (r - 0.03) * Math.SQRT2 / 2, 0, 0, Math.PI * 2); ctx.strokeStyle = C.white; ctx.lineWidth = 0.025; ctx.stroke();
+    ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.fillStyle = tint(C.sky, 0.3); ctx.fill();
+  };
+  if (k > 0.5) drawLid();
+  if (k > 0.02) inner(ctx, k);
+  cylinder(ctx, x, y, z, r, h, body, { flat: true, top: shade(C.ink, 0.1) });
+  // The white band round its middle.
+  const X0 = x - y, rx = r * Math.SQRT2, Yb = (x + y) / 2 - (z + 0.08) * ZK, Yt = Yb - 0.08 * ZK;
+  ctx.beginPath(); ctx.moveTo(X0 - rx, Yt); ctx.lineTo(X0 - rx, Yb); ctx.ellipse(X0, Yb, rx, rx / 2, 0, Math.PI, 0, true);
+  ctx.lineTo(X0 + rx, Yt); ctx.ellipse(X0, Yt, rx, rx / 2, 0, 0, Math.PI, false); ctx.closePath();
+  paint(ctx, C.white, { lw: 0.015 });
+  if (k <= 0.5) { drawLid(); if (k < 0.1) peek(ctx); }
+}
+
 export default {
   id: 'green-1',
   name: 'The Landlady',
-  blurb: 'Fifty-two years on the first floor and every key on one ring. She is not moving; everyone else is.',
+  blurb: 'Fifty-two years, every key on one ring, nothing new since 1974. Flip the clock: one thing is.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 0, walls: W, floorInk: W.floor, siding: SIDING.green, trim: TRIM.green, label: 'Green House' });
@@ -330,40 +379,32 @@ export default {
       if (k < 0.5) disc(ctx, 0.5, 3.66, 1.72 - k * 0.8, 0.04, C.sky, { lw: 0.01 });
       else if (Q.detail && k < 0.65) label(ctx, 0.3, 3.4, 1.9, 'plink', 0.18, C.ink, 'Rethink Sans');
     }, { anim: true, on: hours(15, 29) });
-    // The deposits: an old tin coffee can on the counter, its lid off and
-    // leaning on it, a blue label, DEPOSITS on masking tape, and a wad of
-    // bills sticking up out of it. Sorted in front of the counter (one
-    // thing, sorted at its far end), or the counter paints over it.
-    const DX = 0.6, DY = 2.75, DZ = 1.15, DR = 0.25, DH = 0.5;
+    // The deposits: in one of her two cookie tins (blue, a white band, no
+    // cookies in either since 1974), on the counter by the sink, a corner of
+    // a twenty caught under the lid. Its twin is on Dot's table, full of
+    // sewing things, a red thread caught under its lid. Sorted in front of
+    // the counter (one thing, sorted at its far end), or the counter paints
+    // over it.
+    const DX = 0.6, DY = 2.75, DZ = 1.15;
+    const tinP = R.poke({ id: 'tin', at: [DX, DY, DZ + 0.3], r: 0.6, sound: 'clunk', say: 'Counted. Twice.' });
     R.thing(0.95, 2.95, (ctx) => {
-      const tin = mix(C.greyLight, C.grey, 0.35);
-      // The bills first, inside the rim, so the can's front hides their feet.
-      for (const [dx, dy, a, c] of [[-0.1, -0.05, -0.25, C.leaf], [0.04, 0.02, 0.1, tint(C.green, 0.25)], [0.12, -0.08, 0.35, C.leaf]]) {
-        const [X, Y] = P(DX + dx, DY + dy, DZ + DH - 0.05);
-        ctx.save(); ctx.translate(X, Y); ctx.rotate(a);
-        ctx.beginPath(); ctx.rect(-0.1, -0.38, 0.2, 0.36); paint(ctx, c, { lw: 0.02 });
-        if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, -0.2, 0.05, 0.07, 0, 0, Math.PI * 2); ctx.strokeStyle = shade(C.green, 0.3); ctx.lineWidth = 0.015; ctx.stroke(); }
-        ctx.restore();
-      }
-      cylinder(ctx, DX, DY, DZ, DR, DH, tin, { flat: true, top: shade(C.ink, 0.1) });
-      // The tin's ridges, the blue label round its middle, the tape.
-      const X0 = DX - DY, rx = DR * Math.SQRT2, band = (z, h, c) => {
-        const Yb = (DX + DY) / 2 - z * ZK, Yt = Yb - h * ZK;
-        ctx.beginPath(); ctx.moveTo(X0 - rx, Yt); ctx.lineTo(X0 - rx, Yb); ctx.ellipse(X0, Yb, rx, rx / 2, 0, Math.PI, 0, true);
-        ctx.lineTo(X0 + rx, Yt); ctx.ellipse(X0, Yt, rx, rx / 2, 0, 0, Math.PI, false); ctx.closePath();
-        paint(ctx, c, { lw: 0.02 });
-      };
-      band(DZ + 0.12, 0.24, C.navy);
-      if (Q.detail) {
-        lettering(ctx, 'x', DX + 0.02, DY + DR + 0.01, DZ + 0.3, 'COFFEE', 0.075, C.white);
-        face(ctx, [[DX - 0.2, DY + DR + 0.02, DZ + 0.15], [DX + 0.22, DY + DR + 0.02, DZ + 0.15], [DX + 0.22, DY + DR + 0.02, DZ + 0.24], [DX - 0.2, DY + DR + 0.02, DZ + 0.24]], tint(C.butter, 0.45), { lw: 0.012 });
-        lettering(ctx, 'x', DX + 0.01, DY + DR + 0.03, DZ + 0.195, 'DEPOSITS', 0.065, C.ink);
-      }
-      // The lid, off, leaning on the can's right.
-      const n = 14, pts = [];
-      for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; pts.push([DX + 0.3 + Math.sin(a) * 0.05, DY - 0.18 + Math.cos(a) * 0.25, DZ + 0.25 + Math.sin(a) * 0.24]); }
-      face(ctx, pts, tint(C.greyLight, 0.2), { lw: 0.025 });
-    }, { depth: 5.65 });
+      tin(ctx, DX, DY, DZ, tinP.k(), (c, k) => {
+        // The bills, fanning up out of it.
+        for (const [dx, dy, a, col] of [[-0.1, -0.05, -0.25, C.leaf], [0.04, 0.02, 0.1, tint(C.green, 0.25)], [0.12, -0.08, 0.35, C.leaf]]) {
+          const [X, Y] = P(DX + dx, DY + dy, DZ + 0.25);
+          c.save(); c.translate(X, Y); c.rotate(a);
+          c.beginPath(); c.rect(-0.1, -0.42 * k, 0.2, 0.42 * k); paint(c, col, { lw: 0.02 });
+          if (Q.detail && k > 0.6) { c.beginPath(); c.ellipse(0, -0.24, 0.05, 0.07, 0, 0, Math.PI * 2); c.strokeStyle = shade(C.green, 0.3); c.lineWidth = 0.015; c.stroke(); }
+          c.restore();
+        }
+      }, (c) => {
+        // A corner of a twenty, caught under the lid.
+        const [X, Y] = P(DX + 0.12, DY + 0.18, DZ + 0.31);
+        c.beginPath(); c.moveTo(X - 0.08, Y - 0.04); c.lineTo(X + 0.2, Y - 0.12); c.lineTo(X + 0.26, Y + 0.06); c.lineTo(X - 0.02, Y + 0.12); c.closePath();
+        paint(c, C.leaf, { lw: 0.018 });
+        if (Q.detail) { c.beginPath(); c.arc(X + 0.13, Y, 0.035, 0, Math.PI * 2); c.strokeStyle = shade(C.green, 0.3); c.lineWidth = 0.012; c.stroke(); }
+      });
+    }, { anim: true, depth: 5.65 });
     // The stove, and the percolator on it (its glass knob bubbling).
     R.thing(1.1, 5.6, (ctx) => {
       box(ctx, 0, 4.5, 0, 1.1, 1.1, 1.15, C.white, { lw: 0.04, top: shade(C.white, 0.08) });
@@ -418,8 +459,21 @@ export default {
       for (const [u, v, c] of tk) rect(ctx, u, v, 0.28, 0.2, 1.16, c, { lw: 0.012 });
       if (Q.detail) for (const [u, v] of tk.slice(0, 3)) rect(ctx, u + 0.05, v + 0.05, 0.16, 0.08, 1.165, C.greyLight, { stroke: false });
       cylinder(ctx, 2.9, 6.3, 1.15, 0.1, 0.16, C.white);
-      cylinder(ctx, 2.9, 6.85, 1.15, 0.12, 0.18, C.pink, { top: C.white });
     });
+    // The twin tin: sewing things.
+    const sewP = R.poke({ id: 'sewing', at: [2.75, 6.9, 1.45], r: 0.6, sound: 'clunk', say: ['Buttons. Thread. No money.', 'Still buttons.'] });
+    R.thing(3.3, 7.4, (ctx) => {
+      tin(ctx, 2.75, 6.9, 1.15, sewP.k(), (c, k) => {
+        // Spools and a tomato pincushion, coming up with the lid.
+        for (const [dx, dy, col] of [[-0.08, -0.06, C.red], [0.08, -0.04, C.mustard], [0.0, 0.08, C.teal]]) cylinder(c, 2.75 + dx, 6.9 + dy, 1.25 + 0.12 * k, 0.06, 0.12, col, { top: C.woodLight, flat: true });
+        const [X, Y] = P(2.8, 6.95, 1.47 + 0.1 * k);
+        c.beginPath(); c.arc(X, Y, 0.08, 0, Math.PI * 2); paint(c, C.coral, { lw: 0.015 });
+      }, (c) => {
+        // A red thread caught under the lid, and its needle.
+        line3(c, [[2.87, 7.08, 1.44], [2.97, 7.16, 1.36], [2.92, 7.2, 1.25], [3.0, 7.25, 1.17]], C.red, 0.025);
+        line3(c, [[2.98, 7.24, 1.17], [3.12, 7.3, 1.17]], C.greyLight, 0.02);
+      });
+    }, { anim: true });
     // Dot: scratching, commenting, at the table from seven till the game.
     R.thing(1.6, 6.9, (ctx) => chair(ctx, 0.95, 6.2, 0, C.red, 'r'), {});
     R.mover((t) => (hours(7, 20.5)(t) ? { x: 1.45, y: 6.62 } : { x: -99, y: -99 }), (ctx, t, p) => {
@@ -513,13 +567,11 @@ export default {
       }
     });
 
-    // The goose: the porch goose, brought in out of the rain, standing on
-    // its doily by the coat tree, dressed for the day. Her boots beside it.
-    R.thing(7.25, 6.45, (ctx) => {
-      // The coat tree, a raincoat and a plastic rain bonnet on it.
-      box(ctx, 6.75, 5.95, 0, 0.5, 0.5, 0.08, C.brown, { flat: true, lw: 0.02 });
-      box(ctx, 6.96, 6.16, 0.08, 0.08, 0.08, 2.9, C.brown, { flat: true, lw: 0.02 });
-      const [X, Y] = P(7.0, 6.2, 2.75);
+    // Her raincoat on the coat tree, a plastic rain bonnet on top.
+    R.thing(6.35, 6.45, (ctx) => {
+      box(ctx, 5.85, 5.95, 0, 0.5, 0.5, 0.08, C.brown, { flat: true, lw: 0.02 });
+      box(ctx, 6.06, 6.16, 0.08, 0.08, 0.08, 2.9, C.brown, { flat: true, lw: 0.02 });
+      const [X, Y] = P(6.1, 6.2, 2.75);
       ctx.beginPath(); ctx.moveTo(X - 0.1, Y); ctx.lineTo(X - 0.45, Y + 1.5); ctx.lineTo(X + 0.4, Y + 1.55); ctx.lineTo(X + 0.12, Y); ctx.closePath();
       paint(ctx, C.navy, { lw: 0.03, dots: shade(C.navy, 0.4), density: 0.2 });
       ctx.beginPath(); ctx.arc(X + 0.05, Y - 0.1, 0.2, Math.PI, 0); paint(ctx, alpha(C.white, 0.6), { lw: 0.02 });
@@ -530,47 +582,96 @@ export default {
       cylinder(ctx, 6.5, 8.3, 0, 0.25, 0.8, C.teal);
       for (const [dx, c] of [[-0.08, C.mustard], [0.06, C.ink], [0.0, C.pink]]) line3(ctx, [[6.5 + dx, 8.3, 0.8], [6.5 + dx * 2, 8.3 - dx, 1.45]], c, 0.07);
     });
-    R.rug((ctx) => {
-      const [X, Y] = P(7.7, 7.5, 0.01);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.7, 0.32, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
-      if (Q.detail) { ctx.beginPath(); ctx.ellipse(X, Y, 0.5, 0.22, 0, 0, Math.PI * 2); ctx.strokeStyle = alpha(C.ink, 0.3); ctx.lineWidth = 0.02; ctx.stroke(); }
-    });
-    const gooseAt = (t) => ({ x: 7.7, y: 7.5, z: 0.02, dir: 'l', pose: Math.sin(t * 0.45) > 0.93 ? 'honk' : 'stand' });
-    R.goose(gooseAt, { bias: 0.3 });
-    // Its outfit: a hard hat for moving day, a sou'wester (and slicker) in
+    // The goose: the porch goose, brought in out of the rain, and sealed
+    // into the good armchair's plastic slipcover with it (she does every
+    // chair). Its beak is pressing the plastic out; the cover breathes. Its
+    // twin, the same green velvet in the same plastic, is hers, at the bay.
+    // A tap peels the plastic back over the chair's back and up it sits,
+    // dressed for the weather as she dressed it this morning.
+    const AX = 7.15, AY = 6.95, GX = AX + 0.72, GY = AY + 0.55, GZ = 0.66;
+    const seal = R.poke({ id: 'goodchair', at: [GX, GY, 1.05], r: 0.95, sound: 'pop', say: 'SQUEAK. HONK.' });
+    R.thing(AX + 1.15, AY + 1.1, (ctx) => { armchair(ctx, AX, AY, C.green); plastic(ctx, AX, AY); }, { depth: GX + GY - 0.3 });
+    const gooseAt = (t) => ({ x: GX, y: GY, z: GZ, dir: 'r', pose: Math.sin(t * 0.45) > 0.9 ? 'honk' : 'sit', hidden: seal.k() < 0.5 });
+    R.goose(gooseAt, { kind: 'poke', inside: seal, hint: 'She keeps every chair in plastic. One of them is breathing.' });
+    R.thing(AX + 1.15, AY + 1.1, (ctx, t) => {
+      const k = seal.k();
+      if (k < 0.5) {
+        // Under the plastic: the goose, muffled, the cover tight over it
+        // and rising and falling, the beak pushing it out to a point.
+        drawGoose(ctx, GX, GY, GZ, 0, { dir: 'r', pose: 'sit' });
+        const [X, Y] = P(GX, GY, GZ), b = Math.sin(t * 1.7) * 0.025;
+        ctx.beginPath();
+        ctx.moveTo(X - 0.62, Y - 0.05);
+        ctx.quadraticCurveTo(X - 0.7, Y - 0.6 - b, X - 0.1, Y - 0.72 - b);
+        ctx.quadraticCurveTo(X + 0.15, Y - 1.12 - b, X + 0.36, Y - 1.0 - b);
+        ctx.lineTo(X + 0.66, Y - 0.86);
+        ctx.quadraticCurveTo(X + 0.5, Y - 0.6, X + 0.55, Y - 0.05);
+        ctx.closePath();
+        paint(ctx, alpha(C.white, 0.72), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
+        // The beak, orange through the plastic at its tip, the creases
+        // running back from it.
+        ctx.beginPath(); ctx.moveTo(X + 0.4, Y - 0.97); ctx.lineTo(X + 0.64, Y - 0.87); ctx.lineTo(X + 0.42, Y - 0.85); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.02 });
+        if (Q.detail) {
+          ctx.strokeStyle = alpha(C.ink, 0.45); ctx.lineWidth = 0.015; ctx.beginPath();
+          for (const [dx, dy] of [[-0.25, -0.1], [-0.3, 0.12], [-0.12, 0.25]]) { ctx.moveTo(X + 0.6, Y - 0.87); ctx.lineTo(X + 0.6 + dx, Y - 0.87 + dy); }
+          ctx.stroke();
+          for (const [u, v] of [[-0.35, -0.45], [0.05, -0.3]]) { ctx.beginPath(); ctx.moveTo(X + u, Y + v); ctx.lineTo(X + u + 0.16, Y + v - 0.12); ctx.strokeStyle = alpha(C.white, 0.95); ctx.lineWidth = 0.035; ctx.stroke(); }
+        }
+      } else {
+        // The cover, peeled back and bunched over the chair's back.
+        const [X, Y] = P(AX + 0.18, AY + 0.55, 1.85);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.62, 0.24, -0.45, 0, Math.PI * 2);
+        paint(ctx, alpha(C.white, 0.55), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
+        if (Q.detail) for (const d of [-0.25, 0.05, 0.3]) { ctx.beginPath(); ctx.moveTo(X + d - 0.1, Y - 0.08); ctx.lineTo(X + d + 0.08, Y + 0.06); ctx.strokeStyle = alpha(C.white, 0.95); ctx.lineWidth = 0.03; ctx.stroke(); }
+      }
+    }, { anim: true, depth: GX + GY + 0.45 });
+    // Its outfit, once it's out: a hard hat for moving day, a sou'wester in
     // the rain, a ball cap for the game, a nightcap.
     R.mover(gooseAt, (ctx, t, p) => {
+      if (p.hidden) return;
       const h = hh(t), honk = p.pose === 'honk';
       const [X, Y] = P(p.x, p.y, p.z);
-      const hx = X - (honk ? 0.5 : 0.28), hy = Y + (honk ? -0.9 : -1.07);
+      const hx = X + (honk ? 0.5 : 0.28), hy = Y + (honk ? -0.65 : -0.82);
       if (h >= 9.6 && h < 15.4) {
-        // The slicker over its back.
-        ctx.beginPath(); ctx.ellipse(X + 0.02, Y - 0.49, 0.36, 0.2, 0.12, Math.PI * 1.02, Math.PI * 2.0); ctx.closePath();
-        paint(ctx, C.mustard, { lw: 0.025 });
-        ctx.beginPath(); ctx.ellipse(hx + 0.04, hy - 0.08, 0.26, 0.07, 0.25, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
+        ctx.beginPath(); ctx.ellipse(hx - 0.04, hy - 0.08, 0.26, 0.07, -0.25, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.025 });
         ctx.beginPath(); ctx.arc(hx, hy - 0.1, 0.13, Math.PI, 0); paint(ctx, C.mustard, { lw: 0.025 });
       } else if (h >= 15.4 && h < 21) {
-        ctx.beginPath(); ctx.arc(hx, hy - 0.06, 0.13, Math.PI, 0); ctx.rect(hx - 0.28, hy - 0.08, 0.2, 0.05); paint(ctx, C.red, { lw: 0.025 });
+        ctx.beginPath(); ctx.arc(hx, hy - 0.06, 0.13, Math.PI, 0); ctx.rect(hx + 0.08, hy - 0.08, 0.2, 0.05); paint(ctx, C.red, { lw: 0.025 });
       } else if (h >= 21 || h < 6) {
-        ctx.beginPath(); ctx.moveTo(hx - 0.14, hy - 0.04); ctx.quadraticCurveTo(hx - 0.05, hy - 0.4, hx + 0.3, hy - 0.2); ctx.lineTo(hx + 0.14, hy - 0.04); ctx.closePath();
+        ctx.beginPath(); ctx.moveTo(hx + 0.14, hy - 0.04); ctx.quadraticCurveTo(hx + 0.05, hy - 0.4, hx - 0.3, hy - 0.2); ctx.lineTo(hx - 0.14, hy - 0.04); ctx.closePath();
         paint(ctx, tint(C.sky, 0.3), { lw: 0.025, dots: C.navy, density: 0.3 });
-        ctx.beginPath(); ctx.arc(hx + 0.32, hy - 0.2, 0.06, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+        ctx.beginPath(); ctx.arc(hx - 0.32, hy - 0.2, 0.06, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
       } else {
         ctx.beginPath(); ctx.arc(hx, hy - 0.07, 0.15, Math.PI, 0); ctx.closePath(); paint(ctx, INK_HARDHAT, { lw: 0.025 });
         ctx.beginPath(); ctx.ellipse(hx, hy - 0.07, 0.2, 0.04, 0, 0, Math.PI * 2); paint(ctx, INK_HARDHAT, { lw: 0.02 });
       }
-    }, { bias: 0.35 });
+    }, { bias: 0.05 });
 
-    // A spider plant on a stand, and the radiator, clanking.
+    // Her big radio on a stand, a cathedral of walnut, always on the Sox
+    // (talk all day, the game at night). A tap turns it up.
+    const radio = R.poke({ id: 'radio', at: [7.8, 3.2, 1.45], r: 0.95, teach: true, sound: 'tick', hold: 4, say: ['Sox talk, all day.', 'Kssht. The callers are upset.', 'TURN THAT DOWN. Thank you.'] });
     R.thing(7.9, 3.3, (ctx) => {
       box(ctx, 7.55, 2.95, 0, 0.5, 0.5, 1.0, C.brown, { flat: true, lw: 0.02 });
-      cylinder(ctx, 7.8, 3.2, 1.0, 0.22, 0.3, C.coral);
-      ctx.strokeStyle = C.leaf; ctx.lineWidth = 0.04; ctx.lineCap = 'round';
-      const [X, Y] = P(7.8, 3.2, 1.3);
-      ctx.beginPath();
-      for (let i = 0; i < 9; i++) { const a = -Math.PI / 2 + (i - 4) * 0.35; ctx.moveTo(X, Y); ctx.quadraticCurveTo(X + Math.cos(a) * 0.4, Y + Math.sin(a) * 0.5, X + Math.cos(a) * 0.55, Y + Math.sin(a) * 0.1 + 0.35 * Math.abs(i - 4) / 4); }
-      ctx.stroke();
+      box(ctx, 7.5, 2.92, 1.0, 0.6, 0.55, 0.5, C.wood, { lw: 0.03, top: C.woodLight });
+      // The arch on its front, the grille cloth, the dial.
+      const arch = [];
+      for (let i = 0; i <= 12; i++) { const a = (i / 12) * Math.PI; arch.push([7.8 - Math.cos(a) * 0.3, 3.475, 1.5 + Math.sin(a) * 0.32]); }
+      face(ctx, arch, C.wood, { lw: 0.03 });
+      face(ctx, [[7.6, 3.476, 1.12], [8.0, 3.476, 1.12], [8.0, 3.476, 1.62], [7.6, 3.476, 1.62]], tint(C.mustard, 0.35), { lw: 0.015, dots: C.brown, density: 0.35 });
+      if (Q.detail) for (const u of [7.7, 7.8, 7.9]) line3(ctx, [[u, 3.478, 1.15], [u, 3.478, 1.6]], C.wood, 0.03);
     });
+    R.thing(7.95, 3.35, (ctx, t) => {
+      const k = radio.k();
+      // The dial, lit; turned up, notes and a crackle.
+      const [X, Y] = P(7.8, 3.48, 1.06);
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.09, 0.05, 0, 0, Math.PI * 2); paint(ctx, k > 0.1 ? C.butter : tint(C.butter, 0.3), { lw: 0.015 });
+      if (k > 0.1 && Q.detail) {
+        for (let i = 0; i < 3; i++) { const q = ((t * 0.8) + i / 3) % 1; note(ctx, 7.8 + q * 0.6, 3.6 - q * 0.2, 1.9 + q * 0.9, [C.red, C.navy, C.red][i], 0.5 * k); }
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
+        for (const r of [0.22, 0.36]) { ctx.beginPath(); ctx.arc(X + 0.1, Y - 0.3, r, -1.2, -0.3); ctx.stroke(); }
+      }
+    }, { anim: true });
 
     // ---------- The front room ----------
     // The couch, in its plastic since 1979; doilies on the arms and back.
@@ -591,8 +692,6 @@ export default {
     // its plastic), a candy dish.
     R.thing(12.4, 3.1, (ctx) => {
       box(ctx, 11.85, 2.35, 0, 0.6, 0.65, 1.0, C.wood, { lw: 0.03, top: C.woodLight });
-      disc(ctx, 12.15, 2.95, 1.01, 0.14, alpha(tint(C.sky, 0.4), 0.9), { lw: 0.015 });
-      for (const [u, v, c] of [[12.1, 2.9, C.red], [12.2, 2.98, C.mustard]]) disc(ctx, u, v, 1.04, 0.04, c, { stroke: false });
       box(ctx, 12.05, 2.5, 1.0, 0.2, 0.2, 0.25, C.white, { flat: true, lw: 0.02 });
       box(ctx, 12.12, 2.57, 1.25, 0.06, 0.06, 0.6, C.mustard, { flat: true, stroke: false });
       const [X, Y] = P(12.15, 2.6, 2.1);
@@ -601,7 +700,16 @@ export default {
       if (Q.detail) { ctx.strokeStyle = C.coral; ctx.lineWidth = 0.02; ctx.beginPath(); for (let u = -0.36; u <= 0.36; u += 0.06) { ctx.moveTo(X + u, Y + 0.18); ctx.lineTo(X + u, Y + 0.28); } ctx.stroke(); }
       ctx.beginPath(); ctx.moveTo(X - 0.3, Y - 0.36); ctx.lineTo(X + 0.3, Y - 0.36); ctx.lineTo(X + 0.45, Y + 0.24); ctx.lineTo(X - 0.45, Y + 0.24); ctx.closePath();
       paint(ctx, alpha(C.white, 0.25), { lw: 0.015, stroke: alpha(C.ink, 0.45) });
+      // The decoy: her porcelain goose from 1974, on its own little doily,
+      // a blue bow, gold on its beak, a chip in its tail she won't discuss.
+      disc(ctx, 12.2, 3.0, 1.005, 0.2, C.white, { lw: 0.012 });
+      disc(ctx, 12.2, 3.0, 1.01, 0.13, tint(C.sky, 0.35), { lw: 0.012 });
+      drawGoose(ctx, 12.2, 3.0, 1.06, 0, { dir: 'r', pose: 'stand', scale: 0.42 });
+      const [gx, gy] = P(12.2, 3.0, 1.06);
+      ctx.beginPath(); ctx.ellipse(gx + 0.1, gy - 0.28, 0.06, 0.035, 0.4, 0, Math.PI * 2); paint(ctx, C.navy, { lw: 0.012 });
+      if (Q.detail) { ctx.beginPath(); ctx.arc(gx + 0.17, gy - 0.46, 0.015, 0, Math.PI * 2); ctx.fillStyle = C.mustard; ctx.fill(); }
     });
+    R.decoy({ id: 'figurine', at: [12.2, 3.0, 1.3], r: 0.6, say: ['Hands off. That\'s from 1974.', 'From 1974. Hands off.'] });
     R.light({ at: [12.15, 2.6, 2.1], r: 4, color: C.butter, k: (t) => (lightsOn(t) ? 0.85 : 0) });
     // The TV: a console in a wood cabinet, rabbit ears, a doily and her
     // wedding photo on top. The game's on at night.
@@ -615,6 +723,26 @@ export default {
       face(ctx, [[9.085, 6.8, 1.56], [9.085, 7.15, 1.56], [9.085, 7.15, 1.98], [9.085, 6.8, 1.98]], C.greyLight, { lw: 0.015 });
       for (const a of [-0.5, 0.5]) line3(ctx, [[9.1, 5.85, 1.5], [9.1 + a * 0.4, 5.85 - a * 0.5, 2.25]], C.ink, 0.035);
     });
+    // What changed: after noon, the one new thing in fifty-two years, on
+    // the doily on the TV, bare all morning. A succulent from the new
+    // people in the Grey One, a card on a stick: FROM 2ND FL, WELCOME!
+    R.thing(9.72, 7.15, (ctx) => {
+      cylinder(ctx, 9.2, 6.25, 1.51, 0.13, 0.16, C.coral, { top: C.brown });
+      const [X, Y] = P(9.2, 6.25, 1.68);
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2;
+        ctx.beginPath(); ctx.ellipse(X + Math.cos(a) * 0.09, Y + Math.sin(a) * 0.04 - 0.03, 0.08, 0.045, a, 0, Math.PI * 2);
+        paint(ctx, i % 2 ? C.leaf : tint(C.green, 0.2), { lw: 0.012 });
+      }
+      ctx.beginPath(); ctx.arc(X, Y - 0.06, 0.05, 0, Math.PI * 2); paint(ctx, C.green, { lw: 0.012 });
+      // The card, on its pick.
+      line3(ctx, [[9.25, 6.32, 1.66], [9.25, 6.38, 1.95]], C.woodLight, 0.02);
+      face(ctx, [[9.26, 6.2, 1.9], [9.26, 6.58, 1.9], [9.26, 6.58, 2.13], [9.26, 6.2, 2.13]], C.white, { lw: 0.012 });
+      if (Q.detail) {
+        lettering(ctx, 'y', 9.265, 6.39, 2.06, 'FROM 2ND FL', 0.045, C.ink);
+        lettering(ctx, 'y', 9.265, 6.39, 1.97, 'WELCOME!', 0.05, C.red);
+      }
+    }, { on: AFTER.when, depth: 16.85 });
     const screen = (u, v) => [9.655, 5.95 + u * 1.0, 0.4 + v * 0.95];
     R.thing(9.75, 7.3, (ctx) => {
       face(ctx, [screen(0, 0), screen(1, 0), screen(1, 1), screen(0, 1)], shade(C.grey, 0.35), { lw: 0.03 });
@@ -632,18 +760,16 @@ export default {
     }, { anim: true, on: lightsOn });
     R.light({ at: [9.9, 6.45, 0.9], r: 2.2, color: tint(C.sky, 0.3), k: (t) => (lightsOn(t) ? 0.6 : 0) });
 
-    // Her armchair at the bay: green velvet, an afghan over the back, a
-    // footstool; the radiator cover is the windowsill, where the scanner
-    // lives.
+    // Her armchair at the bay: the good chair's twin, green velvet in the
+    // same plastic, an afghan over the back (in the plastic too); the
+    // radiator cover is the windowsill, where the scanner lives.
+    R.poke({ id: 'herchair', at: [10.95, 6.35, 1.75], r: 0.6, sound: 'tick', say: ['Squeak.', 'Sealed since 1979.', 'Still squeaky.'] });
     R.thing(12.0, 7.0, (ctx) => {
-      const x = 10.85, y = 5.8, col = C.green;
-      box(ctx, x, y, 0, 1.15, 1.1, 0.5, shade(col, 0.1), { lw: 0.04 });
-      box(ctx, x + 0.3, y + 0.2, 0.5, 0.85, 0.7, 0.2, tint(col, 0.15), { lw: 0.03 });
-      box(ctx, x, y, 0.5, 0.35, 1.1, 1.3, col, { lw: 0.04 });
-      box(ctx, x + 0.3, y, 0.5, 0.85, 0.22, 0.45, col, { lw: 0.035 });
-      box(ctx, x + 0.3, y + 0.88, 0.5, 0.85, 0.22, 0.45, col, { lw: 0.035 });
+      const x = 10.85, y = 5.8;
+      armchair(ctx, x, y, C.green);
       // The afghan: granny squares down the back.
       face(ctx, [[x + 0.36, y + 0.1, 1.8], [x + 0.36, y + 1.0, 1.8], [x + 0.4, y + 1.0, 0.9], [x + 0.4, y + 0.1, 0.9]], C.mustard, { lw: 0.02, dots: C.coral, density: 0.45 });
+      plastic(ctx, x, y, true);
     });
     R.thing(11.3, 7.9, (ctx) => box(ctx, 10.7, 7.3, 0, 0.6, 0.6, 0.45, C.green, { lw: 0.03, top: tint(C.green, 0.2) }));
     R.thing(12.5, 8.3, (ctx) => {
@@ -736,9 +862,10 @@ export default {
     }, { anim: true, on: noon, depth: 24 });
 
     // ---------- The finds ----------
-    R.find({ id: 'keys', label: 'The ring of spare keys', at: [5.2, 2.95, 1.3], r: 0.88 });
-    R.find({ id: 'deposits', label: 'A coffee can of deposits', at: [DX, DY, DZ + 0.3], r: 0.88 });
-    R.find({ id: 'scanner', label: 'A police scanner', at: [12.2, 7.37, 1.2], r: 0.88 });
+    R.find({ id: 'keys', label: 'The ring of spare keys', kind: 'spot', at: [5.2, 2.95, 1.3], r: 0.88 });
+    R.find({ id: 'deposits', label: 'Everybody\'s deposits', kind: 'poke', inside: tinP, at: [DX, DY, DZ + 0.55], r: 0.7, hint: 'Two cookie tins, no cookies. One of them is holding everyone\'s money.' });
+    R.find({ id: 'scanner', label: 'A police scanner', kind: 'spot', at: [12.2, 7.37, 1.2], r: 0.88 });
+    R.find({ id: 'gift', label: 'The one new thing in fifty-two years', kind: 'hard', at: [9.2, 6.3, 1.85], r: 0.7, ...AFTER, riddle: 'Her doily was bare at breakfast. Flip back and look.', hint: 'The new people next door sent something over. It\'s sitting on lace.' });
   },
 };
 
