@@ -270,6 +270,49 @@ Answered (decisions 52 to 56): every recommendation taken, and it ships. Each wi
 4. **Rain from ten till three** (decision 10) greys the whole map for a third of the loop. *Recommend:* keep; it's what happened on the day and the funniest part of it (the mattress umbrella, the ponchos, the Brownie).
 5. **It ships to the picker** after Plum Island, as "Moving Day" with "South Boston" under it. *Recommend:* yes.
 
+## The retune (session 13): before and after
+Moving Day's verb (STRATEGY.md, "A verb per place") is **before and after**: the apartments empty by noon and fill by night, and some finds are what changed. Spot the difference across time. Plus the rules of finding every place now has (session 9): kinds, decoys, things that answer a tap, earned hints. The owner asked the lead to research the day and make the calls (decision 57 on).
+
+### What the day is really like (research, Oct 2026)
+Checked against the news; where a fact couldn't be pinned to a source it isn't used as fact.
+- About two thirds to 70% of Boston's leases turn over on September 1 (Boston 25 News; Boston.com, 165,000+ leases). In August 2025 the city issued 4,500 moving permits, 2,500 of them for the holiday weekend; "more U-Hauls than cars"; keeping a truck overnight cost about $600 extra (Boston 25 News, 2025).
+- A moving permit holds two spaces, 7am to 5pm, signs up 48 hours before (Boston's permit rules as summarized by movers, 2026). The "NO PARKING" signs on the road are right.
+- Storrowing: at least 100 crashes from 2022 to 2025 (NBC Boston); in 2026 a truck lost its roof on the BU Bridge on July 17 (the Globe) and another on August 19 (Boston.com). The Storrowed truck stays.
+- Triple-decker stairs turn tight corners; movers hoist furniture to the top porch with a block and tackle (Gigwise, on Somerville). The couch on its rope is right.
+- Since August 1, 2025, a landlord can't make a tenant pay the broker (WGBH, the Attorney General). A landlord must give a statement of condition within ten days and return a deposit within 30, itemized; nail holes and routine repainting are normal wear (MassLandlords on Peebles v. JRK, the Supreme Judicial Court, August 2025).
+- Mattresses have been banned from the trash since November 2022; Boston picks them up by appointment, bagged (mass.gov, boston.gov). The bagged curb mattress is right.
+- The curb on the day: lamps, couches, desks, dressers, toasters, microwaves, mattresses (CBS Boston). "Allston Christmas" is the name everyone uses; "Southie Christmas" is local folk usage, kept as the apartment's name because it's funnier on this street.
+- Not found in any source, so used only as jokes, never as facts: boxes delivered to the wrong floor, the single mystery key, the note for the next tenant. The rain on September 1, 2026 was forecast, not confirmed; it stays (decision 55).
+
+### The flip (decision 57)
+The lease clock stops skipping round the day and **flips**: a tap jumps to the matching moment on the other side of noon, and the picture as it was holds a beat and melts away over the new one, so what changed jumps out (an astronomer's blink comparator, in a second). Mornings pair with evenings by how full the apartments are: 7am (the old tenants' things all still in) with 9pm (the new ones' all in), down to noon (empty) with 1pm (still empty). Flip twice and you're back where you were; tapping it again and again blinks between the two. From the first night or the dawn it flips to the morning; from the handover, to the afternoon. It says "Flip to after" or "Flip to before", the toast "After. Same apartment, new people. What changed?", and its badge still counts what the flip brings back. Any place's dial can do it (`map.dial.flip`); sunset and the first night still come as the clock runs.
+
+### What changed: a find in every apartment (decision 58)
+Every apartment gets one find that's the difference between its morning and its evening, in one of three shapes, so comparing is the way to find it:
+- **Left behind:** something from the morning that's still there after the move (the only thing that didn't leave).
+- **Gone:** the mark something left when it went (a clean circle on the wall where a clock hung).
+- **Moved:** something that turned up somewhere it wasn't this morning (a box for another floor, a pennant from the Roommates' wall on the curb collector's).
+
+Each is only findable after noon (`AFTER`), its label names the change, not the object or the place, and its riddle sends you back to the morning. It's mostly a hard find; a few are spot, so the spread holds.
+
+### Area by area (decision 59)
+Every find keeps its id. The goose is a poke or hard find whose tell always shows (two of a kind, one has it), in both halves of the day. Each area has four things, at least one with a window, a decoy (no repeats of another place's), two or three things that answer a tap, and a teach poke. The blurbs end by pointing at the flip where it fits.
+
+| Area | The goose | What changed (new) | The other things | Decoy | Teach poke |
+| --- | --- | --- | --- | --- | --- |
+| **The Landlady** | Poke: sealed under the plastic slipcover of one of two armchairs, beak pressing the plastic | **The one new thing** in fifty-two years: after noon, a housewarming gift from the Grey One (a succulent with a card, "FROM 2ND FL, WELCOME!") on her doily (hard) | Keys (spot); deposits in one of two cookie tins, the other full of sewing things (poke); scanner (spot) | A porcelain goose figurine ("Hands off. That's from 1974.") | The radio with the Red Sox |
+| **The Roommates** | Poke: in one of two duffel bags before noon (tail out the zip), in one of two laundry hampers after | **Left behind:** one red party cup on top of the fridge, among dozens in the morning, the only one at night (spot) | Ping-pong ball under the radiator, before (hard); the hole behind the poster, before (poke: tap the poster); sleep mask, after (spot) | A hunting decoy used as the beer pong trophy ("That's the trophy. Don't touch the trophy.") | The one asleep on the futon |
+| **The Couch** | Poke, both halves, two of a kind | **Left behind:** the one thing the couple kept of "It's all yours!": the lava lamp, on all morning, still on at night (hard) | Tape measure (spot); the couch's missing leg propping a window open (hard); napkin floor plan, after (spot) | A ceramic goose cookie jar the last tenant left | The hammock, or the pulley on the porch |
+| **The Family** | Poke: in one of two boxes the kids hide in, before; under the afghan on one of two recliners, after | **Gone, and kept:** the door frame painted fresh white after noon, except PEANUT's mark at the bottom, painted round (hard) | Hamster, before (poke: the box that wiggles); crayon drawing (spot); reading glasses, after, on the retiree's forehead while he looks for them (hard) | The kids' goose night-light | The beagle, or a box a kid pops out of |
+| **The Overlap** | Poke: in one of two identical laundry baskets (two of everything) | **Gone:** a clean circle on the wall where the stopped 11:58 clock hung (hard) | Toaster on a milk crate (spot); lease signed twice, in one of two identical folders (poke); the last box, before (spot) | The other goose: a ceramic goose they both claim ("We're working out custody.") | The standoff at the kitchen table |
+| **Southie Christmas** | Poke: in one of two closets of the empty flat, before; under a cushion of the free couch, after | **Moved:** the CHAMPS pennant from the Roommates' wall, on his wall by evening (hard; the Roommates have it in the morning) | Lamp with no shade, after (spot); free TV, after (spot); the FREE sign (spot or poke) | A swan planter from the curb ("Free, though.") | The Christmas lights ("It's September.") |
+| **The Open House** | Poke: in the kitchen island's cupboard ("Is the island load-bearing?"), one of two cupboards | **Changed:** the flyer by the door says ASKING by day, UNDER AGREEMENT by evening (spot) | Plastic lemon among real ones, or the reverse (hard); name tag (spot); booties (spot); "NO BROKER FEE" on the flyer, true since 2025 | The stager's white ceramic goose ("Staged. Do not touch.") | The realtor ("Love the light!") |
+| **The New Owners** | Poke: in one of two strollers, the other with the French bulldog | **Moved:** something meant for upstairs, after noon (the Roof Deck's boxed patio heater, carried to the wrong floor with the bike) (hard) | Smart speaker (spot); dog's rain boot (hard); bike's water bottle, after (spot) | A goose on the bike's screen, a ride through "Scenic Goose Lake" | The exercise bike |
+| **The Roof Deck** | Poke: under the hot tub's cover, a tail tip out | **Left behind:** something the builders forgot, on the rail all day, the only bit of the build left by evening (hard) | Binoculars, in the deck box (poke); wine glass (spot); golf umbrella (spot) | A cardboard Gander Cola goose standee ("Take a gander. It's cardboard.") | The hot tub's jets |
+| **Farragut Road** | Poke: in the Storrowed truck's cargo, its roll-up door the tap, a tail through the torn roof | **What's left:** after noon, the one thing on the curb nobody took (a bread maker) (spot) | Mattress tag (hard); side mirror (hard); lawn chair saving a space (spot) | The "Have you seen this goose?" poster ("Close. That's a poster.") | The queue's horns, or the man in the pickup's recliner |
+| **Marine Park** | Hard: in the lawn chair audience, in a poncho, holding up a score | A find with a window, the artist's pick | Scorecard (spot); kite (spot); flip-flop (hard) | A real Canada goose ("Wrong goose. That one's Canadian.") | The Brownie swimming ("Sixty-one degrees!") |
+| **Castle Island** | Hard: in the hot dog line, under an umbrella, feet and tail showing | A find with a window, the artist's pick (the Courier's hot dog after noon, say) | Logbook (spot); relish packet (hard); earbud (hard) | A goose that fits the island, the artist's pick | The plane spotters' radio |
+
 ## Open questions
 None: the lead took its own recommendations (decisions below), and the owner can overturn any of them at the preview.
 
@@ -347,3 +390,8 @@ Gate 3 (the owner, Oct 2026, every recommendation taken):
 54. **Speed ships as is;** the next step for older laptops is for every place at once (the roadmap's open item), not this level alone.
 55. **Rain from ten till three stays.**
 56. **Moving Day ships** in the picker after Plum Island, "South Boston" under its name.
+
+The owner, at the start of session 13 (Oct 2026), and the retune (the lead's calls):
+57. **The lease clock flips** between before and after instead of skipping round the day (above, "The flip"). The owner asked the lead to research the day and decide; the flip is the verb because comparing is what "before and after" asks of a player, and running the day fast blurs exactly what changed.
+58. **A find in every apartment is what changed** (left behind, gone or moved), findable after noon, labeled by the change.
+59. **Every area retuned** to the rules of finding, as the table above has it.
