@@ -29,7 +29,9 @@
 //         { "<area id>": { "<label>": [x, y] or null, ... }, ...,
 //           "ratings": { "<area id>": { "<label>": 1..5, ... }, ... } }
 //       x, y are pixels in that area's shot (the .png as saved); null means
-//       "couldn't find it". A guess counts if it lands within the find's tap
+//       "couldn't find it". The goose can take two guesses, [[x, y], [x, y]]:
+//       the second counts only if the first landed on a lookalike (a decoy
+//       answers back, so a player would keep looking). A guess counts if it lands within the find's tap
 //       area, or, for a find inside something that opens on a tap (a poke),
 //       on that thing. Each find is scored against its kind's band (the
 //       spread, rules.js): spot 1 to 3, poke 2 to 4, hard 3 to 5, from the
@@ -135,7 +137,14 @@ if (mode === 'prepare') {
           const [qx, qy] = s.camera.toScreen(zone.anchor[0] + px - py, zone.anchor[1] - zone.lift + (px + py) / 2 - ph * 1.12);
           poke = { sx: qx, sy: qy, r: Math.max(f.inside.r * s.cam.z, 22) };
         }
-        return { id: f.id, label: f.goose ? 'The goose' : f.label, kind: f.kind || 'spot', riddle: f.riddle || null, poke, note: f.note || null, here: !f.when || !!f.when(t), dial: dial && !dial.hidden ? dial.innerText.replace(/\s+/g, ' ').trim() : null, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight && !under(sx, sy) };
+        // The goose: where its lookalikes are, so a tap on one can be followed
+        // by a second guess, as a player hears "not a goose" and looks again.
+        const decoys = f.goose ? zone.pokes.filter((p) => p.decoy && (!p.when || p.when(t))).map((p) => {
+          const [px, py, ph] = typeof p.at === 'function' ? p.at(t) : p.at;
+          const [qx, qy] = s.camera.toScreen(zone.anchor[0] + px - py, zone.anchor[1] - zone.lift + (px + py) / 2 - ph * 1.12);
+          return { sx: qx, sy: qy, r: Math.max(p.r * s.cam.z, 22) };
+        }) : null;
+        return { id: f.id, ...(decoys && decoys.length ? { decoys } : {}), label: f.goose ? 'The goose' : f.label, kind: f.kind || 'spot', riddle: f.riddle || null, poke, note: f.note || null, here: !f.when || !!f.when(t), dial: dial && !dial.hidden ? dial.innerText.replace(/\s+/g, ' ').trim() : null, sx, sy, r: Math.max(f.r * s.cam.z, 22), seen: sx > 0 && sx < innerWidth && sy > 0 && sy < innerHeight && !under(sx, sy) };
       });
     }, { id: z.id, skip, only });
     await page.evaluate((() => new Promise((r) => { window.__squares.renderer.refreshAll(); requestAnimationFrame(() => requestAnimationFrame(r)); }))); // every room's picture at this moment
@@ -315,9 +324,16 @@ for (const [id, finds] of Object.entries(answers)) {
   if (!tested(id)) continue;
   for (const f of finds) {
     total++;
-    const g = guesses[id] && guesses[id][f.label];
-    let result = 'not found', hit = false;
-    if (Array.isArray(g)) {
+    let g = guesses[id] && guesses[id][f.label];
+    let result = 'not found', hit = false, second = '';
+    // Two guesses for the goose ([[x, y], [x, y]]): the second counts only
+    // when the first was on one of its lookalikes, which answers back.
+    if (Array.isArray(g) && Array.isArray(g[0])) {
+      const [a, b] = g;
+      const onDecoy = (q) => q && (f.decoys || []).some((d) => Math.hypot(q[0] / SCALE - d.sx, q[1] / SCALE - d.sy) <= d.r);
+      if (b && onDecoy(a)) { g = b; second = ' (second guess, after a lookalike)'; } else { g = a; if (onDecoy(a)) second = ' (on a lookalike)'; }
+    }
+    if (Array.isArray(g) && g.length) {
       const gx = g[0] / SCALE, gy = g[1] / SCALE;
       const d = Math.hypot(gx - f.sx, gy - f.sy);
       // (Tapping the thing it's inside opens it: that's finding it.)
@@ -325,6 +341,7 @@ for (const [id, finds] of Object.entries(answers)) {
       hit = d <= f.r || (f.poke && dp <= f.poke.r);
       result = hit ? (d <= f.r ? 'found' : 'found (by opening it)') : `missed by ${Math.round(Math.min(d - f.r, f.poke ? dp - f.poke.r : Infinity))}px`;
       if (hit) hits++;
+      result += second;
     }
     // Its rating against its kind's band (a miss is a 5).
     const kind = f.kind || 'spot', band = BANDS[kind] || BANDS.spot;

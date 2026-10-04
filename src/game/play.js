@@ -31,6 +31,9 @@
 // show at low or high water) has a dial (map.dial): it says what the clock
 // says now, and a tap skips ahead to the next turn, the scene running fast
 // for a second or two. A find can be there only some of the time (f.when).
+// A dial can flip instead (map.dial.flip, Moving Day's before and after):
+// the clock jumps to the matching moment on the other side, and the old
+// picture melts away over the new one, so what changed jumps out.
 
 import { isoX, isoY } from '../engine/iso.js';
 import { C, Q, alpha } from '../engine/art.js';
@@ -467,6 +470,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     // it says when, never where).
     away: (zone, f) => !!f.when && !isFound(zone, f) && !here(f, clock()),
     skipFor: (zone, f) => { const n = skipFor(f); return n && n.label; },
+    skipVerb: () => (world && world.map.dial ? verbOf(world.map.dial) : 'Skip to'),
     onSkip: (zone, f) => skipTo(skipFor(f)),
     onGoRoom: (i) => {
       userAct();
@@ -596,7 +600,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     // Not there right now (under the tide): say when, and where to skip.
     if (!here(f, clock())) {
       const d = world.map.dial;
-      toast(`${f.label} only shows at ${f.note || 'another time'}.${d ? ` Tap ${d.name || 'the dial'} to skip there.` : ''}`);
+      toast(`${f.label} only shows at ${f.note || 'another time'}.${d ? ` Tap ${d.name || 'the dial'} to ${d.flip ? 'flip' : 'skip'} there.` : ''}`);
       nudge(ui.dial);
     }
     // A small ring near the thing, off to one side: close, not the answer.
@@ -684,7 +688,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // Something that answers a tap: it opens (or shuts), and maybe says a line.
   // A decoy (a swan, say) only answers back.
   function poke(zone, pk) {
-    const lines = pk.say ? [].concat(pk.say) : [];
+    // (Its lines can follow the clock: say(t), someone different by afternoon.)
+    const said = typeof pk.say === 'function' ? pk.say(clock()) : pk.say;
+    const lines = said ? [].concat(said) : [];
     const line = lines.length ? lines[pk.taps % lines.length] : '';
     pk.taps++;
     poked = true;
@@ -708,7 +714,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // teach, else the first that isn't a decoy and has nothing inside it (so the
   // lesson is "things answer back", and no find is given away).
   function teachPoke(zone) {
-    return zone.pokes.find((pk) => pk.teach) || zone.pokes.find((pk) => !pk.decoy && !pk.when && !zone.finds.some((f) => f.inside === pk)) || null;
+    // (Only one that's there now: a teach poke can come and go with the clock.)
+    const t = clock(), now = (pk) => !pk.when || pk.when(t);
+    return zone.pokes.find((pk) => pk.teach && now(pk)) || zone.pokes.find((pk) => !pk.decoy && now(pk) && !zone.finds.some((f) => f.inside === pk)) || null;
   }
   // Is the nudge showing in this zone now?
   function teaching(zone, now) {
@@ -879,8 +887,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       dialText = label;
       const n = d.next(t);
       ui.dialLabel.textContent = label;
-      ui.dialNext.textContent = `Skip to ${n.label}`;
-      ui.dial.setAttribute('aria-label', `${label}. Skip ahead to ${n.label}.`);
+      ui.dialNext.textContent = `${verbOf(d)} ${n.label}`;
+      ui.dial.setAttribute('aria-label', `${label}. ${verbOf(d)} ${n.label}.`);
       ui.dial.dataset.waiting = ''; // (the badge says its part again)
       waitAt = -1;
     }
@@ -918,7 +926,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       ui.dial.dataset.waiting = String(back);
       ui.dialBadge.textContent = back;
       ui.dialBadge.hidden = !back;
-      ui.dial.setAttribute('aria-label', `${dialText}. Skip ahead to ${n.label}${back ? `: ${back} ${back === 1 ? 'thing' : 'things'} to find come back` : ''}.`);
+      ui.dial.setAttribute('aria-label', `${dialText}. ${verbOf(d)} ${n.label}${back ? `: ${back} ${back === 1 ? 'thing' : 'things'} to find come back` : ''}.`);
     }
     if (sig !== waitSig) {
       const first = !waitSig;
@@ -926,6 +934,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (!first && mode === 'zone' && current >= 0) tray.render(current);
     }
   }
+  // What a tap on the dial does, in words ("Skip to low tide", "Flip to after").
+  const verbOf = (d) => d.verb || (d.flip ? 'Flip to' : 'Skip to');
   function skipAhead() {
     if (!active || !world || !world.map.dial) return;
     skipTo(world.map.dial.next(clock()));
@@ -956,6 +966,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     userAct();
     const from = clock();
     n = { ...n, back: comingBack(from, n.at) };
+    if (world.map.dial && world.map.dial.flip) { flip(n); return; }
     sound('tide');
     if (reduceMotion) { setClock(n.at); landed(n); return; }
     skipping = { from, to: n.at, start: performance.now(), dur: 1800, n };
@@ -971,6 +982,27 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const n = skipping.n;
     skipping = null;
     ui.dial.classList.remove('is-skipping');
+    landed(n);
+  }
+  // A flip: the picture as it is now is copied onto a sheet over the map, the
+  // clock jumps, and the sheet holds a beat and fades, so the eye catches
+  // whatever's different (an astronomer's blink comparator, in a second).
+  function flip(n) {
+    sound('flip');
+    const cv = document.getElementById('map');
+    if (!reduceMotion && cv && cv.width) {
+      document.querySelectorAll('.flip-ghost').forEach((g) => g.remove());
+      const g = document.createElement('canvas');
+      g.className = 'flip-ghost';
+      g.width = cv.width;
+      g.height = cv.height;
+      g.getContext('2d').drawImage(cv, 0, 0);
+      g.setAttribute('aria-hidden', 'true');
+      cv.after(g);
+      requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add('is-gone')));
+      setTimeout(() => g.remove(), 1600);
+    }
+    setClock(n.at);
     landed(n);
   }
   function landed(n) {

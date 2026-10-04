@@ -6,13 +6,13 @@
 // mid-word, then carries on.
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, glow,
-  shade, tint, mix, alpha, P, onLeft, onRight, paintText, hash,
+  shade, tint, mix, alpha, P, onLeft, onRight, paintText, hash, goose,
 } from '../../../engine/art.js';
 import { pulse } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
-import { apartment, lettering, PORCH } from '../kit.js';
-import { SIDING, TRIM, ROOM, paperAt } from '../style.js';
-import { rainK, nightK } from '../clock.js';
+import { apartment, lettering, cup, PORCH } from '../kit.js';
+import { SIDING, TRIM, ROOM, BRAND, paperAt } from '../style.js';
+import { AFTER, rainK, nightK } from '../clock.js';
 import { planeAt } from '../ambient.js';
 import { H, during, track, boards, edison, kitchenL, sagaOn, saga, porchDepth, onPorch, rails, waist, bar } from './grey-2.js';
 
@@ -47,7 +47,9 @@ function ownerLine(t) {
 // tub filling, the rain; the party from one, out on the balcony from half
 // past three, and asleep on the chaise.
 const OWNER = track([
-  [7.0, 1.6, 7.0, { dir: 'l' }], [7.6, 1.6, 7.0, { dir: 'l' }], [7.7, 7.2, 5.0, { dir: 'l' }], [8.4, 7.2, 5.0, { dir: 'l' }],
+  // (By the window's front end, clear of the Gander Cola standee, then round
+  // it and between the island's stools and the coffee table.)
+  [7.0, 0.8, 7.9, { dir: 'l' }], [7.6, 0.8, 7.9, { dir: 'l' }], [7.63, 1.3, 6.6], [7.67, 4.8, 5.1], [7.7, 7.2, 5.0, { dir: 'l' }], [8.4, 7.2, 5.0, { dir: 'l' }],
   [8.55, 12.0, 1.2], [8.62, 13.0, 1.8, { dir: 'r' }], [9.55, 13.0, 1.8, { dir: 'r', say: 'Can I get in yet?' }],
   [9.62, 12.0, 1.2], [9.8, 9.4, 4.9, { pose: 'sit', dir: 'r', z: 0.05 }], [12.8, 9.4, 4.9, { pose: 'sit', dir: 'r', z: 0.05 }],
   [12.95, 4.5, 3.6, { dir: 'l' }], [15.35, 4.5, 3.6, { dir: 'l' }],
@@ -90,7 +92,7 @@ const TUB = [13.5, 2.9], TUB_R = 0.78;
 export default {
   id: 'grey-3',
   name: 'The Roof Deck',
-  blurb: 'A hot tub on the balcony and a view of Castle Island. Every minute a plane comes over and everyone stops mid-word.',
+  blurb: 'A hot tub on the balcony and a plane over it every minute. Flip the clock: the builders left, mostly.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 2, walls: ROOM['grey-3'], floorInk: ROOM['grey-3'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true });
@@ -174,13 +176,11 @@ export default {
       box(ctx, 8.6, 4.2, 0.12, 1.2, 1.4, 0.6, OAT, { lw: 0.035 });
       box(ctx, 8.6, 4.2, 0.72, 0.4, 1.4, 0.7, shade(OAT, 0.06), { lw: 0.035 });
     });
-    // The binoculars, left on the sectional (for the planes, and the harbor).
-    // Lying on the seat, at the end the guests leave free: two fat black
-    // barrels side by side, joined at the hinge, their big lenses toward
-    // you, and a coral strap looped on the cushion. Sorted in front of the
-    // sectional, behind whoever sits on it.
-    const BX = 9.2, BY = 3.72, BZ = 0.72;
-    R.thing(BX + 0.6, BY + 0.4, (ctx) => {
+    // The binoculars (for the planes, and the harbor), kept in the deck box
+    // out on the balcony: two fat black barrels side by side, joined at the
+    // hinge, their big lenses toward you, and a coral strap looped on the
+    // cushion under them. Drawn by the deck box when it's open.
+    const binoculars = (ctx, BX, BY, BZ) => {
       const K = C.black, len = 0.62;
       // The strap, a loop on the cushion.
       const [S0x, S0y] = P(BX + 0.08, BY - 0.2, BZ + 0.12), [S1x, S1y] = P(BX + 0.08, BY + 0.2, BZ + 0.12);
@@ -202,8 +202,32 @@ export default {
         if (Q.detail) { const [GXp, GYp] = P(BX + len + 0.01, y - 0.04, BZ + 0.2); ctx.fillStyle = alpha(C.white, 0.85); ctx.beginPath(); ctx.arc(GXp, GYp, 0.035, 0, Math.PI * 2); ctx.fill(); }
         if (dy < 0) box(ctx, BX + 0.22, BY - 0.07, BZ + 0.08, 0.26, 0.14, 0.14, shade(C.grey, 0.3), { flat: true, lw: 0.025 }); // the hinge
       }
-    }, { depth: 15.65 });
-    R.find({ id: 'binoculars', label: 'A pair of binoculars', at: [BX + 0.3, BY, BZ + 0.15], r: 0.88 });
+    };
+
+    // The party's goose, in cardboard (the decoy): a Gander Cola standee
+    // in the corner by the wine, life size and then some, holding up a can.
+    const SX = 2.1, SY = 7.4;
+    R.thing(SX + 0.6, SY + 0.1, (ctx) => {
+      // The kickstand behind, and the sign it stands on.
+      const [K0x, K0y] = P(SX, SY - 0.5, 0), [K1x, K1y] = P(SX, SY, 1.3);
+      ctx.beginPath(); ctx.moveTo(K0x, K0y); ctx.lineTo(K1x, K1y); ctx.strokeStyle = shade(C.woodLight, 0.3); ctx.lineWidth = 0.08; ctx.stroke();
+      const q = (x0, z0, x1, z1) => [[x0, SY, z0], [x1, SY, z0], [x1, SY, z1], [x0, SY, z1]];
+      face(ctx, q(SX - 0.6, 0, SX + 0.6, 0.5), BRAND.can, { lw: 0.03 });
+      face(ctx, q(SX - 0.6, 0.48, SX + 0.6, 0.53), shade(C.woodLight, 0.25), { stroke: false });
+      lettering(ctx, 'x', SX, SY + 0.01, 0.33, BRAND.line, 0.12, BRAND.ink);
+      lettering(ctx, 'x', SX, SY + 0.01, 0.14, BRAND.name, 0.08, BRAND.ink);
+      // The goose, printed big, with the cardboard's brown edge showing.
+      const [X, Y] = P(SX, SY, 0.5);
+      ctx.save(); ctx.translate(0.07, 0.05); ctx.globalAlpha *= 0.9;
+      ctx.beginPath(); ctx.ellipse(X - 0.02, Y - 0.32, 0.62, 0.36, -0.12, 0, Math.PI * 2); ctx.fillStyle = shade(C.woodLight, 0.2); ctx.fill();
+      ctx.restore();
+      goose(ctx, SX, SY, 0.5, 0, { pose: 'stand', dir: 'r', scale: 1.5 });
+      // The can, held up under its beak.
+      const [CX, CY] = P(SX + 0.5, SY, 1.55);
+      ctx.beginPath(); ctx.rect(CX - 0.1, CY - 0.18, 0.2, 0.34); paint(ctx, BRAND.can, { lw: 0.025 });
+      ctx.fillStyle = BRAND.ink; ctx.fillRect(CX - 0.1, CY - 0.04, 0.2, 0.05);
+    });
+    R.decoy({ id: 'standee', at: [SX, SY, 1.2], r: 0.7, say: ["Take a gander. It's cardboard.", 'Still cardboard.', 'Gander Cola. Now with less goose.'] });
     R.thing(6.8, 7.0, (ctx) => {
       box(ctx, 5.2, 5.4, 0, 1.6, 1.6, 0.5, C.ink, { lw: 0.035, top: shade(C.greyLight, 0.2) });
       // Coffee-table books, and a little plant.
@@ -230,19 +254,16 @@ export default {
       }
     }, { anim: true, on: during(13, 29) });
 
-    // The goose, in an empty wine crate, honking at every plane.
-    const GX = 4.0, GY = 8.2;
-    R.goose((t) => ({ x: GX, y: GY, z: 0.25, dir: 'r', pose: over(t) ? 'honk' : 'sit' }), { bias: -0.1 });
-    R.thing(GX + 0.5, GY + 0.5, (ctx) => {
-      const x0 = GX - 0.5, y0 = GY - 0.5, s = 1.0, hh = 0.55;
-      face(ctx, [[x0 + s, y0, 0], [x0 + s, y0 + s, 0], [x0 + s, y0 + s, hh], [x0 + s, y0, hh]], C.wood, { lw: 0.035 });
-      face(ctx, [[x0, y0 + s, 0], [x0 + s, y0 + s, 0], [x0 + s, y0 + s, hh], [x0, y0 + s, hh]], shade(C.wood, 0.15), { lw: 0.035 });
+    // A case of wine on the floor, for the party (sealed: nothing in it but wine).
+    R.thing(4.5, 8.7, (ctx) => {
+      const x0 = 3.5, y0 = 7.7, s = 1.0, hh = 0.55;
+      box(ctx, x0, y0, 0, s, s, hh, C.wood, { lw: 0.035, top: tint(C.wood, 0.15) });
       if (Q.detail) for (const z of [0.18, 0.36]) {
         face(ctx, [[x0, y0 + s, z], [x0 + s, y0 + s, z]], null, { lw: 0.02, stroke: C.brown });
         face(ctx, [[x0 + s, y0, z], [x0 + s, y0 + s, z]], null, { lw: 0.02, stroke: C.brown });
       }
       lettering(ctx, 'x', x0 + s / 2, y0 + s + 0.01, 0.28, 'RED', 0.16, C.brown);
-    }, { depth: GX + GY + 0.3 });
+    });
 
     // A robot vacuum, bumping round the rug all day.
     R.mover((t) => {
@@ -275,7 +296,7 @@ export default {
     // The party: guests at the island and the wine fridge, two on the sectional.
     const GUESTS = [
       { at: [1.9, 4.95], dir: 'r', look: folk(1021, { dress: true, top: C.coral }), talk: true },
-      { at: [1.5, 5.6], dir: 'l', look: folk(1022, { top: C.mustard, dress: false }), pour: true },
+      { at: [1.5, 5.6], dir: 'r', look: folk(1022, { top: C.mustard, dress: false }), pour: true },
       { at: [10.45, 3.75], sit: true, dir: 'r', look: folk(1023, { top: C.teal, dress: false, style: 'bun' }) },
       { at: [11.05, 3.75], sit: true, dir: 'r', look: folk(1024, { top: C.purple, dress: false }) },
     ];
@@ -297,7 +318,7 @@ export default {
     });
     // The caterer, doing laps with tiny food.
     R.mover((t) => {
-      const k = pulse(t, 18), pts = [[7.8, 6.0], [10.6, 6.3], [11.4, 7.8], [8.0, 8.3], [7.8, 6.0]];
+      const k = pulse(t, 18), pts = [[7.8, 6.0], [10.6, 6.3], [10.6, 7.9], [8.0, 8.3], [7.8, 6.0]];
       const f = k * 4, i = Math.floor(f), e = f - i, a = pts[i], b = pts[i + 1];
       return { x: a[0] + (b[0] - a[0]) * e, y: a[1] + (b[1] - a[1]) * e, dir: (b[0] - a[0]) - (b[1] - a[1]) >= 0 ? 'r' : 'l' };
     }, (ctx, t, p) => {
@@ -328,28 +349,93 @@ export default {
 
     // ---------- The balcony ----------
     // The hot tub: cedar sides, the water (rougher when a plane's over), steam at dusk.
+    // Its cover comes in two halves, hinged across the middle (y = TUB[1]).
+    // Nobody in: both halves on. In use (and while it fills), the back half
+    // is folded over onto the front one and they sit in the back. The goose
+    // is under the front half all day, its tail tip out at the front edge.
+    // Tap the cover: the front half swings up on its hinge.
+    const folded = (t) => tubbing(t) || during(7.6, 9.6)(t);
+    const cover = R.poke({ id: 'cover', at: [TUB[0] + 0.05, TUB[1] + 0.4, 1.05], r: 0.75, sound: 'thump', say: ['HONK!', 'It was warm in there.'] });
+    const jets = R.poke({ id: 'jets', at: [TUB[0] + 0.55, TUB[1] + 0.55, 0.4], r: 0.7, teach: true, hold: 3, sound: 'shush', say: ['Jets: maximum.', 'Bubbles!', 'Warm by five. Ish.'] });
     onPorch(R, TUB[0], TUB[1], (ctx, t) => {
       cylinder(ctx, TUB[0], TUB[1], 0, TUB_R, 0.85, C.wood, { top: mix(C.water, C.tealLight, 0.3) });
+      // The jets' panel on its side.
+      // (On the side nearest you, flat to the tub's curve.)
+      const jc = TUB_R / Math.SQRT2 + 0.005;
+      const jq = (w, z0, z1, e = 0) => [[TUB[0] + jc + w + e, TUB[1] + jc - w + e, z0], [TUB[0] + jc - w + e, TUB[1] + jc + w + e, z0], [TUB[0] + jc - w + e, TUB[1] + jc + w + e, z1], [TUB[0] + jc + w + e, TUB[1] + jc - w + e, z1]];
+      face(ctx, jq(0.15, 0.3, 0.52), C.ink, { lw: 0.02 });
       if (!Q.detail) return;
-      const rough = over(t) ? 3 : 1;
+      const jk = jets.k();
+      face(ctx, jq(0.06, 0.37, 0.46, 0.004), jk > 0.1 ? C.tealLight : C.teal, { stroke: false });
+      // Ripples, rougher when a plane's over, a boil when the jets are on.
+      const rough = over(t) ? 3 : 1 + jk * 4;
       ctx.strokeStyle = alpha(C.white, 0.75); ctx.lineWidth = 0.03;
-      for (let i = 0; i < 3; i++) {
-        const [X, Y] = P(TUB[0] + Math.sin(t * rough + i * 2) * 0.25, TUB[1] + Math.cos(t * 0.7 * rough + i) * 0.25, 0.86);
-        ctx.beginPath(); ctx.ellipse(X, Y, 0.18 + i * 0.06, 0.05, 0, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 3 + Math.round(jk * 4); i++) {
+        const [X, Y] = P(TUB[0] + Math.sin(t * rough + i * 2) * 0.3, TUB[1] - 0.35 + Math.cos(t * 0.7 * rough + i) * 0.15, 0.86);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.12 + (i % 3) * 0.06, 0.04, 0, 0, Math.PI * 2); ctx.stroke();
       }
-    }, { anim: true });
-    // Two in the tub from one o'clock (in the rain, under the golf umbrella).
+    }, { anim: true, depth: 19.354 });
+    // Two in the tub from one o'clock, in the back half (in the rain, under the golf umbrella).
     const TUBBERS = [
-      { at: [13.15, 2.6], dir: 'r', look: folk(1041, { top: C.pink, dress: false, style: 'long' }) },
-      { at: [13.85, 3.25], dir: 'l', look: folk(1042, { dress: false, style: 'bald', top: tint(C.coral, 0.2) }) },
+      { at: [13.1, 2.5], dir: 'r', look: folk(1041, { top: C.pink, dress: false, style: 'long' }) },
+      { at: [13.9, 2.45], dir: 'l', look: folk(1042, { dress: false, style: 'bald', top: tint(C.coral, 0.2) }) },
     ];
     TUBBERS.forEach((g, i) => onPorch(R, g.at[0], g.at[1], (ctx, t) => {
       const up = i === 0 && umbrellaUp(t);
       waist(ctx, g.at[0], g.at[1], 0.84, () => person(ctx, g.at[0], g.at[1], -0.5, { ...g.look, pose: 'stand', dir: g.dir, arms: up ? [2.8, 0.2] : [1.2, 0.2], hold: up ? undefined : wine }, t));
       const k = planeK(t);
       if (Q.detail && k === 'over' && i === 1) speech(ctx, g.at[0], g.at[1], 2.2, '. . .', { size: 0.4 });
+      else if (Q.detail && i === 1 && jets.k() > 0.5) speech(ctx, g.at[0], g.at[1], 2.2, 'Whoa!', { size: 0.38, dx: 0.6 });
       else if (Q.detail && i === 1 && !k && t % 17 < 3) speech(ctx, g.at[0], g.at[1], 2.2, H(t) < 15.4 ? "It's fine, we're already wet." : 'Is it always this loud?', { size: 0.38, dx: -1.2 });
-    }, { anim: true, on: tubbing }));
+    }, { anim: true, on: tubbing, depth: 19.356 + i * 0.001 }));
+    // The cover, the goose under it, and its tail tip.
+    const COVER = shade(C.grey, 0.25), UNDER = tint(C.greyLight, 0.2);
+    // A half disc of cover at height z, th thick; side +1 the front half,
+    // -1 the back; lift 0..1 swings it up on the hinge (the front half only).
+    const half = (ctx, side, z, th, lift = 0) => {
+      const n = 12, [cx, cy] = TUB, r = TUB_R + 0.04, th0 = lift * Math.PI / 2;
+      const pt = (a, zz) => { const d = Math.sin(a) * r * side; return [cx + Math.cos(a) * r, cy + d * Math.cos(th0), zz + Math.abs(d) * Math.sin(th0)]; };
+      const arc = (zz) => Array.from({ length: n + 1 }, (_, i) => pt((i / n) * Math.PI, zz));
+      if (lift < 0.05) {
+        face(ctx, [...arc(z), ...arc(z + th).reverse()], shade(COVER, 0.2), { lw: 0.025 });
+        face(ctx, arc(z + th), COVER, { lw: 0.03, dots: shade(COVER, 0.35), density: 0.15 });
+        if (side < 0) face(ctx, [[cx - r, cy, z], [cx + r, cy, z], [cx + r, cy, z + th], [cx - r, cy, z + th]], shade(COVER, 0.15), { lw: 0.02 });
+      } else {
+        // Swung up: its underside shows, a lighter grey.
+        face(ctx, arc(z + th), lift > 0.5 ? UNDER : COVER, { lw: 0.03 });
+      }
+    };
+    onPorch(R, TUB[0] + 0.01, TUB[1] + 0.01, (ctx, t) => {
+      const k = cover.k(), f = folded(t), z = 0.86;
+      if (!f) half(ctx, -1, z, 0.12);
+      // The goose, paddling in the warm water where the cover was (in front
+      // of the half once it's swung up behind it).
+      const bird = () => waist(ctx, TUB[0] + 0.05, TUB[1] + 0.75, z, () => goose(ctx, TUB[0] + 0.05, TUB[1] + 0.4, z - 0.08, t, { pose: pulse(t, 5) > 0.7 ? 'honk' : 'swim', dir: 'r' }));
+      if (k > 0.3 && k <= 0.6) bird();
+      half(ctx, 1, z, f ? 0.24 : 0.12, k);
+      if (k > 0.6) bird();
+      if (k < 0.3) {
+        // The tail tip: three white feathers fanned out from under the front
+        // edge, grey at the points. (Big enough to read as a tail on a phone,
+        // not a scrap of paper, and left of the balcony's corner post, which
+        // cut it in two.)
+        const [X0, Y0] = P(TUB[0] - 0.02, TUB[1] + 0.8, z + 0.06);
+        ctx.save(); ctx.translate(X0, Y0); ctx.scale(3.2, 3.2);
+        // A grey rump under the cover's lip first, so it's a bird's back end.
+        ctx.beginPath(); ctx.ellipse(0.04, -0.04, 0.1, 0.07, 0, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.02 });
+        ctx.rotate(Math.sin(t * 2.5) > 0.9 ? 0.12 : 0);
+        const tips = [[-0.2, -0.2], [-0.25, -0.07], [-0.18, 0.05]];
+        ctx.beginPath(); ctx.moveTo(0.06, -0.12);
+        tips.forEach(([tx, ty], i) => { ctx.lineTo(tx, ty); if (i < 2) ctx.lineTo(tx * 0.62, (ty + tips[i + 1][1]) / 2); });
+        ctx.lineTo(0.06, 0.03); ctx.closePath();
+        paint(ctx, C.white, { lw: 0.025 });
+        ctx.fillStyle = C.grey;
+        for (const [tx, ty] of tips) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx * 0.72, ty - 0.035); ctx.lineTo(tx * 0.72, ty + 0.035); ctx.closePath(); ctx.fill(); }
+        ctx.restore();
+      }
+    }, { anim: true, depth: 19.36 });
+    R.goose(() => ({ x: TUB[0] + 0.05, y: TUB[1] + 0.4, z: 0.86, dir: 'r', hidden: true, pose: 'swim' }),
+      { kind: 'poke', inside: cover, hint: 'The hot tub is covered, but something white is sticking out.' });
     // Steam off the water in the evening.
     onPorch(R, TUB[0] + 0.1, TUB[1] + 0.1, (ctx, t) => {
       if (!Q.detail) return;
@@ -377,7 +463,7 @@ export default {
         }
       } else {
         // Furled, leaning on the rail: the canopy wrapped round the shaft, the hook up top.
-        const a = [13.25, 4.12, 0.02], b = [13.62, 4.12, 1.55];
+        const a = [12.55, 4.15, 0.02], b = [12.92, 4.15, 1.55];
         const L = (k) => [a[0] + (b[0] - a[0]) * k, a[1], a[2] + (b[2] - a[2]) * k];
         bar(ctx, a, b, C.ink, 0.05);
         const pts = [L(0.12), L(0.45), L(0.78)].map((q) => P(...q));
@@ -389,7 +475,7 @@ export default {
         ctx.beginPath(); ctx.arc(HX + 0.12, HY, 0.12, Math.PI, 0.1); ctx.strokeStyle = C.black; ctx.lineWidth = 0.08; ctx.stroke();
       }
     }, { anim: true });
-    R.find({ id: 'umbrella', label: 'A golf umbrella', at: (t) => (umbrellaUp(t) ? [13.3, 2.8, 2.5] : [13.42, 4.12, 0.8]), r: 0.9, out: true });
+    R.find({ id: 'umbrella', label: 'A golf umbrella', kind: 'spot', at: (t) => (umbrellaUp(t) ? [13.3, 2.8, 2.5] : [12.72, 4.15, 0.8]), r: 0.85, out: true });
 
     // The fire table, lit once the rain's done.
     onPorch(R, 13.85, 0.85, (ctx) => {
@@ -406,6 +492,88 @@ export default {
       if (Q.detail) glow(ctx, 13.85, 0.85, 1.0, 1.6, C.coral, 0.4 + nightK(t) * 0.4);
     }, { anim: true, on: during(15.4, 26) });
 
+    // The deck box, still inside by the balcony windows (it came today, and
+    // it's raining): brown resin planks, a lid with a handle, propped ajar
+    // on the cushions with a strap hanging out, CUSHIONS on the side. Tap it and the lid lifts: cushions, and the
+    // binoculars on top of them. (The balcony's full: the tub has it.)
+    const box0 = [11.3, 7.0], BW = 0.7, BD = 1.2, BH = 0.62, RESIN = mix(C.brown, C.wood, 0.25);
+    const lid = R.poke({ id: 'deckbox', at: [box0[0] + BW / 2, box0[1] + BD / 2, 0.55], r: 0.7, sound: 'clunk', say: ['Deck box. Not on the deck yet.', 'Cushions.'] });
+    R.thing(box0[0] + BW, box0[1] + BD, (ctx) => {
+      // Shut, the lid still sits ajar on the stuffed cushions (a dark gap, and
+      // the binoculars' strap hanging out), so it plainly opens.
+      const k = lid.k(), a = 0.24 + k * 1.51, [x0, y0] = box0;
+      box(ctx, x0, y0, 0, BW, BD, BH, RESIN, { lw: 0.035, dots: shade(RESIN, 0.4), density: 0.15, top: tint(RESIN, 0.1) });
+      // The lid, hinged at the back (against the house): once it's up it's
+      // behind what's inside, so it goes first.
+      const drawLid = () => {
+        const fx = x0 + BW * Math.cos(a), fz = BH + BW * Math.sin(a);
+        face(ctx, [[x0, y0, BH], [fx, y0, fz], [fx, y0 + BD, fz], [x0, y0 + BD, BH]], k > 0.5 ? shade(RESIN, 0.25) : tint(RESIN, 0.12), { lw: 0.03 });
+        face(ctx, [[fx, y0, fz], [fx, y0 + BD, fz], [fx, y0 + BD, fz - 0.07 * Math.cos(a)], [fx, y0, fz - 0.07 * Math.cos(a)]], RESIN, { lw: 0.02 });
+      };
+      if (k > 0.5) drawLid();
+      {
+        // The inside: its dark rim, a teal cushion, the binoculars on it.
+        rect(ctx, x0 + 0.04, y0 + 0.04, BW - 0.08, BD - 0.08, BH + 0.002, shade(RESIN, 0.45), { lw: 0.02 });
+        rect(ctx, x0 + 0.1, y0 + 0.1, BW - 0.2, BD - 0.2, BH + 0.004, C.teal, { lw: 0.015 });
+        if (k > 0.3) binoculars(ctx, x0 + 0.02, y0 + BD / 2, BH - 0.12);
+      }
+      if (Q.detail) {
+        for (const z of [0.2, 0.4]) {
+          face(ctx, [[x0 + BW, y0, z], [x0 + BW, y0 + BD, z]], null, { lw: 0.015, stroke: shade(RESIN, 0.4) });
+          face(ctx, [[x0, y0 + BD, z], [x0 + BW, y0 + BD, z]], null, { lw: 0.015, stroke: shade(RESIN, 0.4) });
+        }
+        lettering(ctx, 'y', x0 + BW + 0.01, y0 + BD / 2, 0.3, 'CUSHIONS', 0.09, tint(C.greyLight, 0.3));
+      }
+      if (k <= 0.5) drawLid();
+      // Its handle, on the front edge, and the strap hanging out of the gap
+      // down the front: coral, a loop and a buckle.
+      if (k < 0.3) {
+        box(ctx, x0 + BW, y0 + BD / 2 - 0.18, BH - 0.14, 0.04, 0.36, 0.06, C.black, { flat: true, stroke: false });
+        const sx = x0 + BW + 0.02, ya = y0 + 0.22, yb = y0 + 0.42;
+        const pts = [[sx - 0.06, ya, BH + 0.06], [sx, ya, BH - 0.02], [sx, ya - 0.02, 0.22], [sx, (ya + yb) / 2, 0.1], [sx, yb + 0.02, 0.22], [sx, yb, BH - 0.02], [sx - 0.06, yb, BH + 0.06]];
+        ctx.beginPath(); pts.forEach((q, i) => { const [X, Y] = P(...q); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.06; ctx.stroke();
+        box(ctx, sx, ya - 0.05, 0.3, 0.02, 0.1, 0.08, C.greyLight, { flat: true, lw: 0.015 });
+      }
+    }, { anim: true });
+    R.find({
+      id: 'binoculars', label: 'A pair of binoculars', kind: 'poke', inside: lid, at: [box0[0] + 0.3, box0[1] + BD / 2, 0.6], r: 0.7,
+      hint: 'For the planes and the harbor. Kept with the cushions, waiting to go out.',
+    });
+
+    // What changed: the builders' morning on the rail. A hard hat, their
+    // coffee, a roll of blue tape and a yellow spirit level, all on the
+    // glass balcony's rail at breakfast. By evening the level's still there.
+    const RX = PORCH.x1 - 0.14, RZ = 1.17;
+    onPorch(R, RX, 3.6, (ctx) => {
+      // The hard hat, past the level.
+      const [HX, HY] = P(RX, 3.45, RZ);
+      ctx.beginPath(); ctx.ellipse(HX, HY - 0.02, 0.32, 0.1, 0, 0, Math.PI * 2); paint(ctx, shade(C.mustard, 0.1), { lw: 0.025 });
+      ctx.beginPath(); ctx.arc(HX, HY - 0.04, 0.22, Math.PI, 0); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.03 });
+      // The tape, a blue ring.
+      const [TX, TY] = P(RX, 1.6, RZ);
+      ctx.beginPath(); ctx.ellipse(TX, TY - 0.08, 0.13, 0.1, 0, 0, Math.PI * 2); ctx.lineWidth = 0.08; ctx.strokeStyle = C.sky; ctx.stroke();
+      ctx.lineWidth = 0.015; ctx.strokeStyle = C.ink; ctx.stroke();
+      // Their coffee.
+      cup(ctx, RX, 0.22, RZ - 0.04, 1.0);
+    }, { on: during(7, 12), depth: 19.94 });
+    const LV = [2.3, 2.9];
+    onPorch(R, RX, LV[1], (ctx) => {
+      box(ctx, RX - 0.05, LV[0], RZ - 0.06, 0.1, LV[1] - LV[0], 0.1, C.mustard, { flat: true, lw: 0.025 });
+      box(ctx, RX - 0.051, LV[0], RZ - 0.06, 0.102, 0.06, 0.1, C.black, { flat: true, stroke: false });
+      box(ctx, RX - 0.051, LV[1] - 0.06, RZ - 0.06, 0.102, 0.06, 0.1, C.black, { flat: true, stroke: false });
+      // The bubble vial in the middle.
+      const m = (LV[0] + LV[1]) / 2;
+      box(ctx, RX + 0.051, m - 0.07, RZ - 0.04, 0.005, 0.14, 0.06, C.leaf, { flat: true, lw: 0.01 });
+    }, { depth: 19.945 });
+    R.find({
+      id: 'level', label: 'Something the builders forgot', kind: 'hard', at: [RX, (LV[0] + LV[1]) / 2, RZ], r: 0.65, out: true, ...AFTER,
+      riddle: 'At breakfast it had company on the rail. Flip back and look.',
+      hint: 'The builders packed up everything but one tool. Look along the balcony rail.',
+    });
+
     // Out there: the owner and a friend with wine, from half past three.
     const BAL = [
       { at: [13.0, 1.9], dir: 'r', owner: true },
@@ -413,25 +581,25 @@ export default {
     ];
     BAL.forEach((g) => onPorch(R, g.at[0], g.at[1], (ctx, t) => {
       person(ctx, g.at[0], g.at[1], 0, { ...(g.owner ? PARTY : g.look), dir: g.dir, hold: wine, arms: [1.2, over(t) && !g.owner ? 2.9 : 0.15] }, t);
-      const say = g.owner ? ownerLine(t) : planeK(t) === 'over' ? '. . .' : null;
+      const say = g.owner ? ownerLine(t) : planeK(t) === 'over' ? '. . .' : !planeK(t) && t % 23 < 3 ? 'Where did the heater go?' : null;
       if (say && Q.detail) speech(ctx, g.at[0], g.at[1], 2.6, say, { size: 0.42, dx: g.owner ? -0.6 : 0.6 });
     }, { anim: true, on: during(15.62, 24.2) }));
     // The morning: the installer filling the tub with a hose (then it rains).
-    onPorch(R, 14.25, 3.95, (ctx, t) => {
-      person(ctx, 14.25, 3.95, 0, { ...folk(1061, { top: C.teal, hat: 'cap', dress: false }), dir: 'l', arms: [1.4, 0.3] }, t);
+    onPorch(R, 14.25, 1.75, (ctx, t) => {
+      person(ctx, 14.25, 1.75, 0, { ...folk(1061, { top: C.teal, hat: 'cap', dress: false }), dir: 'l', arms: [1.4, 0.3] }, t);
       if (!Q.detail) return;
       ctx.fillStyle = alpha(C.sky, 0.9);
       for (let i = 0; i < 8; i++) {
         const k = (t * 1.5 + i / 8) % 1;
-        const [X, Y] = P(14.0 - k * 0.5, 3.7 - k * 0.8, 1.2 + Math.sin(k * Math.PI) * 0.4 - k * 0.4);
+        const [X, Y] = P(14.0 - k * 0.4, 2.0 + k * 0.6, 1.2 + Math.sin(k * Math.PI) * 0.4 - k * 0.4);
         ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.fill();
       }
-      if (t % 14 < 3) speech(ctx, 14.25, 3.95, 2.6, 'Warm by five. Ish.', { size: 0.4 });
+      if (t % 14 < 3) speech(ctx, 14.25, 1.75, 2.6, 'Warm by five. Ish.', { size: 0.4 });
     }, { anim: true, on: during(7.6, 9.6) });
     // A wine glass someone left on the railing (it rattles with the rest).
-    onPorch(R, 14.62, 1.6, (ctx, t) => {
+    onPorch(R, 14.62, 0.9, (ctx, t) => {
       const j = rattle(t), rx = PORCH.x1 - 0.14;
-      const [X, Y] = P(rx, 1.6 + j, 1.12);
+      const [X, Y] = P(rx, 0.9 + j, 1.12);
       ctx.save(); ctx.translate(X, Y);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04;
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -0.26); ctx.moveTo(-0.11, 0); ctx.lineTo(0.11, 0); ctx.stroke();
@@ -439,9 +607,9 @@ export default {
       paint(ctx, alpha(C.white, 0.7), { lw: 0.035 });
       ctx.fillStyle = C.red; ctx.beginPath(); ctx.moveTo(-0.13, -0.42); ctx.quadraticCurveTo(0, -0.25, 0.13, -0.42); ctx.closePath(); ctx.fill();
       ctx.restore();
-      if (over(t) && Q.detail) tick(ctx, rx, 1.6, 1.75);
+      if (over(t) && Q.detail) tick(ctx, rx, 0.9, 1.75);
     }, { anim: true, depth: 19.95 });
-    R.find({ id: 'glass', label: 'A wine glass on the railing', at: [PORCH.x1 - 0.14, 1.6, 1.4], r: 0.88, out: true });
+    R.find({ id: 'glass', label: 'A wine glass on the railing', at: [PORCH.x1 - 0.14, 0.9, 1.4], kind: 'spot', r: 0.8, out: true });
 
     // String lights between the posts, lit at dusk.
     onPorch(R, 14.6, 2.2, (ctx, t) => {

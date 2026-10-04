@@ -6,8 +6,8 @@
 // The running gag, the truck: HEAVE-HO comes down the road at 7am and is
 // stuck by 9 in front of the Yellow House, between a car parked in its own
 // NO PARKING zone (ticketed at 8:20) and a pickup double-parked beside a
-// lawn chair saving a space. The queue behind it honks all day (a goose in
-// the other lane honks along). The parked car's owner comes back at noon,
+// lawn chair saving a space. The queue behind it honks all day (and something
+// in the Storrowed truck's cargo honks back). The parked car's owner comes back at noon,
 // looks, and walks off. At 3pm six neighbors come out and bounce the car
 // sideways ("HEAVE!" "HO!"), the truck gets out to applause and is gone
 // south by 4:15, the queue after it.
@@ -26,7 +26,7 @@ import { ZK } from '../../../engine/iso.js';
 import { drawLand } from '../../../engine/terrain.js';
 import { land } from '../land.js';
 import { ROAD, HOUSES, OTHER_HOUSES, ROW_X0, GROUND, SHORE_Y, CURB, FH } from '../plan.js';
-import { hour, between, nightK, rainK, wetK } from '../clock.js';
+import { hour, between, nightK, rainK, wetK, AFTER } from '../clock.js';
 import { house, dusk, panes, car, truck, carton, lawnChair, mattress, lettering, umbrella, cat, LAMPPOST, LAMP_H, streetlight as kitLight, bench as kitBench, pigeon as kitPigeon, gullStand, cupHeld, line3 as line } from '../kit.js';
 import { ending } from '../ambient.js';
 import { SIDING, INK, CARS, CUP, LIT, EVENING, BRAND } from '../style.js';
@@ -53,6 +53,7 @@ const GRANITE = mix(C.greyLight, C.grey, 0.4);
 const TARP = mix(C.sky, C.navy, 0.35);
 const BIN = mix(C.sky, C.navy, 0.25);
 const RECLINER = mix(C.brown, C.wood, 0.35);
+const BREAD = mix(C.butter, C.white, 0.6); // the bread maker's cream plastic
 const PUDDLE = alpha(tint(C.sky, 0.35), 0.6);
 const VEIL = alpha(C.night, 0.42);
 const UMBRELLAS = [C.teal, C.coral, C.mustard, C.purple, C.navy, C.pink];
@@ -280,7 +281,9 @@ function pickup(ctx, x, y0, z, color) {
   box(ctx, x + w / 2 - 0.1, y0 + cab, z + 0.9, 0.1, L - cab, 0.35, color, { flat: true, lw: 0.03 });
   box(ctx, x - w / 2, y0 + L - 0.1, z + 0.9, w, 0.1, 0.35, color, { flat: true, lw: 0.03 });
 }
-// The Courier's van: brown, boxy, back doors open, hazards on.
+// The Courier's van: brown, boxy, hazards on. Its back doors are the
+// goose's twin across the curb (the Storrowed truck's roll-up door), so
+// they're drawn on their own (vanBack), shut till tapped.
 function van(ctx, x, y0, z) {
   const w = 1.8, L = 3.4, H = 2.5;
   if (Q.detail) for (const [dx, dy] of [[0.7, 0.6], [0.7, L - 0.6], [-0.7, 0.6], [-0.7, L - 0.6]]) box(ctx, x + dx - 0.2, y0 + dy - 0.2, z, 0.4, 0.4, 0.42, C.ink, { flat: true, lw: 0.03 });
@@ -289,15 +292,24 @@ function van(ctx, x, y0, z) {
   face(ctx, [[x + w / 2, y0 + 0.1, z + 1.4], [x + w / 2, y0 + 0.9, z + 1.4], [x + w / 2, y0 + 0.9, z + 2.3], [x + w / 2, y0 + 0.5, z + 2.3]], tint(C.sky, 0.25), { lw: 0.03 });
   lettering(ctx, 'y', x + w / 2 + 0.01, y0 + 2.1, z + 1.75, 'PARCELS', 0.36, C.butter, 'Bagel Fat One');
   lettering(ctx, 'y', x + w / 2 + 0.01, y0 + 2.1, z + 1.25, '(EVENTUALLY)', 0.17, C.butter);
-  // The open back: dark inside, parcels, the doors swung out.
+}
+// The van's back, k from 0 (doors shut) to 1 (swung out: dark inside, parcels).
+function vanBack(ctx, x, y0, z, k) {
+  const w = 1.8, L = 3.4, H = 2.5;
   face(ctx, [[x - w / 2 + 0.1, y0 + L, z + 0.4], [x + w / 2 - 0.1, y0 + L, z + 0.4], [x + w / 2 - 0.1, y0 + L, z + H - 0.1], [x - w / 2 + 0.1, y0 + L, z + H - 0.1]], shade(C.brown, 0.6), { lw: 0.03 });
   if (Q.detail) {
     carton(ctx, x - 0.6, y0 + L - 0.6, z + 0.4, 0.55, 0.5, 0.45);
     carton(ctx, x + 0.05, y0 + L - 0.6, z + 0.4, 0.5, 0.5, 0.6);
     carton(ctx, x - 0.4, y0 + L - 0.55, z + 0.85, 0.45, 0.45, 0.4);
   }
-  box(ctx, x + w / 2 - 0.05, y0 + L, z + 0.35, 0.05, 0.85, H - 0.45, C.brown, { flat: true, lw: 0.03 });
-  box(ctx, x - w / 2, y0 + L, z + 0.35, 0.05, 0.85, H - 0.45, C.brown, { flat: true, lw: 0.03 });
+  // Each door swings on its outer edge, from shut across the back to open along the side.
+  for (const s of [1, -1]) {
+    const hx = x + s * (w / 2 - 0.02), a = k * Math.PI / 2;
+    const ex = hx - s * Math.cos(a) * (w / 2 - 0.1), ey = y0 + L + 0.02 + Math.sin(a) * 0.85;
+    face(ctx, [[hx, y0 + L + 0.02, z + 0.35], [ex, ey, z + 0.35], [ex, ey, z + H - 0.1], [hx, y0 + L + 0.02, z + H - 0.1]], shade(C.brown, 0.08), { lw: 0.03 });
+    if (k < 0.5 && Q.detail) box(ctx, x + s * 0.12 - 0.03, y0 + L + 0.03, z + 1.2, 0.06, 0.02, 0.3, C.butter, { flat: true, stroke: false });
+  }
+  if (k < 0.5) lettering(ctx, 'x', x, y0 + L + 0.04, z + 1.9, 'PULL', 0.14, C.butter, 'Bagel Fat One');
 }
 
 // ---------- Street furniture ----------
@@ -365,7 +377,7 @@ const EAST = [[2.0, 3], [5.6, 6, 'mattress'], [9.2, 0], [25.8, 4], [29.6, 2, 'ra
 export default {
   id: 'farragut-road',
   name: 'Farragut Road',
-  blurb: 'One truck, one street built for horses, cars parked on both sides. The truck has been stuck since nine.',
+  blurb: 'One truck, one street built for horses, cars parked on both sides. Flip the clock and watch the curb empty out, all but one thing.',
   home: [22, 30],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });
@@ -529,12 +541,85 @@ export default {
       lettering(ctx, 'y', SX + 1.12, SY - 3.5 + 0.95, G + 2.1, 'STORROW.', 0.17, C.red, 'Bagel Fat One');
     });
     R.thing(SX + 1.21, SY + 3.51, (ctx) => veil(ctx, [[SX - 1.2, SY - 3.5, G, 2.4, 7, 3.6]]), byNight);
+    // Its roll-up door, the goose's hiding place: a tap rolls it up. Its twin
+    // is the Courier's van down the curb, doors shut, full of parcels.
+    const RY = SY + 3.5, DOOR_Z0 = G + 0.55, DOOR_Z1 = G + 3.5;
+    // (Its tap spot reaches from the top of the door up to the tail in the
+    // roof: the tail is what a player taps.)
+    const cargo = R.poke({ id: 'cargo', at: [SX + 0.2, RY - 0.65, G + 2.85], r: 1.0, sound: 'clunk', say: ['HONK!', 'Rude.'] });
+    R.thing(SX + 1.22, RY + 0.02, (ctx) => {
+      const k = cargo.k(), bot = DOOR_Z0 + (DOOR_Z1 - 0.35 - DOOR_Z0) * k;
+      const x0 = SX - 1.1, x1 = SX + 1.1, y = RY + 0.012;
+      // Dark inside, once it's up: a box beside the goose. (A rolled rug by
+      // the right wall poked out through the truck's side and hid its feet.)
+      if (k > 0.02) {
+        face(ctx, [[x0, y, DOOR_Z0], [x1, y, DOOR_Z0], [x1, y, bot], [x0, y, bot]], shade(C.ink, 0.1), { lw: 0.03 });
+        if (Q.detail && k > 0.6) carton(ctx, SX - 1.0, RY - 0.8, DOOR_Z0, 0.7, 0.6, 0.6, 'MISC');
+      }
+      // The door: slats, a handle at the bottom, a sign.
+      face(ctx, [[x0, y, bot], [x1, y, bot], [x1, y, DOOR_Z1], [x0, y, DOOR_Z1]], tint(C.greyLight, 0.35), { lw: 0.035 });
+      if (Q.detail) for (let zz = bot + 0.2; zz < DOOR_Z1 - 0.05; zz += 0.2) line(ctx, [[x0 + 0.04, y + 0.001, zz], [x1 - 0.04, y + 0.001, zz]], alpha(C.ink, 0.35), 0.02);
+      box(ctx, SX - 0.25, y, bot + 0.08, 0.5, 0.06, 0.1, C.ink, { flat: true, stroke: false });
+      if (k < 0.3) {
+        // Big enough to read on a phone from the street's own framing.
+        panel(ctx, 'x', SX, y + 0.01, G + 2.35, 1.9, 0.8, C.white, { lw: 0.035 });
+        lettering(ctx, 'x', SX, y + 0.02, G + 2.5, 'DO NOT OPEN', 0.24, C.red, 'Bagel Fat One');
+        lettering(ctx, 'x', SX, y + 0.02, G + 2.15, '(IT HONKED)', 0.17, C.ink, 'Bagel Fat One');
+      }
+    }, { anim: true, depth: SX + RY + 1.3 });
+    // The tell: a tail through a fresh tear in the roof, all day (gone
+    // inside while the door's up and the goose is looking out).
+    const TAIL = [SX + 0.35, RY - 1.1, G + 3.6];
+    R.thing(SX + 1.23, RY + 0.03, (ctx, t) => {
+      if (cargo.k() > 0.5) return;
+      const [x, y, z] = TAIL;
+      face(ctx, [[x - 0.55, y - 0.45, z + 0.01], [x + 0.45, y - 0.5, z + 0.01], [x + 0.6, y + 0.35, z + 0.01], [x - 0.45, y + 0.5, z + 0.01]], C.ink, { lw: 0.025 });
+      // Torn tin, curled up round it.
+      face(ctx, [[x - 0.55, y + 0.5, z], [x + 0.6, y + 0.35, z], [x + 0.45, y + 0.45, z + 0.3], [x - 0.3, y + 0.6, z + 0.22]], tint(C.greyLight, 0.3), { lw: 0.03 });
+      // The tail: the goose's own back end, bottoms up, as goose() draws it
+      // (a white rump, the pointed tail cocked, its coral feet in the air),
+      // up through the tear and paddling now and then. A plain fan read as a
+      // hard hat, and white on the white roof needed the feet to say goose.
+      const [X, Y] = P3(x, y, z + 0.05);
+      const kick = frac(t / 4) < 0.1 ? Math.sin(t * 30) * 0.08 : 0;
+      ctx.save(); ctx.translate(X, Y); ctx.scale(2.1, 2.1);
+      ctx.lineCap = 'round';
+      for (const [lx, sw] of [[-0.04, kick], [0.14, -kick]]) {
+        const fx = lx + 0.04 + sw, fy = -0.66;
+        ctx.beginPath(); ctx.moveTo(lx, -0.2); ctx.lineTo(fx, fy);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.stroke();
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.065; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx, fy + 0.02); ctx.lineTo(fx - 0.13, fy - 0.16); ctx.lineTo(fx + 0.15, fy - 0.14); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.025 });
+      }
+      ctx.beginPath(); ctx.moveTo(-0.16, -0.18); ctx.lineTo(-0.52, -0.42); ctx.lineTo(-0.34, -0.02); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(0.36, 0); ctx.ellipse(0, 0, 0.36, 0.3, 0, 0, Math.PI, true); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.035, dots: Q.detail ? C.grey : null, density: 0.1 });
+      ctx.beginPath(); ctx.moveTo(0.3, 0); ctx.ellipse(0.06, 0, 0.24, 0.13, 0, 0, Math.PI, true); ctx.closePath();
+      paint(ctx, C.greyLight, { lw: 0.025 });
+      ctx.restore();
+      if (Q.detail) {
+        const [FX, FY] = P3(x + 0.75, y + 0.7, z + 0.02);
+        ctx.beginPath(); ctx.ellipse(FX, FY, 0.22, 0.07, 0.4, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+      }
+    }, { anim: true, depth: SX + RY + 1.31 });
+    // When the queue honks, the truck honks back, muffled.
+    talk(R, SX + 0.3, RY - 1.1, G + 5.0, (t) => (cargo.k() < 0.5 && stuck(t) && frac(t / 5.3 + 0.9) < 0.15 ? 'honk' : null), { size: 0.34 });
+    R.goose((t) => {
+      const open = cargo.k() > 0.5, night = nightK(t) > 0.6;
+      const honk = stuck(t) && frac(t / 5.3 + 0.9) < 0.2;
+      return { x: SX + 0.1, y: RY - 0.45, z: DOOR_Z0, dir: 'l', pose: night ? 'sit' : honk ? 'honk' : 'stand', hidden: !open };
+    }, { kind: 'poke', inside: cargo, bias: 2, hint: 'The truck that took Storrow Drive is carrying more than boxes. Look at its roof.' });
     // Its driver, on the curb, in a foil blanket, with an iced coffee he hasn't touched.
     const shock = folk(503, { top: C.mustard, bottom: C.navy, hair: C.brown });
-    stay(R, EWALK - 0.1, 22.2, shock, { z: G - 0.5, pose: 'sit', dir: 'l', hold: cupHeld, wear: blanket, hours: between(7.5, 20) });
+    // The truck is one long box sorted by its back corner, so anyone on the
+    // curb beside it sorts in front of it by hand (they were drawn inside it).
+    const BESIDE = SX + 1.2 + RY + 0.05;
+    stay(R, EWALK - 0.1, 22.2, shock, { z: G - 0.5, pose: 'sit', dir: 'l', hold: cupHeld, wear: blanket, hours: between(7.5, 20), depth: BESIDE });
     talk(R, EWALK - 0.1, 22.2, G + 1.9, (t) => (between(7.5, 20)(t) && every(19, 3.2, 0.4)(t) ? (frac(t / 38) < 0.5 ? 'Nobody mentioned bridges.' : 'It was a shortcut.') : null));
     // Someone taking its picture.
-    stay(R, EWALK + 0.2, 18.4, folk(504, { top: C.pink }), { pose: 'point', dir: 'l', back: true, hold: phoneHeld, hours: (t) => between(9, 11.5)(t) || between(16, 18.5)(t), umb: C.purple });
+    stay(R, EWALK + 0.2, 18.4, folk(504, { top: C.pink }), { pose: 'point', dir: 'l', back: true, hold: phoneHeld, hours: (t) => between(9, 11.5)(t) || between(16, 18.5)(t), umb: C.purple, depth: BESIDE });
     // The street's stray asleep on its warm hood at night (by day she's on
     // the bins in front of the Yellow House).
     R.thing(SX + 0.2, 17.4, (ctx) => cat(ctx, SX + 0.2, 17.6, G + 1.55, 0, { color: STRAY, stripes: true, sleep: true, dir: 'l' }), { on: between(21, 5) });
@@ -575,6 +660,68 @@ export default {
     }, { on: out(10.4, CURB[3]) });
     // Boxes marked FREE (the bottom one soggy).
     R.thing(PX + 1.1, 32.2, (ctx) => { carton(ctx, PX + 0.4, 31.45, G, 0.7, 0.6, 0.45, 'FREE'); carton(ctx, PX + 0.45, 31.5, G + 0.45, 0.55, 0.5, 0.35); }, { on: out(8.4, 17) });
+    // The kitchen, put out on the curb's edge at eight: a microwave, a
+    // toaster, a blender and a bread maker. Everyone takes one, one by one
+    // through the afternoon. Nobody takes the bread maker (what changed: a
+    // find after noon, among its look-alikes all morning).
+    const AX = PX + 1.42;
+    const GADGETS = [
+      [32.55, 13.7, (ctx, y) => {
+        box(ctx, AX - 0.35, y - 0.42, G, 0.7, 0.84, 0.48, C.greyLight, { lw: 0.03, dens: 0.12 });
+        face(ctx, [[AX + 0.351, y - 0.34, G + 0.08], [AX + 0.351, y + 0.18, G + 0.08], [AX + 0.351, y + 0.18, G + 0.4], [AX + 0.351, y - 0.34, G + 0.4]], shade(C.teal, 0.45), { lw: 0.02 });
+        if (Q.detail) for (let i = 0; i < 3; i++) disc(ctx, AX + 0.352, y + 0.3, G + 0.32 - i * 0.1, 0.03, C.ink, { stroke: false });
+      }],
+      [33.4, 14.8, (ctx, y) => {
+        box(ctx, AX - 0.25, y - 0.3, G, 0.5, 0.6, 0.36, tint(C.grey, 0.35), { lw: 0.03 });
+        if (Q.detail) for (const dx of [-0.08, 0.08]) face(ctx, [[AX + dx - 0.04, y - 0.2, G + 0.361], [AX + dx + 0.04, y - 0.2, G + 0.361], [AX + dx + 0.04, y + 0.2, G + 0.361], [AX + dx - 0.04, y + 0.2, G + 0.361]], C.ink, { stroke: false });
+        box(ctx, AX + 0.25, y + 0.1, G + 0.22, 0.05, 0.08, 0.1, C.ink, { flat: true, stroke: false });
+      }],
+      [34.15, 15.9, (ctx, y) => {
+        box(ctx, AX - 0.22, y - 0.22, G, 0.44, 0.44, 0.3, C.red, { flat: true, lw: 0.03 });
+        box(ctx, AX - 0.17, y - 0.17, G + 0.3, 0.34, 0.34, 0.6, alpha(tint(C.sky, 0.4), 0.85), { flat: true, lw: 0.03 });
+        box(ctx, AX - 0.19, y - 0.19, G + 0.9, 0.38, 0.38, 0.07, C.ink, { flat: true, lw: 0.02 });
+      }],
+    ];
+    GADGETS.forEach(([y, gone, draw]) => R.thing(AX + 0.4, y + 0.45, (ctx) => draw(ctx, y), { on: out(8, gone) }));
+    // The bread maker: cream, its lid flipped open and a big golden loaf
+    // risen out of it like a muffin, a dial, its cord wound round it. All day
+    // and all night. Bigger than the other gadgets, and the only one with a
+    // loaf on top, so a player comparing the two halves picks it out fast
+    // (a cream box the size of the toaster read as one more curb thing).
+    const BM = [AX - 0.12, 31.5];
+    const breadMaker = (late) => (ctx) => {
+      const [x, y] = BM, w = 0.72, d = 1.0, h = 0.78, top = G + h;
+      box(ctx, x - w / 2, y - d / 2, G, w, d, h, BREAD, { lw: 0.04, dens: 0.1 });
+      // A coral band round its middle, so it isn't one more white box.
+      face(ctx, [[x + w / 2 + 0.003, y - d / 2, G + 0.12], [x + w / 2 + 0.003, y + d / 2, G + 0.12], [x + w / 2 + 0.003, y + d / 2, G + 0.22], [x + w / 2 + 0.003, y - d / 2, G + 0.22]], C.coral, { lw: 0.02 });
+      face(ctx, [[x - w / 2, y + d / 2 + 0.003, G + 0.12], [x + w / 2, y + d / 2 + 0.003, G + 0.12], [x + w / 2, y + d / 2 + 0.003, G + 0.22], [x - w / 2, y + d / 2 + 0.003, G + 0.22]], shade(C.coral, 0.15), { lw: 0.02 });
+      // Its lid, flipped open against the back.
+      face(ctx, [[x - w / 2 + 0.04, y - d / 2 + 0.02, top], [x + w / 2 - 0.04, y - d / 2 + 0.02, top], [x + w / 2 - 0.04, y - d / 2 - 0.12, top + 0.62], [x - w / 2 + 0.04, y - d / 2 - 0.12, top + 0.62]], tint(BREAD, 0.25), { lw: 0.035 });
+      face(ctx, [[x - 0.16, y - d / 2 - 0.02, top + 0.2], [x + 0.16, y - d / 2 - 0.02, top + 0.2], [x + 0.16, y - d / 2 - 0.08, top + 0.48], [x - 0.16, y - d / 2 - 0.08, top + 0.48]], shade(C.teal, 0.5), { lw: 0.02 });
+      // The pan's dark mouth, and the loaf risen out of it: a golden dome.
+      face(ctx, [[x - w / 2 + 0.08, y - d / 2 + 0.1, top + 0.002], [x + w / 2 - 0.08, y - d / 2 + 0.1, top + 0.002], [x + w / 2 - 0.08, y + d / 2 - 0.1, top + 0.002], [x - w / 2 + 0.08, y + d / 2 - 0.1, top + 0.002]], C.ink, { lw: 0.02 });
+      const [X, Y] = P3(x, y, top + 0.02);
+      ctx.beginPath(); ctx.moveTo(X - 0.62, Y); ctx.bezierCurveTo(X - 0.66, Y - 0.62, X + 0.66, Y - 0.62, X + 0.62, Y);
+      ctx.bezierCurveTo(X + 0.4, Y + 0.16, X - 0.4, Y + 0.16, X - 0.62, Y); ctx.closePath();
+      paint(ctx, C.wood, { lw: 0.04 });
+      ctx.beginPath(); ctx.ellipse(X - 0.08, Y - 0.3, 0.32, 0.12, -0.1, 0, Math.PI * 2); paint(ctx, C.woodLight, { stroke: false });
+      if (Q.detail) for (const dx of [-0.24, 0, 0.24]) { ctx.beginPath(); ctx.moveTo(X + dx - 0.1, Y - 0.2); ctx.lineTo(X + dx + 0.1, Y - 0.36); ctx.strokeStyle = C.brown; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.stroke(); }
+      // Its panel and dial, facing the road.
+      face(ctx, [[x + w / 2 + 0.004, y - 0.36, G + 0.36], [x + w / 2 + 0.004, y + 0.36, G + 0.36], [x + w / 2 + 0.004, y + 0.36, G + 0.66], [x + w / 2 + 0.004, y - 0.36, G + 0.66]], shade(BREAD, 0.3), { lw: 0.02 });
+      disc(ctx, x + w / 2 + 0.01, y + 0.2, G + 0.51, 0.09, C.coral, { lw: 0.015 });
+      lettering(ctx, 'y', x + w / 2 + 0.01, y - 0.1, G + 0.51, 'BREAD', 0.12, C.white, 'Bagel Fat One');
+      if (Q.detail) line(ctx, [[x + w / 2, y + d / 2 - 0.05, G + 0.1], [x + w / 2 + 0.2, y + d / 2 + 0.2, G + 0.01], [x + 0.1, y + d / 2 + 0.35, G + 0.01]], C.ink, 0.025);
+      // A big card on a stake beside it, facing the road: FREE BREAD MAKER
+      // by day, PLEASE TAKE ME by evening.
+      const sy = y - d / 2 - 0.55, sx = x + 0.1;
+      pole(ctx, sx, sy, G, 1.1, C.wood, 0.04);
+      panel(ctx, 'y', sx + 0.05, sy - 0.1, G + 1.15, 1.3, 0.85, C.white, { lw: 0.035 });
+      lettering(ctx, 'y', sx + 0.06, sy - 0.1, G + 1.3, late ? 'PLEASE' : 'FREE', late ? 0.28 : 0.34, C.red, 'Bagel Fat One');
+      lettering(ctx, 'y', sx + 0.06, sy - 0.1, G + 0.95, late ? 'TAKE ME' : 'BREAD MAKER', late ? 0.2 : 0.15, C.ink, 'Bagel Fat One');
+    };
+    R.thing(BM[0] + 0.45, BM[1] + 0.55, breadMaker(false), { on: (t) => { const x = hh(t); return x >= 8 && x < 17; } });
+    R.thing(BM[0] + 0.45, BM[1] + 0.55, breadMaker(true), { on: (t) => { const x = hh(t); return x >= 17 || x < 5; } });
+    R.find({ id: 'breadmaker', label: 'The one thing nobody took', ...AFTER, at: [BM[0], BM[1] - 0.2, G + 0.7], r: 1.0, riddle: 'It was on the curb at breakfast. Flip back and look.', hint: 'This morning four kitchen gadgets sat by the curb pile. Flip to the evening: one is still waiting.' });
     // The tarp, over what's left while it rains.
     R.thing(PX + 1.2, 35.4, (ctx) => {
       const x0 = PX, x1 = PX + 1.15, y0 = 32.2, y1 = 35.3, top = G + 1.5;
@@ -607,9 +754,9 @@ export default {
       lettering(ctx, 'y', TAG[0] + 0.01, TAG[1], TAG[2] - 0.08, 'REMOVE', 0.13, C.red, 'Bagel Fat One');
       if (Q.detail) for (let i = 0; i < 2; i++) face(ctx, [[TAG[0] + 0.01, TAG[1] - 0.22, TAG[2] - 0.17 - i * 0.04], [TAG[0] + 0.01, TAG[1] + 0.22, TAG[2] - 0.17 - i * 0.04], [TAG[0] + 0.01, TAG[1] + 0.22, TAG[2] - 0.185 - i * 0.04], [TAG[0] + 0.01, TAG[1] - 0.22, TAG[2] - 0.185 - i * 0.04]], C.ink, { stroke: false });
     });
-    R.find({ id: 'tag', label: 'A mattress tag', at: TAG, r: 0.95 });
+    R.find({ id: 'tag', label: 'A mattress tag', kind: 'hard', at: TAG, r: 0.95, riddle: 'It stays. It always stays.', hint: 'Find the bagged mattress on the curb. Its tag says what you must never do.' });
     // Pigeons working the curb.
-    R.thing(ROAD.walk0 + 1.6, 31.6, (ctx, t) => { for (const [x, y, ph] of [[16.9, 31.2, 0], [17.2, 31.9, 1.7], [16.8, 32.6, 3.1]]) pigeon(ctx, x, y, G, t, ph); }, { anim: true, on: (t) => hour(t) >= 7 && hour(t) < 19 && !raining(t) });
+    R.thing(ROAD.walk0 + 1.6, 28.4, (ctx, t) => { for (const [x, y, ph] of [[16.9, 27.7, 0], [17.2, 28.3, 1.7], [16.8, 28.8, 3.1]]) pigeon(ctx, x, y, G, t, ph); }, { anim: true, on: (t) => hour(t) >= 7 && hour(t) < 19 && !raining(t) });
     // Bins at the gaps, overflowing on Moving Day; a cat on one.
     R.thing(16.3, 27.2, (ctx) => {
       barrel(ctx, 15.9, 26.2, C.grey);
@@ -671,7 +818,8 @@ export default {
 
     // ---------- NO PARKING, MOVING DAY ----------
     for (const [x, y] of [[ROAD.walk0 + 1.75, 39.2], [ROAD.walk0 + 1.75, 45.4], [ROAD.park1 + 0.3, 48.9], [ROAD.park1 + 0.3, 58.0]]) R.thing(x, y + 0.1, (ctx) => noParking(ctx, x, y));
-    R.thing(ROAD.park1 + 0.35, 46.1, (ctx) => goosePoster(ctx, ROAD.park1 + 0.35, 46));
+    R.thing(ROAD.park1 + 0.35, 53.6, (ctx) => goosePoster(ctx, ROAD.park1 + 0.35, 53.5));
+    R.decoy({ id: 'poster', at: [ROAD.park1 + 0.35, 53.56, G + 2.1], r: 0.8, say: ["Close. That's a poster.", 'Still a poster.', 'Answers to HONK. Not to you.'] });
 
     // ---------- The truck ----------
     // (Stuck and still, it's a still picture, the most of the day on the
@@ -709,6 +857,12 @@ export default {
     R.thing(MIRROR[0] + 0.4, MIRROR[1] + 0.3, (ctx) => {
       const [x, y, z] = MIRROR;
       if (Q.detail) { ctx.save(); ctx.globalAlpha *= 0.18; disc(ctx, x, y, z + 0.005, 0.5, C.ink, { stroke: false }); ctx.restore(); }
+      // Other things the morning shed in the road round it (alone on bare
+      // asphalt it jumped out): a flattened box, a hubcap, a lid.
+      face(ctx, [[x - 1.1, y + 0.3, z + 0.01], [x - 0.3, y + 0.55, z + 0.01], [x - 0.45, y + 1.25, z + 0.01], [x - 1.25, y + 1.0, z + 0.01]], C.woodLight, { lw: 0.025 });
+      disc(ctx, x + 0.75, y + 0.65, z + 0.02, 0.28, C.greyLight, { lw: 0.025 });
+      if (Q.detail) disc(ctx, x + 0.75, y + 0.65, z + 0.03, 0.1, C.grey, { lw: 0.015 });
+      disc(ctx, x - 0.6, y - 0.9, z + 0.02, 0.15, C.white, { lw: 0.02 });
       box(ctx, x - 0.18, y - 0.4, z, 0.36, 0.8, 0.22, C.black, { flat: true, lw: 0.03, top: shade(C.black, 0.1) });
       face(ctx, [[x + 0.19, y - 0.34, z + 0.03], [x + 0.19, y + 0.34, z + 0.03], [x + 0.19, y + 0.34, z + 0.2], [x + 0.19, y - 0.34, z + 0.2]], tint(C.sky, 0.3), { lw: 0.02 });
       // The bracket arm, bent, and a wire.
@@ -718,7 +872,7 @@ export default {
         line(ctx, [[x, y - 0.6, z + 0.1], [x + 0.25, y - 0.8, z + 0.02], [x + 0.1, y - 0.95, z + 0.01]], C.red, 0.025);
       }
     });
-    R.find({ id: 'mirror', label: 'A snapped-off side mirror', at: [MIRROR[0], MIRROR[1], G + 0.15], r: 0.9 });
+    R.find({ id: 'mirror', label: 'A snapped-off side mirror', kind: 'hard', at: [MIRROR[0], MIRROR[1], G + 0.15], r: 0.9, riddle: 'The truck lost a bit of itself squeezing past.', hint: 'Count the big truck\'s mirrors. Then look down in the road behind it.' });
 
     // The car in the way, and the ticket it got at 8:20.
     // (Still pictures before and after the bounce; it moves for 20 minutes.)
@@ -742,7 +896,9 @@ export default {
     // The pickup, double-parked across from it, its owner in a recliner in
     // the bed, watching. (The space beside it is saved: a lawn chair.)
     const PU = [ROAD.lane1 - 0.32, 36.6];
-    const pickupOn = between(8.3, 16.4);
+    // (There all day and night: he's not leaving till he's seen how it ends,
+    // and he's the street's teach poke, so he's always there to tap.)
+    const pickupOn = () => true;
     R.thing(PU[0] + 0.8, PU[1] + 4.4, (ctx) => {
       pickup(ctx, PU[0], PU[1], G, C.red);
       const bx = PU[0] - 0.5, by = PU[1] + 2.2;
@@ -754,18 +910,21 @@ export default {
     }, { on: pickupOn });
     R.thing(PU[0] + 0.81, PU[1] + 4.41, (ctx) => veil(ctx, [[PU[0] - 0.8, PU[1], G, 1.6, 4.4, 1.5]]), { ...byNight, on: pickupOn });
     stay(R, PU[0] + 0.1, PU[1] + 2.9, folk(506, { top: C.navy, bottom: C.grey, hat: 'cap' }), { z: G + 0.45, pose: 'sit', dir: 'l', hold: cupHeld, hours: pickupOn, umb: C.mustard, depth: PU[0] + PU[1] + 5.3 });
+    R.poke({ id: 'recliner', teach: true, at: [PU[0] + 0.1, PU[1] + 2.9, G + 1.5], r: 1.0, sound: 'horn', say: ['Best seat on the street.', 'Got here at six.', 'Not leaving till it ends.'] });
     talk(R, PU[0] + 0.1, PU[1] + 2.9, G + 3.1, (t) => (stuck(t) && every(11, 2.4, 0.7)(t) ? (frac(t / 22) < 0.5 ? 'Take your time.' : 'Almost. Almost.') : null));
     // The lawn chair, saving a space. In September.
-    const CHAIR = [EX + 0.05, 39];
+    const CHAIR = [EX + 0.05, 46.6];
     R.thing(CHAIR[0] + 0.4, CHAIR[1] + 0.4, (ctx) => {
       lawnChair(ctx, CHAIR[0], CHAIR[1], G, C.coral, { face: -1 });
-      cone(ctx, EX - 0.2, 37.2, G);
+      cone(ctx, EX - 0.2, 45.4, G);
     });
     R.find({ id: 'chair', label: 'A lawn chair saving a space', at: [CHAIR[0], CHAIR[1], G + 0.6], r: 0.9 });
     R.thing(EWALK, 40.9, (ctx) => hydrant(ctx, EWALK - 0.2, 40.8));
     // The Courier's van, double-parked in all but name.
     const VX = EX + 0.3;
     R.thing(VX + 0.9, 44.6, (ctx) => van(ctx, VX, 41.2, G));
+    const parcels = R.poke({ id: 'parcels', at: [VX, 44.6, G + 1.4], r: 0.95, hold: 3, sound: 'clunk', say: ['Parcels. None of them yours.', 'Still parcels.', 'Out for delivery. Eventually.'] });
+    R.thing(VX + 0.92, 44.62, (ctx) => vanBack(ctx, VX, 41.2, G, parcels.k()), { anim: true });
     R.thing(VX + 0.91, 44.61, (ctx) => veil(ctx, [[VX - 0.9, 41.2, G, 1.8, 3.4, 2.5]]), byNight);
     R.thing(VX + 0.95, 44.7, (ctx, t) => { if (frac(t * 1.2) < 0.5) for (const x of [VX - 0.8, VX + 0.8]) disc(ctx, x, 44.66, G + 0.75, 0.1, C.mustard, { lw: 0.02 }); }, { anim: true });
 
@@ -790,19 +949,10 @@ export default {
       });
       const [qx, qy] = q;
       R.thing(qx + (X ? 1.4 : 0.75), qy + (X ? 0.75 : 1.4), (ctx) => carArt(ctx, qx, qy), { on: waiting });
+      if (i === 0) R.poke({ id: 'horn', at: [qx, qy, G + 0.9], r: 1.0, when: waiting, sound: 'horn', say: ['HONK HONK!', 'Wow. That really helped.', 'BEEEEP.'] });
       R.thing(qx + (X ? 1.41 : 0.76), qy + (X ? 0.76 : 1.41), (ctx) => {
         if (Q.detail) speech(ctx, qx, qy, G + 2.1, ['HONK', 'HONK HONK', 'C\'MON!', 'BEEP'][i], { size: 0.46, fill: i === 2 ? C.butter : C.white });
       }, { anim: true, on: (t) => waiting(t) && honking(i)(t) });
-    });
-
-    // ---------- The goose, in the other lane, honking along ----------
-    const GX = ROAD.lane1 - 0.85;
-    R.goose((t) => {
-      const k = frac(t / 34), y = 25.8 + 3.8 * (k < 0.5 ? smooth(k * 2) : 1 - smooth(k * 2 - 1));
-      const moving = Math.abs(k - 0.25) < 0.2 || Math.abs(k - 0.75) < 0.2;
-      const honk = stuck(t) && frac(t / 5.3 + 0.9) < 0.2;
-      const night = nightK(t) > 0.6;
-      return { x: GX, y, z: G, dir: k < 0.5 ? 'l' : 'r', pose: night ? 'sit' : honk ? 'honk' : moving ? 'walk' : 'stand', moving };
     });
 
     // ---------- 3pm: six neighbors bounce the car ----------
@@ -882,8 +1032,17 @@ export default {
         if (p.hide) return;
         person(ctx, p.x, p.y, G, { ...look, pose: 'walk', dir: p.dir, back: p.back, arms: [Math.PI - 0.35, -Math.PI + 0.35] }, t);
         const bob = Math.abs(Math.sin(t * 7)) * 0.05;
-        box(ctx, p.x - 0.7, p.y - 1.2, G + 2.45 + bob, 1.4, 2.4, 0.3, C.white, { flat: true, lw: 0.035, right: tint(C.sky, 0.6), left: tint(C.sky, 0.45), top: tint(C.sky, 0.75) });
-        if (Q.detail) for (let i = 0; i < 3; i++) { const k = frac(t * 1.4 + i / 3); disc(ctx, p.x + 0.7, p.y - 0.8 + i * 0.8, G + 2.4 - k * 2.4, 0.04, alpha(C.sky, 1 - k), { stroke: false }); }
+        // Held up off her face and set back a little, so the near edge
+        // doesn't sit over her head; quilted, so it reads as a mattress and
+        // not a plain slab.
+        const mz = G + 2.6 + bob, mx = p.x - 0.95, my = p.y - 1.7;
+        box(ctx, mx, my, mz, 1.4, 2.4, 0.3, C.white, { flat: true, lw: 0.035, right: tint(C.sky, 0.6), left: tint(C.sky, 0.45), top: tint(C.sky, 0.75) });
+        if (Q.detail) {
+          line(ctx, [[mx + 0.12, my + 0.12, mz + 0.31], [mx + 1.28, my + 0.12, mz + 0.31], [mx + 1.28, my + 2.28, mz + 0.31], [mx + 0.12, my + 2.28, mz + 0.31], [mx + 0.12, my + 0.12, mz + 0.31]], alpha(C.ink, 0.35), 0.02);
+          for (const tx of [0.45, 0.95]) for (const ty of [0.5, 1.2, 1.9]) disc(ctx, mx + tx, my + ty, mz + 0.31, 0.04, alpha(C.ink, 0.4), { stroke: false });
+          line(ctx, [[mx + 1.401, my, mz + 0.15], [mx + 1.401, my + 2.4, mz + 0.15]], alpha(C.ink, 0.3), 0.02);
+        }
+        if (Q.detail) for (let i = 0; i < 3; i++) { const k = frac(t * 1.4 + i / 3); disc(ctx, p.x + 0.45, p.y - 1.3 + i * 0.8, G + 2.6 - k * 2.6, 0.04, alpha(C.sky, 1 - k), { stroke: false }); }
       });
     }
     // Iced coffees in everyone's hands: a pair on the east sidewalk, watching.

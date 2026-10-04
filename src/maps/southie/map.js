@@ -93,8 +93,10 @@ export default {
   },
   qa: {
     goosePerZone: true,
-    things: [3, 3],
-    at: at(11),
+    things: [4, 4],
+    // (9am: the old tenants' things all still in, so the playtest's one tap
+    // on the lease clock flips to 5pm, the new ones' mostly in: before and after.)
+    at: at(9),
     speedAt: [at(11), at(21.5)],
     moments: [
       { at: at(7.5), label: 'Seven: the trucks' },

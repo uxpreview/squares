@@ -945,10 +945,13 @@ export function drawSnapshot(ctx, zone) {
 // still things (below), it's drawn at the fraction of a pixel it's stamped at.
 // The steps of the backdrop's items at t, as one key (see "step" in build).
 function stepKey(zone, t) {
-  const list = zone.steps || (zone.steps = zone.items.filter((it) => it.backdrop && it.step));
+  // (A still flat thing that's only there some of the time, a rug that
+  // leaves at noon, counts too: whether it's showing is its step. Baked at
+  // 5am once, it used to stay all day.)
+  const list = zone.steps || (zone.steps = zone.items.filter((it) => it.backdrop && (it.step || it.on)));
   if (!list.length) return '';
   let key = '';
-  for (const it of list) key += it.step(t) + '|';
+  for (const it of list) key += (it.step ? it.step(t) : it.on(t) ? 1 : 0) + '|';
   return key;
 }
 

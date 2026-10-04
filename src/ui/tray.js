@@ -17,7 +17,8 @@ export function createTray(o) {
   //      onNoPick(), onGoRoom(i), onStateChange(prev, next), reduceMotion,
   //      shows(room, f): false to leave a find off the list for now (a trail's later sightings),
   //      away(room, f): true while a find that shows some of the time isn't here,
-  //      skipFor(room, f): where a skip would bring it back ("low tide"), onSkip(room, f) }
+  //      skipFor(room, f): where a skip would bring it back ("low tide"), onSkip(room, f),
+  //      skipVerb(): what the skip is called ("Skip to", "Flip to") }
   // A hint goes in two steps (see rules.js): its line shows on the list, by
   // the thing it's for (the note over the chips, and under its row); the
   // next press rings it in the room.
@@ -62,6 +63,7 @@ export function createTray(o) {
   }
   const grouped = () => o.rooms.some((r) => r.finds.some((f) => f.group));
   const away = (room, f) => !!(o.away && o.away(room, f));
+  const verb = () => (o.skipVerb ? o.skipVerb() : 'Skip to');
   const said = (f, room) => o.label(null, f) + (f.group === 'evidence' ? ' (evidence)' : f.group === 'sighting' ? ' (a sighting)' : '') +
     (f.note ? ` (at ${f.note}${room && f.note && o.away ? (away(room, f) ? ', not here now' : ', here now') : ''})` : '');
   // A find that only shows some of the time (at low tide) says when, small,
@@ -126,8 +128,8 @@ export function createTray(o) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'find-note is-away is-skip';
-        b.textContent = `Skip to ${skip}`;
-        b.setAttribute('aria-label', `Skip ahead to ${skip}, when ${o.label(room, f)} is back`);
+        b.textContent = `${verb()} ${skip}`;
+        b.setAttribute('aria-label', `${verb()} ${skip}, when ${o.label(room, f)} is back`);
         b.addEventListener('click', () => o.onSkip(room, f));
         tide.append(b);
       } else tide.append(noteOf(room, f));
@@ -258,9 +260,9 @@ export function createTray(o) {
       el.noteText.textContent = text;
       if (skip) {
         el.noteBtn.hidden = false;
-        el.noteBtn.textContent = `Skip to ${skip}`;
+        el.noteBtn.textContent = `${verb()} ${skip}`;
         el.noteBtn.onclick = () => o.onSkip(room, picked);
-        el.noteBtn.setAttribute('aria-label', `Skip ahead to ${skip}, when ${o.label(room, picked)} is back`);
+        el.noteBtn.setAttribute('aria-label', `${verb()} ${skip}, when ${o.label(room, picked)} is back`);
       } else {
         const st = o.hintStep(room, noteFor);
         el.noteBtn.hidden = !st || gone;

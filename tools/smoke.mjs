@@ -761,6 +761,27 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('out on the street, every house stays closed and nothing lifts', Object.values(street).every(([k, v]) => k > 0.9 && v < 0.1), JSON.stringify(street));
   const floors = await S(page, () => { const ids = window.__squares.world.drawOrder.map((c) => c.zone.id); return ['green', 'yellow', 'grey'].every((h) => ids.indexOf(h + '-1') < ids.indexOf(h + '-2') && ids.indexOf(h + '-2') < ids.indexOf(h + '-3')); });
   check('every house is drawn floor by floor, bottom up', floors);
+  // The lease clock flips between before and after (map.dial.flip): from 9am
+  // to the matching evening and back, the old picture melting over the new.
+  await S(page, () => window.__squares.play.enterZone('green-2', { dur: 0.01 }));
+  await S(page, async () => { const { at } = await import('/src/maps/southie/clock.js'); window.__squares.clock.set(at(9)); });
+  await wait(page, 900);
+  const flipHour = () => S(page, async () => { const { hour } = await import('/src/maps/southie/clock.js'); return Math.round(hour(window.__squares.clock.now()) * 10) / 10; });
+  const says0 = await S(page, () => document.getElementById('dial-next').textContent);
+  // (Watched for, not looked for: on a busy machine a frame can outlast it.)
+  await S(page, () => { window.__ghosts = 0; new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.classList && n.classList.contains('flip-ghost')) window.__ghosts++; }).observe(document.body, { childList: true, subtree: true }); });
+  await page.click('#dial');
+  await wait(page, 120);
+  const ghost = await S(page, () => window.__ghosts);
+  const evening = await flipHour(), says1 = await S(page, () => document.getElementById('dial-next').textContent);
+  await page.waitForFunction(() => !document.querySelector('.flip-ghost'), null, { timeout: 8000 }).catch(() => {});
+  const cleared = await S(page, () => document.querySelectorAll('.flip-ghost').length);
+  await page.click('#dial');
+  await wait(page, 300);
+  const morning = await flipHour();
+  check('the lease clock flips from 9am to the evening and back, the old picture melting away',
+    says0 === 'Flip to after' && ghost === 1 && evening > 16.5 && evening < 18 && says1 === 'Flip to before' && cleared === 0 && Math.abs(morning - 9) < 0.3,
+    JSON.stringify({ says0, ghost, evening, says1, cleared, morning }));
   await page.close();
 }
 

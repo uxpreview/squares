@@ -12,7 +12,7 @@
 // the back wall with the day's weather in it) are exported from here.
 import {
   C, Q, box, rect, disc, face, paint, person, folk, speech, shade, tint, mix, alpha,
-  onLeft, P, paintText, chair, table, label,
+  onLeft, onRight, P, paintText, chair, table, label,
 } from '../../../engine/art.js';
 import { route, particles, clamp } from '../../../engine/actors.js';
 import { apartment, carton, lettering } from '../kit.js';
@@ -201,17 +201,48 @@ export function plastic(ctx, pts) {
   face(ctx, pts, alpha(C.white, 0.35), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
 }
 
+// ---------- A tucked-away goose's tells ----------
+// Bits of a goose that show while the rest is hidden, so a still picture
+// gives it away (all three floors use them). (X, Y) a screen point, f 1 to
+// point right, -1 left.
+// A beak and an eye, poking out of a hole or from under a blanket.
+export function beakOut(ctx, X, Y, f = 1, s = 1) {
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
+  ctx.beginPath(); ctx.arc(0, 0, 0.12, -Math.PI * 0.6, Math.PI * 0.6); ctx.closePath(); paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(0.08, -0.06); ctx.lineTo(0.34, 0.01); ctx.lineTo(0.08, 0.07); ctx.closePath(); paint(ctx, C.coral, { lw: 0.025 });
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.03, -0.04, 0.03, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+// An orange webbed foot.
+export function footOut(ctx, X, Y, f = 1, s = 1) {
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
+  ctx.beginPath(); ctx.moveTo(0, -0.03); ctx.lineTo(0.22, -0.08); ctx.lineTo(0.27, 0.04); ctx.lineTo(0.19, 0.02); ctx.lineTo(0.17, 0.1); ctx.lineTo(0.09, 0.05); ctx.lineTo(0, 0.04); ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.025 });
+  ctx.restore();
+}
+// A white tail tip with a grey edge.
+export function tailOut(ctx, X, Y, f = 1, s = 1) {
+  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
+  ctx.beginPath(); ctx.moveTo(-0.12, 0.03); ctx.quadraticCurveTo(-0.02, -0.12, 0.1, -0.24); ctx.lineTo(0.14, 0.03); ctx.closePath();
+  paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(0.02, -0.04); ctx.lineTo(0.09, -0.16); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.025; ctx.stroke();
+  ctx.restore();
+}
+
 // ---------- The Family ----------
-// The hamster's four boxes (their back corners), a different one every twenty
-// seconds. One is nudged a unit back from the greybox's, off the spot where
-// the movers on the clock stop in the middle room.
+// The family's boxes (their back corners). One is nudged a unit back from
+// the greybox's, off the spot where the movers on the clock stop in the
+// middle room. The hamster is in the last, and it wiggles.
 const BOXES = [[4.6, 2.6], [6.8, 5.2], [2.2, 6.6], [9.6, 6.4]];
-const HAM = 20; // seconds in each box
-const hamster0 = (t) => { const [x, y] = BOXES[Math.floor(t / HAM) % BOXES.length]; return [x + 0.5, y + 0.5, 1.1]; };
-// A lid pops, the hamster looks out, ducks, the lid shuts; it's in the next
-// box by the time that one pops.
-const lidK = (t) => peekK((t % HAM) - 0.6, 15);
-const upK = (t) => clamp(Math.min(((t % HAM) - 0.9) / 0.4, (15.1 - (t % HAM)) / 0.4));
+const HAMBOX = BOXES[3];
+// The kids' two forts (their back corners): the goose is in the second.
+const FORTS = [[6.45, 7.9], [7.7, 7.9]];
+const FORT = { w: 0.95, d: 0.8, h: 0.75 };
+// The two recliners (back corners), his and hers; the goose is under the
+// afghan on the first after noon.
+const RECL = [[6.6, 6.3], [10.0, 6.3]];
+// Before or after: the forts stay till one (the kids forget them).
+const amGoose = (t) => !newSide(t);
 
 // The kids' boxes: [x, y, size, when their peek starts in a 17s or 23s round].
 const KIDS = [
@@ -222,7 +253,7 @@ const KIDS = [
 export default {
   id: 'yellow-1',
   name: 'The Family',
-  blurb: 'Moving out to the suburbs, moving in from the suburbs. The hamster has not decided.',
+  blurb: 'Moving out to the suburbs, moving in from them, and the hamster has not decided. Flip the clock to meet the couple from Braintree.',
   size: [15, 9],
   build(R) {
     const W = ROOM['yellow-1'];
@@ -292,19 +323,41 @@ export default {
         onLeft(ctx, 7.25, 0.3, 0.8, 1.1, shade(C.teal, 0.2), { lw: 0.02 });
         const [kx, ky] = P(0, 8.05, 1.55); ctx.beginPath(); ctx.arc(kx, ky, 0.07, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.02 });
       }
-      if (!Q.detail) return;
-      const pencil = alpha(C.ink, 0.75);
+    });
+    // The height chart on the frame and the wall beside it: two kids
+    // climbing it year by year, a hopeful mark for Dad, and the hamster's
+    // (PEANUT, an inch off the floor). After noon the couple have it all
+    // painted fresh white, except PEANUT's: the painter went round it.
+    const pencil = alpha(C.ink, 0.75);
+    const peanut = (ctx) => {
+      crayon(ctx, [[8.28, 0.28], [8.46, 0.28]], C.coral, 0.03);
+      paintText(ctx, 'left', 8.72, 0.3, 'PEANUT', 0.12, C.coral, 'Rethink Sans');
+    };
+    R.thing(0.01, 8.6, (ctx) => {
       const marks = [['LEO 2', 1.02], ['MIA 3', 1.28], ['LEO 4', 1.44], ['MIA 5', 1.62], ['LEO 6', 1.78], ['MIA 7', 1.98], ['MIA 8!', 2.12], ['DAD?', 3.0]];
       for (const [name, z] of marks) {
         crayon(ctx, [[8.28, z], [8.5, z]], pencil, 0.025);
-        paintText(ctx, 'left', 8.74, z + 0.02, name, 0.13, pencil, 'Rethink Sans');
+        if (Q.detail) paintText(ctx, 'left', 8.74, z + 0.02, name, 0.13, pencil, 'Rethink Sans');
       }
-    });
-    // After noon: a new mark at the very bottom.
+      peanut(ctx);
+    }, { on: amGoose });
     R.thing(0.01, 8.6, (ctx) => {
+      // The fresh coat, a shade whiter than the old wall, over the frame
+      // and the chart; the old wall left in a ragged patch round PEANUT.
+      onLeft(ctx, 8.2, 0, 0.78, 3.32, tint(C.white, 0.4), { lw: 0.025 });
+      ctx.beginPath();
+      [[8.24, 0.14], [8.6, 0.12], [8.98, 0.16], [9.0, 0.46], [8.62, 0.48], [8.26, 0.44]].forEach(([u, v], i) => { const [X, Y] = P(0.002, u, v); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+      ctx.closePath(); paint(ctx, W.left, { lw: 0.02, stroke: alpha(C.ink, 0.4) });
+      peanut(ctx);
+      // The painter's tray and roller on the floor, and a WET PAINT note.
       if (!Q.detail) return;
-      crayon(ctx, [[8.28, 0.28], [8.46, 0.28]], alpha(C.coral, 0.9), 0.03);
-      paintText(ctx, 'left', 8.72, 0.3, 'PEANUT', 0.12, C.coral, 'Rethink Sans');
+      onLeft(ctx, 7.25, 1.25, 0.8, 0.32, C.white, { lw: 0.02 });
+      paintText(ctx, 'left', 7.65, 1.33, 'WET PAINT', 0.12, C.red, 'Rethink Sans');
+    }, { on: neu });
+    R.thing(0.9, 8.9, (ctx) => {
+      box(ctx, 0.25, 8.45, 0, 0.6, 0.42, 0.06, C.greyLight, { flat: true, lw: 0.02, top: C.white });
+      box(ctx, 0.35, 8.55, 0.06, 0.3, 0.2, 0.08, C.white, { flat: true, lw: 0.02 });
+      box(ctx, 0.75, 8.6, 0.08, 0.6, 0.06, 0.06, C.ink, { flat: true, stroke: false });
     }, { on: neu });
 
     // ---------- The kitchen (along the back wall) ----------
@@ -375,7 +428,6 @@ export default {
     stack(3.0, 3.0, ['KITCHEN', 'KITCHEN?', 'PANS'], 0.8);
     stack(8.6, 4.3, ['MIA', 'LEO', 'MISC'], 0.97);
     stack(11.4, 5.1, ['LIVING', 'MORE LIVING'], 0.9);
-    stack(8.2, 7.9, ['SHOES'], 1.01);
     stack(3.3, 7.6, ['DISHES', 'DISHES'], 0.85);
     // The family's labels, on everything.
     R.thing(1.12, 4.6, (ctx) => tapeLabel(ctx, 'y', 1.105, 4.6, 0.55, 'SINK'), { on: old });
@@ -392,16 +444,65 @@ export default {
       for (const u of [13.3, 14.3]) disc(ctx, u, 3.19, 0.08, 0.12, C.ink, { stroke: false });
     }, { on: old });
 
-    // The hamster's boxes, each popping open in turn.
+    // The family's last boxes, taped shut. The hamster's in one, and that
+    // one wiggles (a shiver every couple of seconds); a tap opens it.
+    const hambox = R.poke({ id: 'hambox', at: [HAMBOX[0] + 0.5, HAMBOX[1] + 0.5, 0.75], r: 0.8, sound: 'pop', say: ['Squeak!', 'Squeak?'], when: old });
     BOXES.forEach(([x, y], i) => {
+      const word = ['CRAFTS', 'LEGO', 'BATH', 'TOYS 2'][i];
+      if (BOXES[i] !== HAMBOX) { R.thing(x + 1, y + 1, (ctx) => openCarton(ctx, x, y, 1, 1, 1, 0, null, { word }), { on: old }); return; }
       R.thing(x + 1, y + 1, (ctx, t) => {
-        const mine = Math.floor(t / HAM) % BOXES.length === i;
-        const k = mine ? lidK(t) : 0;
-        openCarton(ctx, x, y, 1, 1, 1, k, (c) => {
-          const u = upK(t), look = Math.floor((t % HAM) / 2.2) % 2;
-          hamster(c, x + 0.55, y + 0.5, 0.52 + u * 0.4, t, { dir: look ? 'l' : 'r', cheeks: (t % HAM) > 9 });
-        }, { word: ['CRAFTS', 'LEGO', 'BATH', 'TOYS 2'][i] });
+        const k = hambox.k(), p = t % 2.6;
+        const jig = k < 0.05 && p < 0.5 ? Math.sin(t * 40) * 0.035 : 0;
+        openCarton(ctx, x + jig, y - jig, 1, 1, 1, k, (c) => {
+          const look = Math.floor(t / 1.8) % 2;
+          hamster(c, x + 0.55, y + 0.5, 0.5 + k * 0.62, t, { dir: look ? 'l' : 'r', cheeks: true, scale: 1.45 });
+        }, { word });
+        // Shut, the box still gives it away: a chewed hole in its front with a
+        // pink nose and whiskers in it, and sunflower seeds spilled in front.
+        if (k < 0.05) {
+          const [X, Y] = P(x + 0.5 + jig, y + 1.005 - jig, 0.42);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.13, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+          ctx.beginPath(); ctx.arc(X + 0.01, Y + 0.01, 0.045, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.015 });
+          if (Q.detail) {
+            ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012; ctx.beginPath();
+            for (const s of [-1, 1]) { ctx.moveTo(X + s * 0.05, Y); ctx.lineTo(X + s * 0.2, Y - 0.03); ctx.moveTo(X + s * 0.05, Y + 0.02); ctx.lineTo(X + s * 0.2, Y + 0.05); }
+            ctx.stroke();
+          }
+          ctx.fillStyle = C.ink;
+          for (const [u, v] of [[0.35, 1.25], [0.55, 1.4], [0.42, 1.55], [0.7, 1.3], [0.62, 1.7]]) { const [sx, sy] = P(x + u, y + v, 0.01); ctx.beginPath(); ctx.ellipse(sx, sy, 0.04, 0.022, 0.4, 0, Math.PI * 2); ctx.fill(); }
+        }
+        // Wiggle lines either side while it shivers.
+        if (jig && Q.detail) {
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.lineCap = 'round';
+          for (const [u, v] of [[x - 0.12, y + 1], [x + 1, y - 0.12]]) {
+            const [X, Y] = P(u, v, 0.7);
+            ctx.beginPath(); ctx.moveTo(X - 0.06, Y - 0.12); ctx.lineTo(X + 0.06, Y - 0.05); ctx.moveTo(X - 0.06, Y + 0.02); ctx.lineTo(X + 0.06, Y + 0.09); ctx.stroke();
+          }
+        }
       }, { anim: true, on: old });
+    });
+
+    // The kids' two forts: matching boxes with a crayon door and a
+    // peephole, KEEP OUT on both. The goose has the second one: its beak
+    // out of the peephole, its tail out of the flaps. A tap opens the flaps.
+    const hide = R.poke({ id: 'hide', at: (t) => (amGoose(t) ? [FORTS[1][0] + 0.47, FORTS[1][1] + 0.4, 0.7] : [RECL[0][0] + 0.8, RECL[0][1] + 0.62, 0.85]), r: 0.8, sound: 'pop', say: 'HONK.' });
+    const twin = R.poke({ id: 'twin', at: (t) => (amGoose(t) ? [FORTS[0][0] + 0.47, FORTS[0][1] + 0.4, 0.7] : [RECL[1][0] + 0.8, RECL[1][1] + 0.62, 0.85]), r: 0.8, sound: 'pop', say: ['Nobody in here.', 'Still nobody.'] });
+    FORTS.forEach(([x, y], i) => {
+      const pk = i ? hide : twin;
+      R.thing(x + FORT.w, y + FORT.d, (ctx, t) => {
+        const k = pk.k(), { w, d, h } = FORT, f = y + d + 0.005;
+        openCarton(ctx, x, y, w, d, h, k, null, { color: C.woodLight });
+        // The crayon door, the peephole, the sign.
+        face(ctx, [[x + 0.1, f, 0.02], [x + 0.4, f, 0.02], [x + 0.4, f, 0.5], [x + 0.1, f, 0.5]], null, { lw: 0.035, stroke: C.red });
+        const [X, Y] = P(x + 0.68, f, 0.42);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.12, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+        if (Q.detail) lettering(ctx, 'x', x + 0.66, f, 0.64, 'KEEP OUT', 0.075, C.teal);
+        if (i && k < 0.3) {
+          beakOut(ctx, X - 0.02, Y, -1);
+          const [a, b] = P(x + 0.3, y + d / 2, h);
+          tailOut(ctx, a, b, -1);
+        }
+      }, { anim: true, on: amGoose });
     });
     // The kids: hiding in boxes, popping up to shout, ducking back down.
     for (const kid of KIDS) {
@@ -417,16 +518,26 @@ export default {
       }, { anim: true, on: old });
     }
 
-    // The dog, who always knows which box the hamster's in: nose to it while
-    // the lid's open, off to the next one before it pops.
+    // The dog, nose to each box in turn and barking at the one that
+    // wiggles. He's the thing a first visit is nudged to tap; after noon
+    // that's the wife on the sofa, with her crossword.
+    const HAM = 20;
     const SNIFF = [[5.2, 4.15], [7.3, 6.75], [3.65, 7.15], [11.05, 6.95]];
-    R.mover((t) => {
+    const dogAt = (t) => {
       if (!old(t)) return { x: -99, y: -99 };
       const i = Math.floor(t / HAM) % 4, p = t % HAM, [ax, ay] = SNIFF[i], [bx, by] = SNIFF[(i + 1) % 4];
-      if (p < 16) return { x: ax, y: ay, dir: 'l', sniff: p > 1, wag: p > 1 && p < 15, bark: p > 1.2 && p < 3 };
+      if (p < 16) return { x: ax, y: ay, dir: 'l', sniff: p > 1, wag: p > 1 && p < 15, bark: i === 3 && p > 1.2 && p < 4 };
       const k = (p - 16) / 4;
       return { x: ax + (bx - ax) * k, y: ay + (by - ay) * k, dir: (bx - ax) - (by - ay) >= 0 ? 'r' : 'l', run: true };
-    }, (ctx, t, p) => {
+    };
+    const WIFE = [11.2, 3.9];
+    const DOG_SAYS = ['Woof!', 'Arf! (He means the box.)', 'Woof woof!'];
+    const WIFE_SAYS = ['Seven letters: "misplaced".', 'Walt. Your forehead.', 'Forty-one years of this.'];
+    const teach = R.poke({
+      id: 'beagle', teach: true, r: 0.9, sound: 'pop', say: (t) => (old(t) ? DOG_SAYS : WIFE_SAYS),
+      at: (t) => { if (!old(t)) return [WIFE[0], WIFE[1], 1.5]; const p = dogAt(t); return [p.x, p.y, 0.5]; },
+    });
+    R.mover(dogAt, (ctx, t, p) => {
       if (p.x < -50) return;
       dog(ctx, p.x, p.y, 0, t, p);
       if (p.bark && Q.detail) speech(ctx, p.x, p.y, 1.5, 'Woof!', { size: 0.34 });
@@ -490,8 +601,10 @@ export default {
     R.thing(3.4, 6.2, (ctx) => {
       chair(ctx, 1.35, 5.0, 0, C.wood, 'r');
       table(ctx, 1.85, 4.55, 1.5, 1.5, 1.15, C.woodLight);
-      chair(ctx, 2.2, 6.1, 0, C.wood, 'l');
     }, { on: neu });
+    // The near chair on its own, sorted after the things on the table, so
+    // its back stands in front of them instead of under them.
+    R.thing(3.0, 6.9, (ctx) => chair(ctx, 2.2, 6.1, 0, C.wood, 'l'), { on: neu, depth: 10.3 });
     R.thing(3.5, 6.3, (ctx) => {
       disc(ctx, 3.0, 5.7, 1.16, 0.2, C.coral, { lw: 0.02 });
       if (Q.detail) for (const [u, v] of [[2.95, 5.65], [3.05, 5.72], [3.0, 5.62]]) disc(ctx, u, v, 1.2, 0.05, C.red, { lw: 0.012, stroke: C.white });
@@ -518,7 +631,7 @@ export default {
     }, { anim: true, on: neu });
     // The teapot, steaming.
     R.thing(3.6, 6.35, (ctx, t) => {
-      const [X, Y] = P(2.35, 5.75, 1.15);
+      const [X, Y] = P(3.12, 5.02, 1.15); // the far corner, clear of the cage and the chairs' backs
       ctx.beginPath(); ctx.ellipse(X, Y - 0.22, 0.22, 0.2, 0, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.025 });
       if (!Q.detail) return;
       ctx.fillStyle = alpha(C.white, 0.7);
@@ -528,34 +641,14 @@ export default {
       }, 5);
     }, { anim: true, on: neu });
 
-    // The sofa (the glasses are on it), the recliner, a lamp with the
-    // plastic still on its shade, a doily.
+    // The sofa (hers), two recliners (his and hers, an afghan on each), a
+    // lamp with the plastic still on its shade, a doily.
     R.thing(11.6, 4.2, (ctx) => {
       sofa(ctx, 9.2, 3.0, 2.4, C.teal);
       if (Q.detail) for (const u of [9.3, 11.35]) rect(ctx, u, 3.35, 0.2, 0.8, 0.905, C.white, { lw: 0.015 });
     }, { on: neu });
-    // The reading glasses, alone on the seat's left end: two round lenses,
-    // a bridge, the arms folded, in tortoiseshell.
-    const GLX = 9.78, GLY = 3.75, GLZ = 0.735;
-    R.thing(11.7, 4.3, (ctx) => {
-      const z = GLZ, frame = (w) => {
-        ctx.strokeStyle = C.brown; ctx.lineWidth = w; ctx.stroke();
-        if (Q.detail) { ctx.save(); ctx.setLineDash([0.035, 0.05]); ctx.strokeStyle = shade(C.brown, 0.5); ctx.stroke(); ctx.restore(); }
-      };
-      // The folded arms, behind the lenses.
-      for (const u of [GLX - 0.26, GLX + 0.26]) { const [e, f] = P(u, GLY - 0.02, z + 0.02), [g, h] = P(u + 0.02, GLY - 0.34, z + 0.05); ctx.beginPath(); ctx.moveTo(e, f); ctx.lineTo(g, h); frame(0.05); }
-      for (const u of [GLX - 0.22, GLX + 0.22]) {
-        const [X, Y] = P(u, GLY, z);
-        ctx.beginPath(); ctx.ellipse(X, Y, 0.21, 0.17, 0, 0, Math.PI * 2);
-        ctx.fillStyle = alpha(tint(C.sky, 0.55), 0.85); ctx.fill();
-        frame(0.065);
-        if (Q.detail) { ctx.beginPath(); ctx.arc(X - 0.07, Y - 0.06, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill(); }
-      }
-      const [a, b] = P(GLX - 0.05, GLY, z + 0.03), [c, d] = P(GLX + 0.05, GLY, z + 0.03);
-      ctx.beginPath(); ctx.moveTo(a, b); ctx.quadraticCurveTo((a + c) / 2, (b + d) / 2 - 0.06, c, d); frame(0.05);
-    }, { on: neu });
-    const recliner = (ctx) => {
-      const x = 10.0, y = 6.3, col = C.brown;
+    const recliner = ([x, y]) => (ctx) => {
+      const col = C.brown;
       box(ctx, x, y, 0, 1.3, 1.25, 0.5, shade(col, 0.1), { lw: 0.04 });
       box(ctx, x + 1.3, y + 0.2, 0.25, 0.8, 0.85, 0.22, col, { lw: 0.035 });
       box(ctx, x + 0.3, y + 0.2, 0.5, 1.0, 0.85, 0.2, tint(col, 0.15), { lw: 0.03 });
@@ -563,7 +656,37 @@ export default {
       box(ctx, x + 0.3, y, 0.5, 1.0, 0.22, 0.55, col, { lw: 0.035 });
       box(ctx, x + 0.3, y + 1.03, 0.5, 1.0, 0.22, 0.55, col, { lw: 0.035 });
     };
-    R.thing(11.4, 7.55, recliner, { on: neu });
+    for (const r of RECL) R.thing(r[0] + 1.4, r[1] + 1.25, recliner(r), { on: neu });
+    // The afghans: granny squares over each seat and down the front. The
+    // goose is under the first one, its beak out the side and a foot out
+    // the hem; a tap throws it back over the chair. (Walt naps under the
+    // other one tonight.)
+    RECL.forEach(([x, y], i) => {
+      const pk = i ? twin : hide;
+      R.thing(x + 1.45, y + 1.25, (ctx, t) => {
+        const k = pk.k(), sq = { dots: C.coral, density: 0.3, lw: 0.025 };
+        if (k > 0.5) {
+          // Thrown back over the top of the chair.
+          face(ctx, [[x + 0.36, y + 0.1, 1.92], [x + 0.36, y + 1.15, 1.92], [x + 0.36, y + 1.15, 1.25], [x + 0.36, y + 0.1, 1.25]], C.mustard, sq);
+          face(ctx, [[x, y + 0.1, 1.92], [x + 0.36, y + 0.1, 1.92], [x + 0.36, y + 1.15, 1.92], [x, y + 1.15, 1.92]], tint(C.mustard, 0.15), sq);
+          return;
+        }
+        rect(ctx, x + 0.32, y + 0.22, 0.98, 0.81, 0.705, C.mustard, sq);
+        face(ctx, [[x + 1.3, y + 0.22, 0.705], [x + 1.3, y + 1.03, 0.705], [x + 1.32, y + 1.03, 0.3], [x + 1.32, y + 0.22, 0.3]], shade(C.mustard, 0.08), sq);
+        if (Q.detail) for (const u of [0.42, 0.62, 0.82]) face(ctx, [[x + 1.31, y + 0.22 + u * 0.81, 0.7], [x + 1.33, y + 0.22 + u * 0.81, 0.3]], null, { lw: 0.025, stroke: C.teal });
+        if (!i) {
+          // The lump, the beak, the foot.
+          const [X, Y] = P(x + 0.8, y + 0.62, 0.9);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.44, 0.32, -0.1, 0, Math.PI * 2); paint(ctx, tint(C.mustard, 0.1), sq);
+          const [bx, by] = P(x + 1.15, y + 0.8, 1.05);
+          beakOut(ctx, bx, by, 1, 1.3);
+          const [fx, fy] = P(x + 1.34, y + 0.45, 0.32);
+          footOut(ctx, fx, fy, 1, 1.3);
+        }
+        // (The near arm again, so the afghan tucks under it.)
+        box(ctx, x + 0.3, y + 1.03, 0.5, 1.0, 0.22, 0.55, C.brown, { lw: 0.035 });
+      }, { anim: true, on: neu });
+    });
     R.thing(9.85, 6.55, (ctx) => {
       box(ctx, 9.3, 5.95, 0, 0.5, 0.5, 0.08, C.ink, { flat: true, stroke: false });
       box(ctx, 9.52, 6.17, 0.08, 0.06, 0.06, 2.3, C.ink, { flat: true, stroke: false });
@@ -585,35 +708,49 @@ export default {
       onLeft(ctx, 1.33, 2.02, 0.14, 0.12, C.red, { stroke: false });
     }, { on: neu });
 
-    // The wife in the recliner by day with the crossword (squinting); at
-    // night she's on the sofa and he's asleep in the recliner.
+    // The wife on the sofa with the crossword (squinting: the only reading
+    // glasses in the house are on Walt's forehead). Walt, looking for them
+    // everywhere; asleep in his recliner by half past eight, still wearing them.
     const wife = folk(81, { style: 'curly', hair: C.greyLight, top: C.lilac, bottom: C.navy, skin: SKIN_FAIR });
     const walt = folk(82, { style: 'bald', top: tint(C.sky, 0.2), bottom: C.brown, hair: C.greyLight });
-    // No glasses on her (the only pair in the room is on the couch): she squints.
     const squint = (c, hy) => {
       c.strokeStyle = C.ink; c.lineWidth = 0.03;
       c.beginPath(); c.moveTo(0.06, hy + 0.02); c.lineTo(0.15, hy + 0.04); c.moveTo(0.21, hy + 0.04); c.lineTo(0.3, hy + 0.02); c.stroke();
     };
     const late = (t) => { const h = hour(t); return h >= 20.5 || h < 5; };
-    R.mover((t) => (neu(t) ? (late(t) ? { x: 11.2, y: 3.9, z: 0.05, dir: 'l' } : { x: 10.8, y: 6.9, z: 0.05, dir: 'r' }) : { x: -99, y: -99 }), (ctx, t, p) => {
+    R.mover((t) => (neu(t) ? { x: WIFE[0], y: WIFE[1], z: 0.05, dir: 'l' } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
       person(ctx, p.x, p.y, p.z, {
         ...wife, pose: 'sit', dir: p.dir, arms: late(t) ? [0.55, 0.45] : [1.1, 1.0], face: squint,
         hold: (c) => { c.beginPath(); c.rect(-0.05, -0.28, 0.3, 0.36); paint(c, C.white, { lw: 0.02 }); if (Q.detail) { c.strokeStyle = alpha(C.ink, 0.6); c.lineWidth = 0.01; c.beginPath(); for (let i = 1; i < 4; i++) { c.moveTo(-0.05 + i * 0.075, -0.28); c.lineTo(-0.05 + i * 0.075, 0.08); c.moveTo(-0.05, -0.28 + i * 0.09); c.lineTo(0.25, -0.28 + i * 0.09); } c.stroke(); } },
       }, t);
-      if (!late(t)) says(ctx, p.x, p.y, 2.3, t, ['Seven letters: "misplaced".', 'Couch.', 'Walt. The couch.'], 9, 3.4, 4);
+      if (!late(t)) says(ctx, p.x, p.y, 2.3, t, ['Seven letters: "misplaced".', 'Walt.', 'Walt. Look up.'], 9, 3.4, 4);
     }, { bias: 1.6 });
-    // Walt, looking for his glasses everywhere but the couch; asleep in
-    // the recliner by ten.
-    const waltAt = route([[1.6, 4.4, 3], [2.9, 7.2, 3], [6.8, 6.2, 3], [8.6, 5.4, 3], [6.6, 3.6, 2]], { speed: 0.9 });
-    R.mover((t) => (neu(t) ? (late(t) ? { x: 10.8, y: 6.9, z: 0.05, sleep: true } : waltAt(t)) : { x: -99, y: -99 }), (ctx, t, p) => {
+    // His glasses, pushed up on his forehead: two round lenses in
+    // tortoiseshell, drawn at (X, Y), over his head.
+    const specs = (ctx, X, Y, f) => {
+      ctx.save(); ctx.translate(X, Y); ctx.scale(f, 1);
+      ctx.strokeStyle = C.brown; ctx.lineWidth = 0.045;
+      for (const u of [-0.02, 0.2]) { ctx.beginPath(); ctx.ellipse(u, 0, 0.1, 0.075, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(tint(C.sky, 0.55), 0.9); ctx.fill(); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(0.08, -0.01); ctx.lineTo(0.1, -0.01); ctx.stroke();
+      ctx.restore();
+    };
+    const SPEC = { dx: 0.06, dz: 2.12, sit: 1.62 };
+    const RW = [RECL[1][0] + 0.8, RECL[1][1] + 0.6];
+    const waltAt = route([[3.7, 3.9, 3], [2.9, 7.2, 3], [5.3, 5.1, 3], [8.9, 5.3, 3], [6.2, 3.8, 2]], { speed: 0.9 });
+    const waltPos = (t) => (neu(t) ? (late(t) ? { x: RW[0], y: RW[1], z: 0.05, sleep: true, dir: 'r' } : waltAt(t)) : { x: -99, y: -99 });
+    R.mover(waltPos, (ctx, t, p) => {
       if (p.x < -50) return;
+      const f = p.dir === 'l' ? -1 : 1;
       if (p.sleep) {
         person(ctx, p.x, p.y, p.z, { ...walt, pose: 'sit', dir: 'r', arms: [0.4, 0.3], face: (c, hy) => { c.strokeStyle = C.ink; c.lineWidth = 0.03; c.beginPath(); c.moveTo(0.06, hy + 0.03); c.lineTo(0.14, hy + 0.03); c.moveTo(0.2, hy + 0.03); c.lineTo(0.28, hy + 0.03); c.stroke(); } }, t);
+        const [X, Y] = P(p.x, p.y, p.z + SPEC.sit);
+        specs(ctx, X + SPEC.dx, Y, 1);
         if (Q.detail) particles(t, 3, 3, (k) => { ctx.globalAlpha = 1 - k; paintZ(ctx, p.x - k * 0.6, p.y - k * 0.6, 2.4 + k * 1.2, 0.45 + k * 0.3); ctx.globalAlpha = 1; }, 9);
         return;
       }
       person(ctx, p.x, p.y, 0, { ...walt, pose: p.moving ? 'walk' : 'read', dir: p.dir, back: p.back, phase: p.phase, speed: 5 }, t);
+      { const [X, Y] = P(p.x, p.y, SPEC.dz + (p.back ? 0.1 : 0)); specs(ctx, X + (p.back ? 0 : SPEC.dx * f), Y, f); }
       if (!p.moving) says(ctx, p.x, p.y, 2.6, t, ['Seen my glasses?', 'We sold the house in Braintree.', 'Is this the thermostat?', 'They were right here.'], 6, 3);
     }, { bias: 1.6 });
 
@@ -630,18 +767,51 @@ export default {
     }, { on: neu });
 
     // ---------- The goose ----------
-    // Before noon, sitting in a box the mom has labeled GOOSE. After, on
-    // top of the fridge, where nobody over five foot looks.
-    R.thing(7.35, 8.55, (ctx) => {
-      openCarton(ctx, 6.55, 7.85, 0.8, 0.7, 0.5, 1, null);
-      tapeLabel(ctx, 'x', 6.95, 8.555, 0.28, 'GOOSE', 0.15);
-    }, { on: old });
-    R.goose((t) => (old(t) ? { x: 6.95, y: 8.2, z: 0.3, pose: 'sit', dir: 'r' } : { x: 0.65, y: 2.75, z: 3.0, pose: Math.sin(t * 0.7) > 0.8 ? 'honk' : 'sit', dir: 'r' }), { bias: 1.2 });
+    // Before noon (and through the handover), in the kids' second fort;
+    // after, under the afghan on his recliner. Tucked away till a tap.
+    R.goose((t) => {
+      const k = hide.k();
+      if (amGoose(t)) {
+        const [x, y] = FORTS[1];
+        return { x: x + FORT.w / 2, y: y + FORT.d / 2, z: 0.15 + 0.6 * k, pose: k > 0.5 && Math.sin(t * 0.9) > 0.7 ? 'honk' : 'sit', dir: 'l', hidden: k < 0.3 };
+      }
+      const [x, y] = RECL[0];
+      return { x: x + 0.8, y: y + 0.62, z: 0.72, pose: k > 0.5 && Math.sin(t * 0.7) > 0.8 ? 'honk' : 'sit', dir: 'r', hidden: k < 0.3 };
+    }, { bias: 1.5, kind: 'poke', inside: hide, hint: 'Two of a kind that match, and one has a beak poking out.' });
+
+    // The kids' goose night-light, in the socket by the stairs: a flat
+    // plastic goose, glowing. The couple keep it.
+    R.decor((ctx) => {
+      onRight(ctx, 3.15, 0.25, 0.42, 0.62, C.white, { lw: 0.02 });
+      const [X, Y] = P(3.36, 0.01, 0.62);
+      ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, 0, 1, 0, 0);
+      ctx.beginPath(); ctx.arc(0, 0, 0.5, 0, Math.PI * 2); ctx.fillStyle = alpha(C.butter, 0.45); ctx.fill();
+      // Body, tail, neck and head, a wing, the beak and an eye.
+      ctx.beginPath(); ctx.ellipse(-0.04, 0.1, 0.24, 0.14, 0, 0, Math.PI * 2);
+      ctx.moveTo(-0.2, 0.06); ctx.lineTo(-0.34, -0.04); ctx.lineTo(-0.24, 0.14);
+      paint(ctx, tint(C.butter, 0.6), { lw: 0.025 });
+      ctx.beginPath(); ctx.moveTo(0.1, 0.04); ctx.quadraticCurveTo(0.18, -0.1, 0.14, -0.24); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = tint(C.butter, 0.6); ctx.lineWidth = 0.065; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0.14, -0.26, 0.07, 0, Math.PI * 2); paint(ctx, tint(C.butter, 0.6), { lw: 0.025 });
+      ctx.beginPath(); ctx.moveTo(0.19, -0.29); ctx.lineTo(0.33, -0.25); ctx.lineTo(0.19, -0.22); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02 });
+      ctx.beginPath(); ctx.ellipse(-0.06, 0.09, 0.12, 0.06, -0.2, 0, Math.PI * 2); ctx.fillStyle = C.butter; ctx.fill();
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.15, -0.28, 0.018, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+    R.decoy({ id: 'nightlight', at: [3.36, 0.05, 0.6], r: 0.6, say: ['A night-light. Wrong goose.', 'It glows. Geese do not.'] });
 
     // ---------- The finds ----------
-    R.find({ id: 'hamster', label: 'A runaway hamster', at: hamster0, r: 0.88, ...BEFORE });
+    R.find({ id: 'hamster', label: 'A runaway hamster', kind: 'poke', inside: hambox, at: [HAMBOX[0] + 0.55, HAMBOX[1] + 0.5, 1.35], r: 0.95, hint: 'One of the boxes keeps wiggling. The dog has noticed.', ...BEFORE });
     R.find({ id: 'drawing', label: 'A crayon drawing of the house', at: [0, 4.6, 2], r: 0.88 });
-    R.find({ id: 'glasses', label: 'A pair of reading glasses', at: [GLX, GLY, GLZ + 0.05], r: 0.88, ...AFTER });
+    R.find({
+      id: 'glasses', label: 'A pair of reading glasses', kind: 'hard', r: 0.7,
+      at: (t) => { const p = waltPos(t); if (p.sleep) return [p.x, p.y, p.z + SPEC.sit]; return [p.x, p.y, SPEC.dz]; },
+      riddle: 'He has looked everywhere but up.', hint: 'Whoever is looking hardest for them is closest.', ...AFTER,
+    });
+    R.find({
+      id: 'mark', label: 'Something the painter spared', kind: 'hard', at: [0, 8.45, 0.3], r: 0.7,
+      riddle: 'It was there at breakfast, with the others. Flip back.', hint: 'Someone painted over the height chart by the back door. Not all of it.', ...AFTER,
+    });
   },
 };
 

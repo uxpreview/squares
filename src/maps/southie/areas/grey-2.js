@@ -11,7 +11,7 @@
 // on it.
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, label, glow,
-  shade, tint, mix, alpha, P, onLeft, onRight, paintText,
+  shade, tint, mix, alpha, P, onLeft, onRight, paintText, goose,
 } from '../../../engine/art.js';
 import { pulse, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -66,27 +66,52 @@ function ringXZ(ctx, cx, cy, cz, r, n = 18) {
 
 // The exercise bike (looks like the famous one; never called it): a black
 // frame, a silver flywheel with a red hub, the red knob, and a big screen
-// facing the rider. Along x, the rider facing +x. (x, y) its middle.
-export function bike(ctx, x, y, z) {
-  const K = C.black;
-  box(ctx, x - 0.8, y - 0.34, z, 0.16, 0.68, 0.1, K, { flat: true, lw: 0.03 });
-  box(ctx, x + 0.64, y - 0.34, z, 0.16, 0.68, 0.1, K, { flat: true, lw: 0.03 });
-  bar(ctx, [x - 0.72, y, z + 0.1], [x + 0.72, y, z + 0.1], K, 0.1);
-  ringXZ(ctx, x + 0.3, y, z + 0.56, 0.42);
+// facing the rider. Along x, the rider facing +x (o.flip: facing -x, so the
+// screen faces the room and shows Scenic Goose Lake). (x, y) its middle.
+export function bike(ctx, x, y, z, o = {}) {
+  const K = C.black, s = o.flip ? -1 : 1;
+  // A box's near corner for one at offset dx, w long, either way round.
+  const bx = (dx, w) => (s > 0 ? x + dx : x - dx - w);
+  const X = (dx) => x + s * dx;
+  const screen = () => {
+    bar(ctx, [X(0.2), y, z + 1.45], [X(0.26), y, z + 1.66], K, 0.07);
+    box(ctx, bx(0.24, 0.06), y - 0.44, z + 1.62, 0.06, 0.88, 0.58, K, { flat: true, lw: 0.03 });
+    if (o.flip) gooseLake(ctx, x - 0.24 + 0.005, y, z + 1.62, o.t || 0);
+  };
+  // (Flipped, the screen is at the back, so it goes first.)
+  if (o.flip) screen();
+  box(ctx, bx(-0.8, 0.16), y - 0.34, z, 0.16, 0.68, 0.1, K, { flat: true, lw: 0.03 });
+  box(ctx, bx(0.64, 0.16), y - 0.34, z, 0.16, 0.68, 0.1, K, { flat: true, lw: 0.03 });
+  bar(ctx, [X(-0.72), y, z + 0.1], [X(0.72), y, z + 0.1], K, 0.1);
+  ringXZ(ctx, X(0.3), y, z + 0.56, 0.42);
   paint(ctx, tint(C.greyLight, 0.2), { lw: 0.04 });
-  ringXZ(ctx, x + 0.3, y, z + 0.56, 0.13);
+  ringXZ(ctx, X(0.3), y, z + 0.56, 0.13);
   paint(ctx, C.red, { lw: 0.03 });
-  bar(ctx, [x - 0.6, y, z + 0.1], [x - 0.42, y, z + 1.22], K, 0.15);
-  bar(ctx, [x - 0.48, y, z + 0.75], [x + 0.22, y, z + 0.9], K, 0.13);
-  box(ctx, x - 0.66, y - 0.14, z + 1.22, 0.46, 0.28, 0.1, K, { flat: true, lw: 0.03 });
-  bar(ctx, [x + 0.34, y, z + 0.5], [x + 0.2, y, z + 1.45], K, 0.15);
-  bar(ctx, [x + 0.2, y - 0.3, z + 1.45], [x + 0.2, y + 0.3, z + 1.45], K, 0.08);
-  for (const s of [-0.3, 0.3]) bar(ctx, [x + 0.2, y + s, z + 1.45], [x + 0.02, y + s, z + 1.38], K, 0.07);
-  disc(ctx, x + 0.12, y, z + 1.12, 0.07, C.red, { lw: 0.02 });
-  bar(ctx, [x + 0.2, y, z + 1.45], [x + 0.26, y, z + 1.66], K, 0.07);
-  box(ctx, x + 0.24, y - 0.44, z + 1.62, 0.06, 0.88, 0.58, K, { flat: true, lw: 0.03 });
+  bar(ctx, [X(-0.6), y, z + 0.1], [X(-0.42), y, z + 1.22], K, 0.15);
+  bar(ctx, [X(-0.48), y, z + 0.75], [X(0.22), y, z + 0.9], K, 0.13);
+  box(ctx, bx(-0.66, 0.46), y - 0.14, z + 1.22, 0.46, 0.28, 0.1, K, { flat: true, lw: 0.03 });
+  bar(ctx, [X(0.34), y, z + 0.5], [X(0.2), y, z + 1.45], K, 0.15);
+  bar(ctx, [X(0.2), y - 0.3, z + 1.45], [X(0.2), y + 0.3, z + 1.45], K, 0.08);
+  for (const v of [-0.3, 0.3]) bar(ctx, [X(0.2), y + v, z + 1.45], [X(0.02), y + v, z + 1.38], K, 0.07);
+  disc(ctx, X(0.12), y, z + 1.12, 0.07, C.red, { lw: 0.02 });
+  if (!o.flip) screen();
   // The water bottle's cage on the front post.
-  box(ctx, x + 0.26, y + 0.1, z + 0.86, 0.12, 0.12, 0.05, K, { flat: true, stroke: false });
+  box(ctx, bx(0.26, 0.12), y + 0.1, z + 0.86, 0.12, 0.12, 0.05, K, { flat: true, stroke: false });
+}
+// What's on the screen when it faces the room: Scenic Goose Lake, a ride
+// past a lake with a goose on it (the decoy). Painted on the screen's face
+// (the plane x = sx, facing the lower right), 0.8 wide, from z0 up.
+function gooseLake(ctx, sx, y, z0, t) {
+  const q = (a, b, c, d) => [[sx, y - 0.4 + a, z0 + b], [sx, y - 0.4 + c, z0 + b], [sx, y - 0.4 + c, z0 + d], [sx, y - 0.4 + a, z0 + d]];
+  face(ctx, q(0, 0.04, 0.8, 0.54), tint(C.sky, 0.3), { lw: 0.015 });
+  face(ctx, q(0, 0.04, 0.8, 0.22), C.water, { stroke: false });
+  if (Q.detail) {
+    // Pines on the far shore, and the ride's progress bar.
+    for (const v of [0.08, 0.2, 0.62, 0.72]) face(ctx, [[sx, y - 0.4 + v - 0.06, z0 + 0.22], [sx, y - 0.4 + v + 0.06, z0 + 0.22], [sx, y - 0.4 + v, z0 + 0.42]], C.green, { stroke: false });
+    face(ctx, q(0.05, 0.47, 0.5, 0.51), C.tealLight, { stroke: false });
+  }
+  // The goose, swimming, as big as the screen lets it.
+  goose(ctx, sx, y + 0.02, z0 + 0.12, t, { pose: 'swim', dir: 'l', scale: 0.42 });
 }
 // The bike's water bottle: a tall sports bottle, see-through blue with a
 // grip band, a black cap with a white squeeze spout, and a clip on the cap.
@@ -358,7 +383,42 @@ function strollerAt(t) {
   else { x = X0; d = -1; moving = false; }
   return { x, y: 3.4, d, moving };
 }
-function stroller(ctx, s, t, asleep) {
+// The hood over the stroller's front half: a half dome of purple canvas
+// from the back rim, c 1 pulled right over, 0 folded back to a bump.
+function hood(ctx, x, y, z, d, c) {
+  const n = 8, a0 = Math.PI * (0.55 - 0.55 * c); // the open end's angle
+  const arc = [];
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + (Math.PI - a0) * (i / n);
+    arc.push([x + 0.5 * d * Math.cos(a), z + 0.48 * Math.sin(a)]);
+  }
+  // The canvas, strip by strip from the back, then the near side.
+  for (let i = n; i > 0; i--) {
+    const [x0, z0] = arc[i], [x1, z1] = arc[i - 1];
+    face(ctx, [[x0, y - 0.3, z0], [x1, y - 0.3, z1], [x1, y + 0.3, z1], [x0, y + 0.3, z0]], i % 2 ? C.purple : shade(C.purple, 0.12), { lw: 0.025 });
+  }
+  face(ctx, [[x, y + 0.3, z], ...arc.map(([ax, az]) => [ax, y + 0.3, az])], shade(C.purple, 0.22), { lw: 0.03 });
+  // The teal trim along the open edge.
+  const [ex, ez] = arc[0];
+  bar(ctx, [ex, y - 0.3, ez], [ex, y + 0.3, ez], C.tealLight, 0.06);
+}
+// A webbed foot over a rim, toes down: the goose's tell. Big and orange,
+// a leg and three spread toes with the bones lined in, so it reads as a
+// goose's foot on a phone.
+const FOOT = mix(C.coral, C.mustard, 0.35);
+function webFoot(ctx, x, y, z, s = 1.8) {
+  const [X, Y] = P(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(s, s);
+  ctx.beginPath(); ctx.moveTo(-0.04, -0.1); ctx.lineTo(-0.03, 0.08);
+  ctx.lineTo(-0.17, 0.26); ctx.lineTo(-0.05, 0.21); ctx.lineTo(0.01, 0.3); ctx.lineTo(0.07, 0.21); ctx.lineTo(0.19, 0.25); ctx.lineTo(0.05, 0.08); ctx.lineTo(0.05, -0.1); ctx.closePath();
+  paint(ctx, FOOT, { lw: 0.02 });
+  ctx.strokeStyle = shade(FOOT, 0.35); ctx.lineWidth = 0.012;
+  for (const [tx, ty] of [[-0.15, 0.25], [0.01, 0.28], [0.17, 0.24]]) { ctx.beginPath(); ctx.moveTo(0.01, 0.09); ctx.lineTo(tx, ty); ctx.stroke(); }
+  ctx.restore();
+}
+// o: { hood: 0 folded back .. 1 pulled over, inside(ctx): what's in the
+// bassinet, drawn before its front rim, empty: no dog }
+function stroller(ctx, s, t, asleep, o = {}) {
   const { x, y, d } = s;
   const wob = s.moving ? Math.sin(t * 9) * 0.02 : 0;
   for (const [dx, dy] of [[-0.4, -0.28], [0.4, -0.28], [-0.4, 0.28], [0.4, 0.28]]) {
@@ -371,6 +431,13 @@ function stroller(ctx, s, t, asleep) {
   bar(ctx, [x - 0.45 * d, y, 0.7], [x - 0.85 * d, y, 1.5], C.black, 0.06);
   bar(ctx, [x - 0.85 * d, y - 0.25, 1.5], [x - 0.85 * d, y + 0.25, 1.5], C.black, 0.07);
   box(ctx, x - 0.5, y - 0.3, 0.55 + wob, 1.0, 0.6, 0.45, C.purple, { lw: 0.035, dens: 0.18 });
+  const hk = o.hood ?? 0;
+  if (o.empty) {
+    if (o.inside) o.inside(ctx);
+    hood(ctx, x, y, 1.0 + wob, d, hk);
+    return;
+  }
+  hood(ctx, x, y, 1.0 + wob, d, hk);
   // The dog: a fawn head, bat ears, black muzzle, a yellow raincoat.
   const hx = x + 0.2 * d, hz = 1.2 + wob + (asleep ? -0.1 : Math.abs(Math.sin(t * 2.2)) * 0.03);
   box(ctx, x - 0.3, y - 0.22, 0.95 + wob, 0.6, 0.44, 0.14, C.mustard, { flat: true, lw: 0.03 });
@@ -433,6 +500,7 @@ const OWNER = track([
   [16.8, 2.4, 4.5, { dir: 'l' }], [19.2, 2.4, 4.5, { dir: 'l' }], [RIDE0, 10.4, 7.6], [RIDE0 + 0.01, 10.4, 7.6],
 ]);
 const OWNER_LOOK = folk(931, { top: C.teal, bottom: C.ink, style: 'pony', hair: C.brown, dress: false });
+const SELLER_LOOK = folk(941, { top: C.sky, dress: false });
 const OWNER2_LOOK = folk(932, { top: C.coral, bottom: C.navy, style: 'short', dress: false, hat: 'beanie' });
 // The instructor on the screen, cheering at night.
 const COACH = ['Feel that hill!', "You've got this!", 'Five more minutes!', 'Look at you go!'];
@@ -440,7 +508,7 @@ const COACH = ['Feel that hill!', "You've got this!", 'Five more minutes!', 'Loo
 export default {
   id: 'grey-2',
   name: 'The New Owners',
-  blurb: 'The movers match and the dog rides in a stroller. The bike went to the wrong floor twice.',
+  blurb: 'The movers match, the dog rides in a stroller, and the bike went to the wrong floor twice. Flip the clock: something else did too.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 1, walls: ROOM['grey-2'], floorInk: ROOM['grey-2'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true });
@@ -509,21 +577,28 @@ export default {
       }
       if (Q.detail) glow(ctx, SX, SY, z + 0.05, on ? 0.8 : 0.5, C.tealLight, on ? 0.75 + Math.sin(t * 8) * 0.15 : 0.4);
     }, { anim: true, depth: 6.63 });
-    R.find({ id: 'speaker', label: 'A smart speaker', at: [SX, SY, SZ + 0.2], r: 0.88 });
+    R.find({ id: 'speaker', label: 'A smart speaker', kind: 'spot', at: [SX, SY, SZ + 0.2], r: 0.88 });
     edison(R, 2.6, 7.2, 1.3); // clear of the speaker
     edison(R, 6.3, 5.8, 1.1);
 
-    // The goose, in a moving box marked DECOR, which it is now.
+    // The goose, in the other stroller (two of a kind: they bought the
+    // matching one for guests), parked by the door with its hood pulled
+    // right over. One coral webbed foot hangs over the front, where the
+    // dog's yellow boots hang over his. Tap it and the hood folds back.
     const GX = 2.8, GY = 8.0;
-    R.goose((t) => ({ x: GX, y: GY, z: 0.3, dir: 'r', pose: pulse(t, 11) > 0.85 ? 'honk' : 'sit' }), { bias: -0.1 });
-    R.thing(GX + 0.5, GY + 0.5, (ctx) => {
-      const x0 = GX - 0.5, y0 = GY - 0.5, s = 1.0, hh = 0.75;
-      face(ctx, [[x0 + s, y0, 0], [x0 + s, y0 + s, 0], [x0 + s, y0 + s, hh], [x0 + s, y0, hh]], shade(C.woodLight, 0.1), { lw: 0.035 });
-      face(ctx, [[x0, y0 + s, 0], [x0 + s, y0 + s, 0], [x0 + s, y0 + s, hh], [x0, y0 + s, hh]], shade(C.woodLight, 0.2), { lw: 0.035 });
-      face(ctx, [[x0, y0 + s, hh], [x0 + s, y0 + s, hh], [x0 + s, y0 + s + 0.35, hh + 0.3], [x0, y0 + s + 0.35, hh + 0.3]], C.woodLight, { lw: 0.03 });
-      face(ctx, [[x0 + s, y0, hh], [x0 + s, y0 + s, hh], [x0 + s + 0.35, y0 + s, hh + 0.3], [x0 + s + 0.35, y0, hh + 0.3]], tint(C.woodLight, 0.1), { lw: 0.03 });
-      lettering(ctx, 'x', x0 + s / 2, y0 + s + 0.01, 0.4, 'DECOR', 0.2, C.ink);
-    }, { depth: GX + GY + 0.3 });
+    const pram = R.poke({ id: 'pram', at: [GX + 0.05, GY, 1.25], r: 0.85, sound: 'honk', say: ['HONK.', 'It was napping.'] });
+    R.goose((t) => ({ x: GX + 0.08, y: GY, z: 0.9, dir: 'r', hidden: true, pose: 'sit' }),
+      { kind: 'poke', inside: pram, hint: 'Two strollers, one dog. What is the other one for?' });
+    R.thing(GX + 0.5, GY + 0.35, (ctx, t) => {
+      const k = pram.k();
+      stroller(ctx, { x: GX, y: GY, d: 1, moving: false }, t, false, {
+        hood: 1 - k, empty: true,
+        inside: (c) => {
+          if (k > 0.3) waist(c, GX + 0.08, GY + 0.3, 1.0, () => goose(c, GX + 0.08, GY, 0.9, t, { dir: 'r', pose: pulse(t, 6) > 0.7 ? 'honk' : 'sit' }));
+        },
+      });
+      if (k < 0.5) webFoot(ctx, GX + 0.5, GY + 0.12, 0.98);
+    }, { anim: true });
 
     // ---------- The middle: the dog, the boxes ----------
     R.mover((t) => { const s = strollerAt(t); return { ...s, x: s.x, y: s.y }; }, (ctx, t, s) => {
@@ -534,8 +609,22 @@ export default {
       if (p.parked) return;
       person(ctx, p.x, p.y, 0, { ...OWNER2_LOOK, pose: p.moving ? 'walk' : 'stand', dir: p.dir, arms: [1.3, 1.3], speed: 5 }, t);
     }, { on: during(7.4, 19) });
-    R.thing(7.6, 4.6, (ctx) => rainBoot(ctx, 7.6, 4.6));
-    R.find({ id: 'boot', label: "A dog's rain boot", at: [7.65, 4.6, 0.4], r: 0.9 });
+    // The goose's stroller's twin, with the dog in it: it answers a tap too.
+    R.poke({ id: 'dog', at: (t) => { const s = strollerAt(t); return [s.x + 0.1, s.y, 1.3]; }, r: 0.85, sound: 'nope', say: ['Snort.', 'He bites. Gently.', 'Snort. Snort.'] });
+    // His other rain boot, kicked off on his way in: small, yellow on the
+    // grey boards, by the front windows (he likes the view; he's a condo dog now).
+    const KX = 12.0, KY = 4.6;
+    R.thing(KX + 0.4, KY + 0.2, (ctx) => {
+      const X = KX - KY, Y = (KX + KY) / 2;
+      ctx.save(); ctx.translate(X, Y); ctx.scale(0.55, 0.55); ctx.translate(-X, -Y);
+      rainBoot(ctx, KX, KY);
+      ctx.restore();
+    });
+    R.find({
+      id: 'boot', label: "A dog's rain boot", kind: 'hard', at: [KX + 0.05, KY, 0.2], r: 0.7,
+      riddle: 'One paw is bare. Its boot went to see the view.',
+      hint: 'The dog kicked it off by the front windows, past the sofa.',
+    });
 
     // Their boxes, after noon; the seller's, before.
     R.thing(6.2, 8.5, (ctx) => {
@@ -544,19 +633,44 @@ export default {
       carton(ctx, 4.8, 7.1, 0.8, 0.9, 0.7, 0.6, 'BIKE STUFF');
       carton(ctx, 5.9, 7.6, 0, 0.9, 0.8, 0.7, 'FRAGILE');
     }, { on: after });
-    R.thing(10.4, 7.2, (ctx) => {
-      carton(ctx, 8.8, 5.8, 0, 1.0, 0.8, 0.8, 'SELLER');
-      carton(ctx, 9.6, 6.4, 0, 0.8, 0.8, 0.7, 'SELLER');
-      carton(ctx, 8.9, 5.9, 0.8, 0.8, 0.7, 0.6, 'MISC');
-      box(ctx, 9.4, 7.8, 0, 0.5, 1.4, 0.5, C.coral, { lw: 0.03, left: shade(C.coral, 0.25) }); // a rolled rug
+    R.thing(9.2, 7.2, (ctx) => {
+      carton(ctx, 7.6, 5.8, 0, 1.0, 0.8, 0.8, 'SELLER');
+      carton(ctx, 8.4, 6.4, 0, 0.8, 0.8, 0.7, 'SELLER');
+      carton(ctx, 7.7, 5.9, 0.8, 0.8, 0.7, 0.6, 'MISC');
     }, { on: before });
+    R.thing(9.65, 9.2, (ctx) => box(ctx, 9.15, 7.8, 0, 0.5, 1.4, 0.5, C.coral, { lw: 0.03, left: shade(C.coral, 0.25) }), { on: before }); // a rolled rug
+
+    // What changed: the Roof Deck's patio heater, boxed, carried in with the
+    // bike's first trip up and left among the new owners' boxes (three
+    // floors, one work order). Tall and thin, a heater drawn on it, and
+    // PH (the penthouse) in red marker that nobody read.
+    const HX = 6.95, HY = 7.45;
+    R.thing(HX + 0.6, HY + 0.6, (ctx) => {
+      // (No taller than the stack beside it, and its marker small, so it
+      // reads as one more box until you flip back and compare.)
+      carton(ctx, HX, HY, 0, 0.6, 0.6, 1.45, null);
+      if (!Q.detail) return;
+      // The heater on its side: a pole, a dish on top, a flame, printed small.
+      const fx = HX + 0.3, fy = HY + 0.61;
+      face(ctx, [[fx - 0.02, fy, 0.35], [fx + 0.02, fy, 0.35], [fx + 0.02, fy, 0.95], [fx - 0.02, fy, 0.95]], C.ink, { stroke: false });
+      face(ctx, [[fx - 0.13, fy, 0.95], [fx + 0.13, fy, 0.95], [fx + 0.08, fy, 1.04], [fx - 0.08, fy, 1.04]], C.ink, { stroke: false });
+      face(ctx, [[fx - 0.08, fy, 0.3], [fx + 0.08, fy, 0.3], [fx + 0.08, fy, 0.35], [fx - 0.08, fy, 0.35]], C.ink, { stroke: false });
+      face(ctx, [[fx - 0.03, fy, 0.84], [fx + 0.03, fy, 0.84], [fx, fy, 0.93]], C.coral, { stroke: false });
+      lettering(ctx, 'x', fx, fy + 0.005, 1.25, 'HEATER', 0.06, C.ink);
+      lettering(ctx, 'y', HX + 0.61, HY + 0.3, 1.2, 'PH FL 3', 0.06, C.red);
+    }, { on: after });
+    R.find({
+      id: 'heater', label: 'Something meant for upstairs', kind: 'hard', at: [HX + 0.3, HY + 0.3, 1.0], r: 0.75, ...AFTER,
+      riddle: 'The movers can\'t count stairs. Flip back: which box is new?',
+      hint: 'One of the new boxes says FL 3. This is the second floor.',
+    });
     // The seller, taping his last box: off to the Seaport.
     R.mover(() => ({ x: 10.6, y: 5.4 }), (ctx, t, p) => {
       const k = pulse(t, 3);
-      person(ctx, p.x, p.y, 0, { ...folk(941, { top: C.sky, dress: false }), dir: 'l', pose: 'stand', arms: [1.1 + Math.sin(k * Math.PI * 2) * 0.35, 0.9] }, t);
+      person(ctx, p.x, p.y, 0, { ...SELLER_LOOK, dir: 'l', pose: 'stand', arms: [1.1 + Math.sin(k * Math.PI * 2) * 0.35, 0.9] }, t);
       carton(ctx, 9.3, 4.9, 0, 0.8, 0.7, 0.6, null);
       if (Q.detail && t % 16 < 3.5) speech(ctx, p.x, p.y, 2.7, 'Seaport, here I come.', { size: 0.42 });
-    }, { on: during(7.2, 11.9) });
+    }, { on: during(8.7, 11.9) });
 
     // ---------- The front room: the sofa, the bike's spot ----------
     R.thing(11.6, 4.0, (ctx) => {
@@ -594,14 +708,40 @@ export default {
 
     // The bike's mat and water bottle, waiting for a bike that went upstairs.
     R.thing(BIKE_HOME[0], BIKE_HOME[1], (ctx) => rect(ctx, 10.0, 6.3, 2.0, 1.0, 0.02, shade(C.grey, 0.35), { lw: 0.03 }), { on: after, depth: 5 });
+    // (It stands facing the room, so its screen shows: the rider has his back
+    // to the harbor and looks at a lake on a screen.)
     const home = (t) => { const sg = saga(t); return !!sg && sg.stop === 1 && !sg.bike.carried; };
-    R.thing(11.4, 7.2, (ctx) => bike(ctx, BIKE_HOME[0], BIKE_HOME[1], 0.02), { on: home });
-    R.mover((t) => (home(t) ? { x: 11.3, y: 6.95 } : { x: 11.0, y: 6.55 }), (ctx, t, p) => {
-      // (Drawn half again as big: it's small next to the bike.)
-      if (home(t)) bottleBig(ctx, 11.3, 6.95, 0.86);
-      else bottleBig(ctx, 11.0, 6.55, 0.02);
-    }, { on: after, bias: 0.3 });
-    R.find({ id: 'bottle', label: "The bike's water bottle", at: (t) => (home(t) ? [11.3, 6.95, 1.1] : [11.0, 6.55, 0.3]), r: 0.95, ...AFTER });
+    R.thing(11.4, 7.2, (ctx) => bike(ctx, BIKE_HOME[0], BIKE_HOME[1], 0.02, { flip: true }), { on: home });
+    // The seller had the very same bike: one last ride, then it's gone by noon.
+    const sellerBike = during(5, 11.9);
+    R.thing(11.4, 7.2, (ctx) => {
+      bike(ctx, BIKE_HOME[0], BIKE_HOME[1], 0.02, { flip: true });
+      // His name on masking tape across the seat post.
+      const [bx0, by0] = BIKE_HOME;
+      face(ctx, [[bx0 + 0.3, by0 + 0.11, 0.86], [bx0 + 0.7, by0 + 0.11, 0.86], [bx0 + 0.7, by0 + 0.11, 1.02], [bx0 + 0.3, by0 + 0.11, 1.02]], tint(C.butter, 0.3), { lw: 0.015 });
+      lettering(ctx, 'x', bx0 + 0.5, by0 + 0.12, 0.94, 'SELLER', 0.09, C.ink);
+    }, { on: sellerBike });
+    const bikeHere = (t) => sellerBike(t) || home(t);
+    // The goose on the screen: Scenic Goose Lake (the decoy).
+    R.decoy({ id: 'lake', at: [BIKE_HOME[0] - 0.24, BIKE_HOME[1], 1.92], r: 0.5, when: bikeHere, say: ['Scenic Goose Lake. Lap three.', "It's a screen. Pedal harder.", 'That goose is in Vermont.'] });
+    // Tap the bike: it answers (the room's first lesson that things do).
+    const ride = R.poke({ id: 'bike', at: [BIKE_HOME[0] + 0.4, BIKE_HOME[1], 1.4], r: 0.9, teach: true, hold: 2.5, sound: 'tick', when: bikeHere, say: ['Feel that hill!', 'Whirr.', 'Class starts in five.'] });
+    R.thing(BIKE_HOME[0] + 0.36, BIKE_HOME[1] + 0.01, (ctx, t) => {
+      // The flywheel spinning while it's been tapped: spokes going round.
+      const k = ride.k();
+      if (k < 0.05 || !Q.detail) return;
+      const cx = BIKE_HOME[0] - 0.3, cz = 0.58;
+      ctx.save(); ctx.globalAlpha *= k;
+      for (let i = 0; i < 3; i++) {
+        const a = t * 14 + (i * Math.PI * 2) / 3;
+        bar(ctx, [cx, BIKE_HOME[1] + 0.01, cz], [cx + Math.cos(a) * 0.38, BIKE_HOME[1] + 0.01, cz + Math.sin(a) * 0.38], C.red, 0.04);
+      }
+      ctx.restore();
+    }, { anim: true, on: bikeHere, depth: 18.61 });
+    // The bike's water bottle, rolled off the mat (drawn half again as big:
+    // it's small next to the bike).
+    R.thing(12.4, 6.75, (ctx) => bottleBig(ctx, 12.25, 6.6, 0.02), { on: after });
+    R.find({ id: 'bottle', label: "The bike's water bottle", kind: 'spot', at: [12.25, 6.6, 0.4], r: 0.9, ...AFTER });
 
     // The bike's trip, whenever it's on this floor (the stairs up to the
     // penthouse are this floor's), and its movers.
@@ -622,14 +762,19 @@ export default {
       if (tk && tk.who === 'speaker' && Q.detail) speech(ctx, SX, SY, SZ + 0.45, tk.text, { size: 0.42, fill: tint(C.tealLight, 0.6) });
     }, { on: (t) => !!talk(t), bias: 6 });
     // The ride: pedalling, the screen's glow, the instructor.
-    R.mover(() => ({ x: BIKE_HOME[0] - 0.45, y: BIKE_HOME[1] }), (ctx, t, p) => {
-      person(ctx, p.x, p.y, 0.62, { ...OWNER_LOOK, pose: 'run', dir: 'r', speed: 11, arms: [1.35, 1.25] }, t);
+    R.mover(() => ({ x: BIKE_HOME[0] + 0.45, y: BIKE_HOME[1] }), (ctx, t, p) => {
+      person(ctx, p.x, p.y, 0.62, { ...OWNER_LOOK, pose: 'run', dir: 'l', speed: 11, arms: [1.35, 1.25] }, t);
       if (!Q.detail) return;
       const k = Math.floor(t / 7);
-      if (t % 7 < 3) speech(ctx, BIKE_HOME[0] + 0.3, BIKE_HOME[1] - 0.2, 2.3, COACH[k % COACH.length], { size: 0.38, fill: C.black, color: C.white });
+      if (t % 7 < 3) speech(ctx, BIKE_HOME[0] - 0.3, BIKE_HOME[1] - 0.2, 2.3, COACH[k % COACH.length], { size: 0.38, fill: C.black, color: C.white });
       else if (k % 5 === 2 && t % 7 > 3.5 && t % 7 < 6.5) speech(ctx, p.x, p.y, 3.1, 'Best view in Southie.', { size: 0.4 });
     }, { on: during(RIDE0, RIDE1), bias: 0.4 });
-    R.light({ at: [BIKE_HOME[0] + 0.3, BIKE_HOME[1], 1.9], r: 2.2, color: C.tealLight, k: (t) => (during(RIDE0, RIDE1)(t) ? 0.55 + Math.sin(t * 5) * 0.08 : 0) });
+    R.light({ at: [BIKE_HOME[0] - 0.3, BIKE_HOME[1], 1.9], r: 2.2, color: C.tealLight, k: (t) => (during(RIDE0, RIDE1)(t) ? 0.55 + Math.sin(t * 5) * 0.08 : 0) });
+    // The seller's last ride, in the morning, before he tapes up.
+    R.mover(() => ({ x: BIKE_HOME[0] + 0.45, y: BIKE_HOME[1] }), (ctx, t, p) => {
+      person(ctx, p.x, p.y, 0.62, { ...SELLER_LOOK, pose: 'run', dir: 'l', speed: 9, arms: [1.35, 1.25] }, t);
+      if (Q.detail && t % 13 < 3.5) speech(ctx, p.x, p.y, 3.1, 'One last lap of Goose Lake.', { size: 0.4 });
+    }, { on: during(7.2, 8.7), bias: 0.4 });
     // After the ride: asleep on the sofa.
     R.mover(() => ({ x: 10.4, y: 3.6 }), (ctx, t, p) => person(ctx, p.x, p.y, 0.7, { ...OWNER_LOOK, pose: 'sleep' }, t), { on: during(RIDE1, 29) });
 

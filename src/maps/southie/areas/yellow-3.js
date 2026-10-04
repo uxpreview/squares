@@ -1,22 +1,24 @@
 // Southie Christmas: the Yellow House's third floor. Empty before noon: bare
 // boards, the last tenant's nail holes, a calendar still on August, one
-// lonely curtain (with feet under it), and a box somebody wrote FREE on.
+// lonely curtain, two closets (one with feet under its door), and a box
+// somebody wrote FREE on.
 // After noon the new tenant furnishes the whole place from Farragut Road's
 // curb, one free thing at a time, in the order the curb loses them: the
 // couch (still wet from the rain), the dresser, the TV, the lamp with no
 // shade. His friend who came to help sits on each thing as it arrives. By
 // night they're both on the couch under the bare bulb, the curb's Christmas
-// lights up, delighted.
+// lights up, delighted. Somewhere in the afternoon the Roommates' CHAMPS
+// pennant (green-2) went out to the curb and came up here too.
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha, hash,
-  onLeft, onRight, P,
+  onLeft, onRight, P, paintText, plant,
 } from '../../../engine/art.js';
 import { route, particles, clamp } from '../../../engine/actors.js';
 import { apartment, lettering, pigeon } from '../kit.js';
 import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
-import { hour } from '../clock.js';
+import { hour, AFTER } from '../clock.js';
 import { CURB, CURB_UP } from '../plan.js';
-import { backWindow, says, sofa, crayon } from './yellow-1.js';
+import { backWindow, says, sofa, crayon, beakOut, footOut, tailOut } from './yellow-1.js';
 
 // Each free thing is up here half an hour after the curb loses it.
 const COUCH = CURB[0] + CURB_UP, DRESSER = CURB[1] + CURB_UP, TV = CURB[2] + CURB_UP, LAMP = CURB[3] + CURB_UP;
@@ -24,12 +26,28 @@ const COUCH = CURB[0] + CURB_UP, DRESSER = CURB[1] + CURB_UP, TV = CURB[2] + CUR
 const has = (h0) => (t) => { const h = hour(t); return (h >= h0) || h < 5; };
 // The first night, from the lamp on.
 const night = has(LAMP + 0.5);
+// The two closets in the left wall (from y, w wide): the goose is in the
+// first all morning.
+const CLOSETS = [2.35, 7.65], CW = 1.1, CH = 3.0, GAP = 0.18;
+// The free couch: three cushions; the goose is under the third once it's up.
+const COUCHX = 8.7, COUCHW = 2.85, CUSH = (COUCHW - 0.52) / 3;
+const cushX = (i) => COUCHX + 0.26 + i * CUSH;
+// The pennant the Roommates have on their wall before noon (green-2.js):
+// up here it came stuffed in the dresser's missing-drawer slot, its wide end
+// (and the felt strip) inside, the rest hanging out over the drawer below.
+// Small, half hidden, still the navy CHAMPS pennant.
+function pennant(ctx) {
+  const y = 3.22;
+  face(ctx, [[6.82, y, 0.84], [7.72, y, 0.84], [7.39, y + 0.02, 0.08]], C.navy, { lw: 0.025 });
+  face(ctx, [[6.82, y, 0.84], [7.72, y, 0.84], [7.72, y, 0.8], [6.82, y, 0.8]], shade(C.navy, 0.4), { stroke: false });
+  lettering(ctx, 'x', 7.29, y + 0.005, 0.6, 'CHAMPS', 0.1, C.white);
+}
 
 
 export default {
   id: 'yellow-3',
   name: 'Southie Christmas',
-  blurb: 'Everything on the curb this morning is up here by tonight. The couch is still wet.',
+  blurb: 'Everything on the curb this morning is up here by tonight, and the couch is still wet. Flip the clock to see what else walked in.',
   size: [15, 9],
   build(R) {
     const W = ROOM['yellow-3'];
@@ -54,11 +72,11 @@ export default {
       if (!Q.detail) return;
       // The pale squares where pictures hung, and their nail holes.
       ctx.save(); ctx.globalAlpha *= 0.4;
-      for (const [u, z, w, hh] of [[1.2, 2.0, 1.0, 1.3], [2.6, 2.3, 0.7, 0.9], [3.6, 1.9, 1.1, 0.8]]) onLeft(ctx, u, z, w, hh, tint(W.left, 0.6), { stroke: false });
+      for (const [u, z, w, hh] of [[0.9, 2.0, 1.0, 1.3], [3.6, 1.9, 1.1, 0.8]]) onLeft(ctx, u, z, w, hh, tint(W.left, 0.6), { stroke: false });
       for (const [u, z, w, hh] of [[8.6, 1.8, 1.6, 1.1], [10.8, 2.2, 0.8, 1.0]]) onRight(ctx, u, z, w, hh, tint(W.right, 0.6), { stroke: false });
       ctx.restore();
       ctx.fillStyle = C.ink;
-      for (const [u, z] of [[1.7, 3.35], [2.95, 3.25], [4.15, 2.75], [3.3, 3.5], [0.6, 2.4]]) { const [X, Y] = P(0, u, z); ctx.beginPath(); ctx.arc(X, Y, 0.04, 0, Math.PI * 2); ctx.fill(); }
+      for (const [u, z] of [[1.4, 3.35], [4.15, 2.75], [0.6, 2.4]]) { const [X, Y] = P(0, u, z); ctx.beginPath(); ctx.arc(X, Y, 0.04, 0, Math.PI * 2); ctx.fill(); }
       for (const [u, z] of [[9.4, 2.95], [11.2, 3.25], [9.9, 3.6], [12.0, 1.4]]) { const [X, Y] = P(u, 0, z); ctx.beginPath(); ctx.arc(X, Y, 0.04, 0, Math.PI * 2); ctx.fill(); }
       // A calendar left on August.
       onLeft(ctx, 4.3, 1.4, 0.8, 1.1, C.white, { lw: 0.025 });
@@ -71,12 +89,11 @@ export default {
       // The last day, circled.
       const [X, Y] = P(0, 4.95, 1.5); ctx.beginPath(); ctx.ellipse(X, Y + 0.05, 0.08, 0.06, 0, 0, Math.PI * 2); ctx.strokeStyle = C.red; ctx.lineWidth = 0.02; ctx.stroke();
       // A phone jack and a light switch.
-      onLeft(ctx, 7.9, 1.3, 0.25, 0.4, C.white, { lw: 0.02 });
+      onLeft(ctx, 4.0, 0.35, 0.25, 0.4, C.white, { lw: 0.02 });
       onRight(ctx, 8.1, 1.5, 0.25, 0.4, C.white, { lw: 0.02 });
     });
     backWindow(R, 5.3, 1.9, 1.1, 1.4);
-    // The lonely curtain: one panel, bunched out from the window, a pair
-    // of orange feet under its hem until the couch arrives.
+    // The lonely curtain: one panel, bunched out from the window.
     R.thing(0.95, 7.45, (ctx) => {
       // The rod on two brackets, then the one panel, hanging in folds.
       box(ctx, 0.9, 5.15, 3.72, 0.06, 2.3, 0.06, C.ink, { flat: true, stroke: false });
@@ -85,9 +102,6 @@ export default {
       face(ctx, [[x, y0, top], [x, y1, top], [x, y1 + 0.05, hem], [x, y0 - 0.05, hem]], C.pink, { lw: 0.035, dots: shade(C.pink, 0.3), density: 0.15 });
       if (Q.detail) for (const k of [0.2, 0.42, 0.62, 0.82]) face(ctx, [[x, y0 + (y1 - y0) * k, top], [x, y0 - 0.05 + (y1 - y0 + 0.1) * k, hem]], null, { lw: 0.03, stroke: shade(C.pink, 0.3) });
       for (let i = 0; i < 5; i++) { const [X, Y] = P(x, y0 + 0.1 + i * 0.26, top); ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke(); }
-      // The bump the goose makes in it.
-      const [X, Y] = P(x + 0.05, 6.8, 0.95);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.34, 0.45, 0, 0, Math.PI * 2); paint(ctx, tint(C.pink, 0.12), { lw: 0.03, dots: shade(C.pink, 0.3), density: 0.12 });
     });
     // The FREE box, left by the last tenant; the sign's still taped on.
     R.thing(6.1, 5.5, (ctx) => {
@@ -98,6 +112,92 @@ export default {
       lettering(ctx, 'x', 5.55, 5.14, 1.26, 'FREE', 0.36, C.red, 'Bagel Fat One');
       for (const [u, v] of [[5.12, 1.58], [5.95, 1.58]]) face(ctx, [[u - 0.06, 5.19, v - 0.04], [u + 0.06, 5.19, v - 0.04], [u + 0.06, 5.19, v + 0.05], [u - 0.06, 5.19, v + 0.05]], alpha(tint(C.butter, 0.4), 0.9), { stroke: false });
     });
+    // The two closets: matching doors, a gap under each. Under the first,
+    // a pair of orange feet, all morning. A tap swings a door open.
+    const hide = R.poke({ id: 'closet', at: (t) => (has(COUCH)(t) ? [cushX(2) + CUSH / 2, 3.75, 1.0] : [0.3, CLOSETS[0] + CW / 2, 1.6]), r: 0.8, sound: 'clunk', say: 'HONK.' });
+    const twin = R.poke({ id: 'closet2', at: (t) => (has(COUCH)(t) ? [cushX(0) + CUSH / 2, 3.75, 1.0] : [0.3, CLOSETS[1] + CW / 2, 1.6]), r: 0.8, sound: 'clunk', say: ['Nothing in there.', 'Still nothing.'] });
+    CLOSETS.forEach((y0, i) => {
+      const pk = i ? twin : hide;
+      R.thing(0.05, y0 + CW, (ctx, t) => {
+        const k = has(COUCH)(t) ? 0 : pk.k(), dark = shade(W.left, 0.6);
+        // The frame, the dark inside, the rail and three bare hangers.
+        onLeft(ctx, y0 - 0.12, 0, CW + 0.24, CH + 0.12, C.white, { lw: 0.03 });
+        onLeft(ctx, y0, 0, CW, CH, dark, { lw: 0.025 });
+        if (Q.detail) {
+          face(ctx, [[0.01, y0 + 0.05, 2.5], [0.01, y0 + CW - 0.05, 2.5]], null, { lw: 0.04, stroke: C.grey });
+          for (const u of [0.3, 0.55, 0.8]) {
+            const [X, Y] = P(0.01, y0 + u, 2.5);
+            ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X - 0.16, Y + 0.18); ctx.lineTo(X + 0.16, Y + 0.18); ctx.closePath(); ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.025; ctx.stroke();
+          }
+        }
+        // The door, hinged at its back edge (y0), swinging out into the room.
+        const a = k * 1.9, ex = Math.sin(a) * CW, ey = y0 + Math.cos(a) * CW;
+        face(ctx, [[0.005, y0, GAP], [ex + 0.005, ey, GAP], [ex + 0.005, ey, CH], [0.005, y0, CH]], tint(C.white, 0.2), { lw: 0.03 });
+        if (k < 0.1 && Q.detail) {
+          onLeft(ctx, y0 + 0.15, 1.75, CW - 0.3, 1.05, null, { lw: 0.02, stroke: alpha(C.ink, 0.35) });
+          onLeft(ctx, y0 + 0.15, GAP + 0.2, CW - 0.3, 1.2, null, { lw: 0.02, stroke: alpha(C.ink, 0.35) });
+          const [X, Y] = P(0.01, y0 + CW - 0.15, 1.5); ctx.beginPath(); ctx.arc(X, Y, 0.06, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.02 });
+        }
+        // The feet in the gap, big and out onto the floor so a phone sees
+        // them, a pale patch of light round them; and the tail tip poking
+        // out of the crack on the door's latch side.
+        if (!i && k < 0.3 && !has(COUCH)(t)) {
+          const [LX, LY] = P(0.3, y0 + 0.52, 0.01);
+          ctx.beginPath(); ctx.ellipse(LX, LY, 0.5, 0.18, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.butter, 0.45); ctx.fill();
+          for (const u of [0.3, 0.72]) { const [X, Y] = P(0.22, y0 + u, 0.03); footOut(ctx, X, Y, -1, 2.0); }
+          const [TX, TY] = P(0.04, y0 + CW + 0.03, 1.05);
+          tailOut(ctx, TX, TY, 1, 1.8);
+        }
+      }, { anim: true });
+    });
+    // The curb's box of Christmas lights: the last tenant left it in the
+    // FREE pile; tap it and they light up. By the first night they're
+    // strung round the walls (a tap lights the lot).
+    const XMAS = { x: 3.0, y: 4.6 };
+    const lights = R.poke({
+      id: 'lights', teach: true, r: 0.9, sound: 'ding', say: ["It's September.", 'They still work!', 'Merry Christmas?'],
+      at: (t) => (night(t) ? [0.05, 4.4, 3.8] : [XMAS.x + 0.32, XMAS.y + 0.28, 0.55]),
+    });
+    const BULBS = [C.red, C.green, C.mustard, C.sky, C.pink];
+    R.thing(XMAS.x + 0.65, XMAS.y + 0.55, (ctx, t) => {
+      const k = lights.k();
+      box(ctx, XMAS.x, XMAS.y, 0, 0.65, 0.55, 0.42, C.woodLight, { flat: true, lw: 0.03, top: shade(C.woodLight, 0.5) });
+      if (Q.detail) lettering(ctx, 'x', XMAS.x + 0.32, XMAS.y + 0.555, 0.22, 'XMAS', 0.12, C.red);
+      // The tangle on top and a strand spilling over the side and across
+      // the floor.
+      const pts = [[XMAS.x + 0.1, XMAS.y + 0.15, 0.45], [XMAS.x + 0.45, XMAS.y + 0.3, 0.5], [XMAS.x + 0.2, XMAS.y + 0.4, 0.47], [XMAS.x + 0.66, XMAS.y + 0.35, 0.38], [XMAS.x + 0.8, XMAS.y + 0.5, 0.02], [XMAS.x + 1.2, XMAS.y + 0.7, 0.02], [XMAS.x + 1.5, XMAS.y + 0.55, 0.02]];
+      ctx.beginPath(); pts.forEach((q, i) => { const [X, Y] = P(...q); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+      ctx.strokeStyle = C.green; ctx.lineWidth = 0.035; ctx.lineJoin = 'round'; ctx.stroke();
+      pts.forEach((q, i) => {
+        const [X, Y] = P(...q), col = BULBS[i % BULBS.length];
+        const lit = k > 0.5 && (Math.floor(t * 3) + i) % 3 !== 0;
+        if (lit) { ctx.beginPath(); ctx.arc(X, Y, 0.16, 0, Math.PI * 2); ctx.fillStyle = alpha(col, 0.35); ctx.fill(); }
+        ctx.beginPath(); ctx.arc(X, Y, 0.065, 0, Math.PI * 2); ctx.fillStyle = lit ? col : shade(col, 0.45); ctx.fill();
+      });
+    }, { anim: true, on: (t) => !night(t) });
+    // A swan planter in the bay (from the curb, in the end, like
+    // everything): white, a fern in its back, a black knob on its beak.
+    R.thing(13.3, 6.2, (ctx) => {
+      const x = 12.9, y = 5.75;
+      const [X, Y] = P(x, y, 0);
+      if (Q.detail) { ctx.beginPath(); ctx.ellipse(X, Y, 0.45, 0.17, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.3, 0.48, 0.28, 0, 0, Math.PI * 2);
+      ctx.moveTo(X - 0.38, Y - 0.38); ctx.lineTo(X - 0.62, Y - 0.6); ctx.lineTo(X - 0.46, Y - 0.24);
+      paint(ctx, C.white, { lw: 0.035, dots: Q.detail ? C.greyLight : null, density: 0.12 });
+      // The planting hole and the soil, the fern in it.
+      ctx.beginPath(); ctx.ellipse(X - 0.08, Y - 0.48, 0.28, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.brown, { lw: 0.025 });
+      plant(ctx, x - 0.04, y + 0.04, 0.42, 0, { kind: 'fern', scale: 0.6, pot: false });
+      // The long S of the neck, the head, the orange beak with its knob.
+      ctx.beginPath(); ctx.moveTo(X + 0.3, Y - 0.4); ctx.bezierCurveTo(X + 0.62, Y - 0.6, X + 0.2, Y - 0.95, X + 0.42, Y - 1.2);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.17; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = C.white; ctx.lineWidth = 0.11; ctx.stroke();
+      ctx.beginPath(); ctx.arc(X + 0.45, Y - 1.22, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(X + 0.5, Y - 1.26); ctx.lineTo(X + 0.74, Y - 1.17); ctx.lineTo(X + 0.5, Y - 1.15); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02 });
+      ctx.fillStyle = C.black; ctx.beginPath(); ctx.arc(X + 0.53, Y - 1.25, 0.04, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(X + 0.46, Y - 1.25, 0.022, 0, Math.PI * 2); ctx.fill();
+    });
+    R.decoy({ id: 'swan', at: [12.9, 5.75, 0.7], r: 0.7, say: ['A swan planter. Free, though.', 'Still a swan. Still free.'] });
+
     // A single sock, and dust bunnies drifting in the draft (all day; he
     // doesn't sweep).
     R.thing(8.8, 7.9, (ctx) => {
@@ -153,8 +253,29 @@ export default {
     // ---------- The curb, arriving ----------
     // The couch, still wet: dark and dripping for a couple of hours, a
     // puddle under it.
-    R.thing(11.4, 4.2, (ctx) => sofa(ctx, 9.0, 3.0, 2.4, C.purple), { on: (t) => has(COUCH)(t) && !(h(t) >= COUCH && h(t) < COUCH + 2.6) });
-    R.thing(11.4, 4.2, (ctx) => sofa(ctx, 9.0, 3.0, 2.4, shade(C.purple, 0.3)), { on: (t) => h(t) >= COUCH && h(t) < COUCH + 2.6 });
+    const wet = (t) => h(t) >= COUCH && h(t) < COUCH + 2.6;
+    R.thing(COUCHX + COUCHW, 4.2, (ctx) => sofa(ctx, COUCHX, 3.0, COUCHW, C.purple), { on: (t) => has(COUCH)(t) && !wet(t) });
+    R.thing(COUCHX + COUCHW, 4.2, (ctx) => sofa(ctx, COUCHX, 3.0, COUCHW, shade(C.purple, 0.3)), { on: wet });
+    // Its three cushions: the third sits up on something with a beak (out
+    // of the front) and a tail (out of the side). A tap stands it up
+    // against the back. (The near arm again after, so they tuck under it.)
+    R.thing(COUCHX + COUCHW + 0.05, 4.25, (ctx, t) => {
+      const col = wet(t) ? shade(C.purple, 0.3) : C.purple, cu = tint(col, 0.1);
+      for (let i = 0; i < 3; i++) {
+        const x = cushX(i), k = i === 2 ? hide.k() : i === 0 ? twin.k() : 0;
+        if (k > 0.5) { box(ctx, x + 0.03, 3.33, 0.72, CUSH - 0.06, 0.14, 0.72, cu, { lw: 0.025 }); continue; }
+        const lift = i === 2 ? 0.3 : 0;
+        box(ctx, x + 0.02, 3.3, 0.72 + lift, CUSH - 0.04, 0.88, 0.16, cu, { lw: 0.025, dots: shade(col, 0.3), density: 0.12 });
+        if (lift) {
+          // Out of the gap under it, at the front; the tail tip up behind it.
+          const [bx, by] = P(x + CUSH * 0.88, 4.22, 0.84);
+          beakOut(ctx, bx, by, -1, 1.2);
+          const [tx, ty] = P(x + CUSH * 0.7, 3.36, 1.16);
+          tailOut(ctx, tx, ty, 1, 1.2);
+        }
+      }
+      box(ctx, COUCHX + COUCHW - 0.26, 3.3, 0.5, 0.26, 0.9, 0.4, col, { lw: 0.035 });
+    }, { anim: true, on: has(COUCH) });
     R.thing(10.9, 3.9, (ctx, t) => {
       const k = clamp(1 - (h(t) - COUCH) / 3.2);
       disc(ctx, 10.2, 4.4, 0.006, 0.9 * k + 0.3, alpha(tint(C.sky, 0.3), 0.7), { stroke: false });
@@ -232,7 +353,7 @@ export default {
         ctx.strokeStyle = C.green; ctx.lineWidth = 0.025; ctx.stroke();
         for (let i = 1; i < n; i++) {
           const k = i / n, [X, Y] = P(...a.map((v, j) => v + (b[j] - v) * k)), sag = Math.sin(((k * 3) % 1) * Math.PI) * 0.18;
-          const lit = (Math.floor(t * 2) + i + off) % 3 !== 0;
+          const lit = lights.k() > 0.5 || (Math.floor(t * 2) + i + off) % 3 !== 0;
           ctx.beginPath(); ctx.arc(X, Y + sag + 0.06, 0.06, 0, Math.PI * 2);
           ctx.fillStyle = lit ? cols[(i + off) % cols.length] : shade(cols[(i + off) % cols.length], 0.5); ctx.fill();
         }
@@ -241,6 +362,10 @@ export default {
       hang([0.2, 0, 3.9], [12.3, 0, 3.9], 30, 2);
     }, { anim: true, on: night });
 
+    // The Roommates' pennant, in his dresser from the afternoon: it was on
+    // the curb by noon.
+    R.thing(8.35, 3.25, pennant, { on: has(DRESSER) });
+
     // ---------- The friend who came to help ----------
     // He sits on each thing as it comes in; the couch while it's still wet.
     const pal = folk(64, { style: 'curly', top: C.green, bottom: C.navy, hat: 'beanie' });
@@ -248,36 +373,44 @@ export default {
     R.mover((t) => {
       const x = h(t);
       if (!has(COUCH + 0.15)(t)) return { x: -99, y: -99 };
-      return { x: night(t) ? 9.7 : 9.9, y: 3.85 };
+      return { x: cushX(1) + CUSH / 2, y: 3.85 };
     }, (ctx, t, p) => {
       if (p.x < -50) return;
       const x = h(t);
-      person(ctx, p.x, p.y, 0.05, { ...pal, pose: 'sit', dir: 'r', arms: [1.0 + Math.sin(t * 0.8) * 0.2, 0.4] }, t);
+      person(ctx, p.x, p.y, 0.15, { ...pal, pose: 'sit', dir: 'r', arms: [1.0 + Math.sin(t * 0.8) * 0.2, 0.4] }, t);
       if (night(t)) return;
-      const line = x < DRESSER ? ['It\'s a little damp.', 'It\'s fine. It\'s fine.'] : x < TV ? ['Nice dresser.', 'Is there a TV?'] : x < LAMP ? ['Is there a lamp?', 'Nice TV.'] : ['Nice lamp.'];
+      const line = x < DRESSER ? ['It\'s a little damp.', 'That cushion honked.'] : x < TV ? ['Nice dresser.', 'Is there a TV?'] : x < LAMP ? ['Is there a lamp?', 'Nice TV.'] : ['Nice lamp.'];
       says(ctx, p.x, p.y, 2.5, t, line, 8, 3.4);
     }, { bias: 2.2 });
     // The new tenant, done carrying, on his couch for his first night.
-    R.mover((t) => (night(t) ? { x: 10.7, y: 3.85 } : { x: -99, y: -99 }), (ctx, t, p) => {
+    R.mover((t) => (night(t) ? { x: cushX(0) + CUSH / 2, y: 3.85 } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
-      person(ctx, p.x, p.y, 0.05, { ...collector, pose: 'sit', dir: 'r', arms: [2.5 + Math.sin(t * 1.3) * 0.2, 0.3] }, t);
+      person(ctx, p.x, p.y, 0.15, { ...collector, pose: 'sit', dir: 'r', arms: [2.5 + Math.sin(t * 1.3) * 0.2, 0.3] }, t);
       says(ctx, p.x, p.y, 2.5, t, ['Merry Christmas!', 'Southie Christmas.', 'All of it. Free.'], 9, 3.4);
-    }, { bias: 2.2 });
-    R.mover((t) => (night(t) ? { x: 9.7, y: 3.85 } : { x: -99, y: -99 }), (ctx, t, p) => {
+    }, { bias: 3.0 }); // in front of the cushions (sorted at the couch's far end), or they paint over him
+    R.mover((t) => (night(t) ? { x: cushX(1) + CUSH / 2, y: 3.85 } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
       says(ctx, p.x, p.y, 2.5, t, ['It\'s September.', 'Still a little damp.'], 9, 3.2, 4.5);
     }, { bias: 2.3 });
 
     // ---------- The goose ----------
-    // Behind the curtain all morning (the Courier asks for G. Goose; nobody
-    // answers). Once the couch is up, on its arm, next to the new tenant.
-    R.goose((t) => (has(COUCH)(t) ? { x: 11.15, y: 3.8, z: 0.9, pose: Math.sin(t * 0.6) > 0.85 ? 'honk' : 'sit', dir: 'l', ahead: 1.6 } : { x: 0.5, y: 6.75, z: 0, pose: 'stand', dir: 'r' }), { bias: 0.9 });
+    // In the first closet all morning (the Courier asks for G. Goose; nobody
+    // answers). Once the couch is up, under its third cushion.
+    R.goose((t) => {
+      const k = hide.k();
+      if (has(COUCH)(t)) return { x: cushX(2) + CUSH / 2, y: 3.8, z: 0.72, pose: k > 0.5 && Math.sin(t * 0.6) > 0.8 ? 'honk' : 'sit', dir: 'l', hidden: k < 0.3 };
+      return { x: 0.55, y: CLOSETS[0] + 0.55, z: 0, pose: k > 0.5 && Math.sin(t * 0.8) > 0.7 ? 'honk' : 'stand', dir: 'l', hidden: k < 0.3 };
+    }, { bias: 1.6, kind: 'poke', inside: hide, hint: 'Two of a kind, and one of them has feet. Or a beak.' }); // in front of the couch and its cushions once it's out
 
     // ---------- The finds ----------
     // The lamp and the TV count once they're up here (later than one
     // o'clock: the curb gives them up in the afternoon).
-    R.find({ id: 'lamp', label: 'A lamp with no shade', at: [2.3, 6.5, 1.45], r: 0.9, when: has(LAMP), note: 'after noon' });
-    R.find({ id: 'tv', label: 'A free TV', at: [11.8, 7.05, 0.95], r: 0.88, when: has(TV), note: 'after noon' });
+    R.find({ id: 'lamp', label: 'A lamp with no shade', at: [2.3, 6.5, 1.45], r: 0.9, when: has(LAMP), note: 'after 5pm' });
+    R.find({ id: 'tv', label: 'A free TV', at: [11.8, 7.05, 0.95], r: 0.88, when: has(TV), note: 'after 4pm' });
     R.find({ id: 'sign', label: 'A "FREE" sign', at: [5.55, 5.14, 1.25], r: 0.88 });
+    R.find({
+      id: 'pennant', label: 'Something from another apartment', kind: 'hard', at: [7.2, 3.22, 0.5], r: 0.7,
+      riddle: 'The Roommates had it on their wall at breakfast.', hint: 'It came up from the curb with the furniture. One drawer is missing.', ...AFTER, when: has(DRESSER),
+    });
   },
 };

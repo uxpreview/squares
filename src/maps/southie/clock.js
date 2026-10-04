@@ -77,11 +77,24 @@ export function nightK(t) {
 }
 
 // ---------- The lease clock ----------
-// Plum Island's dial, reused (play.js, map.dial): what's going on, and where
-// a tap skips to: noon (the keys), then sunset, then the next morning.
-const NOON = at(11.9), SUNSET_AT = at(19.1), MORNING = at(8.5);
+// Plum Island's dial, made a flip (play.js, map.dial.flip): a tap jumps to
+// the matching moment on the other side of noon, and the old picture melts
+// away over the new one, so whatever changed jumps out. Before and after are
+// paired by how full the apartments are: 7am (the old tenants' things all
+// still in) with 9pm (the new ones' all in), down to noon (empty) with 1pm
+// (still empty). Flip twice and you're back where you were. From the night
+// or the dawn it flips to the morning; from the handover, to the afternoon.
+const toAfter = (h) => Math.min(20.9, Math.max(13.1, 21 - (h - 7) * 1.6));  // 7..12 -> 21..13
+const toBefore = (h) => Math.min(11.9, Math.max(7.1, 7 + (21 - h) / 1.6));  // 13..21 -> 12..7
+export function flipHour(h) {
+  if (h >= 7 && h < 12) return toAfter(h);
+  if (h >= 13 && h < 21) return toBefore(h);
+  if (h >= 12 && h < 13) return 13.6;
+  return 7.6;
+}
 export const dial = {
   name: 'the lease clock',
+  flip: true,
   // What time it is (to ten minutes) and what's going on, so a player can
   // tell whether "before noon" is still on.
   label(t) {
@@ -93,12 +106,11 @@ export const dial = {
   // How far through the day it is (the dial's hand), 0 at 5am to 1.
   level: (t) => wrap(t) / LOOP,
   next(t) {
-    const s = wrap(t);
-    const target = s < NOON - 5 ? NOON : s < SUNSET_AT - 5 ? SUNSET_AT : MORNING;
-    let when = t - s + target;
-    while (when < t + 5) when += LOOP;
-    if (target === NOON) return { at: when, label: 'noon', say: 'Noon. Out means out: the keys change hands.' };
-    if (target === SUNSET_AT) return { at: when, label: 'sunset', say: 'Sunset behind Dorchester Heights. Nearly everyone is in.' };
-    return { at: when, label: 'morning', say: 'The next Moving Day. (It is always Moving Day.)' };
+    const h = hour(t), to = flipHour(h);
+    const target = at(to);
+    // (The same loop, so flipping back and forth never runs the day on.)
+    const when = t - wrap(t) + target;
+    if (to >= 13) return { at: when, label: 'after', say: 'After. Same apartment, new people. What changed?' };
+    return { at: when, label: 'before', say: 'Before. The old tenants, still packing. What changed?' };
   },
 };

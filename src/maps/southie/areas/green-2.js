@@ -8,9 +8,13 @@
 // After noon a night-shift nurse moves in and sleeps through everything:
 // blackout curtain, a white-noise machine, a sleep mask with eyes printed on
 // it. Her sister unpacks on tiptoe. At nine she's up and off to work.
+// The goose hides in one of the roommates' two duffel bags before noon (its
+// tail out of the zip), and in one of her two hampers after (its beak under
+// the lid). What changed: of the dozens of party cups on top of the fridge
+// this morning, one is still up there tonight (she's too short to see it).
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha,
-  onLeft, onRight, P, paintText, chair, label,
+  onLeft, onRight, P, paintText, chair, label, goose as drawGoose,
 } from '../../../engine/art.js';
 import { route, particles, clamp } from '../../../engine/actors.js';
 import { apartment, carton, lettering } from '../kit.js';
@@ -44,10 +48,88 @@ const NIECE = folk(213, { style: 'pony', top: C.pink, bottom: C.teal, scale: 0.6
 // The nurse's day: asleep from one, up at eight-twenty, gone by nine.
 const asleep = hours(13, 20.3), up = hours(20.3, 21), gone = hours(21, 29);
 
+// A duffel bag lying along x from (x, y): navy canvas, two handles, a zip
+// along the top. tail: the goose's (white feathers out of the open end of
+// the zip); else a red sock. k: unzipped (0..1), the top folded open.
+function duffel(ctx, x, y, k, tail) {
+  const w = 1.1, d = 0.5, h = 0.42, col = C.navy;
+  box(ctx, x, y, 0, w, d, h, col, { lw: 0.035, top: tint(col, 0.12), dens: 0.15 });
+  // The rounded ends, the bands round it.
+  for (const u of [0.2, w - 0.2]) face(ctx, [[x + u, y + d + 0.005, 0.02], [x + u, y + d + 0.005, h], [x + u, y, h]], null, { lw: 0.05, stroke: C.mustard });
+  // The handles, over the top (under whatever's poking out of the zip).
+  const handles = () => { for (const dy of [0.12, d - 0.12]) line3(ctx, [[x + 0.35, y + dy, h], [x + 0.5, y + dy, h + 0.22], [x + 0.75, y + dy, h + 0.22], [x + w - 0.35, y + dy, h]], C.ink, 0.04); };
+  if (k < 0.5) handles();
+  if (k < 0.5) {
+    line3(ctx, [[x + 0.1, y + d / 2, h + 0.005], [x + w - 0.08, y + d / 2, h + 0.005]], C.ink, 0.03);
+    // The pull, back at the far end; the zip's open a hand's width at the near one.
+    box(ctx, x + w - 0.36, y + d / 2 - 0.04, h, 0.08, 0.08, 0.02, C.greyLight, { flat: true, lw: 0.01 });
+    if (tail) {
+      // A goose's tail out of the gap, big enough to read on a phone: a
+      // fan of white feathers, a grey band across it, a dark tip, cocked up;
+      // and an orange webbed foot out beside it.
+      const [X, Y] = P(x + w - 0.15, y + d / 2, h + 0.02);
+      const [FX, FY] = P(x + w - 0.42, y + d / 2 + 0.08, h + 0.02);
+      ctx.beginPath(); ctx.moveTo(FX - 0.04, FY); ctx.lineTo(FX - 0.2, FY - 0.24); ctx.lineTo(FX - 0.08, FY - 0.2); ctx.lineTo(FX - 0.02, FY - 0.3); ctx.lineTo(FX + 0.04, FY - 0.2); ctx.lineTo(FX + 0.15, FY - 0.22); ctx.lineTo(FX + 0.06, FY); ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.022 });
+      const fan = (inset) => {
+        ctx.beginPath(); ctx.moveTo(X - 0.2, Y + 0.02);
+        ctx.quadraticCurveTo(X - 0.18 + inset, Y - 0.38 + inset, X + 0.12, Y - 0.5 + inset);
+        ctx.quadraticCurveTo(X + 0.36 - inset, Y - 0.4 + inset, X + 0.26, Y + 0.02);
+        ctx.closePath();
+      };
+      fan(0); paint(ctx, C.ink, { stroke: false });
+      fan(0.07); paint(ctx, C.grey, { stroke: false });
+      fan(0.17); paint(ctx, C.white, { stroke: false });
+      fan(0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+      if (Q.detail) { ctx.strokeStyle = shade(C.grey, 0.2); ctx.lineWidth = 0.015; ctx.beginPath(); for (const u of [-0.08, 0.04, 0.15]) { ctx.moveTo(X + u * 0.4, Y - 0.02); ctx.lineTo(X + u, Y - 0.34); } ctx.stroke(); }
+    } else {
+      const [X, Y] = P(x + w - 0.15, y + d / 2, h + 0.02);
+      ctx.beginPath(); ctx.moveTo(X - 0.08, Y); ctx.lineTo(X - 0.04, Y - 0.26); ctx.lineTo(X + 0.18, Y - 0.3); ctx.lineTo(X + 0.2, Y - 0.2); ctx.lineTo(X + 0.06, Y - 0.17); ctx.lineTo(X + 0.08, Y + 0.02); ctx.closePath();
+      paint(ctx, C.red, { lw: 0.02 });
+    }
+  } else {
+    // Unzipped: the top folded back both ways, the inside dark.
+    rect(ctx, x + 0.1, y + 0.08, w - 0.2, d - 0.16, h + 0.006, shade(col, 0.55), { stroke: false });
+    face(ctx, [[x + 0.1, y + 0.08, h], [x + w - 0.1, y + 0.08, h], [x + w - 0.1, y - 0.05, h + 0.25], [x + 0.1, y - 0.05, h + 0.25]], tint(col, 0.12), { lw: 0.025 });
+    if (!tail) cylinder(ctx, x + 0.6, y + 0.25, h - 0.1, 0.12, 0.14, C.red);
+  }
+  if (k >= 0.5) handles();
+}
+// A round wicker hamper at (x, y), its lid lifted off by k. beak: the
+// goose's beak out under the lid (else a teal scrubs sleeve).
+function hamper(ctx, x, y, k, beak) {
+  const r = 0.36, h = 0.8, wick = C.woodLight;
+  cylinder(ctx, x, y, 0, r, h, wick, { top: shade(wick, 0.45) });
+  if (Q.detail) {
+    // The weave, in bands.
+    for (const z of [0.18, 0.38, 0.58]) { const [a, b] = P(x - r * 0.7, y + r * 0.7, z), [c, e] = P(x + r * 0.7, y - r * 0.7, z), [m, n] = P(x + r * 0.7, y + r * 0.7, z - 0.08); ctx.beginPath(); ctx.moveTo(a, b); ctx.quadraticCurveTo(m, n, c, e); ctx.strokeStyle = shade(wick, 0.35); ctx.lineWidth = 0.025; ctx.stroke(); }
+  }
+  const lift = k < 0.5 ? (beak ? 0.32 : 0.2) : 0;
+  if (k < 0.5) {
+    // Something under the lid holding it up a crack.
+    const [X, Y] = P(x + r * 0.75, y + r * 0.75, h + 0.14);
+    if (beak) {
+      // A goose's head in the gap, plain at phone size: white, a black
+      // eye, the long orange beak poking well out, and the lid riding high.
+      ctx.beginPath(); ctx.ellipse(X - 0.08, Y - 0.04, 0.27, 0.14, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+      ctx.beginPath(); ctx.arc(X - 0.02, Y - 0.08, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+    }
+    cylinder(ctx, x, y, h + lift, r + 0.03, 0.06, shade(wick, 0.1), { flat: true, top: wick });
+    ctx.beginPath();
+    if (beak) { ctx.moveTo(X + 0.12, Y - 0.1); ctx.lineTo(X + 0.62, Y + 0.02); ctx.lineTo(X + 0.12, Y + 0.08); ctx.closePath(); paint(ctx, C.coral, { lw: 0.025 }); }
+    else { ctx.moveTo(X - 0.1, Y - 0.02); ctx.lineTo(X + 0.08, Y + 0.0); ctx.lineTo(X + 0.12, Y + 0.32); ctx.lineTo(X - 0.02, Y + 0.34); ctx.closePath(); paint(ctx, C.tealLight, { lw: 0.02 }); }
+  } else {
+    // Lid off, leaning on its side; the washing inside.
+    const [X, Y] = P(x, y, h);
+    ctx.beginPath(); ctx.ellipse(X, Y - 0.04, 0.38, 0.15, 0, 0, Math.PI * 2); paint(ctx, beak ? C.white : C.tealLight, { lw: 0.02 });
+    face(ctx, [[x - 0.3, y - r - 0.05, 0.05], [x + 0.3, y - r - 0.05, 0.05], [x + 0.3, y - r - 0.12, 0.75], [x - 0.3, y - r - 0.12, 0.75]], wick, { lw: 0.025 });
+  }
+}
+
 export default {
   id: 'green-2',
   name: 'The Roommates',
-  blurb: 'Four guys, one futon, and a poster over a hole in the wall. The landlady knows about the hole.',
+  blurb: 'Four guys, one futon and a poster over a hole. Flip the clock to meet the night nurse.',
   size: [15, 9],
   build(R) {
     // Her window's dark while she's at work (the only dark one on the row).
@@ -119,9 +201,15 @@ export default {
       paintText(ctx, 'left', HY, HZ, 'PATCHED', 0.12, alpha(C.ink, 0.35), 'Rethink Sans');
     }, { on: hours(13, 29) });
     // The poster: THE DEPOSITS, reunion tour. It lets go at 11:37.
-    const poster = (ctx, k, lean) => {
-      const y0 = 7.0, y1 = 8.6, z0 = 1.25, z1 = 3.3, drop = k * (z0 - 0.05);
-      const q = (u, v) => { const zz = z0 + (z1 - z0) * v - drop, x = 0.03 + lean * v; return [x, y0 + (y1 - y0) * u, zz]; };
+    // swing: lifted at the bottom by a tap, turning on its top edge (0 flat
+    // on the wall, 1 swung up off the hole).
+    const poster = (ctx, k, lean, swing = 0) => {
+      const y0 = 7.0, y1 = 8.6, z0 = 1.25, z1 = 3.3, drop = k * (z0 - 0.05), a = swing * 1.15;
+      const q = (u, v) => {
+        const d = (1 - v) * (z1 - z0);
+        const zz = swing > 0 ? z1 - d * Math.cos(a) : z0 + (z1 - z0) * v - drop, x = swing > 0 ? 0.03 + d * Math.sin(a) : 0.03 + lean * v;
+        return [x, y0 + (y1 - y0) * u, zz];
+      };
       face(ctx, [q(0, 0), q(1, 0), q(1, 1), q(0, 1)], C.purple, { lw: 0.035, dots: shade(C.purple, 0.4), density: 0.2 });
       face(ctx, [q(0.08, 0.35), q(0.92, 0.35), q(0.92, 0.72), q(0.08, 0.72)], C.mustard, { lw: 0.02 });
       // A guitar, a drum, a sunburst.
@@ -138,9 +226,11 @@ export default {
       txt('REUNION TOUR', 0.22, 0.06, 'Rethink Sans'); txt('ONE NIGHT ONLY', 0.13, 0.06, 'Rethink Sans');
       ctx.restore();
       // Tape at the top corners.
-      if (lean === 0 && k === 0) for (const u of [0.02, 0.98]) face(ctx, [q(u - 0.05, 0.96), q(u + 0.05, 0.96), q(u + 0.05, 1.03), q(u - 0.05, 1.03)], alpha(tint(C.butter, 0.4), 0.9), { stroke: false });
+      if (lean === 0 && k === 0 && swing === 0) for (const u of [0.02, 0.98]) face(ctx, [q(u - 0.05, 0.96), q(u + 0.05, 0.96), q(u + 0.05, 1.03), q(u - 0.05, 1.03)], alpha(tint(C.butter, 0.4), 0.9), { stroke: false });
     };
-    R.thing(0.05, 8.7, (ctx) => poster(ctx, 0, 0), { on: (t) => hh(t) >= 5 && hh(t) < DROP[0] });
+    // A tap lifts it off the hole (it's held up by two bits of tape and hope).
+    const posterP = R.poke({ id: 'poster', at: [0.05, 7.8, 2.4], r: 0.95, sound: 'tick', say: ['Nothing back here.', 'Totally nothing.', 'Put it back. Please.'], when: (t) => hh(t) >= 5 && hh(t) < 12 });
+    R.thing(0.05, 8.7, (ctx) => poster(ctx, 0, 0, posterP.k()), { anim: true, depth: (t) => (posterP.k() > 0.05 ? 9.6 : 8.75), on: (t) => hh(t) >= 5 && hh(t) < DROP[0] });
     R.thing(0.8, 8.7, (ctx, t) => {
       const k = dropK(t);
       poster(ctx, Math.min(1, k * 1.05), k > 0.85 ? (k - 0.85) / 0.15 * 0.5 : 0);
@@ -176,6 +266,16 @@ export default {
       lettering(ctx, 'y', 1.13, 4.4, 2.6, 'SLEEPING', 0.065, C.navy);
       lettering(ctx, 'y', 1.13, 4.4, 2.45, 'TIL 8PM', 0.07, C.navy);
     }, { on: neu });
+    // On top of the fridge: every red party cup they ever bought, stacked
+    // and stood, before noon. After, the one they missed (front left).
+    const LAST = [0.75, 4.8];
+    const CUPS = [];
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 5; j++) if (!(i === 3 && j === 4)) CUPS.push([0.2 + i * 0.24, 4.1 + j * 0.22, (i * 3 + j) % 4 === 0 ? 2 : 1]);
+    R.thing(1.16, 5.16, (ctx) => {
+      for (const [u, v, n] of CUPS) for (let k = 0; k < n; k++) cylinder(ctx, u, v, 3.0 + k * 0.08, 0.08, 0.2, C.red, { top: C.white });
+      cylinder(ctx, LAST[0], LAST[1], 3.0, 0.08, 0.2, C.red, { top: C.white });
+    }, { on: oldSide });
+    R.thing(1.16, 5.16, (ctx) => cylinder(ctx, LAST[0], LAST[1], 3.0, 0.08, 0.2, C.red, { top: C.white }), { on: (t) => !oldSide(t) });
     // The counter and the sink; a pyramid of Gander Cola cans before noon,
     // her coffee maker after.
     R.thing(1.05, 6.75, (ctx) => {
@@ -250,15 +350,11 @@ export default {
       const cols = [C.teal, C.white, C.coral, C.navy, C.mustard, C.grey, C.red];
       for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.ellipse(X + Math.cos(i * 2.1) * 0.35, Y - 0.12 - (i % 3) * 0.1, 0.3, 0.13, i * 0.5, 0, Math.PI * 2); paint(ctx, cols[i % cols.length], { lw: 0.02 }); }
     }, { on: old });
-    // Hers: a round rug, a hamper of scrubs, a plant she'll forget to water.
+    // Hers: a round rug, a plant she'll forget to water (her hampers are the
+    // goose's, below).
     R.rug((ctx) => {
       disc(ctx, 6.0, 5.2, 0.008, 1.3, tint(C.teal, 0.35), { lw: 0.02, dots: C.teal, density: 0.15 });
       disc(ctx, 6.0, 5.2, 0.01, 0.9, tint(C.teal, 0.6), { stroke: false });
-    }, { on: neu });
-    R.thing(8.4, 7.3, (ctx) => {
-      cylinder(ctx, 7.9, 6.8, 0, 0.35, 0.8, C.white, { top: shade(C.white, 0.2) });
-      const [X, Y] = P(7.9, 6.8, 0.85);
-      ctx.beginPath(); ctx.ellipse(X, Y - 0.05, 0.4, 0.15, 0, 0, Math.PI * 2); paint(ctx, C.tealLight, { lw: 0.02 });
     }, { on: neu });
     R.thing(3.3, 8.6, (ctx) => {
       box(ctx, 2.2, 7.9, 0, 1.3, 0.6, 1.2, C.white, { lw: 0.035, top: C.woodLight });
@@ -283,26 +379,27 @@ export default {
       const lines = after ? ['That was there when we moved in.', 'It\'s a feature.'] : h >= 11.15 ? ['What hole?', 'It\'s original to the house.'] : ['We\'re getting the deposit back.', 'All of it.', 'Plus interest.', 'Mike, get off the futon.'];
       saysRight(ctx, p.x, p.y, 3.3, t, lines, 8, 3.6, 1);
     }, { bias: 0.4 });
-    // The goose, before noon: in an open pizza box on the floor, finishing
-    // the crusts. After: asleep at the foot of her bed, in its own mask.
-    R.thing(3.2, 8.3, (ctx) => {
-      box(ctx, 2.3, 7.4, 0, 0.95, 0.95, 0.08, C.white, { flat: true, lw: 0.025, top: tint(C.woodLight, 0.35) });
-      face(ctx, [[2.3, 7.4, 0.08], [2.3, 8.35, 0.08], [2.1, 8.35, 0.95], [2.1, 7.4, 0.95]], C.white, { lw: 0.025 });
-      lettering(ctx, 'y', 2.2, 7.88, 0.55, 'PIZZA', 0.1, C.red);
-    }, { on: old });
+    // The goose: before half past twelve in one of the two duffel bags by
+    // the door (the same bag twice; its tail out of the zip, a red sock out
+    // of the other's), after in one of her two wicker hampers (its beak out
+    // under the lid; a scrubs sleeve out of the other's). A tap opens it.
+    const gEarly = hours(5, 12.5);
+    const BAG = [[2.5, 7.7], [2.5, 6.6]], HAMP = [[7.9, 6.8], [9.05, 7.0]];
+    const holdAt = (i) => (t) => (gEarly(t) ? [BAG[i][0] + 0.55, BAG[i][1] + 0.25, 0.6] : [HAMP[i][0], HAMP[i][1], 1.0]);
+    const bag = R.poke({ id: 'bag', at: holdAt(0), r: 0.8, sound: 'pop', say: 'HONK.' });
+    const bag2 = R.poke({ id: 'laundry', at: holdAt(1), r: 0.8, sound: 'tick', say: ['Laundry.', 'Just laundry.', 'Smells like laundry.'] });
     const gooseAt = (t) => {
-      if (old(t)) return { x: 2.85, y: 7.9, z: 0.08, dir: 'l', pose: Math.sin(t * 1.3) > 0.4 ? 'peck' : 'sit', ahead: 1.2 };
-      if (neu(t)) return { x: 11.55, y: 3.75, z: 1.08, dir: 'l', pose: 'sit', ahead: 1.6 };
-      return { x: 6.2, y: 7.0, z: 0, dir: 'r', pose: 'walk' };
+      const k = bag.k();
+      if (gEarly(t)) return { x: BAG[0][0] + 0.6, y: BAG[0][1] + 0.25, z: 0.28, dir: 'r', pose: k > 0.6 && Math.sin(t * 1.3) > 0.7 ? 'honk' : 'sit', hidden: k < 0.5, ahead: 0.6 };
+      return { x: HAMP[0][0], y: HAMP[0][1], z: 0.72, dir: 'l', pose: k > 0.6 && Math.sin(t * 1.1) > 0.7 ? 'honk' : 'sit', hidden: k < 0.5, ahead: 0.3 };
     };
-    R.goose(gooseAt, { bias: 0.1 });
-    R.mover(gooseAt, (ctx, t, p) => {
-      if (!neu(t) || !Q.detail) return;
-      // Its mask, pink, pushed up a little.
-      const [X, Y] = P(p.x, p.y, p.z);
-      ctx.beginPath(); ctx.ellipse(X - 0.28, Y - 0.84, 0.13, 0.06, 0.2, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.02 });
-      label(ctx, p.x - 0.4, p.y - 0.4, p.z + 1.3 + ((t * 0.6) % 1) * 0.6, 'z', 0.3, alpha(C.ink, 1 - ((t * 0.6) % 1)));
-    }, { bias: 0.2 });
+    R.goose(gooseAt, { kind: 'poke', inside: bag, hint: 'Two of everything in this flat. One of them has a tail.' });
+    for (const i of [0, 1]) {
+      const pk = i ? bag2 : bag, [bx, by] = BAG[i];
+      R.thing(bx + 1.1, by + 0.5, (ctx) => duffel(ctx, bx, by, pk.k(), i === 0), { anim: true, on: gEarly, depth: bx + by + 0.7 });
+      const [hx, hy] = HAMP[i];
+      R.thing(hx + 0.4, hy + 0.4, (ctx) => hamper(ctx, hx, hy, pk.k(), i === 0), { anim: true, on: (t) => !gEarly(t), depth: hx + hy + (i ? 0.4 : -0.2) });
+    }
 
     // The beer pong table, and one last game (he's playing both sides).
     R.thing(7.6, 5.8, (ctx) => {
@@ -318,6 +415,35 @@ export default {
       rows.forEach((row, i) => row.forEach((v) => cylinder(ctx, x0 + dirX * i * 0.2, 5.075 + v * 0.55, 1.02, 0.09, 0.22, C.red, { top: C.white })));
     };
     R.thing(7.65, 5.85, (ctx) => { cups(ctx, 4.95, 1); cups(ctx, 7.25, -1); }, { on: old });
+    // The trophy, at the net: a hunting decoy (a wooden goose, painted
+    // brown and black) on a plinth, CHAMPS on a brass plate.
+    R.thing(6.5, 5.1, (ctx) => {
+      box(ctx, 5.8, 4.55, 1.02, 0.55, 0.4, 0.2, C.brown, { lw: 0.025, top: C.wood });
+      face(ctx, [[5.9, 4.951, 1.06], [6.25, 4.951, 1.06], [6.25, 4.951, 1.18], [5.9, 4.951, 1.18]], C.mustard, { lw: 0.012 });
+      if (Q.detail) lettering(ctx, 'x', 6.075, 4.955, 1.12, 'CHAMPS', 0.05, C.ink);
+      const [X, Y] = P(6.07, 4.75, 1.22);
+      // Its body, its wing, its tail.
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.2, 0.36, 0.17, -0.08, 0, Math.PI * 2); paint(ctx, C.brown, { lw: 0.025, dots: shade(C.brown, 0.4), density: 0.2 });
+      ctx.beginPath(); ctx.ellipse(X - 0.04, Y - 0.24, 0.22, 0.09, -0.15, 0, Math.PI * 2); paint(ctx, shade(C.brown, 0.25), { lw: 0.02 });
+      ctx.beginPath(); ctx.moveTo(X - 0.3, Y - 0.24); ctx.lineTo(X - 0.48, Y - 0.34); ctx.lineTo(X - 0.34, Y - 0.12); ctx.closePath(); paint(ctx, C.ink, { lw: 0.02 });
+      // The long black neck, the head, the white chinstrap.
+      ctx.beginPath(); ctx.moveTo(X + 0.2, Y - 0.28); ctx.quadraticCurveTo(X + 0.3, Y - 0.5, X + 0.26, Y - 0.68);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(X + 0.31, Y - 0.72, 0.11, 0.07, 0.15, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+      ctx.beginPath(); ctx.ellipse(X + 0.27, Y - 0.7, 0.045, 0.035, 0, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+      if (Q.detail) { ctx.beginPath(); ctx.moveTo(X + 0.41, Y - 0.74); ctx.lineTo(X + 0.48, Y - 0.71); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke(); }
+    }, { on: old, depth: 13.5 });
+    R.decoy({ id: 'trophy', at: [6.07, 4.75, 1.6], r: 0.6, say: ['That\'s the trophy.', 'Don\'t touch the trophy.', 'We said don\'t.'], when: old });
+    // Whoever's asleep in the corner (Mike on the futon, then the nurse in
+    // her bed) answers a tap, without waking up.
+    // (Hers is tapped at the foot of the bed, clear of the sleep mask, a find.)
+    const nap = R.poke({ id: 'sleeper', at: (t) => (hh(t) >= 5 && hh(t) < 12.5 ? [10.7, 3.2, 1.0] : [11.9, 4.1, 0.75]), r: 0.6, teach: true, sound: 'shush', hold: 3, say: ['Mmph.', 'Five more minutes.', 'Zzz. Go away.'] });
+    R.thing(11.9, 4.6, (ctx, t) => {
+      const k = nap.k();
+      if (k < 0.2 || !Q.detail) return;
+      const [x, y] = hh(t) >= 5 && hh(t) < 12.5 ? [9.55, 3.2] : [10.2, 3.7];
+      label(ctx, x - 0.3, y - 0.3, 1.9 + k * 0.3, '?!', 0.4, alpha(C.ink, k));
+    }, { anim: true });
     R.mover((t) => (hours(7, 11.9)(t) ? { x: 8.3, y: 5.2 } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
       const c = t % 3.4, throwing = c < 0.35;
@@ -392,6 +518,19 @@ export default {
       line3(ctx, [[9.68, 4.45, 1.45], [9.72, 4.6, 0.95], [9.7, 4.52, 0.8]], C.ink, 0.04);
       disc(ctx, 9.7, 4.52, 0.78, 0.07, C.greyLight, { lw: 0.02 });
     }, { on: neu });
+    // Her white-noise machine, on a crate at the foot of the bed: shaped like
+    // a goose, a speaker grille on its chest (the afternoon's decoy, since
+    // the trophy left with the roommates).
+    const NX = 11.7, NY = 2.4;
+    R.thing(NX + 0.3, NY + 0.3, (ctx) => {
+      box(ctx, NX - 0.28, NY - 0.28, 0, 0.56, 0.56, 0.62, C.woodLight, { lw: 0.03, top: tint(C.woodLight, 0.2) });
+      if (Q.detail) line3(ctx, [[NX + 0.28, NY - 0.28, 0.31], [NX + 0.28, NY + 0.28, 0.31]], shade(C.woodLight, 0.3), 0.025);
+      drawGoose(ctx, NX, NY, 0.62, 0, { dir: 'l', pose: 'sit', scale: 0.5 });
+      const [X, Y] = P(NX, NY, 0.82);
+      ctx.beginPath(); ctx.ellipse(X + 0.02, Y, 0.08, 0.06, 0, 0, Math.PI * 2); paint(ctx, C.greyLight, { lw: 0.012 });
+      if (Q.detail) { ctx.fillStyle = C.grey; for (const [u, v] of [[-0.03, -0.02], [0.03, -0.02], [0, 0.02], [-0.03, 0.03], [0.04, 0.03]]) ctx.fillRect(X + 0.02 + u - 0.008, Y + v - 0.008, 0.016, 0.016); }
+    }, { on: neu });
+    R.decoy({ id: 'noise', at: [NX, NY, 0.95], r: 0.5, when: neu, say: ['Shhhhhhh.', 'White noise. Not a goose.', 'Shhh. She works nights.'] });
     R.thing(12.1, 4.55, (ctx, t) => {
       sleeper(ctx, 10.2, 3.7, 0.72, 1.6, { blanket: C.lilac, breath: (Math.sin(t * 0.9) + 1) / 2, mask: C.pink, hair: NURSE.hair, skin: NURSE.skin });
     }, { anim: true, on: asleep });
@@ -446,7 +585,10 @@ export default {
         ...NIECE, pose: 'stand', dir: 'r', arms: [Math.sin(t * 0.7) > 0.4 ? 1.9 : 0.4, 1.1],
         hold: (c) => { c.beginPath(); c.rect(-0.12, -0.2, 0.2, 0.28); paint(c, C.mustard, { lw: 0.02 }); },
       }, t);
-      says(ctx, p.x, p.y, 1.8, t, ['Mom. A couch.', 'It\'s flying.', 'Can I have it?'], 9, 3, 4);
+      // Her bubble hangs high and off to the left, between the porch posts
+      // and the white-noise goose on its crate inside.
+      const nl = ['Mom. A couch.', 'It\'s flying.', 'Can I have it?'], ni = Math.floor((t + 4) / 9), np = t + 4 - ni * 9;
+      if (np < 3 && Q.detail) speech(ctx, p.x, p.y, 2.6, nl[ni % nl.length], { size: 0.4, dx: -1.15 });
     });
     // The nurse, up at eight-twenty: scrubs on, coffee, keys, out the door.
     R.mover((t) => (up(t) ? { x: 7.9, y: 3.4 } : { x: -99, y: -99 }), (ctx, t, p) => {
@@ -459,8 +601,9 @@ export default {
     });
 
     // ---------- The finds ----------
-    R.find({ id: 'ball', label: 'A ping-pong ball', at: [0.82, 2.55, 0.15], r: 0.88, ...BEFORE });
-    R.find({ id: 'hole', label: 'The hole behind the poster', at: [0, HY, HZ], r: 0.88, ...BEFORE });
-    R.find({ id: 'mask', label: 'A sleep mask', at: [10.2, 3.7, 1.1], r: 0.88, ...AFTER });
+    R.find({ id: 'ball', label: 'A ping-pong ball', kind: 'hard', at: [0.82, 2.55, 0.15], r: 0.75, ...BEFORE, riddle: 'Where ping-pong balls go to die.', hint: 'Something in the kitchen clanks all winter. Look under it.' });
+    R.find({ id: 'hole', label: 'A hole they hope nobody sees', kind: 'poke', inside: posterP, at: [0.05, HY, HZ], r: 0.8, ...BEFORE, hint: 'That poster is doing a lot of work. Lift it.' });
+    R.find({ id: 'mask', label: 'A sleep mask', kind: 'spot', at: [10.2, 3.7, 1.1], r: 0.88, ...AFTER });
+    R.find({ id: 'cup', label: 'Something the roommates left behind', kind: 'spot', at: [LAST[0], LAST[1], 3.12], r: 0.6, ...AFTER, riddle: 'Up high with dozens at breakfast. Flip back.', hint: 'Look up. One of their party cups never made it into a box.' });
   },
 };

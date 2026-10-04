@@ -386,6 +386,25 @@ SOUNDS.tide = (a, t0) => {
   src.stop(t0 + 2.1);
 };
 
+// A flip between before and after (Moving Day's lease clock): a photo
+// card flicked over, a quick papery swish and a click.
+SOUNDS.flip = (a, t0) => {
+  const src = a.createBufferSource();
+  src.buffer = noise(a);
+  const f = a.createBiquadFilter();
+  f.type = 'bandpass';
+  f.Q.value = 1.1;
+  f.frequency.setValueAtTime(2600, t0);
+  f.frequency.exponentialRampToValueAtTime(900, t0 + 0.16);
+  const g = envelope(a, t0, 0.08, 0.01, 0.15);
+  src.connect(f);
+  f.connect(g);
+  g.connect(a.destination);
+  src.start(t0);
+  src.stop(t0 + 0.2);
+  tone(a, t0 + 0.15, 1500, 'square', 0.025, 0.002, 0.04);
+};
+
 // A gull, far off: two or three falling cries.
 SOUNDS.gull = (a, t0, o = {}) => {
   const n = o.n || 3;

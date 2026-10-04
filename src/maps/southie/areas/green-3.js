@@ -12,6 +12,11 @@
 // The ending (finale.js): at 9:30pm the geese haul the couch the rest of the
 // way, over the porch rail, PIVOT, and sit on it out on the porch, where the
 // street can see. The couple watch from the porch door.
+// Before and after (the retune): after noon his stuff is all out on the
+// curb except the hammock (bolted to its stand) and one thing still
+// switched on, his lava lamp. The goose is under one of his two bean bags
+// before, in one of their two COUCH STUFF boxes after; the couch's missing
+// leg is propping the kitchen window open all day.
 import {
   C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, shade, tint, mix, alpha,
   onLeft, onRight, P, paintText, label, goose as drawGoose,
@@ -150,10 +155,78 @@ function gooseAtEnd(i, t) {
   return { x: a.x + (fx - a.x) * e, y: a.y + (fy - a.y) * e, z: fz * clamp((e - 0.6) / 0.4) + hop, pose: 'walk', dir: fx >= a.x ? 'r' : 'l' };
 }
 
+// One of his bean bags, purple, slumped at (x, y). feet: the goose's
+// orange feet out from under its front (else a brown slipper). k: flopped
+// back off whatever's under it.
+function beanbag(ctx, x, y, k, feet) {
+  const back = k * 0.7, sq = 1 - k * 0.35;
+  const [X, Y] = P(x - back, y - back * 0.4, 0);
+  ctx.beginPath(); ctx.moveTo(X - 0.8, Y); ctx.quadraticCurveTo(X - 0.95, Y - 0.9 * sq, X - 0.1, Y - 0.95 * sq); ctx.quadraticCurveTo(X + 0.8, Y - 0.9 * sq, X + 0.8, Y); ctx.quadraticCurveTo(X, Y + 0.3, X - 0.8, Y); ctx.closePath();
+  paint(ctx, C.purple, { lw: 0.035, dots: shade(C.purple, 0.45), density: 0.2 });
+  ctx.beginPath(); ctx.ellipse(X, Y - 0.55 * sq, 0.5, 0.2 * sq, 0, 0, Math.PI * 2); ctx.fillStyle = shade(C.purple, 0.25); ctx.fill();
+  if (k >= 0.5) return;
+  // What's sticking out from under its front, drawn over its hem so it
+  // shows at phone size: two big orange webbed feet, toes spread, and a
+  // grey-banded tail tip out the side; or one brown slipper.
+  if (feet) {
+    for (const [dx, dy, flip] of [[-0.3, 0.1, -1], [0.18, 0.16, 1]]) {
+      const fx = X + dx, fy = Y + dy;
+      ctx.beginPath(); ctx.moveTo(fx, fy - 0.06);
+      ctx.lineTo(fx + flip * 0.16, fy + 0.26); ctx.lineTo(fx + flip * 0.06, fy + 0.2); ctx.lineTo(fx + flip * 0.02, fy + 0.3);
+      ctx.lineTo(fx - flip * 0.04, fy + 0.2); ctx.lineTo(fx - flip * 0.15, fy + 0.24); ctx.lineTo(fx - flip * 0.06, fy - 0.06); ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.025 });
+      if (Q.detail) { ctx.strokeStyle = shade(C.coral, 0.35); ctx.lineWidth = 0.014; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + flip * 0.12, fy + 0.22); ctx.moveTo(fx - flip * 0.01, fy); ctx.lineTo(fx + flip * 0.02, fy + 0.26); ctx.moveTo(fx - flip * 0.03, fy); ctx.lineTo(fx - flip * 0.11, fy + 0.2); ctx.stroke(); }
+    }
+    // The tail tip, out past the bag's right flank.
+    ctx.save(); ctx.translate(X + 0.7, Y - 0.12); ctx.rotate(1.0);
+    const fan = (i) => { ctx.beginPath(); ctx.moveTo(-0.16, 0.02); ctx.quadraticCurveTo(-0.15 + i, -0.3 + i, 0.08, -0.4 + i); ctx.quadraticCurveTo(0.3 - i, -0.32 + i, 0.2, 0.02); ctx.closePath(); };
+    fan(0); paint(ctx, C.ink, { stroke: false });
+    fan(0.06); paint(ctx, C.grey, { stroke: false });
+    fan(0.14); paint(ctx, C.white, { stroke: false });
+    fan(0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.022; ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.beginPath(); ctx.ellipse(X + 0.1, Y + 0.18, 0.26, 0.11, 0.2, 0, Math.PI * 2); paint(ctx, C.brown, { lw: 0.022 });
+    ctx.beginPath(); ctx.ellipse(X + 0.18, Y + 0.16, 0.11, 0.05, 0.2, 0, Math.PI * 2); ctx.fillStyle = C.woodLight; ctx.fill();
+  }
+}
+// One of their boxes marked COUCH STUFF, from (x, y): its flaps up a little.
+// tail: the goose's tail out between them (else a cushion corner). k: the
+// flaps thrown open.
+function flapBox(ctx, x, y, k, tail) {
+  const w = 0.9, d = 0.8, h = 0.6;
+  carton(ctx, x, y, 0, w, d, h, 'COUCH STUFF');
+  rect(ctx, x + 0.05, y + 0.05, w - 0.1, d - 0.1, h + 0.003, shade(C.woodLight, 0.55), { stroke: false });
+  const a = k < 0.5 ? 0.45 : 2.2, s = Math.sin(a) * d / 2, c = Math.cos(a) * d / 2;
+  // The back flap, then the front one (hinged on the long edges).
+  face(ctx, [[x, y, h], [x + w, y, h], [x + w, y + c, h + s], [x, y + c, h + s]], tint(C.woodLight, 0.08), { lw: 0.025 });
+  if (k < 0.5) {
+    const [X, Y] = P(x + w / 2, y + d / 2, h + (tail ? 0.16 : 0.05));
+    ctx.beginPath();
+    if (tail) {
+      // A goose's tail between the flaps, big enough for a phone: a white
+      // fan with a grey band and a dark tip.
+      const fan = (inset) => {
+        ctx.beginPath(); ctx.moveTo(X - 0.22, Y + 0.04);
+        ctx.quadraticCurveTo(X - 0.2 + inset, Y - 0.42 + inset, X + 0.1, Y - 0.56 + inset);
+        ctx.quadraticCurveTo(X + 0.38 - inset, Y - 0.44 + inset, X + 0.28, Y + 0.04);
+        ctx.closePath();
+      };
+      fan(0); paint(ctx, C.ink, { stroke: false });
+      fan(0.08); paint(ctx, C.grey, { stroke: false });
+      fan(0.19); paint(ctx, C.white, { stroke: false });
+      fan(0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+      ctx.beginPath();
+    }
+    else { ctx.moveTo(X - 0.15, Y + 0.02); ctx.lineTo(X - 0.05, Y - 0.2); ctx.lineTo(X + 0.18, Y - 0.12); ctx.lineTo(X + 0.12, Y + 0.05); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02, dots: shade(C.coral, 0.4), density: 0.2 }); }
+  }
+  face(ctx, [[x, y + d, h], [x + w, y + d, h], [x + w, y + d - c, h + s], [x, y + d - c, h + s]], tint(C.woodLight, 0.15), { lw: 0.025 });
+}
+
 export default {
   id: 'green-3',
   name: 'The Couch',
-  blurb: 'The couch does not fit up the stairs, so it has been on a rope since nine. They have measured the stairwell six times.',
+  blurb: 'He left them everything; their couch is on a rope. Flip the clock: they kept one thing.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 2, walls: W, floorInk: W.floor, siding: SIDING.green, trim: TRIM.green });
@@ -166,16 +239,40 @@ export default {
       for (let y = 2.3; y < 9; y += 0.45) face(ctx, [[0, y, 0.004], [12.5, y, 0.004], [12.5, y + 0.03, 0.004], [0, y + 0.03, 0.004]], C.brown, { stroke: false });
       ctx.restore();
     });
-    R.rug((ctx) => {
-      // A woven rug, left behind with everything else.
+    R.thing(8.8, 4.3, (ctx) => {
+      // A woven rug, left behind with everything else (on the curb by one).
       rect(ctx, 8.8, 4.3, 3.2, 2.2, 0.008, C.mustard, { lw: 0.02 });
       rect(ctx, 9.0, 4.5, 2.8, 1.8, 0.01, C.coral, { stroke: false, dots: shade(C.coral, 0.4), density: 0.25 });
       if (Q.detail) for (let u = 9.2; u < 11.8; u += 0.4) line3(ctx, [[u, 4.5, 0.012], [u + 0.2, 6.3, 0.012]], C.mustard, 0.04);
-    });
+    }, { on: old, depth: 0 });
     backWindow(R, 2.6, 1.9, 1.2, 1.3);
+    // The window won't stay up, so the couch's missing leg (turned wood, a
+    // brass cup) holds the lower sash open, all day. Nobody's looked.
+    R.thing(0.12, 3.75, (ctx) => {
+      onLeft(ctx, 2.62, 2.35, 1.16, 0.12, C.white, { lw: 0.02 });
+      onLeft(ctx, 2.62, 2.47, 1.16, 0.06, shade(C.white, 0.15), { stroke: false });
+      const y = 3.42, z0 = 1.92, z1 = 2.35, w = 0.07;
+      const pts = [];
+      for (let i = 0; i <= 8; i++) { const v = i / 8; pts.push([0.06, y - w * (0.7 + 0.5 * Math.sin(v * Math.PI)), z0 + 0.06 + v * (z1 - z0 - 0.06)]); }
+      for (let i = 8; i >= 0; i--) { const v = i / 8; pts.push([0.06, y + w * (0.7 + 0.5 * Math.sin(v * Math.PI)), z0 + 0.06 + v * (z1 - z0 - 0.06)]); }
+      face(ctx, pts, C.brown, { lw: 0.02 });
+      face(ctx, [[0.06, y - 0.06, z0], [0.06, y + 0.06, z0], [0.06, y + 0.06, z0 + 0.07], [0.06, y - 0.06, z0 + 0.07]], C.mustard, { lw: 0.015 });
+    });
+    // The decoy: a ceramic goose cookie jar on top of the fridge, a blue
+    // bonnet and bow, left by the last tenant. Empty.
+    R.thing(1.15, 5.75, (ctx) => {
+      disc(ctx, 0.55, 5.05, 3.0, 0.3, alpha(C.ink, 0.12), { stroke: false });
+      drawGoose(ctx, 0.55, 5.05, 3.0, 0, { dir: 'r', pose: 'sit', scale: 0.6 });
+      const [X, Y] = P(0.55, 5.05, 3.0);
+      // The lid's seam round its middle, the bonnet, the bow.
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.14, 0.24, 0.07, -0.12, 0, Math.PI); ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.015; ctx.stroke();
+      ctx.beginPath(); ctx.arc(X + 0.17, Y - 0.52, 0.09, Math.PI * 0.9, Math.PI * 2.1); paint(ctx, C.sky, { lw: 0.015, dots: C.navy, density: 0.4 });
+      ctx.beginPath(); ctx.ellipse(X + 0.13, Y - 0.32, 0.07, 0.04, 0.5, 0, Math.PI * 2); paint(ctx, C.navy, { lw: 0.012 });
+    });
+    R.decoy({ id: 'cookiejar', at: [0.55, 5.05, 3.35], r: 0.6, say: ['A cookie jar. Not a goose.', 'Empty. It\'s all yours.'] });
     // The tapestry (a sun and a moon), string lights along the top of the
     // wall, a dreamcatcher: all of it staying.
-    R.decor((ctx) => {
+    R.thing(0.02, 0.02, (ctx) => {
       onRight(ctx, 8.3, 1.2, 3.4, 2.6, C.purple, { lw: 0.03, dots: shade(C.purple, 0.4), density: 0.15 });
       onRight(ctx, 8.45, 1.35, 3.1, 2.3, null, { lw: 0.04, stroke: C.mustard });
       const [X, Y] = P(10.0, 0, 2.5);
@@ -185,6 +282,8 @@ export default {
       ctx.beginPath(); ctx.arc(0.1, 0, 0.42, 0, Math.PI * 2); paint(ctx, C.purple, { stroke: false });
       ctx.beginPath(); ctx.arc(-0.1, -0.02, 0.4, -1.2, 1.2); paint(ctx, C.butter, { stroke: false });
       ctx.restore();
+    }, { on: old, depth: 0.1 });
+    R.decor((ctx) => {
       // The tenant's note, taped by the back door: all his worldly goods.
       onLeft(ctx, 5.0, 1.7, 0.9, 0.9, C.butter, { lw: 0.02 });
       paintText(ctx, 'left', 5.45, 2.35, 'IT\'S ALL', 0.13, C.ink, 'Rethink Sans');
@@ -206,7 +305,7 @@ export default {
       };
       hang([8.0, 0.02, 4.1], [12.4, 0.02, 4.1], 18, 0);
       hang([0.02, 8.8, 4.1], [0.02, 4.4, 4.1], 14, 2);
-    }, { anim: true });
+    }, { anim: true, on: old });
     // The paper lantern over the middle room, lit at night.
     R.thing(7.2, 5.8, (ctx) => {
       line3(ctx, [[7.2, 5.6, 4.4], [7.2, 5.6, 3.7]], C.ink, 0.02);
@@ -271,15 +370,16 @@ export default {
       ctx.beginPath(); ctx.rect(-0.05, -1.3, 0.1, 1.0); paint(ctx, C.brown, { lw: 0.025 });
       ctx.restore();
     }, { on: old });
-    // The papasan chair (staying).
+    // The papasan chair (on the curb by one).
     R.thing(10.1, 5.7, (ctx) => {
       cylinder(ctx, 9.3, 4.95, 0, 0.45, 0.35, C.wood, { top: C.brown });
       const [X, Y] = P(9.3, 4.95, 0.75);
       ctx.beginPath(); ctx.ellipse(X, Y, 1.05, 0.55, 0, 0, Math.PI * 2); paint(ctx, C.woodLight, { lw: 0.04 });
       ctx.beginPath(); ctx.ellipse(X, Y - 0.05, 0.9, 0.44, 0, 0, Math.PI * 2); paint(ctx, C.teal, { lw: 0.03, dots: shade(C.teal, 0.4), density: 0.2 });
       if (Q.detail) { ctx.strokeStyle = C.brown; ctx.lineWidth = 0.02; for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(X + i * 0.28, Y + 0.3); ctx.lineTo(X + i * 0.3, Y + 0.52); ctx.stroke(); } }
-    });
-    // The lava lamp on a milk crate, blobs rising (and glowing at night).
+    }, { on: old });
+    // The lava lamp on a milk crate, blobs rising (and glowing at night):
+    // on all morning, still on tonight, the one thing of his they kept.
     R.thing(12.4, 5.9, (ctx) => box(ctx, 11.6, 5.2, 0, 0.7, 0.6, 0.6, C.purple, { flat: true, lw: 0.03, top: shade(C.purple, 0.4) }));
     R.thing(12.45, 5.95, (ctx, t) => {
       const [X, Y] = P(11.95, 5.5, 0.6);
@@ -302,17 +402,19 @@ export default {
       ctx.strokeStyle = C.green; ctx.lineWidth = 0.05; ctx.beginPath();
       for (let i = -2; i <= 2; i++) { ctx.moveTo(X + i * 0.08, Y - 0.2); ctx.quadraticCurveTo(X + i * 0.2, Y + 0.1, X + i * 0.15, Y + 0.55 + Math.abs(i) * 0.1); }
       ctx.stroke();
-    }, { anim: true });
+    }, { anim: true, on: old });
 
-    // The hammock, on its stand, swinging (staying too).
+    // The hammock, on its stand, swinging (staying: it's bolted down). A tap
+    // gives it a push.
     const swing = (t) => Math.sin(t * 1.1) * 0.12;
+    const hamP = R.poke({ id: 'hammock', at: [10.5, 7.0, 1.0], r: 1.0, teach: true, sound: 'pop', hold: 3, say: ['Wheee.', 'It\'s all yours, man.', 'Swing gently.'] });
     R.thing(12.3, 7.4, (ctx) => {
       box(ctx, 8.7, 6.95, 0, 3.6, 0.12, 0.1, C.wood, { flat: true, lw: 0.025 });
       for (const [a, b] of [[[8.75, 7.0, 0.1], [8.85, 7.0, 1.9]], [[12.25, 7.0, 0.1], [12.15, 7.0, 1.9]]]) line3(ctx, [a, b], C.wood, 0.12);
       for (const u of [8.7, 12.3]) box(ctx, u - 0.1, 6.55, 0, 0.2, 0.9, 0.08, C.wood, { flat: true, lw: 0.02 });
     });
     R.thing(12.35, 7.45, (ctx, t) => {
-      const s = swing(t);
+      const s = swing(t) + hamP.k() * Math.sin(t * 4) * 0.35;
       const pts = []; for (let i = 0; i <= 12; i++) { const k = i / 12; pts.push([9.2 + k * 2.6 + s * Math.sin(k * Math.PI), 7.0, 1.45 - Math.sin(k * Math.PI) * 0.85]); }
       // The net: two edges and the cloth between.
       ctx.beginPath();
@@ -345,14 +447,27 @@ export default {
       says(ctx, p.x, p.y, (p.z || 0) + 2.5, t, lines, 9, 3.4, 2);
       if (p.pose === 'sit' && Q.detail && Math.sin(t * 2) > 0.3) label(ctx, p.x + 0.4, p.y - 0.4, 2.6 + ((t * 0.7) % 1) * 0.4, '♪', 0.3, C.ink, 'Rethink Sans');
     });
-    // A bean bag (staying): the goose's before noon.
-    R.thing(4.0, 7.7, (ctx) => {
-      const [X, Y] = P(3.3, 7.0, 0);
-      ctx.beginPath(); ctx.moveTo(X - 0.8, Y); ctx.quadraticCurveTo(X - 0.95, Y - 0.9, X - 0.1, Y - 0.95); ctx.quadraticCurveTo(X + 0.8, Y - 0.9, X + 0.8, Y); ctx.quadraticCurveTo(X, Y + 0.3, X - 0.8, Y); ctx.closePath();
-      paint(ctx, C.purple, { lw: 0.035, dots: shade(C.purple, 0.45), density: 0.2 });
-      ctx.beginPath(); ctx.ellipse(X, Y - 0.55, 0.5, 0.2, 0, 0, Math.PI * 2); ctx.fillStyle = shade(C.purple, 0.25); ctx.fill();
-    });
-
+    // The goose: before half past twelve, under one of his two purple bean
+    // bags (orange feet out from under it; a brown slipper under the other),
+    // after, in one of their two boxes marked COUCH STUFF (a white tail out
+    // between the flaps; a coral cushion corner out of the other). A tap
+    // flops the bean bag back, or opens the flaps.
+    const gEarly = hours(5, 12.5);
+    const SPOT = [[3.55, 6.5], [5.9, 7.75]];
+    const holdAt = (i) => (t) => (gEarly(t) ? [SPOT[i][0], SPOT[i][1], 0.55] : [SPOT[i][0], SPOT[i][1], 0.75]);
+    const bag = R.poke({ id: 'beanbag', at: holdAt(0), r: 0.85, sound: 'pop', say: 'HONK.' });
+    const bag2 = R.poke({ id: 'beanbag2', at: holdAt(1), r: 0.85, sound: 'tick', say: ['Just a bean bag.', 'Still a bean bag.', 'Nothing in there.'] });
+    const gooseAt = (t) => {
+      const k = bag.k(), [x, y] = SPOT[0];
+      if (gEarly(t)) return { x: x + 0.05, y: y + 0.15, z: 0, dir: 'r', pose: k > 0.6 && Math.sin(t * 0.9) > 0.75 ? 'honk' : 'sit', hidden: k < 0.5, ahead: 0.2 };
+      return { x, y, z: 0.42, dir: 'r', pose: k > 0.6 && Math.sin(t * 0.9) > 0.75 ? 'honk' : 'sit', hidden: k < 0.5, ahead: 0.5 };
+    };
+    R.goose(gooseAt, { kind: 'poke', inside: bag, hint: 'Two of his bean bags, two of their boxes. One of each pair has feet.' });
+    for (const i of [0, 1]) {
+      const pk = i ? bag2 : bag, [x, y] = SPOT[i];
+      R.thing(x + 0.8, y + 0.4, (ctx) => beanbag(ctx, x, y, pk.k(), i === 0), { anim: true, on: gEarly, depth: x + y - 0.2 });
+      R.thing(x + 0.45, y + 0.4, (ctx) => flapBox(ctx, x - 0.45, y - 0.4, pk.k(), i === 0), { anim: true, on: (t) => !gEarly(t), depth: x + y + 0.1 });
+    }
 
     // His tortoise, left behind too ("It's all yours"), crossing the flat
     // once a day, very slowly. The couple keep it.
@@ -367,13 +482,13 @@ export default {
       ctx.beginPath(); ctx.arc(X + 0.25 + step, Y - 0.1, 0.06, 0, Math.PI * 2); paint(ctx, C.leaf, { lw: 0.02 });
       ctx.beginPath(); ctx.ellipse(X, Y - 0.1, 0.24, 0.16, 0, Math.PI, 0); ctx.closePath(); paint(ctx, C.green, { lw: 0.025, dots: C.brown, density: 0.4 });
     });
-    // A monstera, a rolled yoga mat, a stack of records: also staying.
+    // A monstera, a rolled yoga mat: his, out by afternoon.
     R.thing(8.3, 8.7, (ctx) => {
       cylinder(ctx, 7.9, 8.3, 0, 0.3, 0.55, C.white);
       const [X, Y] = P(7.9, 8.3, 0.6);
       for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + (i - 2.5) * 0.45; ctx.beginPath(); ctx.ellipse(X + Math.cos(a) * 0.45, Y + Math.sin(a) * 0.55 - 0.1, 0.24, 0.14, a, 0, Math.PI * 2); paint(ctx, C.green, { lw: 0.02 }); }
       box(ctx, 6.8, 8.2, 0, 0.9, 0.22, 0.22, C.teal, { flat: true, lw: 0.02 });
-    });
+    }, { on: old });
     // A wind chime by the porch door.
     R.thing(12.5, 2.0, (ctx, t) => {
       line3(ctx, [[12.4, 1.95, 4.4], [12.4, 1.95, 3.6]], C.ink, 0.015);
@@ -431,9 +546,9 @@ export default {
       const arms = p.pose === 'rig' ? [2.9, 2.6] : p.pose === 'haul' ? [1.7 + Math.sin(t * 5) * 0.2, 1.5] : [1.2, 0.3];
       person(ctx, p.x, p.y, 0, { ...FLEECE, pose: 'stand', dir: p.pose === 'measure' ? 'l' : 'r', back: p.pose === 'measure', arms, wear: blank }, t);
       if (rain && p.pose === 'measure') {
-        // A clear poncho.
+        // A clear poncho, from the shoulders down (his head and hat clear).
         const [X, Y] = P(p.x, p.y, 0);
-        ctx.beginPath(); ctx.moveTo(X, Y - 2.5); ctx.lineTo(X - 0.5, Y - 0.7); ctx.lineTo(X + 0.5, Y - 0.7); ctx.closePath(); paint(ctx, alpha(C.white, 0.35), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
+        ctx.beginPath(); ctx.moveTo(X - 0.18, Y - 1.95); ctx.lineTo(X + 0.18, Y - 1.95); ctx.lineTo(X + 0.5, Y - 0.7); ctx.lineTo(X - 0.5, Y - 0.7); ctx.closePath(); paint(ctx, alpha(C.white, 0.35), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
       }
       if (p.pose === 'measure') {
         // The tape, up the door frame and back.
@@ -466,7 +581,7 @@ export default {
       carton(ctx, 5.0, 4.6, 0, 1.3, 1.0, 0.5, 'OHIO');
       carton(ctx, 5.0, 4.6, 0.5, 1.3, 1.0, 0.5, 'KITCHEN');
       carton(ctx, 6.3, 4.6, 0, 1.2, 1.0, 0.5, 'FRAGILE');
-      carton(ctx, 5.0, 5.6, 0, 1.3, 1.0, 0.55, 'COUCH STUFF');
+      carton(ctx, 5.0, 5.6, 0, 1.3, 1.0, 0.55, 'BOOKS');
       carton(ctx, 6.3, 5.6, 0, 1.2, 1.1, 0.55, 'TAPE MEASURES');
     }, { on: neu });
     R.thing(7.75, 7.0, (ctx) => {
@@ -489,6 +604,44 @@ export default {
       box(ctx, 12.35, 4.2, 0, 0.35, 0.3, 0.3, C.mustard, { flat: true, lw: 0.02 });
       line3(ctx, [[12.4, 4.25, 0.2], [12.3, 3.95, 0.15]], C.ink, 0.04);
     }, { on: neu });
+    // Their own lamps, switched on as soon as they're in (it's raining), so
+    // the lava lamp is one light among several after noon and the find is
+    // which one was already on at breakfast: a table lamp on the BOOKS box,
+    // a paper floor lamp by the air mattress, a camping lantern on the
+    // kitchen counter.
+    const glow = (ctx, X, Y, r) => {
+      ctx.beginPath(); ctx.arc(X, Y, r, 0, Math.PI * 2); ctx.fillStyle = alpha(C.butter, 0.35); ctx.fill();
+    };
+    R.thing(6.35, 6.65, (ctx) => {
+      // The table lamp: a white base, a butter shade lit from inside.
+      cylinder(ctx, 5.35, 6.3, 0.55, 0.1, 0.08, C.white);
+      box(ctx, 5.32, 6.27, 0.63, 0.05, 0.05, 0.35, C.ink, { flat: true, stroke: false });
+      const [X, Y] = P(5.35, 6.3, 1.12);
+      glow(ctx, X, Y, 0.42);
+      ctx.beginPath(); ctx.moveTo(X - 0.15, Y - 0.14); ctx.lineTo(X + 0.15, Y - 0.14); ctx.lineTo(X + 0.24, Y + 0.12); ctx.lineTo(X - 0.24, Y + 0.12); ctx.closePath();
+      paint(ctx, C.butter, { lw: 0.025 });
+    }, { on: neu, depth: 15 });
+    R.light({ at: [5.35, 6.3, 1.12], r: 2.2, color: C.butter, k: (t) => (neu(t) ? (lightsOn(t) ? 0.75 : 0.45) : 0) });
+    R.thing(10.1, 2.7, (ctx) => {
+      // The paper floor lamp: a pole and a round paper shade, glowing.
+      box(ctx, 9.85, 2.45, 0, 0.3, 0.3, 0.04, C.ink, { flat: true, stroke: false });
+      box(ctx, 9.97, 2.57, 0.04, 0.05, 0.05, 1.9, C.ink, { flat: true, stroke: false });
+      const [X, Y] = P(10.0, 2.6, 2.15);
+      glow(ctx, X, Y, 0.55);
+      ctx.beginPath(); ctx.arc(X, Y, 0.3, 0, Math.PI * 2); paint(ctx, tint(C.butter, 0.4), { lw: 0.025 });
+      if (Q.detail) { ctx.strokeStyle = alpha(C.ink, 0.25); ctx.lineWidth = 0.012; for (const dy of [-0.12, 0, 0.12]) { ctx.beginPath(); ctx.ellipse(X, Y + dy, Math.sqrt(0.09 - dy * dy), 0.035, 0, 0, Math.PI * 2); ctx.stroke(); } }
+    }, { on: neu });
+    R.light({ at: [10.0, 2.6, 2.15], r: 2.6, color: C.butter, k: (t) => (neu(t) ? (lightsOn(t) ? 0.8 : 0.5) : 0) });
+    R.thing(1.0, 2.75, (ctx) => {
+      // The camping lantern: green, a lit glass middle, a wire handle.
+      const [X, Y] = P(0.5, 2.5, 1.15);
+      glow(ctx, X, Y - 0.2, 0.36);
+      ctx.beginPath(); ctx.rect(X - 0.1, Y - 0.08, 0.2, 0.08); paint(ctx, C.green, { lw: 0.02 });
+      ctx.beginPath(); ctx.rect(X - 0.08, Y - 0.3, 0.16, 0.22); paint(ctx, C.butter, { lw: 0.02 });
+      ctx.beginPath(); ctx.rect(X - 0.1, Y - 0.36, 0.2, 0.06); paint(ctx, C.green, { lw: 0.02 });
+      ctx.beginPath(); ctx.arc(X, Y - 0.36, 0.08, Math.PI, 0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+    }, { on: neu, depth: 5.5 });
+    R.light({ at: [0.5, 2.5, 1.35], r: 1.8, color: C.butter, k: (t) => (neu(t) ? (lightsOn(t) ? 0.7 : 0.4) : 0) });
     // Measuring the stairwell: the tape out along the banister, in, out.
     R.mover((t) => (hours(13.1, 20.5)(t) ? { x: 7.9, y: 2.6 } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;
@@ -530,10 +683,6 @@ export default {
       sleeper(ctx, 10.7, 2.95, 0.4, 1.4, { blanket: C.teal, breath: (Math.sin(t * 0.8) + 1) / 2, hair: FLEECE.hair, skin: FLEECE.skin });
       sleeper(ctx, 10.7, 3.55, 0.4, 1.4, { blanket: C.teal, breath: (Math.sin(t * 0.8 + 2) + 1) / 2, hair: SURE.hair, skin: SURE.skin, mouth: true });
     }, { anim: true, on: (t) => hours(22.6, 29)(t) && !playing() });
-
-    // ---------- The goose ----------
-    // Before noon it's in the bean bag; after, in the hammock, swinging.
-    R.goose((t) => (old(t) ? { x: 3.35, y: 6.95, z: 0.55, pose: 'sit', dir: 'r', ahead: 1.0 } : { x: 10.4 + swing(t), y: 7.05, z: 0.62, pose: Math.sin(t * 0.5) > 0.9 ? 'honk' : 'sit', dir: 'l', ahead: 2.6 }), { bias: 0.1 });
 
     // ---------- The ending ----------
     // Geese on the rope, pulling; the couch over the rail, PIVOT!, and set
@@ -595,19 +744,10 @@ export default {
       if (Q.detail) for (let u = 2.9; u < 3.6; u += 0.1) line3(ctx, [[u, 8.26, 0.025], [u, 8.3, 0.025]], C.ink, 0.012);
       box(ctx, 3.58, 8.22, 0, 0.05, 0.14, 0.08, C.greyLight, { flat: true, stroke: false });
     });
-    // The couch's missing leg, under the hammock: turned wood, a brass cup.
-    R.thing(11.2, 7.9, (ctx) => {
-      const [X, Y] = P(10.6, 7.6, 0.12);
-      ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.3);
-      ctx.beginPath(); ctx.moveTo(-0.35, -0.1); ctx.quadraticCurveTo(-0.1, -0.16, 0.2, -0.08); ctx.lineTo(0.3, -0.07); ctx.lineTo(0.3, 0.07); ctx.lineTo(0.2, 0.08); ctx.quadraticCurveTo(-0.1, 0.16, -0.35, 0.1); ctx.closePath();
-      paint(ctx, C.brown, { lw: 0.03 });
-      ctx.beginPath(); ctx.rect(0.28, -0.08, 0.1, 0.16); paint(ctx, C.mustard, { lw: 0.02 });
-      ctx.beginPath(); ctx.ellipse(-0.35, 0, 0.05, 0.1, 0, 0, Math.PI * 2); paint(ctx, shade(C.brown, 0.2), { lw: 0.02 });
-      ctx.restore();
-    });
-    R.find({ id: 'tape', label: 'A tape measure', at: [2.7, 8.15, 0.25], r: 0.88 });
-    R.find({ id: 'leg', label: 'The couch\'s missing leg', at: [10.6, 7.6, 0.15], r: 0.88 });
-    R.find({ id: 'plan', label: 'A floor plan on a napkin', at: [5.95, 5.3, 1.03], r: 0.88, ...AFTER });
+    R.find({ id: 'tape', label: 'A tape measure', kind: 'spot', at: [2.7, 8.15, 0.25], r: 0.88 });
+    R.find({ id: 'leg', label: 'The couch\'s missing leg', kind: 'hard', at: [0.06, 3.42, 2.15], r: 0.6, riddle: 'Holding up something that won\'t stay up.', hint: 'It\'s stuffy in here, so somebody propped something open.' });
+    R.find({ id: 'plan', label: 'A floor plan on a napkin', kind: 'spot', at: [5.95, 5.3, 1.03], r: 0.88, ...AFTER });
+    R.find({ id: 'lamp', label: 'His one thing still switched on', kind: 'hard', at: [11.95, 5.5, 1.25], r: 0.7, ...AFTER, riddle: 'Glowing at breakfast too. Flip back and look.', hint: 'His stuff all went to the curb but one thing. It glows.' });
   },
 };
 
