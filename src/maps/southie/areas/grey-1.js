@@ -50,6 +50,23 @@ const SPOTS = [
 // (An umbrella apart, so three umbrellas in the rain don't merge into one.)
 const QUEUE = [[12.95, 1.9], [13.6, 3.0], [14.2, 4.1]];
 const DOOR_IN = [[14.2, 4.0], [13.4, 1.4], [12.1, 1.0], [11.9, 2.4]];
+// Round the sofa's end and along the aisle between it and the coffee table,
+// then round the dining table, so nobody walks through the furniture.
+const AISLE = [[12.25, 3.3], [12.1, 4.65]], WEST = [8.7, 4.65], FRONT = [7.2, 7.0], BACK = [4.4, 2.6];
+function wayTo(x, y) {
+  if (x >= 11) return [...AISLE];
+  if (y < 3) return [...AISLE, WEST, BACK];
+  if (x < 7.5 && y > 4.8) return [...AISLE, WEST, FRONT];
+  return [...AISLE, WEST];
+}
+// Keys for track(): from where you are at h0, through pts, there at h1,
+// timed by distance; opts for once you're there.
+function route(h0, from, pts, h1, opts) {
+  const all = [from, ...pts];
+  let L = 0; const d = [0];
+  for (let i = 1; i < all.length; i++) { L += Math.hypot(all[i][0] - all[i - 1][0], all[i][1] - all[i - 1][1]); d.push(L); }
+  return pts.map((p, i) => [h0 + (h1 - h0) * (d[i + 1] / (L || 1)), p[0], p[1], ...(i === pts.length - 1 && opts ? [opts] : [])]);
+}
 const SPEED = 1.7;
 function pathLen(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; }
 function alongPath(pts, d) {
@@ -63,7 +80,7 @@ function alongPath(pts, d) {
 }
 const VISITORS = SPOTS.map(([x, y, act, dir, line], i) => {
   const hIn = 13.02 + i * 0.036, hOut = 14.5 + ((i * 7) % 18) * 0.028;
-  const path = [...DOOR_IN, [x, y]];
+  const path = [...DOOR_IN, ...wayTo(x, y), [x, y]];
   return {
     i, x, y, act, dir, line, path, L: pathLen(path),
     tIn: at(hIn), tOut: at(hOut), queue: i < 3 ? QUEUE[i] : null,
@@ -102,13 +119,24 @@ const umbrella = (color) => (ctx) => {
 // Staging in the morning, pitching at the showing, mopping the footprints,
 // counting offers, and asleep on the staged sofa by night.
 const REALTOR = track([
-  [7.9, 12.1, 1.0], [8.0, 11.8, 2.8], [8.25, 6.6, 4.6, { dir: 'r', pose: 'point', say: 'One, two, three lemons.' }], [8.9, 6.6, 4.6, { dir: 'r', pose: 'point' }],
-  [9.05, 11.5, 2.9, { dir: 'l' }], [9.4, 11.5, 2.9, { dir: 'l', say: 'Booties go here.' }],
-  [9.6, 11.4, 7.4, { dir: 'l' }], [15.3, 11.4, 7.4, { dir: 'l' }],
-  [15.4, 7.6, 5.4, { mop: true }], [15.7, 4.4, 4.9, { mop: true }], [15.95, 10.8, 3.0, { mop: true }],
-  [16.1, 2.6, 4.7, { dir: 'l', say: 'Nineteen offers.' }], [19.3, 2.6, 4.7, { dir: 'l' }],
-  [19.45, 10.2, 5.0], [19.5, 10.2, 5.0],
+  [7.9, 12.1, 1.0], [8.0, 12.2, 2.4],
+  ...route(8.0, [12.2, 2.4], [[12.25, 3.3], [12.1, 4.65], [8.7, 4.65], [6.6, 4.6]], 8.25, { dir: 'r', pose: 'point', say: 'One, two, three lemons.' }), [9.0, 6.6, 4.6, { dir: 'r', pose: 'point' }],
+  ...route(9.0, [6.6, 4.6], [[8.7, 4.65], [12.1, 4.65], [12.25, 3.3], [11.5, 2.9]], 9.12, { dir: 'l' }), [9.4, 11.5, 2.9, { dir: 'l', say: 'Booties go here.' }],
+  ...route(9.4, [11.5, 2.9], [[12.25, 3.3], [12.1, 4.65], [11.4, 7.4]], 9.6, { dir: 'l' }), [15.3, 11.4, 7.4, { dir: 'l' }],
+  [15.4, 7.6, 5.4, { mop: true }], ...route(15.4, [7.6, 5.4], [[7.2, 4.8], [4.4, 4.8]], 15.7, { mop: true }),
+  ...route(15.7, [4.4, 4.8], [[8.7, 4.65], [12.1, 4.65], [12.25, 3.3], [10.8, 3.05]], 15.95, { mop: true }),
+  ...route(15.95, [10.8, 3.05], [[12.25, 3.3], [12.1, 4.65], [8.7, 4.65], [2.6, 4.7]], 16.1, { dir: 'l', say: 'Nineteen offers.' }), [19.3, 2.6, 4.7, { dir: 'l' }],
+  [19.45, 8.9, 4.65], [19.5, 8.9, 4.65],
 ]);
+// In the aisle in front of the sofa, people are drawn after it (it sorts
+// at its near corner, 15.8), and in front of the island after that.
+const roomDepth = (p) => {
+  const d = p.x + p.y;
+  if (p.x > 8.6 && p.x < 12.4 && p.y > 4.42 && p.y < 5.0) return Math.max(d, 15.85);
+  return d;
+};
+const realtorDepth = (p) => (p.x > 0.9 && p.x < 4.3 && p.y > 4.0 && p.y < 5.2 ? Math.max(p.x + p.y, 8.1) : roomDepth(p));
+const inDepth = (p) => { const d = porchDepth(p); return d === p.x + p.y ? roomDepth(p) : d; };
 const REALTOR_LOOK = folk(81, { top: C.navy, bottom: C.ink, style: 'bun', hair: C.brown, dress: false, shoes: BOOTIE });
 const PITCH = ['Tons of natural light!', 'Parking? Ha.', 'Offers by Tuesday.', 'Booties, please!', "Please don't eat the lemons."];
 const clipTab = (ctx) => {
@@ -120,9 +148,11 @@ const clipTab = (ctx) => {
 // In her housecoat, curlers and rain bonnet, keys jingling, in her own
 // slippers, straight through (day.js hides her at home meanwhile).
 const LADY = track([
-  [13.45, 14.2, 4.0], [13.49, 13.4, 1.4], [13.52, 12.1, 1.0], [13.56, 12.2, 2.5], [13.7, 7.4, 5.0, { dir: 'l', say: 'Real lemons? Show-off.' }],
-  [13.8, 7.4, 5.0, { dir: 'l', say: 'Real lemons? Show-off.' }], [13.87, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }],
-  [14.0, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }], [14.22, 12.2, 2.5], [14.26, 12.1, 1.0], [14.3, 13.4, 1.4], [14.34, 14.2, 4.0],
+  [13.45, 14.2, 4.0], [13.49, 13.4, 1.4], [13.52, 12.1, 1.0], [13.56, 12.2, 2.5],
+  ...route(13.56, [12.2, 2.5], [[12.25, 3.3], [12.1, 4.65], [8.7, 4.65], [7.4, 4.8]], 13.7, { dir: 'l', say: 'Real lemons? Show-off.' }),
+  [13.8, 7.4, 4.8, { dir: 'l', say: 'Real lemons? Show-off.' }], [13.87, 4.4, 4.8, { dir: 'l', say: 'In my day, this was a wall.' }],
+  [14.0, 4.4, 4.8, { dir: 'l', say: 'In my day, this was a wall.' }], ...route(14.0, [4.4, 4.8], [[8.7, 4.65], [12.1, 4.65], [12.25, 3.3], [12.2, 2.5]], 14.22),
+  [14.26, 12.1, 1.0], [14.3, 13.4, 1.4], [14.34, 14.2, 4.0],
 ]);
 // Her muddy prints, laid as she goes and mopped up at half past three.
 const PRINTS = [];
@@ -466,7 +496,9 @@ export default {
     R.mover((t) => REALTOR(H(t)), (ctx, t, p) => {
       const h = H(t);
       if (h >= 19.4) {
-        person(ctx, 11.2, 3.95, 0.72, { ...REALTOR_LOOK, pose: 'sleep' }, t);
+        // (Smaller and further along, so her head stays on the sofa, off the
+        // ceramic goose on the coffee table.)
+        person(ctx, 11.75, 3.95, 0.72, { ...REALTOR_LOOK, pose: 'sleep', scale: 0.85 }, t);
         const [X, Y] = P(9.35, 3.9, 1.05);
         ctx.save(); ctx.translate(X, Y); ctx.rotate(0.3); ctx.beginPath(); ctx.rect(-0.28, -0.22, 0.56, 0.44); paint(ctx, C.mustard, { lw: 0.03 }); ctx.restore();
         return;
@@ -483,7 +515,7 @@ export default {
       const sg = saga(t);
       if (sg && sg.stop === 0 && sg.movers) { const e = (h - sg.since) * 16.875; if (e % 9 > 6 && e % 9 < 8.8) say = 'The bike is not included.'; }
       if (say && Q.detail) speech(ctx, p.x, p.y, 2.7, say, { size: 0.42 });
-    }, { on: during(7.9, 29), depth: (t) => { const p = REALTOR(H(t)); return H(t) >= 19.4 ? 16.2 : p.x + p.y; } });
+    }, { on: during(7.9, 29), depth: (t) => { const p = REALTOR(H(t)); return H(t) >= 19.4 ? 16.2 : realtorDepth(p); } });
 
     // The morning: a photographer (flash) and a stager (chopping the pillow).
     R.mover(() => ({ x: 8.6, y: 8.0 }), (ctx, t, p) => {
@@ -494,9 +526,10 @@ export default {
       if (k < 0.18 && Q.detail) glow(ctx, 7.7, 7.3, 1.7, 2.6, C.white, 1);
       if (Q.detail && t % 17 < 3) speech(ctx, p.x, p.y, 2.7, 'Can we lose the stairs?', { size: 0.42 });
     }, { on: during(9.1, 11.8) });
-    R.mover(() => ({ x: 10.2, y: 5.05 }), (ctx, t, p) => {
+    // (At the sofa's end, clear of the flyer the flip compares.)
+    R.mover(() => ({ x: 8.65, y: 4.25 }), (ctx, t, p) => {
       const k = t % 3;
-      person(ctx, p.x, p.y, 0, { ...folk(871, { top: C.pink, style: 'long', dress: false }), dir: 'l', arms: [k < 0.3 ? 2.2 : 1.3 - Math.min(1, (k - 0.3) * 3) * 0.3, 0.2] }, t);
+      person(ctx, p.x, p.y, 0, { ...folk(871, { top: C.pink, style: 'long', dress: false }), dir: 'r', arms: [k < 0.3 ? 2.2 : 1.3 - Math.min(1, (k - 0.3) * 3) * 0.3, 0.2] }, t);
       if (Q.detail && t % 13 < 2.5) speech(ctx, p.x, p.y, 2.7, 'Chop.', { size: 0.42 });
     }, { on: during(8.3, 11.9) });
 
@@ -532,14 +565,14 @@ export default {
         if (p.there && v.i === 8 && sg && sg.stop === 0) say = (t % 6 < 3) ? 'Is the bike included?' : null;
         if (p.wait && Q.detail && v.i === 0 && t % 8 < 3) say = 'Is it 1 yet?';
         if (say && Q.detail) speech(ctx, p.x, p.y, 2.6 * (v.look.scale || 1) + 0.1, say, { size: 0.4 });
-      }, { on: during(12.7, 15.3), depth: (t) => { const p = visitorAt(v, t); return p ? porchDepth(p) : 0; } });
+      }, { on: during(12.7, 15.3), depth: (t) => { const p = visitorAt(v, t); return p ? inDepth(p) : 0; } });
     }
 
     // The lady in the housecoat, and her prints.
     R.mover((t) => LADY(H(t)), (ctx, t, p) => {
       person(ctx, p.x, p.y, 0, { ...ladyLook(true, p.pose === 'walk'), pose: p.pose, dir: p.dir, back: p.back }, t);
       if (p.say && Q.detail) speech(ctx, p.x, p.y, 2.6, p.say, { size: 0.42 });
-    }, { on: during(...OPEN_HOUSE), depth: (t) => porchDepth(LADY(H(t))) });
+    }, { on: during(...OPEN_HOUSE), depth: (t) => inDepth(LADY(H(t))) });
     R.thing(0, 0, (ctx, t) => {
       const h = H(t), fade = h > 15.4 ? Math.max(0, 1 - (h - 15.4) / 0.55) : 1;
       if (fade <= 0) return;

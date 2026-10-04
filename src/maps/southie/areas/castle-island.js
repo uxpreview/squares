@@ -28,7 +28,7 @@ import { drawLand } from '../../../engine/terrain.js';
 import { route } from '../../../engine/actors.js';
 import { land, h } from '../land.js';
 import { MCKAY, SUGAR_BOWL, GROUND, LOOP } from '../plan.js';
-import { hour, at, between, nightK, rainK, wetK, AFTER } from '../clock.js';
+import { hour, at, between, nightK, rainK, wetK } from '../clock.js';
 import { car, lawnChair, lettering, umbrella, bench, LAMP_H, streetlight as kitLight, gullStand, cupHeld, line3 as line } from '../kit.js';
 import { CARS, INK, LIT, LAND, EVENING, CUP, BRAND } from '../style.js';
 import { planeAt } from '../ambient.js';
@@ -353,6 +353,9 @@ const N = 8, M = N + 2, GOOSE_M = 3;
 // day, so the loop comes round to the same faces.
 const T_OPEN = at(11), T_CLOSE = at(21), STEPS = 30, STEP = (T_CLOSE - T_OPEN) / STEPS;
 const isOpen = between(11, 21);
+// The Courier's second hot dog, set down for later once he's had his first
+// (day.js has him at the stand from about 3:30).
+const LATER = { when: between(15.8, 5), note: 'after 4pm' };
 function qclock(t) {
   const s = mod(t, LOOP);
   if (s < T_OPEN) return { u: 0, open: false };
@@ -716,7 +719,10 @@ export default {
         const hr = hh(t), open = isOpen(t);
         const z = gz(p.x, p.y);
         const night = !open && (hr >= 21.2 || hr < 6.5);
-        const chair = night && p.p >= 1 && mod(p.id, 2) === 0;
+        // (Whoever's either side of the goose stands, so its umbrella clears
+        // their chair and its feet aren't under one.)
+        const gq = night ? qstate(GOOSE_M, t) : null;
+        const chair = night && p.p >= 1 && mod(p.id, 2) === 0 && !(gq && Math.abs(p.p - gq.p) < 1.5);
         const up = overhead(t);
         let hold = null;
         if (p.served) hold = mod(p.id, 2) ? friesHeld : hotdogHeld;
@@ -816,12 +822,14 @@ export default {
     R.thing(67.951, 4.65, (ctx) => veil(ctx, [boxPts(65.0, 2.35, G, 2.95, 2.3, 3.0)], alpha(C.night, 0.2)), { ...byNight, depth: 69.601 });
     // The decoy: a foil goose balloon from somebody's birthday, tied to the
     // canopy's front post, bobbing over the tables all day and all night.
-    const BAL = [64.55, 5.15, G + 3.75];
+    // (On the post nearer the stand: tied to the far one it floated up the
+    // screen onto the plane spotters' heads, a goose standing on a hat.)
+    const BAL = [68.5, 5.25, G + 3.3], POST = [67.95, 4.65];
     const balAt = (t) => [BAL[0] + Math.sin(t * 0.9) * 0.08, BAL[1] + Math.cos(t * 0.7) * 0.05, BAL[2] + Math.sin(t * 1.3) * 0.08];
     R.thing(BAL[0] + 0.6, BAL[1] + 0.6, (ctx, t) => {
       const [x, y, z] = balAt(t);
       // The string, curling down to the post.
-      const [X0, Y0] = P3(65.0, 4.65, G + 2.2), [X1, Y1] = P3(x, y, z - 0.05);
+      const [X0, Y0] = P3(POST[0], POST[1], G + 2.2), [X1, Y1] = P3(x, y, z - 0.05);
       ctx.beginPath(); ctx.moveTo(X0, Y0); ctx.quadraticCurveTo(X0 - 0.3, (Y0 + Y1) / 2 + Math.sin(t * 1.1) * 0.1, X1, Y1);
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
       ctx.save(); ctx.translate(X1, Y1); ctx.rotate(Math.sin(t * 0.8) * 0.06);
@@ -864,28 +872,14 @@ export default {
     R.thing(80.6, FY + 0.1, (ctx, t) => { gullStand(ctx, 80.05, FY, G + FH + 0.25, t, false, -1); gullStand(ctx, 86.0, FY, G + FH + 0.25, t + 1, true, 1); }, { anim: true, depth: 86 + FY + 0.1 });
 
     // ---------- The Courier's lunch ----------
-    // He's on the level's clock (day.js); here, a hot dog in his hand while
-    // he stands at the end of the stand, one after another, and a trash can.
+    // He's on the level's clock (day.js), which gives him his one with
+    // everything; here, the trash can at the end of the stand, where he
+    // leaves the other. (No second hot dog in his hand: one plain one, eaten
+    // over and over beside the box, read as the find.)
     R.thing(80.9, 3.0, (ctx) => {
       box(ctx, 80.6, 2.7, G, 0.6, 0.6, 1.0, C.green, { lw: 0.03, dens: 0.14 });
       box(ctx, 80.56, 2.66, G + 1.0, 0.68, 0.68, 0.08, shade(C.green, 0.2), { flat: true, lw: 0.025 });
     });
-    const courier = (R.walkers || []).find((w) => w.id === 'courier');
-    if (courier) {
-      R.mover((t) => {
-        const p = courier.at(t);
-        if (!p || p.moving || Math.hypot(p.x - 80, p.y - 3.8) > 0.6) return HIDE;
-        return { x: p.x, y: p.y, z: p.z || G, dir: p.dir };
-      }, (ctx, t, p) => {
-        if (p.hide) return;
-        const f = p.dir === 'l' ? -1 : 1;
-        const [X, Y] = P3(p.x, p.y, p.z);
-        const bite = frac(t / 9);
-        ctx.save(); ctx.translate(X + f * 0.42, Y - 1.3); ctx.scale(f, 1);
-        dogShape(ctx, 1 - bite * 0.8);
-        ctx.restore();
-      }, { bias: 0.05 });
-    }
 
     // ---------- The one for later (after noon) ----------
     // He orders two, eats one, and leaves the other in its foam box on the
@@ -893,9 +887,9 @@ export default {
     // bare all morning, so the flip shows it. A tap opens the box: a hot dog
     // with everything.
     const CL = [80.62, 2.78, G + 1.08], CW = 0.56, CD = 0.42, CH = 0.12;
-    const shell = R.poke({ id: 'clamshell', at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, when: AFTER.when, sound: 'clunk', say: ['FOR LATER, it says.', 'Still warm. Somehow.'] });
+    const shell = R.poke({ id: 'clamshell', at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, when: LATER.when, sound: 'clunk', say: ['FOR LATER, it says.', 'Still warm. Somehow.'] });
     R.thing(81.25, 3.36, (ctx, t) => {
-      if (!AFTER.when(t)) return;
+      if (!LATER.when(t)) return;
       const [x, y, z] = CL, k = shell.k();
       const foam = tint(C.greyLight, 0.55);
       box(ctx, x, y, z, CW, CD, CH, foam, { lw: 0.025, top: shade(foam, 0.12) });
@@ -918,8 +912,8 @@ export default {
         loadedDog(ctx, x + CW / 2, y + CD / 2, hz + 0.02);
       };
       if (th > Math.PI / 2) { lid(); dog(); } else { dog(); lid(); }
-    }, { anim: true, on: AFTER.when, depth: 81.25 + 3.36 + 0.02 });
-    R.find({ id: 'hotdog', label: 'A hot dog with everything', kind: 'poke', ...AFTER, at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, inside: shell, hint: 'The Courier bought two and only ate one. He set the other one down for later.' });
+    }, { anim: true, on: LATER.when, depth: 81.25 + 3.36 + 0.02 });
+    R.find({ id: 'hotdog', label: 'A hot dog with everything', kind: 'poke', ...LATER, at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, inside: shell, hint: 'The Courier bought two and only ate one. He set the other one down for later.' });
 
     // ---------- The plane spotters, by the fence ----------
     const spot = between(6.5, 20.5);

@@ -47,7 +47,9 @@ function ownerLine(t) {
 // tub filling, the rain; the party from one, out on the balcony from half
 // past three, and asleep on the chaise.
 const OWNER = track([
-  [7.0, 1.6, 7.0, { dir: 'l' }], [7.6, 1.6, 7.0, { dir: 'l' }], [7.7, 7.2, 5.0, { dir: 'l' }], [8.4, 7.2, 5.0, { dir: 'l' }],
+  // (By the window's front end, clear of the Gander Cola standee, then round
+  // it and between the island's stools and the coffee table.)
+  [7.0, 0.8, 7.9, { dir: 'l' }], [7.6, 0.8, 7.9, { dir: 'l' }], [7.63, 1.3, 6.6], [7.67, 4.8, 5.1], [7.7, 7.2, 5.0, { dir: 'l' }], [8.4, 7.2, 5.0, { dir: 'l' }],
   [8.55, 12.0, 1.2], [8.62, 13.0, 1.8, { dir: 'r' }], [9.55, 13.0, 1.8, { dir: 'r', say: 'Can I get in yet?' }],
   [9.62, 12.0, 1.2], [9.8, 9.4, 4.9, { pose: 'sit', dir: 'r', z: 0.05 }], [12.8, 9.4, 4.9, { pose: 'sit', dir: 'r', z: 0.05 }],
   [12.95, 4.5, 3.6, { dir: 'l' }], [15.35, 4.5, 3.6, { dir: 'l' }],
@@ -294,7 +296,7 @@ export default {
     // The party: guests at the island and the wine fridge, two on the sectional.
     const GUESTS = [
       { at: [1.9, 4.95], dir: 'r', look: folk(1021, { dress: true, top: C.coral }), talk: true },
-      { at: [1.5, 5.6], dir: 'l', look: folk(1022, { top: C.mustard, dress: false }), pour: true },
+      { at: [1.5, 5.6], dir: 'r', look: folk(1022, { top: C.mustard, dress: false }), pour: true },
       { at: [10.45, 3.75], sit: true, dir: 'r', look: folk(1023, { top: C.teal, dress: false, style: 'bun' }) },
       { at: [11.05, 3.75], sit: true, dir: 'r', look: folk(1024, { top: C.purple, dress: false }) },
     ];
@@ -413,14 +415,20 @@ export default {
       half(ctx, 1, z, f ? 0.24 : 0.12, k);
       if (k > 0.6) bird();
       if (k < 0.3) {
-        // The tail tip: a white wedge out from under the front edge, grey at the end.
-        const [X0, Y0] = P(TUB[0] + 0.27, TUB[1] + 0.76, z + 0.04);
-        ctx.save(); ctx.translate(X0, Y0); ctx.scale(1.5, 1.5);
-        const X = 0, Y = 0, wag = Math.sin(t * 2.5) > 0.9 ? 0.03 : 0;
-        ctx.beginPath(); ctx.moveTo(X - 0.16, Y - 0.04); ctx.lineTo(X + 0.12 + wag, Y + 0.12); ctx.lineTo(X + 0.18 + wag, Y - 0.02); ctx.lineTo(X + 0.02, Y - 0.1); ctx.closePath();
+        // The tail tip: three white feathers fanned out from under the front
+        // edge, grey at the points. (Big enough to read as a tail on a phone,
+        // not a scrap of paper, and left of the balcony's corner post, which
+        // cut it in two.)
+        const [X0, Y0] = P(TUB[0] - 0.02, TUB[1] + 0.8, z + 0.06);
+        ctx.save(); ctx.translate(X0, Y0); ctx.scale(2.3, 2.3);
+        ctx.rotate(Math.sin(t * 2.5) > 0.9 ? 0.12 : 0);
+        const tips = [[-0.2, -0.2], [-0.25, -0.07], [-0.18, 0.05]];
+        ctx.beginPath(); ctx.moveTo(0.06, -0.12);
+        tips.forEach(([tx, ty], i) => { ctx.lineTo(tx, ty); if (i < 2) ctx.lineTo(tx * 0.62, (ty + tips[i + 1][1]) / 2); });
+        ctx.lineTo(0.06, 0.03); ctx.closePath();
         paint(ctx, C.white, { lw: 0.025 });
-        ctx.beginPath(); ctx.moveTo(X + 0.08 + wag, Y + 0.09); ctx.lineTo(X + 0.12 + wag, Y + 0.12); ctx.lineTo(X + 0.18 + wag, Y - 0.02); ctx.lineTo(X + 0.13 + wag, Y - 0.01); ctx.closePath();
-        ctx.fillStyle = C.grey; ctx.fill();
+        ctx.fillStyle = C.grey;
+        for (const [tx, ty] of tips) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx * 0.72, ty - 0.035); ctx.lineTo(tx * 0.72, ty + 0.035); ctx.closePath(); ctx.fill(); }
         ctx.restore();
       }
     }, { anim: true, depth: 19.36 });

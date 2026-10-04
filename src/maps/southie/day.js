@@ -258,13 +258,13 @@ function scanner(g, t, beam) {
   g.restore();
   if (beam && Q.detail && now(t, 1.3, 0.35)) stroke(g, [[0.62, -0.24], [0.95, -0.55]], alpha(C.red, 0.85), 0.03);
 }
-// A hot dog in its paper boat, one with everything (relish and mustard).
+// A hot dog in its paper boat, plain (the one with everything he's saving
+// for later, in its box on the bin at Castle Island).
 function hotdog(g) {
   g.save(); g.translate(0.5, -0.02);
   g.beginPath(); g.moveTo(-0.22, -0.02); g.lineTo(0.22, -0.02); g.lineTo(0.17, 0.08); g.lineTo(-0.17, 0.08); g.closePath(); paint(g, C.white, { lw: 0.02 });
   g.beginPath(); g.ellipse(0, -0.06, 0.22, 0.07, 0, 0, Math.PI * 2); paint(g, C.woodLight, { lw: 0.02 });
   g.beginPath(); g.ellipse(0, -0.1, 0.24, 0.045, 0, 0, Math.PI * 2); paint(g, C.coral, { lw: 0.02 });
-  if (Q.detail) { stroke(g, [[-0.16, -0.13], [-0.08, -0.1], [0, -0.13], [0.08, -0.1], [0.16, -0.13]], C.mustard, 0.03); g.fillStyle = C.green; g.fillRect(-0.1, -0.16, 0.06, 0.03); g.fillRect(0.05, -0.16, 0.05, 0.03); }
   g.restore();
 }
 // An iced coffee, in the hand (the donut shop's, no name).
@@ -440,7 +440,8 @@ const courier = walker('courier', 'Courier', 7, [
     const upstairs = w.z > G + 0.5;
     const top = w.z > G + FH * 1.5;
     const rain = wet(t, w);
-    // He orders as he gets there (One with everything.), then eats it walking back.
+    // He orders two as he gets there, leaves the one with everything on the
+    // bin for later (castle-island.js), and eats the plain one walking back.
     const hotdogOut = h > 15.8 && h < 17.4;
     let hold, arms, speak = p.say, pose;
     if (atVan) {
@@ -457,7 +458,7 @@ const courier = walker('courier', 'Courier', 7, [
     } else if (lunch && !w.moving) {
       hold = (g) => { parcel(g, { under: true, flip }); if (hotdogOut) hotdog(g); };
       arms = [0.5, 0.1];
-      speak = hotdogOut ? lines(t, ['Worth it.', 'Relish. Good.'], 8, 2.6) : p.say;
+      speak = hotdogOut ? lines(t, ['Worth it.', 'Saving the good one.'], 8, 2.6) : p.say;
     } else {
       hold = (g) => { parcel(g, { under: true, flip }); if (hotdogOut && lunch) hotdog(g); };
     }
