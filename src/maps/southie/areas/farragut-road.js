@@ -544,7 +544,9 @@ export default {
     // Its roll-up door, the goose's hiding place: a tap rolls it up. Its twin
     // is the Courier's van down the curb, doors shut, full of parcels.
     const RY = SY + 3.5, DOOR_Z0 = G + 0.55, DOOR_Z1 = G + 3.5;
-    const cargo = R.poke({ id: 'cargo', at: [SX, RY, G + 1.9], r: 1.0, sound: 'clunk', say: ['HONK!', 'Rude.'] });
+    // (Its tap spot reaches from the top of the door up to the tail in the
+    // roof: the tail is what a player taps.)
+    const cargo = R.poke({ id: 'cargo', at: [SX + 0.2, RY - 0.65, G + 2.85], r: 1.0, sound: 'clunk', say: ['HONK!', 'Rude.'] });
     R.thing(SX + 1.22, RY + 0.02, (ctx) => {
       const k = cargo.k(), bot = DOOR_Z0 + (DOOR_Z1 - 0.35 - DOOR_Z0) * k;
       const x0 = SX - 1.1, x1 = SX + 1.1, y = RY + 0.012;
@@ -855,6 +857,12 @@ export default {
     R.thing(MIRROR[0] + 0.4, MIRROR[1] + 0.3, (ctx) => {
       const [x, y, z] = MIRROR;
       if (Q.detail) { ctx.save(); ctx.globalAlpha *= 0.18; disc(ctx, x, y, z + 0.005, 0.5, C.ink, { stroke: false }); ctx.restore(); }
+      // Other things the morning shed in the road round it (alone on bare
+      // asphalt it jumped out): a flattened box, a hubcap, a lid.
+      face(ctx, [[x - 1.1, y + 0.3, z + 0.01], [x - 0.3, y + 0.55, z + 0.01], [x - 0.45, y + 1.25, z + 0.01], [x - 1.25, y + 1.0, z + 0.01]], C.woodLight, { lw: 0.025 });
+      disc(ctx, x + 0.75, y + 0.65, z + 0.02, 0.28, C.greyLight, { lw: 0.025 });
+      if (Q.detail) disc(ctx, x + 0.75, y + 0.65, z + 0.03, 0.1, C.grey, { lw: 0.015 });
+      disc(ctx, x - 0.6, y - 0.9, z + 0.02, 0.15, C.white, { lw: 0.02 });
       box(ctx, x - 0.18, y - 0.4, z, 0.36, 0.8, 0.22, C.black, { flat: true, lw: 0.03, top: shade(C.black, 0.1) });
       face(ctx, [[x + 0.19, y - 0.34, z + 0.03], [x + 0.19, y + 0.34, z + 0.03], [x + 0.19, y + 0.34, z + 0.2], [x + 0.19, y - 0.34, z + 0.2]], tint(C.sky, 0.3), { lw: 0.02 });
       // The bracket arm, bent, and a wire.

@@ -294,6 +294,11 @@ function gooseBrolly(ctx, x, y, z, f, wob = 0) {
   // The tail tip out behind, drawn again so it clears the rim.
   ctx.beginPath(); ctx.moveTo(-0.36, -0.62); ctx.lineTo(-0.62, -0.74); ctx.lineTo(-0.4, -0.52); ctx.closePath();
   paint(ctx, C.white, { lw: 0.035 });
+  // Its beak, poking out past the rim all the time (the playtest's phone
+  // couldn't see the feet alone): orange, white cheek behind it.
+  ctx.beginPath(); ctx.ellipse(cx + rx - 0.06, cy + 0.12, 0.09, 0.08, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(cx + rx - 0.0, cy + 0.08); ctx.lineTo(cx + rx + 0.26, cy + 0.15); ctx.lineTo(cx + rx - 0.0, cy + 0.2); ctx.closePath();
+  paint(ctx, mix(C.coral, C.mustard, 0.45), { lw: 0.03 });
   // The canopy: scallops between the rib tips.
   ctx.beginPath();
   for (let i = 0; i <= n; i++) {
@@ -438,7 +443,7 @@ function shipBow(t) {
 export default {
   id: 'castle-island',
   name: 'Castle Island',
-  blurb: 'The hot dog line is the same length at noon, in the rain and at midnight. Flip to after noon: the Courier is on his lunch break.',
+  blurb: 'The hot dog line is the same length at noon, in the rain and at midnight. Flip the clock: somebody\'s saving lunch for later.',
   home: [76, 6],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: { ...EVENING, island: EVENING.lawn } });
@@ -875,14 +880,15 @@ export default {
 
     // ---------- The Courier's lunch ----------
     // He's on the level's clock (day.js), which gives him his one with
-    // everything; here, the trash can at the end of the stand, where he
+    // everything; here, the trash can by the picnic tables, where he
     // leaves the other. (No second hot dog in his hand: one plain one, eaten
     // over and over beside the box, read as the find.)
-    R.thing(80.9, 3.0, (ctx) => {
-      // (A tall one, so it shows over the fort's near rampart.)
-      box(ctx, 80.6, 2.7, G, 0.6, 0.6, 1.35, C.green, { lw: 0.03, dens: 0.14 });
-      box(ctx, 80.56, 2.66, G + 1.35, 0.68, 0.68, 0.08, shade(C.green, 0.2), { flat: true, lw: 0.025 });
-      if (Q.detail) box(ctx, 81.2, 2.85, G + 0.95, 0.01, 0.3, 0.12, shade(C.green, 0.45), { flat: true, stroke: false });
+    // (By the picnic tables' far end, clear of the fort: behind its rampart, at
+    // the stand's far end, the playtest's phone never saw it.)
+    R.thing(68.0, 3.6, (ctx) => {
+      box(ctx, 67.7, 3.3, G, 0.6, 0.6, 1.35, C.green, { lw: 0.03, dens: 0.14 });
+      box(ctx, 67.66, 3.26, G + 1.35, 0.68, 0.68, 0.08, shade(C.green, 0.2), { flat: true, lw: 0.025 });
+      if (Q.detail) box(ctx, 68.3, 3.45, G + 0.95, 0.01, 0.3, 0.12, shade(C.green, 0.45), { flat: true, stroke: false });
     });
 
     // ---------- The one for later (after noon) ----------
@@ -891,7 +897,7 @@ export default {
     // bare all morning, so the flip shows it. A tap opens the box: a hot dog
     // with everything.
     // (Big enough to read on a phone, overhanging the lid a little.)
-    const CL = [80.42, 2.6, G + 1.43], CW = 0.95, CD = 0.78, CH = 0.24;
+    const CL = [67.52, 3.2, G + 1.43], CW = 0.95, CD = 0.78, CH = 0.24;
     const shell = R.poke({ id: 'clamshell', at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, when: LATER.when, sound: 'clunk', say: ['FOR LATER, it says.', 'Still warm. Somehow.'] });
     R.thing(81.4, 3.4, (ctx, t) => {
       if (!LATER.when(t)) return;
@@ -917,7 +923,7 @@ export default {
         loadedDog(ctx, x + CW / 2, y + CD / 2, hz + 0.02);
       };
       if (th > Math.PI / 2) { lid(); dog(); } else { dog(); lid(); }
-    }, { anim: true, on: LATER.when, depth: 81.4 + 3.4 + 0.02 });
+    }, { anim: true, on: LATER.when, depth: 68.5 + 4.0 + 0.02 });
     R.find({ id: 'hotdog', label: 'A hot dog with everything', kind: 'poke', ...LATER, at: [CL[0] + CW / 2, CL[1] + CD / 2, CL[2] + 0.2], r: 0.8, inside: shell, hint: 'The Courier bought two and only ate one. He set the other one down for later.' });
 
     // ---------- The plane spotters, by the fence ----------

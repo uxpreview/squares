@@ -457,6 +457,20 @@ export default {
           const look = Math.floor(t / 1.8) % 2;
           hamster(c, x + 0.55, y + 0.5, 0.5 + k * 0.62, t, { dir: look ? 'l' : 'r', cheeks: true, scale: 1.45 });
         }, { word });
+        // Shut, the box still gives it away: a chewed hole in its front with a
+        // pink nose and whiskers in it, and sunflower seeds spilled in front.
+        if (k < 0.05) {
+          const [X, Y] = P(x + 0.5 + jig, y + 1.005 - jig, 0.42);
+          ctx.beginPath(); ctx.ellipse(X, Y, 0.13, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.02 });
+          ctx.beginPath(); ctx.arc(X + 0.01, Y + 0.01, 0.045, 0, Math.PI * 2); paint(ctx, C.pink, { lw: 0.015 });
+          if (Q.detail) {
+            ctx.strokeStyle = C.ink; ctx.lineWidth = 0.012; ctx.beginPath();
+            for (const s of [-1, 1]) { ctx.moveTo(X + s * 0.05, Y); ctx.lineTo(X + s * 0.2, Y - 0.03); ctx.moveTo(X + s * 0.05, Y + 0.02); ctx.lineTo(X + s * 0.2, Y + 0.05); }
+            ctx.stroke();
+          }
+          ctx.fillStyle = C.ink;
+          for (const [u, v] of [[0.35, 1.25], [0.55, 1.4], [0.42, 1.55], [0.7, 1.3], [0.62, 1.7]]) { const [sx, sy] = P(x + u, y + v, 0.01); ctx.beginPath(); ctx.ellipse(sx, sy, 0.04, 0.022, 0.4, 0, Math.PI * 2); ctx.fill(); }
+        }
         // Wiggle lines either side while it shivers.
         if (jig && Q.detail) {
           ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.lineCap = 'round';

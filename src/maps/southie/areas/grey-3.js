@@ -570,7 +570,7 @@ export default {
     }, { depth: 19.945 });
     R.find({
       id: 'level', label: 'Something the builders forgot', kind: 'hard', at: [RX, (LV[0] + LV[1]) / 2, RZ], r: 0.65, out: true, ...AFTER,
-      riddle: 'It was on the rail at breakfast. Flip back and look.',
+      riddle: 'At breakfast it had company on the rail. Flip back and look.',
       hint: 'The builders packed up everything but one tool. Look along the balcony rail.',
     });
 

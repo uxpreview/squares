@@ -661,7 +661,7 @@ export default {
     }, { on: after });
     R.find({
       id: 'heater', label: 'Something meant for upstairs', kind: 'hard', at: [HX + 0.3, HY + 0.3, 1.0], r: 0.75, ...AFTER,
-      riddle: 'Not here this morning. Flip back and look.',
+      riddle: 'The movers can\'t count stairs. Flip back: which box is new?',
       hint: 'One of the new boxes says FL 3. This is the second floor.',
     });
     // The seller, taping his last box: off to the Seaport.

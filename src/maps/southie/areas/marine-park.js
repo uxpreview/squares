@@ -22,7 +22,7 @@
 // gulls, and pigeons on the Admiral.
 //
 // World units, like plan.js and land.js (this area sits at the map's corner).
-import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha, cylinder, note, paintText, goose } from '../../../engine/art.js';
+import { C, Q, box, face, disc, paint, person, folk, speech, mix, tint, shade, alpha, cylinder, note, paintText, goose, P } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { route } from '../../../engine/actors.js';
 import { drawLand, wade } from '../../../engine/terrain.js';
@@ -496,8 +496,9 @@ export default {
       // The playground's wood chips.
       const pz = gz(PG[0] + 2, PG[1] + 2.2) + 0.02;
       face(ctx, [[PG[0], PG[1], pz], [PG[0] + 4.9, PG[1], pz], [PG[0] + 4.9, PG[1] + 4.9, pz], [PG[0], PG[1] + 4.9, pz]], CHIPS, { lw: 0.04, dots: shade(CHIPS, 0.4), density: 0.3 });
-      // Footprints to the water: one bare foot, one flip-flop.
-      if (Q.detail) for (let i = 0; i < 7; i++) {
+      // Footprints to the water: one bare foot, one flip-flop. (They stop
+      // short of it: a trail right up to it made a hard find easy.)
+      if (Q.detail) for (let i = 0; i < 4; i++) {
         const x = 44.2 + i * 0.52, y = 35.6 + i * 0.36 + (i % 2) * 0.28;
         disc(ctx, x, y, gz(x, y) + 0.01, i % 2 ? 0.11 : 0.13, alpha(shade(SAND, 0.35), 0.8), { stroke: false });
       }
@@ -731,8 +732,17 @@ export default {
           pickleJar(ctx, cx + 0.14, cy + 0.02, top - 0.12);
           if (Q.detail) { box(ctx, cx - 0.25, cy - 0.15, top - 0.1, 0.12, 0.12, 0.28, C.red, { flat: true, lw: 0.02 }); disc(ctx, cx - 0.2, cy + 0.12, top, 0.08, C.butter, { lw: 0.015 }); }
         }
-        // The lid, hinged at its back edge (shut, a crack shows, a fork handle in it).
-        const L = 0.84, ux = Math.cos(a) * L, uz = Math.sin(a) * L + (k < 0.05 ? 0.03 : 0);
+        // Shut, it won't quite: the jar is too tall, so the lid rides up on its
+        // gold top, which shows in the gap, and a pickle hangs over the rim.
+        if (k < 0.05) {
+          disc(ctx, cx + 0.14, cy + 0.02, top + 0.02, 0.15, C.mustard, { lw: 0.02 });
+          if (Q.detail) {
+            const [X, Y] = P(cx + 0.42, cy + 0.1, top - 0.02);
+            ctx.beginPath(); ctx.ellipse(X, Y + 0.09, 0.05, 0.13, 0.15, 0, Math.PI * 2); paint(ctx, mix(C.green, C.ink, 0.25), { lw: 0.018 });
+          }
+        }
+        // The lid, hinged at its back edge (shut, propped open a crack on the jar).
+        const L = 0.84, ux = Math.cos(a) * L, uz = Math.sin(a) * L + (k < 0.05 ? 0.16 : 0);
         face(ctx, [[hx, cy - 0.3, top], [hx, cy + 0.3, top], [hx + ux, cy + 0.3, top + uz], [hx + ux, cy - 0.3, top + uz]], C.teal, { lw: 0.03 });
         face(ctx, [[hx + ux, cy - 0.3, top + uz], [hx + ux, cy + 0.3, top + uz], [hx + ux, cy + 0.3, top + uz + 0.1], [hx + ux, cy - 0.3, top + uz + 0.1]], shade(C.teal, 0.15), { lw: 0.025 });
         face(ctx, [[hx, cy + 0.3, top], [hx + ux, cy + 0.3, top + uz], [hx + ux, cy + 0.3, top + uz + 0.1], [hx, cy + 0.3, top + 0.1]], shade(C.teal, 0.25), { lw: 0.025 });
