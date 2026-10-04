@@ -399,10 +399,17 @@ export default {
         }
       }, (c) => {
         // A corner of a twenty, caught under the lid.
+        // Big enough to read on a phone: a green bill corner hanging out over
+        // the front, a 20 printed on it.
         const [X, Y] = P(DX + 0.12, DY + 0.18, DZ + 0.31);
-        c.beginPath(); c.moveTo(X - 0.08, Y - 0.04); c.lineTo(X + 0.2, Y - 0.12); c.lineTo(X + 0.26, Y + 0.06); c.lineTo(X - 0.02, Y + 0.12); c.closePath();
-        paint(c, C.leaf, { lw: 0.018 });
-        if (Q.detail) { c.beginPath(); c.arc(X + 0.13, Y, 0.035, 0, Math.PI * 2); c.strokeStyle = shade(C.green, 0.3); c.lineWidth = 0.012; c.stroke(); }
+        c.beginPath(); c.moveTo(X - 0.12, Y - 0.06); c.lineTo(X + 0.34, Y - 0.2); c.lineTo(X + 0.44, Y + 0.14); c.lineTo(X - 0.02, Y + 0.26); c.closePath();
+        paint(c, C.leaf, { lw: 0.022 });
+        c.beginPath(); c.moveTo(X - 0.04, Y - 0.01); c.lineTo(X + 0.29, Y - 0.11); c.lineTo(X + 0.36, Y + 0.1); c.lineTo(X + 0.03, Y + 0.19); c.closePath();
+        c.strokeStyle = shade(C.green, 0.35); c.lineWidth = 0.014; c.stroke();
+        c.save(); c.translate(X + 0.17, Y + 0.05); c.rotate(-0.3); c.scale(1 / 40, 1 / 40);
+        c.font = '7px "Bagel Fat One", "Arial Black", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillStyle = shade(C.green, 0.45); c.fillText('20', 0, 0);
+        c.restore();
       });
     }, { anim: true, depth: 5.65 });
     // The stove, and the percolator on it (its glass knob bubbling).
@@ -469,9 +476,15 @@ export default {
         const [X, Y] = P(2.8, 6.95, 1.47 + 0.1 * k);
         c.beginPath(); c.arc(X, Y, 0.08, 0, Math.PI * 2); paint(c, C.coral, { lw: 0.015 });
       }, (c) => {
-        // A red thread caught under the lid, and its needle.
-        line3(c, [[2.87, 7.08, 1.44], [2.97, 7.16, 1.36], [2.92, 7.2, 1.25], [3.0, 7.25, 1.17]], C.red, 0.025);
-        line3(c, [[2.98, 7.24, 1.17], [3.12, 7.3, 1.17]], C.greyLight, 0.02);
+        // Sewing, plainly: a tomato pincushion sat on the lid, pins in it,
+        // and a long red thread looping down the side to a needle on the
+        // table. Nothing green, nothing paper.
+        const [X, Y] = P(2.75, 6.9, 1.52);
+        c.beginPath(); c.ellipse(X, Y - 0.06, 0.14, 0.1, 0, 0, Math.PI * 2); paint(c, C.red, { lw: 0.02 });
+        c.beginPath(); c.ellipse(X, Y - 0.15, 0.05, 0.025, 0, 0, Math.PI * 2); c.fillStyle = C.leaf; c.fill();
+        for (const [dx, col] of [[-0.07, C.mustard], [0.03, C.white], [0.09, C.sky]]) { c.beginPath(); c.moveTo(X + dx, Y - 0.08); c.lineTo(X + dx * 1.3, Y - 0.24); c.strokeStyle = C.greyLight; c.lineWidth = 0.012; c.stroke(); c.beginPath(); c.arc(X + dx * 1.3, Y - 0.25, 0.022, 0, Math.PI * 2); c.fillStyle = col; c.fill(); }
+        line3(c, [[2.87, 7.04, 1.48], [2.98, 7.14, 1.38], [2.9, 7.2, 1.26], [3.05, 7.3, 1.17], [3.25, 7.3, 1.17]], C.red, 0.03);
+        line3(c, [[3.22, 7.28, 1.17], [3.42, 7.36, 1.17]], C.greyLight, 0.025);
       });
     }, { anim: true });
     // Dot: scratching, commenting, at the table from seven till the game.
@@ -555,16 +568,27 @@ export default {
     // The ring of spare keys: a big steel ring, a dozen keys, paper tags.
     R.thing(5.9, 4.05, (ctx) => {
       const [X, Y] = P(5.2, 2.95, 1.21);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.15, 0, 0, Math.PI * 2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.075; ctx.stroke();
-      ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.04; ctx.stroke();
-      const cols = [C.mustard, C.greyLight, C.mustard, C.grey, C.mustard, C.greyLight, C.coral, C.mustard, C.greyLight, C.mustard, C.teal, C.greyLight];
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2, ex = X + Math.cos(a) * 0.3, ey = Y + Math.sin(a) * 0.15;
-        const ox = Math.cos(a) * 0.32, oy = Math.sin(a) * 0.16;
-        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + ox, ey + oy); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.stroke();
-        ctx.strokeStyle = cols[i]; ctx.lineWidth = 0.055; ctx.stroke();
-        if (i % 3 === 0 && Q.detail) { ctx.beginPath(); ctx.rect(ex + ox - 0.06, ey + oy - 0.03, 0.14, 0.09); paint(ctx, C.white, { lw: 0.012 }); }
+      // A big ring, keys hanging off the front half of it (each a round bow
+      // and a toothed blade, so it reads as keys, not bristles), and a red
+      // leather fob with a white tag: HOUSE.
+      const rx = 0.36, ry = 0.18;
+      ctx.beginPath(); ctx.ellipse(X, Y, rx, ry, 0, 0, Math.PI * 2); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.085; ctx.stroke();
+      ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.045; ctx.stroke();
+      const cols = [C.mustard, C.greyLight, C.mustard, C.greyLight, C.mustard, C.greyLight, C.mustard];
+      for (let i = 0; i < 7; i++) {
+        const a = 0.25 + (i / 6) * (Math.PI - 0.5), ex = X + Math.cos(a) * rx, ey = Y + Math.sin(a) * ry;
+        ctx.save(); ctx.translate(ex, ey); ctx.rotate(a - Math.PI / 2 + (i - 3) * 0.08);
+        // The bow (round head), with its hole, then the blade with teeth.
+        ctx.beginPath(); ctx.arc(0, 0.1, 0.075, 0, Math.PI * 2); paint(ctx, cols[i], { lw: 0.022 });
+        ctx.beginPath(); ctx.arc(0, 0.1, 0.022, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-0.03, 0.17); ctx.lineTo(0.03, 0.17); ctx.lineTo(0.03, 0.42);
+        ctx.lineTo(-0.01, 0.46); ctx.lineTo(-0.03, 0.42); ctx.lineTo(-0.065, 0.38); ctx.lineTo(-0.03, 0.35); ctx.lineTo(-0.065, 0.31); ctx.lineTo(-0.03, 0.28); ctx.closePath();
+        paint(ctx, cols[i], { lw: 0.022 });
+        ctx.restore();
       }
+      // The fob, off the back of the ring.
+      ctx.beginPath(); ctx.roundRect(X - rx - 0.3, Y - 0.12, 0.3, 0.2, 0.05); paint(ctx, C.red, { lw: 0.025 });
+      ctx.beginPath(); ctx.roundRect(X - rx - 0.25, Y - 0.08, 0.2, 0.11, 0.02); paint(ctx, C.white, { lw: 0.012 });
     });
 
     // Her raincoat on the coat tree, a plastic rain bonnet on top.
@@ -598,23 +622,28 @@ export default {
       if (k < 0.5) {
         // Under the plastic: the goose, muffled, the cover tight over it
         // and rising and falling, the beak pushing it out to a point.
-        drawGoose(ctx, GX, GY, GZ, 0, { dir: 'r', pose: 'sit' });
+        // The cover is frosted (old vinyl gone cloudy), so no goose shows:
+        // a goose-sized lump, rising and falling, and the beak tenting the
+        // plastic out to a point, a dull orange where it's pressed thin.
         const [X, Y] = P(GX, GY, GZ), b = Math.sin(t * 1.7) * 0.025;
+        const frost = mix(C.white, C.greyLight, 0.35);
         ctx.beginPath();
         ctx.moveTo(X - 0.62, Y - 0.05);
-        ctx.quadraticCurveTo(X - 0.7, Y - 0.6 - b, X - 0.1, Y - 0.72 - b);
-        ctx.quadraticCurveTo(X + 0.15, Y - 1.12 - b, X + 0.36, Y - 1.0 - b);
-        ctx.lineTo(X + 0.66, Y - 0.86);
+        ctx.quadraticCurveTo(X - 0.72, Y - 0.62 - b, X - 0.1, Y - 0.7 - b);
+        ctx.quadraticCurveTo(X + 0.12, Y - 1.12 - b, X + 0.36, Y - 1.02 - b);
+        ctx.lineTo(X + 0.68, Y - 0.88);
         ctx.quadraticCurveTo(X + 0.5, Y - 0.6, X + 0.55, Y - 0.05);
         ctx.closePath();
-        paint(ctx, alpha(C.white, 0.72), { lw: 0.02, stroke: alpha(C.ink, 0.5) });
-        // The beak, orange through the plastic at its tip, the creases
-        // running back from it.
-        ctx.beginPath(); ctx.moveTo(X + 0.4, Y - 0.97); ctx.lineTo(X + 0.64, Y - 0.87); ctx.lineTo(X + 0.42, Y - 0.85); ctx.closePath();
-        paint(ctx, C.coral, { lw: 0.02 });
+        paint(ctx, alpha(frost, 0.96), { lw: 0.02, stroke: alpha(C.ink, 0.55) });
+        // A soft shade under the lump's belly, so it reads as a body.
+        ctx.beginPath(); ctx.ellipse(X - 0.05, Y - 0.2, 0.48, 0.13, 0, 0, Math.PI * 2);
+        ctx.fillStyle = alpha(C.grey, 0.28); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(X + 0.42, Y - 0.99 - b); ctx.lineTo(X + 0.68, Y - 0.88); ctx.lineTo(X + 0.44, Y - 0.86 - b); ctx.closePath();
+        paint(ctx, mix(C.coral, frost, 0.3), { lw: 0.015, stroke: alpha(C.ink, 0.4) });
         if (Q.detail) {
+          // The creases running back from the beak's point.
           ctx.strokeStyle = alpha(C.ink, 0.45); ctx.lineWidth = 0.015; ctx.beginPath();
-          for (const [dx, dy] of [[-0.25, -0.1], [-0.3, 0.12], [-0.12, 0.25]]) { ctx.moveTo(X + 0.6, Y - 0.87); ctx.lineTo(X + 0.6 + dx, Y - 0.87 + dy); }
+          for (const [dx, dy] of [[-0.28, -0.1], [-0.32, 0.12], [-0.14, 0.26]]) { ctx.moveTo(X + 0.64, Y - 0.88); ctx.lineTo(X + 0.64 + dx, Y - 0.88 + dy); }
           ctx.stroke();
           for (const [u, v] of [[-0.35, -0.45], [0.05, -0.3]]) { ctx.beginPath(); ctx.moveTo(X + u, Y + v); ctx.lineTo(X + u + 0.16, Y + v - 0.12); ctx.strokeStyle = alpha(C.white, 0.95); ctx.lineWidth = 0.035; ctx.stroke(); }
         }

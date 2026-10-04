@@ -32,14 +32,15 @@ const CLOSETS = [2.35, 7.65], CW = 1.1, CH = 3.0, GAP = 0.18;
 // The free couch: three cushions; the goose is under the third once it's up.
 const COUCHX = 8.7, COUCHW = 2.85, CUSH = (COUCHW - 0.52) / 3;
 const cushX = (i) => COUCHX + 0.26 + i * CUSH;
-// The pennant the Roommates have on their wall before noon (green-2.js),
-// drawn the same, on his wall after.
+// The pennant the Roommates have on their wall before noon (green-2.js):
+// up here it came stuffed in the dresser's missing-drawer slot, its wide end
+// (and the felt strip) inside, the rest hanging out over the drawer below.
+// Small, half hidden, still the navy CHAMPS pennant.
 function pennant(ctx) {
-  const [a, b, c] = [P(9.3, 0, 3.3), P(9.3, 0, 2.5), P(11.4, 0, 2.95)];
-  ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineTo(...c); ctx.closePath();
-  paint(ctx, C.navy, { lw: 0.03 });
-  onRight(ctx, 9.15, 2.45, 0.2, 0.9, C.white, { lw: 0.02 });
-  paintText(ctx, 'right', 10.15, 2.92, 'CHAMPS', 0.22, C.white, 'Bagel Fat One');
+  const y = 3.22;
+  face(ctx, [[6.82, y, 0.84], [7.72, y, 0.84], [7.39, y + 0.02, 0.08]], C.navy, { lw: 0.025 });
+  face(ctx, [[6.82, y, 0.84], [7.72, y, 0.84], [7.72, y, 0.8], [6.82, y, 0.8]], shade(C.navy, 0.4), { stroke: false });
+  lettering(ctx, 'x', 7.29, y + 0.005, 0.6, 'CHAMPS', 0.1, C.white);
 }
 
 
@@ -137,9 +138,15 @@ export default {
           onLeft(ctx, y0 + 0.15, GAP + 0.2, CW - 0.3, 1.2, null, { lw: 0.02, stroke: alpha(C.ink, 0.35) });
           const [X, Y] = P(0.01, y0 + CW - 0.15, 1.5); ctx.beginPath(); ctx.arc(X, Y, 0.06, 0, Math.PI * 2); paint(ctx, C.mustard, { lw: 0.02 });
         }
-        // The feet in the gap.
+        // The feet in the gap, big and out onto the floor so a phone sees
+        // them, a pale patch of light round them; and the tail tip poking
+        // out of the crack on the door's latch side.
         if (!i && k < 0.3 && !has(COUCH)(t)) {
-          for (const u of [0.38, 0.66]) { const [X, Y] = P(0.1, y0 + u, 0.03); footOut(ctx, X, Y, -1, 1.15); }
+          const [LX, LY] = P(0.3, y0 + 0.52, 0.01);
+          ctx.beginPath(); ctx.ellipse(LX, LY, 0.5, 0.18, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.butter, 0.45); ctx.fill();
+          for (const u of [0.3, 0.72]) { const [X, Y] = P(0.22, y0 + u, 0.03); footOut(ctx, X, Y, -1, 2.0); }
+          const [TX, TY] = P(0.04, y0 + CW + 0.03, 1.05);
+          tailOut(ctx, TX, TY, 1, 1.8);
         }
       }, { anim: true });
     });
@@ -355,9 +362,9 @@ export default {
       hang([0.2, 0, 3.9], [12.3, 0, 3.9], 30, 2);
     }, { anim: true, on: night });
 
-    // The Roommates' pennant, on his wall from the afternoon: it was on
+    // The Roommates' pennant, in his dresser from the afternoon: it was on
     // the curb by noon.
-    R.thing(0.02, 0.02, pennant, { on: (t) => h(t) >= 13 || h(t) < 5 });
+    R.thing(8.35, 3.25, pennant, { on: has(DRESSER) });
 
     // ---------- The friend who came to help ----------
     // He sits on each thing as it comes in; the couch while it's still wet.
@@ -402,8 +409,8 @@ export default {
     R.find({ id: 'tv', label: 'A free TV', at: [11.8, 7.05, 0.95], r: 0.88, when: has(TV), note: 'after noon' });
     R.find({ id: 'sign', label: 'A "FREE" sign', at: [5.55, 5.14, 1.25], r: 0.88 });
     R.find({
-      id: 'pennant', label: 'Something from another apartment', kind: 'hard', at: [10.0, 0, 2.9], r: 0.8,
-      riddle: 'The Roommates had it on their wall at breakfast.', hint: 'It came up from the curb with everything else. Look at his walls.', ...AFTER,
+      id: 'pennant', label: 'Something from another apartment', kind: 'hard', at: [7.2, 3.22, 0.5], r: 0.7,
+      riddle: 'The Roommates had it on their wall at breakfast.', hint: 'It came up from the curb with the furniture. One drawer is missing.', ...AFTER, when: has(DRESSER),
     });
   },
 };

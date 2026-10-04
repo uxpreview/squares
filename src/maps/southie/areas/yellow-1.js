@@ -455,7 +455,7 @@ export default {
         const jig = k < 0.05 && p < 0.5 ? Math.sin(t * 40) * 0.035 : 0;
         openCarton(ctx, x + jig, y - jig, 1, 1, 1, k, (c) => {
           const look = Math.floor(t / 1.8) % 2;
-          hamster(c, x + 0.55, y + 0.5, 0.5 + k * 0.45, t, { dir: look ? 'l' : 'r', cheeks: true });
+          hamster(c, x + 0.55, y + 0.5, 0.5 + k * 0.62, t, { dir: look ? 'l' : 'r', cheeks: true, scale: 1.45 });
         }, { word });
         // Wiggle lines either side while it shivers.
         if (jig && Q.detail) {
@@ -787,7 +787,7 @@ export default {
     R.decoy({ id: 'nightlight', at: [3.36, 0.05, 0.6], r: 0.6, say: ['A night-light. Wrong goose.', 'It glows. Geese do not.'] });
 
     // ---------- The finds ----------
-    R.find({ id: 'hamster', label: 'A runaway hamster', kind: 'poke', inside: hambox, at: [HAMBOX[0] + 0.55, HAMBOX[1] + 0.5, 1.15], r: 0.8, hint: 'One of the boxes keeps wiggling. The dog has noticed.', ...BEFORE });
+    R.find({ id: 'hamster', label: 'A runaway hamster', kind: 'poke', inside: hambox, at: [HAMBOX[0] + 0.55, HAMBOX[1] + 0.5, 1.35], r: 0.95, hint: 'One of the boxes keeps wiggling. The dog has noticed.', ...BEFORE });
     R.find({ id: 'drawing', label: 'A crayon drawing of the house', at: [0, 4.6, 2], r: 0.88 });
     R.find({
       id: 'glasses', label: 'A pair of reading glasses', kind: 'hard', r: 0.7,

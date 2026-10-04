@@ -159,21 +159,36 @@ function gooseAtEnd(i, t) {
 // orange feet out from under its front (else a brown slipper). k: flopped
 // back off whatever's under it.
 function beanbag(ctx, x, y, k, feet) {
-  if (k < 0.5) {
-    const [X, Y] = P(x + 0.22, y + 0.22, 0);
-    if (feet) {
-      ctx.fillStyle = C.coral; ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02;
-      for (const dx of [-0.12, 0.14]) { ctx.beginPath(); ctx.moveTo(X + dx - 0.08, Y - 0.04); ctx.lineTo(X + dx + 0.24, Y + 0.08); ctx.lineTo(X + dx + 0.02, Y + 0.16); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    } else {
-      ctx.beginPath(); ctx.ellipse(X + 0.05, Y + 0.04, 0.2, 0.08, 0.2, 0, Math.PI * 2); paint(ctx, C.brown, { lw: 0.02 });
-      ctx.beginPath(); ctx.ellipse(X + 0.12, Y + 0.02, 0.08, 0.04, 0.2, 0, Math.PI * 2); ctx.fillStyle = C.woodLight; ctx.fill();
-    }
-  }
   const back = k * 0.7, sq = 1 - k * 0.35;
   const [X, Y] = P(x - back, y - back * 0.4, 0);
   ctx.beginPath(); ctx.moveTo(X - 0.8, Y); ctx.quadraticCurveTo(X - 0.95, Y - 0.9 * sq, X - 0.1, Y - 0.95 * sq); ctx.quadraticCurveTo(X + 0.8, Y - 0.9 * sq, X + 0.8, Y); ctx.quadraticCurveTo(X, Y + 0.3, X - 0.8, Y); ctx.closePath();
   paint(ctx, C.purple, { lw: 0.035, dots: shade(C.purple, 0.45), density: 0.2 });
   ctx.beginPath(); ctx.ellipse(X, Y - 0.55 * sq, 0.5, 0.2 * sq, 0, 0, Math.PI * 2); ctx.fillStyle = shade(C.purple, 0.25); ctx.fill();
+  if (k >= 0.5) return;
+  // What's sticking out from under its front, drawn over its hem so it
+  // shows at phone size: two big orange webbed feet, toes spread, and a
+  // grey-banded tail tip out the side; or one brown slipper.
+  if (feet) {
+    for (const [dx, dy, flip] of [[-0.3, 0.1, -1], [0.18, 0.16, 1]]) {
+      const fx = X + dx, fy = Y + dy;
+      ctx.beginPath(); ctx.moveTo(fx, fy - 0.06);
+      ctx.lineTo(fx + flip * 0.16, fy + 0.26); ctx.lineTo(fx + flip * 0.06, fy + 0.2); ctx.lineTo(fx + flip * 0.02, fy + 0.3);
+      ctx.lineTo(fx - flip * 0.04, fy + 0.2); ctx.lineTo(fx - flip * 0.15, fy + 0.24); ctx.lineTo(fx - flip * 0.06, fy - 0.06); ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.025 });
+      if (Q.detail) { ctx.strokeStyle = shade(C.coral, 0.35); ctx.lineWidth = 0.014; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + flip * 0.12, fy + 0.22); ctx.moveTo(fx - flip * 0.01, fy); ctx.lineTo(fx + flip * 0.02, fy + 0.26); ctx.moveTo(fx - flip * 0.03, fy); ctx.lineTo(fx - flip * 0.11, fy + 0.2); ctx.stroke(); }
+    }
+    // The tail tip, out past the bag's right flank.
+    ctx.save(); ctx.translate(X + 0.7, Y - 0.12); ctx.rotate(1.0);
+    const fan = (i) => { ctx.beginPath(); ctx.moveTo(-0.16, 0.02); ctx.quadraticCurveTo(-0.15 + i, -0.3 + i, 0.08, -0.4 + i); ctx.quadraticCurveTo(0.3 - i, -0.32 + i, 0.2, 0.02); ctx.closePath(); };
+    fan(0); paint(ctx, C.ink, { stroke: false });
+    fan(0.06); paint(ctx, C.grey, { stroke: false });
+    fan(0.14); paint(ctx, C.white, { stroke: false });
+    fan(0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.022; ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.beginPath(); ctx.ellipse(X + 0.1, Y + 0.18, 0.26, 0.11, 0.2, 0, Math.PI * 2); paint(ctx, C.brown, { lw: 0.022 });
+    ctx.beginPath(); ctx.ellipse(X + 0.18, Y + 0.16, 0.11, 0.05, 0.2, 0, Math.PI * 2); ctx.fillStyle = C.woodLight; ctx.fill();
+  }
 }
 // One of their boxes marked COUCH STUFF, from (x, y): its flaps up a little.
 // tail: the goose's tail out between them (else a cushion corner). k: the
@@ -186,9 +201,23 @@ function flapBox(ctx, x, y, k, tail) {
   // The back flap, then the front one (hinged on the long edges).
   face(ctx, [[x, y, h], [x + w, y, h], [x + w, y + c, h + s], [x, y + c, h + s]], tint(C.woodLight, 0.08), { lw: 0.025 });
   if (k < 0.5) {
-    const [X, Y] = P(x + w / 2, y + d / 2, h + 0.05);
+    const [X, Y] = P(x + w / 2, y + d / 2, h + (tail ? 0.16 : 0.05));
     ctx.beginPath();
-    if (tail) { ctx.moveTo(X - 0.16, Y + 0.04); ctx.lineTo(X + 0.02, Y - 0.34); ctx.lineTo(X + 0.1, Y - 0.15); ctx.lineTo(X + 0.25, Y - 0.29); ctx.lineTo(X + 0.2, Y + 0.06); ctx.closePath(); paint(ctx, C.white, { lw: 0.02 }); }
+    if (tail) {
+      // A goose's tail between the flaps, big enough for a phone: a white
+      // fan with a grey band and a dark tip.
+      const fan = (inset) => {
+        ctx.beginPath(); ctx.moveTo(X - 0.22, Y + 0.04);
+        ctx.quadraticCurveTo(X - 0.2 + inset, Y - 0.42 + inset, X + 0.1, Y - 0.56 + inset);
+        ctx.quadraticCurveTo(X + 0.38 - inset, Y - 0.44 + inset, X + 0.28, Y + 0.04);
+        ctx.closePath();
+      };
+      fan(0); paint(ctx, C.ink, { stroke: false });
+      fan(0.08); paint(ctx, C.grey, { stroke: false });
+      fan(0.19); paint(ctx, C.white, { stroke: false });
+      fan(0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+      ctx.beginPath();
+    }
     else { ctx.moveTo(X - 0.15, Y + 0.02); ctx.lineTo(X - 0.05, Y - 0.2); ctx.lineTo(X + 0.18, Y - 0.12); ctx.lineTo(X + 0.12, Y + 0.05); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02, dots: shade(C.coral, 0.4), density: 0.2 }); }
   }
   face(ctx, [[x, y + d, h], [x + w, y + d, h], [x + w, y + d - c, h + s], [x, y + d - c, h + s]], tint(C.woodLight, 0.15), { lw: 0.025 });
@@ -575,6 +604,44 @@ export default {
       box(ctx, 12.35, 4.2, 0, 0.35, 0.3, 0.3, C.mustard, { flat: true, lw: 0.02 });
       line3(ctx, [[12.4, 4.25, 0.2], [12.3, 3.95, 0.15]], C.ink, 0.04);
     }, { on: neu });
+    // Their own lamps, switched on as soon as they're in (it's raining), so
+    // the lava lamp is one light among several after noon and the find is
+    // which one was already on at breakfast: a table lamp on the BOOKS box,
+    // a paper floor lamp by the air mattress, a camping lantern on the
+    // kitchen counter.
+    const glow = (ctx, X, Y, r) => {
+      ctx.beginPath(); ctx.arc(X, Y, r, 0, Math.PI * 2); ctx.fillStyle = alpha(C.butter, 0.35); ctx.fill();
+    };
+    R.thing(6.35, 6.65, (ctx) => {
+      // The table lamp: a white base, a butter shade lit from inside.
+      cylinder(ctx, 5.35, 6.3, 0.55, 0.1, 0.08, C.white);
+      box(ctx, 5.32, 6.27, 0.63, 0.05, 0.05, 0.35, C.ink, { flat: true, stroke: false });
+      const [X, Y] = P(5.35, 6.3, 1.12);
+      glow(ctx, X, Y, 0.42);
+      ctx.beginPath(); ctx.moveTo(X - 0.15, Y - 0.14); ctx.lineTo(X + 0.15, Y - 0.14); ctx.lineTo(X + 0.24, Y + 0.12); ctx.lineTo(X - 0.24, Y + 0.12); ctx.closePath();
+      paint(ctx, C.butter, { lw: 0.025 });
+    }, { on: neu, depth: 15 });
+    R.light({ at: [5.35, 6.3, 1.12], r: 2.2, color: C.butter, k: (t) => (neu(t) ? (lightsOn(t) ? 0.75 : 0.45) : 0) });
+    R.thing(10.1, 2.7, (ctx) => {
+      // The paper floor lamp: a pole and a round paper shade, glowing.
+      box(ctx, 9.85, 2.45, 0, 0.3, 0.3, 0.04, C.ink, { flat: true, stroke: false });
+      box(ctx, 9.97, 2.57, 0.04, 0.05, 0.05, 1.9, C.ink, { flat: true, stroke: false });
+      const [X, Y] = P(10.0, 2.6, 2.15);
+      glow(ctx, X, Y, 0.55);
+      ctx.beginPath(); ctx.arc(X, Y, 0.3, 0, Math.PI * 2); paint(ctx, tint(C.butter, 0.4), { lw: 0.025 });
+      if (Q.detail) { ctx.strokeStyle = alpha(C.ink, 0.25); ctx.lineWidth = 0.012; for (const dy of [-0.12, 0, 0.12]) { ctx.beginPath(); ctx.ellipse(X, Y + dy, Math.sqrt(0.09 - dy * dy), 0.035, 0, 0, Math.PI * 2); ctx.stroke(); } }
+    }, { on: neu });
+    R.light({ at: [10.0, 2.6, 2.15], r: 2.6, color: C.butter, k: (t) => (neu(t) ? (lightsOn(t) ? 0.8 : 0.5) : 0) });
+    R.thing(1.0, 2.75, (ctx) => {
+      // The camping lantern: green, a lit glass middle, a wire handle.
+      const [X, Y] = P(0.5, 2.5, 1.15);
+      glow(ctx, X, Y - 0.2, 0.36);
+      ctx.beginPath(); ctx.rect(X - 0.1, Y - 0.08, 0.2, 0.08); paint(ctx, C.green, { lw: 0.02 });
+      ctx.beginPath(); ctx.rect(X - 0.08, Y - 0.3, 0.16, 0.22); paint(ctx, C.butter, { lw: 0.02 });
+      ctx.beginPath(); ctx.rect(X - 0.1, Y - 0.36, 0.2, 0.06); paint(ctx, C.green, { lw: 0.02 });
+      ctx.beginPath(); ctx.arc(X, Y - 0.36, 0.08, Math.PI, 0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+    }, { on: neu, depth: 5.5 });
+    R.light({ at: [0.5, 2.5, 1.35], r: 1.8, color: C.butter, k: (t) => (neu(t) ? (lightsOn(t) ? 0.7 : 0.4) : 0) });
     // Measuring the stairwell: the tape out along the banister, in, out.
     R.mover((t) => (hours(13.1, 20.5)(t) ? { x: 7.9, y: 2.6 } : { x: -99, y: -99 }), (ctx, t, p) => {
       if (p.x < -50) return;

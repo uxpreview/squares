@@ -164,14 +164,15 @@ export default {
     R.thing(0.01, 1.8, (ctx) => onLeft(ctx, 1.4, 1.9, 1.2, 1.5, alpha(C.white, 0.35), { stroke: false }), { on: (t) => !(h(t) < 12 && h(t) >= 5) });
     backWindow(R, 5.9, 1.95, 1.1, 1.3);
     // His clock, stopped at 11:58 all morning. It goes with him at noon,
-    // and leaves a clean circle on the wall (and its nail).
+    // and leaves a faint clean circle on the wall (and its nail), faint enough
+    // that you need the morning to know to look there.
     R.thing(9.8, 0.02, (ctx) => clockR(ctx, 9.8, 2.9, 0.45, 11, 58), { on: old });
     R.thing(9.8, 0.02, (ctx) => {
       const [X, Y] = P(9.8, 0, 2.9);
       ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, 0, 1, 0, 0);
-      ctx.beginPath(); ctx.arc(0, 0, 0.45, 0, Math.PI * 2); ctx.fillStyle = tint(W.right, 0.55); ctx.fill();
-      ctx.strokeStyle = alpha(shade(W.right, 0.3), 0.6); ctx.lineWidth = 0.02; ctx.stroke();
-      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, -0.38, 0.035, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 0.36, 0, Math.PI * 2); ctx.fillStyle = alpha(tint(W.right, 0.35), 0.55); ctx.fill();
+      ctx.strokeStyle = alpha(shade(W.right, 0.2), 0.25); ctx.lineWidth = 0.015; ctx.stroke();
+      ctx.fillStyle = alpha(C.ink, 0.7); ctx.beginPath(); ctx.arc(0, -0.31, 0.022, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }, { on: (t) => !old(t) });
 

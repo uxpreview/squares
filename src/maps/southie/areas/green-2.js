@@ -56,16 +56,32 @@ function duffel(ctx, x, y, k, tail) {
   box(ctx, x, y, 0, w, d, h, col, { lw: 0.035, top: tint(col, 0.12), dens: 0.15 });
   // The rounded ends, the bands round it.
   for (const u of [0.2, w - 0.2]) face(ctx, [[x + u, y + d + 0.005, 0.02], [x + u, y + d + 0.005, h], [x + u, y, h]], null, { lw: 0.05, stroke: C.mustard });
+  // The handles, over the top (under whatever's poking out of the zip).
+  const handles = () => { for (const dy of [0.12, d - 0.12]) line3(ctx, [[x + 0.35, y + dy, h], [x + 0.5, y + dy, h + 0.22], [x + 0.75, y + dy, h + 0.22], [x + w - 0.35, y + dy, h]], C.ink, 0.04); };
+  if (k < 0.5) handles();
   if (k < 0.5) {
     line3(ctx, [[x + 0.1, y + d / 2, h + 0.005], [x + w - 0.08, y + d / 2, h + 0.005]], C.ink, 0.03);
     // The pull, back at the far end; the zip's open a hand's width at the near one.
     box(ctx, x + w - 0.36, y + d / 2 - 0.04, h, 0.08, 0.08, 0.02, C.greyLight, { flat: true, lw: 0.01 });
     if (tail) {
-      // White tail feathers out of the gap, and a tip of an orange foot.
+      // A goose's tail out of the gap, big enough to read on a phone: a
+      // fan of white feathers, a grey band across it, a dark tip, cocked up;
+      // and an orange webbed foot out beside it.
       const [X, Y] = P(x + w - 0.15, y + d / 2, h + 0.02);
-      ctx.beginPath(); ctx.moveTo(X - 0.14, Y); ctx.lineTo(X + 0.05, Y - 0.26); ctx.lineTo(X + 0.12, Y - 0.12); ctx.lineTo(X + 0.2, Y - 0.2); ctx.lineTo(X + 0.16, Y + 0.02); ctx.closePath();
-      paint(ctx, C.white, { lw: 0.02 });
-      if (Q.detail) { ctx.strokeStyle = C.grey; ctx.lineWidth = 0.015; ctx.beginPath(); ctx.moveTo(X, Y - 0.04); ctx.lineTo(X + 0.06, Y - 0.18); ctx.moveTo(X + 0.1, Y - 0.04); ctx.lineTo(X + 0.15, Y - 0.14); ctx.stroke(); }
+      const [FX, FY] = P(x + w - 0.42, y + d / 2 + 0.08, h + 0.02);
+      ctx.beginPath(); ctx.moveTo(FX - 0.04, FY); ctx.lineTo(FX - 0.2, FY - 0.24); ctx.lineTo(FX - 0.08, FY - 0.2); ctx.lineTo(FX - 0.02, FY - 0.3); ctx.lineTo(FX + 0.04, FY - 0.2); ctx.lineTo(FX + 0.15, FY - 0.22); ctx.lineTo(FX + 0.06, FY); ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.022 });
+      const fan = (inset) => {
+        ctx.beginPath(); ctx.moveTo(X - 0.2, Y + 0.02);
+        ctx.quadraticCurveTo(X - 0.18 + inset, Y - 0.38 + inset, X + 0.12, Y - 0.5 + inset);
+        ctx.quadraticCurveTo(X + 0.36 - inset, Y - 0.4 + inset, X + 0.26, Y + 0.02);
+        ctx.closePath();
+      };
+      fan(0); paint(ctx, C.ink, { stroke: false });
+      fan(0.07); paint(ctx, C.grey, { stroke: false });
+      fan(0.17); paint(ctx, C.white, { stroke: false });
+      fan(0); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+      if (Q.detail) { ctx.strokeStyle = shade(C.grey, 0.2); ctx.lineWidth = 0.015; ctx.beginPath(); for (const u of [-0.08, 0.04, 0.15]) { ctx.moveTo(X + u * 0.4, Y - 0.02); ctx.lineTo(X + u, Y - 0.34); } ctx.stroke(); }
     } else {
       const [X, Y] = P(x + w - 0.15, y + d / 2, h + 0.02);
       ctx.beginPath(); ctx.moveTo(X - 0.08, Y); ctx.lineTo(X - 0.04, Y - 0.26); ctx.lineTo(X + 0.18, Y - 0.3); ctx.lineTo(X + 0.2, Y - 0.2); ctx.lineTo(X + 0.06, Y - 0.17); ctx.lineTo(X + 0.08, Y + 0.02); ctx.closePath();
@@ -77,8 +93,7 @@ function duffel(ctx, x, y, k, tail) {
     face(ctx, [[x + 0.1, y + 0.08, h], [x + w - 0.1, y + 0.08, h], [x + w - 0.1, y - 0.05, h + 0.25], [x + 0.1, y - 0.05, h + 0.25]], tint(col, 0.12), { lw: 0.025 });
     if (!tail) cylinder(ctx, x + 0.6, y + 0.25, h - 0.1, 0.12, 0.14, C.red);
   }
-  // The handles, over the top.
-  for (const dy of [0.12, d - 0.12]) line3(ctx, [[x + 0.35, y + dy, h], [x + 0.5, y + dy, h + 0.22], [x + 0.75, y + dy, h + 0.22], [x + w - 0.35, y + dy, h]], C.ink, 0.04);
+  if (k >= 0.5) handles();
 }
 // A round wicker hamper at (x, y), its lid lifted off by k. beak: the
 // goose's beak out under the lid (else a teal scrubs sleeve).
@@ -89,17 +104,19 @@ function hamper(ctx, x, y, k, beak) {
     // The weave, in bands.
     for (const z of [0.18, 0.38, 0.58]) { const [a, b] = P(x - r * 0.7, y + r * 0.7, z), [c, e] = P(x + r * 0.7, y - r * 0.7, z), [m, n] = P(x + r * 0.7, y + r * 0.7, z - 0.08); ctx.beginPath(); ctx.moveTo(a, b); ctx.quadraticCurveTo(m, n, c, e); ctx.strokeStyle = shade(wick, 0.35); ctx.lineWidth = 0.025; ctx.stroke(); }
   }
-  const lift = k < 0.5 ? 0.2 : 0;
+  const lift = k < 0.5 ? (beak ? 0.32 : 0.2) : 0;
   if (k < 0.5) {
     // Something under the lid holding it up a crack.
-    const [X, Y] = P(x + r * 0.75, y + r * 0.75, h + 0.1);
+    const [X, Y] = P(x + r * 0.75, y + r * 0.75, h + 0.14);
     if (beak) {
-      // A sliver of white head in the gap, the beak poking out of it.
-      ctx.beginPath(); ctx.ellipse(X - 0.06, Y - 0.02, 0.2, 0.09, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+      // A goose's head in the gap, plain at phone size: white, a black
+      // eye, the long orange beak poking well out, and the lid riding high.
+      ctx.beginPath(); ctx.ellipse(X - 0.08, Y - 0.04, 0.27, 0.14, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+      ctx.beginPath(); ctx.arc(X - 0.02, Y - 0.08, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
     }
     cylinder(ctx, x, y, h + lift, r + 0.03, 0.06, shade(wick, 0.1), { flat: true, top: wick });
     ctx.beginPath();
-    if (beak) { ctx.moveTo(X + 0.08, Y - 0.07); ctx.lineTo(X + 0.46, Y + 0.03); ctx.lineTo(X + 0.08, Y + 0.07); ctx.closePath(); paint(ctx, C.coral, { lw: 0.02 }); }
+    if (beak) { ctx.moveTo(X + 0.12, Y - 0.1); ctx.lineTo(X + 0.62, Y + 0.02); ctx.lineTo(X + 0.12, Y + 0.08); ctx.closePath(); paint(ctx, C.coral, { lw: 0.025 }); }
     else { ctx.moveTo(X - 0.1, Y - 0.02); ctx.lineTo(X + 0.08, Y + 0.0); ctx.lineTo(X + 0.12, Y + 0.32); ctx.lineTo(X - 0.02, Y + 0.34); ctx.closePath(); paint(ctx, C.tealLight, { lw: 0.02 }); }
   } else {
     // Lid off, leaning on its side; the washing inside.
