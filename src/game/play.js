@@ -688,7 +688,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // Something that answers a tap: it opens (or shuts), and maybe says a line.
   // A decoy (a swan, say) only answers back.
   function poke(zone, pk) {
-    const lines = pk.say ? [].concat(pk.say) : [];
+    // (Its lines can follow the clock: say(t), someone different by afternoon.)
+    const said = typeof pk.say === 'function' ? pk.say(clock()) : pk.say;
+    const lines = said ? [].concat(said) : [];
     const line = lines.length ? lines[pk.taps % lines.length] : '';
     pk.taps++;
     poked = true;

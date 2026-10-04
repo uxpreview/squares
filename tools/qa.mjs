@@ -154,7 +154,7 @@ try {
             step: f.step ?? null,
           };
         }),
-        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, say: [].concat(p.say || []) })),
+        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, say: typeof p.say === 'function' ? [...new Set([0, 60, 120, 180, 240, 300].flatMap((t) => [].concat(p.say(t) || [])))] : [].concat(p.say || []) })),
       })),
       // A whodunit's case file (src/game/case.js): its suspects and their lines.
       case: m.case ? {

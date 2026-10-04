@@ -8,14 +8,14 @@
 // At noon the box goes, and so does he. She gets the toaster.
 import {
   C, Q, box, rect, disc, face, paint, person, folk, speech, shade, tint, mix, alpha,
-  onLeft, onRight, P, chair, table, plant,
+  onLeft, onRight, P, chair, table, plant, goose,
 } from '../../../engine/art.js';
 import { schedule, particles, clamp } from '../../../engine/actors.js';
 import { apartment, carton, lettering, cat } from '../kit.js';
 import { SIDING, TRIM, ROOM, BRAND, lightsOn } from '../style.js';
-import { BEFORE, hour, at } from '../clock.js';
+import { BEFORE, AFTER, hour, at } from '../clock.js';
 import { LOOP } from '../plan.js';
-import { oldSide, newSide, tapeLabel, backWindow, says, sofa } from './yellow-1.js';
+import { oldSide, newSide, tapeLabel, backWindow, says, sofa, tailOut, footOut } from './yellow-1.js';
 
 
 // A toaster on its side of the kitchen, popping now and then.
@@ -59,6 +59,56 @@ function clockR(ctx, x, z, r, h, m, col = C.white) {
   ctx.restore();
 }
 
+// A manila folder flat on the table, its back corner at (x, y), z its
+// top: the cover flips over to the left as k goes 0 to 1. inside(ctx) draws
+// what's in it (under the cover).
+function folder(ctx, x, y, z, k, inside) {
+  const w = 0.7, d = 0.8, col = tint(C.mustard, 0.45);
+  rect(ctx, x, y, w, d, z, shade(col, 0.08), { lw: 0.02 });
+  if (inside) inside(ctx);
+  // The cover, hinged along its back edge (x), swinging up and over.
+  const a = k * Math.PI, cx = Math.cos(a) * w, cz = Math.sin(a) * w;
+  face(ctx, [[x, y, z + 0.012], [x, y + d, z + 0.012], [x + cx, y + d, z + 0.012 + cz], [x + cx, y, z + 0.012 + cz]], col, { lw: 0.02 });
+  if (k < 0.5) {
+    // The tab, and LEASE on both (same handwriting).
+    face(ctx, [[x + w, y + 0.1, z + 0.013], [x + w + 0.1, y + 0.15, z + 0.013], [x + w + 0.1, y + 0.4, z + 0.013], [x + w, y + 0.45, z + 0.013]], col, { lw: 0.015 });
+    if (Q.detail) lettering(ctx, 'y', x + w * 0.5, y + d / 2, z + 0.014, 'LEASE', 0.1, C.ink);
+  }
+}
+// A blue plastic laundry basket, its back corner at (x, y), a heap of
+// clothes on top that flies off as k goes 0 to 1. o.goose: the goose is in
+// it (a tail tip out of the clothes and a foot out of a hole in the weave).
+const BASKET = { w: 1.1, d: 0.95, h: 0.55 };
+function basket(ctx, x, y, k, o = {}) {
+  const { w, d, h } = BASKET, col = C.sky;
+  box(ctx, x, y, 0, w, d, h, col, { lw: 0.035, top: shade(col, 0.35), dots: shade(col, 0.3), density: 0.15 });
+  // The weave: rows of holes on both faces we see.
+  if (Q.detail) {
+    ctx.fillStyle = shade(col, 0.45);
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 4; i++) {
+      const z = 0.17 + r * 0.2;
+      const [X, Y] = P(x + 0.18 + i * 0.25, y + d, z); ctx.beginPath(); ctx.ellipse(X, Y, 0.06, 0.035, 0, 0, Math.PI * 2); ctx.fill();
+      if (i < 3) { const [U, V] = P(x + w, y + 0.2 + i * 0.27, z); ctx.beginPath(); ctx.ellipse(U, V, 0.06, 0.035, 0, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+  // The heap: a few shirts and a towel, lifted and tossed back.
+  const up = k * 0.9, out = k * 0.5;
+  const heap = [[0.08, 0.1, 0.5, 0.4, C.pink], [0.5, 0.15, 0.5, 0.45, C.mustard], [0.15, 0.5, 0.55, 0.38, C.coral], [0.55, 0.55, 0.45, 0.35, C.green]];
+  heap.forEach(([u, v, a, b, c], i) => {
+    const dx = (i % 2 ? 1 : -1) * out, dz = up * (1 - i * 0.15);
+    box(ctx, x + u + dx, y + v - out * 0.3, h - 0.05 + dz, a, b, 0.14, c, { flat: true, lw: 0.02 });
+  });
+  if (o.goose && k < 0.3) {
+    const [a, b] = P(x + w * 0.35, y + d * 0.4, h + 0.18);
+    tailOut(ctx, a, b, -1, 1.2);
+    const [fx, fy] = P(x + 0.43, y + d + 0.01, 0.17);
+    footOut(ctx, fx, fy, -1, 1.2);
+  }
+}
+const BASKETS = [[6.9, 7.0], [8.25, 7.0]]; // the goose is in the first
+const TABLE_Z = 1.205;
+const FOLDERS = [[1.45, 3.65], [2.45, 3.65]]; // his, hers (the lease is in hers)
+
 // Where the last box is, and where he stands to put one more thing in it.
 const LAST = { x: 5.4, y: 4.4, w: 1, h: 1 };
 const DROP = [6.85, 4.7];
@@ -70,7 +120,7 @@ const TRIPS = [
 export default {
   id: 'yellow-2',
   name: 'The Overlap',
-  blurb: 'The lease says noon and it is 11:58. There has been one box left since ten.',
+  blurb: 'The lease says noon, it is 11:58, and there has been one box left since ten. Flip the clock to see what he took.',
   size: [15, 9],
   build(R) {
     const W = ROOM['yellow-2'];
@@ -113,12 +163,17 @@ export default {
     R.thing(0.01, 1.8, (ctx) => lilies(ctx, 1.4), { on: (t) => h(t) < 12 && h(t) >= 5 });
     R.thing(0.01, 1.8, (ctx) => onLeft(ctx, 1.4, 1.9, 1.2, 1.5, alpha(C.white, 0.35), { stroke: false }), { on: (t) => !(h(t) < 12 && h(t) >= 5) });
     backWindow(R, 5.9, 1.95, 1.1, 1.3);
-    // His clock, stopped at 11:58 (all morning), and hers, which goes.
+    // His clock, stopped at 11:58 all morning. It goes with him at noon,
+    // and leaves a clean circle on the wall (and its nail).
     R.thing(9.8, 0.02, (ctx) => clockR(ctx, 9.8, 2.9, 0.45, 11, 58), { on: old });
-    R.thing(9.8, 0.02, (ctx, t) => {
-      const x = h(t);
-      clockR(ctx, 9.8, 2.9, 0.42, Math.floor(x), Math.floor((x % 1) * 60), tint(C.mint, 0.3));
-    }, { anim: true, on: (t) => !old(t) });
+    R.thing(9.8, 0.02, (ctx) => {
+      const [X, Y] = P(9.8, 0, 2.9);
+      ctx.save(); ctx.translate(X, Y); ctx.transform(1, 0.5, 0, 1, 0, 0);
+      ctx.beginPath(); ctx.arc(0, 0, 0.45, 0, Math.PI * 2); ctx.fillStyle = tint(W.right, 0.55); ctx.fill();
+      ctx.strokeStyle = alpha(shade(W.right, 0.3), 0.6); ctx.lineWidth = 0.02; ctx.stroke();
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, -0.38, 0.035, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }, { on: (t) => !old(t) });
 
     // ---------- The kitchen ----------
     // The fridge, and her mini fridge next to it.
@@ -163,10 +218,21 @@ export default {
     R.thing(0.6, 3.6, (ctx) => chair(ctx, 0.35, 3.4, 0, C.wood, 'r'), { depth: 3.9 });
     R.thing(3.5, 4.7, (ctx) => {
       table(ctx, 1.2, 3.0, 2.2, 1.6, 1.2, C.wood);
-      lease(ctx, 2.8, 3.95, 1.205);
-      disc(ctx, 1.7, 3.5, 1.21, 0.14, C.white, { lw: 0.02 });
-      disc(ctx, 3.0, 3.35, 1.21, 0.14, C.pink, { lw: 0.02 });
+      disc(ctx, 1.7, 3.35, 1.21, 0.12, C.white, { lw: 0.02 });
+      disc(ctx, 3.0, 3.3, 1.21, 0.12, C.pink, { lw: 0.02 });
     });
+    // Two matching folders on it, LEASE on both. The lease is in hers; his
+    // has a pizza menu. A tap flips a cover open.
+    const fHis = R.poke({ id: 'folder', at: [FOLDERS[0][0] + 0.35, FOLDERS[0][1] + 0.4, 1.3], r: 0.55, sound: 'tick', say: ['A pizza menu.', 'Still a pizza menu.'] });
+    const fHers = R.poke({ id: 'folder2', at: [FOLDERS[1][0] + 0.35, FOLDERS[1][1] + 0.4, 1.3], r: 0.55, sound: 'tick' });
+    R.thing(3.5, 4.75, (ctx) => {
+      folder(ctx, FOLDERS[0][0], FOLDERS[0][1], TABLE_Z, fHis.k(), (c) => {
+        const [x, y] = FOLDERS[0];
+        rect(c, x + 0.1, y + 0.1, 0.5, 0.6, TABLE_Z + 0.006, C.red, { lw: 0.015 });
+        if (Q.detail) lettering(c, 'y', x + 0.35, y + 0.4, TABLE_Z + 0.008, 'PIZZA', 0.09, C.white);
+      });
+      folder(ctx, FOLDERS[1][0], FOLDERS[1][1], TABLE_Z, fHers.k(), (c) => lease(c, FOLDERS[1][0] + 0.35, FOLDERS[1][1] + 0.4, TABLE_Z + 0.006));
+    }, { anim: true });
     R.thing(4.3, 4.3, (ctx) => {
       box(ctx, 3.45, 3.4, 0.8, 0.8, 0.8, 0.15, C.coral);
       box(ctx, 4.1, 3.4, 0.8, 0.15, 0.8, 0.9, C.coral);
@@ -249,14 +315,14 @@ export default {
         for (let i = 0; i < n; i++) box(ctx, x0 + 0.12 + i * 0.16, y0 + 0.1, z + 0.05, 0.12, 0.35, 0.36 + ((i * 7) % 3) * 0.05, [C.coral, C.navy, C.teal, C.mustard, C.purple][(i + s) % 5], { flat: true, lw: 0.012 });
       }
     }, { anim: true, step: (t) => Math.floor((clamp((h(t) - 13) / 6) + (h(t) < 5 ? 1 : 0)) * 36) });
-    // The laundry basket (the goose's).
-    R.thing(8.1, 8.1, (ctx) => {
-      box(ctx, 6.9, 7.0, 0, 1.1, 0.95, 0.55, C.white, { lw: 0.035, top: shade(C.white, 0.3) });
-      if (Q.detail) for (const u of [7.15, 7.45, 7.75]) face(ctx, [[u, 7.95, 0.15], [u + 0.18, 7.95, 0.15], [u + 0.18, 7.95, 0.35], [u, 7.95, 0.35]], shade(C.white, 0.2), { lw: 0.015 });
-    });
-    R.thing(8.15, 8.15, (ctx) => {
-      box(ctx, 6.9, 7.0, 0, 0.1, 0.95, 0.55, C.white, { flat: true, lw: 0.03 });
-      if (Q.detail) { box(ctx, 7.0, 7.55, 0.5, 0.3, 0.4, 0.12, C.pink, { flat: true, lw: 0.02 }); box(ctx, 7.6, 7.1, 0.5, 0.35, 0.3, 0.1, C.sky, { flat: true, lw: 0.02 }); }
+    // Two of the same laundry basket, of course, side by side, a heap on
+    // each. The goose is in the first: its tail out of the heap, a foot out
+    // of the weave. A tap throws the clothes off.
+    const hide = R.poke({ id: 'basket', at: [BASKETS[0][0] + 0.55, BASKETS[0][1] + 0.48, 0.7], r: 0.75, sound: 'pop', say: 'HONK.' });
+    const twin = R.poke({ id: 'basket2', at: [BASKETS[1][0] + 0.55, BASKETS[1][1] + 0.48, 0.7], r: 0.75, sound: 'pop', say: ['Just laundry.', 'Still just laundry.'] });
+    BASKETS.forEach(([x, y], i) => {
+      const pk = i ? twin : hide;
+      R.thing(x + BASKET.w, y + BASKET.d, (ctx) => basket(ctx, x, y, pk.k(), { goose: !i }), { anim: true });
     });
     // His bike (before noon), her bike (all day), both against the stairs rail.
     const bike = (x, col) => (ctx) => {
@@ -323,12 +389,12 @@ export default {
     const her = folk(52, { style: 'long', hair: C.brown, top: C.mustard, bottom: C.navy, skin: mix(C.wood, C.brown, 0.3) });
     const herAfternoon = schedule([
       [3.8, 3.8], { until: at(13.2) },
-      [6.4, 3.4], { wait: 3, pose: 'carry' }, [6.2, 7.6], { wait: 4, pose: 'read' },
-      [4.3, 6.9], { wait: 3, pose: 'carry' }, [6.2, 7.6], { wait: 4, pose: 'read' },
-      [8.1, 4.2], { wait: 3, pose: 'carry' }, [6.2, 7.6], { wait: 4, pose: 'read' },
-      [6.4, 3.4], { wait: 3, pose: 'carry' }, [6.2, 7.6], { wait: 4, pose: 'read' },
-      [8.1, 4.2], { wait: 3, pose: 'carry' }, [6.2, 7.6], { wait: 4, pose: 'read' },
-      [4.3, 6.9], { wait: 3, pose: 'carry' }, [6.2, 7.6], { wait: 4, pose: 'read' },
+      [6.4, 3.4], { wait: 3, pose: 'carry' }, [6.5, 6.2], { wait: 4, pose: 'read' },
+      [4.3, 6.9], { wait: 3, pose: 'carry' }, [6.5, 6.2], { wait: 4, pose: 'read' },
+      [8.1, 4.2], { wait: 3, pose: 'carry' }, [6.5, 6.2], { wait: 4, pose: 'read' },
+      [6.4, 3.4], { wait: 3, pose: 'carry' }, [6.5, 6.2], { wait: 4, pose: 'read' },
+      [8.1, 4.2], { wait: 3, pose: 'carry' }, [6.5, 6.2], { wait: 4, pose: 'read' },
+      [4.3, 6.9], { wait: 3, pose: 'carry' }, [6.5, 6.2], { wait: 4, pose: 'read' },
       [9.4, 5.0], { until: at(20.4), pose: 'stand' },
       [8.2, 6.0], { until: at(4.3), night: true },
     ], { loop: LOOP, name: 'grad student', speed: 1.1 });
@@ -365,20 +431,20 @@ export default {
     // Her friends, after noon: one building the flat-pack bookshelf's twin
     // (step 1 of 94), and at night two on the floor round the pizza.
     const pals = [folk(57, { style: 'bun', top: C.teal, bottom: C.navy }), folk(58, { style: 'short', hat: 'beanie', top: C.coral })];
-    R.mover(() => ({ x: 4.6, y: 6.1 }), (ctx, t) => {
+    R.mover(() => ({ x: 4.6, y: 6.6 }), (ctx, t) => {
       const x = h(t);
       if (x >= 14 && x < 20.4) {
-        person(ctx, 4.6, 6.1, -0.3, { ...pals[0], pose: 'sit', dir: 'r', arms: [1.3 + Math.sin(t * 5) * 0.4, 1.0] }, t);
-        says(ctx, 4.6, 6.1, 2.2, t, ['Step 1 of 94.', 'Are there supposed to be extra screws?'], 12, 3.2);
+        person(ctx, 4.6, 6.6, -0.3, { ...pals[0], pose: 'sit', dir: 'r', arms: [1.3 + Math.sin(t * 5) * 0.4, 1.0] }, t);
+        says(ctx, 4.6, 6.6, 2.2, t, ['Step 1 of 94.', 'Are there supposed to be extra screws?'], 12, 3.2);
       } else if (x >= 20.4 || x < 5) {
         person(ctx, 7.0, 5.6, -0.3, { ...pals[0], pose: 'sit', dir: 'r', arms: [1.4 + Math.sin(t * 1.1) * 0.4, 0.4] }, t);
-        person(ctx, 8.4, 7.0, -0.3, { ...pals[1], pose: 'sit', dir: 'l', arms: [1.2, 0.5] }, t);
+        person(ctx, 8.9, 6.3, -0.3, { ...pals[1], pose: 'sit', dir: 'l', arms: [1.2, 0.5] }, t);
         says(ctx, 7.0, 5.6, 2.2, t, ['To the overlap!', 'Whose toaster is this?'], 10, 3.2);
       }
     }, { depth: 11 });
-    R.thing(5.6, 7.0, (ctx) => {
-      for (const [x, y, w, d] of [[4.9, 6.0, 1.3, 0.6], [4.6, 6.8, 1.5, 0.4]]) box(ctx, x, y, 0, w, d, 0.06, C.woodLight, { flat: true, lw: 0.02 });
-      if (Q.detail) rect(ctx, 5.3, 6.9, 0.5, 0.35, 0.065, C.white, { lw: 0.015 });
+    R.thing(5.6, 7.5, (ctx) => {
+      for (const [x, y, w, d] of [[4.9, 6.5, 1.3, 0.6], [4.6, 7.3, 1.5, 0.4]]) box(ctx, x, y, 0, w, d, 0.06, C.woodLight, { flat: true, lw: 0.02 });
+      if (Q.detail) rect(ctx, 5.3, 7.4, 0.5, 0.35, 0.065, C.white, { lw: 0.015 });
     }, { on: (t) => { const x = h(t); return x >= 14 && x < 20.4; } });
     R.thing(8.4, 6.4, (ctx) => {
       box(ctx, 7.4, 5.7, 0, 1.1, 1.1, 0.1, C.white, { flat: true, lw: 0.03 });
@@ -397,14 +463,43 @@ export default {
     }, { on: old });
 
     // ---------- The goose ----------
-    // In the laundry basket, where both of them assume it belongs to the
-    // other one.
-    R.goose((t) => ({ x: 7.45, y: 7.5, z: 0.3, pose: Math.sin(t * 0.5) > 0.85 ? 'honk' : 'sit', dir: 'l' }), { bias: 0.9 });
+    // In the first laundry basket, where each of them assumes it belongs to
+    // the other one.
+    R.goose((t) => {
+      const k = hide.k();
+      return { x: BASKETS[0][0] + 0.55, y: BASKETS[0][1] + 0.48, z: 0.2 + 0.45 * k, pose: k > 0.5 && Math.sin(t * 0.5) > 0.8 ? 'honk' : 'sit', dir: 'l', hidden: k < 0.3 };
+    }, { bias: 0.9, kind: 'poke', inside: hide, hint: 'Two of everything here. One of the laundry baskets has a tail.' });
+
+    // The other goose: a ceramic one, on the tape line down the middle of
+    // the floor, half on his side and half on hers.
+    R.thing(5.3, 5.85, (ctx) => {
+      const x = 4.97, y = 5.55;
+      disc(ctx, x, y, 0, 0.32, C.navy, { lw: 0.025 });
+      box(ctx, x - 0.2, y - 0.2, 0, 0.4, 0.4, 0.12, C.navy, { flat: true, lw: 0.02 });
+      goose(ctx, x, y, 0.12, 0, { pose: 'stand', dir: 'r', scale: 0.62 });
+      // The glaze's shine, and a strip of tape across its back.
+      const [X, Y] = P(x, y, 0.55);
+      ctx.beginPath(); ctx.ellipse(X - 0.08, Y - 0.04, 0.07, 0.03, -0.4, 0, Math.PI * 2); ctx.fillStyle = C.white; ctx.fill();
+      ctx.save(); ctx.globalAlpha *= 0.9;
+      ctx.beginPath(); ctx.moveTo(X - 0.03, Y - 0.2); ctx.lineTo(X + 0.03, Y + 0.12); ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.08; ctx.stroke();
+      ctx.restore();
+    });
+    R.decoy({ id: 'ceramic', at: [4.97, 5.55, 0.6], r: 0.6, say: ["We're working out custody.", 'Ceramic. And contested.'] });
+
+    // The standoff: tap whoever's at the table (her, all day).
+    R.poke({
+      id: 'standoff', teach: true, r: 0.9, sound: 'pop', say: ['Mine.', 'Also mine.', 'We both signed it.'],
+      at: (t) => { const x = h(t); if (x >= 5 && x < 13) return [3.8, 3.8, 2.0]; const p = herAfternoon(t); return [p.x, p.y, p.night ? 1.4 : 1.7]; },
+    });
 
     // ---------- The finds ----------
     R.find({ id: 'toaster', label: 'A toaster on a milk crate', at: [1.47, 7.4, 0.45], r: 0.88 });
-    R.find({ id: 'lease', label: 'A lease signed twice', at: [2.8, 3.95, 1.25], r: 0.88 });
+    R.find({ id: 'lease', label: 'A lease signed twice', kind: 'poke', inside: fHers, at: [FOLDERS[1][0] + 0.35, FOLDERS[1][1] + 0.4, TABLE_Z + 0.05], r: 0.55, hint: 'Two matching folders on the table. Only one has the paperwork.' });
     // (In his arms for its last minute, on the way to the stairs.)
     R.find({ id: 'lastbox', label: 'The last box', at: (t) => { if (h(t) < 11.88) return [5.9, 4.9, 1.2]; const p = himAt(t); return [p.x, p.y, 1.5]; }, r: 0.8, ...BEFORE });
+    R.find({
+      id: 'clock', label: 'Something he took with him', kind: 'hard', at: [9.8, 0, 2.9], r: 0.75,
+      riddle: 'It said 11:58 all morning. Flip back.', hint: 'High on the wall by the stairs, a circle cleaner than the rest.', ...AFTER,
+    });
   },
 };
