@@ -548,13 +548,11 @@ export default {
     R.thing(SX + 1.22, RY + 0.02, (ctx) => {
       const k = cargo.k(), bot = DOOR_Z0 + (DOOR_Z1 - 0.35 - DOOR_Z0) * k;
       const x0 = SX - 1.1, x1 = SX + 1.1, y = RY + 0.012;
-      // Dark inside, once it's up: a box, a lamp, a rolled rug.
+      // Dark inside, once it's up: a box beside the goose. (A rolled rug by
+      // the right wall poked out through the truck's side and hid its feet.)
       if (k > 0.02) {
         face(ctx, [[x0, y, DOOR_Z0], [x1, y, DOOR_Z0], [x1, y, bot], [x0, y, bot]], shade(C.ink, 0.1), { lw: 0.03 });
-        if (Q.detail && k > 0.6) {
-          carton(ctx, SX - 1.0, RY - 0.8, DOOR_Z0, 0.7, 0.6, 0.6, 'MISC');
-          box(ctx, SX + 0.55, RY - 1.2, DOOR_Z0, 0.4, 1.1, 0.4, C.purple, { flat: true, lw: 0.025 });
-        }
+        if (Q.detail && k > 0.6) carton(ctx, SX - 1.0, RY - 0.8, DOOR_Z0, 0.7, 0.6, 0.6, 'MISC');
       }
       // The door: slats, a handle at the bottom, a sign.
       face(ctx, [[x0, y, bot], [x1, y, bot], [x1, y, DOOR_Z1], [x0, y, DOOR_Z1]], tint(C.greyLight, 0.35), { lw: 0.035 });
@@ -575,20 +573,28 @@ export default {
       face(ctx, [[x - 0.4, y - 0.3, z + 0.01], [x + 0.3, y - 0.35, z + 0.01], [x + 0.45, y + 0.25, z + 0.01], [x - 0.3, y + 0.35, z + 0.01]], C.ink, { lw: 0.02 });
       // Torn tin, curled up round it.
       face(ctx, [[x - 0.4, y + 0.35, z], [x + 0.45, y + 0.25, z], [x + 0.3, y + 0.32, z + 0.22], [x - 0.2, y + 0.42, z + 0.16]], tint(C.greyLight, 0.3), { lw: 0.025 });
-      // The tail: a white fan of feathers, grey-banded, dark-tipped, up
-      // through the tear and twitching now and then; a loose feather by it.
+      // The tail: the goose's own back end, bottoms up, as goose() draws it
+      // (a white rump, the pointed tail cocked, its coral feet in the air),
+      // up through the tear and paddling now and then. A plain fan read as a
+      // hard hat, and white on the white roof needed the feet to say goose.
       const [X, Y] = P3(x, y, z + 0.05);
-      ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.25 + (frac(t / 4) < 0.08 ? Math.sin(t * 40) * 0.12 : 0));
-      const fan = (r, fill, o) => {
-        ctx.beginPath(); ctx.moveTo(-0.22, 0.02);
-        for (let i = 0; i <= 4; i++) { const a = Math.PI + (i / 4) * Math.PI; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r * 1.15 - 0.05); }
-        ctx.lineTo(0.22, 0.02); ctx.closePath(); paint(ctx, fill, o);
-      };
-      fan(0.5, C.ink, { lw: 0.03 });
-      fan(0.44, C.grey, { stroke: false });
-      fan(0.36, C.white, { stroke: false, dots: Q.detail ? C.greyLight : null, density: 0.15 });
-      ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.02;
-      for (let i = 1; i < 4; i++) { const a = Math.PI + (i / 4) * Math.PI; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 0.48, Math.sin(a) * 0.55 - 0.05); ctx.stroke(); }
+      const kick = frac(t / 4) < 0.1 ? Math.sin(t * 30) * 0.08 : 0;
+      ctx.save(); ctx.translate(X, Y); ctx.scale(1.35, 1.35);
+      ctx.lineCap = 'round';
+      for (const [lx, sw] of [[-0.04, kick], [0.14, -kick]]) {
+        const fx = lx + 0.04 + sw, fy = -0.66;
+        ctx.beginPath(); ctx.moveTo(lx, -0.2); ctx.lineTo(fx, fy);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.11; ctx.stroke();
+        ctx.strokeStyle = C.coral; ctx.lineWidth = 0.065; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx, fy + 0.02); ctx.lineTo(fx - 0.13, fy - 0.16); ctx.lineTo(fx + 0.15, fy - 0.14); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.025 });
+      }
+      ctx.beginPath(); ctx.moveTo(-0.16, -0.18); ctx.lineTo(-0.52, -0.42); ctx.lineTo(-0.34, -0.02); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(0.36, 0); ctx.ellipse(0, 0, 0.36, 0.3, 0, 0, Math.PI, true); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.035, dots: Q.detail ? C.grey : null, density: 0.1 });
+      ctx.beginPath(); ctx.moveTo(0.3, 0); ctx.ellipse(0.06, 0, 0.24, 0.13, 0, 0, Math.PI, true); ctx.closePath();
+      paint(ctx, C.greyLight, { lw: 0.025 });
       ctx.restore();
       if (Q.detail) {
         const [FX, FY] = P3(x + 0.5, y + 0.5, z + 0.02);
@@ -604,10 +610,13 @@ export default {
     }, { kind: 'poke', inside: cargo, bias: 2, hint: 'The truck that took Storrow Drive is carrying more than boxes. Look at its roof.' });
     // Its driver, on the curb, in a foil blanket, with an iced coffee he hasn't touched.
     const shock = folk(503, { top: C.mustard, bottom: C.navy, hair: C.brown });
-    stay(R, EWALK - 0.1, 22.2, shock, { z: G - 0.5, pose: 'sit', dir: 'l', hold: cupHeld, wear: blanket, hours: between(7.5, 20) });
+    // The truck is one long box sorted by its back corner, so anyone on the
+    // curb beside it sorts in front of it by hand (they were drawn inside it).
+    const BESIDE = SX + 1.2 + RY + 0.05;
+    stay(R, EWALK - 0.1, 22.2, shock, { z: G - 0.5, pose: 'sit', dir: 'l', hold: cupHeld, wear: blanket, hours: between(7.5, 20), depth: BESIDE });
     talk(R, EWALK - 0.1, 22.2, G + 1.9, (t) => (between(7.5, 20)(t) && every(19, 3.2, 0.4)(t) ? (frac(t / 38) < 0.5 ? 'Nobody mentioned bridges.' : 'It was a shortcut.') : null));
     // Someone taking its picture.
-    stay(R, EWALK + 0.2, 18.4, folk(504, { top: C.pink }), { pose: 'point', dir: 'l', back: true, hold: phoneHeld, hours: (t) => between(9, 11.5)(t) || between(16, 18.5)(t), umb: C.purple });
+    stay(R, EWALK + 0.2, 18.4, folk(504, { top: C.pink }), { pose: 'point', dir: 'l', back: true, hold: phoneHeld, hours: (t) => between(9, 11.5)(t) || between(16, 18.5)(t), umb: C.purple, depth: BESIDE });
     // The street's stray asleep on its warm hood at night (by day she's on
     // the bins in front of the Yellow House).
     R.thing(SX + 0.2, 17.4, (ctx) => cat(ctx, SX + 0.2, 17.6, G + 1.55, 0, { color: STRAY, stripes: true, sleep: true, dir: 'l' }), { on: between(21, 5) });
@@ -996,8 +1005,17 @@ export default {
         if (p.hide) return;
         person(ctx, p.x, p.y, G, { ...look, pose: 'walk', dir: p.dir, back: p.back, arms: [Math.PI - 0.35, -Math.PI + 0.35] }, t);
         const bob = Math.abs(Math.sin(t * 7)) * 0.05;
-        box(ctx, p.x - 0.7, p.y - 1.2, G + 2.45 + bob, 1.4, 2.4, 0.3, C.white, { flat: true, lw: 0.035, right: tint(C.sky, 0.6), left: tint(C.sky, 0.45), top: tint(C.sky, 0.75) });
-        if (Q.detail) for (let i = 0; i < 3; i++) { const k = frac(t * 1.4 + i / 3); disc(ctx, p.x + 0.7, p.y - 0.8 + i * 0.8, G + 2.4 - k * 2.4, 0.04, alpha(C.sky, 1 - k), { stroke: false }); }
+        // Held up off her face and set back a little, so the near edge
+        // doesn't sit over her head; quilted, so it reads as a mattress and
+        // not a plain slab.
+        const mz = G + 2.6 + bob, mx = p.x - 0.95, my = p.y - 1.7;
+        box(ctx, mx, my, mz, 1.4, 2.4, 0.3, C.white, { flat: true, lw: 0.035, right: tint(C.sky, 0.6), left: tint(C.sky, 0.45), top: tint(C.sky, 0.75) });
+        if (Q.detail) {
+          line(ctx, [[mx + 0.12, my + 0.12, mz + 0.31], [mx + 1.28, my + 0.12, mz + 0.31], [mx + 1.28, my + 2.28, mz + 0.31], [mx + 0.12, my + 2.28, mz + 0.31], [mx + 0.12, my + 0.12, mz + 0.31]], alpha(C.ink, 0.35), 0.02);
+          for (const tx of [0.45, 0.95]) for (const ty of [0.5, 1.2, 1.9]) disc(ctx, mx + tx, my + ty, mz + 0.31, 0.04, alpha(C.ink, 0.4), { stroke: false });
+          line(ctx, [[mx + 1.401, my, mz + 0.15], [mx + 1.401, my + 2.4, mz + 0.15]], alpha(C.ink, 0.3), 0.02);
+        }
+        if (Q.detail) for (let i = 0; i < 3; i++) { const k = frac(t * 1.4 + i / 3); disc(ctx, p.x + 0.45, p.y - 1.3 + i * 0.8, G + 2.6 - k * 2.6, 0.04, alpha(C.sky, 1 - k), { stroke: false }); }
       });
     }
     // Iced coffees in everyone's hands: a pair on the east sidewalk, watching.

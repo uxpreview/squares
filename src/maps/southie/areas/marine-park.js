@@ -665,7 +665,9 @@ export default {
       if (p.hide) return;
       const z = gz(p.x + 0.7, p.y + 1.2), bob = Math.abs(Math.sin(t * 7)) * 0.05;
       const who = (j, dy, hold) => person(ctx, p.x + 0.7, p.y + dy, gz(p.x + 0.7, p.y + dy), { ...TRIO[j], pose: 'walk', dir: 'r', back: true, ...(hold ? { hold } : { arms: [1.3, 1.3] }) }, t + j);
-      who(0, -0.1, null);
+      // The back carrier a step clear of the couch's end, or its tall back
+      // hides his head and he's a pair of legs under a sofa.
+      who(0, -0.5, null);
       couch(ctx, p.x, p.y, z + 0.75 + bob, COUCH_INK, null);
       who(1, CO.d + 0.1, null);
       who(2, CO.d + 1.6, (c) => { c.beginPath(); c.rect(-0.1, -0.1, 0.7, 0.45); paint(c, C.white, { lw: 0.03 }); c.fillStyle = C.teal; c.fillRect(-0.1, -0.1, 0.7, 0.12); });
@@ -943,7 +945,8 @@ export default {
         if (p.hide) return;
         const wet = raining(t);
         looks.forEach((lk, j) => {
-          const x = p.x + j * 0.75, y = p.y + j * 0.4, z = gz(x, y);
+          // Side by side on screen (0.75, 0.4 put one inside the other).
+          const x = p.x + j * 0.9, y = p.y - j * 0.3, z = gz(x, y);
           person(ctx, x, y, z, { ...lk, ...(wet ? { top: C.mustard } : {}), pose: 'walk', speed: 11, dir: p.dir, back: p.back, arms: [Math.sin(t * 11 + j) * 1.1 + 0.4, -Math.sin(t * 11 + j) * 1.1 + 0.4] }, t);
         });
         if (Q.detail && frac(t / 25) < 0.12) speech(ctx, p.x, p.y, gz(p.x, p.y) + 3.1, wet ? 'Lap four! Wet lap!' : 'Lap four!', { size: 0.4 });
@@ -1005,12 +1008,14 @@ export default {
       const px = SH.x1 - 0.2, py = SH.y1 - 0.2, z = gz(px, py);
       const sag = rainK(t) * 0.9;
       [[C.pink, -0.35, 0], [C.mustard, 0.05, 1.3], [C.teal, 0.4, 2.2]].forEach(([c, d, ph]) => {
-        const bx = px + d + Math.sin(t * 1.3 + ph) * 0.12, by = py + 0.3 - d, bz = z + 3.3 - sag + Math.sin(t * 1.1 + ph) * 0.08;
+        // Out past the front eave on their strings: tucked under the roof
+        // they were hidden when dry and read as three heads in it when wet.
+        const bx = px + 0.7 + d * 1.3 + Math.sin(t * 1.3 + ph) * 0.12, by = py + 1.0 - d * 0.2, bz = z + 3.3 - sag + Math.sin(t * 1.1 + ph) * 0.08;
         line(ctx, [[px, py, z + 1.8], [bx, by, bz - 0.35]], C.ink, 0.02);
         const [X, Y] = P3(bx, by, bz);
         ctx.beginPath(); ctx.ellipse(X, Y, 0.3, 0.37, 0, 0, Math.PI * 2); paint(ctx, c, { lw: 0.03 });
       });
-    }, { anim: true, on: within(7, 19.3), depth: SH.x1 + SH.y1 + 0.4 });
+    }, { anim: true, on: within(7, 19.3), depth: SH.x1 + SH.y1 + 1.0 });
     R.thing(SH.x1 - 0.05, SH.y1 + 0.25, (ctx) => {
       const x = SH.x1 - 0.08, y = SH.y1 - 0.2, z = gz(x, y);
       board(ctx, x, y, z + 1.5, 0.55, 0.55, C.white, [['RESERVED', 0.08, C.red], ['4PM', 0.14, C.ink], ['PARTY!', 0.09, C.ink]]);
@@ -1043,7 +1048,9 @@ export default {
       }, { on: party, depth: SH.x0 + SH.y0 + 3.2 });
       const kids = [[SH.x0 + 1.3, SH.y0 + 0.5, 'l', true], [SH.x0 + 2.3, SH.y0 + 0.5, 'r', true], [SH.x0 + 1.4, SH.y0 + 2.6, 'r', false], [SH.x0 + 2.5, SH.y0 + 2.7, 'l', false]];
       kids.forEach(([x, y, dir, back], i) => stay(R, x, y, folk(680 + i, { hat: 'party', scale: 0.7 }), { scale: 0.7, z: tz, dir, back, pose: i === 2 ? 'cheer' : i === 3 ? 'jump' : 'stand', hours: party, anim: i >= 2 }));
-      stay(R, SH.x0 + 3.1, SH.y0 + 1.5, folk(685, { top: C.coral, style: 'curly' }), { z: tz, dir: 'l', pose: 'point', hours: party });
+      // The parent stands at the open front: by the gable end their head was
+      // up inside the roof.
+      stay(R, SH.x0 + 2.9, SH.y1 + 0.15, folk(685, { top: C.coral, style: 'curly' }), { z: tz, dir: 'l', back: true, pose: 'point', hours: party });
       talk(R, SH.x0 + 1.8, SH.y0 + 1.5, tz + 2.6, (t) => (party(t) ? lines(['Happy birthday!', 'Who is Kaylee?', 'Why is it wet?'], 17, 3.2, 0.2)(t) : null), { size: 0.42 });
       // Before the party, a parent tying the balloons.
       stay(R, SH.x1 - 0.2, SH.y1 + 0.4, folk(685, { top: C.coral, style: 'curly' }), { dir: 'r', back: true, arms: [2.6, 2.2], hours: within(7, 8.5) });
