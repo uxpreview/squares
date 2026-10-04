@@ -6,19 +6,22 @@
 // from the Green House walks through in her slippers (she's out of her own
 // flat then: day.js, OPEN_HOUSE).
 import {
-  C, Q, SKIN, HAIR, box, rect, disc, face, paint, person, folk, speech, glow, chair, plant,
+  C, Q, box, rect, disc, cylinder, face, paint, person, folk, speech, glow, chair, goose,
   shade, tint, mix, alpha, P, onLeft, onRight, paintText,
 } from '../../../engine/art.js';
 import { pulse } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { apartment, lettering } from '../kit.js';
 import { SIDING, TRIM, ROOM } from '../style.js';
-import { at, rainK, nightK } from '../clock.js';
+import { at, between, rainK, nightK } from '../clock.js';
 import { ladyLook, OPEN_HOUSE } from '../day.js';
 import { H, during, track, boards, edison, kitchenL, sagaOn, saga, porchDepth, onPorch, rails } from './grey-2.js';
 
 const BOOTIE = tint(C.sky, 0.25);
 const LEMON = mix(C.mustard, C.butter, 0.35); // a lemon yellow, brighter than the badge's gold
+const REAL = C.mustard; // a real lemon: a touch duller
+// When it sells: as the last visitor leaves (the flyer by the door says so).
+const SOLD = 15.35;
 
 // ---------- The showing ----------
 // Eighteen visitors: each comes up onto the porch, in the door, puts on
@@ -117,8 +120,8 @@ const clipTab = (ctx) => {
 // In her housecoat, curlers and rain bonnet, keys jingling, in her own
 // slippers, straight through (day.js hides her at home meanwhile).
 const LADY = track([
-  [13.45, 14.2, 4.0], [13.49, 13.4, 1.4], [13.52, 12.1, 1.0], [13.56, 12.2, 2.5], [13.7, 7.4, 5.0, { dir: 'l', say: 'Plastic lemons. Classy.' }],
-  [13.8, 7.4, 5.0, { dir: 'l', say: 'Plastic lemons. Classy.' }], [13.87, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }],
+  [13.45, 14.2, 4.0], [13.49, 13.4, 1.4], [13.52, 12.1, 1.0], [13.56, 12.2, 2.5], [13.7, 7.4, 5.0, { dir: 'l', say: 'Real lemons? Show-off.' }],
+  [13.8, 7.4, 5.0, { dir: 'l', say: 'Real lemons? Show-off.' }], [13.87, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }],
   [14.0, 4.4, 5.1, { dir: 'l', say: 'In my day, this was a wall.' }], [14.22, 12.2, 2.5], [14.26, 12.1, 1.0], [14.3, 13.4, 1.4], [14.34, 14.2, 4.0],
 ]);
 // Her muddy prints, laid as she goes and mopped up at half past three.
@@ -138,6 +141,17 @@ function lemon(ctx, x, y, z, s = 1) {
   ctx.fillStyle = alpha(C.white, 0.8); ctx.beginPath(); ctx.ellipse(-0.07, -0.19, 0.07, 0.03, -0.2, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
+// A real one: duller, a dimple at the end, a green leaf.
+function realLemon(ctx, x, y, z, s = 1) {
+  const [X, Y] = P(x, y, z);
+  ctx.save(); ctx.translate(X, Y); ctx.scale(s, s); ctx.rotate(0.25);
+  ctx.beginPath(); ctx.ellipse(0, -0.11, 0.19, 0.14, 0, 0, Math.PI * 2);
+  ctx.moveTo(0.18, -0.13); ctx.lineTo(0.25, -0.11); ctx.lineTo(0.18, -0.08);
+  paint(ctx, REAL, { lw: 0.03, dots: shade(REAL, 0.3), density: 0.15 });
+  ctx.beginPath(); ctx.ellipse(-0.2, -0.2, 0.1, 0.04, -0.5, 0, Math.PI * 2);
+  paint(ctx, C.leaf, { lw: 0.02 });
+  ctx.restore();
+}
 function bootie(ctx, x, y, a = 0) {
   const [X, Y] = P(x, y, 0.08);
   ctx.save(); ctx.translate(X, Y); ctx.rotate(a);
@@ -151,7 +165,7 @@ function bootie(ctx, x, y, a = 0) {
 export default {
   id: 'grey-1',
   name: 'The Open House',
-  blurb: 'Luxury living, parking not included. Booties on, please (not you, apparently).',
+  blurb: 'Luxury living, parking not included. Flip the clock: twenty people came at one, and by evening it sold.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 0, walls: ROOM['grey-1'], floorInk: ROOM['grey-1'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true });
@@ -194,20 +208,56 @@ export default {
       if (Q.detail) {
         ctx.save(); ctx.globalAlpha *= 0.35;
         for (const [a, b] of [[[1.3, 3.1], [2.6, 3.9]], [[2.9, 3.2], [3.8, 3.7]]]) face(ctx, [[a[0], a[1], hh + 0.001], [b[0], b[1], hh + 0.001]], null, { lw: 0.02, stroke: C.grey });
-        face(ctx, [[1.4, y0 + d, 0.2], [2.3, y0 + d, 1.1]], null, { lw: 0.02, stroke: C.grey });
         ctx.restore();
       }
     });
-    for (const x of [1.6, 2.5, 3.4]) R.thing(x + 0.3, 4.65, (ctx) => {
+    // One stool, between the cupboards (the others went to the photo shoot).
+    for (const x of [2.5]) R.thing(x + 0.3, 4.65, (ctx) => {
       box(ctx, x - 0.02, 4.35, 0, 0.08, 0.08, 0.95, C.black, { flat: true, stroke: false });
       box(ctx, x - 0.25, 4.1, 0.95, 0.5, 0.5, 0.1, C.black, { flat: true, lw: 0.02 });
     });
+
+    // ---------- The island's two cupboards: one has the goose ----------
+    // Flat white doors with black bar pulls, side by side under the quartz.
+    // The left one has a coral webbed foot poking out under it, all day; the
+    // right one is just staged bowls. Tap either and it swings open.
+    const DOORS = [{ x0: 1.12, hinge: 1.12, dir: 1 }, { x0: 2.62, hinge: 3.88, dir: -1 }];
+    const DW = 1.26, DZ0 = 0.1, DZ1 = 1.2, FY = 4.0;
+    const gooseDoor = R.poke({ id: 'cupboard', at: [1.6, FY, 0.45], r: 0.75, sound: 'clunk', say: ['HONK?', 'Is the island load-bearing?'] });
+    const bowlDoor = R.poke({ id: 'bowls', at: [2.85, FY, 0.4], r: 0.75, sound: 'clunk', say: ['Soft-close.', 'Staged bowls. Do not use.', 'Very soft. Very closed.'] });
+    R.thing(4.02, 4.02, (ctx, t) => {
+      [gooseDoor, bowlDoor].forEach((pk, i) => {
+        const d = DOORS[i], k = pk.k(), a = k * 1.9;
+        if (k > 0.02) {
+          // The inside: a dark box, and what's in it.
+          face(ctx, [[d.x0, FY, DZ0], [d.x0 + DW, FY, DZ0], [d.x0 + DW, FY, DZ1], [d.x0, FY, DZ1]], shade(C.greyLight, 0.55), { lw: 0.025 });
+          face(ctx, [[d.x0, FY, 0.62], [d.x0 + DW, FY, 0.62]], null, { lw: 0.02, stroke: C.grey });
+          if (i === 1 && Q.detail) {
+            for (let j = 0; j < 4; j++) box(ctx, d.x0 + 0.2, FY - 0.45, 0.66 + j * 0.08, 0.45, 0.4, 0.07, j % 2 ? C.teal : tint(C.teal, 0.2), { flat: true, lw: 0.015 });
+            cylinder(ctx, d.x0 + 0.95, FY - 0.25, 0.12, 0.12, 0.42, C.red, { flat: true });
+          }
+        }
+        // The door, swung out on its hinge.
+        const fx = d.hinge + d.dir * DW * Math.cos(a), fy = FY + DW * Math.sin(a);
+        face(ctx, [[d.hinge, FY, DZ0], [fx, fy, DZ0], [fx, fy, DZ1], [d.hinge, FY, DZ1]], k > 0.02 ? tint(C.greyLight, 0.4) : tint(C.white, 0.3), { lw: 0.03 });
+        // Its pull, by the free edge.
+        const px = d.hinge + d.dir * (DW - 0.14) * Math.cos(a), py = FY + (DW - 0.14) * Math.sin(a) + 0.01;
+        face(ctx, [[px - 0.02, py, 0.5], [px + 0.02, py, 0.5], [px + 0.02, py, 0.85], [px - 0.02, py, 0.85]], C.black, { lw: 0.015 });
+      });
+      // The tell: a coral webbed foot out under the left door, toes twitching.
+      if (gooseDoor.k() < 0.3) {
+        const w = Math.sin(t * 3) > 0.92 ? 0.04 : 0;
+        const pts = [[1.52, FY - 0.02], [1.44 - w, FY + 0.3], [1.55, FY + 0.24], [1.62, FY + 0.38], [1.7, FY + 0.24], [1.82 + w, FY + 0.3], [1.72, FY - 0.02]];
+        ctx.beginPath(); pts.forEach(([x, y], j) => { const [X, Y] = P(x, y, 0.02); j ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.closePath();
+        paint(ctx, C.coral, { lw: 0.025 });
+      }
+    }, { anim: true, depth: 8.02 });
     // The realtor's name tag, left on the island.
     // A big gold badge, alone on the island's bare quartz: a white strip
     // with REALTOR on it, a shine. Sorted in front of the island (one
     // thing, sorted at its far corner), or the island paints over it.
     R.thing(2.6, 3.6, (ctx) => {
-      const z = 1.31, x0 = 1.95, y0 = 3.12, w = 1.0, d = 0.56;
+      const z = 1.31, x0 = 3.05, y0 = 3.12, w = 0.88, d = 0.56;
       rect(ctx, x0 + 0.03, y0 + 0.03, w, d, z - 0.005, shade(C.mustard, 0.35), { stroke: false });
       rect(ctx, x0, y0, w, d, z, tint(C.mustard, 0.1), { lw: 0.035 });
       rect(ctx, x0 + 0.08, y0 + 0.16, w - 0.16, 0.26, z + 0.005, C.white, { lw: 0.02 });
@@ -217,10 +267,10 @@ export default {
       }
     }, { depth: 8.05 });
     R.thing(3.8, 3.8, (ctx) => {
-      for (let i = 0; i < 6; i++) rect(ctx, 3.15 + (i % 2) * 0.05, 3.25 - (i % 3) * 0.04, 0.6, 0.45, 1.31 + i * 0.03, C.white, { lw: 0.02 });
-      if (Q.detail) { ctx.save(); ctx.translate(0, -1.5 * ZK); paintText(ctx, 'floor', 3.45, 3.45, 'OFFER', 0.1, C.ink, 'Rethink Sans'); ctx.restore(); }
+      for (let i = 0; i < 6; i++) rect(ctx, 1.2 + (i % 2) * 0.05, 3.25 - (i % 3) * 0.04, 0.6, 0.45, 1.31 + i * 0.03, C.white, { lw: 0.02 });
+      if (Q.detail) { ctx.save(); ctx.translate(0, -1.5 * ZK); paintText(ctx, 'floor', 1.5, 3.45, 'OFFER', 0.1, C.ink, 'Rethink Sans'); ctx.restore(); }
     }, { on: during(16.1, 29), depth: 8.06 });
-    R.find({ id: 'tag', label: "A realtor's name tag", at: [2.45, 3.4, 1.4], r: 1.0 });
+    R.find({ id: 'tag', label: "A realtor's name tag", kind: 'spot', at: [3.5, 3.4, 1.4], r: 0.9 });
     for (const [x, y] of [[1.7, 3.5], [2.6, 3.5], [3.5, 3.5]]) edison(R, x, y, 1.2);
 
     // ---------- The middle: the table and the lemons ----------
@@ -231,31 +281,47 @@ export default {
     });
     R.thing(5.0, 5.8, (ctx) => chair(ctx, 4.3, 5.4, 0, C.woodLight, 'r'));
     R.thing(6.4, 4.8, (ctx) => chair(ctx, 5.6, 4.0, 0, C.woodLight, 'l'));
-    // The bowl nobody's allowed to use: four fake lemons, a card.
-    // (Both sorted in front of the table, or its top paints over them.)
+    // The bowl nobody's allowed to use: real lemons this time, a card.
+    // (Sorted in front of the table, or its top paints over it.)
     R.thing(6.5, 6.2, (ctx) => {
       disc(ctx, 6.25, 5.9, 1.2, 0.42, C.white, { lw: 0.035 });
       disc(ctx, 6.25, 5.9, 1.36, 0.46, tint(C.white, 0.2), { lw: 0.035 });
-      for (const [dx, dy] of [[-0.12, -0.1], [0.15, -0.05], [0, 0.14], [0.06, -0.2]]) lemon(ctx, 6.25 + dx, 5.9 + dy, 1.36, 0.85);
+      for (const [dx, dy] of [[-0.12, -0.1], [0.15, -0.05], [0, 0.14], [0.06, -0.2]]) realLemon(ctx, 6.25 + dx, 5.9 + dy, 1.36, 0.85);
       face(ctx, [[6.25, 5.15, 1.2], [6.65, 5.15, 1.2], [6.65, 5.2, 1.45], [6.25, 5.2, 1.45]], C.white, { lw: 0.02 });
       lettering(ctx, 'x', 6.45, 5.21, 1.33, 'DO NOT EAT', 0.07, C.red);
     }, { depth: 13.45 });
-    // One got away: the find. A big bright lemon rolled off to the table's
-    // far corner, its produce sticker still on.
-    const LX = 5.5, LY = 5.3;
-    R.thing(LX, LY, (ctx) => {
-      lemon(ctx, LX, LY, 1.2, 1.6);
+    // The staged lemon tree in the corner: real lemons, matte, each with a
+    // leaf, and one plastic one wired on among them, too bright, with a
+    // shine and a produce sticker. The find.
+    const LX = 1.62, LY = 8.88, LZ = 2.25;
+    R.thing(1.6, 8.9, (ctx) => {
+      // The pot, the trunk, the crown.
+      const [PX, PY] = P(1.15, 8.45, 0);
+      ctx.beginPath(); ctx.moveTo(PX - 0.42, PY - 0.75); ctx.lineTo(PX + 0.42, PY - 0.75); ctx.lineTo(PX + 0.32, PY); ctx.lineTo(PX - 0.32, PY); ctx.closePath();
+      paint(ctx, C.white, { lw: 0.035, dots: C.greyLight, density: 0.25 });
+      const [T0x, T0y] = P(1.15, 8.45, 0.65), [T1x, T1y] = P(1.15, 8.45, 1.7);
+      ctx.beginPath(); ctx.moveTo(T0x, T0y); ctx.lineTo(T1x, T1y); ctx.strokeStyle = C.brown; ctx.lineWidth = 0.09; ctx.stroke();
+      for (const [dx, dy, dz, r] of [[-0.3, 0.1, 2.1, 0.5], [0.3, -0.2, 2.2, 0.48], [0, 0, 2.6, 0.5], [0.2, 0.35, 2.0, 0.45], [-0.15, 0.4, 2.45, 0.42]]) {
+        const [X, Y] = P(1.15 + dx, 8.45 + dy, dz);
+        ctx.beginPath(); ctx.arc(X, Y, r, 0, Math.PI * 2);
+        paint(ctx, shade(C.green, 0.12), { dots: shade(C.green, 0.45), density: 0.2 });
+      }
+      for (const [x, y, z] of [[1.35, 8.95, 1.8], [0.95, 8.95, 2.45], [1.4, 8.4, 2.8], [0.75, 8.55, 1.95]]) realLemon(ctx, x, y, z, 1.0);
+      // The plastic one.
+      lemon(ctx, LX, LY, LZ, 1.0);
       if (Q.detail) {
-        const [X, Y] = P(LX, LY, 1.2);
-        ctx.save(); ctx.translate(X, Y); ctx.scale(1.6, 1.6); ctx.rotate(-0.3);
+        const [X, Y] = P(LX, LY, LZ);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.3);
         ctx.beginPath(); ctx.ellipse(0.06, -0.1, 0.07, 0.05, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.015 });
         ctx.fillStyle = C.teal; ctx.fillRect(0.02, -0.11, 0.08, 0.02);
         ctx.restore();
       }
-    }, { depth: 13.46 });
-    // (Centered on the lemon itself, clear of the bowl beside it.)
-    R.find({ id: 'lemon', label: 'A plastic lemon', at: [LX - 0.35, LY - 0.05, 1.5], r: 0.9 });
-    R.thing(1.2, 8.5, (ctx) => plant(ctx, 1.1, 8.3, 0, 0, { scale: 1.3, kind: 'leafy', potColor: C.white, leaf: C.green }));
+    });
+    R.find({
+      id: 'lemon', label: 'A plastic lemon', kind: 'hard', at: [LX, LY, LZ + 0.15], r: 0.6,
+      riddle: 'The tree in the corner is faking one.',
+      hint: 'Real lemons are dull. One on the lemon tree is a little too shiny.',
+    });
 
     // ---------- The front room: the staged sofa ----------
     R.rug((ctx) => {
@@ -284,8 +350,24 @@ export default {
       box(ctx, 9.5, 4.95, 0, 1.5, 0.75, 0.55, tint(C.white, 0.3), { lw: 0.035, left: tint(C.greyLight, 0.4) });
       box(ctx, 9.9, 5.1, 0.55, 0.6, 0.45, 0.12, C.coral, { flat: true, lw: 0.025 });
       box(ctx, 9.95, 5.12, 0.67, 0.5, 0.4, 0.06, C.teal, { flat: true, lw: 0.02 });
-      disc(ctx, 10.7, 5.3, 0.56, 0.15, C.ink, { lw: 0.02 });
     });
+    // The stager's ceramic goose (the decoy): glazed white on a gold base,
+    // stiff as a statue, a shine on its back, and a STAGED tag at its feet.
+    const CG = [10.65, 5.3, 0.56];
+    R.thing(11.05, 5.75, (ctx) => {
+      disc(ctx, CG[0], CG[1], CG[2], 0.24, shade(C.mustard, 0.1), { lw: 0.025 });
+      disc(ctx, CG[0], CG[1], CG[2] + 0.06, 0.22, tint(C.mustard, 0.15), { lw: 0.02 });
+      goose(ctx, CG[0], CG[1], CG[2] + 0.06, 0, { pose: 'stand', dir: 'l', scale: 0.62 });
+      if (!Q.detail) return;
+      const [X, Y] = P(CG[0], CG[1], CG[2] + 0.06);
+      ctx.fillStyle = alpha(C.white, 0.95);
+      ctx.beginPath(); ctx.ellipse(X - 0.04, Y - 0.38, 0.1, 0.035, -0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = alpha(C.sky, 0.8); ctx.lineWidth = 0.02;
+      ctx.beginPath(); ctx.arc(X - 0.12, Y - 0.48, 0.05, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
+      face(ctx, [[CG[0] - 0.05, CG[1] + 0.3, CG[2]], [CG[0] + 0.3, CG[1] + 0.3, CG[2]], [CG[0] + 0.3, CG[1] + 0.3, CG[2] + 0.12], [CG[0] - 0.05, CG[1] + 0.3, CG[2] + 0.12]], C.white, { lw: 0.012 });
+      lettering(ctx, 'x', CG[0] + 0.12, CG[1] + 0.31, CG[2] + 0.06, 'STAGED', 0.05, C.red);
+    });
+    R.decoy({ id: 'ceramic', at: [CG[0], CG[1], CG[2] + 0.45], r: 0.5, say: ['Staged. Do not touch.', 'Ceramic. Also staged.', 'It comes with the condo. It does not.'] });
     R.thing(12.0, 3.6, (ctx) => {
       disc(ctx, 11.95, 3.4, 0.02, 0.28, C.black, { lw: 0.02 });
       const pts = []; for (let i = 0; i <= 10; i++) { const k = i / 10; pts.push(P(11.95 - 1.5 * k, 3.4 + 0.3 * k, 0.05 + Math.sin(k * Math.PI * 0.8) * 3.0 + k * 0.2)); }
@@ -310,7 +392,40 @@ export default {
       lettering(ctx, 'x', 10.37, 3.01, 1.04, 'PLEASE', 0.08, C.ink);
     });
     R.thing(11.9, 3.0, (ctx) => { bootie(ctx, 11.45, 2.7, -0.2); bootie(ctx, 11.8, 2.95, 0.25); });
-    R.find({ id: 'booties', label: 'A pair of shoe booties', at: [11.62, 2.82, 0.15], r: 0.88 });
+    R.find({ id: 'booties', label: 'A pair of shoe booties', kind: 'spot', at: [11.62, 2.82, 0.15], r: 0.85 });
+
+    // ---------- What changed: the flyer by the door ----------
+    // On an easel by the booties: FOR SALE, the house, ASKING in big red, NO
+    // BROKER FEE (true since 2025). After the showing a red band goes across
+    // it: UNDER AGREEMENT. Nineteen offers will do that.
+    const sold = between(SOLD, 5);
+    const EX0 = 7.4, EX1 = 8.6, EY = 2.6;
+    R.thing(EX1 + 0.05, 2.7, (ctx) => {
+      for (const x of [EX0 + 0.15, EX1 - 0.15]) box(ctx, x, EY + 0.05, 0, 0.06, 0.06, 2.45, C.black, { flat: true, stroke: false });
+      box(ctx, (EX0 + EX1) / 2 - 0.03, EY - 0.35, 0, 0.06, 0.06, 2.3, C.black, { flat: true, stroke: false });
+      box(ctx, EX0 + 0.05, EY - 0.02, 0.92, EX1 - EX0 - 0.1, 0.12, 0.06, C.black, { flat: true, stroke: false });
+      const q = (x0, z0, x1, z1) => [[x0, EY, z0], [x1, EY, z0], [x1, EY, z1], [x0, EY, z1]];
+      face(ctx, q(EX0, 0.98, EX1, 2.45), C.white, { lw: 0.03 });
+      lettering(ctx, 'x', (EX0 + EX1) / 2, EY + 0.01, 2.3, 'FOR SALE', 0.13, C.ink);
+      // The photo: the Grey One, grey with black windows.
+      face(ctx, q(EX0 + 0.2, 1.62, EX1 - 0.2, 2.15), SIDING.grey, { lw: 0.02 });
+      if (Q.detail) for (const x of [EX0 + 0.33, EX0 + 0.58, EX0 + 0.83]) for (const z of [1.7, 1.93]) face(ctx, q(x, z, x + 0.14, z + 0.15), C.black, { stroke: false });
+      lettering(ctx, 'x', (EX0 + EX1) / 2, EY + 0.01, 1.08, 'NO BROKER FEE', 0.08, C.ink);
+    });
+    R.thing(EX1 + 0.06, 2.71, (ctx) => {
+      lettering(ctx, 'x', (EX0 + EX1) / 2, EY + 0.01, 1.43, 'ASKING', 0.2, C.red);
+      lettering(ctx, 'x', (EX0 + EX1) / 2, EY + 0.01, 1.24, '$1,249,000', 0.1, C.ink);
+    }, { on: (t) => !sold(t) });
+    R.thing(EX1 + 0.06, 2.71, (ctx) => {
+      face(ctx, [[EX0 - 0.05, EY + 0.01, 1.18], [EX1 + 0.05, EY + 0.01, 1.32], [EX1 + 0.05, EY + 0.01, 1.6], [EX0 - 0.05, EY + 0.01, 1.46]], C.red, { lw: 0.025 });
+      lettering(ctx, 'x', (EX0 + EX1) / 2, EY + 0.02, 1.39, 'UNDER AGREEMENT', 0.1, C.white);
+    }, { on: sold });
+    R.find({
+      id: 'flyer', label: 'Something that sold since breakfast', kind: 'spot', at: [(EX0 + EX1) / 2, EY, 1.6], r: 0.85,
+      when: sold, note: 'after the showing',
+      riddle: 'It said ASKING at breakfast. Flip back and look.',
+      hint: 'By the booties, the flyer changed its tune after the showing.',
+    });
 
     // ---------- The porch: the sign ----------
     const signDay = (t) => H(t) < 19.4;
@@ -323,21 +438,28 @@ export default {
     onPorch(R, 14.1, 3.5, board([['OPEN HOUSE', 1.44, 0.2, C.black], ['TODAY 1 TO 3', 1.22, 0.12, C.red], ['LUXURY LIVING.', 0.95, 0.12, C.ink], ['PARKING NOT', 0.78, 0.1, C.ink], ['INCLUDED.', 0.64, 0.1, C.ink]]), { on: signDay });
     onPorch(R, 14.1, 3.5, board([['UNDER', 1.3, 0.2, C.red], ['AGREEMENT', 1.02, 0.2, C.red], ['(19 OFFERS)', 0.72, 0.1, C.ink]]), { on: (t) => !signDay(t) });
 
-    // ---------- The goose, in booties ----------
+    // ---------- The goose, in the island ----------
+    // Tucked in the left cupboard all day; tap it and out it steps, in booties.
     const GOOSE = (t) => {
-      const k = pulse(t, 14);
-      const f = k < 0.35 ? k / 0.35 : k < 0.5 ? 1 : k < 0.85 ? 1 - (k - 0.5) / 0.35 : 0;
-      return { x: 2.9 + f * 1.4, y: 7.3 + f * 0.7, z: 0, dir: k < 0.5 ? 'r' : 'l', moving: (k < 0.35) || (k > 0.5 && k < 0.85) };
+      const k = gooseDoor.k();
+      return { x: 1.75, y: 3.6 + 1.1 * k, z: 0, dir: 'l', hidden: k < 0.3, pose: k > 0.9 && pulse(t, 7) > 0.75 ? 'honk' : 'stand' };
     };
-    R.goose(GOOSE);
+    R.goose(GOOSE, { bias: 1.75, kind: 'poke', inside: gooseDoor, hint: 'Two cupboards in the island. One of them has feet.' });
     R.mover(GOOSE, (ctx, t, p) => {
+      if (p.hidden) return;
       const [X, Y] = P(p.x, p.y, 0);
-      const f = p.dir === 'l' ? -1 : 1, sw = p.moving ? Math.sin(t * 9) * 0.12 : 0;
-      for (const dx of [-0.05 + sw, 0.08 - sw]) {
-        ctx.beginPath(); ctx.ellipse(X + dx * f, Y - 0.02, 0.13, 0.08, 0, 0, Math.PI * 2);
+      for (const dx of [0.05, -0.08]) {
+        ctx.beginPath(); ctx.ellipse(X + dx, Y - 0.02, 0.13, 0.08, 0, 0, Math.PI * 2);
         paint(ctx, BOOTIE, { lw: 0.025 });
       }
-    }, { bias: 0.02 });
+    }, { bias: 1.77 });
+
+    // The realtor answers a tap, all day (the room's first lesson).
+    R.poke({
+      id: 'realtor', teach: true, r: 1.0, sound: 'pop', when: during(7.9, 29),
+      at: (t) => { const h = H(t); if (h >= 19.4) return [11.0, 3.95, 1.0]; const p = REALTOR(h); return [p.x, p.y, 1.5]; },
+      say: ['Love the light!', 'Booties, please!', 'Offers by Tuesday.', 'Zzz. Love the light.'],
+    });
 
     // ---------- The people ----------
     // The realtor, all day (booties on, of course).
@@ -377,6 +499,17 @@ export default {
       person(ctx, p.x, p.y, 0, { ...folk(871, { top: C.pink, style: 'long', dress: false }), dir: 'l', arms: [k < 0.3 ? 2.2 : 1.3 - Math.min(1, (k - 0.3) * 3) * 0.3, 0.2] }, t);
       if (Q.detail && t % 13 < 2.5) speech(ctx, p.x, p.y, 2.7, 'Chop.', { size: 0.42 });
     }, { on: during(8.3, 11.9) });
+
+    // The evening: the winning buyers, back already, measuring for a sofa
+    // (in booties, of course), where the stager chopped the pillow.
+    R.mover(() => ({ x: 8.3, y: 6.3 }), (ctx, t, p) => {
+      person(ctx, p.x, p.y, 0, { ...folk(881, { top: C.coral, dress: false, style: 'curly', shoes: BOOTIE }), dir: 'r', arms: [1.45, 0.2], hold: tape }, t);
+      if (Q.detail && t % 15 < 3.2) speech(ctx, p.x, p.y, 2.7, 'Nineteen offers. We won!', { size: 0.42 });
+    }, { on: during(16.4, 19.3) });
+    R.mover(() => ({ x: 7.1, y: 7.6 }), (ctx, t, p) => {
+      person(ctx, p.x, p.y, 0, { ...folk(882, { top: C.teal, dress: true, style: 'long', shoes: BOOTIE }), dir: 'r', arms: [2.5, 0.15], hold: phone }, t);
+      if (Q.detail && (t + 7) % 15 < 3.2) speech(ctx, p.x, p.y, 2.7, 'Where do we park?', { size: 0.42 });
+    }, { on: during(16.4, 19.3) });
 
     // The showing: eighteen visitors (and a queue on the porch in the rain).
     for (const v of VISITORS) {
