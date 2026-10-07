@@ -534,22 +534,34 @@ function cigarBox(ctx, k) {
   // the string and the tag's corner, out from under the lid's side and down
   // onto the baize
   const [sX, sY] = P(x + w, y + d * 0.55, zt - 0.01);
-  const [eX, eY] = P(x + w + 0.17, y + d * 0.6, TOP + 0.004);
+  const [eX, eY] = P(x + w + 0.26, y + d * 0.66, TOP + 0.004);
   if (k < 0.5) {
+    // (bright and a bit big on purpose: at phone size it's what says "tap the box")
     ctx.beginPath();
     ctx.moveTo(sX, sY);
-    ctx.quadraticCurveTo(sX + 0.1, sY + 0.02, eX, eY);
-    ctx.strokeStyle = INK.oxblood;
-    ctx.lineWidth = 0.016;
+    ctx.quadraticCurveTo(sX + 0.2, sY - 0.06, eX, eY);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 0.05;
     ctx.stroke();
-    onFlat(ctx, x + w + 0.24, y + d * 0.62, TOP + 0.004, 0.3, (g) => {
+    ctx.strokeStyle = C.red;
+    ctx.lineWidth = 0.03;
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    onFlat(ctx, x + w + 0.39, y + d * 0.7, TOP + 0.004, 0.3, (g) => {
+      g.scale(1.7, 1.7);
       g.beginPath();
-      g.moveTo(-0.07, -0.03); g.lineTo(-0.04, -0.06); g.lineTo(0.05, -0.06); g.lineTo(0.05, 0.06); g.lineTo(-0.04, 0.06); g.lineTo(-0.07, 0.03);
+      g.moveTo(-0.07, -0.03); g.lineTo(-0.04, -0.06); g.lineTo(0.06, -0.06); g.lineTo(0.06, 0.06); g.lineTo(-0.04, 0.06); g.lineTo(-0.07, 0.03);
       g.closePath();
-      paint(g, MANILA, { lw: 0.014 });
+      paint(g, INK.bone, { lw: 0.014 });
       g.beginPath();
       g.arc(-0.045, 0, 0.014, 0, Math.PI * 2);
-      paint(g, INK.bone, { lw: 0.008, stroke: MAT.brassDark });
+      paint(g, MAT.brass, { lw: 0.008 });
+      if (!Q.detail) return;
+      // one of the pawnbroker's three balls, just showing
+      g.beginPath();
+      g.arc(0.03, -0.02, 0.016, 0, Math.PI * 2);
+      paint(g, MAT.brass, { lw: 0.006 });
     });
   }
   // the box
@@ -854,7 +866,7 @@ export default {
     // The sideboard's middle cupboard.
     const cupboard = R.poke({ id: 'cupboard', at: [14.1, 0.93, 0.55], r: 0.8, sound: 'clunk', say: ['Glasses. No port.', "Somebody's had the port.", 'Still no port.'] });
     // Rupert's cigar box on the card table: the pawn ticket is in it.
-    const cigars = R.poke({ id: 'cigars', at: [10.88, 12.77, 1.12], r: 0.6, say: ['Cigars. And something else.', 'Just cigars now.'] });
+    const cigars = R.poke({ id: 'cigars', at: [11.0, 12.8, 1.1], r: 0.75, say: ['Cigars. And something else.', 'Just cigars now.'] });
     // The red herring: the Lord's wooden goose decoy on the mantel.
     const decoy = R.decoy({ id: 'wood-goose', at: [0.35, 8.55, 1.95], r: 0.6, hold: 1.2, say: ["A decoy. Don't shoot.", 'Wood. Painted. Still not a goose.'] });
 

@@ -493,33 +493,38 @@ function tucked(ctx, X, Y, kind, c) {
 }
 
 // The love letters' pot (a poke): a snake plant that lifts out of its pot
-// when tapped, root ball and all. Shut, only a tail of her red ribbon hangs
-// over the rim (the still's tell). Open, the two envelopes stand up out of
-// the soil, the ribbon and its heart first. k: how open, 0..1.
+// when tapped, root ball and all. Shut (the still's tell, read at phone
+// size): the plant leans, put back in a hurry; the corners of two pale
+// envelopes stick up out of the soil beside it, one sealed with a red
+// heart; and her pink ribbon loops over the rim. Open, the envelopes stand
+// up out of the soil, tied with the ribbon. k: how open, 0..1.
+const RIBBON = mix(C.pink, INK.oxblood, 0.15);
 function lettersPot(ctx, X, Y, k) {
-  // the ribbon's tail, over the front of the rim and down the pot
-  ctx.beginPath();
-  ctx.moveTo(X + 0.06, Y + 0.01);
-  ctx.quadraticCurveTo(X + 0.16, Y + 0.08, X + 0.15, Y + 0.17);
-  ctx.quadraticCurveTo(X + 0.14, Y + 0.24, X + 0.18, Y + 0.3);
+  // the ribbon: tied in a bow on the front of the rim, its tails hanging
+  const bx = X + 0.1, by = Y + 0.13;
   ctx.lineCap = 'round';
-  ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.045;
-  ctx.stroke();
-  ctx.strokeStyle = INK.oxblood;
-  ctx.lineWidth = 0.026;
-  ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(X + 0.18, Y + 0.3); ctx.lineTo(X + 0.15, Y + 0.35);
-  ctx.moveTo(X + 0.18, Y + 0.3); ctx.lineTo(X + 0.22, Y + 0.34);
-  ctx.strokeStyle = INK.oxblood;
-  ctx.lineWidth = 0.02;
+  ctx.moveTo(bx, by); ctx.lineTo(bx - 0.06, by + 0.2);
+  ctx.moveTo(bx, by); ctx.lineTo(bx + 0.07, by + 0.18);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.065;
+  ctx.stroke();
+  ctx.strokeStyle = RIBBON;
+  ctx.lineWidth = 0.04;
   ctx.stroke();
   ctx.lineCap = 'butt';
-  // the plant, lifted out and tipped back, its roots hanging
+  ctx.beginPath();
+  ctx.ellipse(bx - 0.09, by - 0.02, 0.09, 0.05, 0.35, 0, Math.PI * 2);
+  ctx.moveTo(bx + 0.18, by - 0.02);
+  ctx.ellipse(bx + 0.09, by - 0.02, 0.09, 0.05, -0.35, 0, Math.PI * 2);
+  paint(ctx, RIBBON, { lw: 0.022 });
+  ctx.beginPath();
+  ctx.arc(bx, by, 0.035, 0, Math.PI * 2);
+  paint(ctx, RIBBON, { lw: 0.02 });
+  // the plant: leaning while shut, lifted out and tipped back when open
   ctx.save();
   ctx.translate(X, Y - k * 0.46);
-  ctx.rotate(-k * 0.22);
+  ctx.rotate(0.22 - k * 0.44);
   ctx.translate(-X, -Y);
   if (k > 0.02) {
     ctx.beginPath();
@@ -536,46 +541,41 @@ function lettersPot(ctx, X, Y, k) {
   }
   snake(ctx, X, Y, 1);
   ctx.restore();
-  if (k <= 0.02) return;
-  // the letters, standing up out of the soil (clipped there, so they rise out of it)
+  // the letters, in front of the plant, rising out of the soil (clipped there)
   ctx.save();
   ctx.beginPath();
   ctx.rect(X - 1, Y - 2, 2, 2.01);
   ctx.clip();
-  ctx.translate(0, (1 - k) * 0.26);
+  ctx.translate(0, (1 - k) * 0.12 - k * 0.12);
   const env = (dx, a) => {
     ctx.save();
     ctx.translate(X + dx, Y + 0.02);
     ctx.rotate(a);
     ctx.beginPath();
-    ctx.rect(-0.1, -0.2, 0.2, 0.19);
-    paint(ctx, shade(MAT.paper, 0.06), { lw: 0.015 });
+    ctx.rect(-0.12, -0.24, 0.24, 0.23);
+    paint(ctx, INK.bone, { lw: 0.02 });
     ctx.beginPath();
-    ctx.moveTo(-0.1, -0.2); ctx.lineTo(0, -0.12); ctx.lineTo(0.1, -0.2);
+    ctx.moveTo(-0.12, -0.24); ctx.lineTo(0, -0.14); ctx.lineTo(0.12, -0.24);
     ctx.strokeStyle = shade(MAT.paper, 0.35);
-    ctx.lineWidth = 0.012;
+    ctx.lineWidth = 0.014;
     ctx.stroke();
     ctx.restore();
   };
-  env(0.07, 0.3);
-  env(-0.04, -0.14);
-  // her ribbon round the pair, bowed at the side, and a small heart
+  env(-0.02, 0.28);
+  env(-0.13, -0.16);
+  // her ribbon round the pair (only once they're up)
   ctx.beginPath();
-  ctx.moveTo(X - 0.15, Y - 0.08); ctx.lineTo(X + 0.16, Y - 0.04);
-  ctx.strokeStyle = INK.oxblood;
-  ctx.lineWidth = 0.03;
+  ctx.moveTo(X - 0.26, Y - 0.06); ctx.lineTo(X + 0.08, Y - 0.02);
+  ctx.strokeStyle = RIBBON;
+  ctx.lineWidth = 0.035;
   ctx.stroke();
+  // the seal: a red heart on the front envelope's flap
+  const hx = X - 0.13, hy = Y - 0.15, s = 1.6;
   ctx.beginPath();
-  ctx.ellipse(X + 0.13, Y - 0.07, 0.04, 0.022, -0.6, 0, Math.PI * 2);
-  ctx.ellipse(X + 0.19, Y - 0.04, 0.04, 0.022, 0.4, 0, Math.PI * 2);
+  ctx.moveTo(hx, hy + 0.035 * s);
+  ctx.bezierCurveTo(hx - 0.05 * s, hy, hx - 0.025 * s, hy - 0.04 * s, hx, hy - 0.015 * s);
+  ctx.bezierCurveTo(hx + 0.025 * s, hy - 0.04 * s, hx + 0.05 * s, hy, hx, hy + 0.035 * s);
   paint(ctx, INK.oxblood, { lw: 0.012 });
-  const hx = X - 0.05, hy = Y - 0.14;
-  ctx.beginPath();
-  ctx.moveTo(hx, hy + 0.035);
-  ctx.bezierCurveTo(hx - 0.05, hy, hx - 0.025, hy - 0.04, hx, hy - 0.015);
-  ctx.bezierCurveTo(hx + 0.025, hy - 0.04, hx + 0.05, hy, hx, hy + 0.035);
-  ctx.fillStyle = INK.oxblood;
-  ctx.fill();
   ctx.restore();
 }
 
@@ -2642,7 +2642,7 @@ export default {
 
     // ---------- Finds ----------
     R.find({
-      id: 'love-letters', label: 'Love letters', kind: 'poke', inside: lettersPoke, at: [1.01, 4.75, 1.22], r: 0.6,
+      id: 'love-letters', label: 'Love letters', kind: 'poke', inside: lettersPoke, at: [1.0, 4.75, 1.28], r: 0.6,
       hint: "Nobody has touched these plants since Easter. Somebody has been lifting one of them.",
     });
     R.find({ id: 'fig-leaf', label: 'A fig leaf, worn once', kind: 'spot', at: [12.5, 11.5, 0.05], r: 0.8 });
