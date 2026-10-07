@@ -445,6 +445,11 @@ function floorAndRug(R) {
     slab(ctx, OAK);
     planks(ctx, OAK, 0.7);
   });
+  // Soup, flung from the Brigadier's bowl at "In 1974", in a line over the
+  // table and across the floor to the tureen (the tureen's tell).
+  R.rug((ctx) => {
+    for (const [y, s] of [[5.55, 1.1], [4.6, 1.0], [3.6, 0.9], [2.65, 0.85], [1.75, 0.8], [1.25, 0.7]]) splat(ctx, 4.9 + (y % 1) * 0.12, y, 0.012, s, -0.45);
+  });
   // A big rug under the table: oxblood field, a gold border, a medallion.
   const RX0 = 2.1, RX1 = 14.1, RY0 = 3.9, RY1 = 11.5;
   R.rug((ctx) => {
@@ -942,6 +947,21 @@ function falseTooth(ctx, bx, by, t) {
   ctx.fill();
 }
 
+// A splat of soup at (x, y, z), stretched along the way it flew (a, on the
+// screen): the trail from the Brigadier's bowl to the tureen.
+function splat(ctx, x, y, z, s, a = -2.2) {
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(a);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 0.13 * s, 0.065 * s, 0, 0, Math.PI * 2);
+  ctx.moveTo(0.2 * s, 0); ctx.arc(0.17 * s, 0, 0.035 * s, 0, Math.PI * 2);
+  ctx.moveTo(-0.17 * s, 0.03 * s); ctx.arc(-0.2 * s, 0.03 * s, 0.025 * s, 0, Math.PI * 2);
+  paint(ctx, SOUP, { lw: 0.015 });
+  ctx.restore();
+}
+
 // A gravy boat shaped like a goose, white china with an orange beak for a
 // spout: the Lord had everything made in goose. A red herring.
 function gravyBoat(ctx, x, y) {
@@ -1000,6 +1020,16 @@ function sideboard(R, burn, tureen) {
     const k = tureen.k();
     cylinder(ctx, TX, TYY, Z, 0.32, 0.32, SILVER);
     const [tx, ty] = P(TX, TYY, Z + 0.32);
+    // Where the soup landed when it hit: a splash up the wall behind.
+    {
+      const [wx, wy] = P(TX + 0.15, 0.02, Z + 0.95);
+      ctx.beginPath();
+      ctx.ellipse(wx, wy, 0.3, 0.2, -0.4, 0, Math.PI * 2);
+      for (const [dx, dy, r] of [[-0.38, -0.16, 0.06], [0.34, -0.3, 0.05], [0.2, 0.28, 0.045], [-0.3, 0.22, 0.04], [0.05, -0.36, 0.035]]) { ctx.moveTo(wx + dx + r, wy + dy); ctx.arc(wx + dx, wy + dy, r, 0, Math.PI * 2); }
+      paint(ctx, alpha(SOUP, 0.9), { lw: 0.015 });
+      ctx.fillStyle = alpha(SOUP, 0.9);
+      for (const [dx, len] of [[-0.12, 0.35], [0.1, 0.25]]) ctx.fillRect(wx + dx, wy + 0.1, 0.04, len);
+    }
     // A dribble of soup down its side, and a drip on the sideboard.
     face(ctx, [[TX + 0.1, TYY + 0.3, Z + 0.32], [TX + 0.14, TYY + 0.27, Z + 0.32], [TX + 0.13, TYY + 0.28, Z + 0.1], [TX + 0.1, TYY + 0.3, Z + 0.06]], SOUP, { lw: 0.012 });
     disc(ctx, TX + 0.2, TYY + 0.42, Z + 0.003, 0.06, SOUP, { stroke: false });
@@ -1010,12 +1040,20 @@ function sideboard(R, burn, tureen) {
       paint(ctx, SOUP, { lw: 0.025, dots: shade(SOUP, 0.3), density: 0.15 });
       falseTooth(ctx, tx + 0.06, ty + 0.02, t);
     }
-    face(ctx, [[5.05, 0.5, Z + 0.3], [5.4, 0.75, Z + 0.72]], null, { stroke: shade(SILVER, 0.3), lw: 0.05 }); // the ladle
-    // The lid: crooked on top (shut), slid off to the left and tipped (open).
+    // The ladle, sticking up out of it at an angle.
+    face(ctx, [[4.95, 0.6, Z + 0.25], [5.35, 0.85, Z + 0.95]], null, { stroke: C.ink, lw: 0.075 });
+    face(ctx, [[4.95, 0.6, Z + 0.25], [5.35, 0.85, Z + 0.95]], null, { stroke: SILVER, lw: 0.045 });
+    // The lid: knocked well askew on top (shut), slid off to the left and
+    // tipped (open). Shut, it's propped up on one side, the soup showing dark
+    // under it.
+    if (k < 0.02) {
+      ctx.beginPath();
+      ctx.ellipse(tx, ty, 0.42, 0.21, 0, 0, Math.PI * 2);
+      paint(ctx, shade(SOUP, 0.35), { lw: 0.025 });
+    }
     ctx.save();
-    ctx.translate(tx - 0.62 * k, ty - 0.05 + 0.3 * k);
-    ctx.rotate(0.13 - 0.55 * k);
-    if (k < 0.02) { ctx.fillStyle = C.ink; ctx.fillRect(0.05, -0.04, 0.38, 0.06); } // the gap under it
+    ctx.translate(tx - 0.62 * k - 0.08 * (1 - k), ty - 0.16 * (1 - k) + 0.3 * k);
+    ctx.rotate(-0.42 * (1 - k) - 0.55 * k);
     ctx.beginPath();
     ctx.ellipse(0, 0, 0.45, 0.24, 0, Math.PI, Math.PI * 2);
     ctx.closePath();
@@ -1349,6 +1387,10 @@ function table(R, clock, burn) {
     }
   }));
   add(GRAVY[0], GRAVY[1], (ctx) => gravyBoat(ctx, GRAVY[0], GRAVY[1]));
+  // The soup's flight, across the cloth from the Brigadier's bowl.
+  add(4.95, 6.1, (ctx) => {
+    for (const [y, s] of [[8.25, 1.3], [7.05, 1.1], [6.25, 1.0]]) splat(ctx, 4.95, y, TZ + 0.006, s, -0.45);
+  });
   add(6.8, 7.72, (ctx) => { // the pineapple, on a silver stand
     cylinder(ctx, 6.8, 7.72, TZ, 0.2, 0.28, SILVER);
     const [px, py] = P(6.8, 7.72, TZ + 0.3);
