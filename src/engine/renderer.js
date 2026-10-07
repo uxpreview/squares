@@ -86,14 +86,14 @@ export function createRenderer(canvas, camera, o = {}) {
   }
 
   // Sharpness follows the frame rate. If frames stay slow (under ~35 a
-  // second) for a couple of seconds, it steps down: 3x to 2x, then 2x to
-  // 1.5x. An older laptop's graphics chip spends most of a frame putting
+  // second) for a couple of seconds, it steps down: 3x to 2x, 2x to 1.5x,
+  // and on the slowest machines 1.5x to 1.25x. An older laptop's graphics chip spends most of a frame putting
   // pixels on screen, and 1.5x is about half the pixels of 2x (the 2017
   // laptop's Plum Island went from 14-21 frames a second to 22-27). After a
   // few seconds at the screen's full rate it steps back up, waiting twice as
   // long each time a step up didn't hold. Tools keep one sharpness so their
   // measurements compare; one can switch this on with camera.view.dprAuto = true.
-  const SHARP = [3, 2, 1.5];
+  const SHARP = [3, 2, 1.5, 1.25];
   let quickFrames = 0, upWait = 180, steppedUp = -1e9, settled = 0;
   function sharpness(cap, world) {
     view.dprCap = cap;
@@ -110,7 +110,7 @@ export function createRenderer(canvas, camera, o = {}) {
     if (!(view.dprAuto ?? !navigator.webdriver)) return;
     slowFrames = perf.gap > 28 ? slowFrames + 1 : 0;
     quickFrames = perf.gap < 18 ? quickFrames + 1 : 0;
-    if (slowFrames > 90 && view.dpr > SHARP[2]) {
+    if (slowFrames > 90 && view.dpr > SHARP[SHARP.length - 1]) {
       if (now - steppedUp < 10000) upWait = Math.min(upWait * 2, 7200);
       sharpness(SHARP.find((s) => s < view.dpr), world);
     } else if (quickFrames > upWait && view.dprCap < SHARP[0] && (window.devicePixelRatio || 1) > view.dpr) {
@@ -124,9 +124,10 @@ export function createRenderer(canvas, camera, o = {}) {
   // of the way start there (settle) rather than floating off as you arrive.
   const INTRO_MS = 420;
   let settle = false;
-  function startIntro(world) {
+  // instant: no inking in (the place grows out of its picker card instead).
+  function startIntro(world, instant = false) {
     // With reduced motion, the place is simply there.
-    if (o.reduceMotion) { intro = null; settle = true; return; }
+    if (o.reduceMotion || instant) { intro = null; settle = true; return; }
     const delays = new Map();
     let end = 0;
     for (const z of world.zones) {

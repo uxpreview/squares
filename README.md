@@ -151,6 +151,8 @@ tools/
   playtest.mjs     A blind playtest from screenshots, scored
   speed.mjs        How fast each area draws on a slowed-down phone, and where the time goes
   fps.mjs          Frames per second on this computer's own graphics, in a real window
+  load.mjs         How fast the title shows on a slow phone connection, from a build
+  covered.mjs      People drawn inside solid things, finds painted over (QA runs it too)
   ROOM_BRIEF.md    The brief for drawing a new zone
 docs/
   ROADMAP.md, PROCESS.md, LEVELS.md, INSPIRATION.md   The plans
@@ -176,10 +178,14 @@ docs/
 | How far the map stretches past its edge | `stretch` at the top of `src/engine/camera.js`; how it springs back and brakes is `step` in `src/engine/input.js` |
 | How far you can pan and zoom out | The map's box (`mapBox` in `src/game/play.js`: every zone plus the overview) and `clampZoom` next to it |
 | What a place's overview frames (on a phone, a desk, a phone on its side) | `overview` in its `map.js`; places without one use `overviewBox` in `src/engine/world.js`, which fills a phone |
-| How a place fades in when it opens | `startIntro` and `INTRO_MS` in `src/engine/renderer.js` |
+| How a place fades in when it opens | `startIntro` and `INTRO_MS` in `src/engine/renderer.js`; picked from the picker it grows out of its card instead (`cardView` in `src/main.js`, the picker's fade in `show` in `src/ui/screens.js`) |
+| Double tap to zoom (how quick, how close) | `lastTap` and `zoomAt` in `src/engine/input.js` |
+| The crosshairs round a place's sheet | `reg` in `src/maps/shared.js` (not drawn on a touch screen) |
+| How soon the title shows on a phone | The wordmark's font is preloaded in `index.html`; `boot` in `src/main.js` waits for it alone on the title. Measure with `npm run build && node tools/load.mjs`. Other places' code is fetched behind the title (`warm` in `src/main.js`) |
 | Change how floors lift away (and dim below) in a building | `LIFT`, `GHOST` and `BELOW` at the top of `src/engine/renderer.js` |
-| Sharpness vs. speed | The steps sharpness takes when frames stay slow (3x, 2x, 1.5x) and back up when they're quick: `SHARP` and `watchFrameRate` in `src/engine/renderer.js` (tools keep one sharpness unless they set `camera.view.dprAuto`); neighbor picture sizes are `SNAP_STEPS` there too |
+| Sharpness vs. speed | The steps sharpness takes when frames stay slow (3x, 2x, 1.5x, 1.25x) and back up when they're quick: `SHARP` and `watchFrameRate` in `src/engine/renderer.js` (tools keep one sharpness unless they set `camera.view.dprAuto`); neighbor picture sizes are `SNAP_STEPS` there too |
 | How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
+| Find people drawn inside furniture and finds painted over | `node tools/covered.mjs <place> --shots` (close-ups in `qa-out/covered/`); QA runs it as its `covered` check and puts the close-ups on the contact sheet. They're warnings: someone behind a lamp post is fine, someone inside a counter isn't |
 | See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
 | See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs; `--auto` lets sharpness step down on slow frames as it does for players, and says where each view ended up). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop. Close anything else running the game first (another browser tab, an editor's preview pane): it shares the graphics chip and takes a quarter off the numbers |
 | How the map in front of the room you're in is cut away | "The cut layer" in `src/engine/renderer.js` (drawn on a see-through sheet, the room's outline erased, laid on the picture) |

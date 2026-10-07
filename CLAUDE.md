@@ -24,6 +24,8 @@ The owner is a designer who vibe codes. Explain changes in plain language, say w
 - `npm run new-level -- <id>` scaffolds a new place from its brief (`docs/levels/<id>.md`).
 - `npm run qa -- <id>` runs every machine check on a place and makes its contact sheet in `qa-out/<id>/` (ignored by git). It must pass before a level goes to the owner. `--quick` skips the slow parts.
 - `node tools/fps.mjs <id>` counts real frames per second in every view, in a visible window on this computer's graphics chip. QA's speed check can't see graphics-chip lag; run this after changing how things are drawn. `--only=a,b` for some views, `--eval="js"` to switch something off first and compare, `--auto` to let sharpness step down on slow frames as it does for players (tools keep one sharpness otherwise).
+- `node tools/covered.mjs <id> --shots` lists people drawn inside solid things and finds painted over by their furniture, with close-ups (QA runs it as `covered`, as warnings with the close-ups on the contact sheet). Look at each: behind a post is fine, inside a counter isn't.
+- `npm run build && node tools/load.mjs` times the title on a slow phone connection (slow 4G, a 4x slower processor). It should stay under a second.
 - `node tools/playtest.mjs <id> prepare|check` runs a blind playtest from screenshots (see `docs/prompts/playtester.md`).
 
 ## Architecture (see README for the file map)

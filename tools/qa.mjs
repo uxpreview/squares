@@ -14,6 +14,10 @@
 //   stills   things not marked anim look the same all loop long (they're cached)
 //   pictures nothing a room draws is cut off at the edge of its picture (how
 //            it's shown while you're in another room)
+//   covered  people whose heads are painted over by something solid, and finds
+//            painted over by their own furniture (warnings, each with a
+//            close-up in covered/: a person behind a lamp post is fine, one
+//            walking inside a wall isn't, and only eyes can tell)
 //   walkers  people on the map's timeline go through doors, never walls, and
 //            never faster than a run
 //   land     (places with ground and water) the ground never climbs toward
@@ -38,6 +42,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
+import { coveredInPage } from './covered.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);
@@ -70,6 +75,7 @@ const pass = (check, text) => note('pass', check, text);
 const warn = (check, text) => note('warn', check, text);
 const fail = (check, text) => note('fail', check, text);
 const rel = (f) => path.relative(root, f);
+const coveredShots = []; // close-ups for the contact sheet: { label, drawn, onTop }
 const step = (s) => console.log('· ' + s);
 
 // ---------- Files: em dashes and colors ----------
@@ -474,6 +480,29 @@ try {
   }, { loop: info.loop });
   for (const p of pics) fail('pictures', p);
   if (!pics.length) pass('pictures', 'Nothing any room draws is cut off at the edge of its picture.');
+
+  // ---------- Covered: people inside solid things, finds under furniture ----------
+  step('Looking for people and finds painted over');
+  {
+    const moments = [0.1, 0.35, 0.6, 0.85].map((f) => +(f * info.loop).toFixed(1));
+    const cov = await page.evaluate(coveredInPage, { moments, shots: true });
+    const dir = path.join(out, 'covered');
+    fs.mkdirSync(dir, { recursive: true });
+    const save = (x, name) => {
+      coveredShots.push({ label: `${x.zone}, ${fmt(x.t)}: ${x.label ? `"${x.label}"` : 'a head'}`, drawn: x.shots[0], onTop: x.shots[1] });
+      saveFiles(x, name);
+    };
+    const saveFiles = (x, name) => x.shots.forEach((d, j) => fs.writeFileSync(path.join(dir, `${name}-${j ? 'on-top' : 'drawn'}.png`), Buffer.from(d.split(',')[1], 'base64')));
+    cov.people.forEach((x, i) => {
+      save(x, `person-${i}`);
+      warn('covered', `${x.zone} at ${x.t}s: someone's head is ${Math.round(x.share * 100)}% covered by something drawn after them (inside a wall or a counter? behind a post is fine). Close-up: ${rel(path.join(dir, `person-${i}-drawn.png`))}`);
+    });
+    cov.finds.forEach((x, i) => {
+      save(x, `find-${i}`);
+      warn('covered', `${x.zone} at ${x.t}s: "${x.label}" (${x.id}) may be painted over by something drawn after it. Close-up: ${rel(path.join(dir, `find-${i}-drawn.png`))}`);
+    });
+    if (!cov.people.length && !cov.finds.length) pass('covered', `No one's head (${cov.counted.people} checked) and no find (${cov.counted.finds}) is painted over, at ${moments.join(', ')}s.`);
+  }
 
   // ---------- Walkers ----------
   if (info.walkers.length) {
@@ -902,6 +931,7 @@ async function contactSheet(info, shots, thumb, file) {
     ol { margin: 10px 0 0; padding: 0; list-style: none; columns: 2; font-weight: 600; }
     li span { display: inline-block; min-width: 20px; height: 20px; border-radius: 10px; background: #E3603F; color: #fff; text-align: center; font-size: 12px; line-height: 20px; }
     li.goose b { background: #EDB53B; padding: 0 6px; border-radius: 4px; }
+    figure.covered img { width: 150px; height: 150px; background: #fff; border-radius: 6px; } figure.covered figcaption { max-width: 310px; font-size: 13px; }
     ul.issues { padding-left: 18px; } ul.issues li.fail b { color: #C8413A; } ul.issues li.warn b { color: #B7791F; }
   </style></head><body>
     <h1>${esc(info.name)}: contact sheet</h1>
@@ -918,6 +948,8 @@ async function contactSheet(info, shots, thumb, file) {
       <div class="pair"><img class="d" src="${s.desktop}"><img class="p" src="${s.phone}"></div>
       <figcaption>${esc(s.label)}</figcaption>
     </figure>`).join('')}</div>` : ''}
+    ${coveredShots.length ? `<h2>Painted over? As drawn, and with it on top</h2><div class="row">${coveredShots.map((c) => `
+    <figure class="covered"><div class="pair"><img src="${c.drawn}"><img src="${c.onTop}"></div><figcaption>${esc(c.label)}</figcaption></figure>`).join('')}</div>` : ''}
     ${issues ? `<h2>For a look</h2><ul class="issues">${issues}</ul>` : ''}
   </body></html>`;
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1200 }, deviceScaleFactor: 1 });
@@ -929,7 +961,7 @@ async function contactSheet(info, shots, thumb, file) {
 
 function report(info, sheetFile) {
   const icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' };
-  const order = ['copy', 'colors', 'finds', 'case', 'sound', 'errors', 'stills', 'walkers', 'screen', 'speed'];
+  const order = ['copy', 'colors', 'finds', 'case', 'sound', 'errors', 'stills', 'covered', 'walkers', 'screen', 'speed'];
   const sorted = results.slice().sort((a, b) => order.indexOf(a.check) - order.indexOf(b.check) || ['fail', 'warn', 'pass'].indexOf(a.status) - ['fail', 'warn', 'pass'].indexOf(b.status));
   console.log('');
   for (const r of sorted) console.log(`${icon[r.status]}  ${r.check.padEnd(8)} ${r.text}`);

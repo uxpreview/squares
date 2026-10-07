@@ -10,6 +10,11 @@
 <meta property="og:description" content="A hidden-object picture book you can walk through. Every place has a loose goose.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
+<!-- The wordmark's font, fetched alongside the code instead of after it has
+     run: on a phone's 4G that's the title in under a second. The same file
+     the font package's CSS points at. (The text weights come after; sharing
+     the connection with them made the wordmark later.) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="./node_modules/@fontsource/bagel-fat-one/files/bagel-fat-one-latin-400-normal.woff2">
 <script>
   // A place printed on something other than paper (the Manor's night) colors
   // the page before anything draws: iOS Safari picks its bar colors early and
