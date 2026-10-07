@@ -1,7 +1,7 @@
 // Taxidermy Room: Lord Gooseworth's hobby, and the house's dark-humor
 // centerpiece. Everything he ever stuffed stands on a plinth with a joke on
 // its brass plate. One new stand, marked GOOSE, has nothing on it yet: the
-// order form on his desk says Tuesday.
+// order form filed in his desk says Tuesday.
 //
 // The running gag: the owl on its perch turns its head whenever you're not
 // watching. Every lightning flash catches it facing somewhere new (behind it,
@@ -336,7 +336,14 @@ function drawBear(ctx) {
   ctx.quadraticCurveTo(b[0], top[1] + 0.1, b[0], b[1]);
   ctx.closePath();
   paint(ctx, C.black, { lw: 0.03 });
+}
+// The cub itself answers a tap (the room's teach poke): k, 0..1, rocks it on
+// its feet and lifts it a hair, as if it might, this once, roar.
+function drawBearCub(ctx, k) {
+  const j = Math.sin(k * Math.PI);
   bb(ctx, BEAR.x, BEAR.y, BEAR.z, false, (g) => {
+    g.rotate(j * 0.09);
+    g.translate(0, -j * 0.08);
     const fur = BEARC, light = mix(fur, INK.bone, 0.4);
     for (const s of [-1, 1]) {
       g.beginPath(); g.rect(s * 0.17 - 0.1, -0.36, 0.2, 0.34);
@@ -869,7 +876,6 @@ function drawStand(ctx) {
 }
 
 // ---------- The Lord's desk and the order form (a find) ----------
-const FORM = { x: 2.98, y: 12.08, z: 1.106 };
 function drawDesk(ctx) {
   // his chair, pushed back from the desk
   const cx = 2.6, cy = 10.5;
@@ -884,6 +890,7 @@ function drawDesk(ctx) {
   if (Q.detail) {
     for (const px of [x + 0.08, x + w - 0.57]) {
       for (let i = 0; i < 3; i++) {
+        if (DRAWERS.some((dr) => dr.px === px && dr.i === i)) continue; // drawn with their pokes
         const z0 = 0.1 + i * 0.3;
         face(ctx, [[px, y + d - 0.05, z0], [px + 0.49, y + d - 0.05, z0], [px + 0.49, y + d - 0.05, z0 + 0.24], [px, y + d - 0.05, z0 + 0.24]], shade(PLINTH, 0.08), { lw: 0.02 });
         disc(ctx, px + 0.245, y + d - 0.04, z0 + 0.12, 0.03, BRASS, { stroke: false });
@@ -892,54 +899,12 @@ function drawDesk(ctx) {
   }
   box(ctx, x - 0.05, y - 0.05, h - 0.12, w + 0.1, d + 0.1, 0.12, PLINTH, { top: PLINTH_TOP, lw: 0.04 });
   face(ctx, [[x + 0.12, y + 0.1, h + 0.002], [x + w - 0.12, y + 0.1, h + 0.002], [x + w - 0.12, y + d - 0.1, h + 0.002], [x + 0.12, y + d - 0.1, h + 0.002]], LEATHER, { lw: 0.025, stroke: BRASS_D });
-  // The paperwork: bills, letters, a catalogue, a delivery note, receipts on
-  // a spike, and somewhere in it the order form (small, with a beak-sized bite).
+  // The paperwork: bills, letters, a catalogue, a delivery note and receipts
+  // on a spike. The order form isn't among them: he filed it (a drawer).
   flat(ctx, h + 0.003, (g) => {
     paperwork(g, 2.62, 11.86, 0.3, 0.5, 0.6, YELLOWED, 'invoice');
     paperwork(g, 3.42, 11.98, -0.2, 0.46, 0.56, MAT.paper, 'bill');
     paperwork(g, 2.5, 12.32, -0.22, 0.46, 0.54, YELLOWED, 'letter');
-  });
-  flat(ctx, FORM.z, (g) => {
-    g.translate(FORM.x, FORM.y);
-    g.rotate(0.12);
-    const W = 0.25, H = 0.28;
-    g.beginPath();
-    g.rect(-W, -H, W * 2, H * 2);
-    paint(g, MAT.paper, { lw: 0.02 });
-    // a bite out of the corner, the size of a beak
-    g.beginPath();
-    g.arc(W, H, 0.07, Math.PI, Math.PI * 1.5);
-    g.lineTo(W, H);
-    g.closePath();
-    g.fillStyle = LEATHER;
-    g.fill();
-    g.beginPath();
-    g.rect(-W, -H, W * 2, 0.08);
-    g.fillStyle = INK.oxblood;
-    g.fill();
-    if (Q.detail) {
-      g.save(); g.translate(0, -0.11); write(g, '1 x GOOSE', 0.085, C.ink, FAT); g.restore();
-      g.save(); g.translate(-0.05, -0.02); write(g, 'STUFFED.', 0.05, C.ink); g.restore();
-      g.save(); g.translate(-0.03, 0.04); write(g, 'BY TUESDAY.', 0.05, INK.oxblood); g.restore();
-      // the goose, sketched from life
-      g.strokeStyle = C.ink;
-      g.lineWidth = 0.012;
-      g.lineCap = 'round';
-      g.beginPath();
-      g.ellipse(0.1, 0.16, 0.065, 0.035, 0, 0, TAU);
-      g.moveTo(0.15, 0.14); g.quadraticCurveTo(0.18, 0.08, 0.16, 0.06);
-      g.moveTo(0.178, 0.06); g.arc(0.16, 0.06, 0.018, 0, TAU);
-      g.moveTo(0.178, 0.06); g.lineTo(0.215, 0.066);
-      g.stroke();
-      // his squiggle
-      g.beginPath();
-      g.moveTo(-0.2, 0.18);
-      g.bezierCurveTo(-0.17, 0.11, -0.14, 0.22, -0.11, 0.16);
-      g.bezierCurveTo(-0.08, 0.11, -0.05, 0.21, -0.02, 0.17);
-      g.moveTo(-0.21, 0.22); g.lineTo(-0.02, 0.215);
-      g.strokeStyle = INK.stormNavy;
-      g.stroke();
-    }
   });
   flat(ctx, h + 0.009, (g) => {
     paperwork(g, 3.35, 12.42, -0.35, 0.56, 0.4, INK.oxblood, 'catalogue');
@@ -964,6 +929,132 @@ function drawDesk(ctx) {
 }
 
 const YELLOWED = mix(INK.bone, INK.candleGold, 0.22);
+
+// Two of the desk's six drawers answer a tap, and each has a paper corner
+// caught in its top edge (the tell, in a still). One is stuffed with bills;
+// the other is where he filed the order form.
+const DESK_FRONT = 12.65, DRAWER_W = 0.49, DRAWER_H = 0.24, DRAWER_OUT = 0.5;
+const DRAWERS = [
+  { id: 'form-drawer', px: 2.08, i: 2, corner: MAT.paper },
+  { id: 'bill-drawer', px: 3.43, i: 1, corner: YELLOWED },
+];
+const drawerZ = (dr) => 0.1 + dr.i * 0.3;
+function drawDrawer(ctx, dr, k, inside) {
+  const x0 = dr.px, z0 = drawerZ(dr), W = DRAWER_W, H = DRAWER_H;
+  const Y0 = DESK_FRONT, s = k * DRAWER_OUT, Yf = Y0 + s;
+  const wood = shade(PLINTH, 0.08), well = shade(PLINTH, 0.35);
+  if (s > 0.01) {
+    // the inside: its floor, the far side, what's in it, then the near side
+    face(ctx, [[x0 + 0.03, Y0, z0 + 0.04], [x0 + W - 0.03, Y0, z0 + 0.04], [x0 + W - 0.03, Yf, z0 + 0.04], [x0 + 0.03, Yf, z0 + 0.04]], well, { lw: 0.015 });
+    face(ctx, [[x0 + 0.03, Y0, z0 + 0.04], [x0 + 0.03, Yf, z0 + 0.04], [x0 + 0.03, Yf, z0 + H - 0.02], [x0 + 0.03, Y0, z0 + H - 0.02]], shade(PLINTH, 0.22), { lw: 0.015 });
+    flat(ctx, z0 + 0.045, (g) => {
+      g.beginPath(); g.rect(x0 + 0.03, Y0, W - 0.06, s); g.clip();
+      inside(g, x0 + W / 2, Y0 + s * 0.5, well);
+    });
+    face(ctx, [[x0 + W, Y0, z0], [x0 + W, Yf, z0], [x0 + W, Yf, z0 + H - 0.02], [x0 + W, Y0, z0 + H - 0.02]], wood, { lw: 0.02 });
+  }
+  // the front, and its brass knob
+  face(ctx, [[x0, Yf, z0], [x0 + W, Yf, z0], [x0 + W, Yf, z0 + H], [x0, Yf, z0 + H]], wood, { lw: 0.02 });
+  disc(ctx, x0 + W / 2, Yf + 0.01, z0 + H / 2, 0.03, BRASS, { stroke: false });
+  // the corner of paper caught in the top, while it's shut
+  if (k < 0.4) {
+    const a = P(x0 + 0.1, Yf - 0.01, z0 + H), b = P(x0 + 0.27, Yf - 0.01, z0 + H), c = P(x0 + 0.15, Yf + 0.02, z0 + H + 0.11);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(b[0], b[1]); ctx.closePath();
+    paint(ctx, dr.corner, { lw: 0.014 });
+  }
+}
+// What's in each drawer: the form, on his copy of a letter; and all bills,
+// with a spare eye.
+function formDrawer(g, cx, cy, well) {
+  paperwork(g, cx + 0.04, cy - 0.04, 0.2, 0.4, 0.42, YELLOWED, 'letter');
+  g.save(); g.translate(cx - 0.01, cy + 0.02); g.rotate(-0.14); g.scale(0.72, 0.72);
+  orderForm(g, well);
+  g.restore();
+}
+function billDrawer(g, cx, cy) {
+  paperwork(g, cx - 0.03, cy - 0.02, -0.25, 0.4, 0.42, MAT.paper, 'bill');
+  paperwork(g, cx + 0.04, cy + 0.03, 0.18, 0.38, 0.4, YELLOWED, 'bill');
+  g.beginPath(); g.arc(cx - 0.12, cy + 0.12, 0.05, 0, TAU);
+  paint(g, INK.bone, { lw: 0.012 });
+  g.beginPath(); g.arc(cx - 0.11, cy + 0.12, 0.025, 0, TAU);
+  g.fillStyle = INK.verdigris; g.fill();
+  g.beginPath(); g.arc(cx - 0.105, cy + 0.12, 0.011, 0, TAU);
+  g.fillStyle = C.ink; g.fill();
+}
+
+// ---------- The swan (a decoy): white, long-necked, and not a goose ----------
+const SWAN = { x: 9.7, y: 7.7, w: 0.8, d: 0.8, h: 0.62, s: 1.35 };
+const SWAN_AT = { x: SWAN.x + 0.4, y: SWAN.y + 0.4, z: SWAN.h };
+function drawSwan(ctx) {
+  plinth(ctx, SWAN.x, SWAN.y, SWAN.w, SWAN.d, SWAN.h);
+  plate(ctx, 'y', SWAN.y + SWAN.d + 0.07, SWAN.x + SWAN.w / 2, 0.31, 0.7, 0.2, ['MUTE SWAN, 1970', 'NO COMMENT'], 0.075);
+  bb(ctx, SWAN_AT.x, SWAN_AT.y, SWAN_AT.z, true, (g) => {
+    const white = INK.bone, wing = shade(INK.bone, 0.07);
+    // a rock to sit on, then tail, body, the raised wing, neck and head
+    ell(g, 0, -0.03, 0.3, 0.06); paint(g, MAT.stoneDark, { lw: 0.025 });
+    g.beginPath(); g.moveTo(-0.26, -0.26); g.lineTo(-0.44, -0.36); g.lineTo(-0.3, -0.18); g.closePath();
+    paint(g, white, { lw: 0.025 });
+    ell(g, 0, -0.22, 0.33, 0.16); paint(g, white, { dots: shade(white, 0.25), density: 0.12 });
+    g.beginPath();
+    g.moveTo(-0.3, -0.24); g.quadraticCurveTo(-0.12, -0.52, 0.16, -0.3); g.quadraticCurveTo(-0.05, -0.22, -0.3, -0.24);
+    paint(g, wing, { lw: 0.025 });
+    if (Q.detail) {
+      g.strokeStyle = alpha(C.ink, 0.4); g.lineWidth = 0.012;
+      for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(-0.2 + i * 0.1, -0.29); g.quadraticCurveTo(-0.14 + i * 0.1, -0.36, -0.06 + i * 0.1, -0.33); g.stroke(); }
+    }
+    g.beginPath(); g.moveTo(0.22, -0.3); g.bezierCurveTo(0.42, -0.46, 0.1, -0.62, 0.22, -0.84);
+    limb(g, white, 0.085);
+    ell(g, 0.26, -0.86, 0.075, 0.05, 0.15); paint(g, white, { lw: 0.025 });
+    // the orange bill with its black knob (a goose's has no knob: the tell)
+    g.beginPath(); g.moveTo(0.3, -0.89); g.lineTo(0.45, -0.83); g.lineTo(0.31, -0.82); g.closePath();
+    paint(g, FOX, { lw: 0.018 });
+    ell(g, 0.31, -0.88, 0.028, 0.022); g.fillStyle = C.black; g.fill();
+    glassEye(g, 0.25, -0.88, 0.016);
+  }, SWAN.s);
+}
+// The order form itself, flat, centered on the origin of g: small, with a
+// beak-sized bite, an oxblood band and "1 x GOOSE".
+function orderForm(g, under) {
+  const W = 0.25, H = 0.28;
+  g.beginPath();
+  g.rect(-W, -H, W * 2, H * 2);
+  paint(g, MAT.paper, { lw: 0.02 });
+  // a bite out of the corner, the size of a beak
+  g.beginPath();
+  g.arc(W, H, 0.07, Math.PI, Math.PI * 1.5);
+  g.lineTo(W, H);
+  g.closePath();
+  g.fillStyle = under;
+  g.fill();
+  g.beginPath();
+  g.rect(-W, -H, W * 2, 0.08);
+  g.fillStyle = INK.oxblood;
+  g.fill();
+  if (Q.detail) {
+    g.save(); g.translate(0, -0.11); write(g, '1 x GOOSE', 0.085, C.ink, FAT); g.restore();
+    g.save(); g.translate(-0.05, -0.02); write(g, 'STUFFED.', 0.05, C.ink); g.restore();
+    g.save(); g.translate(-0.03, 0.04); write(g, 'BY TUESDAY.', 0.05, INK.oxblood); g.restore();
+    // the goose, sketched from life
+    g.strokeStyle = C.ink;
+    g.lineWidth = 0.012;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.ellipse(0.1, 0.16, 0.065, 0.035, 0, 0, TAU);
+    g.moveTo(0.15, 0.14); g.quadraticCurveTo(0.18, 0.08, 0.16, 0.06);
+    g.moveTo(0.178, 0.06); g.arc(0.16, 0.06, 0.018, 0, TAU);
+    g.moveTo(0.178, 0.06); g.lineTo(0.215, 0.066);
+    g.stroke();
+    // his squiggle
+    g.beginPath();
+    g.moveTo(-0.2, 0.18);
+    g.bezierCurveTo(-0.17, 0.11, -0.14, 0.22, -0.11, 0.16);
+    g.bezierCurveTo(-0.08, 0.11, -0.05, 0.21, -0.02, 0.17);
+    g.moveTo(-0.21, 0.22); g.lineTo(-0.02, 0.215);
+    g.strokeStyle = INK.stormNavy;
+    g.stroke();
+  }
+}
+
 // One sheet of the Lord's paperwork, flat, centered at (x, y) and turned by a.
 // None of it is laid out like the order form: no colored band, no "1 x".
 function paperwork(g, x, y, a, w, d, color, kind) {
@@ -2037,7 +2128,7 @@ export default {
         for (const [x, y, w, d] of [
           [0.95, 0.95, 1.7, 1.7], [4.45, 0.55, 2.3, 1.5], [0.55, 4.95, 1.7, 1.7], [9.45, 0.55, 1.3, 1.1], [0.55, 13.95, 1.3, 1.3],
           [4.5, 4.65, 1.15, 1.15], [5.9, 4.65, 1.15, 1.15], [7.3, 4.65, 1.15, 1.15], [8.7, 4.65, 1.15, 1.15], [1.9, 11.4, 2.4, 1.5], [0, 7.7, 1.35, 2.7], [13.2, 8.2, 0.95, 0.95], [6.85, 0, 2.6, 1.35],
-          [12.55, 0, 3, 1.1], [3.85, 8.55, 1.5, 1.5], [5.45, 13.95, 1.35, 1.2], [10.5, 4.8, 0.95, 0.95],
+          [12.55, 0, 3, 1.1], [3.85, 8.55, 1.5, 1.5], [5.45, 13.95, 1.35, 1.2], [10.5, 4.8, 0.95, 0.95], [SWAN.x - 0.05, SWAN.y - 0.05, SWAN.w + 0.35, SWAN.d + 0.35],
         ]) { g.beginPath(); g.rect(x, y, w, d); g.fill(); }
         for (const [x, y, r] of [[OWL.x + 0.1, OWL.y + 0.1, 0.5], [6.1, 10.1, 0.35], [OSTRICH.x + 0.1, OSTRICH.y + 0.1, 0.6], [5.9, 9.25, 0.4]]) {
           g.beginPath(); g.ellipse(x, y, r, r, 0, 0, TAU); g.fill();
@@ -2102,12 +2193,26 @@ export default {
     R.thing(14.0, 0.85, (ctx) => drawCabinet(ctx));
     R.thing(12.5, 2.5, (ctx, t) => drawOwl(ctx, t), { anim: true });
     R.thing(BEAR.x, BEAR.y, (ctx) => drawBear(ctx));
+    const cub = R.poke({ id: 'bear-cub', teach: true, at: [BEAR.x, BEAR.y, 1.7], r: 1.0, hold: 0.8, sound: 'pop', say: ['Grr. (Stuffed.)', 'Mind the lodger.', 'The mouse pays no rent.', "Mum's in the library."] });
+    R.thing(BEAR.x + 0.01, BEAR.y + 0.01, (ctx) => drawBearCub(ctx, cub.k()), { anim: true });
     R.thing(0.56, 9.0, (ctx) => drawSeat(ctx));
     for (const [p, draw] of [[ROW[0], drawPheasant], [ROW[1], drawHare], [STAND, drawStand], [ROW[3], drawBadger]]) {
       R.thing(p.x + 0.45, p.y + 0.95, (ctx) => draw(ctx));
     }
     R.thing(10.9, 5.55, (ctx) => drawPenguin(ctx));
     R.thing(3.0, 12.7, (ctx) => drawDesk(ctx));
+    // two of its drawers: one of bills, one with the order form filed in it
+    const drawer = {};
+    for (const dr of DRAWERS) {
+      drawer[dr.id] = R.poke({
+        id: dr.id, at: [dr.px + DRAWER_W / 2, DESK_FRONT + 0.1, drawerZ(dr) + 0.12], r: 0.6, sound: 'clunk',
+        say: dr.id === 'bill-drawer' ? ['Bills. All overdue.', 'Still overdue.', 'And a spare eye.'] : null,
+      });
+      const fill = dr.id === 'form-drawer' ? formDrawer : billDrawer;
+      R.thing(3.05 + DRAWERS.indexOf(dr) * 0.01, 12.75, (ctx) => drawDrawer(ctx, dr, drawer[dr.id].k(), fill), { anim: true });
+    }
+    R.thing(SWAN.x + 0.4, SWAN.y + 0.85, (ctx) => drawSwan(ctx));
+    R.decoy({ id: 'swan', at: [SWAN_AT.x, SWAN_AT.y, SWAN.h + 0.6], r: 0.7, say: ['A swan. Read the plaque.', 'Mute. Of course it is.'] });
     candle(R, 2.25, 11.7, 1.1, 5);
     R.thing(4.5, 9.8, (ctx) => drawArmchair(ctx));
     R.thing(5.85, 9.3, (ctx) => drawTortoise(ctx));
@@ -2172,6 +2277,7 @@ export default {
     eyeAt(PHEASANT.x, PHEASANT.y, PHEASANT.z, 0.215, -0.665, PHEASANT.s, true);
     eyeAt(HARE.x, HARE.y, HARE.z, 0.24, -0.65, HARE.s);
     eyeAt(BADGER.x, BADGER.y, BADGER.z, 0.34, -0.28, BADGER.s);
+    eyeAt(SWAN_AT.x, SWAN_AT.y, SWAN_AT.z, 0.25, -0.88, SWAN.s, true);
     R.air((ctx, t) => {
       if (!Q.detail) return;
       const dark = lightsOut(t), fl = storm.flash(t);
@@ -2212,8 +2318,14 @@ export default {
     });
 
     // ---- the finds ----
-    R.find({ id: 'order-form', label: 'An order form for a goose', at: [2.98, 12.08, 1.12], r: 0.6 });
-    R.find({ id: 'empty-stand', label: 'An empty display stand', at: [7.85, 5.2, 0.5], r: 0.65 });
-    R.find({ id: 'owl', label: 'The owl that turns its head', at: [12.5, 2.5, 3.1], r: 0.8 });
+    // The form is filed in a desk drawer (a poke): the heap on the desk is
+    // everything else he never paid, and his drafts are in the bin.
+    R.find({
+      id: 'order-form', label: 'An order form for a goose', kind: 'poke', inside: drawer['form-drawer'],
+      at: [DRAWERS[0].px + DRAWER_W / 2, DESK_FRONT + 0.3, drawerZ(DRAWERS[0]) + 0.05], r: 0.6,
+      hint: 'His drafts are in the bin. A man files the good copy.',
+    });
+    R.find({ id: 'empty-stand', label: 'An empty display stand', kind: 'spot', at: [7.85, 5.2, 0.5], r: 0.65 });
+    R.find({ id: 'owl', label: 'The owl that turns its head', kind: 'spot', at: [12.5, 2.5, 3.1], r: 0.8 });
   },
 };

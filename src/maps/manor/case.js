@@ -147,12 +147,17 @@ export default {
   // has taken the Lord's chair (dining-room.js draws it once verdict.solved is
   // set), and the clock goes back to dinner so the whole table is there to see.
   reveal: {
-    lines: [
+    // The ending shows the goose in his monocle. It came in the parcel on the
+    // front step, which not everyone has found, so Pidge mentions it either way.
+    lines: (isFound) => [
       ['pidge', "The goose? Preposterous. It's a goose."],
       ['pidge', 'Although. Feathers by the body. Beak marks on the pills. Webbed feet in the flour.'],
       ['pidge', 'An order for one goose, stuffed, by Tuesday. An empty stand with its name on it.'],
       ['pidge', 'He was going to stuff it. So it swapped his heart pills for the doctor\'s mints, and waited.'],
       ['goose', 'HONK.'],
+      isFound('grounds:parcel')
+        ? ['pidge', "And that parcel on the step for G. Goose. A monocle. It's been shopping."]
+        : ['pidge', "There's a soaked parcel on the front step, for a G. Goose. It rattles like a monocle."],
       ['pidge', 'Arrest that goose!'],
     ],
     zone: 'dining-room',

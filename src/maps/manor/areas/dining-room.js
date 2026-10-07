@@ -42,7 +42,9 @@ const HEAD = [14.05, 7.7]; // the Lord's chair
 const SEAT_Z = 0.84, THRONE_Z = 0.9;
 const CANDELABRA = [[5.6, 7.72], [8, 7.72]];
 const STAND = [10.5, 7.7]; // the trifle's stand, now just the 80 candles
-const TOOTH = [5.5, 6.8]; // the false tooth, in Mr. Todd's soup
+const TOOTH = [5.5, 6.8]; // Mr. Todd's soup bowl
+const TUREEN = [3.6, 7.72]; // the soup tureen, on the table by the Brigadier, with the false tooth in it
+const GRAVY = [7.4, 7.85]; // the goose gravy boat, on the runner (a red herring)
 const GOOSE_PLACE = [11.8, 8.78];
 
 const mod = (a, n = LOOP) => ((a % n) + n) % n;
@@ -400,9 +402,11 @@ export default {
     leftWall(R);
     rightWallBits(R);
 
+    // The tureen's lid: tap it (the false tooth is in the soup).
+    const tureen = R.poke({ id: 'tureen', at: [TUREEN[0], TUREEN[1], TZ + 0.45], r: 0.75, sound: 'clunk', say: ['Oxtail.', 'Still oxtail.'] });
     sideboard(R, burn);
     fireplace(R);
-    table(R, clock, burn);
+    table(R, clock, burn, tureen);
     chairs(R, clock);
     fox(R);
     throne(R, renew[5]);
@@ -413,9 +417,25 @@ export default {
 
     R.dark(house.dark);
 
+    // ---------- Things that answer a tap ----------
+    // The Brigadier, mid-story: the teach poke (while he's in his seat).
+    const brig = walkerAt(R, 'brigadier');
+    R.poke({
+      id: 'brigadier', teach: true, r: 0.9, sound: 'pop',
+      at: (t) => { const p = brig(t); return p ? [p.x, p.y, 1.5] : [4.5, FRONT, 1.5]; },
+      when: (t) => clock.brigadier.seated(t),
+      say: ['In 1974...', 'Where was I? Ah. 1974.', 'Do sit down. It gets good.'],
+    });
+    // The Lord's stuffed pheasant, in the middle of the table.
+    R.poke({ id: 'pheasant', at: [9.25, 7.7, TZ + 0.4], r: 0.6, say: ["It's a pheasant. Calm down.", 'Still a pheasant.'] });
+    R.decoy({ id: 'gravy-boat', at: [GRAVY[0], GRAVY[1], TZ + 0.3], r: 0.6, say: ['Gravy boat. Goose-shaped. Gravy.', 'Still gravy.'] });
+
     // ---------- Finds ----------
-    R.find({ id: 'false-tooth', label: 'A false tooth in the soup', at: [TOOTH[0], TOOTH[1], 1.3], r: 0.7 });
-    R.find({ id: 'goose-place', label: 'A place set for the goose', at: [11.8, 8.8, 1.25], r: 0.8 });
+    R.find({
+      id: 'false-tooth', label: 'A false tooth', kind: 'poke', inside: tureen, at: [TUREEN[0], TUREEN[1], TZ + 0.4], r: 0.7,
+      hint: 'At "In 1974" something flew out of the Brigadier. Where would soup hide it?',
+    });
+    R.find({ id: 'goose-place', label: 'A place set for the goose', kind: 'spot', at: [11.8, 8.8, 1.25], r: 0.8, hint: 'Somebody laid a place for a guest who eats breadcrumbs.' });
   },
 };
 
@@ -892,6 +912,117 @@ function rightWallBits(R) {
   }, { anim: true });
 }
 
+// The Brigadier's false tooth, standing up in the soup at (bx, by) on the
+// screen, with a ring spreading where it landed.
+function falseTooth(ctx, bx, by, t) {
+  if (Q.detail) {
+    const k = mod(t * 0.6, 1);
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 0.05 + k * 0.12, (0.05 + k * 0.12) * 0.5, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = alpha(C.white, 0.6 * (1 - k));
+    ctx.lineWidth = 0.02;
+    ctx.stroke();
+  }
+  ctx.beginPath(); // the gum it's set in
+  ctx.ellipse(bx, by - 0.02, 0.14, 0.07, 0, Math.PI, Math.PI * 2);
+  ctx.closePath();
+  paint(ctx, C.pink, { lw: 0.025 });
+  ctx.beginPath(); // the tooth, a big molar
+  ctx.moveTo(bx - 0.1, by - 0.07);
+  ctx.lineTo(bx - 0.12, by - 0.27);
+  ctx.quadraticCurveTo(bx - 0.12, by - 0.38, bx - 0.04, by - 0.36);
+  ctx.quadraticCurveTo(bx, by - 0.32, bx + 0.04, by - 0.36);
+  ctx.quadraticCurveTo(bx + 0.12, by - 0.38, bx + 0.12, by - 0.27);
+  ctx.lineTo(bx + 0.1, by - 0.07);
+  ctx.closePath();
+  paint(ctx, C.white, { lw: 0.03 });
+  ctx.beginPath(); // a gold filling
+  ctx.arc(bx + 0.03, by - 0.22, 0.03, 0, Math.PI * 2);
+  ctx.fillStyle = MAT.brass;
+  ctx.fill();
+}
+
+// A splat of soup at (x, y, z), stretched along the way it flew (a, on the
+// screen): the trail from the Brigadier's bowl to the tureen.
+function splat(ctx, x, y, z, s, a = -2.2) {
+  const [X, Y] = P(x, y, z);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(a);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 0.13 * s, 0.065 * s, 0, 0, Math.PI * 2);
+  ctx.moveTo(0.2 * s, 0); ctx.arc(0.17 * s, 0, 0.035 * s, 0, Math.PI * 2);
+  ctx.moveTo(-0.17 * s, 0.03 * s); ctx.arc(-0.2 * s, 0.03 * s, 0.025 * s, 0, Math.PI * 2);
+  paint(ctx, SOUP, { lw: 0.015 });
+  ctx.restore();
+}
+
+// A gravy boat shaped like a goose, white china with an orange beak for a
+// spout: the Lord had everything made in goose. A red herring.
+function gravyBoat(ctx, x, y) {
+  disc(ctx, x, y, TZ + 0.005, 0.26, SILVER, { lw: 0.02 }); // its saucer
+  const [bx, by] = P(x, y, TZ + 0.02);
+  const white = mix(C.white, INK.bone, 0.25);
+  // The tail (the handle), up at the back.
+  ctx.beginPath();
+  ctx.moveTo(bx + 0.14, by - 0.12); ctx.quadraticCurveTo(bx + 0.3, by - 0.2, bx + 0.28, by - 0.3); ctx.lineTo(bx + 0.18, by - 0.2);
+  ctx.closePath();
+  paint(ctx, white, { lw: 0.02 });
+  // The body, a boat.
+  ctx.beginPath();
+  ctx.moveTo(bx - 0.2, by - 0.16);
+  ctx.quadraticCurveTo(bx - 0.18, by + 0.02, bx, by + 0.01);
+  ctx.quadraticCurveTo(bx + 0.2, by, bx + 0.22, by - 0.15);
+  ctx.closePath();
+  paint(ctx, white, { lw: 0.022 });
+  ctx.beginPath(); // gravy, in it
+  ctx.ellipse(bx + 0.01, by - 0.155, 0.19, 0.04, 0, 0, Math.PI * 2);
+  ctx.fillStyle = mix(MAT.oak, C.ink, 0.35);
+  ctx.fill();
+  // The neck and head, rising from the front: the beak is the spout.
+  ctx.beginPath();
+  ctx.moveTo(bx - 0.17, by - 0.14); ctx.quadraticCurveTo(bx - 0.22, by - 0.3, bx - 0.17, by - 0.42);
+  ctx.lineCap = 'round';
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.stroke(); }
+  ctx.strokeStyle = white; ctx.lineWidth = 0.065; ctx.stroke();
+  ctx.beginPath(); ctx.arc(bx - 0.16, by - 0.44, 0.065, 0, Math.PI * 2); paint(ctx, white, { lw: 0.02 });
+  ctx.beginPath(); ctx.moveTo(bx - 0.21, by - 0.46); ctx.lineTo(bx - 0.33, by - 0.42); ctx.lineTo(bx - 0.21, by - 0.41);
+  ctx.closePath(); paint(ctx, INK.candleGold, { lw: 0.015 });
+  ctx.fillStyle = C.ink;
+  ctx.beginPath(); ctx.arc(bx - 0.17, by - 0.46, 0.014, 0, Math.PI * 2); ctx.fill();
+}
+
+// The soup tureen on the table, k: 0 shut, 1 open. Shut, its lid is knocked
+// well askew (propped up on one side, dark soup under it) with the ladle up
+// and soup down its side: the Brigadier's false tooth flew in at "In 1974".
+// Open, the lid slides off onto the cloth and the tooth stands in the soup.
+function drawTureen(ctx, t, k) {
+  const [X, Y] = TUREEN, Z = TZ;
+  disc(ctx, X, Y, Z + 0.005, 0.42, SILVER, { lw: 0.025 }); // its stand
+  cylinder(ctx, X, Y, Z + 0.02, 0.32, 0.32, SILVER);
+  const [tx, ty] = P(X, Y, Z + 0.34);
+  // Soup down its side, and a puddle at its foot.
+  face(ctx, [[X + 0.1, Y + 0.3, Z + 0.34], [X + 0.15, Y + 0.27, Z + 0.34], [X + 0.14, Y + 0.28, Z + 0.1], [X + 0.1, Y + 0.3, Z + 0.06]], SOUP, { lw: 0.012 });
+  disc(ctx, X + 0.25, Y + 0.45, Z + 0.006, 0.09, SOUP, { stroke: false });
+  ctx.beginPath();
+  ctx.ellipse(tx, ty, 0.42, 0.21, 0, 0, Math.PI * 2);
+  paint(ctx, k > 0.02 ? SOUP : shade(SOUP, 0.35), { lw: 0.025, dots: shade(SOUP, 0.3), density: 0.15 });
+  if (k > 0.02) falseTooth(ctx, tx + 0.06, ty + 0.02, t);
+  // The ladle, sticking up out of it.
+  for (const [col, lw] of [[C.ink, 0.075], [SILVER, 0.045]]) face(ctx, [[X + 0.1, Y - 0.02, Z + 0.3], [X + 0.5, Y + 0.23, Z + 1.0]], null, { stroke: col, lw });
+  // The lid.
+  ctx.save();
+  ctx.translate(tx - 0.62 * k - 0.08 * (1 - k), ty - 0.16 * (1 - k) + 0.42 * k);
+  ctx.rotate(-0.42 * (1 - k) - 0.55 * k);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 0.45, 0.24, 0, Math.PI, Math.PI * 2);
+  ctx.closePath();
+  paint(ctx, tint(SILVER, 0.2), { lw: 0.03 });
+  ctx.beginPath(); ctx.arc(0, -0.26, 0.06, 0, Math.PI * 2); paint(ctx, SILVER, { lw: 0.02 });
+  ctx.restore();
+  steam(ctx, t, X, Y, Z + 0.5, steamK(t), 11);
+}
+
 // ---------- The sideboard ----------
 function sideboard(R, burn) {
   R.thing(7, 1.1, (ctx, t) => {
@@ -908,15 +1039,6 @@ function sideboard(R, burn) {
       }
     }
     const Z = 1.14;
-    // The soup tureen.
-    cylinder(ctx, 4.85, 0.62, Z, 0.32, 0.32, SILVER);
-    const [tx, ty] = P(4.85, 0.62, Z + 0.32);
-    ctx.beginPath();
-    ctx.ellipse(tx, ty, 0.45, 0.24, 0, Math.PI, Math.PI * 2);
-    ctx.closePath();
-    paint(ctx, tint(SILVER, 0.2), { lw: 0.03 });
-    ctx.beginPath(); ctx.arc(tx, ty - 0.26, 0.06, 0, Math.PI * 2); paint(ctx, SILVER, { lw: 0.02 });
-    face(ctx, [[5.05, 0.5, Z + 0.3], [5.4, 0.75, Z + 0.72]], null, { stroke: shade(SILVER, 0.3), lw: 0.05 }); // the ladle
     // The cloche. At lights out it lifts a crack, and someone looks out.
     disc(ctx, 6.3, 0.62, Z, 0.45, SILVER, { lw: 0.03 });
     const lift = lightsOut(t) ? 0.12 : 0;
@@ -990,8 +1112,7 @@ function sideboard(R, burn) {
       ctx.beginPath(); ctx.arc(cx - 0.08, cy - 0.06, 0.032, 0, Math.PI * 2); ctx.arc(cx + 0.06, cy - 0.06, 0.032, 0, Math.PI * 2); ctx.fill();
     },
   });
-  // Steam off the tureen at dinner, and the candles' light.
-  R.thing(4.85, 0.9, (ctx, t) => steam(ctx, t, 4.85, 0.62, 1.8, steamK(t), 11), { anim: true });
+  // The candles' light.
   for (const [x, i] of [[5.6, 3], [8.85, 4]]) {
     R.light({
       at: [x, 0.45, 2.1], r: 1.5, color: INK.candleGold, k: house.flicker(40 + i),
@@ -1063,7 +1184,7 @@ function fireplace(R) {
 }
 
 // ---------- The table ----------
-function table(R, clock, burn) {
+function table(R, clock, burn, tureen) {
   const items = [];
   const add = (x, y, draw) => items.push({ x, y, draw });
 
@@ -1084,41 +1205,12 @@ function table(R, clock, burn) {
   };
   const glassOf = (c) => (ctx, x, y, t) => wineGlass(ctx, x, y, c.wine(t));
 
-  // Mr. Todd, the fox: a guest of honour, stuffed. The Brigadier's false
-  // tooth flew into his soup at "In 1974".
+  // Mr. Todd, the fox: a guest of honour, stuffed. (The Brigadier's false
+  // tooth flew into the tureen at "In 1974".)
   seat(4.5, 'back', {
     px: 5.3, py: 6.72, card: 'MR. TODD',
     plate: { bx: TOOTH[0], by: TOOTH[1] },
     glass: (ctx, x, y) => wineGlass(ctx, x, y, 0.92),
-    extra: (ctx, t) => {
-      // The tooth, standing up in the soup, and a ring where it landed.
-      const [bx, by] = P(TOOTH[0], TOOTH[1], TZ + 0.105);
-      if (Q.detail) {
-        const k = mod(t * 0.6, 1);
-        ctx.beginPath();
-        ctx.ellipse(bx, by, 0.05 + k * 0.12, (0.05 + k * 0.12) * 0.5, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = alpha(C.white, 0.6 * (1 - k));
-        ctx.lineWidth = 0.02;
-        ctx.stroke();
-      }
-      ctx.beginPath(); // the gum it's set in
-      ctx.ellipse(bx, by - 0.02, 0.14, 0.07, 0, Math.PI, Math.PI * 2);
-      ctx.closePath();
-      paint(ctx, C.pink, { lw: 0.025 });
-      ctx.beginPath(); // the tooth, a big molar
-      ctx.moveTo(bx - 0.1, by - 0.07);
-      ctx.lineTo(bx - 0.12, by - 0.27);
-      ctx.quadraticCurveTo(bx - 0.12, by - 0.38, bx - 0.04, by - 0.36);
-      ctx.quadraticCurveTo(bx, by - 0.32, bx + 0.04, by - 0.36);
-      ctx.quadraticCurveTo(bx + 0.12, by - 0.38, bx + 0.12, by - 0.27);
-      ctx.lineTo(bx + 0.1, by - 0.07);
-      ctx.closePath();
-      paint(ctx, C.white, { lw: 0.03 });
-      ctx.beginPath(); // a gold filling
-      ctx.arc(bx + 0.03, by - 0.22, 0.03, 0, Math.PI * 2);
-      ctx.fillStyle = MAT.brass;
-      ctx.fill();
-    },
   });
   // Lady Philippa: no glass (it's in the library), just the ring it left.
   seat(7, 'back', {
@@ -1168,7 +1260,7 @@ function table(R, clock, burn) {
   });
   // The Brigadier: soup, and the Battle of 1974, fought in salt and pepper.
   seat(4.5, 'front', {
-    card: 'BRIG. SNORT', glass: glassOf(clock.brigadier),
+    card: 'BRIG. SNORT', glass: glassOf(clock.brigadier), plate: { soup: INK.bone }, // his bowl: empty, it's all over the cloth
     extra: (ctx) => {
       if (!Q.detail) return;
       for (let i = 0; i < 3; i++) {
@@ -1272,6 +1364,14 @@ function table(R, clock, burn) {
       wax(ctx, x + dx, y, z, burn(t, i, dx ? 0.5 : 0.56));
     }
   }));
+  add(GRAVY[0], GRAVY[1], (ctx) => gravyBoat(ctx, GRAVY[0], GRAVY[1]));
+  // The soup tureen, at the Brigadier's end, and the soup's flight from his
+  // bowl to it across the cloth.
+  add(4.2, 8.5, (ctx) => {
+    splat(ctx, 4.05, 9.0, TZ + 0.006, 1.6, -0.3);
+    for (const [x, y, sc] of [[4.2, 8.35, 1.2], [3.95, 8.1, 1.0]]) splat(ctx, x, y, TZ + 0.006, sc, -1.4);
+  });
+  add(TUREEN[0], TUREEN[1], (ctx, t) => drawTureen(ctx, t, tureen.k()));
   add(6.8, 7.72, (ctx) => { // the pineapple, on a silver stand
     cylinder(ctx, 6.8, 7.72, TZ, 0.2, 0.28, SILVER);
     const [px, py] = P(6.8, 7.72, TZ + 0.3);
@@ -1337,7 +1437,7 @@ function table(R, clock, burn) {
   // The two halves: legs, cloth, runner, then everything on it, back to front,
   // then the steam off the soup.
   const bowls = [
-    [TOOTH[0], TOOTH[1]], [7, 6.62], [9.5, 6.62], [4.5, 8.78], [7, 8.78],
+    [TOOTH[0], TOOTH[1]], [7, 6.62], [9.5, 6.62], [7, 8.78],
   ];
   const half = (x0, x1, last) => {
     const mine = items.filter((it) => (it.x < SPLIT) === !last).sort((a, b) => a.x + a.y - (b.x + b.y));

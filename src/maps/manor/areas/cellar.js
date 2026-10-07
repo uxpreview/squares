@@ -55,6 +55,7 @@ const DISPLAY = '"Bagel Fat One", "Arial Black", sans-serif';
 // ---------- Where things are (the greybox's layout) ----------
 const CASK = { x0: 0.5, x1: 2.8, y: 11.5, z: 1.02, r: 0.8 }; // the barrel that isn't
 const TRUNK = { x: 5, y: 6, w: 2, d: 1.2 }; // Jenkins's, lid at 0.8
+const LETTER = [6.55, 6.5]; // his resignation, on top of his shirts in the trunk
 const STEPS = { x: 12.2, y: 9.5, w: 2, d: 5, rise: 7.1, n: 12 }; // up to the kitchen hatch
 const HOLE = 11.6; // the mousehole, along the right wall
 const WIN = { x: 14.2, z: 4.55, w: 1.4, h: 0.9 }; // the light well, on the right wall
@@ -948,9 +949,11 @@ export default {
     const RAT_A = [[HOLE, 0.25], [HOLE - 0.2, 1.9], [8.4, 2.0], [4.3, 2.3], [3.5, 5.5], [3.4, 9.8], [3.05, 11.35]];
     const RAT_B = [[3.05, 11.7], [4.6, 12.9], [8.6, 12.7], [10.1, 10.9], [11.2, 6.6], [HOLE, 1.8], [HOLE, 0.25]];
     const LA = pathLength(RAT_A), LB = pathLength(RAT_B);
+    // Knock on it and it opens a crack, then thinks better of it.
+    const barrel = R.poke({ id: 'barrel', teach: true, at: [(CASK.x0 + CASK.x1) / 2, CASK.y, CASK.z], r: 1.0, sound: 'thump', hold: 1.2, say: ['Just a barrel.', 'Definitely just a barrel.', 'Stop knocking. It echoes.'] });
     R.thing(CASK.x0 + 1.2, CASK.y, (ctx, t) => {
       const { x0, x1, y, z, r } = CASK;
-      cask(ctx, x0, x1, y, z, r, { door: doorAt(t), stencil: 'JUST A BARREL' });
+      cask(ctx, x0, x1, y, z, r, { door: Math.max(doorAt(t), barrel.k() * 0.22), stencil: 'JUST A BARREL' });
       // brass candle dish on top
       disc(ctx, 1.9, y, z + r * 0.99, 0.16, MAT.brass, { lw: 0.02 });
       if (Q.detail) cobweb(ctx, [x0 + 0.2, y + r * 0.6, z + r * 0.9], [0, 0, -1], [0, 1, 0], 0.4, 2);
@@ -1011,10 +1014,26 @@ export default {
       if (tt < J.A) return 0;
       return J.starts.slice(0, 5).filter((s) => tt >= s + 3).length;
     };
+    // A tap throws the lid back (it's a poke: his letter is in there, on top).
+    const trunk = R.poke({ id: 'trunk', at: [TRUNK.x + 1, TRUNK.y + 0.6, 0.85], r: 1.0, sound: 'clunk', say: ['Packed for anywhere.', "Is that the Lord's pheasant?", 'It will never shut again.'] });
     R.thing(TRUNK.x + 1, TRUNK.y + 0.6, (ctx, t) => {
       const n = packed(t);
       const { x, y, w, d } = TRUNK;
-      const bulge = n >= 5 ? 0.09 : 0;
+      const k = trunk.k();
+      const open = k > 0.02;
+      const bulge = n >= 5 && !open ? 0.09 : 0;
+      // Open, the lid stands up behind on its hinge (the back bottom edge).
+      if (open) {
+        const a = k * 1.75;
+        const L = (px, u, hh) => [px, y - 0.02 + u * Math.cos(a) - hh * Math.sin(a), 0.6 + u * Math.sin(a) + hh * Math.cos(a)];
+        const D = d + 0.04, x0 = x - 0.02, x1 = x + w + 0.02;
+        const top = [L(x0, 0, 0.2), L(x1, 0, 0.2), L(x1, D, 0.2), L(x0, D, 0.2)];
+        const under = [L(x0, 0, 0), L(x1, 0, 0), L(x1, D, 0), L(x0, D, 0)];
+        if (Math.sin(a) - Math.cos(a) < 0) face(ctx, top, tint(TRUNK_C, 0.12), { lw: 0.02 });
+        else face(ctx, under, mix(MAT.velvetDark, TRUNK_C, 0.3), { lw: 0.02, dots: shade(MAT.velvetDark, 0.3), density: 0.25 }); // the lining
+        face(ctx, [L(x1, 0, 0), L(x1, D, 0), L(x1, D, 0.2), L(x1, 0, 0.2)], TRUNK_C, { lw: 0.02 });
+        if (a < 2.3) face(ctx, [L(x0, D, 0), L(x1, D, 0), L(x1, D, 0.2), L(x0, D, 0.2)], shade(TRUNK_C, 0.15), { lw: 0.02 });
+      }
       // things poking out of the back first (behind the lid)
       if (n >= 3) { // the Lord's stuffed pheasant, tail first
         const [X, Y] = P(x + 0.35, y + 0.15, 0.8);
@@ -1045,7 +1064,38 @@ export default {
         face(ctx, [[x + w, y, bz], [x + w, y + d, bz], [x + w, y + d, bz + 0.09], [x + w, y, bz + 0.09]], shade(OAK, 0.1), { lw: 0.02 });
       }
       if (bulge) face(ctx, [[x, y + d, 0.6], [x + w, y + d, 0.6], [x + w, y + d, 0.6 + bulge], [x, y + d, 0.6 + bulge]], INK.bone, { lw: 0.02, dots: INK.oxblood, density: 0.3 });
-      box(ctx, x - 0.02, y - 0.02, 0.6 + bulge, w + 0.04, d + 0.04, 0.2, TRUNK_C, { top: tint(TRUNK_C, 0.12), dotsL: shade(TRUNK_C, 0.5) });
+      if (!open) box(ctx, x - 0.02, y - 0.02, 0.6 + bulge, w + 0.04, d + 0.04, 0.2, TRUNK_C, { top: tint(TRUNK_C, 0.12), dotsL: shade(TRUNK_C, 0.5) });
+      else {
+        // Inside: his shirts, folded, a bottle in a sock, and his papers on
+        // top. Only one of them is a letter he signed and dated.
+        rect(ctx, x + 0.06, y + 0.06, w - 0.12, d - 0.12, 0.6, mix(TRUNK_C, C.black, 0.45), { lw: 0.02 });
+        box(ctx, x + 0.12, y + 0.12, 0.42, 0.85, d - 0.24, 0.16, INK.bone, { lw: 0.02, top: tint(INK.bone, 0.1) });
+        box(ctx, x + 1.02, y + 0.12, 0.42, 0.86, d - 0.24, 0.14, mix(INK.bone, INK.verdigris, 0.25), { lw: 0.02 });
+        if (Q.detail) for (const fx of [x + 0.4, x + 0.7, x + 1.3, x + 1.6]) face(ctx, [[fx, y + 0.14, 0.585], [fx, y + d - 0.14, 0.585]], null, { lw: 0.012, stroke: alpha(INK.stormNavy, 0.3) });
+        bottleDown(ctx, x + 0.3, y + 0.35, GLASS[0], 0.55, 0.12, { z: 0.58 });
+        const pz = 0.605;
+        // a postcard of Brighton pier
+        sheet(ctx, x + 0.45, y + 0.85, pz, 0.3, 0.2, -0.5, PAPER_OLD, (g) => {
+          g.fillStyle = mix(INK.verdigris, INK.bone, 0.3);
+          g.fillRect(-0.13, -0.08, 0.26, 0.1);
+          g.fillStyle = INK.candleGold;
+          g.fillRect(-0.13, 0.02, 0.26, 0.04);
+          if (Q.detail) words(g, 'BRIGHTON', 0, -0.04, 0.035, INK.stormNavy, { weight: 700 });
+        });
+        // the reference he wrote himself: no date, "B.G." in his own hand
+        sheet(ctx, x + 0.95, y + 0.62, pz + 0.002, 0.33, 0.44, -0.35, PAPER, (g) => {
+          words(g, 'To whom', -0.06, -0.17, 0.04, INK.stormNavy, { weight: 'italic 600' });
+          scrawl(g, -0.13, 0.13, -0.11, 0.038, 6, PEN, 31);
+          words(g, 'B.G.', 0.06, 0.17, 0.07, INK.stormNavy, { weight: 'italic 600' });
+        });
+        // the resignation: dated at the top, "Sir," and signed Jenkins
+        sheet(ctx, LETTER[0], LETTER[1], pz + 0.004, 0.33, 0.44, 0.28, PAPER, (g) => {
+          words(g, 'LAST WEEK', 0.1, -0.185, 0.04, INK.stormNavy, { weight: 700 }); // the date: his alibi
+          words(g, 'Sir,', -0.11, -0.125, 0.045, INK.stormNavy, { weight: 'italic 600' });
+          scrawl(g, -0.13, 0.13, -0.07, 0.038, 5, PEN, 2);
+          words(g, 'Jenkins', 0.03, 0.165, 0.08, INK.stormNavy, { weight: 'italic 600' });
+        });
+      }
       // brass corners on the front
       for (const [cx, sgn] of [[x, 1], [x + w, -1]]) {
         face(ctx, [[cx, y + d + 0.02, 0], [cx + sgn * 0.16, y + d + 0.02, 0], [cx, y + d + 0.02, 0.16]], MAT.brass, { lw: 0.015 });
@@ -1068,7 +1118,7 @@ export default {
       // straps (the right one bursts when it's too full)
       for (const sx of [x + 0.45, x + 1.55]) {
         const burst = sx > x + 1 && bulge;
-        face(ctx, [[sx, y - 0.02, 0.8 + bulge + 0.005], [sx + 0.13, y - 0.02, 0.8 + bulge + 0.005], [sx + 0.13, y + d + 0.02, 0.8 + bulge + 0.005], [sx, y + d + 0.02, 0.8 + bulge + 0.005]], STRAP, { lw: 0.015 });
+        if (!open) face(ctx, [[sx, y - 0.02, 0.8 + bulge + 0.005], [sx + 0.13, y - 0.02, 0.8 + bulge + 0.005], [sx + 0.13, y + d + 0.02, 0.8 + bulge + 0.005], [sx, y + d + 0.02, 0.8 + bulge + 0.005]], STRAP, { lw: 0.015 });
         if (burst) {
           const [X, Y] = P(sx + 0.06, y + d + 0.02, 0.8 + bulge);
           ctx.beginPath();
@@ -1081,7 +1131,7 @@ export default {
           ctx.lineWidth = 0.11;
           ctx.stroke();
         } else {
-          face(ctx, [[sx, y + d + 0.02, 0], [sx + 0.13, y + d + 0.02, 0], [sx + 0.13, y + d + 0.02, 0.8 + bulge], [sx, y + d + 0.02, 0.8 + bulge]], STRAP, { lw: 0.015 });
+          face(ctx, [[sx, y + d + 0.02, 0], [sx + 0.13, y + d + 0.02, 0], [sx + 0.13, y + d + 0.02, (open ? 0.6 : 0.8 + bulge)], [sx, y + d + 0.02, open ? 0.6 : 0.8 + bulge]], STRAP, { lw: 0.015 });
           face(ctx, [[sx - 0.02, y + d + 0.03, 0.42], [sx + 0.15, y + d + 0.03, 0.42], [sx + 0.15, y + d + 0.03, 0.54], [sx - 0.02, y + d + 0.03, 0.54]], MAT.brass, { lw: 0.015 });
         }
       }
@@ -1124,11 +1174,29 @@ export default {
         paint(ctx, INK.oxblood, { lw: 0.02, dots: INK.candleGold, density: 0.2 });
         ctx.restore();
       }
-      // His paperwork on the lid, sorted for the new job: the cellar book on
-      // a clipboard (every 1974 ticked off) and a train timetable.
-      const lz = 0.805 + bulge;
-      sheet(ctx, 6.42, 6.5, lz, 0.4, 0.5, 0.12, OAK_D);
-      sheet(ctx, 6.42, 6.52, lz + 0.004, 0.34, 0.42, 0.12, PAPER, (g) => {
+      // The tell, shut: the corner of a letter caught under the front of the
+      // lid, a line of his handwriting on it.
+      if (!open) {
+        ctx.save();
+        inY(ctx, y + d + 0.035, x + 1.12, 0.62 + bulge);
+        ctx.beginPath();
+        ctx.moveTo(-0.16, 0); ctx.lineTo(0.12, 0); ctx.lineTo(0.08, 0.2); ctx.lineTo(-0.13, 0.16);
+        ctx.closePath();
+        paint(ctx, PAPER, { lw: 0.016 });
+        if (Q.detail) {
+          ctx.beginPath(); ctx.moveTo(-0.1, 0.07); ctx.quadraticCurveTo(-0.03, 0.04, 0.06, 0.08);
+          ctx.strokeStyle = PEN; ctx.lineWidth = 0.012; ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }, { anim: true });
+
+    // His paperwork, off the lid and onto the floor while he packs: the cellar
+    // book on a clipboard (every 1974 ticked off) and a train timetable.
+    R.rug((ctx) => {
+      const lz = 0.006;
+      sheet(ctx, 8.75, 6.45, lz, 0.4, 0.5, 0.12, OAK_D);
+      sheet(ctx, 8.75, 6.47, lz + 0.004, 0.34, 0.42, 0.12, PAPER, (g) => {
         words(g, 'CELLAR BOOK', 0, -0.15, 0.04, PEN, { weight: 700 });
         scrawl(g, -0.14, 0.06, -0.09, 0.045, 6, PEN, 3);
         g.beginPath(); // the ticks
@@ -1137,8 +1205,8 @@ export default {
         g.lineWidth = 0.013;
         g.stroke();
       });
-      sheet(ctx, 6.42, 6.32, lz + 0.008, 0.16, 0.05, 0.12, MAT.brass); // the clip
-      sheet(ctx, 6.78, 6.98, lz + 0.004, 0.17, 0.38, -0.42, PAPER_OLD, (g) => {
+      sheet(ctx, 8.75, 6.27, lz + 0.008, 0.16, 0.05, 0.12, MAT.brass); // the clip
+      sheet(ctx, 8.1, 6.78, lz + 0.004, 0.17, 0.38, -0.42, PAPER_OLD, (g) => {
         g.fillStyle = INK.oxblood;
         g.fillRect(-0.085, -0.19, 0.17, 0.06);
         words(g, 'TRAINS', 0, -0.16, 0.035, PAPER_OLD, { weight: 700 });
@@ -1149,12 +1217,12 @@ export default {
         g.stroke();
         scrawl(g, -0.07, 0.07, -0.09, 0.03, 9, PEN, 7, 0.009);
       });
-    }, { anim: true });
+    });
 
     // More of it, slid off the end of the trunk onto the floor: the wine
-    // list, the Lord's reference for him, his resignation (dated, signed:
-    // a find), the paper, his laundry list and two luggage labels.
-    // Only one of them is a letter he signed.
+    // list, the Lord's reference for him, a letter from his sister, the paper,
+    // his laundry list and two luggage labels. (His resignation is in the
+    // trunk now: a find.) None of these is a letter he signed.
     R.rug((ctx) => {
       const z = 0.006;
       sheet(ctx, 7.5, 5.12, z, 0.26, 0.38, 0.2, mix(PAPER_OLD, INK.candleGold, 0.25), (g) => {
@@ -1172,12 +1240,12 @@ export default {
         scrawl(g, -0.13, 0.13, -0.075, 0.038, 6, PEN, 5);
         words(g, 'B.G.', 0.08, 0.175, 0.065, INK.stormNavy, { weight: 'italic 600' });
       });
-      // The resignation: dated at the top, "Sir," and signed Jenkins.
+      // A letter from his sister in Brighton: "Dear Arthur," signed Mavis. Dated, too.
       sheet(ctx, 7.72, 5.86, z, 0.33, 0.44, 0.28, PAPER, (g) => {
-        words(g, 'LAST WEEK', 0.1, -0.185, 0.04, INK.stormNavy, { weight: 700 }); // the date: his alibi
-        words(g, 'Sir,', -0.11, -0.125, 0.045, INK.stormNavy, { weight: 'italic 600' });
-        scrawl(g, -0.13, 0.13, -0.07, 0.038, 5, PEN, 2);
-        words(g, 'Jenkins', 0.03, 0.165, 0.08, INK.stormNavy, { weight: 'italic 600' });
+        words(g, 'TUESDAY', 0.1, -0.185, 0.04, INK.oxblood, { weight: 700 });
+        words(g, 'Dear A,', -0.08, -0.125, 0.045, INK.oxblood, { weight: 'italic 600' });
+        scrawl(g, -0.13, 0.13, -0.07, 0.038, 5, alpha(INK.oxblood, 0.6), 19);
+        words(g, 'Mavis x', 0.03, 0.165, 0.07, INK.oxblood, { weight: 'italic 600' });
       });
       // The evening paper, folded, over a corner of it.
       sheet(ctx, 8.22, 5.92, z, 0.5, 0.36, -0.12, NEWS, (g) => {
@@ -1769,6 +1837,47 @@ export default {
       }
     });
 
+    // ---------- A red herring: the Lord's goose decanter ----------
+    // White glass, a goose's neck for a spout and its head for the stopper,
+    // a finger of port left in its belly. On the floor by the demijohns.
+    const DEC = [10.0, 4.35];
+    R.thing(DEC[0], DEC[1], (ctx) => {
+      const [X, Y] = P(DEC[0], DEC[1], 0);
+      const WG = mix(C.white, MAT.glass, 0.25);
+      ctx.save();
+      ctx.translate(X, Y);
+      if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.2); ctx.fill(); }
+      // the body, sat like a goose, tail up behind
+      ctx.beginPath();
+      ctx.moveTo(-0.3, -0.12);
+      ctx.quadraticCurveTo(-0.34, -0.42, -0.42, -0.5); // the tail
+      ctx.quadraticCurveTo(-0.1, -0.5, 0.12, -0.42);
+      ctx.quadraticCurveTo(0.3, -0.34, 0.28, -0.12);
+      ctx.quadraticCurveTo(0, 0.04, -0.3, -0.12);
+      paint(ctx, alpha(WG, 0.92), { lw: 0.025 });
+      // the port in the bottom of it
+      ctx.beginPath(); ctx.ellipse(0, -0.12, 0.22, 0.07, 0, 0, Math.PI); ctx.fillStyle = alpha(MAT.wine, 0.8); ctx.fill();
+      // the neck, up and over, and the head (the stopper)
+      ctx.beginPath();
+      ctx.moveTo(0.1, -0.4); ctx.quadraticCurveTo(0.12, -0.75, 0.2, -0.86);
+      ctx.lineTo(0.27, -0.84); ctx.quadraticCurveTo(0.2, -0.7, 0.22, -0.38);
+      ctx.closePath();
+      paint(ctx, alpha(WG, 0.92), { lw: 0.022 });
+      ctx.beginPath(); ctx.ellipse(0.25, -0.9, 0.08, 0.06, -0.3, 0, Math.PI * 2); paint(ctx, WG, { lw: 0.022 });
+      ctx.beginPath(); ctx.moveTo(0.31, -0.93); ctx.lineTo(0.43, -0.88); ctx.lineTo(0.31, -0.86); ctx.closePath();
+      paint(ctx, mix(INK.candleGold, INK.oxblood, 0.3), { lw: 0.015 });
+      ctx.beginPath(); ctx.arc(0.26, -0.92, 0.014, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+      if (Q.detail) { // a glint, and a silver label on a chain: PORT
+        ctx.beginPath(); ctx.moveTo(-0.15, -0.38); ctx.quadraticCurveTo(-0.2, -0.3, -0.16, -0.22);
+        ctx.strokeStyle = alpha(C.white, 0.9); ctx.lineWidth = 0.03; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0.06, -0.5); ctx.quadraticCurveTo(0.14, -0.38, 0.24, -0.5);
+        ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.012; ctx.stroke();
+        ctx.beginPath(); ctx.rect(0.08, -0.42, 0.14, 0.06); paint(ctx, MAT.silver, { lw: 0.01 });
+      }
+      ctx.restore();
+    });
+    R.decoy({ id: 'decanter', at: [DEC[0], DEC[1], 0.45], r: 0.6, say: ['Decanted. Not a goose.', 'Port. Also not a goose.', 'Jenkins missed this one.'] });
+
     R.dark(house.dark);
 
     // ---------- In the air ----------
@@ -1839,7 +1948,10 @@ export default {
     });
 
     // ---------- Finds ----------
-    R.find({ id: 'resignation', label: "Jenkins's resignation letter", at: [7.72, 5.86, 0.02], r: 0.6 });
-    R.find({ id: 'poster', label: 'A poster about a missing goose', at: [13, 0.05, 3], r: 0.8 });
+    R.find({
+      id: 'resignation', label: "Jenkins's resignation letter", kind: 'poke', inside: trunk, at: [LETTER[0], LETTER[1], 0.61], r: 0.6,
+      hint: 'A butler who resigns keeps the letter close. Somewhere he is packing.',
+    });
+    R.find({ id: 'poster', label: 'A poster about a missing goose', kind: 'spot', at: [13, 0.05, 3], r: 0.8 });
   },
 };

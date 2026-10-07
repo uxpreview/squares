@@ -737,9 +737,13 @@ function bottleAt(tt) {
 
 // Everything on the bed that changes: pillows, quilt, the trapdoor and what's
 // in it. The cat is drawn on its own.
-function bedding(ctx, t) {
+// pk: how far the taps have opened things, { pillow, bed } (0..1 each): the
+// right pillow lifts off the diary, and the bed drops open on its own.
+function bedding(ctx, t, pk = { pillow: 0, bed: 0 }) {
   const tt = loopT(t);
-  const door = doorK(tt);
+  const door = Math.max(doorK(tt), pk.bed);
+  // (a tap can open the trapdoor while the quilt is on the bed: it has a hole cut to match)
+  const tapped = pk.bed > doorK(tt) + 0.01;
   const q = quiltK(tt);
   const pl = pillowL(tt);
   const cap = capAt(tt);
@@ -757,9 +761,11 @@ function bedding(ctx, t) {
     ctx.lineWidth = 0.035;
     ctx.stroke();
   }
-  // Pillows (and the nightcap) at home.
-  pillow(ctx, PILLOW_R[0], PILLOW_R[1], TOP);
+  // His diary, under his pillow (the strap and its lock stick out), and the
+  // pillow, which lifts off it when tapped.
   if (pl && pl.home) pillow(ctx, pl.x, pl.y, pl.z);
+  diary(ctx, DIARY.x, DIARY.y, TOP + 0.008, DIARY.rot, pk.pillow < 0.3);
+  pillow(ctx, PILLOW_R[0], PILLOW_R[1] - 0.32 * pk.pillow, TOP + 0.75 * pk.pillow);
   if (cap && cap.on) { const [X, Y] = P(cap.x, cap.y, cap.z); nightcap(ctx, X, Y, 0.8, 1, 0.5); }
 
   if (door > 0.01) {
@@ -831,11 +837,25 @@ function bedding(ctx, t) {
   // The quilt, on the bed or on its way.
   if (q.k < 0.5) {
     const k = q.k / 0.5;
+    ctx.save();
+    if (tapped && door > 0.01) {
+      ctx.beginPath();
+      ctx.rect(-1e4, -1e4, 2e4, 2e4);
+      [[HOLE.x0, HOLE.y0], [HOLE.x1, HOLE.y0], [HOLE.x1, HOLE.y1], [HOLE.x0, HOLE.y1]].forEach(([x, y], i) => {
+        const [X, Y] = P(x, y, TOP + 0.04);
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+      });
+      ctx.closePath();
+      ctx.clip('evenodd');
+    }
     quilt(ctx, lerpQuad(QUILT_HOME, QUILT_HOLE, ease(k)), TOP + 0.04, 1 - clamp(k * 4));
+    ctx.restore();
   } else if (q.k < 1 && door < 0.01) {
     quilt(ctx, QUILT_HOLE, TOP + 0.04);
   }
   blanket(ctx);
+  // the diary's strap and lock, hanging out over the quilt when it's on the bed
+  if (pk.pillow < 0.3 && q.k < 0.5) flat(ctx, DIARY.x, DIARY.y, TOP + 0.05, (g) => { g.rotate(DIARY.rot); diaryStrap(g); });
 }
 
 // The sign on the foot of the bed: it swings every time the bed goes.
@@ -1102,7 +1122,7 @@ function bedsideHeap(ctx) {
     printed(g, 0.05, 0.34, 0.24, 3, 0.04);
     printed(g, 0.31, 0.34, 0.24, 3, 0.04);
   });
-  diary(ctx);
+  nightBook(ctx);
   // the Bible, open at Genesis, where the birds are made (no ribbon, no strap, all print)
   flat(ctx, 8.6, 3.2, z + 0.006, (g) => {
     g.rotate(-0.08);
@@ -1142,34 +1162,47 @@ function bedsideHeap(ctx) {
     if (Q.detail) words(g, '80', 0.11, 0.085, 0.08, INK.candleGold, { font: DISPLAY });
   });
 }
-// The Lord's diary, open at the page (the find). Small, and the only book on
-// the table in his handwriting: a leather strap undone and a ribbon marker.
-function diary(ctx) {
-  const z = NT.z + 0.008;
-  flat(ctx, 8.1, 3.22, z, (g) => {
-    g.rotate(0.06);
-    // the strap, undone, hanging toward you off the front cover, with its buckle
-    g.beginPath();
-    g.moveTo(0.44, 0.33); g.quadraticCurveTo(0.47, 0.42, 0.42, 0.5); g.lineTo(0.38, 0.49); g.quadraticCurveTo(0.42, 0.42, 0.4, 0.33);
-    g.closePath();
-    paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.014 });
-    // and the little brass lock every diary has, sprung open: the one
-    // thing on the table that says "diary" from across the room
-    g.beginPath();
-    g.arc(0.39, 0.51, 0.05, Math.PI, 0);
-    g.strokeStyle = C.ink; g.lineWidth = 0.034; g.stroke();
-    g.strokeStyle = BRASS; g.lineWidth = 0.02; g.stroke();
-    g.beginPath();
-    g.roundRect(0.32, 0.5, 0.14, 0.11, 0.018);
-    paint(g, BRASS, { lw: 0.016 });
-    g.beginPath();
-    g.arc(0.39, 0.54, 0.014, 0, Math.PI * 2);
-    g.moveTo(0.385, 0.545); g.lineTo(0.385, 0.58); g.lineTo(0.395, 0.58); g.lineTo(0.395, 0.545);
-    g.fillStyle = C.ink; g.fill();
+// The Lord's diary, open at the page (the find), under his pillow: he slept on
+// it. Only its strap and little brass lock stick out from under the pillow.
+const DIARY = { x: 5.0, y: 3.84, rot: 0.06 };
+// The diary's strap and lock, in the diary's own flat coordinates.
+function diaryStrap(g) {
+  // the strap, undone, hanging toward you off the front cover, and the
+  // brass lock every diary has, sprung open: what sticks out from under
+  // the pillow (drawn big and bright, so a still shows it)
+  g.save();
+  g.translate(0.1, 0.33); g.scale(1.5, 1.5); g.translate(-0.42, -0.33);
+  g.beginPath();
+  g.moveTo(0.44, 0.33); g.quadraticCurveTo(0.47, 0.42, 0.42, 0.5); g.lineTo(0.38, 0.49); g.quadraticCurveTo(0.42, 0.42, 0.4, 0.33);
+  g.closePath();
+  paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.012 });
+  g.beginPath();
+  g.arc(0.39, 0.51, 0.05, Math.PI, 0);
+  g.strokeStyle = C.ink; g.lineWidth = 0.03; g.stroke();
+  g.strokeStyle = C.mustard; g.lineWidth = 0.018; g.stroke();
+  g.beginPath();
+  g.roundRect(0.32, 0.5, 0.14, 0.11, 0.018);
+  paint(g, C.mustard, { lw: 0.014 });
+  g.beginPath();
+  g.arc(0.39, 0.54, 0.014, 0, Math.PI * 2);
+  g.moveTo(0.385, 0.545); g.lineTo(0.385, 0.58); g.lineTo(0.395, 0.58); g.lineTo(0.395, 0.545);
+  g.fillStyle = C.ink; g.fill();
+  g.restore();
+}
+function diary(ctx, x, y, z, rot, shut = false) {
+  flat(ctx, x, y, z, (g) => {
+    g.rotate(rot);
+    diaryStrap(g);
     // the covers
     g.beginPath();
     g.roundRect(-0.025, -0.025, 0.55, 0.39, 0.03);
     paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.025 });
+    if (shut) {
+      // shut, under the pillow: just the leather, its spine and a tooled border
+      g.strokeStyle = shade(mix(INK.oxblood, C.brown, 0.4), 0.4); g.lineWidth = 0.02;
+      g.strokeRect(0.03, 0.03, 0.44, 0.28);
+      return;
+    }
     g.beginPath();
     g.moveTo(0, 0); g.quadraticCurveTo(0.13, -0.02, 0.25, 0.01); g.lineTo(0.25, 0.35); g.quadraticCurveTo(0.13, 0.32, 0, 0.34);
     g.closePath();
@@ -1207,6 +1240,24 @@ function diary(ctx) {
     g.moveTo(0.29, 0.285); g.lineTo(0.47, 0.28);
     g.moveTo(0.3, 0.3); g.lineTo(0.46, 0.297);
     g.stroke();
+  });
+}
+// On the bedside table where you'd expect the diary: his night reading,
+// shut. (Open, three playtesters in a row took it for the diary and never
+// looked under the pillow.)
+function nightBook(ctx) {
+  const z = NT.z + 0.008;
+  flat(ctx, 8.1, 3.22, z, (g) => {
+    g.rotate(0.06);
+    // the page edges, then the cover over them, a band across the spine end
+    g.beginPath();
+    g.roundRect(0.01, 0.01, 0.42, 0.3, 0.02);
+    paint(g, PAGE, { lw: 0.014 });
+    g.beginPath();
+    g.roundRect(-0.025, -0.025, 0.42, 0.3, 0.03);
+    paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.025 });
+    g.fillStyle = shade(mix(INK.oxblood, C.brown, 0.4), 0.3);
+    g.fillRect(-0.02, 0.02, 0.07, 0.21);
   });
   // the pen, left beside it
   line3(ctx, [[8.2, 3.68, z + 0.02], [8.48, 3.62, z + 0.02]], C.ink, 0.035);
@@ -1256,9 +1307,9 @@ function basket(ctx) {
     words(g, 'RETURNS', 0.38, 0.115, 0.13, WOOD_D, { font: DISPLAY });
   });
 }
-function basketLid(ctx, t) {
+function basketLid(ctx, t, tap = 0) {
   const { x0, y0, x1, y1, h } = BASKET;
-  const a = lidK(loopT(t)) * 1.3;
+  const a = Math.max(lidK(loopT(t)), tap * 0.8) * 1.3;
   const d = y1 - y0 + 0.06;
   const fy = y0 - 0.03 + d * Math.cos(a), fz = h + d * Math.sin(a);
   face(ctx, [[x0 - 0.03, y0 - 0.03, h], [x1 + 0.03, y0 - 0.03, h], [x1 + 0.03, fy, fz], [x0 - 0.03, fy, fz]], tint(WICKER, 0.1), { dots: WICKER_D, density: 0.15 });
@@ -1321,6 +1372,12 @@ function safeDoor(ctx, k) {
     paint(g, BRASS, { lw: 0.02 });
     g.fillStyle = C.ink;
     g.fillRect(0.845, 1.16, 0.03, 0.08);
+    // a tag on the handle: nothing in here (the will's on the desk)
+    g.beginPath(); g.moveTo(1.34, 1.05); g.lineTo(1.4, 1.16); g.strokeStyle = C.ink; g.lineWidth = 0.015; g.stroke();
+    g.save(); g.translate(1.4, 1.16); g.rotate(0.15);
+    g.beginPath(); g.rect(-0.16, 0, 0.32, 0.17); paint(g, BONE, { lw: 0.02 });
+    words(g, 'EMPTY', 0, 0.09, 0.075, INK.oxblood, { font: DISPLAY });
+    g.restore();
     // hinges
     g.beginPath();
     g.rect(-0.05, 0.25, 0.1, 0.22);
@@ -1556,10 +1613,8 @@ function desk(ctx) {
     g.fillStyle = INK.oxblood;
     g.fillRect(0.2, 0.38, 0.12, 0.025);
   });
-  // the new will, half on the blotter
-  theWill(ctx);
-  // a draft letter, crossed out, over the will's corner
-  sheet(ctx, 13.3, 10.8, 1.214, 0.3, 0.3, 0.4, DESK_PAGE, (g) => {
+  // a draft letter, crossed out, under the will's corner
+  sheet(ctx, 13.42, 10.76, 1.207, 0.3, 0.3, 0.4, DESK_PAGE, (g) => {
     for (let i = 0; i < 6; i++) scribble(g, 0.04, 0.05 + i * 0.055, 0.22, 81 + i, alpha(C.ink, 0.65), 0.009);
     g.strokeStyle = alpha(C.ink, 0.7); g.lineWidth = 0.012;
     g.beginPath(); g.moveTo(0.03, 0.04); g.lineTo(0.27, 0.34); g.moveTo(0.27, 0.04); g.lineTo(0.03, 0.34); g.stroke();
@@ -1573,62 +1628,67 @@ function desk(ctx) {
     } : null);
   }
   // an envelope with a red stamp, and the stick of sealing wax
-  sheet(ctx, 13.45, 11.25, 1.212, -0.15, 0.3, 0.2, DESK_PAGE2, (g) => {
+  sheet(ctx, 13.62, 11.3, 1.209, -0.15, 0.3, 0.2, DESK_PAGE2, (g) => {
     g.fillStyle = INK.oxblood;
     g.fillRect(0.22, 0.03, 0.05, 0.06);
     for (let j = 0; j < 2; j++) scribble(g, 0.06, 0.1 + j * 0.04, 0.14, 101 + j, alpha(C.ink, 0.6), 0.009);
   });
-  box(ctx, 13.4, 11.5, 1.205, 0.22, 0.05, 0.05, INK.oxblood, { flat: true, lw: 0.02 });
-  // inkpot and a goose quill (he'd have hated that)
+  box(ctx, 13.66, 11.56, 1.205, 0.22, 0.05, 0.05, INK.oxblood, { flat: true, lw: 0.02 });
+  // the inkpot, and its goose quill (he'd have hated that)
   cylinder(ctx, 13.72, 10.78, 1.2, 0.12, 0.16, alpha(GLASS, 0.95), { top: C.ink });
-  const [qx, qy] = P(13.72, 10.78, 1.34);
-  ctx.save();
-  ctx.translate(qx, qy);
-  ctx.rotate(-0.55);
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(-0.14, -0.4, -0.02, -0.82);
-  ctx.quadraticCurveTo(0.12, -0.42, 0, 0);
-  paint(ctx, C.white, { lw: 0.03 });
-  ctx.beginPath();
-  ctx.moveTo(0, 0); ctx.lineTo(-0.02, -0.8);
-  ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.02; ctx.stroke();
-  ctx.restore();
+  // the new will, on top of everything, with the quill still wet beside it
+  theWill(ctx);
+  flat(ctx, 13.5, 11.42, DESK_Z + 0.02, (g) => {
+    g.rotate(-2.5);
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.quadraticCurveTo(0.3, -0.12, 0.72, -0.02);
+    g.quadraticCurveTo(0.32, 0.1, 0, 0);
+    paint(g, C.white, { lw: 0.025 });
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(0.7, -0.02);
+    g.strokeStyle = C.greyLight; g.lineWidth = 0.015; g.stroke();
+    // the nib, black and wet
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(-0.08, 0.01);
+    g.strokeStyle = C.ink; g.lineWidth = 0.03; g.stroke();
+  });
 }
-// The new will: Dr. Crane gets the good armchair. A page at its real size,
-// told from the letters by the signature line, the seal and the ribbon.
-const WILL = { x: 12.88, y: 11.02, rot: 0.12, w: 0.34, h: 0.46 };
+// The new will: Dr. Crane gets the good armchair. The one paper on the desk
+// that clearly matters: on top of the heap, signed on a
+// line that's still wet, under a fat red seal with a ribbon. (Playtesters went
+// to the safe; the desk has to win.)
+const WILL = { x: 12.78, y: 10.98, rot: 0.12, w: 0.5, h: 0.66 };
 function theWill(ctx) {
-  sheet(ctx, WILL.x, WILL.y, 1.211, WILL.rot, WILL.w, WILL.h, DESK_PAGE, null);
-  flat(ctx, WILL.x, WILL.y, 1.212, (g) => {
+  sheet(ctx, WILL.x, WILL.y, 1.215, WILL.rot, WILL.w, WILL.h, tint(PAPER, 0.25), null);
+  flat(ctx, WILL.x, WILL.y, 1.216, (g) => {
     g.rotate(WILL.rot);
-    // a heading in his own hand
-    scribble(g, 0.08, 0.05, 0.18, 29, alpha(C.ink, 0.85), 0.014);
+    // a heading in his own hand (no caption: decision 23)
+    scribble(g, 0.12, 0.09, 0.26, 29, alpha(C.ink, 0.85), 0.016);
+    for (let i = 0; i < 3; i++) scribble(g, 0.06, 0.17 + i * 0.045, 0.38 - (i === 2 ? 0.12 : 0), 31 + i, alpha(C.ink, 0.7), 0.009);
     if (Q.detail) {
-      for (let i = 0; i < 3; i++) scribble(g, 0.03, 0.1 + i * 0.04, 0.28 - (i === 2 ? 0.1 : 0), 31 + i, alpha(C.ink, 0.65), 0.008);
-      words(g, 'To Dr. Crane:', 0.17, 0.235, 0.028, C.ink, { italic: true });
-      words(g, 'the good armchair.', 0.17, 0.27, 0.028, C.ink, { italic: true });
-      scribble(g, 0.03, 0.31, 0.26, 41, alpha(C.ink, 0.65), 0.008);
-      // the signature, on its line
-      g.beginPath();
-      g.moveTo(0.15, 0.41); g.lineTo(0.31, 0.41);
-      g.strokeStyle = C.ink; g.lineWidth = 0.008; g.stroke();
-      g.beginPath();
-      g.moveTo(0.16, 0.4); g.bezierCurveTo(0.19, 0.35, 0.21, 0.42, 0.24, 0.38); g.quadraticCurveTo(0.27, 0.36, 0.3, 0.4);
-      g.lineWidth = 0.009; g.stroke();
+      words(g, 'To Dr. Crane:', WILL.w / 2, 0.33, 0.034, C.ink, { italic: true });
+      words(g, 'the good armchair.', WILL.w / 2, 0.375, 0.034, C.ink, { italic: true });
+      scribble(g, 0.06, 0.43, 0.38, 41, alpha(C.ink, 0.65), 0.009);
     }
-    // the ribbon and the wax seal, bottom left
+    // the signature, on its line, with a wet blot where the quill rested
     g.beginPath();
-    g.moveTo(0.06, 0.4); g.lineTo(0.03, 0.5); g.moveTo(0.1, 0.4); g.lineTo(0.12, 0.5);
-    g.strokeStyle = INK.oxblood; g.lineWidth = 0.022; g.stroke();
+    g.moveTo(0.22, 0.57); g.lineTo(0.45, 0.57);
+    g.strokeStyle = C.ink; g.lineWidth = 0.01; g.stroke();
     g.beginPath();
-    g.arc(0.08, 0.4, 0.045, 0, Math.PI * 2);
-    paint(g, INK.oxblood, { lw: 0.014 });
-    if (Q.detail) {
-      g.beginPath();
-      g.arc(0.08, 0.4, 0.025, 0, Math.PI * 2);
-      g.strokeStyle = shade(INK.oxblood, 0.35); g.lineWidth = 0.008; g.stroke();
-    }
+    g.moveTo(0.23, 0.555); g.bezierCurveTo(0.27, 0.49, 0.3, 0.58, 0.34, 0.53); g.quadraticCurveTo(0.38, 0.5, 0.44, 0.56);
+    g.lineWidth = 0.014; g.stroke();
+    g.beginPath(); g.ellipse(0.455, 0.555, 0.022, 0.016, 0.3, 0, Math.PI * 2); g.fillStyle = C.ink; g.fill();
+    // the ribbon and the wax seal, bottom left: big and red
+    g.beginPath();
+    g.moveTo(0.1, 0.56); g.lineTo(0.03, 0.76); g.lineTo(0.08, 0.74); g.lineTo(0.11, 0.78); g.lineTo(0.14, 0.58);
+    g.moveTo(0.14, 0.56); g.lineTo(0.2, 0.77); g.lineTo(0.23, 0.73); g.lineTo(0.27, 0.75); g.lineTo(0.18, 0.55);
+    paint(g, C.red, { lw: 0.012 });
+    g.beginPath();
+    g.arc(0.14, 0.55, 0.095, 0, Math.PI * 2);
+    paint(g, C.red, { lw: 0.016 });
+    g.beginPath();
+    g.arc(0.14, 0.55, 0.058, 0, Math.PI * 2);
+    g.strokeStyle = shade(C.red, 0.35); g.lineWidth = 0.012; g.stroke();
+    words(g, 'G', 0.14, 0.555, 0.06, shade(C.red, 0.4), { font: DISPLAY });
   });
 }
 function deskChair(ctx) {
@@ -2427,6 +2487,8 @@ export default {
       });
     });
     R.decor((ctx, t) => portraitGoose(ctx, t), { anim: true });
+    // A red herring: the goose painted out of his portrait, whose eye still shows.
+    R.decoy({ id: 'portrait', at: [0.05, 10.5, 3.9], r: 0.8, say: ['Painted out. It keeps coming back.', 'Still painted out. Allegedly.'] });
 
     // ---------- On the floor ----------
     R.rug((ctx) => {
@@ -2445,7 +2507,11 @@ export default {
     // ---------- The four-poster ----------
     R.thing(4.5, 2.6, (ctx) => bedBack(ctx), { depth: 4.8 });
     R.thing(4.5, 5.2, (ctx) => bedBody(ctx), { depth: 9.8 });
-    R.thing(4.5, 5.3, (ctx, t) => bedding(ctx, t), { depth: 9.9, anim: true });
+    // Things that answer a tap: the bed itself (the one a new player is shown),
+    // his pillow (the diary's under it) and the RETURNS basket.
+    const bedPoke = R.poke({ id: 'trapdoor', at: [HX, HY, TOP], r: 1.0, hold: 2.4, teach: true, sound: 'clunk', say: ['Mind the bed.', 'It does that.', 'Nobody down there. Probably.'] });
+    const pillowPoke = R.poke({ id: 'pillow', at: [PILLOW_R[0], PILLOW_R[1], TOP + 0.3], r: 0.8, say: ['Goose down. Naturally.', 'Fluffed.'] });
+    R.thing(4.5, 5.3, (ctx, t) => bedding(ctx, t, { pillow: pillowPoke.k(), bed: bedPoke.k() }), { depth: 9.9, anim: true });
     R.thing(4.5, 7.9, (ctx) => bedFront(ctx), { depth: 10.5 });
     R.thing(3.05, 8.0, (ctx, t) => mindTheBed(ctx, t), { depth: 10.55, anim: true });
 
@@ -2486,7 +2552,8 @@ export default {
     lamp(R, 7.95, 2.88, { z: 1.0, h: 0.8, r: 2.8 });
     R.thing(7.6, 4.4, (ctx) => slippers(ctx));
     R.thing(9.6, 6.6, (ctx) => basket(ctx));
-    R.thing(9.61, 6.61, (ctx, t) => basketLid(ctx, t), { anim: true });
+    const returns = R.poke({ id: 'returns', at: [BASKET_MID[0], BASKET_MID[1], BASKET.h], r: 0.7, hold: 1.2, sound: 'clunk', say: ['No returns without a receipt.', 'Empty. For now.'] });
+    R.thing(9.61, 6.61, (ctx, t) => basketLid(ctx, t, returns.k()), { anim: true });
     R.thing(4.5, 8.75, (ctx) => bench(ctx));
 
     // ---------- The safe, the washstand, the trap ----------
@@ -2636,7 +2703,10 @@ export default {
     }, { depth: 10.3, anim: true });
 
     // ---------- The finds ----------
-    R.find({ id: 'diary', label: "The Lord's diary", at: [8.33, 3.4, 1.03], r: 0.6 });
-    R.find({ id: 'new-will', label: 'The new will', at: [13.02, 11.27, 1.22], r: 0.6 });
+    R.find({
+      id: 'diary', label: "The Lord's diary", kind: 'poke', inside: pillowPoke, at: [DIARY.x + 0.27, DIARY.y + 0.2, TOP + 0.01], r: 0.6,
+      hint: "A man that frightened of a goose doesn't leave his diary lying about. He keeps it close, even asleep.",
+    });
+    R.find({ id: 'new-will', label: 'The new will', kind: 'spot', at: [13.0, 11.3, 1.22], r: 0.6 });
   },
 };

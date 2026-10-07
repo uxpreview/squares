@@ -3,7 +3,7 @@
 // Gooseworth, 80 today, face down in his own birthday trifle. A stuffed bear
 // towers over him, and Inspector Pidge (on the evening's clock) interrogates it.
 import {
-  C, Q, SKIN, box, rect, disc, face, paint, shade, tint, mix, alpha, hash, rng, slab, planks,
+  C, Q, SKIN, box, rect, disc, cylinder, face, paint, shade, tint, mix, alpha, hash, rng, slab, planks,
 } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { INK, MAT, ROOM, CAST, MIDNIGHT, house, storm, pastK, fire, candle, lamp, drawCast, webPrint } from '../style.js';
@@ -616,7 +616,13 @@ const BOWL = (() => {
   const sum = 2 * (sy + (z + rim) * ZK);
   return { x: (sum + sx) / 2, y: (sum - sx) / 2, z, rim, r: 0.46 };
 })();
-const PILLS = { x: 7.1, y: 9.2, z: TABLE.h + 0.1 }; // the bottle with beak marks (a find)
+// The Lord's medicine chest, at his elbow: a little mahogany box with a red
+// cross on the lid, hinged at the back. Shut, its lid sits ajar on a
+// prescription that hangs out over the front, and a mint has rolled clear.
+// Open (a poke), it's three amber bottles in the velvet, one of them bitten.
+const CHEST = { x0: 6.85, y0: 8.72, w: 0.95, d: 0.62, h: 0.3 };
+CHEST.top = TABLE.h + CHEST.h;
+const PILLS = { x: 7.1, y: 9.12, z: CHEST.top + 0.01 }; // the bottle with beak marks (a find)
 const LIPSTICK = { x: 9.2, y: 6.85, z: TABLE.h + 0.01 }; // the glass with lipstick (a find)
 
 function tableTop(ctx) {
@@ -1057,16 +1063,63 @@ function tableClutter(ctx) {
   wineGlass(ctx, 7.75, 7.3, h + 0.01, { over: 1 });
   wineGlass(ctx, LIPSTICK.x, LIPSTICK.y, LIPSTICK.z, { lip: true, fill: 0.15 });
   bottle(ctx, 9.3, 8.45, h, 'sauce', 0.85);
-  // His medicine, at his elbow.
+  // His medicine, at his elbow (the pill bottles are in his chest: medicineChest).
   pillBox(ctx, 7.05, 8.4, h);
-  bottle(ctx, 6.9, 8.8, h, 'tonic', 0.9);
-  pillBottle(ctx, 7.3, 8.85, h, { up: true });
+  bottle(ctx, 7.5, 8.45, h, 'tonic', 0.9);
   bottle(ctx, 9.3, 8.9, h, 'salt');
   bottle(ctx, 8.95, 9.3, h, 'pepper');
-  pillBottle(ctx, PILLS.x, PILLS.y, PILLS.z, { bitten: true, mints: true });
-  pillBottle(ctx, 7.65, 9.3, h + 0.09, { rot: 2.9 });
   hipFlask(ctx, 8.6, 9.3, h + 0.03);
   wineGlass(ctx, 9.35, 9.2, h + 0.01, { fill: 0.5 });
+}
+
+// The chest, k: 0 shut (ajar on its prescription), 1 open.
+function medicineChest(ctx, k) {
+  const { x0, y0, w, d, h, top } = CHEST;
+  const x1 = x0 + w, y1 = y0 + d;
+  box(ctx, x0, y0, TABLE.h, w, d, h, MAT.mahogany, { top: MAT.mahoganyDark, lw: 0.025 });
+  if (Q.detail) {
+    // Brass corners on the front.
+    for (const [cx, cy] of [[x0, y1], [x1, y1], [x1, y0]]) {
+      face(ctx, [[cx, cy, TABLE.h + 0.02], [cx, cy, top - 0.02]], null, { stroke: MAT.brass, lw: 0.035 });
+    }
+  }
+  const a = 0.14 + 1.75 * k;
+  const L = (u, v) => [x0 + u * w, y0 + v * d * Math.cos(a), top + v * d * Math.sin(a)];
+  const quadL = (u0, u1, v0, v1, fill, o = { stroke: false }) => face(ctx, [L(u0, v0), L(u1, v0), L(u1, v1), L(u0, v1)], fill, o);
+  const lid = () => {
+    const outside = a < 0.88;
+    quadL(0, 1, 0, 1, outside ? MAT.mahogany : MAT.velvet, { lw: 0.025 });
+    if (!outside) return;
+    // A red cross on a bone square, and the brass clasp.
+    quadL(0.33, 0.67, 0.2, 0.75, INK.bone, { lw: 0.015 });
+    quadL(0.45, 0.55, 0.27, 0.68, INK.oxblood);
+    quadL(0.37, 0.63, 0.41, 0.54, INK.oxblood);
+    quadL(0.45, 0.55, 0.88, 1, MAT.brass, { lw: 0.012 });
+  };
+  const inside = () => {
+    // The velvet, and his bottles in it: two plain, one bitten (the find).
+    face(ctx, [[x0 + 0.04, y0 + 0.04, top], [x1 - 0.04, y0 + 0.04, top], [x1 - 0.04, y1 - 0.04, top], [x0 + 0.04, y1 - 0.04, top]], MAT.velvetDark, { lw: 0.02 });
+    pillBottle(ctx, 7.45, 8.9, top + 0.01, { rot: 2.9 });
+    pillBottle(ctx, 7.55, 9.15, top + 0.01, { rot: -0.15 });
+    pillBottle(ctx, PILLS.x, PILLS.y, PILLS.z, { bitten: true, mints: true });
+  };
+  if (a > Math.PI / 2) { lid(); inside(); } else {
+    if (k > 0.02) inside();
+    else {
+      // The gap under the lid, dark.
+      face(ctx, [[x0, y1, top], [x1, y1, top], L(1, 1), L(0, 1)], C.ink, { stroke: false });
+    }
+    lid();
+  }
+  if (k < 0.5) {
+    // The tell: a prescription caught under the lid, hanging over the front.
+    face(ctx, [[7.32, y1 + 0.01, top + 0.03], [7.56, y1 + 0.01, top + 0.03], [7.58, y1 + 0.01, top - 0.2], [7.34, y1 + 0.01, top - 0.17]], INK.bone, { lw: 0.015 });
+    if (Q.detail) {
+      for (const z of [top - 0.04, top - 0.09]) face(ctx, [[7.37, y1 + 0.012, z], [7.52, y1 + 0.012, z]], null, { stroke: C.ink, lw: 0.012 });
+    }
+  }
+  // A mint that rolled out, on the cloth by the chest.
+  disc(ctx, 6.98, 9.55, TABLE.h + 0.012, 0.05, C.white, { lw: 0.015 });
 }
 
 // Everything at the table, in the order it stacks up.
@@ -1084,8 +1137,9 @@ function tableScene(ctx, t) {
 // ---------- The bear ----------
 // Bruno, stuffed in 1974, on a plinth in the corner by the fire, arms up.
 const BEAR = { x: 3.9, y: 10.9, plinth: 0.45 };
-function bear(ctx, t) {
+function bear(ctx, t, k = 0) {
   const T = lt(t);
+  const wob = Math.sin(k * Math.PI) * 0.05; // he rocks on his plinth when tapped
   // Pidge leans in: a fraction of a turn toward him while he's asking.
   const asking = (a, b) => clamp01(Math.min((T - a) / 1.5, (b - T) / 1.5));
   const turn = Math.max(asking(8, 16), asking(140, 148) * 1.3, asking(120, 128) * -0.6);
@@ -1097,6 +1151,7 @@ function bear(ctx, t) {
   const furO = { dots: dark, density: 0.25, lw: 0.05 };
   ctx.save();
   ctx.translate(X, Y);
+  ctx.rotate(wob);
   // Legs and feet.
   for (const s of [-1, 1]) {
     ctx.beginPath();
@@ -1942,6 +1997,40 @@ function globe(ctx, x, y, t, r = 0.45) {
   ctx.stroke();
 }
 
+// An inkwell with a goose quill in it, on a pile of books: a red herring
+// (white, feathered, goose: not evidence).
+const INKWELL = { x: 11.4, y: 1.8, z: 0.55 };
+function inkwell(ctx) {
+  const { x, y, z } = INKWELL;
+  cylinder(ctx, x, y, z, 0.13, 0.16, mix(INK.stormNavy, C.ink, 0.4), { top: C.ink });
+  cylinder(ctx, x, y, z + 0.16, 0.07, 0.04, MAT.brass);
+  const [X, Y] = P3(x, y, z + 0.18);
+  const white = mix(C.white, INK.bone, 0.3);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(0.45);
+  // The vane, long and curved, then the shaft down into the ink.
+  ctx.beginPath();
+  ctx.moveTo(0, -0.12);
+  ctx.quadraticCurveTo(-0.16, -0.5, -0.04, -0.92);
+  ctx.quadraticCurveTo(0.12, -0.55, 0.03, -0.14);
+  ctx.closePath();
+  paint(ctx, white, { lw: 0.02 });
+  ctx.beginPath();
+  ctx.moveTo(0.01, 0.02); ctx.quadraticCurveTo(-0.03, -0.5, -0.04, -0.9);
+  ctx.strokeStyle = C.grey;
+  ctx.lineWidth = 0.015;
+  ctx.stroke();
+  if (Q.detail) {
+    ctx.beginPath();
+    for (const v of [-0.3, -0.45, -0.6]) { ctx.moveTo(-0.03, v); ctx.lineTo(-0.1, v + 0.06); ctx.moveTo(-0.02, v - 0.05); ctx.lineTo(0.05, v + 0.02); }
+    ctx.strokeStyle = shade(white, 0.25);
+    ctx.lineWidth = 0.01;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // Books stacked on the floor, the way libraries always end up.
 function floorBooks(ctx, x, y, n, seed) {
   for (let i = 0; i < n; i++) {
@@ -2024,7 +2113,14 @@ export default {
 
     // ---------- The scene ----------
     R.thing(TABLE.x1, TABLE.y1, (ctx, t) => tableScene(ctx, t));
-    R.thing(4.8, 11.8, (ctx, t) => bear(ctx, t), { anim: true });
+    // The Lord's medicine chest: tap the lid. (Drawn just after the table.)
+    const chest = R.poke({ id: 'chest', at: [CHEST.x0 + CHEST.w / 2, CHEST.y0 + CHEST.d / 2, CHEST.top + 0.1], r: 0.7, sound: 'clunk', say: ['His medicine chest.', 'Lid shut. Bottles safe.', 'Open again.'] });
+    R.thing(TABLE.x1, TABLE.y1, (ctx) => medicineChest(ctx, chest.k()), { anim: true, depth: TABLE.x1 + TABLE.y1 + 0.01 });
+    // Bruno, the teach poke: big, by the fire, and saying nothing.
+    const bruno = R.poke({ id: 'bear', at: [BEAR.x, BEAR.y, 3.0], r: 1.0, teach: true, sound: 'thump', say: ['Bruno isn\'t talking.', 'He wants his lawyer.', 'Stuffed. Still a suspect.'] });
+    R.thing(4.8, 11.8, (ctx, t) => bear(ctx, t, bruno.k()), { anim: true });
+    // The Lord himself answers, sort of.
+    R.poke({ id: 'lord', at: [LORD.x + 0.3, LORD.y - 0.3, 2.1], r: 0.7, say: ["He's not talking either.", 'Still face down.', 'Mostly custard now.'] });
     R.thing(3.5, 6.3, (ctx) => armchair(ctx, 5.2));
     R.thing(3.5, 8.3, (ctx) => armchair(ctx, 7.2));
     R.thing(SIDE.x + 0.5, SIDE.y + 0.5, (ctx) => {
@@ -2061,15 +2157,26 @@ export default {
     // ---------- Library things ----------
     R.thing(4.4, 3.3, (ctx) => { ladder(ctx, 4.4, 3.3, 2.4, GAL + 1.05); wineGlass(ctx, 3.9, 3.3, 2.04, { fill: 0.2 }); });
     R.thing(5.2, 1.9, (ctx, t) => globe(ctx, 5.2, 1.9, t), { anim: true });
-    R.thing(11.4, 1.8, (ctx) => floorBooks(ctx, 11.4, 1.8, 5, 3));
+    R.thing(11.4, 1.8, (ctx) => { floorBooks(ctx, 11.4, 1.8, 5, 3); inkwell(ctx); });
+    R.decoy({ id: 'quill', at: [INKWELL.x, INKWELL.y, INKWELL.z + 0.5], r: 0.7, say: ['A quill. Goose, once. Not evidence.', 'Still a pen.'] });
     R.thing(1.9, 9.6, (ctx) => floorBooks(ctx, 1.9, 9.6, 3, 7));
     R.thing(14.3, 7.6, (ctx) => { floorBooks(ctx, 14.3, 7.6, 4, 11); wineGlass(ctx, 14.25, 7.55, 0.44, { fill: 0.6 }); });
 
     R.dark(house.dark);
 
     // ---------- Finds ----------
-    R.find({ id: 'feathers', label: 'Goose feathers on the rug', at: [FEATHERS.x, FEATHERS.y, 0.05], r: 0.65 });
-    R.find({ id: 'pill-bottle', label: 'A pill bottle with beak marks', at: [PILLS.x, PILLS.y, PILLS.z], r: 0.6 });
-    R.find({ id: 'lipstick-glass', label: 'A wine glass with lipstick', at: [LIPSTICK.x, LIPSTICK.y, LIPSTICK.z + 0.3], r: 0.6 });
+    R.find({
+      id: 'feathers', label: 'Goose feathers', kind: 'hard', at: [FEATHERS.x, FEATHERS.y, 0.05], r: 0.65,
+      riddle: "The party's mess. Not all of it is confetti.",
+      hint: 'Something stood by the body at midnight, and moulted. Look down.',
+    });
+    R.find({
+      id: 'pill-bottle', label: 'A pill bottle with beak marks', kind: 'poke', inside: chest, at: [PILLS.x, PILLS.y, PILLS.z + 0.05], r: 0.6,
+      hint: "He was eighty. He'd keep his pills close, and shut away.",
+    });
+    R.find({
+      id: 'lipstick-glass', label: 'A wine glass with lipstick', kind: 'spot', at: [LIPSTICK.x, LIPSTICK.y, LIPSTICK.z + 0.3], r: 0.6,
+      hint: 'Nine glasses from the toast. One of them got kissed.',
+    });
   },
 };

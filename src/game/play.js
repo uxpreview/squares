@@ -278,9 +278,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     document.body.dataset.mode = 'overview';
     ui.roombar.hidden = true;
     tray.show(false);
+    renderInvite(); // (first: the lift's evidence tags wait for it to go)
     renderFloors();
     renderBack();
-    renderInvite();
     showStory(false);
     layoutVars();
     if (changed && active) on.place(world.id, null);
@@ -318,7 +318,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const lamp = document.createElement('span');
       lamp.className = 'lift-btn';
       lamp.setAttribute('aria-hidden', 'true');
-      b.append(name, lamp);
+      const clues = document.createElement('span');
+      clues.className = 'lift-clues';
+      clues.setAttribute('aria-hidden', 'true');
+      clues.hidden = true;
+      clues.innerHTML = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="5" r="3.3"/><path d="M7.5 7.5 10.5 10.5"/></svg><span></span>';
+      b.append(name, clues, lamp);
       b.addEventListener('click', () => { userAct(); setStorey(i); });
       return b;
     });
@@ -334,7 +339,12 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const i = world.storeys.findIndex((s) => s.id === b.dataset.storey), here = i === storey;
       if (here) b.setAttribute('aria-current', 'true');
       else b.removeAttribute('aria-current');
-      b.setAttribute('aria-label', world.storeys[i].name + (here ? ', where you are' : ''));
+      // Evidence still on that floor, in a whodunit.
+      const n = casesOpen() && ui.invite.hidden ? world.zones.filter((z) => z.storey === i).reduce((a, z) => a + cluesLeft(z), 0) : 0;
+      const tag = b.querySelector('.lift-clues');
+      tag.hidden = !n;
+      tag.lastChild.textContent = n ? String(n) : '';
+      b.setAttribute('aria-label', world.storeys[i].name + (here ? ', where you are' : '') + (n ? `, ${n} ${n === 1 ? 'piece' : 'pieces'} of evidence left` : ''));
     }
   }
 
@@ -1088,6 +1098,65 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ctx.restore();
   }
 
+  // ---------- Evidence still out there ----------
+  // In a whodunit, the whole house shows which rooms still hold evidence: a
+  // small tag over each one, a magnifying glass and how many are left, gone
+  // once its last clue is found (and all of them once the case is closed).
+  // The lift says the same for each floor. Not while the invitation is up:
+  // the first thing to do is go and see the body.
+  function cluesLeft(z) {
+    let n = 0;
+    for (const f of z.finds) if (f.group === 'evidence' && !isFound(z, f)) n++;
+    return n;
+  }
+  const casesOpen = () => world && world.goal === 'case' && !store.caseOf(world.id).solved;
+  function drawClues(ctx) {
+    if (!active || mode !== 'overview' || !casesOpen() || !ui.invite.hidden) return;
+    const u = 1 / cam.z;
+    for (const z of world.zones) {
+      if (lifted(z) || (hasStoreys() && !z.fixed && z.storey !== storey)) continue;
+      const n = cluesLeft(z);
+      if (n) clueTag(ctx, ...callAt(z), n, u);
+    }
+  }
+  // A luggage tag on a string: a glass and a number, in the case's ink.
+  function clueTag(ctx, X, Y, n, u) {
+    const ink = world.map.case.ink || C.coral;
+    const text = String(n), h = 20 * u;
+    ctx.save();
+    ctx.translate(X, Y);
+    ctx.font = `${13 * u}px "Bagel Fat One", "Arial Black", sans-serif`;
+    const w = ctx.measureText(text).width + 32 * u, by = -h - 8 * u;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, by + h);
+    ctx.lineWidth = 1.5 * u;
+    ctx.strokeStyle = C.ink;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, by, w, h, 5 * u);
+    ctx.fillStyle = C.paper;
+    ctx.fill();
+    ctx.lineWidth = 2 * u;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    // The glass: a ring and a handle.
+    const gx = -w / 2 + 12 * u, gy = by + h / 2 - 1 * u;
+    ctx.beginPath();
+    ctx.arc(gx, gy, 4.5 * u, 0, Math.PI * 2);
+    ctx.moveTo(gx + 3.3 * u, gy + 3.3 * u);
+    ctx.lineTo(gx + 7 * u, gy + 7 * u);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 2.2 * u;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.fillStyle = ink;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, gx + (w - 12 * u) / 2 + 2 * u, by + h / 2 + 1 * u);
+    ctx.restore();
+  }
+
   // Sounds on the place's clock (thunder after lightning), heard between one
   // frame and the next. A jump in the clock (a tool, the reveal) plays nothing.
   let lastTick = null;
@@ -1240,6 +1309,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
 
   // Ink bursts, honks and tap ripples, in world space over everything.
   function drawPops(ctx, t, now) {
+    drawClues(ctx);
     for (let i = pops.length - 1; i >= 0; i--) {
       const p = pops[i];
       const age = (now - p.t0) / 1000;
@@ -1361,6 +1431,25 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     return best;
   }
 
+  // The staircase under a screen point, if any (map.stairs): on the whole
+  // house, one on the floor you're looking at; in a room, the room's own.
+  function stairAtScreen(sx, sy, inRoom) {
+    if (!world.map.stairs || (inRoom && mode !== 'zone')) return null;
+    let best = null, bestD = Infinity;
+    for (const s of world.map.stairs) {
+      const i = world.indexOf(s.zone), to = world.indexOf(s.goes), zone = world.zones[i];
+      if (!zone || to < 0 || lifted(zone)) continue;
+      if (inRoom ? i !== current : hasStoreys() && zone.storey !== storey) continue;
+      const [a, b] = s.run;
+      for (let k = 0; k <= 6; k++) {
+        const u = k / 6, p = { at: [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u] };
+        const d = screenGap(zone, p, sx, sy, 0);
+        if (d < Math.max((s.r || 1) * cam.z, 16) && d < bestD) { best = { zone, to }; bestD = d; }
+      }
+    }
+    return best;
+  }
+
   function tap(sx, sy) {
     if (!active) return;
     const t = clock();
@@ -1383,6 +1472,17 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         }
         return;
       }
+    }
+    // A staircase: on the whole house it changes floors, in a room it goes
+    // up or down to the room at the other end.
+    const st = stairAtScreen(sx, sy, zoomedIn);
+    if (st) {
+      const to = world.zones[st.to];
+      if (zoomedIn) {
+        sound('ding', { down: to.storey < st.zone.storey });
+        enterZone(st.to, { dur: 1.3 });
+      } else setStorey(to.storey); // (which dings)
+      return;
     }
     const i = zoneAtScreen(sx, sy);
     if (i >= 0 && (!zoomedIn || i !== current)) {

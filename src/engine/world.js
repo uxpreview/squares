@@ -10,6 +10,9 @@
 //     order: ['zoneId', ...],                   // prev/next and list order (optional)
 //     cutaway: { front, above, walls, lift, ghost },  // how zones get out of the way (below)
 //     storeys: [{ id, name, short, z }],        // named floors, changed from the lift (optional)
+//     stairs: [{ zone, goes, run: [[x, y, z], [x, y, z]], r }],  // tap a staircase to change floors
+//                                                // (run: its bottom and top in the zone's own units;
+//                                                // goes: the zone at the other end)
 //     storey: 'ground',                         // which floor the overview starts on
 //     overview(portrait, storeyId, short) => [X0, X1, Y0, Y1],  // the framing for the whole map (optional)
 //     backdrop(ctx, t, world, fx), sky(ctx, t, world, fx),  // drawn under / over the zones (optional)

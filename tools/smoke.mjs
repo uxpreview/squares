@@ -349,8 +349,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return [m && m[1], window.__squares.world.map.plate.paper];
   });
   check("index.html paints the page in the Manor's plate before it draws", early[0] === early[1], JSON.stringify(early));
-  const floors = () => page.$$eval('#floors .lift-floor', (bs) => bs.map((b) => b.textContent));
-  const lit = () => page.$$eval('#floors .lift-floor[aria-current]', (bs) => bs.map((b) => b.textContent).join());
+  const floors = () => page.$$eval('#floors .lift-floor', (bs) => bs.map((b) => b.querySelector('.lift-name').textContent));
+  const lit = () => page.$$eval('#floors .lift-floor[aria-current]', (bs) => bs.map((b) => b.querySelector('.lift-name').textContent).join());
+  const clues = () => page.$$eval('#floors .lift-clues', (bs) => bs.map((b) => (b.hidden ? 0 : +b.textContent)));
   check('a house has a lift with every floor, top to bottom, the one you are on lit',
     (await floors()).join() === 'Upstairs,Ground,Cellar' && (await lit()) === 'Ground', JSON.stringify([await floors(), await lit()]));
   check('a first visit invites you in before your first find', await page.isVisible('#invite') &&
@@ -378,6 +379,30 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#to-places');
   await wait(page, 1800);
   check('back from a room goes out to the whole house', (await S(page, () => location.hash)) === '#/manor');
+  // A whodunit says where the evidence still is: a tag over each room on the
+  // floor you're looking at, and a count for each floor on the lift.
+  check('the lift says how much evidence each floor still holds', (await clues()).join() === '8,8,1', JSON.stringify(await clues()));
+  // The house's own stairs, beside the lift: a staircase's screen point, u of the way up it.
+  const stairAt = (id, u) => S(page, ([id, u]) => {
+    const s = window.__squares, st = s.world.map.stairs.find((x) => x.zone === id), z = s.world.zones.find((x) => x.id === id);
+    const [a, b] = st.run, [x, y, h] = a.map((v, k) => v + (b[k] - v) * u);
+    return s.camera.toScreen(z.anchor[0] + x - y, z.anchor[1] - z.lift + (x + y) / 2 - h * 1.12);
+  }, [id, u]);
+  await page.mouse.click(...(await stairAt('grand-hall', 0.5)));
+  await wait(page, 1800);
+  check('tapping the grand staircase on the whole house goes upstairs', (await lit()) === 'Upstairs' && (await S(page, () => location.hash)) === '#/manor', JSON.stringify([await lit(), await S(page, () => location.hash)]));
+  await page.mouse.click(...(await stairAt('guest-rooms', 0.3)));
+  await wait(page, 1800);
+  check('and tapping it from the landing comes back down', (await lit()) === 'Ground', await lit());
+  await S(page, () => window.__squares.play.enterZone('kitchen', { dur: 0.01 }));
+  await wait(page, 900);
+  await page.mouse.click(...(await stairAt('kitchen', 0.5)));
+  await wait(page, 1800);
+  check("in the kitchen, the hatch's steps go down into the cellar", (await S(page, () => location.hash)) === '#/manor/cellar', await S(page, () => location.hash));
+  await page.click('#to-places');
+  await wait(page, 1800);
+  await page.click('#floors [data-storey="ground"]');
+  await wait(page, 1200);
   await page.click('#floors [data-storey="up"]');
   await wait(page, 1800);
   v = await lifted();
