@@ -159,6 +159,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#to-places');
   await wait(page, 400);
   check('Places button returns to the picker', (await S(page, () => location.hash)) === '#/maps');
+  check('the picker is quiet: no place\'s beds under it', Object.keys(await S(page, () => window.__squares.mixNow())).every((k) => k === 'muffle'));
 
   await page.goBack();
   await wait(page, 1600);
@@ -629,6 +630,17 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     return S(page, () => ({ kind: document.documentElement.dataset.plate, paper: getComputedStyle(document.documentElement).getPropertyValue('--plate').trim() }));
   };
   const noon = await plate(12), night = await plate(23);
+  // The sound follows the day and where you are: the band on Main Street at
+  // the party; in the laundromat the street muffled and the dryers going.
+  await S(page, (t) => window.__squares.clock.set(t), (20 - 5) * 15);
+  await wait(page, 600);
+  const street = await S(page, () => window.__squares.mixNow());
+  await S(page, () => window.__squares.play.enterZone('laundromat', { dur: 0.01 }));
+  await wait(page, 600);
+  const laundry = await S(page, () => window.__squares.mixNow());
+  check('the sound follows the day and the room: the band on Main Street at the party, the dryers in the laundromat',
+    street.groove > 0.9 && !street.muffle && laundry.tumble > 0.4 && laundry.muffle > 0.5 && laundry.groove < street.groove, JSON.stringify({ street, laundry }));
+  await S(page, () => window.__squares.play.enterZone('main-street', { dur: 0.01 }));
   check('the day changes the plate: paper at noon, night after dark', noon.kind === '' && night.kind === 'night' && noon.paper !== night.paper, JSON.stringify({ noon, night }));
   const people = await S(page, () => {
     const w = window.__squares.world, c = w.walkers.find((k) => k.id === 'courier'), doors = new Set();

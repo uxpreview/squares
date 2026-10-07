@@ -4,7 +4,8 @@
 // everyone moves between rooms on one clock (evening.js). The brief is
 // docs/levels/manor.md; the layout is plan.js.
 import { WALL } from '../../engine/iso.js';
-import { INK, NIGHT, storm, MIDNIGHT } from './style.js';
+import { INK, NIGHT } from './style.js';
+import { sound } from './sound.js';
 import { AT, STOREY, LOOP, STAIRS, local } from './plan.js';
 import { walkers } from './evening.js';
 import { backdrop, sky, PLATE } from './ambient.js';
@@ -84,20 +85,8 @@ export default {
   sky,
   // A whodunit: the goal is solving the case, not finding the goose (case.js).
   case: manorCase,
-  // Rain all night, and on the clock: thunder after every strike (sooner and
-  // louder for the big ones), someone at the organ, the lights going out, the
-  // grandfather clock striking midnight.
-  sound: {
-    bed: 'rain',
-    cues: [
-      ...storm.strikes.map((s) => ({ at: s.t + (s.big ? 0.3 : 1.1), name: 'thunder', big: s.big })),
-      { at: 57, name: 'organ' },
-      { at: 82, name: 'clunk' },
-      { at: MIDNIGHT, name: 'bell' },
-      { at: MIDNIGHT + 1.7, name: 'bell' },
-      { at: MIDNIGHT + 3.4, name: 'bell' },
-    ],
-  },
+  // Rain and wind, a room's own sound inside it, and cues on the clock (sound.js).
+  sound,
   words: {
     zone: 'room',
     invite: 'Start with the body',

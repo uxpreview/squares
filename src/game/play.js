@@ -41,7 +41,7 @@ import { findPos } from '../engine/zone.js';
 import { createTray } from '../ui/tray.js';
 import { createCasefile } from '../ui/casefile.js';
 import { createTrailLog } from '../ui/traillog.js';
-import { play as sound, bed, wake } from './audio.js';
+import { play as sound, mix, wake } from './audio.js';
 import { caseState, accuse as accuseIn } from './case.js';
 import { trailState, trailStep } from './trail.js';
 import { whereIs } from './rules.js';
@@ -1186,6 +1186,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     // it's left to layoutVars rather than done every frame.)
     if (active && mode === 'zone' && tray.state !== 'open') keepRoombar();
     call(performance.now());
+    mixBeds(t);
     const cues = active && world && world.map.sound && world.map.sound.cues;
     if (!cues) { lastTick = null; return; }
     const loop = world.map.loop || 180;
@@ -1195,8 +1196,43 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const a = ((prev % loop) + loop) % loop, b = ((t % loop) + loop) % loop;
     for (const q of cues) {
       const at = q.at % loop;
-      if (a <= b ? at > a && at <= b : at > a || at <= b) sound(q.name, q);
+      if (!(a <= b ? at > a && at <= b : at > a || at <= b)) continue;
+      const c = cueLevel(q, t), level = (q.level == null ? 1 : q.level) * (c.level == null ? 1 : c.level);
+      sound(q.name, { ...q, level: level < 1 ? level : null, muffle: c.muffle || 0 });
     }
+  }
+
+  // ---------- Sound ----------
+  // Where you are, for the place's sound: the area you're in (or null on the
+  // overview) and the floor the overview shows.
+  function hearing() {
+    return {
+      zone: active && mode === 'zone' && current >= 0 ? world.zones[current].id : null,
+      storey: world.storeys && world.storeys[storey] ? world.storeys[storey].id : null,
+    };
+  }
+  // The beds under the place: its sound.bed, one bed's name or a mix worked
+  // out from the clock and where you are (audio.js mix()), a few times a second.
+  let mixedAt = -1, mixed = {};
+  function mixBeds(t) {
+    const now = performance.now();
+    if (now - mixedAt < 250) return;
+    mixedAt = now;
+    const b = active && world && world.map.sound && world.map.sound.bed;
+    mixed = !b ? {} : typeof b === 'function' ? b(t, hearing()) || {} : { [b]: 1 };
+    mix(mixed);
+  }
+  // How near a cue is: a place can say (sound.cue(q, t, here) gives a level
+  // and a muffle), and by default a cue with a zone is quieter and muffled
+  // from anywhere but that zone and the overview, and the outdoors' cues are
+  // as muffled as the beds are while you're inside. (A cue can have its own
+  // level too: q.level, 0 to 1.)
+  function cueLevel(q, t) {
+    const here = hearing(), s = world.map.sound;
+    if (s.cue) return s.cue(q, t, here) || {};
+    if (q.zone && here.zone && q.zone !== here.zone) return { level: 0.35, muffle: 0.6 };
+    if (!q.zone && mixed.muffle) return { muffle: mixed.muffle };
+    return {};
   }
 
   // ---------- Drawing on top of the map ----------
@@ -1654,7 +1690,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function start(zoneId, o = {}) {
     active = true;
     ui.hud.hidden = false;
-    bed(world.map.sound && world.map.sound.bed);
+    mixedAt = -1;
     const i = zoneId ? world.indexOf(zoneId) : -1;
     renderFloors();
     showOverviewUI();
@@ -1675,7 +1711,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     active = false;
     attractInsets = getInsets || null;
     ui.hud.hidden = true;
-    bed(null);
+    mix({});
+    mixed = {};
     casefile.close();
     traillog.close();
     showStory(false);
