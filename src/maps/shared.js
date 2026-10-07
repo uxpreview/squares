@@ -7,7 +7,10 @@ import { C, alpha, paint } from '../engine/art.js';
 export const P3 = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
 
 // A registration mark, like the ones in the margins of a printed sheet.
+// Not on a touch screen: on a phone the crosshairs read as a recenter button.
+const TOUCH = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 export function reg(ctx, X, Y, ink = null) {
+  if (TOUCH) return;
   ctx.save();
   ctx.strokeStyle = alpha(ink || C.ink, 0.5);
   ctx.lineWidth = 0.12;

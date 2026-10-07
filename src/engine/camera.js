@@ -45,13 +45,14 @@ export function createCamera(canvas, o = {}) {
     return { x: cx - offX / z, y: cy - offY / z, z };
   }
 
-  function flyTo(to, dur = 1.6, then) {
+  // o.straight: no pull back on the way (a zoom that should only grow).
+  function flyTo(to, dur = 1.6, then, o = {}) {
     drift = null;
     if (reduceMotion) dur = 0.01;
     const from = { ...cam };
     const dist = Math.hypot(to.x - from.x, to.y - from.y);
     // Pull back a little mid-flight on long hops, like a camera on a crane.
-    const arc = Math.min(0.55, (dist * Math.min(from.z, to.z)) / (view.vw * 3));
+    const arc = o.straight ? 0 : Math.min(0.55, (dist * Math.min(from.z, to.z)) / (view.vw * 3));
     flight = { from, to, t0: performance.now(), dur: dur * 1000, arc, then };
   }
 

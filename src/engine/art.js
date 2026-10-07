@@ -432,6 +432,10 @@ export function walls(ctx, o = {}) {
 // back }, and face draws over the head (a mustache, spectacles, a beak) with
 // the head's center at (0.02, hy). Both draw in the person's own units, facing
 // right (the person is flipped for you when they face left).
+// For tools: watch.person(ctx, x, y, r) is called with each person's head
+// (a circle in the units ctx is in), so QA can see who's drawn where.
+export const watch = { person: null };
+
 export function person(ctx, x, y, z, o = {}, t = 0) {
   const X = x - y, Y = (x + y) / 2 - z * ZK;
   const s = o.scale || 1;
@@ -575,6 +579,7 @@ export function person(ctx, x, y, z, o = {}, t = 0) {
     ctx.fill();
   }
   if (o.face) o.face(ctx, hy, back, t);
+  if (watch.person) watch.person(ctx, 0.02, hy, 0.31);
   ctx.restore();
 
   if (pose === 'sleep' && Q.detail) {

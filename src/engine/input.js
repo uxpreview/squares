@@ -1,12 +1,14 @@
 // Touch, mouse and wheel on the canvas: drag to pan (with a little inertia),
-// pinch or scroll to zoom, tap to act. What a tap means is up to the game.
+// pinch or scroll to zoom, double-tap to zoom in (or back out from the
+// closest), tap to act. What a tap means is up to the game.
 //
 // The map has soft edges (camera.range): drag past one and it gives, let go
 // and it springs back, so it can't be lost off screen.
 //
 // on: {
 //   down()          any touch or wheel (stops camera flights and drifts)
-//   tap(sx, sy)     a press and release that didn't move
+//   tap(sx, sy)     a press and release that didn't move; true if it did
+//                   something (then it can't start a double tap)
 //   settle()        panning or zooming has come to rest
 //   clampZoom(z)    keep the zoom in range
 // }
@@ -19,6 +21,9 @@ export function attachInput(canvas, camera, on) {
   let drag = null, pinch = null, vel = { x: 0, y: 0 }, glide = null, spring = false;
   let wheelTimer = 0;
   let enabled = true;
+  // The last tap, for telling a double tap: a second tap this soon and this
+  // near zooms instead of tapping again.
+  let lastTap = null;
 
   const show = (p) => {
     const g = camera.give(p);
@@ -102,7 +107,16 @@ export function attachInput(canvas, camera, on) {
       drag = null;
       pinch = null;
       if (tapped) {
-        on.tap(e.clientX, e.clientY);
+        const now = performance.now();
+        if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40) {
+          lastTap = null;
+          zoomAt(e.clientX, e.clientY);
+          return;
+        }
+        const acted = on.tap(e.clientX, e.clientY);
+        // (A tap that did something, opened a drawer or flew into a room,
+        // isn't half a double tap: a quick second one there is another tap.)
+        lastTap = acted || camera.flying ? null : { t: now, x: e.clientX, y: e.clientY };
         if (!camera.flying) on.settle();
       } else letGo(flung);
     } else if (pointers.size === 1) {
@@ -113,6 +127,16 @@ export function attachInput(canvas, camera, on) {
       vel = { x: 0, y: 0 };
     }
   }
+  // Double tap: twice as close, round the spot tapped (it stays under the
+  // finger). Already as close as it goes, it backs out instead.
+  function zoomAt(sx, sy) {
+    const [wx, wy] = camera.toWorld(sx, sy);
+    let z = on.clampZoom(cam.z * 2);
+    if (z < cam.z * 1.1) z = on.clampZoom(cam.z / 2.5);
+    const to = camera.clamp({ x: wx - (sx - view.vw / 2) / z, y: wy - (sy - view.vh / 2) / z, z });
+    camera.flyTo(to, 0.35, on.settle);
+  }
+
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('lostpointercapture', endPointer);
@@ -170,7 +194,7 @@ export function attachInput(canvas, camera, on) {
     get busy() { return !!pinch || !!glide || spring; },
     setEnabled(v) {
       enabled = v;
-      if (!v) { pointers.clear(); drag = pinch = glide = null; spring = false; }
+      if (!v) { pointers.clear(); drag = pinch = glide = lastTap = null; spring = false; }
     },
   };
 }

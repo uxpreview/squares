@@ -20,6 +20,10 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   };
   const soundBtns = [...document.querySelectorAll('.sound-btn')];
   const thumbs = new Map(); // mapId -> rendered canvas
+  // The card just picked, and where its picture sat, so the place can grow
+  // out of it (main.js takes it with takeLaunch).
+  let launch = null;
+  let leaving = null; // the picker fading away as a place grows out of it
 
   // ---------- Title ----------
   el.wordmark.setAttribute('aria-label', config.name);
@@ -108,7 +112,11 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
       badge.textContent = c.total ? 'In progress' : 'New';
       badge.dataset.kind = c.total ? 'progress' : 'new';
       stat.textContent = c.geese ? `${c.geese} ${c.geese === 1 ? 'goose' : 'geese'} found` : '';
-      b.addEventListener('click', () => { sound('tick'); on.go('#/' + m.id); });
+      b.addEventListener('click', () => {
+        sound('tick');
+        launch = { id: m.id, rect: pic.getBoundingClientRect(), at: performance.now() };
+        on.go('#/' + m.id);
+      });
       // Load the map to draw its picture and exact counts.
       getWorld(m.id).then((w) => {
         const p = store.progress(w);
@@ -211,10 +219,29 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   renderSound();
 
   // ---------- Switching ----------
-  function show(screen) {
+  // The picked card's picture, if it was just picked (and only once).
+  function takeLaunch(id) {
+    const l = launch;
+    launch = null;
+    return l && l.id === id && performance.now() - l.at < 4000 ? l.rect : null;
+  }
+
+  // o.fade: the picker fades away rather than vanishing, while the place
+  // grows out of its card underneath.
+  function show(screen, o = {}) {
+    if (leaving) { leaving.cancel(); leaving = null; }
+    const fade = o.fade && !reduceMotion && screen === 'play' && !el.places.hidden;
     document.body.dataset.screen = screen;
     el.title.hidden = screen !== 'title';
-    el.places.hidden = screen !== 'places';
+    el.places.hidden = screen !== 'places' && !fade;
+    if (fade) {
+      el.places.inert = true;
+      leaving = el.places.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.4, 0, .6, 1)', fill: 'forwards' });
+      const done = () => { leaving = null; };
+      leaving.onfinish = () => { el.places.hidden = true; done(); };
+      leaving.oncancel = done;
+    }
+    if (screen === 'places') el.places.inert = false;
     if (screen !== 'play') closeComplete();
     if (screen === 'title') renderTitle();
     if (screen === 'places') {
@@ -236,5 +263,5 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     return { top: 24, bottom: 24, left: 16, right: 16 };
   }
 
-  return { show, showComplete, insets };
+  return { show, showComplete, insets, takeLaunch };
 }

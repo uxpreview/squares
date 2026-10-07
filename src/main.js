@@ -58,13 +58,23 @@ function getWorld(id) {
   return worlds.get(id);
 }
 
-// Put a map on the canvas. A different map drops onto the plate fresh.
-function show(world) {
+// Put a map on the canvas. A different map inks in fresh (or, grown out of
+// its picker card, is simply there).
+function show(world, intro = true) {
   if (play.world === world) return false;
   renderer.dispose(play.world);
   play.load(world);
-  renderer.startIntro(world);
+  renderer.startIntro(world, !intro);
   return true;
+}
+
+// Where the camera sits so the place lies exactly over its picker card's
+// picture (framed as renderer.thumbnail frames it), to grow from there.
+function cardView(world, r) {
+  const [X0, X1, Y0, Y1] = world.overviewBox(false);
+  const z = Math.min(r.width / (X1 - X0), r.height / (Y1 - Y0)) * 1.12;
+  const v = camera.view;
+  return { x: (X0 + X1) / 2 - (r.left + r.width / 2 - v.vw / 2) / z, y: (Y0 + Y1) / 2 - (r.top + r.height / 2 - v.vh / 2) / z, z };
 }
 
 // ---------- Game ----------
@@ -150,11 +160,14 @@ async function route() {
     }
     if (n !== routing) return; // a newer route won
     const zone = r.zone && world.indexOf(r.zone) >= 0 ? r.zone : null;
-    const fresh = show(world);
-    screens.show('play');
+    // Picked from the picker: the place grows out of its card, in one motion.
+    const card = !zone && !reduceMotion ? screens.takeLaunch(r.map) : null;
+    const fresh = show(world, !card);
+    screens.show('play', { fade: !!card });
     input.setEnabled(true);
+    if (card) camera.jumpTo(cardView(world, card));
     // A link straight into a room lands there; otherwise the camera flies.
-    play.start(zone, { fresh, jump: was && !!zone });
+    play.start(zone, { fresh: fresh && !card, jump: was && !!zone, grow: !!card });
     return;
   }
   // Title or picker: idle the map you were last on (or the first one) behind it.
@@ -164,6 +177,22 @@ async function route() {
   const world = await getWorld(id);
   if (n !== routing) return;
   play.attract(screens.insets, { fresh: show(world) });
+  warm();
+}
+
+// Once the title's map is up, fetch every other place's code while nobody's
+// waiting on it, one at a time, so the picker's pictures and the first tap on
+// a card don't wait on the connection (the biggest is about 200 KB zipped).
+let warmed = false;
+function warm() {
+  if (warmed) return;
+  warmed = true;
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+  const next = (list) => {
+    if (!list.length) return;
+    idle(() => list[0].load().catch(() => {}).then(() => next(list.slice(1))), { timeout: 2000 });
+  };
+  next(MAPS.filter((m) => !m.hidden));
 }
 window.addEventListener('hashchange', route);
 
@@ -212,19 +241,25 @@ if (window.visualViewport) window.visualViewport.addEventListener('resize', sett
 
 // ---------- Boot ----------
 async function boot() {
+  const fonts = [
+    document.fonts.load('20px "Bagel Fat One"'),
+    document.fonts.load('20px "Rethink Sans"'),
+    document.fonts.load('600 20px "Rethink Sans"'),
+    document.fonts.load('700 20px "Rethink Sans"'),
+  ];
+  // In play, every weight the HUD uses: the map is framed around the text,
+  // so it shouldn't change size after the camera has settled. The title and
+  // the picker wait only for the wordmark's font, to be up sooner on a slow
+  // connection (their smaller text fades in after it); the drifting map is
+  // framed again once the rest are in.
+  const playing = parse(location.hash).screen === 'play';
   try {
     await Promise.race([
-      // Every weight the HUD uses: the map is framed around the text, so it
-      // shouldn't change size after the camera has settled.
-      Promise.all([
-        document.fonts.load('20px "Bagel Fat One"'),
-        document.fonts.load('20px "Rethink Sans"'),
-        document.fonts.load('600 20px "Rethink Sans"'),
-        document.fonts.load('700 20px "Rethink Sans"'),
-      ]),
+      Promise.all(playing ? fonts : fonts.slice(0, 1)),
       new Promise((r) => setTimeout(r, 1500)),
     ]);
   } catch {}
+  if (!playing) Promise.all(fonts).then(() => { if (!play.active) resized(); }, () => {});
   document.body.dataset.ready = '1';
   camera.measure();
   await route();

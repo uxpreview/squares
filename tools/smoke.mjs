@@ -73,8 +73,16 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const drawn = await page.waitForFunction((n) => document.querySelectorAll('.place-pic canvas').length === n, listed, { timeout: 8000 }).then(() => true, () => false);
   check('picker draws map pictures', drawn, `${(await page.$$('.place-pic canvas')).length} of ${listed}`);
 
+  // The place grows out of its card: the camera starts out as small as the
+  // card's picture and only grows from there.
+  await S(page, () => { window.__zs = []; const f = () => { window.__zs.push(window.__squares.cam.z); if (window.__zs.length < 600) requestAnimationFrame(f); }; f(); });
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
+  const zs = await S(page, () => { const z = window.__zs; window.__zs = []; return z; });
+  const zEnd = zs[zs.length - 1], zMin = Math.min(...zs);
+  const grows = zs.slice(zs.indexOf(zMin)).every((z, i, a) => i === 0 || z >= a[i - 1] - 1e-6);
+  check('a picked place grows out of its card', zMin < zEnd * 0.7 && grows, `from ${zMin.toFixed(2)} to ${zEnd.toFixed(2)}${grows ? '' : ', and it shrank on the way'}`);
+  check("the picker's gone once it has", !(await page.isVisible('#places')));
   check('a card opens its place', (await S(page, () => location.hash)) === '#/block' && await page.isVisible('.tally'));
   check('tallies count the old save, on the Block Party', (await page.textContent('#tally-geese')) === '1/16' && (await things(page)) === '1/60');
 
@@ -104,6 +112,25 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   const h = await S(page, () => location.hash);
   if (h !== '#/block') { await page.keyboard.press('Escape'); await wait(page, 1600); }
   check('Escape goes back up to the whole map', (await S(page, () => location.hash)) === '#/block' && await S(page, () => document.body.dataset.mode) === 'overview');
+
+  // Double tap: twice as close round the spot (off the map here, so the
+  // first tap doesn't fly into a room).
+  {
+    const z0 = await S(page, () => window.__squares.cam.z);
+    await page.mouse.click(40, 500);
+    await wait(page, 90);
+    await page.mouse.click(42, 502);
+    await wait(page, 700);
+    const z1 = await S(page, () => window.__squares.cam.z);
+    check('a double tap zooms in', z1 > z0 * 1.5, `${z0.toFixed(2)} to ${z1.toFixed(2)}`);
+    // (Back out to the whole map, as it was.)
+    for (let i = 0; i < 3 && (await S(page, () => location.hash !== '#/block' || document.body.dataset.mode !== 'overview' || window.__squares.camera.flying)); i++) {
+      await page.keyboard.press('Escape');
+      await wait(page, 1600);
+    }
+    await S(page, () => window.__squares.play.toOverview({ dur: 0.01 }));
+    await wait(page, 300);
+  }
 
   // Touch: a pinch zooms; a finger whose lift was never reported doesn't
   // turn the next drag into a pinch (the map got stuck on a phone).

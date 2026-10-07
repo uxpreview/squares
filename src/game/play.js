@@ -1450,8 +1450,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     return best;
   }
 
+  // Returns true when the tap did something (so a quick second tap there is
+  // another tap, not half a double tap).
   function tap(sx, sy) {
-    if (!active) return;
+    if (!active) return false;
     const t = clock();
     const zoomedIn = cam.z >= zoneModeZ();
     if (zoomedIn) {
@@ -1470,7 +1472,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
           showZoneUI(at.zone.index);
           near = world.long(at.zone) ? floorAt(at.zone, sx, sy) : null;
         }
-        return;
+        return true;
       }
     }
     // A staircase: on the whole house it changes floors, in a room it goes
@@ -1482,14 +1484,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         sound('ding', { down: to.storey < st.zone.storey });
         enterZone(st.to, { dur: 1.3 });
       } else setStorey(to.storey); // (which dings)
-      return;
+      return true;
     }
     const i = zoneAtScreen(sx, sy);
     if (i >= 0 && (!zoomedIn || i !== current)) {
       enterZone(i, { near: world.long(world.zones[i]) ? floorAt(world.zones[i], sx, sy) : null });
-      return;
+      return true;
     }
     pops.push({ kind: 'ripple', t0: performance.now(), at: camera.toWorld(sx, sy) });
+    return false;
   }
 
   // After free panning/zooming, decide whether we're in a zone or looking at the whole map.
@@ -1661,7 +1664,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (o.jump) camera.jumpTo(zoneView(i));
     } else {
       on.place(world.id, null);
-      if (!o.fresh) camera.flyTo(overviewView(), 1.2);
+      // (From its picker card, the place only grows: no pull back on the way.)
+      if (!o.fresh) camera.flyTo(overviewView(), o.grow ? 1.1 : 1.2, null, { straight: !!o.grow });
     }
   }
 
