@@ -1188,7 +1188,8 @@ export default {
       const fy = RY + RD + 0.005;
       const onFront = (x0, z0, x1, z1, fill, o) => face(ctx, [[x0, fy, z0], [x1, fy, z0], [x1, fy, z1], [x0, fy, z1]], fill, o);
       onFront(RX, 0, RX + RW, 0.14, mix(IRON, C.black, 0.4), { lw: 0.03 });
-      for (const x0 of [4.35, 9.3]) {
+      // (the right-hand oven's door opens: it's drawn below, with the oven)
+      for (const x0 of [4.35]) {
         onFront(x0, 0.24, x0 + 2.35, 1.1, IRON, { lw: 0.045 });
         onFront(x0 + 0.12, 0.34, x0 + 2.23, 1.0, null, { lw: 0.025, stroke: IRON_TOP });
         face(ctx, [[x0 + 0.4, fy + 0.02, 0.93], [x0 + 1.95, fy + 0.02, 0.93]], null, { lw: 0.09, stroke: MAT.brass });
@@ -1200,7 +1201,7 @@ export default {
       onFront(6.95, 0.28, 9.05, 1.2, MAT.brassDark, { lw: 0.045 });
       // the brass rail along the front, and tea towels on it
       face(ctx, [[4.1, fy + 0.18, 1.22], [11.9, fy + 0.18, 1.22]], null, { lw: 0.08, stroke: MAT.brass });
-      for (const [tx, col] of [[5.1, INK.verdigris], [10.6, INK.oxblood]]) {
+      for (const [tx, col] of [[4.5, INK.verdigris], [5.8, INK.oxblood]]) { // (both on the oven that stays shut)
         face(ctx, [[tx, fy + 0.19, 1.24], [tx + 0.75, fy + 0.19, 1.24], [tx + 0.78, fy + 0.19, 0.42], [tx - 0.02, fy + 0.19, 0.45]], MAT.linen, { lw: 0.03 });
         if (Q.detail) for (const z of [0.62, 0.72]) face(ctx, [[tx, fy + 0.2, z], [tx + 0.76, fy + 0.2, z]], null, { lw: 0.05, stroke: col });
       }
@@ -1265,6 +1266,71 @@ export default {
     fire(R, 8, 1, 1.5, 31);
     candle(R, 4.45, 0.35, 2.62, 84);
     candle(R, 11.55, 0.35, 2.62, 85);
+
+    // The right-hand oven: tomorrow's sponge is in it ("TOMORROW: TRIFLE").
+    // Its door is never quite shut (it's warped), so a warm crack and a curl of
+    // steam give it away; a tap swings it open on its hinge.
+    const OV = { x0: 9.3, x1: 11.65, z0: 0.24, z1: 1.1, y: RY + RD + 0.005 };
+    const oven = R.poke({ id: 'oven', at: [10.45, OV.y, 0.68], r: 0.9, sound: 'clunk', say: ['Something for tomorrow.', "Shut it! It'll sink!", 'Out of respect. Again.'] });
+    R.thing(10.45, OV.y, (ctx, t) => {
+      const { x0, x1, z0, z1, y: fy } = OV;
+      const k = oven.k();
+      const a = 0.09 + k * 1.42;
+      // inside: dark iron, warm from the fire next door
+      const hole = [[x0, fy, z0], [x1, fy, z0], [x1, fy, z1], [x0, fy, z1]];
+      face(ctx, hole, mix(IRON, C.black, 0.5), { lw: 0.03 });
+      ctx.save();
+      poly(ctx, hole);
+      ctx.clip();
+      const [GX, GY] = P(10.45, fy, 0.45);
+      const flick = 0.85 + 0.15 * Math.sin(t * 7) * Math.sin(t * 3.1);
+      ctx.beginPath(); ctx.ellipse(GX, GY, 1.1, 0.45, 0, 0, TAU);
+      ctx.fillStyle = alpha(C.coral, 0.32 * flick); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(GX, GY - 0.05, 0.7, 0.28, 0, 0, TAU);
+      ctx.fillStyle = alpha(INK.candleGold, 0.3 * flick); ctx.fill();
+      // the shelf, and the tin on it with the sponge risen up out of the top
+      face(ctx, [[x0, 0.5, 0.36], [x1, 0.5, 0.36], [x1, fy, 0.36], [x0, fy, 0.36]], null, { lw: 0.04, stroke: IRON_TOP });
+      cylinder(ctx, 10.45, 1.05, 0.36, 0.42, 0.13, MAT.silver, { top: SPONGE, lw: 0.025 });
+      const [SX, SY] = P(10.45, 1.05, 0.49);
+      ctx.beginPath(); ctx.ellipse(SX, SY, 0.6, 0.3, 0, Math.PI, TAU);
+      ctx.quadraticCurveTo(SX, SY + 0.12, SX - 0.6, SY);
+      paint(ctx, SPONGE, { lw: 0.025, dots: shade(SPONGE, 0.25), density: 0.2 });
+      if (Q.detail) { // a crack along the top, the way a good one goes
+        ctx.beginPath(); ctx.moveTo(SX - 0.3, SY - 0.2); ctx.quadraticCurveTo(SX, SY - 0.3, SX + 0.28, SY - 0.18);
+        ctx.strokeStyle = shade(SPONGE, 0.35); ctx.lineWidth = 0.025; ctx.stroke();
+      }
+      ctx.restore();
+      // the door, on its hinge at the left
+      const at = (u, z) => [x0 + u * Math.cos(a), fy + u * Math.sin(a), z];
+      const W = x1 - x0;
+      face(ctx, [at(0, z0), at(W, z0), at(W, z1), at(0, z1)], IRON, { lw: 0.045 });
+      face(ctx, [at(0.12, z0 + 0.1), at(W - 0.12, z0 + 0.1), at(W - 0.12, z1 - 0.1), at(0.12, z1 - 0.1)], null, { lw: 0.025, stroke: IRON_TOP });
+      if (Math.cos(a) > 0.25) {
+        const h0 = at(0.4, 0.93), h1 = at(W - 0.4, 0.93);
+        face(ctx, [[h0[0], h0[1] + 0.02, h0[2]], [h1[0], h1[1] + 0.02, h1[2]]], null, { lw: 0.09, stroke: MAT.brass });
+        const kn = P(...at(W / 2, 0.62));
+        ctx.beginPath(); ctx.arc(kn[0], kn[1], 0.14, 0, TAU); paint(ctx, MAT.brassDark, { lw: 0.03 });
+        if (Q.detail) { ctx.beginPath(); ctx.arc(kn[0], kn[1], 0.06, 0, TAU); ctx.fillStyle = MAT.brass; ctx.fill(); }
+      }
+      // shut, the crack down its free edge glows
+      if (k < 0.5) {
+        const e0 = P(...at(W, z0 + 0.05)), e1 = P(...at(W, z1 - 0.05));
+        ctx.beginPath(); ctx.moveTo(e0[0] + 0.05, e0[1]); ctx.lineTo(e1[0] + 0.05, e1[1]);
+        ctx.strokeStyle = alpha(INK.candleGold, 0.8 * (1 - k * 2) * flick); ctx.lineWidth = 0.05; ctx.stroke();
+      }
+    }, { anim: true, depth: RX + RW / 2 + RY + RD + 0.06 });
+    // A curl of steam out of the crack (sponge, not soup).
+    R.air((ctx, t) => {
+      if (!Q.detail) return;
+      const k0 = 1 - oven.k();
+      for (let i = 0; i < 3; i++) {
+        const k = (t * 0.35 + i / 3) % 1;
+        const [X, Y] = P(OV.x1 - 0.05 + Math.sin(k * 6 + i) * 0.12, OV.y + 0.2, OV.z1 - 0.1 + k * 1.0);
+        ctx.beginPath(); ctx.arc(X, Y, 0.07 + k * 0.16, 0, TAU);
+        ctx.fillStyle = alpha(C.white, 0.5 * (1 - k) * (0.35 + 0.65 * k0));
+        ctx.fill();
+      }
+    });
 
     // Copper pans on the chimney breast: they rattle when the thunder hits.
     const lastBoom = (tt) => {
@@ -1383,7 +1449,9 @@ export default {
       box(ctx, 0.95, 0, 0, 2.9, 0.85, 1.15, MAT.oak, { top: MAT.oakLight });
       for (const dx of [1.1, 2.45]) face(ctx, [[dx, 0.86, 0.15], [dx + 1.25, 0.86, 0.15], [dx + 1.25, 0.86, 0.95], [dx, 0.86, 0.95]], null, { lw: 0.03, stroke: shade(MAT.oak, 0.35) });
       for (const dx of [1.7, 3.05]) { const k = P(dx, 0.87, 0.55); ctx.beginPath(); ctx.arc(k[0], k[1], 0.05, 0, TAU); ctx.fillStyle = MAT.brass; ctx.fill(); }
-      cylinder(ctx, 1.5, 0.45, 1.15, 0.3, 0.5, CHINA, { top: tint(CHINA, 0.2) });
+      cylinder(ctx, 1.5, 0.45, 1.15, 0.3, 0.5, CHINA, { top: mix(MAT.oak, C.black, 0.5) }); // (its lid is drawn below: it lifts)
+      const lf = P(1.5, 0.45, 1.66); // the heel of a loaf, inside
+      ctx.beginPath(); ctx.ellipse(lf[0], lf[1], 0.2, 0.09, 0, 0, TAU); paint(ctx, MAT.oakLight, { lw: 0.02 });
       if (Q.detail) { const b = P(1.5, 0.75, 1.4); smallPrint(ctx, b[0], b[1], 'BREAD', 0.09, INK.verdigris); }
       // scales
       cylinder(ctx, 2.5, 0.45, 1.15, 0.16, 0.3, MAT.brass, { top: MAT.brassDark });
@@ -1395,6 +1463,22 @@ export default {
         ctx.beginPath(); ctx.ellipse(e[0], e[1], 0.07, 0.09, 0, 0, TAU); paint(ctx, INK.bone, { lw: 0.02 });
       }
     });
+    // The bread crock's lid: it lifts, and there's only ever the heel.
+    const crock = R.poke({ id: 'bread', at: [1.5, 0.45, 1.5], r: 0.7, sound: 'clunk', hold: 2.5, say: ["Stale. Like the Brigadier's stories.", "Yesterday's. And the day before's.", 'The dog got the rest.'] });
+    R.thing(1.5, 0.9, (ctx) => {
+      const k = crock.k();
+      const lift = k * 0.32, tilt = -k * 0.35;
+      const [X, Y] = P(1.5, 0.45, 1.65 + lift);
+      ctx.save();
+      ctx.translate(X - k * 0.08, Y);
+      ctx.rotate(tilt);
+      ctx.beginPath(); ctx.ellipse(0, 0, 0.44, 0.22, 0, 0, TAU); paint(ctx, CHINA, { lw: 0.03 });
+      ctx.beginPath(); ctx.ellipse(0, -0.02, 0.36, 0.18, 0, Math.PI, TAU); ctx.lineTo(0.36, -0.02);
+      ctx.quadraticCurveTo(0, 0.08, -0.36, -0.02);
+      paint(ctx, CHINA, { lw: 0.025 });
+      ctx.beginPath(); ctx.arc(0, -0.2, 0.06, 0, TAU); paint(ctx, INK.verdigris, { lw: 0.02 });
+      ctx.restore();
+    }, { anim: true, depth: 2.4 + 0.9 + 0.01 });
 
     // A cobweb in the corner, and a spider who comes down for a look.
     R.decor((ctx) => {
@@ -2191,13 +2275,90 @@ export default {
       if (Q.detail) { const p = P(10.95, 10.56, 0.07); smallPrint(ctx, p[0], p[1], 'GOOD BOY', 0.07, INK.bone); }
     });
 
+    // ---------- A pie, with a goose for a funnel (a red herring) ----------
+    // A china pie bird, but a goose, with its beak open to let the steam out.
+    // Mrs. Hatchett bought it to annoy him. It cools on the sill, by the cat.
+    const PIE = [14.6, 0.24], PZ = 2.0; // cooling on the windowsill, as pies do
+    R.thing(PIE[0], PIE[1], (ctx, t) => {
+      const [px, py] = PIE;
+      cylinder(ctx, px, py, PZ, 0.36, 0.07, CHINA, { top: CHINA, lw: 0.025 });
+      const [X, Y] = P(px, py, PZ + 0.07);
+      const CRUST = mix(INK.candleGold, MAT.oak, 0.35);
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.44, 0.22, 0, 0, TAU);
+      ctx.moveTo(X - 0.44, Y); ctx.quadraticCurveTo(X, Y - 0.36, X + 0.44, Y);
+      paint(ctx, CRUST, { lw: 0.03, dots: shade(CRUST, 0.3), density: 0.2 });
+      if (Q.detail) { // the crimped edge, and two slashes
+        ctx.beginPath(); ctx.ellipse(X, Y + 0.01, 0.4, 0.19, 0, 0.15, Math.PI - 0.15);
+        ctx.setLineDash([0.04, 0.04]); ctx.strokeStyle = shade(CRUST, 0.35); ctx.lineWidth = 0.03; ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(X - 0.26, Y - 0.06); ctx.lineTo(X - 0.16, Y - 0.12); ctx.moveTo(X + 0.18, Y - 0.06); ctx.lineTo(X + 0.27, Y - 0.12);
+        ctx.stroke();
+      }
+      // the goose: a white china neck up out of the crust, head turned, beak open
+      const g = [X + 0.02, Y - 0.16];
+      ctx.beginPath();
+      ctx.moveTo(g[0] - 0.09, g[1]);
+      ctx.quadraticCurveTo(g[0] - 0.1, g[1] - 0.3, g[0] - 0.02, g[1] - 0.44);
+      ctx.quadraticCurveTo(g[0] + 0.06, g[1] - 0.55, g[0] + 0.13, g[1] - 0.47);
+      ctx.quadraticCurveTo(g[0] + 0.08, g[1] - 0.4, g[0] + 0.05, g[1] - 0.3);
+      ctx.quadraticCurveTo(g[0] + 0.06, g[1] - 0.12, g[0] + 0.1, g[1]);
+      ctx.closePath();
+      paint(ctx, C.white, { lw: 0.025 });
+      ctx.beginPath(); // the beak, open
+      ctx.moveTo(g[0] + 0.11, g[1] - 0.5); ctx.lineTo(g[0] + 0.25, g[1] - 0.5); ctx.lineTo(g[0] + 0.12, g[1] - 0.46);
+      ctx.lineTo(g[0] + 0.23, g[1] - 0.43); ctx.lineTo(g[0] + 0.11, g[1] - 0.44);
+      ctx.closePath();
+      paint(ctx, mix(C.coral, INK.candleGold, 0.5), { lw: 0.015 });
+      ctx.beginPath(); ctx.arc(g[0] + 0.04, g[1] - 0.47, 0.016, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
+      // steam out of the beak
+      if (Q.detail) for (let i = 0; i < 2; i++) {
+        const k = (t * 0.5 + i / 2) % 1;
+        ctx.beginPath(); ctx.arc(g[0] + 0.28 + k * 0.12, g[1] - 0.5 - k * 0.4, 0.04 + k * 0.08, 0, TAU);
+        ctx.fillStyle = alpha(C.white, 0.55 * (1 - k)); ctx.fill();
+      }
+    }, { anim: true, depth: 14 + 1.25 + 0.1 });
+    R.decoy({ id: 'piebird', at: [PIE[0], PIE[1], PZ + 0.45], r: 0.6, say: ['A pie funnel. Shaped out of spite.', 'It lets off steam. Not honks.', 'Pidge. Put the pie down.'] });
+
+    // ---------- Mrs. Hatchett answers back (while she's in) ----------
+    const cookW = R.walkers.find((w) => w.id === 'hatchett');
+    if (cookW) {
+      const [ox, oy, oz] = R.origin;
+      const cookAt = (t) => { const p = cookW.at(t); return [p.x - ox, p.y - oy, (p.z || 0) - oz + 1.2]; };
+      const cook = R.poke({
+        id: 'hatchett', teach: true, at: cookAt, r: 0.9, sound: 'thump', hold: 1.2,
+        when: (t) => { const p = cookW.at(t); return R.contains(p.x, p.y, p.z || 0); },
+        say: ['Out.', 'OUT.', 'I said out. Not you, dog.'],
+      });
+      // She claps her hands at you: a puff of flour.
+      R.air((ctx, t) => {
+        const k = cook.k();
+        if (k < 0.02) return;
+        const [x, y, z] = cookAt(t);
+        const [X, Y] = P(x, y, z - 0.1);
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * TAU + 0.4;
+          ctx.beginPath();
+          ctx.arc(X + Math.cos(a) * (0.12 + k * 0.38), Y - 0.1 + Math.sin(a) * (0.08 + k * 0.22) - k * 0.15, 0.06 + k * 0.08, 0, TAU);
+          ctx.fillStyle = alpha(FLOUR, 0.8 * (1 - k * 0.6));
+          ctx.fill();
+        }
+      });
+    }
+
     R.dark(house.dark);
 
     // ---------- The finds ----------
-    R.find({ id: 'footprints', label: 'Webbed footprints in flour', at: [INFLOUR[0], INFLOUR[1], 0.02], r: 0.75 });
-    R.find({ id: 'timer', label: 'A kitchen timer', at: [TIMER[0], TIMER[1], th + 0.2], r: 0.6 });
+    R.find({ id: 'footprints', label: 'Webbed footprints in flour', kind: 'spot', at: [INFLOUR[0], INFLOUR[1], 0.02], r: 0.75 });
     R.find({
-      id: 'sausage', label: 'A stolen sausage', r: 1.1,
+      id: 'timer', label: 'A kitchen timer', kind: 'hard', at: [TIMER[0], TIMER[1], th + 0.2], r: 0.6,
+      riddle: 'Keeping time with the tea tins.',
+      hint: 'Her alibi rang at midnight. One of those tins is counting down.',
+    });
+    R.find({
+      id: 'sponge', label: "A sponge for tomorrow's trifle", kind: 'poke', inside: oven, at: [10.45, 1.05, 0.55], r: 0.6,
+      hint: 'Mrs. Hatchett plans ahead. Something in this kitchen is still rising.',
+    });
+    R.find({
+      id: 'sausage', label: 'A stolen sausage', kind: 'spot', r: 1.0,
       at: (t) => {
         const d = dog.at(t);
         if (d.resting) return [REST[0], REST[1], th + 0.07];
