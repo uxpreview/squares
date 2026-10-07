@@ -1211,9 +1211,18 @@ export default {
         if (Q.detail) disc(ctx, hx, 0.95, RH + 0.012, 0.28, null, { lw: 0.025, stroke: IRON_TOP });
       }
       // the stockpot, the custard pan and the kettle
-      cylinder(ctx, 5.4, 0.95, RH, 0.42, 0.62, COPPER, { top: COPPER_LO });
-      disc(ctx, 5.4, 0.95, RH + 0.62, 0.33, mix(MAT.custard, INK.bone, 0.2), { stroke: false });
-      cylinder(ctx, 8.0, 0.95, RH, 0.3, 0.26, IRON_TOP, { top: MAT.custard });
+      // (the stockpot is black iron with its lid on and a ladle out, so it
+      // reads as a pot, not a cake: the oven below is what to tap)
+      cylinder(ctx, 5.4, 0.95, RH, 0.42, 0.62, IRON_LIT, { top: IRON_TOP });
+      for (const s of [-1, 1]) { const hp = P(5.4 + s * 0.45, 0.95 - s * 0.45, RH + 0.5); ctx.beginPath(); ctx.arc(hp[0], hp[1], 0.09, Math.PI, TAU); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke(); }
+      const lid = P(5.4, 0.95, RH + 0.62);
+      ctx.beginPath(); ctx.ellipse(lid[0], lid[1] - 0.04, 0.6, 0.3, 0, Math.PI, TAU); ctx.lineTo(lid[0] + 0.6, lid[1]); ctx.ellipse(lid[0], lid[1], 0.6, 0.3, 0, 0, Math.PI); paint(ctx, IRON_TOP, { lw: 0.03 });
+      ctx.beginPath(); ctx.arc(lid[0], lid[1] - 0.3, 0.07, 0, TAU); paint(ctx, MAT.brass, { lw: 0.02 });
+      const la = P(5.75, 0.8, RH + 0.66), lb = P(6.0, 0.6, RH + 1.25); // the ladle
+      ctx.beginPath(); ctx.moveTo(la[0], la[1]); ctx.lineTo(lb[0], lb[1]);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.04; ctx.stroke();
+      cylinder(ctx, 8.0, 0.95, RH, 0.3, 0.26, IRON_TOP, { top: mix(MAT.custard, INK.bone, 0.45) }); // (pale, so it reads as a pan of custard, not a cake)
       face(ctx, [[8.2, 0.9, RH + 0.26], [8.9, 1.6, RH + 0.45]], null, { lw: 0.07, stroke: IRON });
       const sp = P(8.05, 0.95, RH + 0.24), sq = P(7.9, 0.75, RH + 0.95);
       ctx.beginPath(); ctx.moveTo(sp[0], sp[1]); ctx.lineTo(sq[0], sq[1]);
@@ -1268,14 +1277,32 @@ export default {
     candle(R, 11.55, 0.35, 2.62, 85);
 
     // The right-hand oven: tomorrow's sponge is in it ("TOMORROW: TRIFLE").
-    // Its door is never quite shut (it's warped), so a warm crack and a curl of
-    // steam give it away; a tap swings it open on its hinge.
+    // Its door won't shut (it's warped), so it stands ajar with an oven glove
+    // on the handle, light spilling out across the floor and a fat curl of
+    // steam: an oven in use, readable on a phone. A tap swings it wide.
+    // (Playtest: the stockpot on the hob read as the cake; now it's a pot.)
     const OV = { x0: 9.3, x1: 11.65, z0: 0.24, z1: 1.1, y: RY + RD + 0.005 };
-    const oven = R.poke({ id: 'oven', at: [10.45, OV.y, 0.68], r: 0.9, sound: 'clunk', say: ['Something for tomorrow.', "Shut it! It'll sink!", 'Out of respect. Again.'] });
+    const oven = R.poke({ id: 'oven', at: [10.75, OV.y + 0.3, 0.68], r: 1.0, sound: 'clunk', say: ['Something for tomorrow.', "Shut it! It'll sink!", 'Out of respect. Again.'] });
+    // The warm light on the stones in front of it.
+    R.rug((ctx, t) => {
+      const k = oven.k();
+      const flick = 0.85 + 0.15 * Math.sin(t * 7) * Math.sin(t * 3.1);
+      const [X, Y] = P(11.0, OV.y + 1.5, 0);
+      ctx.save();
+      ctx.translate(X, Y);
+      ctx.scale(1, 0.5);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 2.0 + k * 0.4);
+      g.addColorStop(0, alpha(INK.candleGold, 0.6 * flick));
+      g.addColorStop(0.5, alpha(C.coral, 0.25 * flick));
+      g.addColorStop(1, alpha(C.coral, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, 2.0 + k * 0.4, 0, TAU); ctx.fill();
+      ctx.restore();
+    }, { anim: true });
     R.thing(10.45, OV.y, (ctx, t) => {
       const { x0, x1, z0, z1, y: fy } = OV;
       const k = oven.k();
-      const a = 0.09 + k * 1.42;
+      const a = 0.5 + k * 1.0;
       // inside: dark iron, warm from the fire next door
       const hole = [[x0, fy, z0], [x1, fy, z0], [x1, fy, z1], [x0, fy, z1]];
       face(ctx, hole, mix(IRON, C.black, 0.5), { lw: 0.03 });
@@ -1285,17 +1312,20 @@ export default {
       const [GX, GY] = P(10.45, fy, 0.45);
       const flick = 0.85 + 0.15 * Math.sin(t * 7) * Math.sin(t * 3.1);
       ctx.beginPath(); ctx.ellipse(GX, GY, 1.1, 0.45, 0, 0, TAU);
-      ctx.fillStyle = alpha(C.coral, 0.32 * flick); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(GX, GY - 0.05, 0.7, 0.28, 0, 0, TAU);
-      ctx.fillStyle = alpha(INK.candleGold, 0.3 * flick); ctx.fill();
+      ctx.fillStyle = alpha(C.coral, 0.6 * flick); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(GX, GY - 0.05, 0.8, 0.32, 0, 0, TAU);
+      ctx.fillStyle = alpha(INK.candleGold, 0.6 * flick); ctx.fill();
       // the shelf, and the tin on it with the sponge risen up out of the top
+      // (only once it's open: shut, all you see is the glow)
       face(ctx, [[x0, 0.5, 0.36], [x1, 0.5, 0.36], [x1, fy, 0.36], [x0, fy, 0.36]], null, { lw: 0.04, stroke: IRON_TOP });
-      cylinder(ctx, 10.45, 1.05, 0.36, 0.42, 0.13, MAT.silver, { top: SPONGE, lw: 0.025 });
+      if (k > 0.35) cylinder(ctx, 10.45, 1.05, 0.36, 0.42, 0.13, MAT.silver, { top: SPONGE, lw: 0.025 });
       const [SX, SY] = P(10.45, 1.05, 0.49);
-      ctx.beginPath(); ctx.ellipse(SX, SY, 0.6, 0.3, 0, Math.PI, TAU);
-      ctx.quadraticCurveTo(SX, SY + 0.12, SX - 0.6, SY);
-      paint(ctx, SPONGE, { lw: 0.025, dots: shade(SPONGE, 0.25), density: 0.2 });
-      if (Q.detail) { // a crack along the top, the way a good one goes
+      if (k > 0.35) {
+        ctx.beginPath(); ctx.ellipse(SX, SY, 0.6, 0.3, 0, Math.PI, TAU);
+        ctx.quadraticCurveTo(SX, SY + 0.12, SX - 0.6, SY);
+        paint(ctx, SPONGE, { lw: 0.025, dots: shade(SPONGE, 0.25), density: 0.2 });
+      }
+      if (k > 0.35 && Q.detail) { // a crack along the top, the way a good one goes
         ctx.beginPath(); ctx.moveTo(SX - 0.3, SY - 0.2); ctx.quadraticCurveTo(SX, SY - 0.3, SX + 0.28, SY - 0.18);
         ctx.strokeStyle = shade(SPONGE, 0.35); ctx.lineWidth = 0.025; ctx.stroke();
       }
@@ -1312,22 +1342,38 @@ export default {
         ctx.beginPath(); ctx.arc(kn[0], kn[1], 0.14, 0, TAU); paint(ctx, MAT.brassDark, { lw: 0.03 });
         if (Q.detail) { ctx.beginPath(); ctx.arc(kn[0], kn[1], 0.06, 0, TAU); ctx.fillStyle = MAT.brass; ctx.fill(); }
       }
+      // the oven glove, hung on the end of the handle
+      {
+        const [GX2, GY2] = P(...at(W - 0.5, 0.95));
+        ctx.save();
+        ctx.translate(GX2, GY2);
+        ctx.beginPath();
+        ctx.moveTo(-0.12, 0); ctx.lineTo(0.12, 0);
+        ctx.lineTo(0.15, 0.42); ctx.quadraticCurveTo(0.15, 0.6, 0, 0.6);
+        ctx.quadraticCurveTo(-0.13, 0.6, -0.14, 0.45);
+        ctx.quadraticCurveTo(-0.26, 0.4, -0.24, 0.3); ctx.quadraticCurveTo(-0.2, 0.24, -0.14, 0.3); // the thumb
+        ctx.closePath();
+        paint(ctx, INK.oxblood, { lw: 0.03, dots: INK.bone, density: 0.25 });
+        ctx.fillStyle = INK.bone;
+        ctx.fillRect(-0.13, 0, 0.26, 0.07); // the cuff
+        ctx.restore();
+      }
       // shut, the crack down its free edge glows
       if (k < 0.5) {
         const e0 = P(...at(W, z0 + 0.05)), e1 = P(...at(W, z1 - 0.05));
-        ctx.beginPath(); ctx.moveTo(e0[0] + 0.05, e0[1]); ctx.lineTo(e1[0] + 0.05, e1[1]);
-        ctx.strokeStyle = alpha(INK.candleGold, 0.8 * (1 - k * 2) * flick); ctx.lineWidth = 0.05; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(e0[0] + 0.06, e0[1]); ctx.lineTo(e1[0] + 0.06, e1[1]);
+        ctx.strokeStyle = alpha(INK.candleGold, (1 - k * 2) * flick); ctx.lineWidth = 0.09; ctx.stroke();
       }
     }, { anim: true, depth: RX + RW / 2 + RY + RD + 0.06 });
-    // A curl of steam out of the crack (sponge, not soup).
+    // A fat curl of steam out of the gap (sponge, not soup).
     R.air((ctx, t) => {
-      if (!Q.detail) return;
       const k0 = 1 - oven.k();
-      for (let i = 0; i < 3; i++) {
-        const k = (t * 0.35 + i / 3) % 1;
-        const [X, Y] = P(OV.x1 - 0.05 + Math.sin(k * 6 + i) * 0.12, OV.y + 0.2, OV.z1 - 0.1 + k * 1.0);
-        ctx.beginPath(); ctx.arc(X, Y, 0.07 + k * 0.16, 0, TAU);
-        ctx.fillStyle = alpha(C.white, 0.5 * (1 - k) * (0.35 + 0.65 * k0));
+      const n = Q.detail ? 5 : 3;
+      for (let i = 0; i < n; i++) {
+        const k = (t * 0.3 + i / n) % 1;
+        const [X, Y] = P(OV.x1 - 0.1 + Math.sin(k * 5 + i) * 0.2, OV.y + 0.5, OV.z1 - 0.05 + k * 1.7);
+        ctx.beginPath(); ctx.arc(X, Y, 0.15 + k * 0.35, 0, TAU);
+        ctx.fillStyle = alpha(C.white, 0.75 * (1 - k) * (0.4 + 0.6 * k0));
         ctx.fill();
       }
     });
