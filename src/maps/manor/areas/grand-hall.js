@@ -881,6 +881,19 @@ function armor(ctx, t, p) {
   if (Q.detail) for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(0.1 + i * 0.045, -0.16, 0.012, 0, Math.PI * 2); ctx.fill(); }
   ctx.beginPath(); ctx.moveTo(-0.21, -0.25); ctx.lineTo(0.23, -0.25);
   ctx.strokeStyle = STEEL_D; ctx.lineWidth = 0.03; ctx.stroke();
+  // Tapped, the visor flips up: nobody home.
+  const vk = pk(POKES.armor);
+  if (vk > 0.02) {
+    ctx.beginPath(); ctx.roundRect(-0.12, -0.42, 0.33, 0.36, 0.06);
+    ctx.fillStyle = C.ink; ctx.fill();
+    ctx.save();
+    ctx.translate(-0.12, -0.42);
+    ctx.rotate(-1.6 * vk);
+    ctx.beginPath(); ctx.roundRect(0, -0.02, 0.35, 0.4, 0.07);
+    paint(ctx, STEEL_L, { lw: 0.035 });
+    ctx.fillStyle = C.ink; ctx.fillRect(0.1, 0.07, 0.21, 0.04);
+    ctx.restore();
+  }
   const sway = Math.sin(t * 2.1 + p.x) * 0.08;
   ctx.beginPath(); ctx.moveTo(0.0, -0.52);
   ctx.quadraticCurveTo(-0.1, -0.85 + sway, -0.45, -0.72 + sway);
@@ -913,10 +926,19 @@ function armor(ctx, t, p) {
   ctx.restore();
 }
 // ---------- The coats, and the goose among them ----------
-// (Both nudged together from the greybox: the stand a unit toward the goose,
-// the goose half a unit toward the stand, so it stands under the coats.)
-const COATS = { x: 13.3, y: 12.75 };
-const GOOSE = { x: 12.9, y: 13.6 };
+// Two coat stands by the front door, each with a long cloak hanging to the
+// floor. One cloak has wellies under it. The other has orange feet, and a
+// beak poking out through a scarf: the goose, checked in as a coat. A tap
+// on either cloak flicks it up.
+const COATS = { x: 13.3, y: 12.75 }; // the Brigadier's stand (the wellies)
+const COATS2 = { x: 12.0, y: 13.75 }; // the other stand (the goose)
+const GOOSE = { x: COATS2.x + 0.32, y: COATS2.y + 0.32 };
+const HOOK_IN = 0.24, HOOK_Z = 2.25; // the front hook: toward the viewer, and how high
+const CLOAK = mix(INK.stormNavy, C.black, 0.25), CLOAK2 = mix(INK.deepPlum, C.black, 0.15);
+const WELLY = mix(INK.verdigris, C.black, 0.35);
+// The pokes (set in build): each cloak, and the armor's visor.
+const POKES = { cloak: null, gooseCoat: null, armor: null };
+const pk = (p) => (p ? p.k() : 0);
 function coat(ctx, x, y, z, color, len, o = {}) {
   const [X, Y] = P(x, y, z);
   ctx.save();
@@ -939,9 +961,18 @@ function coat(ctx, x, y, z, color, len, o = {}) {
   }
   ctx.restore();
 }
+// A stand's legs, pole and brass hooks.
+function pole(ctx, x, y) {
+  for (const a of [0.5, 2.6, 4.7]) stick(ctx, [x, y, 0.3], [x + Math.cos(a) * 0.45, y + Math.sin(a) * 0.45, 0.02], WOOD_D, 0.07);
+  stick(ctx, [x, y, 0], [x, y, 2.4], WOOD_D, 0.11);
+  for (const [dx, dy] of [[0.3, 0], [0, 0.3], [-0.3, 0], [0, -0.3]]) {
+    stick(ctx, [x, y, 2.2], [x + dx, y + dy, 2.28], GOLD, 0.04);
+    const [HX, HY] = P(x + dx, y + dy, 2.28);
+    ctx.beginPath(); ctx.arc(HX, HY - 0.05, 0.05, Math.PI * 0.5, Math.PI * 2.1); ctx.strokeStyle = GOLD; ctx.lineWidth = 0.035; ctx.stroke();
+  }
+}
 function coatStand(ctx) {
   const { x, y } = COATS;
-  for (const a of [0.5, 2.6, 4.7]) stick(ctx, [x, y, 0.3], [x + Math.cos(a) * 0.45, y + Math.sin(a) * 0.45, 0.02], WOOD_D, 0.07);
   coat(ctx, x - 0.3, y, 2.12, INK.oxblood, 1.45, { buttons: GOLD }); // the Brigadier's greatcoat
   const [SX, SY2] = P(x, y - 0.3, 2.1); // Lady Philippa's fur stole
   ctx.beginPath();
@@ -949,12 +980,7 @@ function coatStand(ctx) {
   ctx.lineTo(SX + 0.02, SY2 + 0.9); ctx.quadraticCurveTo(SX - 0.08, SY2 + 0.45, SX + 0.1, SY2 + 0.02);
   ctx.moveTo(SX + 0.1, SY2); ctx.quadraticCurveTo(SX + 0.3, SY2 + 0.3, SX + 0.24, SY2 + 0.7); ctx.lineTo(SX + 0.08, SY2 + 0.66);
   paint(ctx, MAT.fur, { lw: 0.035, dots: MAT.furDark, density: 0.3 });
-  stick(ctx, [x, y, 0], [x, y, 2.4], WOOD_D, 0.11);
-  for (const [dx, dy] of [[0.3, 0], [0, 0.3], [-0.3, 0], [0, -0.3]]) { // brass hooks
-    stick(ctx, [x, y, 2.2], [x + dx, y + dy, 2.28], GOLD, 0.04);
-    const [HX, HY] = P(x + dx, y + dy, 2.28);
-    ctx.beginPath(); ctx.arc(HX, HY - 0.05, 0.05, Math.PI * 0.5, Math.PI * 2.1); ctx.strokeStyle = GOLD; ctx.lineWidth = 0.035; ctx.stroke();
-  }
+  pole(ctx, x, y);
   coat(ctx, x + 0.3, y, 2.12, mix(C.grey, INK.bone, 0.25), 1.05); // Dr. Crane's
   const [TX, TY] = P(x, y, 2.45); // a top hat, on top
   ctx.beginPath(); ctx.ellipse(TX, TY, 0.26, 0.08, 0, 0, Math.PI * 2); paint(ctx, C.black, { lw: 0.03 });
@@ -966,11 +992,116 @@ function coatStand(ctx) {
     ctx.strokeStyle = C.ink; ctx.lineWidth = 0.015; ctx.strokeRect(KX - 0.07, KY + 0.02, 0.14, 0.1);
   }
 }
-// The goose, playing coat: it turns to look at the coats now and then, and
-// pecks at its scarf. When the ghost appears and points at it, it looks the
-// other way.
+// The other stand: a tweed coat, a short cape and a bowler (its cloak is
+// drawn after whoever is standing under it).
+function coatStand2(ctx) {
+  const { x, y } = COATS2;
+  coat(ctx, x, y - 0.3, 2.12, mix(C.grey, INK.stormNavy, 0.4), 0.9); // a short cape, at the back
+  coat(ctx, x - 0.3, y, 2.12, mix(MAT.oak, INK.deepPlum, 0.3), 1.2, { buttons: WOOD_D }); // somebody's tweed
+  pole(ctx, x, y);
+  const [TX, TY] = P(x, y, 2.45); // a bowler
+  ctx.beginPath(); ctx.ellipse(TX, TY, 0.24, 0.07, 0, 0, Math.PI * 2); paint(ctx, C.black, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(TX, TY - 0.04, 0.16, 0.2, 0, Math.PI, 0); ctx.closePath(); paint(ctx, C.black, { lw: 0.03 });
+}
+// A long cloak on a stand's front hook, down to the floor. k: how far it
+// has been flicked up (0 hanging, 1 up and over to one side).
+function cloakShape(ctx, len, wTop, wHem) {
+  ctx.beginPath();
+  ctx.moveTo(-0.07, 0);
+  ctx.quadraticCurveTo(-wTop, 0.02, -wTop - 0.02, 0.32);
+  ctx.quadraticCurveTo(-wHem + 0.04, len * 0.6, -wHem, len);
+  ctx.quadraticCurveTo(-wHem * 0.5, len + 0.05, 0, len - 0.02);
+  ctx.quadraticCurveTo(wHem * 0.5, len + 0.05, wHem, len);
+  ctx.quadraticCurveTo(wHem - 0.04, len * 0.6, wTop + 0.02, 0.32);
+  ctx.quadraticCurveTo(wTop, 0.02, 0.07, 0);
+  ctx.closePath();
+}
+function cloak(ctx, s, color, k) {
+  const [X, Y] = P(s.x + HOOK_IN, s.y + HOOK_IN, HOOK_Z);
+  const len = 2.28 * (1 - 0.62 * k);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.rotate(-0.5 * k);
+  cloakShape(ctx, len, 0.3, 0.5 + 0.12 * k);
+  paint(ctx, color, { lw: 0.04, dots: shade(color, 0.5), density: 0.18 });
+  ctx.beginPath(); // folds, and the collar
+  for (const fx of [-0.2, 0.02, 0.22]) { ctx.moveTo(fx * 0.6, 0.4); ctx.quadraticCurveTo(fx, len * 0.6, fx * 1.4, len - 0.04); }
+  ctx.moveTo(-0.15, 0.05); ctx.lineTo(0, 0.28); ctx.lineTo(0.15, 0.05);
+  ctx.strokeStyle = shade(color, 0.45); ctx.lineWidth = 0.03; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0.3, 0.045, 0, Math.PI * 2); paint(ctx, GOLD, { lw: 0.02 }); // a clasp
+  ctx.restore();
+}
+// Stand one: its cloak has a pair of wellies under it, and nobody in them.
+function cloakWellies(ctx) {
+  const [X, Y] = P(COATS.x + 0.32, COATS.y + 0.32, 0);
+  ctx.save();
+  ctx.translate(X, Y);
+  for (const [bx, s] of [[-0.14, -1], [0.12, 1]]) {
+    ctx.beginPath();
+    ctx.moveTo(bx - 0.08, -0.48); ctx.lineTo(bx - 0.08, -0.02); ctx.lineTo(bx + s * 0.2, 0.0);
+    ctx.quadraticCurveTo(bx + s * 0.24, 0.05, bx + s * 0.12, 0.05); ctx.lineTo(bx - 0.08, 0.05);
+    ctx.lineTo(bx + 0.08, 0.04); ctx.lineTo(bx + 0.08, -0.48); ctx.closePath();
+    paint(ctx, WELLY, { lw: 0.03 });
+    ctx.fillStyle = shade(WELLY, 0.4); ctx.fillRect(bx - 0.08, -0.48, 0.16, 0.05);
+  }
+  ctx.restore();
+  cloak(ctx, COATS, CLOAK, pk(POKES.cloak));
+}
+// Stand two: orange feet under the hem, a scarf round it, a beak sticking
+// out through the scarf. Flicked up, it's the goose.
+function cloakGoose(ctx, t) {
+  const k = pk(POKES.gooseCoat);
+  const [X, Y] = P(GOOSE.x, GOOSE.y, 0);
+  if (k < 0.3) {
+    ctx.save();
+    ctx.translate(X, Y);
+    if (Q.detail) { ellipse(ctx, 0, 0, 0.42, 0.16); ctx.fillStyle = alpha(C.ink, 0.18); ctx.fill(); }
+    const sh = (t % 7) < 0.5 ? Math.sin(t * 20) * 0.03 : 0; // a shuffle, now and then
+    ctx.strokeStyle = C.coral; ctx.lineWidth = 0.07; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0.05, -0.3); ctx.lineTo(0.05 + sh, 0); ctx.moveTo(-0.08, -0.3); ctx.lineTo(-0.08 - sh, 0); ctx.stroke();
+    for (const fx of [0.05 + sh, -0.08 - sh]) { // webbed feet
+      ctx.beginPath(); ctx.moveTo(fx + 0.04, -0.02); ctx.lineTo(fx - 0.18, 0.0); ctx.lineTo(fx - 0.12, 0.06); ctx.lineTo(fx + 0.04, 0.03); ctx.closePath();
+      paint(ctx, C.coral, { lw: 0.02 });
+    }
+    ctx.restore();
+  }
+  cloak(ctx, COATS2, CLOAK2, k);
+  if (k >= 0.3) return;
+  // The scarf, wound round the cloak at the neck of whoever is in it.
+  ctx.save();
+  ctx.translate(X, Y);
+  const sy = -1.07, sw = Math.sin(t * 1.3) * 0.02;
+  ctx.beginPath();
+  ctx.moveTo(-0.43, sy - 0.08); ctx.quadraticCurveTo(0, sy - 0.02, 0.44, sy - 0.1);
+  ctx.lineTo(0.45, sy + 0.06); ctx.quadraticCurveTo(0, sy + 0.14, -0.44, sy + 0.08); ctx.closePath();
+  paint(ctx, SCARF, { lw: 0.035 });
+  if (Q.detail) {
+    ctx.save(); ctx.clip();
+    ctx.strokeStyle = SCARF_B; ctx.lineWidth = 0.05;
+    ctx.beginPath(); for (let i = -4; i <= 4; i++) { ctx.moveTo(i * 0.11, sy - 0.15); ctx.lineTo(i * 0.11 + 0.06, sy + 0.16); } ctx.stroke();
+    ctx.restore();
+  }
+  ctx.beginPath(); // its end, hanging down the front
+  ctx.moveTo(0.16, sy + 0.06); ctx.lineTo(0.22 + sw, sy + 0.55); ctx.lineTo(0.08 + sw, sy + 0.55); ctx.lineTo(0.05, sy + 0.08); ctx.closePath();
+  paint(ctx, SCARF, { lw: 0.03 });
+  if (Q.detail) {
+    ctx.strokeStyle = SCARF; ctx.lineWidth = 0.02;
+    ctx.beginPath(); for (let i = 0; i < 4; i++) { const fx = 0.09 + sw + i * 0.04; ctx.moveTo(fx, sy + 0.55); ctx.lineTo(fx, sy + 0.62); } ctx.stroke();
+  }
+  // the beak, out through a gap at the side (it opens a crack, now and then)
+  const gape = (t % 11) < 0.6 ? 0.03 : 0;
+  ctx.beginPath();
+  ctx.moveTo(-0.39, sy - 0.04); ctx.lineTo(-0.63, sy + 0.01 - gape); ctx.lineTo(-0.39, sy + 0.06);
+  ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.03 });
+  ctx.restore();
+}
+// The goose, playing coat: under the cloak until it's flicked up. Then it
+// turns to look at the coats now and then, and pecks at its scarf. When the
+// ghost appears and points at it, it looks the other way.
 function gooseAt(t) {
   const g = { x: GOOSE.x, y: GOOSE.y, z: 0, dir: 'l', pose: 'stand' };
+  if (pk(POKES.gooseCoat) < 0.3) return { ...g, hidden: true };
   if (pastK(t) > 0.02 || pastK(t - 0.8) > 0.02) return { ...g, dir: 'r' };
   if (t % 13 < 1.4) return { ...g, pose: 'peck' };
   if ((t + 5) % 9 < 1.8) return { ...g, dir: 'r' };
@@ -978,6 +1109,7 @@ function gooseAt(t) {
 }
 const SCARF = INK.oxblood, SCARF_B = INK.stormNavy;
 function scarf(ctx, t, p) { // the Brigadier's regimental scarf, off the empty hook
+  if (p.hidden) return;
   const [X, Y] = P(p.x, p.y, 0);
   const down = p.pose === 'peck' && Math.sin(t * 5) > 0;
   const [wx, wy] = down ? [0.3, -0.6] : [0.28, -0.68];
@@ -1180,7 +1312,20 @@ function stickStand(ctx) {
   const [SX, SY2] = P(x + 0.25, y + 0.12, 1.3);
   ctx.beginPath(); ctx.moveTo(SX - 0.12, SY2 + 0.02); ctx.lineTo(SX + 0.12, SY2 - 0.02); ctx.lineTo(SX + 0.06, SY2 - 0.12); ctx.lineTo(SX - 0.06, SY2 - 0.1); ctx.closePath();
   paint(ctx, INK.oxblood, { lw: 0.025 });
-  crook(x + 0.1, y + 0.22, 1.25, C.black);
+  // The Lord's walking stick, with a silver goose's head for a handle (a
+  // red herring: it answers back).
+  const gh = [x + 0.1, y + 0.22, 1.3];
+  stick(ctx, [x, y, 0.2], gh, C.black, 0.05);
+  const [GX, GY] = P(...gh);
+  ctx.beginPath(); // neck, curving forward into the head
+  ctx.moveTo(GX - 0.03, GY + 0.02); ctx.quadraticCurveTo(GX - 0.06, GY - 0.16, GX + 0.04, GY - 0.22);
+  if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.12; ctx.stroke(); }
+  ctx.strokeStyle = C.white; ctx.lineWidth = 0.07; ctx.stroke();
+  ctx.beginPath(); ctx.arc(GX + 0.06, GY - 0.23, 0.065, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+  ctx.beginPath(); ctx.moveTo(GX + 0.1, GY - 0.26); ctx.lineTo(GX + 0.23, GY - 0.22); ctx.lineTo(GX + 0.1, GY - 0.19); ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.02 });
+  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(GX + 0.07, GY - 0.25, 0.015, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = GOLD; ctx.fillRect(GX - 0.06, GY - 0.01, 0.07, 0.035); // a brass collar
   const [X, Y] = P(x, y, 0);
   ctx.beginPath(); // the stand, a tall glazed pot with a gold band
   ctx.moveTo(X - 0.3, Y - 0.8); ctx.lineTo(X - 0.27, Y); ctx.ellipse(X, Y, 0.27, 0.12, 0, Math.PI, 0, true); ctx.lineTo(X + 0.3, Y - 0.8);
@@ -1648,11 +1793,26 @@ export default {
     // The suit of armor, and the plinth it's meant to stay on.
     R.thing(SPOT.A[0], SPOT.A[1], plinth);
     R.mover(armorAt, armor, { bias: 0.05 });
+    // Tap it and the visor flips up (the one a first visit is shown).
+    POKES.armor = R.poke({
+      id: 'armor', teach: true, hold: 1.6, sound: 'clunk', r: 1.0,
+      at: (t) => { const a = armorAt(t); return [a.x, a.y, a.z + 1.3]; },
+      say: ['Clank.', 'Nobody home.', 'Clank. Clank.', 'It will move when you look away.'],
+    });
 
-    // The coats, and the goose pretending to be one.
+    // The coats, and the goose pretending to be one: two stands, two long
+    // cloaks to the floor. One has wellies under it, one has feet.
+    POKES.cloak = R.poke({ id: 'cloak', at: [COATS.x + 0.32, COATS.y + 0.32, 1.0], r: 0.9, sound: 'pop', say: ['Wellies. Nobody in them.', 'Still just wellies.'] });
+    POKES.gooseCoat = R.poke({ id: 'goose-coat', at: [GOOSE.x, GOOSE.y, 1.0], r: 0.9, sound: 'pop' });
     R.thing(COATS.x, COATS.y, coatStand);
-    R.goose(gooseAt, {});
+    R.thing(COATS.x + 0.33, COATS.y + 0.33, cloakWellies, { anim: true });
+    R.thing(COATS2.x, COATS2.y, coatStand2);
+    R.goose(gooseAt, {
+      kind: 'poke', inside: POKES.gooseCoat,
+      hint: 'Two cloaks by the door, and one of them has feet. Coats do not, as a rule.',
+    });
     R.mover(gooseAt, scarf, { bias: 0.01 });
+    R.thing(GOOSE.x + 0.02, GOOSE.y + 0.02, cloakGoose, { anim: true });
     R.thing(BRELLY.x, BRELLY.y, umbrellaStand);
     R.rug(puddle, { anim: true });
     R.rug(doormat);
@@ -1660,8 +1820,9 @@ export default {
     // The hall table (candles, the post, the guest book, and everything long
     // left on it by the door), its stick stand, and a palm in the corner.
     R.thing(TABLE.x + TABLE.w, TABLE.y + TABLE.d / 2, hallTable);
-    R.find({ id: 'rolling-pin', label: "Mrs. Hatchett's rolling pin", at: [0.58, 13.82, TABLE.h + 0.08], r: 0.6 });
+    R.find({ id: 'rolling-pin', label: "Mrs. Hatchett's rolling pin", kind: 'spot', at: [0.58, 13.82, TABLE.h + 0.08], r: 0.6 });
     R.thing(STAND.x, STAND.y, stickStand);
+    R.decoy({ id: 'goose-stick', at: [STAND.x + 0.15, STAND.y + 0.2, 1.3], r: 0.6, say: ['A walking stick. Rude.', 'Still a stick.', 'Silver. Not evidence.'] });
     [-0.3, 0, 0.3].forEach((dy, i) => candle(R, TABLE.x + 0.4, TABLE.y + 0.55 + dy, TABLE.h + 0.6, 40 + i, { r: 1.5 }));
     R.thing(0.8, 3.0, (ctx, t) => plant(ctx, 0.8, 3.0, 0, t, { kind: 'palm', scale: 1.25, potColor: GOLD, leaf: MAT.leaf }), { anim: true });
 

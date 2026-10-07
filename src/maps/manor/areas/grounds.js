@@ -185,8 +185,11 @@ function headlamps(tt) {
   if (tt >= BANG && tt < BANG + 0.5) k = hash(Math.floor(tt * 20), 3) > 0.5 ? 0.3 : 1;
   else if (revving(tt)) k = 0.75 + 0.25 * hash(Math.floor(tt * 12), 4);
   if (tt >= HONK && tt < HONK + 1.1) k = 1.25;
+  if (HORN && HORN.k() > 0.3) k = 1.25; // and when you lean on the horn
   return k;
 }
+// The car's horn, a thing that answers a tap (set in build).
+let HORN = null;
 // The rear hubcap: on the wheel, then off down the drive, then back.
 const OFF_PATH = [[11.2, 7.05], [10.6, 7.9], [9.7, 9.1], [9.1, 11.2], [8.8, 13.6], [8.7, 17.4]];
 const ON_PATH = [[8.3, 17.4], [8.4, 13.4], [8.9, 10.6], [9.8, 8.6], [10.7, 7.4], [11.25, 7.0]];
@@ -1498,34 +1501,74 @@ export default {
     for (const [x, y] of LAMPS) lampPost(R, x, y);
 
     // The parcel on the step: soaked, sagging, string, a label, the Courier's
-    // wing, and something gold poking out of a torn corner.
+    // wing, and a gold chain poking out of a torn corner. Tap it and the wet
+    // paper flops open: a little velvet box, and the monocle on its chain.
+    const parcel = R.poke({ id: 'parcel', at: [PARCEL[0], PARCEL[1], PARCEL[2] + 0.05], r: 0.8, sound: 'pop', say: ['Squelch.', 'Still soggy.'] });
     R.thing(PARCEL[0] + 0.42, PARCEL[1] + 0.3, (ctx) => {
-      const x0 = PARCEL[0] - 0.42, x1 = PARCEL[0] + 0.42, y0 = PARCEL[1] - 0.3, y1 = PARCEL[1] + 0.3, z0 = 0.16, z1 = 0.56, sag = 0.07;
+      const k = parcel.k();
+      const x0 = PARCEL[0] - 0.42, x1 = PARCEL[0] + 0.42, y0 = PARCEL[1] - 0.3, y1 = PARCEL[1] + 0.3, z0 = 0.16, sag = 0.07;
+      const z1 = 0.56 - 0.3 * k; // it slumps as it opens
       const xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
-      shadow(ctx, xm + 0.05, ym + 0.05, 0.55, 0.25, 0.2);
+      shadow(ctx, xm + 0.05, ym + 0.05, 0.55 + 0.2 * k, 0.25 + 0.1 * k, 0.2);
       const side = shade(KRAFT, 0.18), wet = shade(KRAFT, 0.45);
+      if (k > 0.05) {
+        // the far flaps, standing up limp
+        const up = 0.28 * k;
+        face(ctx, [[x0, y0, z1], [x1, y0, z1], [x1 + 0.02, y0 - 0.08 * k, z1 + up * 0.7], [xm, y0 - 0.1 * k, z1 + up], [x0 - 0.02, y0 - 0.08 * k, z1 + up * 0.8]], shade(KRAFT, 0.08), { dots: wet, density: 0.3 });
+        face(ctx, [[x0, y0, z1], [x0, y1, z1], [x0 - 0.1 * k, y1, z1 + up * 0.6], [x0 - 0.12 * k, ym, z1 + up * 0.9], [x0 - 0.08 * k, y0, z1 + up * 0.7]], shade(KRAFT, 0.12), { dots: wet, density: 0.3 });
+      }
       face(ctx, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [xm, y1, z1 - sag], [x0, y1, z1]], side, { dots: wet, density: 0.35 });
       face(ctx, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, ym, z1 - sag], [x1, y0, z1]], shade(KRAFT, 0.06), { dots: wet, density: 0.25 });
-      face(ctx, [[x0, y0, z1], [xm, y0, z1 - sag], [x1, y0, z1], [x1, ym, z1 - sag], [x1, y1, z1], [xm, y1, z1 - sag], [x0, y1, z1], [x0, ym, z1 - sag]], KRAFT, { dots: wet, density: 0.2 });
-      const [cX, cY] = P(xm, ym, z1 - sag * 1.5);
-      ctx.beginPath();
-      ctx.ellipse(cX, cY, 0.26, 0.11, 0, 0, TAU);
-      ctx.fillStyle = alpha(wet, 0.6);
-      ctx.fill();
-      // string, both ways round, and a bow
-      face(ctx, [[x0, ym, z1 - sag], [x1, ym, z1 - sag], [x1, ym, z0]], null, { lw: 0.03, stroke: INK.bone });
-      face(ctx, [[x1 - 0.12, y0, z1 - 0.02], [x1 - 0.12, y1, z1 - 0.02], [x1 - 0.12, y1, z0]], null, { lw: 0.03, stroke: INK.bone });
-      const [bX, bY] = P(x1 - 0.12, ym, z1 - sag);
-      ctx.beginPath();
-      ctx.ellipse(bX - 0.07, bY - 0.03, 0.07, 0.035, 0.4, 0, TAU);
-      ctx.ellipse(bX + 0.07, bY - 0.03, 0.07, 0.035, -0.4, 0, TAU);
-      ctx.strokeStyle = INK.bone;
-      ctx.lineWidth = 0.025;
-      ctx.stroke();
-      // who it's for, in marker
-      words(ctx, 'y', y1 + 0.005, x0 + 0.34, z0 + 0.2, 'G. GOOSE', 0.12, C.ink, SANS);
+      if (k <= 0.05) {
+        face(ctx, [[x0, y0, z1], [xm, y0, z1 - sag], [x1, y0, z1], [x1, ym, z1 - sag], [x1, y1, z1], [xm, y1, z1 - sag], [x0, y1, z1], [x0, ym, z1 - sag]], KRAFT, { dots: wet, density: 0.2 });
+        const [cX, cY] = P(xm, ym, z1 - sag * 1.5);
+        ctx.beginPath();
+        ctx.ellipse(cX, cY, 0.26, 0.11, 0, 0, TAU);
+        ctx.fillStyle = alpha(wet, 0.6);
+        ctx.fill();
+        // string, both ways round, and a bow
+        face(ctx, [[x0, ym, z1 - sag], [x1, ym, z1 - sag], [x1, ym, z0]], null, { lw: 0.03, stroke: INK.bone });
+        face(ctx, [[x1 - 0.12, y0, z1 - 0.02], [x1 - 0.12, y1, z1 - 0.02], [x1 - 0.12, y1, z0]], null, { lw: 0.03, stroke: INK.bone });
+        const [bX, bY] = P(x1 - 0.12, ym, z1 - sag);
+        ctx.beginPath();
+        ctx.ellipse(bX - 0.07, bY - 0.03, 0.07, 0.035, 0.4, 0, TAU);
+        ctx.ellipse(bX + 0.07, bY - 0.03, 0.07, 0.035, -0.4, 0, TAU);
+        ctx.strokeStyle = INK.bone;
+        ctx.lineWidth = 0.025;
+        ctx.stroke();
+        // who it's for, in marker
+        words(ctx, 'y', y1 + 0.005, x0 + 0.34, z0 + 0.2, 'G. GOOSE', 0.12, C.ink, SANS);
+      } else {
+        // open: the wet inside, the string gone slack on the step
+        face(ctx, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], shade(KRAFT, 0.55), { stroke: false });
+        ctx.beginPath();
+        const [s0, s1, s2] = [P(x1 + 0.1, y1 + 0.15, z0 + 0.01), P(x1 + 0.35 * k, ym, z0 + 0.01), P(x1 + 0.2, y0 - 0.1, z0 + 0.01)];
+        ctx.moveTo(...s0); ctx.quadraticCurveTo(...s1, ...s2);
+        ctx.strokeStyle = INK.bone; ctx.lineWidth = 0.025; ctx.stroke();
+        // the little box, its lid up, and the monocle on its chain
+        const bx = xm - 0.15, by = ym - 0.11, bz = z0, bh = z1 - z0 + 0.06;
+        face(ctx, [[bx, by, bz + bh], [bx + 0.3, by, bz + bh], [bx + 0.3, by - 0.04, bz + bh + 0.2 * k], [bx, by - 0.04, bz + bh + 0.2 * k]], MAT.velvetDark, { lw: 0.025 });
+        box(ctx, bx, by, bz, 0.3, 0.22, bh, MAT.velvet, { lw: 0.025, top: MAT.velvetDark, flat: true });
+        const [mX, mY] = P(xm, ym, bz + bh + 0.02);
+        ctx.beginPath(); // the chain, coiled on the velvet and over the side
+        ctx.moveTo(mX + 0.08, mY);
+        ctx.quadraticCurveTo(mX + 0.2, mY + 0.02, mX + 0.16, mY + 0.08);
+        ctx.quadraticCurveTo(mX + 0.1, mY + 0.2, mX + 0.22, mY + 0.22);
+        ctx.strokeStyle = GOLD; ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(mX, mY, 0.085, 0.07, 0, 0, TAU);
+        ctx.fillStyle = alpha(INK.bone, 0.55); ctx.fill();
+        ctx.lineWidth = 0.035; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mX - 0.04, mY - 0.03); ctx.lineTo(mX - 0.01, mY - 0.05); // a glint
+        ctx.strokeStyle = C.white; ctx.lineWidth = 0.02; ctx.stroke();
+        // the near flaps, flopped down onto the step
+        const out = 0.3 * k;
+        face(ctx, [[x0, y1, z1], [x1, y1, z1], [x1 - 0.03, y1 + out, z0 + 0.01], [x0 + 0.03, y1 + out, z0 + 0.01]], KRAFT, { dots: wet, density: 0.25 });
+        words(ctx, 'floor', z0 + 0.012, xm, y1 + out * 0.55, 'G. GOOSE', 0.1, C.ink, SANS);
+        face(ctx, [[x1, y0, z1], [x1, y1, z1], [x1 + out, y1 - 0.03, z0 + 0.01], [x1 + out, y0 + 0.03, z0 + 0.01]], shade(KRAFT, 0.04), { dots: wet, density: 0.25 });
+      }
       // the Courier's little wing, on the end
-      const [wX, wY] = P(x1 + 0.005, ym - 0.1, z0 + 0.22);
+      const [wX, wY] = P(x1 + 0.005, ym - 0.1, z0 + 0.22 - 0.1 * k);
       ctx.beginPath();
       ctx.moveTo(wX - 0.1, wY + 0.05);
       ctx.quadraticCurveTo(wX - 0.02, wY - 0.16, wX + 0.14, wY - 0.2);
@@ -1533,28 +1576,37 @@ export default {
       ctx.quadraticCurveTo(wX + 0.04, wY - 0.02, wX + 0.08, wY + 0.03);
       ctx.closePath();
       paint(ctx, INK.bone, { lw: 0.02 });
-      // a torn corner, and a gold chain hanging out of it
+      if (k > 0.05) return;
+      // shut: a torn corner, and a loop of gold chain hanging out of it
       const [tX, tY] = P(x1, y1, z0 + 0.1);
       ctx.beginPath();
       ctx.moveTo(tX - 0.12, tY - 0.02); ctx.lineTo(tX - 0.02, tY - 0.16); ctx.lineTo(tX + 0.02, tY - 0.02);
       paint(ctx, shade(KRAFT, 0.5), { lw: 0.02 });
       ctx.beginPath();
       ctx.moveTo(tX - 0.06, tY - 0.06);
-      ctx.quadraticCurveTo(tX - 0.02, tY + 0.14, tX + 0.1, tY + 0.06);
+      ctx.quadraticCurveTo(tX - 0.02, tY + 0.16, tX + 0.12, tY + 0.08);
+      ctx.quadraticCurveTo(tX + 0.18, tY + 0.04, tX + 0.14, tY + 0.12);
       ctx.strokeStyle = GOLD;
-      ctx.lineWidth = 0.025;
-      ctx.stroke();
-      // and on the end of it, the monocle (the goose will be wearing it later)
-      ctx.beginPath();
-      ctx.arc(tX + 0.17, tY + 0.07, 0.07, 0, TAU);
-      ctx.fillStyle = alpha(INK.bone, 0.5);
-      ctx.fill();
       ctx.lineWidth = 0.03;
       ctx.stroke();
+    }, { anim: true });
+    R.find({
+      id: 'parcel', label: 'A soaked parcel for G. Goose', kind: 'poke', inside: parcel, at: [PARCEL[0], PARCEL[1], 0.4], r: 0.75,
+      hint: "Post for a G. Goose, left out in the rain. I can't open other people's post. You can.",
     });
-    R.find({ id: 'parcel', label: 'A soaked parcel for G. Goose', at: PARCEL, r: 0.75 });
 
-    // By the door: the bell for the butler (who has been arrested).
+    // By the door: the bell for the butler (who has been arrested). It
+    // answers a tap, with rings, and nobody comes.
+    const BELL_U = D1 + 0.95 + 0.3;
+    const bell = R.poke({ id: 'bell', at: [BELL_U, 0.1, 1.9], r: 0.7, hold: 0.8, sound: 'bell', say: ['Ding. Nobody comes.', "He's been arrested.", 'Ding. Still arrested.'] });
+    R.decor((ctx) => {
+      const k = bell.k();
+      if (k < 0.05) return;
+      const [X, Y] = P(BELL_U, 0, 2.2);
+      ctx.lineWidth = 0.03;
+      ctx.strokeStyle = alpha(GOLD, k);
+      for (const r of [0.16, 0.26]) { ctx.beginPath(); ctx.arc(X, Y, r + (1 - k) * 0.05, -0.9, 0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(X, Y, r + (1 - k) * 0.05, Math.PI - 0.9, Math.PI + 0.9); ctx.stroke(); }
+    }, { anim: true });
     R.decor((ctx) => {
       const u = D1 + 0.95;
       onRight(ctx, u - 0.05, 1.55, 0.7, 0.42, GOLD, { lw: 0.03 });
@@ -1623,6 +1675,7 @@ export default {
     }
     // (on the hedge's corner, so drawn just after it)
     R.thing(7.05, 11.4, (ctx) => topiary(ctx));
+    R.decoy({ id: 'topiary', at: [6.9, 7.45, HEDGE_H + 0.75], r: 0.8, say: ['Hedge. Very patient.', 'Still a hedge.', 'The gardener is very proud.'] });
     R.thing(5.2, 6.2, (ctx) => mazeSign(ctx));
     R.thing(4.2, 8.55, (ctx) => fingerpost(ctx));
     R.thing(2.6, 5.8, (ctx) => wheelbarrow(ctx));
@@ -1661,7 +1714,7 @@ export default {
       poly(ctx, [[x - c * 0.18, y - s * 0.18, 0.09], [x - s * 0.04, y + c * 0.04, 0.09], [x, y, 0.09], [x + s * 0.04, y - c * 0.04, 0.09]]);
       paint(ctx, C.ink, { stroke: false });
     }, { anim: true });
-    R.find({ id: 'compass', label: "The gardener's compass", at: [COMPASS[0], COMPASS[1], 0.1], r: 0.8 });
+    R.find({ id: 'compass', label: "The gardener's compass", kind: 'spot', at: [COMPASS[0], COMPASS[1], 0.1], r: 0.8 });
 
     // ---------- The lawn's other things ----------
     // A sundial, in a thunderstorm, at night.
@@ -1752,6 +1805,8 @@ export default {
       paint(ctx, MAT.pine, { dots: shade(MAT.pine, 0.4), density: 0.15, lw: 0.03 });
     });
     R.thing(14.05, 6.6, (ctx, t) => car(ctx, t), { anim: true });
+    // Tap the car and it parps (the one a first visit is shown).
+    HORN = R.poke({ id: 'horn', teach: true, at: [12.4, 5.4, 1.1], r: 1.0, hold: 0.9, sound: 'horn', say: ['Still stuck.', 'Still very stuck.', 'He left the lights on, too.'] });
     R.thing(14.6, 7.6, (ctx) => {
       box(ctx, 14.55, 7.55, 0, 0.06, 0.06, 1.1, OAK, { flat: true });
       face(ctx, [[14.45, 7.58, 0.02], [14.75, 7.58, 0.02], [14.75, 7.58, -0.1], [14.6, 7.58, -0.2], [14.45, 7.58, -0.1]], MAT.silver, { lw: 0.025 });
@@ -1898,6 +1953,9 @@ export default {
         const k = (tt - HONK) / 1.3;
         words(ctx, 'y', 5.4, 14.8, 2.0 + k * 0.5, 'HONK!', 0.42, alpha(INK.bone, 1 - k * k));
       }
+      // Tapped: the horn, feebly.
+      const hk = HORN ? HORN.k() : 0;
+      if (hk > 0.05) words(ctx, 'y', 5.4, 14.6, 1.7 + hk * 0.35, 'parp.', 0.34, alpha(INK.bone, hk));
     });
 
     // ---------- The crypt ----------
