@@ -90,7 +90,11 @@ if (mode === 'prepare') {
   // back); extra: more to say about the shot in labels.json.
   const shoot = async (z, key, near, skip, only = null, extra = {}) => {
     await page.evaluate(({ id, near }) => {
-      const s = window.__squares, zone = s.world.zones.find((x) => x.id === id);
+      const s = window.__squares, zone = s.world.zones.find((x) => x.id === id), q = s.world.map.qa || {};
+      // A place without a dial: every area at its own QA moment (zoneAt, or
+      // the place's), not wherever the clock has run on to by its turn (at
+      // the Manor, the lights out or a lightning flash).
+      if (!s.world.map.dial && (q.zoneAt?.[id] ?? q.at) != null) s.clock.set(q.zoneAt?.[id] ?? q.at);
       // A trail's sighting shows only while it's the one a player is on: hold
       // the trail at this area's, as if the ones before were found.
       const sighting = zone.finds.find((x) => x.step != null);
@@ -117,8 +121,9 @@ if (mode === 'prepare') {
       const s = window.__squares;
       const st = document.getElementById('story');
       if (st) st.hidden = true;
-      const zone = s.world.zones.find((x) => x.id === id);
-      const t = s.clock.now();
+      const zone = s.world.zones.find((x) => x.id === id), q = s.world.map.qa || {};
+      const at = !s.world.map.dial ? q.zoneAt?.[id] ?? q.at : null;
+      const t = at != null ? at : s.clock.now();
       s.clock.freeze(t);
       const dial = document.getElementById('dial');
       // The game's buttons and bars: a find under one isn't in the shot.
