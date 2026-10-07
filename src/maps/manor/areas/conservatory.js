@@ -414,8 +414,8 @@ function cloche(ctx, X, Y, t) {
 
 // Things poking out of the front of the staging's pots, stuck in the soil in
 // front of the plant (behind it, the leaves hid them completely). Most are the usual potting-shed paper
-// (plant labels, seed packets, a trowel). One pot has the love letters (the
-// find): two envelopes, only their tops showing, tied with her red ribbon.
+// (plant labels, seed packets, a trowel). The love letters' pot is drawn by
+// lettersPot, below.
 function tucked(ctx, X, Y, kind, c) {
   if (kind === 'tag') {
     // a plant label stake, leaning, with a scribble nobody can read
@@ -489,48 +489,94 @@ function tucked(ctx, X, Y, kind, c) {
     ctx.closePath();
     paint(ctx, MAT.silver, { lw: 0.015 });
     ctx.restore();
-  } else if (kind === 'letters') {
-    const env = (dx, a) => {
-      ctx.save();
-      ctx.translate(X + dx, Y + 0.02);
-      ctx.rotate(a);
-      ctx.beginPath();
-      ctx.rect(-0.1, -0.2, 0.2, 0.19);
-      paint(ctx, shade(MAT.paper, 0.06), { lw: 0.015 });
-      ctx.beginPath();
-      ctx.moveTo(-0.1, -0.2); ctx.lineTo(0, -0.12); ctx.lineTo(0.1, -0.2);
-      ctx.strokeStyle = shade(MAT.paper, 0.35);
-      ctx.lineWidth = 0.012;
-      ctx.stroke();
-      ctx.restore();
-    };
-    env(0.07, 0.3);
-    env(-0.04, -0.14);
-    // her ribbon round the pair, bowed at the side, and a small heart
-    ctx.beginPath();
-    ctx.moveTo(X - 0.15, Y - 0.08); ctx.lineTo(X + 0.16, Y - 0.04);
-    ctx.strokeStyle = INK.oxblood;
-    ctx.lineWidth = 0.03;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(X + 0.13, Y - 0.07, 0.04, 0.022, -0.6, 0, Math.PI * 2);
-    ctx.ellipse(X + 0.19, Y - 0.04, 0.04, 0.022, 0.4, 0, Math.PI * 2);
-    paint(ctx, INK.oxblood, { lw: 0.012 });
-    const hx = X - 0.05, hy = Y - 0.14;
-    ctx.beginPath();
-    ctx.moveTo(hx, hy + 0.035);
-    ctx.bezierCurveTo(hx - 0.05, hy, hx - 0.025, hy - 0.04, hx, hy - 0.015);
-    ctx.bezierCurveTo(hx + 0.025, hy - 0.04, hx + 0.05, hy, hx, hy + 0.035);
-    ctx.fillStyle = INK.oxblood;
-    ctx.fill();
-    // one of the snake plant's blades, standing up in front of them
-    ctx.beginPath();
-    ctx.moveTo(X + 0.01, Y + 0.04);
-    ctx.quadraticCurveTo(X - 0.01, Y - 0.2, X + 0.05, Y - 0.36);
-    ctx.quadraticCurveTo(X + 0.08, Y - 0.2, X + 0.08, Y + 0.04);
-    ctx.closePath();
-    paint(ctx, LEAF_D, { dots: MAT.brassDark, density: 0.2, lw: 0.02, stroke: MAT.brassDark });
   }
+}
+
+// The love letters' pot (a poke): a snake plant that lifts out of its pot
+// when tapped, root ball and all. Shut, only a tail of her red ribbon hangs
+// over the rim (the still's tell). Open, the two envelopes stand up out of
+// the soil, the ribbon and its heart first. k: how open, 0..1.
+function lettersPot(ctx, X, Y, k) {
+  // the ribbon's tail, over the front of the rim and down the pot
+  ctx.beginPath();
+  ctx.moveTo(X + 0.06, Y + 0.01);
+  ctx.quadraticCurveTo(X + 0.16, Y + 0.08, X + 0.15, Y + 0.17);
+  ctx.quadraticCurveTo(X + 0.14, Y + 0.24, X + 0.18, Y + 0.3);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.045;
+  ctx.stroke();
+  ctx.strokeStyle = INK.oxblood;
+  ctx.lineWidth = 0.026;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(X + 0.18, Y + 0.3); ctx.lineTo(X + 0.15, Y + 0.35);
+  ctx.moveTo(X + 0.18, Y + 0.3); ctx.lineTo(X + 0.22, Y + 0.34);
+  ctx.strokeStyle = INK.oxblood;
+  ctx.lineWidth = 0.02;
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+  // the plant, lifted out and tipped back, its roots hanging
+  ctx.save();
+  ctx.translate(X, Y - k * 0.46);
+  ctx.rotate(-k * 0.22);
+  ctx.translate(-X, -Y);
+  if (k > 0.02) {
+    ctx.beginPath();
+    ctx.ellipse(X, Y + 0.02, 0.15, 0.1, 0, 0, Math.PI * 2);
+    paint(ctx, NIGHT.earthDark, { dots: NIGHT.earth, density: 0.3, lw: 0.02 });
+    ctx.beginPath();
+    for (const dx of [-0.08, 0, 0.07]) {
+      ctx.moveTo(X + dx, Y + 0.1);
+      ctx.quadraticCurveTo(X + dx + 0.04, Y + 0.16, X + dx - 0.01, Y + 0.2 * k);
+    }
+    ctx.strokeStyle = TWINE;
+    ctx.lineWidth = 0.014;
+    ctx.stroke();
+  }
+  snake(ctx, X, Y, 1);
+  ctx.restore();
+  if (k <= 0.02) return;
+  // the letters, standing up out of the soil (clipped there, so they rise out of it)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(X - 1, Y - 2, 2, 2.01);
+  ctx.clip();
+  ctx.translate(0, (1 - k) * 0.26);
+  const env = (dx, a) => {
+    ctx.save();
+    ctx.translate(X + dx, Y + 0.02);
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.rect(-0.1, -0.2, 0.2, 0.19);
+    paint(ctx, shade(MAT.paper, 0.06), { lw: 0.015 });
+    ctx.beginPath();
+    ctx.moveTo(-0.1, -0.2); ctx.lineTo(0, -0.12); ctx.lineTo(0.1, -0.2);
+    ctx.strokeStyle = shade(MAT.paper, 0.35);
+    ctx.lineWidth = 0.012;
+    ctx.stroke();
+    ctx.restore();
+  };
+  env(0.07, 0.3);
+  env(-0.04, -0.14);
+  // her ribbon round the pair, bowed at the side, and a small heart
+  ctx.beginPath();
+  ctx.moveTo(X - 0.15, Y - 0.08); ctx.lineTo(X + 0.16, Y - 0.04);
+  ctx.strokeStyle = INK.oxblood;
+  ctx.lineWidth = 0.03;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(X + 0.13, Y - 0.07, 0.04, 0.022, -0.6, 0, Math.PI * 2);
+  ctx.ellipse(X + 0.19, Y - 0.04, 0.04, 0.022, 0.4, 0, Math.PI * 2);
+  paint(ctx, INK.oxblood, { lw: 0.012 });
+  const hx = X - 0.05, hy = Y - 0.14;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy + 0.035);
+  ctx.bezierCurveTo(hx - 0.05, hy, hx - 0.025, hy - 0.04, hx, hy - 0.015);
+  ctx.bezierCurveTo(hx + 0.025, hy - 0.04, hx + 0.05, hy, hx, hy + 0.035);
+  ctx.fillStyle = INK.oxblood;
+  ctx.fill();
+  ctx.restore();
 }
 
 // What's on the staging: three steps, back (highest) to front. `in` is what
@@ -541,7 +587,7 @@ const STAGING = [
   { x: 1.24, z: 0.42, pots: [{ y: 1.8, kind: 'sticks', r: 0.16, in: 'tag' }, { y: 3.05, kind: 'fern', c: LEAF_D, in: 'seeds', ic: mix(INK.bone, INK.verdigris, 0.3) }, { y: 4.3, kind: 'cloche' }, { y: 5.4, kind: 'geranium', r: 0.17, in: 'tag' }] },
 ];
 
-function staging(ctx, t) {
+function staging(ctx, t, k = 0) {
   const wood = MAT.oak;
   for (const st of STAGING) {
     box(ctx, st.x, 1, st.z - 0.07, 0.46, 5, 0.07, wood, { lw: 0.04 });
@@ -559,6 +605,7 @@ function staging(ctx, t) {
       else if (p.kind === 'cactus') cactus(ctx, X, Y, 1);
       else if (p.kind === 'sticks') sticks(ctx, X, Y, 1);
       else if (p.kind === 'geranium') geranium(ctx, X, Y, 1, t);
+      else if (p.kind === 'snake' && p.in === 'letters') { lettersPot(ctx, X, Y, k); continue; }
       else if (p.kind === 'snake') snake(ctx, X, Y, 1);
       if (p.in) tucked(ctx, X, Y, p.in, p.ic);
     }
@@ -638,6 +685,80 @@ function wateringCan(ctx, t, x, y, color, flip = 1, web = false) {
     ctx.strokeStyle = C.ink;
     ctx.lineWidth = 0.012;
     ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// The decoy: a watering can made in the shape of a goose (the Lord had one
+// made for every room). White body, wings in relief, and the spout is her
+// neck, beak and all. k: how much it rocks after a tap.
+function gooseCan(ctx, x, y, k) {
+  const [X, Y] = P(x, y, 0);
+  ctx.save();
+  ctx.translate(X, Y);
+  if (Q.detail) {
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 0.4, 0.14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = alpha(C.ink, 0.18);
+    ctx.fill();
+  }
+  ctx.scale(1.35, 1.35);
+  ctx.rotate(Math.sin(k * Math.PI * 3) * 0.12 * (1 - k * 0.5));
+  // her tail, up at the back, which is the handle
+  ctx.beginPath();
+  ctx.moveTo(-0.24, -0.3);
+  ctx.bezierCurveTo(-0.42, -0.5, -0.36, -0.68, -0.18, -0.6);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.08;
+  ctx.stroke();
+  ctx.strokeStyle = C.white;
+  ctx.lineWidth = 0.045;
+  ctx.stroke();
+  // the body: a fat goose, sitting
+  ctx.beginPath();
+  ctx.moveTo(-0.3, -0.12);
+  ctx.bezierCurveTo(-0.34, -0.42, -0.1, -0.5, 0.12, -0.44);
+  ctx.bezierCurveTo(0.3, -0.38, 0.32, -0.12, 0.24, -0.04);
+  ctx.quadraticCurveTo(0, 0.04, -0.3, -0.12);
+  ctx.closePath();
+  paint(ctx, C.white, { dots: Q.detail ? C.grey : null, density: 0.1, lw: 0.03 });
+  // the wing, in relief
+  ctx.beginPath();
+  ctx.moveTo(-0.2, -0.24);
+  ctx.quadraticCurveTo(0, -0.36, 0.16, -0.22);
+  ctx.quadraticCurveTo(0.02, -0.12, -0.2, -0.24);
+  paint(ctx, C.greyLight, { lw: 0.02 });
+  // the filler, where her back should be
+  ctx.beginPath();
+  ctx.ellipse(-0.06, -0.45, 0.09, 0.035, 0, 0, Math.PI * 2);
+  paint(ctx, C.greyLight, { lw: 0.02 });
+  // the neck is the spout, the beak the rose
+  ctx.beginPath();
+  ctx.moveTo(0.16, -0.36);
+  ctx.quadraticCurveTo(0.36, -0.46, 0.34, -0.7);
+  ctx.lineTo(0.42, -0.72);
+  ctx.quadraticCurveTo(0.44, -0.42, 0.24, -0.26);
+  ctx.closePath();
+  paint(ctx, C.white, { lw: 0.025 });
+  ctx.beginPath();
+  ctx.ellipse(0.39, -0.75, 0.075, 0.06, 0, 0, Math.PI * 2);
+  paint(ctx, C.white, { lw: 0.025 });
+  ctx.beginPath();
+  ctx.moveTo(0.44, -0.78); ctx.lineTo(0.56, -0.74); ctx.lineTo(0.44, -0.72);
+  ctx.closePath();
+  paint(ctx, C.coral, { lw: 0.018 });
+  ctx.beginPath();
+  ctx.arc(0.4, -0.77, 0.014, 0, Math.PI * 2);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  if (Q.detail) {
+    // the rose's holes, in the end of the beak
+    ctx.fillStyle = shade(C.coral, 0.5);
+    for (const dy of [-0.012, 0.012]) {
+      ctx.beginPath();
+      ctx.arc(0.545, -0.75 + dy, 0.006, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -1241,10 +1362,11 @@ function monstera(ctx, t, bounce) {
 
 // The garden gnome. While the two of them are in here it covers its eyes, and
 // like them, it only changes pose in a flash.
-function gnome(ctx, x, y, covering) {
+// hop: 0..1, a jump after a tap (he covers his eyes for it too).
+function gnome(ctx, x, y, covering, hop = 0) {
   const [X, Y] = P(x, y, 0);
   ctx.save();
-  ctx.translate(X, Y);
+  ctx.translate(X, Y - Math.sin(Math.min(1, hop * 1.6) * Math.PI) * 0.12);
   ctx.scale(-1.3, 1.3);
   if (Q.detail) {
     ctx.beginPath();
@@ -1565,9 +1687,17 @@ function floorPlant(ctx, t, x, y, kind, s = 1) {
 }
 
 // Terracotta pots, stacked up and tipped over.
-function potStack(ctx, x, y) {
+// k: how far the top pot is lifted (a poke: someone checking inside).
+function potStack(ctx, x, y, k = 0) {
   for (let i = 0; i < 4; i++) {
-    const [X, Y] = P(x, y, i * 0.16);
+    const [X, Y0] = P(x, y, i * 0.16);
+    const lift = i === 3 ? k : 0, Y = Y0 - lift * 0.4;
+    if (lift) {
+      ctx.save();
+      ctx.translate(X, Y);
+      ctx.rotate(-lift * 0.3);
+      ctx.translate(-X, -Y);
+    }
     ctx.beginPath();
     ctx.moveTo(X - 0.34 + i * 0.01, Y - 0.26);
     ctx.lineTo(X - 0.25, Y);
@@ -1575,6 +1705,7 @@ function potStack(ctx, x, y) {
     ctx.lineTo(X + 0.34 - i * 0.01, Y - 0.26);
     ctx.closePath();
     paint(ctx, shade(MAT.terracotta, 0.05 * (3 - i)), { dots: shade(MAT.terracotta, 0.5), density: 0.15, lw: 0.025 });
+    if (lift) ctx.restore();
   }
   const [X, Y] = P(x + 0.75, y + 0.35, 0);
   ctx.beginPath();
@@ -2365,7 +2496,16 @@ export default {
     });
     R.thing(4.2, 1.25, (ctx, t) => pottingBench(ctx, t));
     R.thing(0.9, 6.7, (ctx, t) => tortoise(ctx, t, 0.6, 6.5), { anim: true });
-    R.thing(1.7, 6.1, (ctx, t) => staging(ctx, t), { anim: true });
+    // Things that answer a tap. The love letters' pot: tap it and the snake
+    // plant lifts out, her ribbon and the letters under it.
+    const lettersPoke = R.poke({ id: 'snake-pot', at: [1.01, 4.75, 1.25], r: 0.6, sound: 'pop', say: ['Lifts right out.', 'Back in its pot.'] });
+    // The gnome who can't look (the one a first visit is nudged to tap).
+    const gnomePoke = R.poke({ id: 'gnome', at: [12.4, 13.5, 0.6], r: 0.8, teach: true, hold: 2.5, say: ["I didn't see anything.", 'Still not looking.', 'Ask the fern.'] });
+    // The stack of empty pots: somebody has to check.
+    const potsPoke = R.poke({ id: 'pots', at: [13.35, 15.3, 0.6], r: 0.7, hold: 2, say: ['Empty.', 'Also empty.', 'Pots all the way down.'] });
+    // The red herring: a watering can shaped like a goose.
+    const canDecoy = R.decoy({ id: 'goose-can', at: [5.0, 14.95, 0.55], r: 0.7, hold: 1.2, say: ['For watering. Not for honking.', 'Still a watering can.'] });
+    R.thing(1.7, 6.1, (ctx, t) => staging(ctx, t, lettersPoke.k()), { anim: true });
     // The vine's trough, in the far corner of the right-hand glass.
     R.thing(15.3, 0.7, (ctx) => {
       box(ctx, 14.7, 0.1, 0, 1.2, 0.55, 0.5, MAT.oak, { lw: 0.035, top: NIGHT.earthDark });
@@ -2405,10 +2545,10 @@ export default {
     R.thing(4.7, 12.4, (ctx, t) => floorPlant(ctx, t, 4.7, 12.4, 'fern', 1.0), { anim: true });
     R.thing(3.6, 13.7, (ctx, t) => palmBushy(ctx, t), { anim: true });
     R.thing(6.3, 13.9, (ctx, t) => witnessFern(ctx, t, startle(t), step(together, t) > 0), { anim: true });
-    R.thing(12.4, 13.5, (ctx, t) => gnome(ctx, 12.4, 13.5, caught(together, t) > 0), { anim: true });
+    R.thing(12.4, 13.5, (ctx, t) => { const k = gnomePoke.k(); gnome(ctx, 12.4, 13.5, caught(together, t) > 0 || k > 0.3, k); }, { anim: true });
     R.thing(15.1, 14.2, (ctx, t) => floorPlant(ctx, t, 15.1, 14.2, 'agave', 1.2), { anim: true });
-    R.thing(4.9, 15.0, (ctx, t) => wateringCan(ctx, t, 4.9, 15.0, INK.verdigris, -1, false));
-    R.thing(13.6, 15.5, (ctx) => potStack(ctx, 13.3, 15.3));
+    R.thing(4.9, 15.0, (ctx) => gooseCan(ctx, 4.9, 15.0, canDecoy.k()), { anim: true });
+    R.thing(13.6, 15.5, (ctx) => potStack(ctx, 13.3, 15.3, potsPoke.k()), { anim: true });
     R.thing(1.6, 15.3, (ctx) => wheelbarrow(ctx));
 
     // The mouse under the potting bench, making a run for the spilled seeds.
@@ -2501,7 +2641,10 @@ export default {
     });
 
     // ---------- Finds ----------
-    R.find({ id: 'love-letters', label: 'Love letters in a flowerpot', at: [1.01, 4.75, 1.18], r: 0.6 });
-    R.find({ id: 'fig-leaf', label: 'A fig leaf, worn once', at: [12.5, 11.5, 0.05], r: 0.8 });
+    R.find({
+      id: 'love-letters', label: 'Love letters', kind: 'poke', inside: lettersPoke, at: [1.01, 4.75, 1.22], r: 0.6,
+      hint: "Nobody has touched these plants since Easter. Somebody has been lifting one of them.",
+    });
+    R.find({ id: 'fig-leaf', label: 'A fig leaf, worn once', kind: 'spot', at: [12.5, 11.5, 0.05], r: 0.8 });
   },
 };

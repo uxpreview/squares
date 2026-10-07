@@ -483,42 +483,188 @@ function paperPile(ctx) {
       words(g, '5', 0.12, 0.04, 0.05, C.ink);
     });
   }
-  // The pawn ticket, on top of an IOU. (His alibi is the date: the case file
-  // says it's dated tomorrow.)
-  onFlat(ctx, 11.15, 11.33, TOP + 0.006, -0.5, (g) => {
-    if (Q.detail) {
-      g.beginPath();
-      g.moveTo(-0.14, 0);
-      g.bezierCurveTo(-0.22, -0.01, -0.2, 0.11, -0.28, 0.09);
-      g.bezierCurveTo(-0.34, 0.07, -0.3, -0.03, -0.37, -0.05);
-      g.strokeStyle = INK.oxblood;
-      g.lineWidth = 0.016;
-      g.stroke();
-    }
+}
+
+// The pawn ticket (his alibi is the date: the case file says it's dated
+// tomorrow), flat, in local units: a manila tag, its string, the stub and
+// the pawnbroker's three balls.
+function pawnTicket(g) {
+  if (Q.detail) {
     g.beginPath();
-    g.moveTo(-0.18, -0.04); g.lineTo(-0.13, -0.09); g.lineTo(0.17, -0.09); g.lineTo(0.17, 0.09); g.lineTo(-0.13, 0.09); g.lineTo(-0.18, 0.04);
-    g.closePath();
-    paint(g, MANILA, { lw: 0.016 });
-    g.beginPath();
-    g.arc(-0.135, 0, 0.022, 0, Math.PI * 2);
-    paint(g, INK.bone, { lw: 0.01, stroke: MAT.brassDark });
-    if (!Q.detail) return;
-    // the tear-off stub, and the pawnbroker's three balls
-    g.setLineDash([0.015, 0.012]);
-    g.beginPath();
-    g.moveTo(-0.08, -0.09); g.lineTo(-0.08, 0.09);
-    g.strokeStyle = alpha(C.ink, 0.6);
-    g.lineWidth = 0.008;
+    g.moveTo(-0.14, 0);
+    g.bezierCurveTo(-0.22, -0.01, -0.2, 0.11, -0.28, 0.09);
+    g.bezierCurveTo(-0.34, 0.07, -0.3, -0.03, -0.37, -0.05);
+    g.strokeStyle = INK.oxblood;
+    g.lineWidth = 0.016;
     g.stroke();
-    g.setLineDash([]);
-    inkLines(g, [-0.06], 0.095, 0.155, C.ink, 0.01);
-    for (const [bx, by] of [[0.105, -0.035], [0.145, -0.035], [0.125, -0.005]]) {
+  }
+  g.beginPath();
+  g.moveTo(-0.18, -0.04); g.lineTo(-0.13, -0.09); g.lineTo(0.17, -0.09); g.lineTo(0.17, 0.09); g.lineTo(-0.13, 0.09); g.lineTo(-0.18, 0.04);
+  g.closePath();
+  paint(g, MANILA, { lw: 0.016 });
+  g.beginPath();
+  g.arc(-0.135, 0, 0.022, 0, Math.PI * 2);
+  paint(g, INK.bone, { lw: 0.01, stroke: MAT.brassDark });
+  if (!Q.detail) return;
+  // the tear-off stub, and the pawnbroker's three balls
+  g.setLineDash([0.015, 0.012]);
+  g.beginPath();
+  g.moveTo(-0.08, -0.09); g.lineTo(-0.08, 0.09);
+  g.strokeStyle = alpha(C.ink, 0.6);
+  g.lineWidth = 0.008;
+  g.stroke();
+  g.setLineDash([]);
+  inkLines(g, [-0.06], 0.095, 0.155, C.ink, 0.01);
+  for (const [bx, by] of [[0.105, -0.035], [0.145, -0.035], [0.125, -0.005]]) {
+    g.beginPath();
+    g.arc(bx, by, 0.018, 0, Math.PI * 2);
+    paint(g, MAT.brass, { lw: 0.008 });
+  }
+  words(g, 'No 73', 0.0, -0.035, 0.05, C.ink);
+  words(g, 'TOMORROW', 0.035, 0.045, 0.032, INK.oxblood, { font: SANS });
+}
+
+// The cigar box on the card table (a poke): Rupert keeps his ticket in it.
+// Shut, the ticket's string hangs out from under the lid, a corner of the
+// tag on the end of it. k: how open the lid is, 0..1.
+const BOX = { x: 10.62, y: 12.6, w: 0.52, d: 0.34, h: 0.13 };
+const CEDAR = mix(MAT.oak, INK.oxblood, 0.25);
+function cigarBox(ctx, k) {
+  const { x, y, w, d, h } = BOX, z0 = TOP, zt = TOP + h;
+  // the string and the tag's corner, out from under the lid's side and down
+  // onto the baize
+  const [sX, sY] = P(x + w, y + d * 0.55, zt - 0.01);
+  const [eX, eY] = P(x + w + 0.17, y + d * 0.6, TOP + 0.004);
+  if (k < 0.5) {
+    ctx.beginPath();
+    ctx.moveTo(sX, sY);
+    ctx.quadraticCurveTo(sX + 0.1, sY + 0.02, eX, eY);
+    ctx.strokeStyle = INK.oxblood;
+    ctx.lineWidth = 0.016;
+    ctx.stroke();
+    onFlat(ctx, x + w + 0.24, y + d * 0.62, TOP + 0.004, 0.3, (g) => {
       g.beginPath();
-      g.arc(bx, by, 0.018, 0, Math.PI * 2);
-      paint(g, MAT.brass, { lw: 0.008 });
+      g.moveTo(-0.07, -0.03); g.lineTo(-0.04, -0.06); g.lineTo(0.05, -0.06); g.lineTo(0.05, 0.06); g.lineTo(-0.04, 0.06); g.lineTo(-0.07, 0.03);
+      g.closePath();
+      paint(g, MANILA, { lw: 0.014 });
+      g.beginPath();
+      g.arc(-0.045, 0, 0.014, 0, Math.PI * 2);
+      paint(g, INK.bone, { lw: 0.008, stroke: MAT.brassDark });
+    });
+  }
+  // the box
+  box(ctx, x, y, z0, w, d, h, CEDAR, { top: shade(CEDAR, 0.45), dotsL: shade(CEDAR, 0.4) });
+  if (Q.detail) {
+    // the paper label on its side
+    face(ctx, [[x + 0.12, y + d, z0 + 0.03], [x + w - 0.12, y + d, z0 + 0.03], [x + w - 0.12, y + d, zt - 0.03], [x + 0.12, y + d, zt - 0.03]], INK.bone, { lw: 0.012 });
+    face(ctx, [[x + 0.2, y + d, z0 + 0.065], [x + w - 0.2, y + d, z0 + 0.065]], null, { lw: 0.02, stroke: INK.oxblood });
+  }
+  // the lid, hinged along the back edge, swinging up and over (drawn before
+  // what's inside once it's up behind it, after while it's still over it)
+  const a = k * 1.95, ca = Math.cos(a), sa = Math.sin(a);
+  const lid = () => {
+    const ly = y + d * ca, lz = zt + d * sa;
+    face(ctx, [[x, y, zt], [x + w, y, zt], [x + w, ly, lz], [x, ly, lz]], k > 0.5 ? shade(CEDAR, 0.25) : CEDAR, { lw: 0.022 });
+  };
+  if (a > 1.2) lid();
+  if (k > 0.02) {
+    // inside: cigars, and the ticket on top of them
+    for (let i = 0; i < 4; i++) {
+      const cy = y + 0.07 + i * 0.075;
+      face(ctx, [[x + 0.06, cy, zt - 0.02], [x + w - 0.06, cy, zt - 0.02]], null, { lw: 0.06, stroke: mix(MAT.oak, C.ink, 0.3) });
+      if (Q.detail) face(ctx, [[x + 0.16, cy, zt - 0.02], [x + 0.22, cy, zt - 0.02]], null, { lw: 0.062, stroke: INK.oxblood });
     }
-    words(g, 'No 73', 0.0, -0.035, 0.05, C.ink);
-    words(g, 'TOMORROW', 0.035, 0.045, 0.032, INK.oxblood, { font: SANS });
+    onFlat(ctx, x + w / 2 + 0.02, y + d / 2 + 0.02, zt - 0.005, 0.25, (g) => {
+      g.scale(1.15, 1.15);
+      pawnTicket(g);
+    });
+  }
+  if (a <= 1.2) lid();
+  if (k < 0.5 && Q.detail) {
+    // a brass plate on the lid: R
+    const [bX, bY] = P(x + w / 2, y + d / 2, zt);
+    ctx.beginPath();
+    ctx.ellipse(bX, bY, 0.07, 0.035, 0, 0, Math.PI * 2);
+    paint(ctx, MAT.brass, { lw: 0.01 });
+  }
+}
+
+// The Lord's wooden goose decoy, for the mantel: carved, painted white, the
+// paint chipped where the wood shows. Side on, facing +y (to the left on
+// screen). k: a wobble after a tap.
+function woodDecoy(ctx, x, y, z, k) {
+  sprite(ctx, x, y, z, (g) => {
+    g.rotate(Math.sin(k * Math.PI * 3) * 0.1 * (1 - k * 0.5));
+    // the base board
+    g.beginPath();
+    g.rect(-0.3, -0.05, 0.6, 0.05);
+    paint(g, WOOD_D, { lw: 0.018 });
+    // body
+    g.beginPath();
+    g.moveTo(0.3, -0.16);
+    g.quadraticCurveTo(0.34, -0.3, 0.18, -0.32);
+    g.quadraticCurveTo(-0.1, -0.36, -0.2, -0.24);
+    g.quadraticCurveTo(-0.26, -0.08, -0.08, -0.05);
+    g.lineTo(0.2, -0.05);
+    g.quadraticCurveTo(0.32, -0.08, 0.3, -0.16);
+    g.closePath();
+    paint(g, INK.bone, { lw: 0.022 });
+    // the wing, carved in, and chips where the wood shows
+    g.beginPath();
+    g.moveTo(-0.08, -0.2);
+    g.quadraticCurveTo(0.1, -0.29, 0.27, -0.2);
+    g.quadraticCurveTo(0.1, -0.12, -0.08, -0.2);
+    paint(g, mix(INK.bone, MAT.stone, 0.5), { lw: 0.014 });
+    if (Q.detail) {
+      dot(g, 0.06, -0.09, 0.02, MAT.oakLight);
+      dot(g, 0.2, -0.27, 0.015, MAT.oakLight);
+    }
+    // neck and head, beak to the left
+    g.beginPath();
+    g.moveTo(-0.12, -0.28);
+    g.quadraticCurveTo(-0.16, -0.42, -0.2, -0.5);
+    g.lineTo(-0.12, -0.52);
+    g.quadraticCurveTo(-0.08, -0.4, -0.02, -0.31);
+    g.closePath();
+    paint(g, INK.bone, { lw: 0.018 });
+    g.beginPath();
+    g.ellipse(-0.18, -0.53, 0.06, 0.045, 0, 0, Math.PI * 2);
+    paint(g, INK.bone, { lw: 0.018 });
+    g.beginPath();
+    g.moveTo(-0.22, -0.55); g.lineTo(-0.32, -0.52); g.lineTo(-0.22, -0.5);
+    g.closePath();
+    paint(g, C.coral, { lw: 0.012 });
+    dot(g, -0.18, -0.545, 0.012, C.ink);
+  });
+}
+
+// A playing card dropped on the floor. ace: face up, the ace of spades; or
+// face down.
+function droppedCard(ctx, x, y, rot, ace) {
+  onFlat(ctx, x, y, 0.014, rot, (g) => {
+    g.beginPath();
+    g.rect(-0.13, -0.19, 0.26, 0.38);
+    paint(g, ace ? INK.bone : INK.oxblood, { lw: 0.022 });
+    if (!Q.detail) return;
+    if (!ace) {
+      g.strokeStyle = alpha(INK.bone, 0.75);
+      g.lineWidth = 0.02;
+      g.strokeRect(-0.085, -0.145, 0.17, 0.29);
+      return;
+    }
+    // a spade, and an A in two corners
+    g.beginPath();
+    g.moveTo(0, -0.07);
+    g.bezierCurveTo(-0.09, 0.0, -0.06, 0.07, 0, 0.03);
+    g.bezierCurveTo(0.06, 0.07, 0.09, 0.0, 0, -0.07);
+    g.moveTo(0, 0.02); g.lineTo(-0.025, 0.07); g.lineTo(0.025, 0.07);
+    g.fillStyle = C.ink;
+    g.fill();
+    words(g, 'A', -0.085, -0.14, 0.06, C.ink, { font: SANS });
+    words(g, 'A', 0.085, 0.14, 0.06, C.ink, { font: SANS });
+    // in the table's shadow
+    g.fillStyle = alpha(INK.deepPlum, 0.25);
+    g.fillRect(-0.13, -0.19, 0.26, 0.38);
   });
 }
 
@@ -701,6 +847,16 @@ export default {
 
   build(R) {
     const [ox, oy, oz] = R.origin;
+
+    // ---------- Things that answer a tap ----------
+    // The reds on the billiard table (the one a first visit is nudged to tap).
+    const rack = R.poke({ id: 'rack', at: [7.95, 6.25, 1.1], r: 1.0, teach: true, hold: 2.2, sound: 'tick', say: ['Click.', 'Clack.', 'Nobody is winning this one either.'] });
+    // The sideboard's middle cupboard.
+    const cupboard = R.poke({ id: 'cupboard', at: [14.1, 0.93, 0.55], r: 0.8, sound: 'clunk', say: ['Glasses. No port.', "Somebody's had the port.", 'Still no port.'] });
+    // Rupert's cigar box on the card table: the pawn ticket is in it.
+    const cigars = R.poke({ id: 'cigars', at: [10.88, 12.77, 1.12], r: 0.6, say: ['Cigars. And something else.', 'Just cigars now.'] });
+    // The red herring: the Lord's wooden goose decoy on the mantel.
+    const decoy = R.decoy({ id: 'wood-goose', at: [0.35, 8.55, 1.95], r: 0.6, hold: 1.2, say: ["A decoy. Don't shoot.", 'Wood. Painted. Still not a goose.'] });
 
     // ---------- Floor and walls ----------
     R.floor((ctx) => {
@@ -1039,6 +1195,10 @@ export default {
           g.stroke();
         }
       });
+      // Under the card table, the chauffeur's spare (a fifth ace, the
+      // curiosity), and near Rupert's IOUs a card that's just a card.
+      droppedCard(ctx, 12.55, 11.75, 0.4, true);
+      droppedCard(ctx, 8.95, 12.85, -0.5, false);
       // Soft shadows under the furniture.
       ctx.fillStyle = alpha(C.ink, 0.16);
       for (const [x, y, w, d] of [[2.7, 4.2, 7.1, 4.1], [10.3, 10.3, 2.9, 2.9], [6.6, 12.8, 1.6, 0.9], [9.3, 11.3, 1.0, 1.0], [13.3, 11.3, 1.0, 1.0], [14.5, 10.2, 1.2, 1.25]]) {
@@ -1210,6 +1370,28 @@ export default {
       stagEyes(ctx, look);
       ctx.restore();
     }, { anim: true });
+    // The wooden goose on the mantel, and the cupboard door swinging open.
+    R.rug((ctx) => {
+      woodDecoy(ctx, 0.35, 8.55, 1.69, decoy.k());
+      const k = cupboard.k();
+      if (k < 0.01) return;
+      const x0 = 13.6, x1 = 14.6, y = 0.93, z0 = 0.15, z1 = 0.95;
+      face(ctx, [[x0 + 0.02, y, z0], [x1 - 0.02, y, z0], [x1 - 0.02, y, z1], [x0 + 0.02, y, z1]], shade(WOOD, 0.65), { lw: 0.02 });
+      face(ctx, [[x0 + 0.02, y, 0.55], [x1 - 0.02, y, 0.55]], null, { lw: 0.03, stroke: shade(WOOD, 0.4) });
+      for (const gx of [13.85, 14.1, 14.35]) {
+        const [X, Y] = P(gx, y - 0.2, 0.55);
+        ctx.beginPath();
+        ctx.moveTo(X - 0.06, Y - 0.16); ctx.lineTo(X + 0.06, Y - 0.16); ctx.lineTo(X + 0.04, Y); ctx.lineTo(X - 0.04, Y);
+        ctx.closePath();
+        paint(ctx, GLASS, { lw: 0.015 });
+      }
+      // the empty port bottle, on its side
+      rod(ctx, [P(13.75, y - 0.25, 0.22), P(14.35, y - 0.25, 0.22)], MAT.wine, 0.12);
+      const a = k * 1.45, ex = x0 + Math.cos(a), ey = y + Math.sin(a);
+      face(ctx, [[x0, y, z0], [ex, ey, z0], [ex, ey, z1], [x0, y, z1]], WOOD, { lw: 0.03, dots: MAT.mahoganyDark, density: 0.15 });
+      const [kX, kY] = P(x0 + (ex - x0) * 0.85, y + (ey - y) * 0.85, 0.62);
+      dot(ctx, kX, kY, 0.035, MAT.brass);
+    }, { anim: true });
     // The gramophone plays on, lights or no lights.
     R.rug((ctx, t) => {
       const a = t * 4;
@@ -1287,7 +1469,8 @@ export default {
         paint(ctx, C.black, { lw: 0.03, stroke: MAT.brass });
       }
       // the balls
-      for (const [bx, by] of REDS) ball(ctx, bx, by, 1.0, 0.11, INK.oxblood);
+      const rk = rack.k();
+      for (const [bx, by] of REDS) ball(ctx, bx + (bx - 7.95) * rk * 1.1 + rk * 0.08, by + (by - 6.25) * rk * 1.1, 1.0, 0.11, INK.oxblood);
       for (const [bx, by, c] of COLOURS) ball(ctx, bx, by, 1.0, 0.11, c);
       const cb = cueBall(t);
       ball(ctx, cb.p[0], cb.p[1], 1.0, 0.11, C.white);
@@ -1382,6 +1565,7 @@ export default {
     // Rupert's heap of paper (static, so it sits just above the table's baize
     // and under anything in the pot).
     R.thing(11.3, 11.3, paperPile, { depth: 23.25 });
+    R.thing(BOX.x + BOX.w / 2, BOX.y + BOX.d / 2, (ctx) => cigarBox(ctx, cigars.k()), { anim: true, depth: 23.3 });
 
     // Rupert's chair (he's on the evening's clock; the engine sits him in it).
     R.thing(9.8, 11.8, (ctx) => cardChair(ctx, 9.4, 11.4, 'px'), { depth: 21.2 });
@@ -1633,7 +1817,15 @@ export default {
     R.dark((t) => house.dark(t));
 
     // ---------- Finds ----------
-    R.find({ id: 'pawn-ticket', label: 'A pawn ticket', at: [11.15, 11.33, 1.04], r: 0.6 });
-    R.find({ id: 'shoes', label: "Rupert's shoes", at: (t) => { const [x, y, z] = shoesAt(lt(t)); return [x, y, z + 0.14]; }, r: 0.8 });
+    R.find({
+      id: 'pawn-ticket', label: 'A pawn ticket', kind: 'poke', inside: cigars, at: [10.9, 12.78, 1.15], r: 0.6,
+      hint: 'Rupert swears he was only pawning the silver. Something on the card table is keeping a lid on it.',
+    });
+    R.find({
+      id: 'fifth-ace', label: 'A fifth ace', kind: 'hard', at: [12.55, 11.75, 0.05], r: 0.6,
+      riddle: 'Four aces on the table. Try under it.',
+      hint: 'Four aces is lucky. Five is careless. Somebody dropped one.',
+    });
+    R.find({ id: 'shoes', label: "Rupert's shoes", kind: 'spot', at: (t) => { const [x, y, z] = shoesAt(lt(t)); return [x, y, z + 0.14]; }, r: 0.8 });
   },
 };
