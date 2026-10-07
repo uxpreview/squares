@@ -737,9 +737,13 @@ function bottleAt(tt) {
 
 // Everything on the bed that changes: pillows, quilt, the trapdoor and what's
 // in it. The cat is drawn on its own.
-function bedding(ctx, t) {
+// pk: how far the taps have opened things, { pillow, bed } (0..1 each): the
+// right pillow lifts off the diary, and the bed drops open on its own.
+function bedding(ctx, t, pk = { pillow: 0, bed: 0 }) {
   const tt = loopT(t);
-  const door = doorK(tt);
+  const door = Math.max(doorK(tt), pk.bed);
+  // (a tap can open the trapdoor while the quilt is on the bed: it has a hole cut to match)
+  const tapped = pk.bed > doorK(tt) + 0.01;
   const q = quiltK(tt);
   const pl = pillowL(tt);
   const cap = capAt(tt);
@@ -757,8 +761,10 @@ function bedding(ctx, t) {
     ctx.lineWidth = 0.035;
     ctx.stroke();
   }
-  // Pillows (and the nightcap) at home.
-  pillow(ctx, PILLOW_R[0], PILLOW_R[1], TOP);
+  // His diary, under his pillow (the strap and its lock stick out), and the
+  // pillow, which lifts off it when tapped.
+  diary(ctx, DIARY.x, DIARY.y, TOP + 0.008, DIARY.rot);
+  pillow(ctx, PILLOW_R[0], PILLOW_R[1] - 0.32 * pk.pillow, TOP + 0.6 * pk.pillow);
   if (pl && pl.home) pillow(ctx, pl.x, pl.y, pl.z);
   if (cap && cap.on) { const [X, Y] = P(cap.x, cap.y, cap.z); nightcap(ctx, X, Y, 0.8, 1, 0.5); }
 
@@ -831,7 +837,19 @@ function bedding(ctx, t) {
   // The quilt, on the bed or on its way.
   if (q.k < 0.5) {
     const k = q.k / 0.5;
+    ctx.save();
+    if (tapped && door > 0.01) {
+      ctx.beginPath();
+      ctx.rect(-1e4, -1e4, 2e4, 2e4);
+      [[HOLE.x0, HOLE.y0], [HOLE.x1, HOLE.y0], [HOLE.x1, HOLE.y1], [HOLE.x0, HOLE.y1]].forEach(([x, y], i) => {
+        const [X, Y] = P(x, y, TOP + 0.04);
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+      });
+      ctx.closePath();
+      ctx.clip('evenodd');
+    }
     quilt(ctx, lerpQuad(QUILT_HOME, QUILT_HOLE, ease(k)), TOP + 0.04, 1 - clamp(k * 4));
+    ctx.restore();
   } else if (q.k < 1 && door < 0.01) {
     quilt(ctx, QUILT_HOLE, TOP + 0.04);
   }
@@ -1102,7 +1120,7 @@ function bedsideHeap(ctx) {
     printed(g, 0.05, 0.34, 0.24, 3, 0.04);
     printed(g, 0.31, 0.34, 0.24, 3, 0.04);
   });
-  diary(ctx);
+  nightBook(ctx);
   // the Bible, open at Genesis, where the birds are made (no ribbon, no strap, all print)
   flat(ctx, 8.6, 3.2, z + 0.006, (g) => {
     g.rotate(-0.08);
@@ -1142,12 +1160,12 @@ function bedsideHeap(ctx) {
     if (Q.detail) words(g, '80', 0.11, 0.085, 0.08, INK.candleGold, { font: DISPLAY });
   });
 }
-// The Lord's diary, open at the page (the find). Small, and the only book on
-// the table in his handwriting: a leather strap undone and a ribbon marker.
-function diary(ctx) {
-  const z = NT.z + 0.008;
-  flat(ctx, 8.1, 3.22, z, (g) => {
-    g.rotate(0.06);
+// The Lord's diary, open at the page (the find), under his pillow: he slept on
+// it. Only its strap and little brass lock stick out from under the pillow.
+const DIARY = { x: 4.98, y: 3.6, rot: 0.06 };
+function diary(ctx, x, y, z, rot) {
+  flat(ctx, x, y, z, (g) => {
+    g.rotate(rot);
     // the strap, undone, hanging toward you off the front cover, with its buckle
     g.beginPath();
     g.moveTo(0.44, 0.33); g.quadraticCurveTo(0.47, 0.42, 0.42, 0.5); g.lineTo(0.38, 0.49); g.quadraticCurveTo(0.42, 0.42, 0.4, 0.33);
@@ -1208,6 +1226,29 @@ function diary(ctx) {
     g.moveTo(0.3, 0.3); g.lineTo(0.46, 0.297);
     g.stroke();
   });
+}
+// On the bedside table where you'd expect the diary: his night reading, open,
+// in the same brown leather with the same ribbon. All print, no strap, no lock.
+function nightBook(ctx) {
+  const z = NT.z + 0.008;
+  flat(ctx, 8.1, 3.22, z, (g) => {
+    g.rotate(0.06);
+    g.beginPath();
+    g.roundRect(-0.025, -0.025, 0.55, 0.39, 0.03);
+    paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.025 });
+    for (const a of [0, 0.25]) {
+      g.beginPath();
+      g.moveTo(a, 0.005); g.quadraticCurveTo(a + 0.125, -0.02, 0.25 + a, 0.005); g.lineTo(0.25 + a, 0.345); g.quadraticCurveTo(a + 0.125, 0.32, a, 0.345);
+      g.closePath();
+      paint(g, PAGE, { lw: 0.014 });
+    }
+    g.beginPath();
+    g.moveTo(0.245, 0.33); g.quadraticCurveTo(0.22, 0.42, 0.26, 0.47); g.lineTo(0.285, 0.46); g.quadraticCurveTo(0.25, 0.41, 0.262, 0.33);
+    g.closePath();
+    g.fillStyle = INK.candleGold; g.fill();
+    printed(g, 0.03, 0.05, 0.19, 7, 0.042);
+    printed(g, 0.28, 0.05, 0.19, 7, 0.042);
+  });
   // the pen, left beside it
   line3(ctx, [[8.2, 3.68, z + 0.02], [8.48, 3.62, z + 0.02]], C.ink, 0.035);
   line3(ctx, [[8.42, 3.63, z + 0.02], [8.48, 3.62, z + 0.02]], BRASS, 0.035);
@@ -1256,9 +1297,9 @@ function basket(ctx) {
     words(g, 'RETURNS', 0.38, 0.115, 0.13, WOOD_D, { font: DISPLAY });
   });
 }
-function basketLid(ctx, t) {
+function basketLid(ctx, t, tap = 0) {
   const { x0, y0, x1, y1, h } = BASKET;
-  const a = lidK(loopT(t)) * 1.3;
+  const a = Math.max(lidK(loopT(t)), tap * 0.8) * 1.3;
   const d = y1 - y0 + 0.06;
   const fy = y0 - 0.03 + d * Math.cos(a), fz = h + d * Math.sin(a);
   face(ctx, [[x0 - 0.03, y0 - 0.03, h], [x1 + 0.03, y0 - 0.03, h], [x1 + 0.03, fy, fz], [x0 - 0.03, fy, fz]], tint(WICKER, 0.1), { dots: WICKER_D, density: 0.15 });
@@ -2427,6 +2468,8 @@ export default {
       });
     });
     R.decor((ctx, t) => portraitGoose(ctx, t), { anim: true });
+    // A red herring: the goose painted out of his portrait, whose eye still shows.
+    R.decoy({ id: 'portrait', at: [0.05, 10.5, 3.9], r: 0.8, say: ['Painted out. It keeps coming back.', 'Still painted out. Allegedly.'] });
 
     // ---------- On the floor ----------
     R.rug((ctx) => {
@@ -2445,7 +2488,11 @@ export default {
     // ---------- The four-poster ----------
     R.thing(4.5, 2.6, (ctx) => bedBack(ctx), { depth: 4.8 });
     R.thing(4.5, 5.2, (ctx) => bedBody(ctx), { depth: 9.8 });
-    R.thing(4.5, 5.3, (ctx, t) => bedding(ctx, t), { depth: 9.9, anim: true });
+    // Things that answer a tap: the bed itself (the one a new player is shown),
+    // his pillow (the diary's under it) and the RETURNS basket.
+    const bedPoke = R.poke({ id: 'trapdoor', at: [HX, HY, TOP], r: 1.0, hold: 2.4, teach: true, sound: 'clunk', say: ['Mind the bed.', 'It does that.', 'Nobody down there. Probably.'] });
+    const pillowPoke = R.poke({ id: 'pillow', at: [PILLOW_R[0], PILLOW_R[1], TOP + 0.3], r: 0.8, say: ['Goose down. Naturally.', 'Fluffed.'] });
+    R.thing(4.5, 5.3, (ctx, t) => bedding(ctx, t, { pillow: pillowPoke.k(), bed: bedPoke.k() }), { depth: 9.9, anim: true });
     R.thing(4.5, 7.9, (ctx) => bedFront(ctx), { depth: 10.5 });
     R.thing(3.05, 8.0, (ctx, t) => mindTheBed(ctx, t), { depth: 10.55, anim: true });
 
@@ -2486,7 +2533,8 @@ export default {
     lamp(R, 7.95, 2.88, { z: 1.0, h: 0.8, r: 2.8 });
     R.thing(7.6, 4.4, (ctx) => slippers(ctx));
     R.thing(9.6, 6.6, (ctx) => basket(ctx));
-    R.thing(9.61, 6.61, (ctx, t) => basketLid(ctx, t), { anim: true });
+    const returns = R.poke({ id: 'returns', at: [BASKET_MID[0], BASKET_MID[1], BASKET.h], r: 0.7, hold: 1.2, sound: 'clunk', say: ['No returns without a receipt.', 'Empty. For now.'] });
+    R.thing(9.61, 6.61, (ctx, t) => basketLid(ctx, t, returns.k()), { anim: true });
     R.thing(4.5, 8.75, (ctx) => bench(ctx));
 
     // ---------- The safe, the washstand, the trap ----------
@@ -2636,7 +2684,10 @@ export default {
     }, { depth: 10.3, anim: true });
 
     // ---------- The finds ----------
-    R.find({ id: 'diary', label: "The Lord's diary", at: [8.33, 3.4, 1.03], r: 0.6 });
-    R.find({ id: 'new-will', label: 'The new will', at: [13.02, 11.27, 1.22], r: 0.6 });
+    R.find({
+      id: 'diary', label: "The Lord's diary", kind: 'poke', inside: pillowPoke, at: [DIARY.x + 0.27, DIARY.y + 0.2, TOP + 0.01], r: 0.6,
+      hint: "A man that frightened of a goose doesn't leave his diary lying about. He keeps it close, even asleep.",
+    });
+    R.find({ id: 'new-will', label: 'The new will', kind: 'spot', at: [13.02, 11.27, 1.22], r: 0.6 });
   },
 };

@@ -397,13 +397,44 @@ function landingTable(ctx) {
 // lid won't close over the family silver, so a couple of forks, a candlestick
 // and the teapot's spout stick out of the crack (and one of his socks).
 const CASE = { x0: 14.8, y0: 2.4, w: 1.1, d: 0.7, h: 0.3, lift: 0.13, th: 0.12 };
-function silverCase(ctx) {
+// k: 0 shut (nearly), 1 sprung open. Tapped, the lid flies up and the silver
+// goes everywhere.
+function silverCase(ctx, k = 0) {
   const { x0, y0, w, d, h, lift, th } = CASE;
   const x1 = x0 + w, y1 = y0 + d;
+  // The lid, hinged along the back: from resting on the silver to flung back.
+  const b0 = Math.atan2(lift, d), b = b0 + (1.85 - b0) * k;
+  const lidAt = (x, r, z) => [x, y0 + r * Math.cos(b), h + z + r * Math.sin(b)];
+  const lid = () => {
+    const top = [lidAt(x0, 0, th), lidAt(x1, 0, th), lidAt(x1, d, th), lidAt(x0, d, th)];
+    face(ctx, [lidAt(x1, 0, 0), lidAt(x1, d, 0), lidAt(x1, d, th), lidAt(x1, 0, th)], shade(TAN, 0.1), { lw: 0.03 });
+    face(ctx, [lidAt(x0, d, 0), lidAt(x1, d, 0), lidAt(x1, d, th), lidAt(x0, d, th)], shade(TAN, 0.24), { lw: 0.03, dots: shade(TAN, 0.5), density: 0.18 });
+    if (k > 0.5) {
+      // flung open: you see its lining
+      face(ctx, [lidAt(x0, 0, 0), lidAt(x1, 0, 0), lidAt(x1, d, 0), lidAt(x0, d, 0)], MAT.velvetDark, { lw: 0.03 });
+      return;
+    }
+    face(ctx, top, TAN, { lw: 0.03 });
+    // its straps, unbuckled, and the handle
+    for (const x of [x0 + 0.25, x0 + w - 0.3]) {
+      face(ctx, [lidAt(x, 0, th + 0.002), lidAt(x + 0.08, 0, th + 0.002), lidAt(x + 0.08, d, th + 0.002), lidAt(x, d, th + 0.002)], shade(TAN, 0.4), { stroke: false });
+      if (k < 0.05) face(ctx, [[x, y1 + 0.004, h + lift + th], [x + 0.08, y1 + 0.004, h + lift + th], [x + 0.09, y1 + 0.004, h + lift - 0.1], [x + 0.01, y1 + 0.004, h + lift - 0.1]], shade(TAN, 0.4), { stroke: false });
+    }
+    const [HX, HY] = P(...lidAt(x0 + w / 2, d + 0.005, th / 2));
+    ctx.beginPath(); ctx.ellipse(HX, HY, 0.12, 0.07, 0, 0, Math.PI);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.stroke(); ctx.strokeStyle = shade(TAN, 0.3); ctx.lineWidth = 0.03; ctx.stroke();
+  };
+  // (Open, the lid stands behind everything; shut, it lies on top.)
+  if (k > 0.5) lid();
   box(ctx, x0, y0, 0, w, d, h, TAN, { lw: 0.035, dotsL: shade(TAN, 0.5) });
   // the label on the end
   face(ctx, [[x1, y0 + 0.2, 0.06], [x1, y0 + 0.5, 0.06], [x1, y0 + 0.5, 0.24], [x1, y0 + 0.2, 0.24]], shade(INK.bone, 0.12), { lw: 0.02 });
   if (readable()) flat(ctx, 'x', x1 + 0.005, (g) => words(g, 'R.G.', -(y0 + 0.35), -0.15, 0.1, C.ink, true));
+  if (k > 0.05) {
+    silverHeap(ctx, k);
+    if (k <= 0.5) lid();
+    return;
+  }
   // the crack under the lid
   const gap = shade(INK.deepPlum, 0.4);
   face(ctx, [[x0, y1, h], [x1, y1, h], [x1, y1, h + lift], [x0, y1, h + lift]], gap, { stroke: false });
@@ -427,19 +458,43 @@ function silverCase(ctx) {
     ctx.strokeStyle = C.ink; ctx.lineWidth = 0.075; ctx.stroke(); ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.04; ctx.stroke(); }
   // ...and a green sock, hanging down the front
   face(ctx, [[x0 + 0.95, y1 + 0.004, h + 0.06], [x0 + 1.04, y1 + 0.004, h + 0.06], [x0 + 1.04, y1 + 0.004, 0.08], [x0 + 1.08, y1 + 0.004, 0.02], [x0 + 0.95, y1 + 0.004, 0.02]], INK.verdigris, { lw: 0.02 });
-  // the lid, down on top of it all
-  const top = [[x0, y0, h + th], [x1, y0, h + th], [x1, y1, h + lift + th], [x0, y1, h + lift + th]];
-  face(ctx, [[x1, y0, h], [x1, y1, h + lift], [x1, y1, h + lift + th], [x1, y0, h + th]], shade(TAN, 0.1), { lw: 0.03 });
-  face(ctx, [[x0, y1, h + lift], [x1, y1, h + lift], [x1, y1, h + lift + th], [x0, y1, h + lift + th]], shade(TAN, 0.24), { lw: 0.03, dots: shade(TAN, 0.5), density: 0.18 });
-  face(ctx, top, TAN, { lw: 0.03 });
-  // its straps, unbuckled, and the handle
-  for (const x of [x0 + 0.25, x0 + w - 0.3]) {
-    face(ctx, [[x, y0, h + th + 0.002], [x + 0.08, y0, h + th + 0.002], [x + 0.08, y1, h + lift + th + 0.002], [x, y1, h + lift + th + 0.002]], shade(TAN, 0.4), { stroke: false });
-    face(ctx, [[x, y1 + 0.004, h + lift + th], [x + 0.08, y1 + 0.004, h + lift + th], [x + 0.09, y1 + 0.004, h + lift - 0.1], [x + 0.01, y1 + 0.004, h + lift - 0.1]], shade(TAN, 0.4), { stroke: false });
+  lid();
+}
+// A fork, lying flat at (x, y, z), turned by r.
+function fork(ctx, x, y, z, r, s = 1) {
+  flat(ctx, 'z', z, (g) => {
+    g.save(); g.translate(x, y); g.rotate(r); g.scale(s, s);
+    g.beginPath(); g.moveTo(-0.22, 0); g.lineTo(0.06, 0);
+    g.lineCap = 'round'; g.strokeStyle = C.ink; g.lineWidth = 0.06; g.stroke(); g.strokeStyle = MAT.silver; g.lineWidth = 0.035; g.stroke();
+    g.beginPath(); g.ellipse(0.09, 0, 0.05, 0.045, 0, 0, Math.PI * 2); paint(g, MAT.silver, { lw: 0.015 });
+    g.beginPath(); for (const dy of [-0.03, 0, 0.03]) { g.moveTo(0.12, dy); g.lineTo(0.22, dy); }
+    g.strokeStyle = C.ink; g.lineWidth = 0.02; g.stroke();
+    g.restore();
+  });
+}
+// The family silver, heaped in the open case, and the forks that flew out.
+function silverHeap(ctx, k) {
+  const { x0, y0, w, d, h } = CASE;
+  rect(ctx, x0 + 0.06, y0 + 0.06, w - 0.12, d - 0.12, h + 0.002, shade(INK.deepPlum, 0.35), { lw: 0.02 });
+  const z = h + 0.01;
+  // the teapot, on its side
+  { const [X, Y] = P(x0 + 0.8, y0 + 0.32, z + 0.1);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.17, 0.12, 0, 0, Math.PI * 2); paint(ctx, MAT.silver, { lw: 0.025, dots: shade(MAT.silver, 0.35), density: 0.12 });
+    ctx.beginPath(); ctx.moveTo(X + 0.14, Y - 0.02); ctx.quadraticCurveTo(X + 0.24, Y - 0.04, X + 0.3, Y - 0.16);
+    ctx.lineCap = 'round'; ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke(); ctx.strokeStyle = MAT.silver; ctx.lineWidth = 0.035; ctx.stroke();
+    ctx.beginPath(); ctx.arc(X - 0.17, Y, 0.07, Math.PI * 0.5, Math.PI * 1.5); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke(); }
+  // the candlestick, the sauce boat, spoons and forks
+  rod(ctx, [[x0 + 0.15, y0 + 0.2, z + 0.04], [x0 + 0.55, y0 + 0.5, z + 0.04]], MAT.silver, 0.06);
+  disc(ctx, x0 + 0.13, y0 + 0.18, z + 0.04, 0.09, MAT.silver, { lw: 0.02 });
+  for (const [x, y, r] of [[0.25, 0.45, 0.3], [0.45, 0.2, -0.6], [0.6, 0.55, 1.2], [0.95, 0.55, 2.6], [0.35, 0.58, -1.4]]) fork(ctx, x0 + x, y0 + y, z + 0.06, r, 0.9);
+  for (const [x, y] of [[0.68, 0.3], [0.2, 0.32]]) { const [X, Y] = P(x0 + x, y0 + y, z + 0.08); ctx.beginPath(); ctx.ellipse(X, Y, 0.06, 0.04, 0.4, 0, Math.PI * 2); paint(ctx, MAT.silver, { lw: 0.015 }); }
+  // Rupert's sock, on top of it all
+  flat(ctx, 'z', z + 0.1, (g) => { g.save(); g.translate(x0 + 0.95, y0 + 0.22); g.rotate(0.6); sockShape(g, INK.verdigris); g.restore(); });
+  // forks everywhere: out over the edge and across the floor
+  const e = clamp(k * 1.4);
+  for (const [x, y, r] of [[14.35, 3.3, 0.4], [15.05, 3.45, -1.1], [15.55, 3.35, 2.2], [14.55, 2.9, 1.7]]) {
+    fork(ctx, x0 + w / 2 + (x - x0 - w / 2) * e, y0 + d / 2 + (y - y0 - d / 2) * e, 0.02 + Math.sin(e * Math.PI) * 0.5, r + e * 3);
   }
-  const [HX, HY] = P(x0 + w / 2, y1 + 0.005, h + lift + th / 2);
-  ctx.beginPath(); ctx.ellipse(HX, HY, 0.12, 0.07, 0, 0, Math.PI);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.06; ctx.stroke(); ctx.strokeStyle = shade(TAN, 0.3); ctx.lineWidth = 0.03; ctx.stroke();
 }
 // A golf bag beside the suitcase: two woods in knitted covers, and an iron.
 function golfBag(ctx) {
@@ -636,8 +691,7 @@ function wardrobe(ctx) {
   box(ctx, x0, y0, 0, w, d, h, MAT.mahogany, { lw: 0.04, dotsL: MAT.mahoganyDark });
   box(ctx, x0 - 0.04, y0 - 0.05, h, w + 0.1, d + 0.12, 0.15, MAT.mahoganyDark, { flat: true, lw: 0.035 });
   const X1 = x0 + w + 0.005;
-  face(ctx, [[X1, 7.95, 0.18], [X1, 8.85, 0.18], [X1, 8.85, 2.65], [X1, 7.95, 2.65]], shade(MAT.mahogany, 0.08), { lw: 0.03 });
-  const [KX, KY] = P(X1, 8.02, 1.4); dot(ctx, KX, KY, 0.045, GOLD);
+  // (the shut door is drawn on its own, wardrobeDoor(), so it can swing open)
   // the open door: inside, the same uniform three times
   face(ctx, [[X1, 6.82, 0.15], [X1, 7.9, 0.15], [X1, 7.9, 2.7], [X1, 6.82, 2.7]], shade(MAT.mahoganyDark, 0.55), { lw: 0.03 });
   flat(ctx, 'x', X1 + 0.002, (g) => {
@@ -655,6 +709,30 @@ function wardrobe(ctx) {
   box(ctx, x0 + w, 6.72, 0.12, 0.95, 0.06, 2.58, MAT.mahogany, { lw: 0.03 });
   face(ctx, [[x0 + w + 0.12, 6.785, 0.35], [x0 + w + 0.85, 6.785, 0.35], [x0 + w + 0.85, 6.785, 2.4], [x0 + w + 0.12, 6.785, 2.4]], mix(MAT.glass, INK.bone, 0.35), { lw: 0.025 });
   if (Q.detail) line3(ctx, [[x0 + w + 0.3, 6.79, 1.9], [x0 + w + 0.6, 6.79, 2.25]], INK.bone, 0.05);
+}
+
+// The wardrobe's other door, which swings open when you tap it: inside, his
+// dress uniform, and nobody. k: 0 shut, 1 open (60 degrees).
+function wardrobeDoor(ctx, k) {
+  const X1 = 1.055, a = k * 1.05, hy = 8.85, w = 0.9;
+  if (k > 0.01) {
+    // the dark inside, and the dress uniform on its hanger
+    face(ctx, [[X1, 7.95, 0.18], [X1, hy, 0.18], [X1, hy, 2.65], [X1, 7.95, 2.65]], shade(MAT.mahoganyDark, 0.6), { lw: 0.03 });
+    flat(ctx, 'x', X1 + 0.002, (g) => {
+      g.beginPath(); g.moveTo(-8.0, -2.45); g.lineTo(-8.8, -2.45); g.strokeStyle = GOLD; g.lineWidth = 0.03; g.stroke();
+      const c = -8.4;
+      g.beginPath(); g.moveTo(c - 0.2, -2.3); g.lineTo(c + 0.2, -2.3); g.lineTo(c + 0.24, -1.1); g.lineTo(c - 0.24, -1.1); g.closePath();
+      paint(g, INK.stormNavy, { lw: 0.02 });
+      g.fillStyle = GOLD; g.fillRect(c - 0.22, -2.3, 0.44, 0.07);
+      if (Q.detail) for (let i = 0; i < 4; i++) dot(g, c, -2.1 + i * 0.22, 0.025, GOLD);
+    });
+  }
+  // hinged at the back edge, so it swings toward you and out of the way
+  const h0 = hy - w;
+  const fx = X1 + w * Math.sin(a), fy = h0 + w * Math.cos(a);
+  face(ctx, [[X1, h0, 0.18], [fx, fy, 0.18], [fx, fy, 2.65], [X1, h0, 2.65]], shade(MAT.mahogany, 0.08 + k * 0.1), { lw: 0.03 });
+  const kx = X1 + (w - 0.07) * Math.sin(a), ky = h0 + (w - 0.07) * Math.cos(a);
+  const [KX, KY] = P(kx, ky, 1.4); dot(ctx, KX, KY, 0.045, GOLD);
 }
 
 function washstand(ctx, x0, y0, w, d) {
@@ -757,6 +835,34 @@ function brigChair(ctx) {
   rect(ctx, x0 + 0.06, y0 + 0.06, s - 0.12, s - 0.12, 0.801, MAT.velvet, { lw: 0.02 });
   box(ctx, x0, y0 + s - 0.1, 0.8, s, 0.1, 0.8, MAT.mahogany, { lw: 0.03 });
   face(ctx, [[x0 + 0.1, y0 + s + 0.001, 0.95], [x0 + s - 0.1, y0 + s + 0.001, 0.95], [x0 + s - 0.1, y0 + s + 0.001, 1.48], [x0 + 0.1, y0 + s + 0.001, 1.48]], MAT.velvet, { lw: 0.02 });
+}
+// His dress hat, hung on the bedpost: a black bicorne with a great white plume
+// he swears is ostrich (a red herring: it's the only goose-white thing in here).
+function plumedHat(ctx) {
+  const [X, Y] = P(2.98, 14.98, 1.17);
+  ctx.save();
+  ctx.translate(X, Y);
+  ctx.scale(1.45, 1.45);
+  // the plume, curling up and over, feather by feather
+  for (const [a, l, c] of [[-0.6, 0.45, shade(INK.bone, 0.06)], [-0.2, 0.58, INK.bone], [0.2, 0.5, tint(INK.bone, 0.3)], [0.55, 0.38, shade(INK.bone, 0.03)]]) {
+    ctx.save();
+    ctx.translate(0.02, -0.16);
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.quadraticCurveTo(-0.14, -l * 0.6, 0.04, -l); ctx.quadraticCurveTo(0.16, -l * 0.55, 0, 0);
+    paint(ctx, c, { lw: 0.022 });
+    if (Q.detail) { ctx.beginPath(); ctx.moveTo(0.01, -0.02); ctx.quadraticCurveTo(-0.02, -l * 0.6, 0.04, -l + 0.03); ctx.strokeStyle = shade(INK.bone, 0.3); ctx.lineWidth = 0.012; ctx.stroke(); }
+    ctx.restore();
+  }
+  // the hat: a crescent, points down, with a gold cockade
+  ctx.beginPath();
+  ctx.moveTo(-0.34, 0.06); ctx.quadraticCurveTo(-0.18, -0.26, 0, -0.24); ctx.quadraticCurveTo(0.18, -0.26, 0.34, 0.06);
+  ctx.quadraticCurveTo(0, -0.04, -0.34, 0.06);
+  paint(ctx, C.black, { lw: 0.03 });
+  ctx.beginPath(); ctx.moveTo(-0.3, 0.03); ctx.quadraticCurveTo(0, -0.07, 0.3, 0.03); ctx.strokeStyle = GOLD; ctx.lineWidth = 0.025; ctx.stroke();
+  dot(ctx, 0.02, -0.14, 0.06, GOLD);
+  dot(ctx, 0.02, -0.14, 0.03, INK.oxblood);
+  ctx.restore();
 }
 // His boots, lined up by the bed as if on parade.
 function boots(ctx) {
@@ -1585,7 +1691,9 @@ export default {
     // A warm light coming up the stairwell from the hall below.
     R.light({ at: [6.2, 1.6, -0.6], r: 3.4, color: INK.candleGold, k: (t) => 0.5 * house.lamp(t) });
     R.thing(14.5, 2.4, golfBag, { depth: 16.9 });
-    R.thing(15.35, 2.75, silverCase, { depth: 18.1 });
+    // Rupert's suitcase: tap it and it springs open. The silver's inside.
+    const suitcase = R.poke({ id: 'suitcase', at: [15.35, 2.75, 0.45], r: 0.8, sound: 'clunk', say: ['It was never going to shut.', 'Nope. Still not shutting.'] });
+    R.thing(15.35, 2.75, (ctx) => silverCase(ctx, suitcase.k()), { anim: true, depth: 18.1 });
     R.thing(15.65, 3.65, cornerHatbox, { depth: 19.3 });
     R.thing(15.3, 1.55, deadPalm, { depth: 16.85 });
     R.rug((ctx) => {
@@ -1674,6 +1782,8 @@ export default {
 
     // ---------- The Brigadier's room ----------
     R.thing(0.55, 7.85, wardrobe, { depth: 8.4 });
+    const ward = R.poke({ id: 'wardrobe', at: [1.1, 8.4, 1.4], r: 0.9, sound: 'clunk', say: ['Nobody in here.', 'Still nobody. Just 1974.'] });
+    R.thing(0.6, 7.9, (ctx) => wardrobeDoor(ctx, ward.k()), { anim: true, depth: 8.45 });
     // A spider, going up and down on a thread from the top of the wardrobe.
     R.thing(1.2, 8.7, (ctx, t) => {
       if (!Q.detail) return;
@@ -1692,6 +1802,8 @@ export default {
     R.thing(1.75, 13, brigBedBody, { depth: 14.75 });
     R.thing(1.93, 12.95, kitbag, { depth: 14.9 });
     R.thing(1.75, 15, brigBedFoot, { depth: 16.75 });
+    R.thing(2.98, 15.0, plumedHat, { depth: 16.8 });
+    R.decoy({ id: 'plume', at: [2.98, 14.98, 1.55], r: 0.6, say: ['Ostrich. He insists.', 'Ostrich. He still insists.'] });
     R.thing(1.43, 15.45, boots, { depth: 16.9 });
     R.thing(6.2, 13, trunk, { depth: 19.25 });
     R.thing(6.15, 7.3, desk, { depth: 14.4 });
@@ -1712,10 +1824,12 @@ export default {
     R.light({ at: [8.95, 10.62, 1.1], r: 1.2, color: INK.candleGold, k: house.flicker(64) });
     R.thing(14.1, 7.1, craneWashstand, { depth: 21.2 });
     const GLOVE_ON = 88.9 + 0.8;
+    // The skeleton (the one a new player is shown): tap it and its teeth chatter.
+    const bones = R.poke({ id: 'skeleton', at: [15.25, 8.7, 1.5], r: 1.0, hold: 1.4, teach: true, sound: 'clunk', say: ['Nobody home.', 'Rattle.', "He's a hat stand now."] });
     R.thing(15.25, 8.7, (ctx, t) => {
       const b = brig(t);
       const look = inCraneRoom(b) ? clamp(((b.x - b.y) - (15.25 - 8.7)) / 5, -1, 1) : Math.sin(t * 0.3) * 0.4;
-      skeleton(ctx, t, look, lt(t) >= GLOVE_ON, storm.flash(t) > 0.15);
+      skeleton(ctx, t, look, lt(t) >= GLOVE_ON, storm.flash(t) > 0.15 || bones.k() > 0.05);
     }, { anim: true, depth: 23.95 });
     R.thing(12.5, 10.75, craneNightstand, { anim: true, depth: 23.25 });
     flame(R, 12.75, 10.55, 1.18, 63);
@@ -1990,9 +2104,16 @@ export default {
     R.dark(house.dark);
 
     // ---------- The finds ----------
-    R.find({ id: 'doctors-bag', label: "Dr. Crane's medical bag", at: [10.58, 14.55, 0.28], r: 0.6 });
-    R.find({ id: 'mint-tin', label: 'An empty tin of mints', at: [12.45, 10.95, 0.93], r: 0.6 });
-    R.find({ id: 'silver', label: 'The family silver, half packed', at: [15.3, 2.9, 0.35], r: 0.7 });
-    R.find({ id: 'pistol', label: 'A duelling pistol', at: [6.85, 7.58, 1.08], r: 0.6 });
+    R.find({ id: 'doctors-bag', label: "Dr. Crane's medical bag", kind: 'spot', at: [10.58, 14.55, 0.28], r: 0.6 });
+    R.find({
+      id: 'mint-tin', label: 'An empty tin of mints', kind: 'hard', at: [12.45, 10.95, 0.93], r: 0.6,
+      riddle: "Not snuff, not polish, not pills. By a doctor's bed.",
+      hint: 'Whoever swapped the pills kept the mints close. Only one tin up here has its lid off.',
+    });
+    R.find({
+      id: 'silver', label: 'The family silver, half packed', kind: 'poke', inside: suitcase, at: [15.35, 2.75, 0.4], r: 0.7,
+      hint: 'A man leaving in a hurry packs the silver, and never quite gets the lid shut.',
+    });
+    R.find({ id: 'pistol', label: 'A duelling pistol', kind: 'spot', at: [6.85, 7.58, 1.08], r: 0.6 });
   },
 };
