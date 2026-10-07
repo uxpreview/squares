@@ -193,6 +193,7 @@ export default {
   id: 'sick-bay',
   name: 'The Sick Bay',
   blurb: "Dr. Swabb says it's fine. The queue goes out the door, and the sign says DAYS WITHOUT AN OUTBREAK: 0.",
+  describe: "The doctor's office at the bow end of the crew deck, narrowing to a point. Four beds line the front left and fill with green faces through the day, a quarantine booth with a porthole in its door stands at the front, and a skeleton in a party hat keeps the doctor's desk company.",
 
   build(R) {
     deck(R, 'sick-bay', 'crew', { grid: false, name: false });

@@ -373,6 +373,7 @@ export default {
   id: 'refuge-dunes',
   name: 'The Refuge Dunes',
   blurb: 'The refuge filled up at 9:20 and the line has been waiting since. Up on the tower, every scope is pointed at a rare bird that keeps turning out to be a goose.',
+  describe: 'Dunes between the beach in front and the marsh behind, with the refuge road running left from the gatehouse. Boardwalks lead down to the beach from Lot 1 and out to the tower, and bikes sail past the line. After dark the gate shuts and the tide fills the marsh to the road.',
   home: [30, 34],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });

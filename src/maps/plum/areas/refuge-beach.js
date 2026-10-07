@@ -242,6 +242,7 @@ export default {
   id: 'refuge-beach',
   name: 'The Refuge Beach',
   blurb: 'Three miles of beach for six plovers, and a rope. Everyone else gets the other side, and it shrinks every hour.',
+  describe: 'A long ocean beach below the refuge dunes, plovers running at the waterline. At the right a crowd packs in under umbrellas by the Lot 1 boardwalk, and far to the left a man fishes off Sandy Point. By night the sea climbs to the dunes, and one headlamp walks the rope.',
   home: [30, 47],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING, surf: true });

@@ -249,6 +249,7 @@ export default {
   id: 'turnpike',
   name: 'The Turnpike',
   blurb: 'One low road over the marsh: Bob\'s Lobster, a drawbridge that waits for nobody, and the lot where the Pink House stood. Dave has been parked here since breakfast.',
+  describe: 'The road comes in from the mainland at the back, past an airfield with a plane going round, the refuge\'s visitor center and an osprey on its pole, to a restaurant deck facing the sunset. Herons fish the creeks, and at night the marsh rises until the road goes under.',
   home: [PIKE, 12],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });

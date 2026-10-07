@@ -377,6 +377,7 @@ export default {
   id: 'casino',
   name: 'The Casino',
   blurb: 'Open at 9am, with a queue at 8:59. The man at the roulette wheel has put everything on green since day one.',
+  describe: 'The bow end of the Promenade, all gold carpet and chandeliers, narrowing to a white grand piano in the point. Banks of slot machines fill the middle, with a blackjack table on the left, the roulette wheel at the front, the duty-free on the right and a security officer at the gangway desk.',
 
   build(R) {
     deck(R, 'casino', 'promenade', { floor: MAT.carpetGold, wall: shade(MAT.carpetRed, 0.05), grid: false, name: false });

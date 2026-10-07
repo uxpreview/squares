@@ -182,6 +182,8 @@ export default {
     hint: 'Tap one to step inside.',
     whole: 'The whole place',
     complete: 'Every goose, found.',
+    // What the whole place looks like from above, for a screen reader.
+    describe: 'TODO: the whole place from above, in two or three sentences.',
   },
 };
 `;
@@ -201,6 +203,7 @@ export default {
   id: '${a.id}',
   name: ${JSON.stringify(a.name)},
   blurb: 'TODO: one or two short, funny sentences about what is going on here.',
+  describe: 'TODO: what is in the picture, for a screen reader: the layout, who is there doing what, how it changes with the clock. Never where a find is.',
 
   build(R) {
     shell(R, { floor: TONE[${i} % TONE.length], name: ${JSON.stringify(a.name.toUpperCase())} });

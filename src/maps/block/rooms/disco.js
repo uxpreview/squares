@@ -170,6 +170,7 @@ export default {
   id: 'disco',
   name: 'Roller Disco',
   blurb: 'Every time the DJ yells "REVERSE!" somebody learns about physics. One skate is doing laps on its own.',
+  describe: 'A roller rink under a mirror ball, its walls lit with neon. Skaters circle a pink-edged oval around a show-off in the middle, the DJ\'s decks and speakers fill the back right, and skate rental and a snack counter line the left. A janitor mops beside a hopeful wet floor sign.',
 
   build(R) {
     // ---------- floor and rink ----------

@@ -732,6 +732,7 @@ export default {
   id: 'engine-room',
   name: 'The Engine Room',
   blurb: 'The engineer sleeps through every alarm. His apprentice keeps tapping a gauge that keeps going up.',
+  describe: 'Below the waterline at the stern. Two blue diesels fill the middle, their propeller shafts running out through the stern wall, with a panel of gauges at the back and a control desk at the front. Two crew play cards in the corner, and at six the shafts wind down as the ship docks.',
 
   build(R) {
     deck(R, 'engine-room', 'crew', { name: false, floor: tint(MAT.steel, 0.5), grid: 2 });

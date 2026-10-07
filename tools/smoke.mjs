@@ -721,9 +721,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     away: [...document.querySelectorAll('#tray-chips .find-note.is-away')].map((n) => n.textContent),
   }));
   await wait(page, 700);
-  const badge = await S(page, () => { const b = document.getElementById('dial-badge'); return { hidden: b.hidden, n: +b.textContent, label: document.getElementById('dial').getAttribute('aria-label') }; });
+  const badge = await S(page, () => { const b = document.getElementById('dial-badge'); return { hidden: b.hidden, n: +b.textContent, said: document.getElementById('dial-sr').textContent }; });
   check('a tide find here now says "now", one that\'s away is pale', live.now.some((n) => /high tide · now/.test(n)) && live.away.includes('low tide'), JSON.stringify(live));
-  check('the dial counts what the next tide brings back', !badge.hidden && badge.n >= 2 && /come back/.test(badge.label), JSON.stringify(badge));
+  check('the dial counts what the next tide brings back', !badge.hidden && badge.n >= 2 && /come back/.test(badge.said), JSON.stringify(badge));
   let [bx, by] = await findOnScreen(page, 'sound', 'boot');
   await page.mouse.click(bx, by);
   await wait(page, 300);
@@ -857,7 +857,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await wait(page, 1200);
   const ship = await S(page, () => {
     const w = window.__squares.world;
-    return { storeys: w.storeys.length, on: window.__squares.play.storey && window.__squares.play.storey.id, goal: w.goal, sightings: w.sightings.length, trail: document.getElementById('tally-case').hidden ? null : document.getElementById('tally-case').textContent.replace(/\s+/g, ' ').trim(), dial: document.getElementById('dial-label').textContent };
+    return { storeys: w.storeys.length, on: window.__squares.play.storey && window.__squares.play.storey.id, goal: w.goal, sightings: w.sightings.length, trail: document.getElementById('tally-case').hidden ? null : document.querySelector('.tally-case-label').textContent + ' ' + document.getElementById('tally-case-count').textContent, dial: document.getElementById('dial-label').textContent };
   });
   check('the cruise ship opens on the Promenade, four decks, a trail of 8 sightings on the Trail button, the ship\'s clock on the dial',
     ship.storeys === 4 && ship.on === 'promenade' && ship.goal === 'trail' && ship.sightings === 8 && ship.trail === 'Trail 0/8' && /AM|PM/.test(ship.dial), JSON.stringify(ship));
@@ -1011,6 +1011,62 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
     for (const id of ['cat', 'sock']) s.play.markFound(z, z.finds.find((f) => f.id === id));
   });
   check('every three finds earns a hint', (await left()) === 1 && (await page.textContent('#toast')).includes('hint earned'), await page.textContent('#toast'));
+  await page.close();
+}
+
+// ---------- Keys and screen readers (G5, desktop) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => localStorage.clear());
+  await page.goto(base);
+  await ready(page);
+  await wait(page, 600);
+  const home = await S(page, () => document.title);
+  check('behind the title the map is scenery: hidden from screen readers, not a Tab stop',
+    await S(page, () => { const m = document.getElementById('map'); return m.getAttribute('aria-hidden') === 'true' && m.tabIndex === -1 && !m.getAttribute('role'); }));
+  await page.goto(base + '#/block');
+  await wait(page, 1800);
+  check('a place names the page', (await S(page, () => document.title)) === `The Block Party · ${home.split(' · ')[0]}`, await S(page, () => document.title));
+  await page.keyboard.press('Tab');
+  await wait(page, 200);
+  const map = () => S(page, () => {
+    const m = document.getElementById('map'), a = document.getElementById('aim');
+    return { focused: document.activeElement === m, role: m.getAttribute('role'), label: m.getAttribute('aria-label'), scene: document.getElementById('scene').textContent,
+      aim: a.hidden ? null : [parseFloat(a.style.left), parseFloat(a.style.top)], say: document.getElementById('say').textContent, mode: window.__squares.play.mode, cam: { ...window.__squares.cam } };
+  });
+  const m0 = await map();
+  check('Tab goes to the map: named for what it shows, described, with the keys',
+    m0.focused && m0.role === 'application' && m0.label === 'The Block Party, the whole block' && m0.scene.includes('sixteen rooms') && m0.scene.includes('Arrow keys'), JSON.stringify(m0).slice(0, 300));
+  check('and the aim shows on it, with the keys said once', !!m0.aim && /Arrow keys/.test(await page.textContent('#toast')));
+  // The whole block fits on screen, so the map can't move: the aim does.
+  await page.keyboard.down('ArrowUp');
+  await wait(page, 450);
+  await page.keyboard.up('ArrowUp');
+  const m1 = await map();
+  check('where the map can\'t move, the arrows move the aim', m1.aim[1] < m0.aim[1] - 20 && Math.abs(m1.cam.y - m0.cam.y) < 0.01, JSON.stringify({ was: m0.aim, now: m1.aim }));
+  await page.keyboard.press('Enter');
+  await wait(page, 1900);
+  const m2 = await map();
+  check('Enter taps under the aim: into the room there, the map renamed and described', m2.mode === 'zone' && m2.label.endsWith(', The Block Party') && m2.scene.length > 80 && !m2.scene.startsWith('Arrow'), JSON.stringify({ mode: m2.mode, label: m2.label }));
+  check('arriving is said to a screen reader, and the page is titled for the room',
+    m2.say.startsWith(m2.label.split(',')[0]) && (await S(page, () => document.title)).startsWith(m2.label.split(',')[0] + ' · The Block Party'), JSON.stringify({ say: m2.say, title: await S(page, () => document.title) }));
+  await page.keyboard.press('+');
+  await wait(page, 450);
+  const m3 = await map();
+  check('+ zooms in round the aim', m3.cam.z > m2.cam.z * 1.3, `${m2.cam.z} to ${m3.cam.z}`);
+  await page.keyboard.down('ArrowRight');
+  await wait(page, 450);
+  await page.keyboard.up('ArrowRight');
+  const m4 = await map();
+  check('in close, the arrows move the map', m4.cam.x > m3.cam.x + 0.2, `${m3.cam.x} to ${m4.cam.x}`);
+  await page.keyboard.press('Escape');
+  await wait(page, 1800);
+  const m5 = await map();
+  check('Escape goes back to the whole place, and says so', m5.mode === 'overview' && m5.label === 'The Block Party, the whole block' && m5.say.startsWith('The Block Party'));
+  await S(page, () => document.activeElement.blur());
+  await page.mouse.click(700, 500);
+  await wait(page, 300);
+  check('a click doesn\'t give the map focus (the arrows stay the game\'s for the mouse)', await S(page, () => document.activeElement !== document.getElementById('map')));
+  check('every area of the place has a description', await S(page, () => window.__squares.world.zones.every((z) => z.def.describe && z.def.describe.length > 40)));
   await page.close();
 }
 

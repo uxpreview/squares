@@ -450,6 +450,7 @@ export default {
   id: 'port',
   name: 'The Port',
   blurb: 'The island has spent all day getting ready for the ship. At six it arrives, up goes the yellow flag, and the band plays the welcome anyway.',
+  describe: 'A tiny island of sand and palm trees. A pier reaches out on the left, with the harbourmaster and the flagpole at its end, a steel band sets up in the middle, and a thatched gift shop stands on the right. The welcome banner goes up at noon, and the sea turns pink by evening.',
 
   build(R) {
     // ---------- The sand and the shallows ----------

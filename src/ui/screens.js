@@ -77,29 +77,26 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     b.style.setProperty('--card-ink', m.ink || 'var(--coral)');
     b.disabled = !open;
 
-    const pic = document.createElement('div');
-    pic.className = 'place-pic';
+    // (All spans: a button holds only phrasing content. What's on the card is
+    // its name for a screen reader, a pause between each part.)
+    const span = (cls) => { const e = document.createElement('span'); e.className = cls; return e; };
+    const gap = () => { const e = span('sr-only'); e.textContent = '. '; return e; };
+    const pic = span('place-pic');
     const c = store.count(m.id);
 
-    const body = document.createElement('div');
-    body.className = 'place-body';
-    const name = document.createElement('h3');
-    name.className = 'place-card-name';
+    const body = span('place-body');
+    const name = span('place-card-name');
     name.textContent = m.name;
     // A place can have a subtitle under its name (Plum Island: "King Tide").
-    const sub = m.subtitle ? document.createElement('p') : null;
-    if (sub) { sub.className = 'place-card-sub'; sub.textContent = m.subtitle; }
-    const tag = document.createElement('p');
-    tag.className = 'place-card-tag';
+    const sub = m.subtitle ? span('place-card-sub') : null;
+    if (sub) sub.textContent = m.subtitle;
+    const tag = span('place-card-tag');
     tag.textContent = m.tagline;
-    const meta = document.createElement('p');
-    meta.className = 'place-card-meta';
-    const badge = document.createElement('span');
-    badge.className = 'place-badge';
-    const stat = document.createElement('span');
-    stat.className = 'place-stat';
-    meta.append(badge, stat);
-    body.append(...[name, sub, tag, meta].filter(Boolean));
+    const meta = span('place-card-meta');
+    const badge = span('place-badge');
+    const stat = span('place-stat');
+    meta.append(badge, gap(), stat);
+    body.append(...[name, sub && gap(), sub, gap(), tag, meta].filter(Boolean));
     b.append(pic, body);
     li.append(b);
 
@@ -107,7 +104,6 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
       badge.textContent = 'Locked';
       const need = m.unlock.geese - store.totalGeese();
       stat.textContent = `Find ${need} more ${need === 1 ? 'goose' : 'geese'} to open`;
-      b.setAttribute('aria-label', `${m.name}, locked. ${stat.textContent}`);
     } else {
       badge.textContent = c.total ? 'In progress' : 'New';
       badge.dataset.kind = c.total ? 'progress' : 'new';
@@ -129,7 +125,6 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
             ? (p.done ? `Caught · ${things}/${total} things` : `Sighting ${p.sightings}/${w.sightings.length} · ${things}/${total} things`)
             : `${p.geese}/${w.totalGeese} geese · ${p.things}/${w.totalThings} things`;
         if (p.done) { badge.textContent = w.goal === 'case' ? 'Solved' : w.goal === 'trail' ? 'Caught' : 'Complete'; badge.dataset.kind = 'done'; }
-        b.setAttribute('aria-label', `${m.name}${m.subtitle ? `: ${m.subtitle}` : ''}. ${m.tagline} ${badge.textContent}, ${stat.textContent}.`);
         drawThumb(pic, m.id, w);
       }).catch(() => {});
     }

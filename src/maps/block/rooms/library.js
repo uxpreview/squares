@@ -220,6 +220,7 @@ export default {
   id: 'library',
   name: 'Library',
   blurb: 'The librarian has shushed three children, one ladder and a thunderstorm. Somebody is reading up on swans, for reasons.',
+  describe: 'Bookcases climb both walls of a tall library, a rolling ladder on the left and a rainy window on the right. Kids sit for story time on a round rug at the front, one more stacks a wobbly tower of books, and the librarian keeps watch from her desk.',
 
   build(R) {
     // The door onto Main Street, the sky in the window, and the librarian

@@ -295,6 +295,7 @@ export default {
   id: 'adults-only',
   name: 'Adults Only',
   blurb: 'The Serenity deck is the loudest place on the ship. The attendant shushing everyone is the loudest of all.',
+  describe: 'The bow end of the Cabins deck, narrowing to a point. The spa sits at the back left with massage tables and a sauna, and the hot tub in front of it holds a couple who haven\'t moved in four days. A yoga class, a gong, loungers and a zen garden fill the deck toward the bow.',
 
   build(R) {
     deck(R, 'adults-only', 'cabins', { grid: false, name: false });

@@ -219,6 +219,7 @@ export default {
   id: 'green-1',
   name: 'The Landlady',
   blurb: 'Fifty-two years, every key on one ring, nothing new since 1974. Flip the clock: one thing is.',
+  describe: 'The Green House\'s first floor, in full 1970s bloom: rosebud wallpaper, a plastic-covered couch, a TV with rabbit ears and every tenant she ever had framed up the stairs. Her friend Dot scratches tickets in the kitchen while a nephew works under the sink. By night the ballgame is on.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 0, walls: W, floorInk: W.floor, siding: SIDING.green, trim: TRIM.green, label: 'Green House' });

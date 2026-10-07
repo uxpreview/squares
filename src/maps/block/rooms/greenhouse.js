@@ -337,6 +337,7 @@ export default {
   id: 'greenhouse',
   name: 'Greenhouse',
   blurb: 'The prize pumpkin has a ribbon and an agent. The flytrap has missed the same fly all morning.',
+  describe: 'A glass greenhouse with a towering monstera at the back and a misting pipe under the roof. Shelves of potted plants climb the left wall, and on the right a gardener waters hanging baskets from a stepladder while a man naps in a deck chair on the hose.',
 
   build(R) {
     // ---------- floor: gravel with brick paths ----------

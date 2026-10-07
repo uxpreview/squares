@@ -92,6 +92,7 @@ export default {
     invite: 'Start with the body',
     hint: 'Find the evidence. Name the killer.',
     whole: 'The whole house',
+    describe: 'A crooked Gothic manor from above, roof off, on a slab of lawn in the rain: a clock tower under a full moon, three chimneys, bare trees, a greenhouse, a hedge maze and a crypt. One floor shows at a time (the cellar, the ground floor or upstairs), and lightning flashes over it all.',
     complete: 'The goose did it. It has taken his chair, wearing the monocle it ordered by post.',
   },
   loop: LOOP, // the evening repeats every 3 minutes

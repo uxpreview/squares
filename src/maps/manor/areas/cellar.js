@@ -481,6 +481,7 @@ export default {
   id: 'cellar',
   name: 'Wine Cellar',
   blurb: 'Jenkins is packing, and drinking the 1974, since nobody is paying him anyway. That barrel is definitely just a barrel.',
+  describe: 'Stone vaults with brick arches under the kitchen: two long wine racks, barrels stacked on the left, crates by the stairs, puddles from the storm and DAYS UNPAID chalked in tally marks on the wall. Jenkins comes down after dinner, and the empties pile up until the scream sends him running.',
 
   build(R) {
     const J = jenkinsHere(R);

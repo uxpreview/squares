@@ -152,6 +152,7 @@ export default {
     invite: 'The Block Party is today',
     hint: 'A goose in every room. Tap things.',
     whole: 'The whole block',
+    describe: 'A city block of sixteen rooms, four by four, their walls cut low so you can see into each. Main Street crosses the middle with the party stage at the crossroads, alleys run between the rest and the pavement wraps the front. A day goes round every six minutes: warm at dawn, amber at the party, navy at night.',
     complete: 'Every goose, found. The party can start.',
   },
   // What npm run qa expects: a goose in every room, none on the streets, and

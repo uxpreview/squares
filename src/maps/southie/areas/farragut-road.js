@@ -378,6 +378,7 @@ export default {
   id: 'farragut-road',
   name: 'Farragut Road',
   blurb: 'One truck, one street built for horses, cars parked on both sides. Flip the clock and watch the curb empty out, all but one thing.',
+  describe: 'The street between the row and the park: NO PARKING signs on every pole and a rental truck wedged in the middle, a honking line behind it. A couch dangles on a rope off the Green House and free furniture piles up on the curb. By night the streetlights glow.',
   home: [22, 30],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });

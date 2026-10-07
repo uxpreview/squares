@@ -152,6 +152,7 @@ export default {
   id: 'band',
   name: 'Band Practice',
   blurb: 'The Honks are rehearsing without their lead singer, who only knows one word anyway. The neighbor has asked nicely nine times.',
+  describe: 'A garage turned rehearsal room: gig posters on the left wall, egg-box soundproofing and a roll-up door on the right. The band plays on a red rug round the drum kit, a dog howls along and fans crowd the sofa. At 2pm the big amps go out to the stage.',
 
   build(R) {
     // The band carries both amps out to the stage at 2pm (day.js) and

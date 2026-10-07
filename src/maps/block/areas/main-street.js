@@ -809,6 +809,7 @@ export default {
   id: 'main-street',
   name: 'Main Street',
   blurb: 'The Block Party is today, and the stage is going up in the middle of the road. The bin lorry would like a word.',
+  describe: 'Two roads cross the middle of the block, strung with party flags. The stage at the crossroads grows from a bare frame at dawn to lights and a backdrop by afternoon, a bouncy castle keeps sagging, and the laundromat\'s sheet goes up as a banner. At 7pm the whole block dances there.',
   shape: MAIN_STREET,
   home: [MID, MID + 6], // the stage
   build(R) {

@@ -208,15 +208,19 @@ function beach(x, d) {
 }
 
 // ---------- The height, everywhere ----------
-const nx = Math.round(W / STEP), ny = Math.round(D / STEP);
+// A row at a time, as the land's worked out (not when this file loads: see
+// makeLand).
+const nx = Math.round(W / STEP);
 const GEO = [];
-for (let j = 0; j <= ny; j++) {
+function geoRow(j) {
+  const r = [];
   for (let i = 0; i <= nx; i++) {
     const x = i * STEP, y = j * STEP;
-    GEO.push({ inside: insidePoly(x, y, OUTLINE), d: lineDist(x, y, FRONT), b: lineDist(x, y, BACK_SHORE), o: lineDist(x, y, OCEAN), p: lineDist(x, y, POINT) });
+    r.push({ inside: insidePoly(x, y, OUTLINE), d: lineDist(x, y, FRONT), b: lineDist(x, y, BACK_SHORE), o: lineDist(x, y, OCEAN), p: lineDist(x, y, POINT) });
   }
+  return (GEO[j] = r);
 }
-const geo = (x, y) => GEO[Math.round(y / STEP) * (nx + 1) + Math.round(x / STEP)];
+const geo = (x, y) => { const j = Math.round(y / STEP); return (GEO[j] || geoRow(j))[Math.round(x / STEP)]; };
 
 function ground(x, y) {
   const g = geo(x, y);

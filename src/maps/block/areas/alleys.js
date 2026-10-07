@@ -547,6 +547,7 @@ export default {
   id: 'alleys',
   name: 'The Alleys',
   blurb: 'Bins, cats and other people\'s washing. The octopus uses them as a shortcut to the noodle bar.',
+  describe: 'Narrow cobbled lanes run between the rooms, quiet but for a raccoon eating pizza behind the arcade. Out back of the noodle bar the kitchen puffs steam and a crate of squid has come to the wrong address. The octopus keeps visiting, and its keeper keeps carrying it home.',
   shape: ALLEYS,
   home: [18, 56], // the hot spot, where the octopus gets to
   build(R) {

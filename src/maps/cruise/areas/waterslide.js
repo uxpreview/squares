@@ -542,6 +542,7 @@ export default {
   id: 'waterslide',
   name: 'The Waterslide',
   blurb: 'A big man is stuck in the corkscrew again. The queue at the top is being very patient about it.',
+  describe: 'The stern end of the Sun Deck, open to the sky. On the left the Corkscrew\'s yellow tube twists down from its tower into a splash pool, beside the big red funnel with its knife and fork crest. Mini golf and a windmill fill the front, and the passengers get greener by the hour.',
 
   build(R) {
     deck(R, 'waterslide', 'sun', { rails: true, grid: false, name: false });

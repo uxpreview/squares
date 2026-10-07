@@ -184,7 +184,7 @@ export function createTray(o) {
     head.className = 'group-head';
     if (!here) {
       head.type = 'button';
-      head.setAttribute('aria-label', `Go to ${room.name}, ${got} of ${finds.length} found`);
+
       head.addEventListener('click', () => o.onGoRoom(i));
     }
     const unit = document.createElement('span');
@@ -196,7 +196,15 @@ export function createTray(o) {
     const frac = document.createElement('span');
     frac.className = 'group-frac';
     frac.textContent = `${got}/${finds.length}`;
-    head.append(unit, name, frac);
+    if (!here) frac.setAttribute('aria-hidden', 'true');
+    // (What's on it is its name for a screen reader, the count said in words.)
+    if (here) head.append(unit, name, frac);
+    else {
+      const sr = document.createElement('span');
+      sr.className = 'sr-only';
+      sr.textContent = `, ${got} of ${finds.length} found. Go there.`;
+      head.append(unit, ' ', name, ' ', frac, sr);
+    }
     const ul = document.createElement('ul');
     ul.className = 'rows';
     for (const f of finds) ul.append(row(room, f));

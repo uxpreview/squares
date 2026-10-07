@@ -764,6 +764,7 @@ export default {
   id: 'buffet',
   name: 'The Buffet',
   blurb: 'All you can eat, 7am to midnight. When the doors opened at seven, something had already been at the salad bar.',
+  describe: 'The heart of the Promenade, under big red letters that say all you can eat. Hot trays line the back wall up to Chef Gaston\'s carvery, the salad bar stands in the middle and tables fill the front. Through the day the Now Serving board climbs and the faces go green.',
 
   build(R) {
     deck(R, 'buffet', 'promenade', { grid: false, name: false });

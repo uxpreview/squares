@@ -1880,6 +1880,7 @@ export default {
   id: 'conservatory',
   name: 'Conservatory',
   blurb: 'Every flash of lightning catches Lady Philippa and the gardener in a new pose. They say they were pruning.',
+  describe: 'A glass room of pointed arches out in the storm: a goldfish fountain, potted palms, a chaise longue and a sign saying nothing has been watered since Easter. Lady Philippa slips in after dinner, the gardener comes in from the rain, and the glass steams up until the scream breaks it up.',
 
   build(R) {
     const [ox, oy] = R.origin;

@@ -509,6 +509,7 @@ export default {
   id: 'grey-2',
   name: 'The New Owners',
   blurb: 'The movers match, the dog rides in a stroller, and the bike went to the wrong floor twice. Flip the clock: something else did too.',
+  describe: 'The Grey One\'s middle floor: a white kitchen, a fridge with a screen and a glass balcony. Before noon the seller tapes up his last box for the Seaport. After noon the boxes pile up, a designer holds two whites against a white wall, and by night the owner is pedaling hard.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 1, walls: ROOM['grey-2'], floorInk: ROOM['grey-2'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true });

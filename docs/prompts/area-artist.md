@@ -64,7 +64,7 @@ The other areas in your copy are still greyboxes; other artists are drawing them
 2. Don't run any git commands. Don't create files except scratch screenshots outside the repo.
 3. Colors come from `C` (`src/engine/art.js`) or the level's style sheet, never a raw hex code. `npm run qa` fails on raw hex in area files.
 4. Everything is a pure function of time `t`. Anything that moves, even a flicker, is `{ anim: true }` or a `R.mover`; the rest is drawn once and cached, so keep what moves in its own small item.
-5. Copy: the `name` is 1 to 3 words; the `blurb` is one or two short, funny, plain sentences. **No em dashes** anywhere, in copy or comments.
+5. Copy: the `name` is 1 to 3 words; the `blurb` is one or two short, funny, plain sentences; the `describe` (after the blurb) is what a screen reader says the picture shows: the layout, who's there doing what, how it changes with the clock, 25 to 50 words, never where a find is. **No em dashes** anywhere, in copy or comments.
 6. Aim for the ROOM_BRIEF density: 10 to 18 people or creatures doing specific, legible, funny things; at least 8 distinct moving things; signs that are jokes; one little story that plays out over time.
 7. Stay light: under about 80 particles, no gradients created in loops, heavy static drawing kept out of animated items. QA's speed check will tell you.
 
@@ -90,7 +90,7 @@ There must be no console errors from your area, and no `FAIL` lines about it in 
 ## Report
 
 When you're done, reply with:
-- The area's name and blurb.
+- The area's name, blurb and description.
 - Each find: where it is now and what it looks like (and anything you moved).
 - The running gag, and how it plays out.
 - Any helper that other areas could use, and anything in shared code you had to work around.

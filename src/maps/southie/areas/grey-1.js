@@ -213,6 +213,7 @@ export default {
   id: 'grey-1',
   name: 'The Open House',
   blurb: 'Luxury living, parking not included. Flip the clock: twenty people came at one, and by evening it sold.',
+  describe: 'The Grey One\'s ground floor, gutted and staged: white walls, a long kitchen island under bare bulbs, a huge painting of one grey circle and a sofa nobody may sit on. The realtor fusses all morning, visitors with tape measures pour in after one, and by night she\'s asleep on that sofa.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 0, walls: ROOM['grey-1'], floorInk: ROOM['grey-1'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true });

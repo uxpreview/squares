@@ -278,6 +278,7 @@ export default {
   id: 'trains',
   name: 'Model Railway',
   blurb: 'Eleven years on this tiny town, and the club finally bought it a monster. The 8:15 is still running on time.',
+  describe: 'A model railway club round one big table: a train loops through tunnels in a papier-mache mountain, past a lake with a red bridge, fields of sheep and a tiny town. Club members lean in with magnifiers, a cat stalks the track, and the evening timetable draws enthusiasts with notebooks.',
 
   build(R) {
     const back = (x, y, draw, o = {}) => R.thing(x, y, draw, { depth: BACK + x + y, ...o });

@@ -5,8 +5,10 @@
 //   npm run qa -- <level> --no-sheet skip the contact sheet
 //
 // It checks, in order:
-//   copy     names 1 to 3 words, blurbs 1 or 2 sentences, find labels in sentence
-//            case and unique across the level, no em dashes, no TODOs left
+//   copy     names 1 to 3 words, blurbs 1 or 2 sentences, a description of
+//            every area and of the whole place (read to a screen reader: up to
+//            60 words), find labels in sentence case and unique across the
+//            level, no em dashes, no TODOs left
 //   colors   area files take their colors from C or the level's style sheet
 //   finds    how many per area and how many geese (the map's qa rules)
 //   errors   nothing breaks loading the level, or drawing any area (walls up
@@ -141,7 +143,7 @@ try {
       walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
       land: !!m.land,
       zones: w.zones.map((z) => ({
-        id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '', long: w.long(z),
+        id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '', describe: z.def.describe || '', long: w.long(z),
         finds: z.finds.map((f) => {
           // Moving: its spot changes over the loop (a goose's spot is always a function).
           const spots = [0, 7.3, 19.1, 41.7].map((t) => String(typeof f.at === 'function' ? f.at(t) : f.at));
@@ -206,6 +208,14 @@ try {
   if (!info.words.invite || !info.words.hint) warn('copy', 'The map has no invitation for a first visit (words.invite and words.hint).');
   else if (info.words.invite.length > 26 || info.words.hint.length > 40) warn('copy', `The invitation ("${info.words.invite}" / "${info.words.hint}") is long for its card on a phone: aim for under 26 and 40 characters.`);
   if (info.invite && info.invite.zone && !info.zones.some((z) => z.id === info.invite.zone)) bad(`The invitation points into "${info.invite.zone}", which isn't one of the areas.`);
+  // What's in the picture, for a screen reader (G5): the whole place's
+  // (words.describe), then each area's (describe, after its blurb).
+  const described = (what, d) => {
+    if (!d) bad(`${what}: no description (what a screen reader hears for the picture).`);
+    else if (words(d) > 60) warn('copy', `${what}: the description is ${words(d)} words; keep it under 60.`);
+    if (d && /TODO|placeholder/i.test(d)) bad(`${what}: the description is still a placeholder.`);
+  };
+  described('The whole place (words.describe)', info.words.describe);
   const seen = new Map();
   for (const z of info.zones) {
     if (words(z.name) < 1 || words(z.name) > 3) bad(`${z.id}: the name "${z.name}" should be 1 to 3 words.`);
@@ -214,6 +224,7 @@ try {
     else if (n < 1 || n > 2) bad(`${z.name}: the blurb is ${n} sentences; keep it to one or two.`);
     if (z.blurb.length > 170) warn('copy', `${z.name}: the blurb is ${z.blurb.length} characters; short reads better on a phone.`);
     if (/TODO|placeholder/i.test(z.blurb)) bad(`${z.name}: the blurb is still a placeholder.`);
+    described(z.name, z.describe);
     for (const f of z.finds) {
       if (f.goose) continue;
       const l = f.label || '';
@@ -232,7 +243,7 @@ try {
     const ids = z.finds.map((f) => f.id);
     if (new Set(ids).size !== ids.length) bad(`${z.name}: two finds share an id.`);
   }
-  if (copyOk) pass('copy', `${info.zones.length} areas: names, blurbs and ${seen.size} find labels follow the rules.`);
+  if (copyOk) pass('copy', `${info.zones.length} areas: names, blurbs, descriptions and ${seen.size} find labels follow the rules.`);
 
   // ---------- Finds ----------
   const rules = { goosePerZone: true, geese: null, things: [3, 3], ...info.qa };

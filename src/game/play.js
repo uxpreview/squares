@@ -49,7 +49,8 @@ import { whereIs } from './rules.js';
 const keyOf = (zone, f) => zone.id + ':' + f.id;
 
 export function createPlay({ camera, store, reduceMotion, clock, setClock, on }) {
-  // on: { exit(), complete(world), place(mapId, zoneId|null), refresh() (every area's picture, now) }
+  // on: { exit(), complete(world), place(mapId, zoneId|null), refresh() (every area's picture, now),
+  //       aim() (where keyboard play taps, [sx, sy]) }
   // clock(): the scene's time in seconds, the same t the renderer draws with.
   // setClock(t): move the scene to another moment (the reveal goes back to dinner).
   const { cam, view } = camera;
@@ -63,7 +64,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     places: $('to-places'), placesLabel: $('to-places-label'), floors: $('floors'),
     geesePill: $('tally-geese-pill'), caseBtn: $('tally-case'), caseCount: $('tally-case-count'), flash: $('flash'),
     caseLabel: document.querySelector('.tally-case-label'),
-    dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'), dialBadge: $('dial-badge'),
+    dial: $('dial'), dialLabel: $('dial-label'), dialNext: $('dial-next'), dialBadge: $('dial-badge'), dialSr: $('dial-sr'), caseSr: $('tally-case-sr'),
+    map: $('map'), aim: $('aim'), scene: $('scene'), say: $('say'), count: $('tray-count'),
   };
 
   const themeColor = document.querySelector('meta[name="theme-color"]');
@@ -237,9 +239,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     renderRoomBar();
     tray.render(i);
     layoutVars();
+    nameMap();
     if (changed) {
       const zone = world.zones[i];
       zoneSince = performance.now();
+      announce(`${zone.name}. ${seenStory.has(zone.id) ? '' : zone.def.blurb + ' '}${ui.count.textContent}.`);
       // The first time you step into an area with something that's away
       // (under the tide), the dial gives a little jump: it can bring it back.
       if (world.map.dial && !tideNudged.has(zone.id) && zone.finds.some((f) => f.when && !isFound(zone, f) && (f.step == null || f.step <= stepNow()) && !here(f, clock()))) {
@@ -283,7 +287,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     renderBack();
     showStory(false);
     layoutVars();
-    if (changed && active) on.place(world.id, null);
+    nameMap();
+    if (changed && active) {
+      on.place(world.id, null);
+      announce(overviewName() + '.');
+    }
   }
 
   // o.near: a world point [x, y] to frame a long area around.
@@ -410,7 +418,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function renderBack() {
     const inRoom = mode === 'zone';
     ui.placesLabel.textContent = inRoom ? world.map.short || world.map.name : 'Places';
-    ui.places.setAttribute('aria-label', inRoom ? `Back to ${words().whole.toLowerCase()}` : 'Back to the places');
+    // (Spoken names start with the words on the button, for voice control.)
+    ui.places.setAttribute('aria-label', `${ui.placesLabel.textContent}, back to ${inRoom ? words().whole.toLowerCase() : 'the list of places'}`);
   }
 
   function setStorey(i) {
@@ -421,7 +430,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     storey = i;
     renderFloors();
     if (mode === 'zone') toOverview({ dur: 1.2 });
-    else if (!same) camera.flyTo(overviewView(), 0.9);
+    else if (!same) {
+      camera.flyTo(overviewView(), 0.9);
+      nameMap();
+      announce(overviewName() + '.');
+    }
   }
 
   // ---------- Room bar + story ----------
@@ -431,8 +444,56 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     ui.unit.textContent = zone.tag;
     ui.name.textContent = zone.name;
     ui.storyText.textContent = zone.def.blurb;
-    ui.pill.setAttribute('aria-label', `${zone.name}${zone.tag ? ', ' + zone.tag.toLowerCase() : ''}. Show the story`);
+    ui.pill.setAttribute('aria-label', `${zone.tag ? zone.tag + ' ' : ''}${zone.name}, the story`);
   }
+
+  // ---------- For keys and screen readers ----------
+  // The map, to a screen reader: what it's showing (its name) and what's in
+  // the picture (the area's or the place's description), with the keys.
+  const KEYS = 'Arrow keys move the map, Enter taps the middle of it, plus and minus zoom, Escape goes back.';
+  function overviewName() {
+    const st = hasStoreys() ? world.storeys[storey] : null;
+    return `${world.map.name}, ${st ? st.name : words().whole.toLowerCase()}`;
+  }
+  function nameMap() {
+    if (!active || !world) return;
+    const z = mode === 'zone' && current >= 0 ? world.zones[current] : null;
+    ui.map.setAttribute('aria-label', z ? `${z.name}, ${world.map.name}` : overviewName());
+    ui.scene.textContent = `${(z ? z.def.describe : words().describe) || ''} ${KEYS}`.trim();
+  }
+  // Said once, politely: arriving somewhere, a thing answering a tap.
+  let sayTimer = 0;
+  function announce(text) {
+    if (!active) return;
+    clearTimeout(sayTimer);
+    // (Emptied first, so the same words twice are still read.)
+    ui.say.textContent = '';
+    sayTimer = setTimeout(() => { ui.say.textContent = text; }, 60);
+  }
+
+  // Keyboard play (input.js taps under the aim): a print mark, starting in
+  // the middle of the picture, clear of the list and the bars, shown while
+  // the map has focus.
+  function area() {
+    const s = insets(), { vw, vh } = view;
+    return [s.left, s.top, vw - s.right, vh - s.bottom];
+  }
+  let aimAt = '', keysSaid = false;
+  function placeAim() {
+    const [x, y] = on.aim().map(Math.round);
+    if (aimAt === x + ',' + y) return;
+    aimAt = x + ',' + y;
+    ui.aim.style.left = x + 'px';
+    ui.aim.style.top = y + 'px';
+  }
+  ui.map.addEventListener('focus', () => {
+    if (!active) return;
+    aimAt = '';
+    placeAim();
+    ui.aim.hidden = false;
+    if (!keysSaid) { keysSaid = true; toast('Arrow keys move the map. Enter taps under the mark. + and − zoom.', 5000); }
+  });
+  ui.map.addEventListener('blur', () => { ui.aim.hidden = true; });
 
   let storyTimer = 0;
   function showStory(v, ms = 0) {
@@ -533,13 +594,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (isTrail()) {
       bumpText(ui.caseCount, p.met ? 'Caught' : `${p.sightings}/${world.sightings.length}`);
       ui.caseBtn.classList.toggle('is-solved', p.met);
-      ui.caseBtn.setAttribute('aria-label', p.met ? 'The trail. Caught.' : `The trail: ${p.sightings} of ${world.sightings.length} sightings. Where it went next.`);
+      ui.caseSr.textContent = p.met ? '' : `, ${p.sightings} of ${world.sightings.length} sightings. Where it went next.`;
     }
     if (isCase()) {
       const solved = store.caseOf(world.id).solved;
       bumpText(ui.caseCount, solved ? 'Solved' : `${p.evidence}/${world.totals.evidence}`);
       ui.caseBtn.classList.toggle('is-solved', solved);
-      ui.caseBtn.setAttribute('aria-label', solved ? 'The case file. Case closed.' : `The case file: ${p.evidence} of ${world.totals.evidence} pieces of evidence found. Accuse someone.`);
+      ui.caseSr.textContent = solved ? ', solved. The case file.' : `, ${p.evidence} of ${world.totals.evidence} pieces of evidence found. The case file, to accuse someone.`;
     }
     return p;
   }
@@ -714,6 +775,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (pk.sound) sound(pk.sound);
     try { navigator.vibrate && navigator.vibrate(pk.decoy ? [8, 30, 8] : 8); } catch {}
     if (line) {
+      announce(line);
       // (One bubble per thing at a time.)
       for (let i = pops.length - 1; i >= 0; i--) if (pops[i].kind === 'say' && pops[i].poke === pk) pops.splice(i, 1);
       pops.push({ kind: 'say', zone, poke: pk, text: line, t0: performance.now() });
@@ -898,7 +960,6 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       const n = d.next(t);
       ui.dialLabel.textContent = label;
       ui.dialNext.textContent = `${verbOf(d)} ${n.label}`;
-      ui.dial.setAttribute('aria-label', `${label}. ${verbOf(d)} ${n.label}.`);
       ui.dial.dataset.waiting = ''; // (the badge says its part again)
       waitAt = -1;
     }
@@ -936,7 +997,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       ui.dial.dataset.waiting = String(back);
       ui.dialBadge.textContent = back;
       ui.dialBadge.hidden = !back;
-      ui.dial.setAttribute('aria-label', `${dialText}. ${verbOf(d)} ${n.label}${back ? `: ${back} ${back === 1 ? 'thing' : 'things'} to find come back` : ''}.`);
+      ui.dialSr.textContent = back ? `: ${back} ${back === 1 ? 'thing' : 'things'} to find come back` : '';
     }
     if (sig !== waitSig) {
       const first = !waitSig;
@@ -1179,6 +1240,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function tick(t) {
     skipStep();
     renderDial(t);
+    if (!ui.aim.hidden) placeAim();
     keepBubblesClear();
     placeInvite();
     if (world && world.map.plate && world.map.plate.at && Math.abs(t - plateAtT) > 0.4) printPlate(t);
@@ -1570,7 +1632,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (mode === 'zone') { userAct(); toOverview(); } else on.exit();
   });
   window.addEventListener('keydown', (e) => {
-    if (!active || (e.target.closest && e.target.closest('input, textarea'))) return;
+    // (The map, focused, has the arrows: input.js.)
+    if (!active || e.defaultPrevented || (e.target.closest && e.target.closest('input, textarea'))) return;
     if ((casefile.isOpen || traillog.isOpen) && e.key !== 'Escape') return; // the case file has the keys while it's open
     if (e.key === 'ArrowRight') step(1);
     else if (e.key === 'ArrowLeft') step(-1);
@@ -1690,6 +1753,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function start(zoneId, o = {}) {
     active = true;
     ui.hud.hidden = false;
+    ui.map.removeAttribute('aria-hidden');
+    ui.map.setAttribute('role', 'application');
+    ui.map.setAttribute('aria-roledescription', 'map');
+    ui.map.setAttribute('aria-describedby', 'scene');
     mixedAt = -1;
     const i = zoneId ? world.indexOf(zoneId) : -1;
     renderFloors();
@@ -1700,6 +1767,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (o.jump) camera.jumpTo(zoneView(i));
     } else {
       on.place(world.id, null);
+      announce(`${world.map.name}. ${world.map.tagline}`);
       // (From its picker card, the place only grows: no pull back on the way.)
       if (!o.fresh) camera.flyTo(overviewView(), o.grow ? 1.1 : 1.2, null, { straight: !!o.grow });
     }
@@ -1711,6 +1779,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     active = false;
     attractInsets = getInsets || null;
     ui.hud.hidden = true;
+    // (Behind the title and the picker the map is scenery.)
+    for (const a of ['role', 'aria-roledescription', 'aria-describedby', 'aria-label']) ui.map.removeAttribute(a);
+    ui.map.setAttribute('aria-hidden', 'true');
+    ui.say.textContent = '';
     mix({});
     mixed = {};
     casefile.close();
@@ -1754,6 +1826,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     resize,
     tap,
     settle,
+    area,
     clampZoom: (z) => (world ? clampZoom(z) : z),
     down() {
       if (!ui.story.hidden) showStory(false);

@@ -383,6 +383,7 @@ export default {
   id: 'dining-room',
   name: 'Dining Room',
   blurb: 'Lord Gooseworth\'s 80th birthday dinner, minus Lord Gooseworth. The Brigadier is telling his war story to a stuffed fox.',
+  describe: 'A long dinner table under candelabras, with a fire on the left wall and a sideboard and family portraits along the back, under birthday bunting. After the toast the guests slip away one by one, and even the ancestors step out of their frames. Later everyone drifts back for the second trifle.',
 
   build(R) {
     const clock = {

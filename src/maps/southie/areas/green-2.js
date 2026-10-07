@@ -130,6 +130,7 @@ export default {
   id: 'green-2',
   name: 'The Roommates',
   blurb: 'Four guys, one futon and a poster over a hole. Flip the clock to meet the night nurse.',
+  describe: 'The roommates\' last morning: one asleep in the corner, one playing beer pong against himself, a drum kit and a leaning tower of pizza boxes. After noon a night nurse moves in behind a blackout curtain and sleeps while her sister unpacks on tiptoe. By night she\'s off to work.',
   size: [15, 9],
   build(R) {
     // Her window's dark while she's at work (the only dark one on the row).

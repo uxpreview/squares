@@ -227,6 +227,7 @@ export default {
   id: 'green-3',
   name: 'The Couch',
   blurb: 'He left them everything; their couch is on a rope. Flip the clock: they kept one thing.',
+  describe: 'A laid-back last tenant: a hammock, a fish tank, a sun tapestry and string lights, while the couple from out of state wait on the porch with their rope. After noon they move in with their dog and measure the stairwell, twice. By night they\'re eating pizza on an air mattress.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 2, walls: W, floorInk: W.floor, siding: SIDING.green, trim: TRIM.green });

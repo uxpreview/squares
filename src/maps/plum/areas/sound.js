@@ -304,6 +304,7 @@ export default {
   id: 'sound',
   name: 'The Sound',
   blurb: 'Clammers on the mud at noon, kayaks on the water by dusk. The sailboat ran aground at dawn, and its owner has not looked up from her book since.',
+  describe: 'Wide mud flats behind the refuge, cut by a winding channel, with a grassy islet in the middle. Along the back, the mainland marsh: haystacks on stilts, blue fly traps and a camp on pilings. The tide fills the flats by evening, right up to the refuge road.',
   home: [24, 17],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });

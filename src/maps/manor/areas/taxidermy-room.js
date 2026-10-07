@@ -2012,6 +2012,7 @@ export default {
   id: 'taxidermy-room',
   name: 'Taxidermy Room',
   blurb: 'Stuffed everything, and one new stand with nothing on it yet. The owl turns its head whenever you look away.',
+  describe: 'A mustard-striped room crowded with the Lord\'s handiwork: a stag in a party hat, a boar, a peacock, a penguin, an ostrich with its head in a fire bucket, mounted heads on the walls and a tiger-skin rug. Glass eyes spill under the workbench. Nothing in here is alive. Probably.',
 
   build(R) {
     // ---- floor and walls ----
