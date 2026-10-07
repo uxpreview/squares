@@ -253,5 +253,17 @@ The Manor's verb (STRATEGY.md, "A verb per place") is **deduce**, and it already
 
 28 things now (two new curiosities), 32 things that answer a tap, 11 decoys. Decision 28's evidence among lookalikes still holds, with these changes: the pill bottle, the pawn ticket, the letters, the silver, the diary, the order form and the resignation letter now sit inside something you open, with their lookalikes in there with them or as a near miss outside.
 
+51. **Three blind playtests** (phone shots at each room's own framing). Round 1 was partly the tool's fault: it let the clock run on from 70 s while it shot room after room, so the later rooms were shot after the lights went out and the Billiard Room in a lightning flash; a place without a dial now shoots every area at its own QA moment (`tools/playtest.mjs`). Round 1, 21 of 29 found, 10 off their band (all too hard); round 2, clean shots, 22 of 29, 6 off; round 3, 19 of 29, 9 off (a tester who didn't think to tap things open). Off band in two or three rounds, and fixed:
+- **The false tooth:** the tureen's tell didn't carry from the sideboard at phone size, then not with a soup splash up the wall either; the tureen moved onto the table by the Brigadier's empty bowl, lid askew, ladle up.
+- **The sponge:** the oven door stands ajar now, with a glow on the floor, steam and an oven glove; the hob's round copper pot read as a cake and is a black stockpot.
+- **The love letters:** the ribbon tail didn't survive phone size; two envelope tops, one with a heart seal, and a pink bow on the leaning plant's pot.
+- **The new will:** both testers went to the GOOSE-PROOF safe, sent there by the bin of crossed-out drafts. The will is the one paper on the desk that matters now (on top, a fat red seal and ribbon, a wet signature, the quill beside it; no caption, decision 23), and the safe hangs an EMPTY tag. Found in round 3.
+- **The diary:** every tester tapped the open book on the nightstand. More of the diary's leather, strap and lock show under the pillow, and the nightstand's book is shut.
+- **The pawn ticket:** every tester tapped a loose slip beside the cigar box (20 px off); the string and tag are bigger and brighter and the box's tap wider.
+- **The fifth ace** rated too easy in round 3 ("Four aces on the table. Try under it."): its riddle is "The chauffeur never loses. Wonder why." now.
+
+Missed once, found by the other testers, left alone: the feathers (hard, missed by 13 px twice, among confetti on purpose), the wine glass, the timer, the order form, the resignation letter. The goose under its cloak landed at 3 and 4 every round; the wellies under the other cloak made two testers look twice. The case (round 1): the tester guessed the goose from the first clues and was sure at three of six, knew what to do without being told, and laughed at "The roses won't prune themselves" and "The goose? Preposterous." One note for the owner: you can close the case with 6 of 29 things found (a whodunit finishes at the case, decision 11), so the rest are optional.
+
 Open:
 - Whether the stamped backdrop helps on the owner's laptop (49): `node tools/fps.mjs manor`.
+- The owner on a phone: the seven fixed finds above, the goose, and whether the stairs and the evidence tags feel right.
