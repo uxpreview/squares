@@ -1242,23 +1242,22 @@ function diary(ctx, x, y, z, rot, shut = false) {
     g.stroke();
   });
 }
-// On the bedside table where you'd expect the diary: his night reading, open.
-// All print, no ribbon, no strap, no lock.
+// On the bedside table where you'd expect the diary: his night reading,
+// shut. (Open, three playtesters in a row took it for the diary and never
+// looked under the pillow.)
 function nightBook(ctx) {
   const z = NT.z + 0.008;
   flat(ctx, 8.1, 3.22, z, (g) => {
     g.rotate(0.06);
+    // the page edges, then the cover over them, a band across the spine end
     g.beginPath();
-    g.roundRect(-0.025, -0.025, 0.55, 0.39, 0.03);
+    g.roundRect(0.01, 0.01, 0.42, 0.3, 0.02);
+    paint(g, PAGE, { lw: 0.014 });
+    g.beginPath();
+    g.roundRect(-0.025, -0.025, 0.42, 0.3, 0.03);
     paint(g, mix(INK.oxblood, C.brown, 0.4), { lw: 0.025 });
-    for (const a of [0, 0.25]) {
-      g.beginPath();
-      g.moveTo(a, 0.005); g.quadraticCurveTo(a + 0.125, -0.02, 0.25 + a, 0.005); g.lineTo(0.25 + a, 0.345); g.quadraticCurveTo(a + 0.125, 0.32, a, 0.345);
-      g.closePath();
-      paint(g, PAGE, { lw: 0.014 });
-    }
-    printed(g, 0.03, 0.05, 0.19, 7, 0.042);
-    printed(g, 0.28, 0.05, 0.19, 7, 0.042);
+    g.fillStyle = shade(mix(INK.oxblood, C.brown, 0.4), 0.3);
+    g.fillRect(-0.02, 0.02, 0.07, 0.21);
   });
   // the pen, left beside it
   line3(ctx, [[8.2, 3.68, z + 0.02], [8.48, 3.62, z + 0.02]], C.ink, 0.035);

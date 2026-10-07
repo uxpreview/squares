@@ -866,7 +866,7 @@ export default {
     // The sideboard's middle cupboard.
     const cupboard = R.poke({ id: 'cupboard', at: [14.1, 0.93, 0.55], r: 0.8, sound: 'clunk', say: ['Glasses. No port.', "Somebody's had the port.", 'Still no port.'] });
     // Rupert's cigar box on the card table: the pawn ticket is in it.
-    const cigars = R.poke({ id: 'cigars', at: [11.0, 12.8, 1.1], r: 0.75, say: ['Cigars. And something else.', 'Just cigars now.'] });
+    const cigars = R.poke({ id: 'cigars', at: [11.0, 12.8, 1.1], r: 0.9, say: ['Cigars. And something else.', 'Just cigars now.'] });
     // The red herring: the Lord's wooden goose decoy on the mantel.
     const decoy = R.decoy({ id: 'wood-goose', at: [0.35, 8.55, 1.95], r: 0.6, hold: 1.2, say: ["A decoy. Don't shoot.", 'Wood. Painted. Still not a goose.'] });
 
@@ -1835,7 +1835,7 @@ export default {
     });
     R.find({
       id: 'fifth-ace', label: 'A fifth ace', kind: 'hard', at: [12.55, 11.75, 0.05], r: 0.6,
-      riddle: 'Four aces on the table. Try under it.',
+      riddle: 'The chauffeur never loses. Wonder why.',
       hint: 'Four aces is lucky. Five is careless. Somebody dropped one.',
     });
     R.find({ id: 'shoes', label: "Rupert's shoes", kind: 'spot', at: (t) => { const [x, y, z] = shoesAt(lt(t)); return [x, y, z + 0.14]; }, r: 0.8 });
