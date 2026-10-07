@@ -22,6 +22,9 @@
 //            never faster than a run
 //   land     (places with ground and water) the ground never climbs toward
 //            the viewer too steeply to draw ground-first (engine/terrain.js)
+//   sound    every cue and bed plays, and the place's sound (every bed, its mix
+//            in every area at a dozen moments, every cue) sits under a honk
+//            (tools/sound.js; node tools/sound.mjs <place> shows the numbers)
 //   case     (whodunits) every clue in the case file is a find in the place,
 //            every suspect has an accusation scene, the lines are short
 //   screen   on a phone and a desktop, each area framed as a player sees it:
@@ -43,6 +46,7 @@ import { execSync } from 'node:child_process';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { coveredInPage } from './covered.js';
+import { soundInPage, RULES as SOUND_RULES } from './sound.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const args = process.argv.slice(2);
@@ -330,19 +334,24 @@ try {
     if (trailOk) pass('trail', `The trail: ${tr.sightings.length} sightings through the day, across ${new Set(tr.sightings.map((x) => x.zone)).size} areas, each pointed to by a witness${tr.finale ? `, cornered in ${byId.get(tr.finale).name}` : ''}.`);
   }
 
-  // ---------- Sound: every cue and the bed exist and build ----------
+  // ---------- Sound: every cue and bed exists, builds, and sits under a honk ----------
   const sound = await page.evaluate(async () => {
     const m = window.__squares.world.map;
     if (!m.sound) return null;
     const { check } = await import('/src/game/audio.js');
-    const names = [...new Set([...(m.sound.cues || []).map((q) => q.name), ...(m.sound.bed ? [m.sound.bed] : [])])];
+    const names = [...new Set((m.sound.cues || []).map((q) => q.name))];
     const out = [];
     for (const n of names) { const err = await check(n, { big: true }); if (err) out.push(`${n}: ${err}`); }
     return { names, problems: out, cues: (m.sound.cues || []).length };
   });
   if (sound) {
+    const levels = await page.evaluate(soundInPage, { RULES: SOUND_RULES });
     for (const p of sound.problems) fail('sound', p);
-    if (!sound.problems.length) pass('sound', `${sound.cues} cues on the clock and the bed (${sound.names.join(', ')}) all play.`);
+    for (const p of levels.problems) fail('sound', p);
+    if (!sound.problems.length && !levels.problems.length) {
+      const beds = Object.keys(levels.beds);
+      pass('sound', `${sound.cues} cues on the clock and ${beds.length} beds (${beds.join(', ')}) all play, under a honk in every area at every hour.`);
+    }
   }
 
   // ---------- Land: ground that can be drawn ground-first ----------

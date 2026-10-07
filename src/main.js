@@ -22,7 +22,7 @@ import { buildWorld } from './engine/world.js';
 import { createStore } from './game/store.js';
 import { createPlay } from './game/play.js';
 import { setUp } from './game/case.js';
-import { setMuted } from './game/audio.js';
+import { setMuted, mixNow, playing } from './game/audio.js';
 import { createScreens } from './ui/screens.js';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -277,6 +277,8 @@ window.__squares = {
   store,
   clock,
   go,
+  mixNow,
+  playing,
   get world() { return play.world; },
   get rooms() { return play.world ? play.world.zones : []; },
 };

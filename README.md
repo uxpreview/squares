@@ -80,7 +80,9 @@ src/
     play.js          Playing a map: tapping, finding, hints, tallies, the lift, the invitation, the reveal
     case.js          Level formats: a place's goal, evidence and curiosities, accusations
     store.js         Saved progress and settings (and upgrading old saves)
-    audio.js         Every sound, synthesized (honk, pen, thunder, rain...)
+    audio.js         Every sound, synthesized (honk, pen, thunder...), and the mix of beds under a place
+    beds.js          Sounds that loop under a place (the street, the sea, rain, a dryer, a band far off)
+    synth.js         What sounds are built from (noise, tones, loops baked from a recipe)
   ui/
     screens.js       Title, place picker, the "place complete" card
     tray.js          The find list (chips, the full list, hidden/peek/open)
@@ -98,7 +100,7 @@ src/
       clock.js         The day's hours, and each room's opening hours and rush
       day.js           The day's light, and everyone's day on the streets
       finale.js        The ending: the conga round Main Street and the sock
-      sound.js         The street bed and the day's sound cues
+      sound.js         The mix (the street through the day, each room inside) and the day's cues
       ambient.js       The blimp and the paper plane
     tower/           The Walk-Up: 4 floors, pulled apart like an exploded diagram
     manor/           Gooseworth Manor: a murder mystery in a house at night, 3 floors, 11 areas
@@ -106,6 +108,7 @@ src/
       style.js         The style sheet: inks, room colors, the storm, lights, the cast in costume
       evening.js       Everyone's 3-minute evening, room to room, and what lightning shows
       case.js          The case file: suspects, clues, alibis, what they say, the reveal
+      sound.js         The mix (rain and wind, a fire or the clock in each room) and cues (thunder, midnight)
       ambient.js       The night, the lawn, the tower, rain and lightning
       areas/           One file per area
     crossroads/      A hidden test bed (#/crossroads): a street and a pavement of any shape
@@ -118,7 +121,7 @@ src/
       swarm.js         The greenhead man's walk, and aside(): anyone near it steps out of the way
       kit.js           Shared pieces: cars, boats, beach houses (lit at night), umbrellas, traps, signs, gulls
       ambient.js       Around the island: Newburyport, the Salisbury jetty, sun, moon, stars, the banner plane
-      sound.js         The surf and wind bed, and cues on the clock (the bridge's bell, the plane, Dave's horn)
+      sound.js         The mix (surf, wind, the river, the beach crowd, by area and hour), and cues on the clock (the bridge's bell, the plane, Dave's horn)
     cruise/          All-You-Can-Eat: a whodunit on a cruise ship, four decks (hidden until it ships)
       plan.js          The decks, the areas on them, the doors, the lift, the bow's taper, the waterline
       style.js         The style sheet: the inks, the sea through the day, the day's clock, who goes green when, the cast
@@ -127,7 +130,7 @@ src/
       day.js           Everyone's day, 7am to 7pm, deck to deck in the lift
       case.js          The case file: who is patient zero?
       ambient.js       The sea: the wake, the waterline, the sea over the crew deck
-      sound.js         The sea bed, and cues on the clock (the drill, bingo, the port's welcome)
+      sound.js         The mix (the sea, the engines, the steel band, each room inside), and cues on the clock (the drill, bingo, the port's welcome)
       finale.js        The ending: the geese swim out to the Courier's van
       areas/           One file per area, in the land's own units
     southie/         Moving Day: a row of triple-deckers on Farragut Road, South Boston, on September 1st
@@ -138,6 +141,7 @@ src/
       kit.js           The triple-decker: a floor of a house, its stairs, porches and outside; the rest of the row
       day.js           Everyone on the clock: the Courier, the landlady, the movers, the curb collector
       finale.js        The ending: the geese bring the couch in
+      sound.js         The mix (the road, the harbor, the rain, each apartment inside) and the day's cues
       ambient.js       Around it: City Point's rooftops, Dorchester Heights, the Seaport, the planes, the rain
       areas/           Nine apartments (a file per floor of each house) and three outdoor areas
 index.html         The page: every screen's markup
@@ -145,6 +149,7 @@ styles.css         Every screen's look
 tools/
   shoot.mjs        Screenshot any screen, place or zone, at any moment
   tour.mjs         An area pinched in on a phone, tile by tile, at chosen moments
+  sound.mjs        How loud every bed is, and a place's mix in every area, against a honk
   smoke.mjs        The click-through test
   new-level.mjs    Scaffold a new place from its brief
   qa.mjs           Check a place and make its contact sheet
@@ -172,7 +177,10 @@ docs/
 | Change a zone's name, story or finds | The top of its file (`id`, `name`, `blurb`) and its `R.find(...)` calls |
 | Swap or reorder rooms on the Block Party | `GRID` and `AT` in `src/maps/block/plan.js` (the streets are laid out round them) |
 | Hide the "more places on the way" card | `teaseMore: false` in `src/config.js` |
-| Change a sound, or add one | `src/game/audio.js` |
+| Change a sound, or add one | `src/game/audio.js` (one-off sounds) or `src/game/beds.js` (sounds that loop under a place) |
+| What a place sounds like, by the hour and room by room | `bed` in that place's `sound.js`: it gives a level for each bed (0 to 1) and how muffled the outdoors is (`muffle`), from the clock and where you are |
+| Turn a bed up or down everywhere | `LEVEL` at the top of `src/game/beds.js`, then `node tools/sound.mjs` (every bed) or `node tools/sound.mjs <place>` to check it's still under a honk (QA checks too) |
+| How quiet a cue is from another room | `cueLevel` in `src/game/play.js` (a cue with a `zone` plays quieter and muffled from anywhere else) |
 | Change what finishing a place says | `words.complete` in that place's `map.js`; the card itself is in `src/ui/screens.js` |
 | Change the title screen's drift | `startDrift` in `src/engine/camera.js` |
 | How far the map stretches past its edge | `stretch` at the top of `src/engine/camera.js`; how it springs back and brakes is `step` in `src/engine/input.js` |
@@ -193,7 +201,7 @@ docs/
 | When the tide's in or out, and when tide-only finds show | `TURNS`, `lowTide`, `highTide` and `SUNSET` in `src/maps/plum/tide.js`; where the dial skips to (low water, sunset, high water) is its `next` |
 | Plum Island's sea through the day (the sunset's pink and lavender) | `SEA` and `paperAt` in `src/maps/plum/style.js` |
 | Who steps aside for the greenhead swarm | `aside(x, y, t)` from `src/maps/plum/swarm.js`, added to where someone stands in their area's file |
-| Plum Island's sounds | `src/maps/plum/sound.js` (when each cue plays); the sounds themselves (`bridgebell`, `prop`, `lap`, `crickets`, the `island` bed) are in `src/game/audio.js` |
+| Plum Island's sounds | `src/maps/plum/sound.js` (the mix and when each cue plays); the cues (`bridgebell`, `prop`, `lap`) are in `src/game/audio.js`, the beds in `src/game/beds.js` |
 | Who goes green on the cruise ship, and when | `SICK` and `HERRING` in `src/maps/cruise/style.js` (an area's own passengers: `passenger(R, x, y, seed, { sick })` in its file) |
 | The cruise ship's day and the dial's skips | `at()`, `MOMENTS` and `seaAt` in `src/maps/cruise/style.js`; everyone's walk is `src/maps/cruise/day.js` |
 | A flat thing that changes only now and then (the evening's ground) | `step: (t) => n` on it: it's baked into the room's cached floor and baked again when its step changes (see "step" in `src/engine/zone.js`) |
@@ -222,7 +230,7 @@ docs/
 | Where the reveal happens, and what the closing card says | `reveal` in `src/maps/manor/case.js` (the goose's chair is drawn in `areas/dining-room.js`) |
 | How a room looks at the Manor (wallpaper, floor, woodwork) | `ROOM` and `MAT` in `src/maps/manor/style.js` |
 | A character's costume at the Manor | `COSTUME` in `src/maps/manor/style.js` |
-| Thunder, the rain, the clock at midnight | `sound` in `src/maps/manor/map.js`; the sounds are in `src/game/audio.js` |
+| Thunder, the rain, the fires, the clock at midnight | `src/maps/manor/sound.js`; the sounds are in `src/game/audio.js` and `src/game/beds.js` |
 | The case file's look | "The case file" in `styles.css` |
 
 ## Adding a place
@@ -242,7 +250,7 @@ What a map file holds (`src/maps/beach/map.js`; see `tower/map.js` or `manor/map
    - `storeys` (optional): named floors, with a lift panel to change them (see the Manor).
    - `walkers` (optional): people who walk from area to area on one clock (see `manor/evening.js`).
    - `case` (optional): makes the place a whodunit (see `manor/case.js` and the top of `src/game/case.js`).
-   - `sound` (optional): a bed that loops while you're there, and cues on the place's clock.
+   - `sound` (optional): `bed`, the beds that loop while you're there (one name, or a function of the clock and where you are that gives each bed a level, see `block/sound.js`), and `cues` on the place's clock.
 4. It's listed in `src/maps/index.js`; take `hidden: true` off when it ships.
 5. Check it: `node tools/shoot.mjs beach out.png`, `node tools/shoot.mjs beach/pier out.png --mobile`, `npm run qa -- beach`, then `npm run smoke`.
 
