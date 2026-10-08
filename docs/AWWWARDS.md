@@ -63,7 +63,7 @@ The title on slow 4G with a 4x slower processor (`node tools/load.mjs`, three ru
 
 ## On the owner's Mac (the next session, before 18b)
 
-18a was built and checked in the cloud, which has no graphics chip and no Safari. These need a real machine, the 2017 MacBook Pro (the slowest we know plays it). `git pull`, then `npm install` first: 18a added `axe-core`.
+18a was built and checked in the cloud, which has no graphics chip and no Safari. These need a real machine, the 2017 MacBook Pro (the slowest we know plays it). Start from `main` (`git checkout main && git pull`), then `npm install`: 18a added `axe-core`.
 
 1. **The title's first five seconds, by eye.** It now prepares Plum Island's and Moving Day's land a few milliseconds after each frame. Invisible on a quick machine; on the old laptop, check the drift doesn't stutter.
 2. **Frames a second where the land changed:** `node tools/fps.mjs plum --auto` and `node tools/fps.mjs southie --auto`. Before 18a: Plum Island's areas 20 to 23 with sharpness stepping down, Moving Day's apartments about 25, the road and park 17.
@@ -71,7 +71,7 @@ The title on slow 4G with a 4x slower processor (`node tools/load.mjs`, three ru
 4. **Lighthouse on a real graphics chip:** `npm run build && npm run preview`, then Chrome, DevTools, Lighthouse, Mobile, on the title. This is what a juror sees in their own browser. Well above the cloud's 62, the title's drift stays as it is; near 60, decide on the options under "The numbers".
 5. **By hand:** Chrome: a place, Tab once, the arrows, Enter, + and −. Safari: Tab only reaches text fields unless "Press Tab to highlight each item" is on (Safari's Advanced settings), or use Option+Tab; that's Safari's default, not the game's. VoiceOver (Cmd+F5): Tab to the map and hear the place named and described; step into a room and hear its name and story.
 
-Anything that regresses gets fixed on 18a's branch before it merges.
+18a is merged, so anything that regressed gets fixed in a small follow-up PR, before 18b starts.
 
 ## Left for 18b (with the rename)
 
