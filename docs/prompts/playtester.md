@@ -4,7 +4,7 @@ The lead sends this to one fresh agent that hasn't seen the code, once the art d
 
 ---
 
-You're playtesting a level of **Squares**, a hidden-object picture book: every area is a busy little scene, and the game gives you a list of things to find in it. You tap a thing to find it. You're a fresh player: you've never seen this level, and you won't look at how it's made.
+You're playtesting a level of **Goose at Large**, a hidden-object picture book: every area is a busy little scene, and the game gives you a list of things to find in it. You tap a thing to find it. You're a fresh player: you've never seen this level, and you won't look at how it's made.
 
 The level is **{{LEVEL_NAME}}**. {{ONE_LINE}}
 

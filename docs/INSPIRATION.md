@@ -75,7 +75,7 @@ Escher-like architecture: arches, stairs and water channels that loop in impossi
 
 ### 8. Apartment block "209" (Vien Nha)
 A night cutaway of a building: a grid of rooms around a stairwell, every room a different color and mood, a sign on the side, a rooftop.
-- **Tone:** the original is a crime scene (some rooms are gory). That tone isn't Squares, but the idea is: **every room holds a secret, and together they tell one story**.
+- **Tone:** the original is a crime scene (some rooms are gory). That tone isn't Goose at Large, but the idea is: **every room holds a secret, and together they tell one story**.
 - **Plate:** dark navy background, rooms lit from inside, warm lamps. Night is its own plate.
 - **Lesson:** a building works when each room has a distinct color and light, and when the rooms add up to a mystery you piece together.
 
@@ -181,7 +181,7 @@ A crowded ink city: a cathedral, factories with chimneys, cut-open tenements, a 
 - **A shared universe.** Recurring characters and fake brands across pieces (Greb, Gooby Juice). We have the goose; we can have more.
 - **A centerpiece with a crowd** (1, 4, 16, 18): one absurd thing everyone has come to see.
 - **Concept places** (7, 15): an idea turned into architecture.
-- **Tone.** A couple are dark (8's gore, 12's vampires). Squares keeps the funny, all-ages version of each idea.
+- **Tone.** A couple are dark (8's gore, 12's vampires). Goose at Large keeps the funny, all-ages version of each idea.
 
 ## How the batches change the plan
 

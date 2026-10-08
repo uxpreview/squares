@@ -481,7 +481,7 @@ export default {
     }
     // right side (x = X1): outer face visible
     const rightAds = (ctx) => {
-      textX(ctx, X1 + T / 2 + 0.001, 7.4, 0.43, 'SQUARES', 0.36, C.coral);
+      textX(ctx, X1 + T / 2 + 0.001, 7.4, 0.43, 'GOOSE AT LARGE', 0.26, C.coral);
       textX(ctx, X1 + T / 2 + 0.001, 10.8, 0.43, 'WARM SOCKS', 0.3, C.purple);
     };
     for (let y = Y0 - T / 2; y < Y1 - T / 2 - 0.01; y += 1) {

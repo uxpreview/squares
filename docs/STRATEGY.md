@@ -81,6 +81,8 @@ I pushed back on this and the owner chose the chase over a plain goose place, wh
 
 **Confirmed** *(the owner)*. NAMING.md said Goose of Interest wins only "if the mysteries ever became the main event". The owner has decided they won't, and the ship turning into a chase makes the game more about something at large, not less. That settles it. Geraldine stays: the Courier's parcel is already addressed to "G. Goose".
 
+**Done in part, October 8:** the name changed everywhere a player sees it (ROADMAP.md, session 11); the address, the repo and the saves' carry-over wait for the domains.
+
 **When: soon,** in the v2 round, before share images, the daily or the Awwwards submission carry the old name. The owner does three things first (NAMING.md, "Next steps for you"): register gooseatlarge.com and .app, run the trademark search, claim the handles.
 
 **What it touches** (one session):

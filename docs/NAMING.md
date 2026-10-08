@@ -1,6 +1,6 @@
 # Naming the game
 
-Research from 30 September 2026. The working title is still Squares: nothing in the game or the repo has been renamed.
+Research from 30 September 2026. **Renamed on 8 October 2026:** the game is Goose at Large (the page, the title screen, the manifest, the printed slugs, the docs). Still to do: register the domains (step 1 below), then move the address; the repo, the folder and the saves' keys still say squares (ROADMAP.md, session 11).
 
 ## The short answer
 
@@ -375,4 +375,4 @@ How to read it:
 
 ### 5. Then rename (a later session)
 
-This research didn't touch the game: the title screen, the page title and the README still say Squares. Once you've decided, the rename is a small, separate change.
+This research didn't touch the game. The rename came later, on 8 October 2026 (ROADMAP.md, session 11).
