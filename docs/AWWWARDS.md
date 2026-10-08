@@ -46,6 +46,8 @@ Lighthouse 12 in the cloud (no graphics chip: canvas drawing is done by the proc
 
 After, on the phone: first paint 1.2 s, largest paint 3.3 s, no layout shift. Desktop: 0.4 s, 0.7 s, total blocking 220 ms.
 
+The title on slow 4G with a 4x slower processor (`node tools/load.mjs`, three runs each): 0.90 to 0.91 s before 18a, 0.89 to 0.93 s after. The new head costs nothing.
+
 **Why the phone score stops at about 60.** Lighthouse's phone test slows the processor 4x in its arithmetic and counts every task over 50 ms as blocking. The title's map draws every frame (about 12 ms of work on this machine, so about 50 ms in Lighthouse's arithmetic), and the page never goes quiet, so it adds up to 4 s of "blocking" without anything actually stuck. On a real phone the graphics chip does the drawing. What's left that's real is the first frame (about 350 ms: drawing every room of the Block Party for the first time). Options if it matters to the jury: draw the title's map from one cached picture while it drifts, or start the drift after the first second. Neither done; both cost some of the title's life.
 
 **axe** (`npm run a11y`): every screen and state on a phone and a desktop (the title, the picker, a place, a room, its whole list, the Manor at night, the case file, the tide dial, the trail log, the place-complete card): before, low-contrast labels and buttons whose spoken names didn't match their words, on most screens; **none** after.
@@ -58,6 +60,18 @@ After, on the phone: first paint 1.2 s, largest paint 3.3 s, no layout shift. De
 - Lighthouse: `npm run build && npm run preview`, then Chrome's DevTools, Lighthouse tab, on the address it prints (or `npx lighthouse <address> --view`). On the live site: [PageSpeed Insights](https://pagespeed.web.dev/) on squares.ryankm.com.
 - The W3C validator: [validator.w3.org/nu](https://validator.w3.org/nu/?doc=https%3A%2F%2Fsquares.ryankm.com%2F) on the live site (or the built `dist/index.html`).
 - `npm run build && node tools/load.mjs`: the title on slow 4G (should stay under a second).
+
+## On the owner's Mac (the next session, before 18b)
+
+18a was built and checked in the cloud, which has no graphics chip and no Safari. These need a real machine, the 2017 MacBook Pro (the slowest we know plays it). `git pull`, then `npm install` first: 18a added `axe-core`.
+
+1. **The title's first five seconds, by eye.** It now prepares Plum Island's and Moving Day's land a few milliseconds after each frame. Invisible on a quick machine; on the old laptop, check the drift doesn't stutter.
+2. **Frames a second where the land changed:** `node tools/fps.mjs plum --auto` and `node tools/fps.mjs southie --auto`. Before 18a: Plum Island's areas 20 to 23 with sharpness stepping down, Moving Day's apartments about 25, the road and park 17.
+3. **QA with the speed check** (skipped in the cloud, where timings aren't trustworthy): `npm run qa -- plum` and `npm run qa -- southie`.
+4. **Lighthouse on a real graphics chip:** `npm run build && npm run preview`, then Chrome, DevTools, Lighthouse, Mobile, on the title. This is what a juror sees in their own browser. Well above the cloud's 62, the title's drift stays as it is; near 60, decide on the options under "The numbers".
+5. **By hand:** Chrome: a place, Tab once, the arrows, Enter, + and −. Safari: Tab only reaches text fields unless "Press Tab to highlight each item" is on (Safari's Advanced settings), or use Option+Tab; that's Safari's default, not the game's. VoiceOver (Cmd+F5): Tab to the map and hear the place named and described; step into a room and hear its name and story.
+
+Anything that regresses gets fixed on 18a's branch before it merges.
 
 ## Left for 18b (with the rename)
 
