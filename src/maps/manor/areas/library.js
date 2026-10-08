@@ -2044,6 +2044,7 @@ export default {
   id: 'library',
   name: 'Library',
   blurb: 'Lord Gooseworth, face down in his own birthday trifle. Inspector Pidge is questioning the bear.',
+  describe: 'A library two storeys tall: books to the ceiling, a gallery with a rolling ladder, a fire and a tall window onto the storm. The Lord slumps at a small table in the middle, and a chalkboard lists the suspects: bear, butler, bear again. After the scream, the whole house crowds round him.',
 
   build(R) {
     // ---------- The room ----------

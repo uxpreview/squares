@@ -359,6 +359,7 @@ export default {
   id: 'theater',
   name: 'The Theater',
   blurb: "The Great Gary's rabbit escaped on day one. He has pulled everything else out of that hat since, and none of it hops.",
+  describe: "The stern end of the Promenade. The stage sits at the back under a gilt arch of bulbs, Gary's assistant still sawn in half on it, facing three rows of red velvet seats and a follow spot by the lift. A kids' show fills the seats at ten, bingo at three.",
 
   build(R) {
     deck(R, 'theater', 'promenade', { floor: MAT.carpetRed, wall: shade(MAT.carpetRed, 0.08), grid: false, name: false });

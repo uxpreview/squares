@@ -444,6 +444,7 @@ export default {
   id: 'castle-island',
   name: 'Castle Island',
   blurb: 'The hot dog line is the same length at noon, in the rain and at midnight. Flip the clock: somebody\'s saving lunch for later.',
+  describe: 'The end of Day Boulevard: a hot dog stand under red and white stripes, plane spotters at the container port\'s fence, and Fort Independence behind a tall obelisk. Walkers loop the bay, and a plane comes in low every minute so everyone looks up. At night lamps glow along the causeway.',
   home: [76, 6],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: { ...EVENING, island: EVENING.lawn } });

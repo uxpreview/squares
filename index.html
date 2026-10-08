@@ -4,11 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ECE2CF">
-<title>Squares</title>
-<meta name="description" content="A hidden-object picture book you can walk through. Tiny animated places, drawn in code, each with a loose goose.">
-<meta property="og:title" content="Squares">
-<meta property="og:description" content="A hidden-object picture book you can walk through. Every place has a loose goose.">
+<meta name="color-scheme" content="light">
+<!-- The game's name, its address and what it says about itself. The rename
+     (Goose at Large, session 18b) changes the name, the address and the
+     share image here, in site.webmanifest, robots.txt, sitemap.xml and
+     src/config.js (docs/AWWWARDS.md lists them). -->
+<title>Squares · A hidden-object picture book</title>
+<meta name="description" content="A hidden-object picture book you can walk through: five tiny places drawn in code, alive on their own clocks, and a goose loose in every one.">
+<meta name="author" content="Ryan McCarty">
+<link rel="canonical" href="https://squares.ryankm.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Squares">
+<meta property="og:title" content="Squares · A hidden-object picture book">
+<meta property="og:description" content="Five tiny places drawn in code, alive on their own clocks, and a goose loose in every one.">
+<meta property="og:url" content="https://squares.ryankm.com/">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "Squares",
+  "url": "https://squares.ryankm.com/",
+  "description": "A hidden-object picture book you can walk through. Five tiny places drawn in code, alive on their own clocks, and a goose loose in every one.",
+  "genre": ["Hidden object", "Puzzle"],
+  "gamePlatform": "Web browser",
+  "applicationCategory": "Game",
+  "operatingSystem": "Any",
+  "playMode": "SinglePlayer",
+  "inLanguage": "en",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Ryan McCarty", "url": "https://ryankm.com" }
+}
+</script>
 <link rel="stylesheet" href="styles.css">
 <!-- The wordmark's font, fetched alongside the code instead of after it has
      run: on a phone's 4G that's the title in under a second. The same file
@@ -38,7 +71,24 @@
 </script>
 </head>
 <body data-screen="title" data-mode="overview">
-<canvas id="map" aria-label="An isometric map of tiny animated places. Tap a place to step inside, then tap hidden things to circle them."></canvas>
+<noscript>
+  <div class="noscript">
+    <h1>Squares</h1>
+    <p>A hidden-object picture book you can walk through. Squares draws its places as you watch, so it needs JavaScript to play.</p>
+    <ul>
+      <li><b>The Block Party.</b> Sixteen rooms, one street party, a goose in every room.</li>
+      <li><b>Gooseworth Manor.</b> A stormy night, a body in the trifle, six suspects and a goose.</li>
+      <li><b>Plum Island.</b> A barrier island, a king tide tonight, and nobody taking it seriously.</li>
+      <li><b>Moving Day.</b> Everyone out by noon, everyone in by night, one truck, and a goose in every apartment.</li>
+      <li><b>All-You-Can-Eat.</b> Day four at sea. Something from the buffet is going round, and nobody is getting off.</li>
+    </ul>
+  </div>
+</noscript>
+<main id="game">
+<!-- The picture. Scenery behind the title and the picker; while you play,
+     a map you can Tab to and steer with the keys (play.js names it and
+     describes what's in it, in #scene). -->
+<canvas id="map" aria-hidden="true"></canvas>
 <div class="grain" aria-hidden="true"></div>
 <div class="edge edge-top" aria-hidden="true"></div>
 <div class="edge edge-bottom" aria-hidden="true"></div>
@@ -75,7 +125,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div>
-      <h2 id="places-title" class="places-title" tabindex="-1">Pick a place</h2>
+      <h1 id="places-title" class="places-title" tabindex="-1">Pick a place</h1>
       <p id="places-total" class="places-total"></p>
     </div>
   </header>
@@ -89,7 +139,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span id="to-places-label">Places</span>
     </button>
-    <h1 id="place-name" class="place-name"></h1>
+    <h1 id="place-name" class="place-name">A place</h1>
     <p id="place-tagline" class="place-tagline"></p>
   </header>
 
@@ -107,7 +157,8 @@
     <button id="tally-case" class="tally-item tally-case" type="button" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M14.7 14.7l5 5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>
       <span class="tally-case-label">Case</span>
-      <span id="tally-case-count">0/0</span>
+      <span id="tally-case-count" aria-hidden="true">0/0</span>
+      <span id="tally-case-sr" class="sr-only"></span>
     </button>
     <button class="icon-btn sound-btn tally-sound" type="button" aria-pressed="true" aria-label="Sound on">
       <svg class="i-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -120,9 +171,12 @@
   <button id="dial" class="dial" type="button" hidden>
     <span class="dial-gauge" aria-hidden="true"><span class="dial-water"></span></span>
     <span id="dial-badge" class="dial-badge" aria-hidden="true" hidden></span>
-    <span class="dial-text" aria-hidden="true">
-      <span id="dial-label" class="dial-label"></span>
+    <!-- (What it says is its name, for a screen reader too; dial-sr adds what
+         the badge counts.) -->
+    <span class="dial-text">
+      <span id="dial-label" class="dial-label"></span><span class="sr-only">, </span>
       <span id="dial-next" class="dial-next"></span>
+      <span id="dial-sr" class="sr-only"></span>
     </span>
   </button>
 
@@ -135,6 +189,14 @@
     </span>
   </button>
   <span id="invite-ring" class="invite-ring" aria-hidden="true" hidden></span>
+
+  <!-- Keyboard play: the map, focused, taps under this mark (input.js). -->
+  <span id="aim" class="aim" aria-hidden="true" hidden>
+    <svg viewBox="0 0 40 40"><g fill="none" stroke-linecap="round"><g stroke="var(--card)" stroke-width="5.5"><circle cx="20" cy="20" r="8.5"/><path d="M20 2.5v9M20 28.5v9M2.5 20h9M28.5 20h9"/></g><g stroke="var(--ink)" stroke-width="2.2"><circle cx="20" cy="20" r="8.5"/><path d="M20 2.5v9M20 28.5v9M2.5 20h9M28.5 20h9"/></g></g><circle cx="20" cy="20" r="2" fill="var(--coral)"/></svg>
+  </span>
+  <!-- For screen readers: what the map shows, and things said along the way. -->
+  <p id="scene" class="sr-only"></p>
+  <p id="say" class="sr-only" aria-live="polite"></p>
 
   <!-- Places with floors: a lift panel in the corner, every floor on it, top
        floor at the top, the one you're on lit. play.js builds the buttons. -->
@@ -197,7 +259,7 @@
 <!-- ============ A place, finished ============ -->
 <div id="complete" class="complete" role="dialog" aria-modal="false" aria-labelledby="complete-title" hidden>
   <p class="complete-kicker">Place complete</p>
-  <h2 id="complete-title" class="complete-title"></h2>
+  <h2 id="complete-title" class="complete-title">A place</h2>
   <p id="complete-text" class="complete-text"></p>
   <div class="complete-actions">
     <button id="complete-next" class="big-btn" type="button">Pick another place</button>
@@ -206,17 +268,18 @@
 </div>
 
 <!-- ============ A whodunit's case file ============ -->
-<section id="case" class="case" role="dialog" aria-modal="true" aria-labelledby="case-title" hidden>
+<div id="case" class="case" role="dialog" aria-modal="true" aria-labelledby="case-title" hidden>
   <div class="case-sheet">
     <button class="icon-btn case-x" type="button" aria-label="Close the case file"></button>
     <div class="case-body"></div>
   </div>
-</section>
+</div>
 
 <!-- A flash of lightning, for the moment the case closes. -->
 <div id="flash" class="flash" aria-hidden="true" hidden></div>
 
 <div id="toast" class="toast" role="status" hidden></div>
+</main>
 
 <script type="module" src="src/main.js"></script>
 </body>

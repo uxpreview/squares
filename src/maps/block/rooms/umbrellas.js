@@ -295,6 +295,7 @@ export default {
   id: 'umbrellas',
   name: 'Umbrella Shop',
   blurb: 'It has rained indoors since the grand opening, and sales have never been better. The shopkeeper is still mopping.',
+  describe: 'Two little rain clouds drift under the ceiling, drizzling on a floor of puddles. Closed umbrellas hang in rows on the left wall, open ones stand on a round display in the middle, and a mother duck marches her ducklings between the puddles. From 3pm the indoor downpour packs the shop.',
 
   build(R) {
     // ---------- Floor, walls ----------

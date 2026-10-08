@@ -254,6 +254,7 @@ export default {
   id: 'yellow-1',
   name: 'The Family',
   blurb: 'Moving out to the suburbs, moving in from them, and the hamster has not decided. Flip the clock to meet the couple from Braintree.',
+  describe: 'The Yellow House\'s first floor. Before noon it\'s a maze of labeled boxes, kids hiding in some, a mom with a label maker and a beagle underfoot. After noon a retired couple settle into recliners and a teal couch with the crossword, and by night only a lamp is on.',
   size: [15, 9],
   build(R) {
     const W = ROOM['yellow-1'];

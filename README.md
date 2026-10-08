@@ -5,6 +5,8 @@ A hidden-object picture book you can walk through. Tiny animated places, drawn e
 - **Title screen:** the current place drifts behind the title. **Play** (or **Continue**) and **All places**.
 - **Pick a place:** one card per map, with a live picture and your progress.
 - **Playing:** tap a room or floor to step inside. Drag to pan, pinch or scroll to zoom. Every zone hides the goose plus three things. Tap them to circle them in pen. **Hint** gives you a nudge. Find every goose in a place to finish it. A first visit gets a card pinned to a room saying where to start; on the whole map, rooms that still hide their goose honk now and then. A house changes floors from its lift, in the corner.
+- **Keys:** Tab to the map and a print mark appears in the middle of the picture. The arrow keys (or WASD) move the map under it, and the mark itself where the map can't go any further; **Enter** or **Space** taps whatever's under the mark; **+** and **−** zoom; **Escape** goes back a level. When the map doesn't have focus, left and right step between rooms and Page Up and Page Down change floors. Everything else (the list, hints, the lift, the case file) is ordinary buttons.
+- **Screen readers:** the map is named for what it shows and described (every area and every place has a description of its picture), arriving somewhere and anything that answers a tap is read out, and finds are announced as you circle them.
 - **Whodunits** (Gooseworth Manor): the finds are **evidence** and **curiosities**, and the goal is solving the case. **Case** opens the case file: every suspect, what points at them, their alibi, and **Accuse**. Accuse anyone, any time; the wrong one gives you their alibi (and a joke), and the culprit stays a mystery until you've found every clue against them.
 - **Houses you open** (Moving Day): on the whole map the houses are closed; tap a floor and its front comes off and the floors above it lift away. Some things are only there before noon (the old tenants') or after (the new ones'), and the list says which; the lease clock in the corner skips to noon, sunset and the next morning.
 - **The tide** (Plum Island): the water rises and falls on the clock, and some things only show at low tide (the list says so). The dial in the corner says what the tide's doing; tap it to skip ahead to the next low water, sunset or high water.
@@ -158,6 +160,7 @@ tools/
   fps.mjs          Frames per second on this computer's own graphics, in a real window
   load.mjs         How fast the title shows on a slow phone connection, from a build
   covered.mjs      People drawn inside solid things, finds painted over (QA runs it too)
+  icons.mjs        The app icons and favicon.ico, drawn from public/favicon.svg
   ROOM_BRIEF.md    The brief for drawing a new zone
 docs/
   ROADMAP.md, PROCESS.md, LEVELS.md, INSPIRATION.md   The plans
@@ -193,6 +196,10 @@ docs/
 | Change how floors lift away (and dim below) in a building | `LIFT`, `GHOST` and `BELOW` at the top of `src/engine/renderer.js` |
 | Sharpness vs. speed | The steps sharpness takes when frames stay slow (3x, 2x, 1.5x, 1.25x) and back up when they're quick: `SHARP` and `watchFrameRate` in `src/engine/renderer.js` (tools keep one sharpness unless they set `camera.view.dprAuto`); neighbor picture sizes are `SNAP_STEPS` there too |
 | How the room you're in is cached (its floor and walls, and every still thing) | "Still things" in `src/engine/zone.js`; anything that changes over time must be `{ anim: true }` (QA checks). To see it without the caches: `window.__squares.renderer.caching = false` in the browser console |
+| Keyboard play (how fast the arrows move the map, which keys do what) | "Keys" in `src/engine/input.js` (`keyPan`, `zoomBy`); the mark is `#aim` in `index.html`, placed by `placeAim` in `src/game/play.js`, where the map gets its name and description (`nameMap`) |
+| What a screen reader hears for a picture | `describe` after the `blurb` in each area's file, and `words.describe` in a place's `map.js` (QA's copy check wants both, under 60 words) |
+| The page's title, description, share tags and icons | The `<head>` of `index.html` (title, description, Open Graph, the JSON-LD), `public/site.webmanifest`, `public/robots.txt`, `public/sitemap.xml`; the icons come from `public/favicon.svg` with `node tools/icons.mjs`. The page's title follows where you are (`titled` in `src/main.js`) |
+| Small text in a light ink (coral, teal) | `--coral-text` and `--teal-text` at the top of `styles.css`: the same inks mixed with the navy, so small labels pass 4.5 to 1 |
 | Find people drawn inside furniture and finds painted over | `node tools/covered.mjs <place> --shots` (close-ups in `qa-out/covered/`); QA runs it as its `covered` check and puts the close-ups on the contact sheet. They're warnings: someone behind a lamp post is fine, someone inside a counter isn't |
 | See how fast a place draws, room by room | `node tools/speed.mjs <place>` (`--live` for no caches); QA's speed check uses the same setup |
 | See whether a place is smooth on this computer | `node tools/fps.mjs <place>` opens a real window and counts frames per second in every view (`--size=1440x800 --dpr=2`; `--only=` some views; `--eval=` some JavaScript first, to switch a part off and see what it costs; `--auto` lets sharpness step down on slow frames as it does for players, and says where each view ended up). QA can't see this: it times the drawing code, not the graphics chip putting the picture on screen, which is what lags on an older laptop. Close anything else running the game first (another browser tab, an editor's preview pane): it shares the graphics chip and takes a quarter off the numbers |
@@ -258,8 +265,8 @@ Each place loads only when someone opens it, so adding places doesn't slow down 
 
 ## Saved progress
 
-Saved in the browser under `squares.save.v3`: what's been found per place, each whodunit's case (who you've accused, whether it's solved), the sound setting, and where you left off. Saves from earlier versions (`squares.save.v2`, `squares.found.v1`) are carried over on first load. If you change the save's shape, bump the version in `src/game/store.js` and teach `migrate()` to upgrade the old one, so nobody loses their geese.
+Saved in the browser under `squares.save.v4`: what's been found per place, each whodunit's case (who you've accused, whether it's solved), the sound setting, and where you left off. Saves from earlier versions (`squares.save.v2`, `squares.found.v1`) are carried over on first load. If you change the save's shape, bump the version in `src/game/store.js` and teach `migrate()` to upgrade the old one, so nobody loses their geese.
 
 ## Deploying
 
-Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044. It's a Vite site: Vercel runs `npm run build` and serves `dist/`. The built game uses relative paths, so it also works from a subfolder.
+Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044. It's a Vite site: Vercel runs `npm run build` and serves `dist/`. The built game uses relative paths, so it also works from a subfolder. `vercel.json` also tells browsers to keep the built files (their names change with every build) for a year.

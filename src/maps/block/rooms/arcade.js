@@ -211,6 +211,7 @@ export default {
   id: 'arcade',
   name: 'Neon Arcade',
   blurb: 'Someone set a high score and will not let anyone forget it. The claw machine is rigged, says everyone who has lost to it.',
+  describe: 'A neon-lit arcade with glowing cabinets along both back walls. Kids crowd the dance machine and air hockey, a ticket machine spews tickets, and the claw machine and a prize counter of plush fill the right. Nobody looks at the clock, or the note under it: home by 6pm, love, Mum.',
 
   build(R) {
     // Floor: dark carpet with that arcade confetti pattern.

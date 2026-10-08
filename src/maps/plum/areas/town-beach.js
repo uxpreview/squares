@@ -222,6 +222,7 @@ export default {
   id: 'town-beach',
   name: 'The Town Beach',
   blurb: 'Rows of houses on the dunes, a beach full by noon, and a set of stairs that never quite reaches the sand.',
+  describe: 'The front row of houses stands on pilings behind sandbags, facing a beach of umbrellas and a volleyball net, with swimmers and a surfer out front. At sunset everyone turns around to face the marsh. By night the sea is up to the sandbags and every window is lit.',
   home: [81.5, 45],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING, surf: true });

@@ -1039,6 +1039,7 @@ export default {
   id: 'kitchen',
   name: 'Kitchen',
   blurb: 'Mrs. Hatchett is baking a second trifle, out of respect. The dog steals a sausage every time she turns round.',
+  describe: 'A tiled kitchen: a black range under copper pans on the right, shelves of jars on the left and a big table in the middle. A hatch drops to the cellar under a sign: NOT YOU, JENKINS. At the scream Mrs. Hatchett runs off, and the dog has the place to itself.',
 
   build(R) {
     const ev = readEvening(R);

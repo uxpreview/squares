@@ -2294,6 +2294,7 @@ export default {
   id: 'master-bedroom',
   name: 'Master Bedroom',
   blurb: 'The four-poster has a trapdoor that keeps dropping open, and the cat always gets off first. His diary says the goose was watching.',
+  describe: 'The late Lord\'s pink-striped bedroom: the four-poster in the middle, a fire and wardrobe on the left, a green safe marked GOOSE-PROOF by the window and a bearskin by the hearth. A stuffed fox in his dressing gown holds a candle for nobody.',
 
   build(R) {
     // ---------- The room ----------

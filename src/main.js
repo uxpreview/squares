@@ -86,13 +86,18 @@ const play = createPlay({
   setClock: clock.set,
   on: {
     exit: () => go('#/maps'),
+    // Where keyboard play taps (input.js keeps it; play.js draws its mark).
+    aim: () => input.aim(),
     complete: (world) => screens.showComplete(world),
     refresh: () => renderer.refreshAll(),
-    // Keep the address bar and "continue" in step with where you are.
+    // Keep the address bar, the page's title and "continue" in step with
+    // where you are.
     place: (mapId, zoneId) => {
       store.setLast(mapId, zoneId);
       const hash = `#/${mapId}${zoneId ? '/' + zoneId : ''}`;
       if (location.hash !== hash) history.replaceState(null, '', hash);
+      const w = play.world, z = zoneId && w ? w.zones[w.indexOf(zoneId)] : null;
+      if (w) titled(z ? z.name : null, w.map.name);
     },
   },
 });
@@ -106,6 +111,7 @@ const input = attachInput(canvas, camera, {
   tap: (x, y) => play.tap(x, y),
   settle: () => play.settle(),
   clampZoom: (z) => play.clampZoom(z),
+  area: () => play.area(),
 });
 
 const screens = createScreens({
@@ -122,6 +128,14 @@ const screens = createScreens({
 });
 
 // ---------- Routes ----------
+// The page's title says where you are: "The Laundromat · The Block Party ·
+// Squares". The title screen keeps the one in index.html.
+const HOME = document.title;
+function titled(...parts) {
+  const t = parts.filter(Boolean);
+  document.title = t.length ? [...t, config.name].join(' · ') : HOME;
+}
+
 function go(hash) {
   if (location.hash === hash) route();
   else location.hash = hash;
@@ -173,6 +187,7 @@ async function route() {
   // Title or picker: idle the map you were last on (or the first one) behind it.
   input.setEnabled(false);
   screens.show(r.screen);
+  titled(r.screen === 'places' ? 'Pick a place' : null);
   const id = (store.last && MAPS.some((m) => m.id === store.last.map && !m.hidden) && store.last.map) || MAPS[0].id;
   const world = await getWorld(id);
   if (n !== routing) return;
@@ -183,14 +198,29 @@ async function route() {
 // Once the title's map is up, fetch every other place's code while nobody's
 // waiting on it, one at a time, so the picker's pictures and the first tap on
 // a card don't wait on the connection (the biggest is about 200 KB zipped).
+// A place with ground (a land) works it out too, a few milliseconds after
+// each frame (the title's map drifts the whole time, so there's little idle
+// time to wait for), and the title's picture never stalls for it
+// (engine/terrain.js).
 let warmed = false;
 function warm() {
   if (warmed) return;
   warmed = true;
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+  const afterFrame = (f) => requestAnimationFrame(() => setTimeout(f, 0));
   const next = (list) => {
     if (!list.length) return;
-    idle(() => list[0].load().catch(() => {}).then(() => next(list.slice(1))), { timeout: 2000 });
+    const go = (mod) => {
+      const land = mod && mod.default && mod.default.land;
+      if (!land || !land.prepare) return next(list.slice(1));
+      const more = () => {
+        const t0 = performance.now();
+        if (land.prepare(() => performance.now() - t0 > 4)) next(list.slice(1));
+        else afterFrame(more);
+      };
+      afterFrame(more);
+    };
+    idle(() => list[0].load().then(go, () => next(list.slice(1))), { timeout: 2000 });
   };
   next(MAPS.filter((m) => !m.hidden));
 }

@@ -474,6 +474,7 @@ export default {
   id: 'bridge',
   name: 'The Bridge',
   blurb: 'The captain is green at the wheel, so the first officer steers with one finger. The couple on the bow have had their arms out since breakfast.',
+  describe: 'The bow end of the Sun Deck, narrowing to a point. The wheel stands on a blue rug near the front, a bank of monitors and a radar mast with a lookout line the far rail, and a shuffleboard court sits at the stern end. Couples queue all day for their turn at the tip.',
 
   build(R) {
     deck(R, 'bridge', 'sun', { rails: true, grid: false, name: false });

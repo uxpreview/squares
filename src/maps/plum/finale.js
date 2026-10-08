@@ -53,7 +53,9 @@ const beat = () => finale.since % BEAT;
 const SIGN = [4, 6.5], OPEN = [6.5, 10];
 // Where he stands on the roof, and where the clipboard hangs, off the van's
 // near side, over the water.
-const ROOF = roadZ(VAN[0], VAN[1]) + VAN_TOP;
+// (On first use: the land isn't worked out until something draws it.)
+let roof = null;
+const ROOF = () => (roof ??= roadZ(VAN[0], VAN[1]) + VAN_TOP);
 const ME = [VAN[0], VAN[1] - 0.25];
 const BOARD = [VAN[0] + 1.35, VAN[1] + 0.1];
 // Which goose is nearest the clipboard: it signs.
@@ -94,7 +96,7 @@ function ripples(ctx, x, y, L, dir, t, i) {
 // signature going on as the goose scrawls it (k, 0 to 1).
 function clipboard(ctx, hand, t, k) {
   const L = level(t);
-  const [X, Y] = P(BOARD[0], BOARD[1], Math.max(L + 0.6, ROOF - 1.2) + Math.sin(t * 2.2) * 0.04);
+  const [X, Y] = P(BOARD[0], BOARD[1], Math.max(L + 0.6, ROOF() - 1.2) + Math.sin(t * 2.2) * 0.04);
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03;
   ctx.beginPath(); ctx.moveTo(hand[0], hand[1]); ctx.lineTo(X, Y - 0.34); ctx.stroke();
   ctx.save();
@@ -209,7 +211,7 @@ export function swim(R) {
   // The Courier, up on the van's roof, and the whole business of the parcel.
   R.mover(() => (finale.since ? { x: ME[0], y: ME[1] } : { x: -1e4, y: -1e4, out: true }), (ctx, t, p) => {
     if (p.out || !vanHere(t)) return;
-    const k = beat(), z = ROOF;
+    const k = beat(), z = ROOF();
     const holding = k < SIGN[0], signing = k >= SIGN[0] && k < SIGN[1], spraying = k >= OPEN[1];
     let look, pose = 'stand';
     if (holding) { pose = 'carry'; look = { ...courierLook, hold: (g) => parcel(g, {}) }; }

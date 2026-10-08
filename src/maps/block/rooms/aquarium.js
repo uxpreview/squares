@@ -231,6 +231,7 @@ export default {
   id: 'aquarium',
   name: 'Aquarium',
   blurb: 'The shark is on lap nine hundred. The octopus has escaped four times today, and now the keeper has lost it again.',
+  describe: 'A dark blue hall walled with glass tanks: the deep, the kelp forest, the shark reef and the coral garden. A tall jellyfish tank glows in the middle, a touch pool sits up front, and kids press their noses to the glass while a keeper counts fish.',
 
   build(R) {
     // ---------- Floor and walls ----------

@@ -244,6 +244,7 @@ export default {
   id: 'ballpit',
   name: 'Ball Pit',
   blurb: 'Nobody has seen the bottom of the ball pit since 2019. One dad is asleep, and his tummy is now a ball tower.',
+  describe: 'An indoor play center. A tower with a twisty slide drops kids into a huge ball pit, a bouncy castle and two trampolines stand to the right, and a birthday party has the table out front. A dinosaur mascot waves by the exit, and in the morning the buggies park up outside.',
 
   build(R) {
     // ---------- Floor and walls ----------

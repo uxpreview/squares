@@ -115,7 +115,9 @@ function stone(cx, cy, w, d, top, rand, flatRight = false) {
   const tops = CORNER.map(([sx, sy]) => [cx + sx * (w / 2) * 0.84 + j(0.3), cy + sy * (d / 2) * 0.84 + j(0.3)]);
   if (flatRight) { tops[1][0] = cx + (w / 2) * 0.84; tops[2][0] = cx + (w / 2) * 0.84; }
   const tz = tops.map(() => top + j(0.4));
-  return { tops, tz, zb: h(cx, cy) - 0.3 };
+  // (Its foot on first use: the land isn't worked out until something draws it.)
+  let zb = null;
+  return { tops, tz, get zb() { return (zb ??= h(cx, cy) - 0.3); } };
 }
 // A corner of a block at height z, down its splayed side.
 function sideAt(s, i, z) {
@@ -124,7 +126,7 @@ function sideAt(s, i, z) {
 }
 const STONES = ROCKS.map((r, i) => {
   const rand = rng(40 + i * 7);
-  const main = { ...stone(r.x + (i === 9 ? 0 : (rand() - 0.5) * 0.1), r.y, 1.36, 1.3, r.top, rand, i === 9), main: true };
+  const main = Object.assign(stone(r.x + (i === 9 ? 0 : (rand() - 0.5) * 0.1), r.y, 1.36, 1.3, r.top, rand, i === 9), { main: true });
   // The fallen one: behind on the left for the even rocks, in front for the odd.
   const back = i % 2 === 0;
   const extra = stone(r.x + (back ? -0.78 : 0.02), r.y + (back ? 0.15 : 0.82), 0.86, 0.74, r.top - 0.3 - rand() * 0.2, rand);
@@ -438,6 +440,7 @@ export default {
   id: 'north-point',
   name: 'The North Point',
   blurb: 'The lighthouse, the island\'s only lifeguards, and a jetty the seals take back one rock at a time.',
+  describe: 'The island\'s tip, where the river meets the sea. A full lot and a playground sit across from the lighthouse, with the last houses crowding in on the left. Fishermen cast off the jetty at dawn, lobster boats come and go, and at night the light sweeps over a rising sea.',
   home: [103, 36],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING, surf: true });

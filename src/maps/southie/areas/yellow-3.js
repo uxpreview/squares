@@ -48,6 +48,7 @@ export default {
   id: 'yellow-3',
   name: 'Southie Christmas',
   blurb: 'Everything on the curb this morning is up here by tonight, and the couch is still wet. Flip the clock to see what else walked in.',
+  describe: 'The Yellow House\'s top floor, bare in the morning: one pink curtain, last month on the calendar, a robot vacuum bumping around alone. After noon the new tenant carries things up one at a time while his friend tries each one out. By night they\'re on the couch under Christmas lights.',
   size: [15, 9],
   build(R) {
     const W = ROOM['yellow-3'];

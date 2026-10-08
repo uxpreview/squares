@@ -79,6 +79,7 @@ export default {
   id: 'laundromat',
   name: 'Laundromat',
   blurb: 'Open 24 hours. Machine three has been foaming since midnight and nobody wants to be the one to deal with it.',
+  describe: 'A mint-green laundromat on a checkerboard floor: stacked dryers on the left wall, numbered washers down the right, a folding table and plastic chairs between. Someone mops and someone is losing to the vending machine. A giant sheet hangs across the front until noon, when two regulars carry it off for the party.',
 
   build(R) {
     R.floor((ctx) => {

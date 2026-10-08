@@ -325,6 +325,7 @@ export default {
   id: 'icerink',
   name: 'Ice Rink',
   blurb: 'The snowman judge gives every spin a 1.0 until someone finds his nose. The cocoa line never shrinks, because everybody gets straight back in it.',
+  describe: 'An outdoor rink in the snow, ringed by pine trees and lamp posts strung with lights. Skaters of every skill go round, a resurfacing machine trundles after them, and judges score a figure skater from a bench on the left. Each evening the snowman judge is wheeled off to the party.',
 
   build(R) {
     // ---------- ground and ice ----------

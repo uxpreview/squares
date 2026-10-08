@@ -1479,6 +1479,7 @@ export default {
   id: 'guest-rooms',
   name: 'Guest Rooms',
   blurb: "Dr. Crane and the Brigadier are each searching the other's luggage. When they pass in the corridor, they both start whistling.",
+  describe: "The top of the grand staircase and a red-carpeted corridor with two bedrooms off it: the Brigadier's on the left, all crossed sabres and 1974, and Dr. Crane's at the front, with a brass bed and a sleeping cat. Both rooms stay tidy until the lights go out, then they're a mess.",
 
   build(R) {
     const [OX, OY, OZ] = R.origin;

@@ -478,6 +478,7 @@ export default {
   id: 'marine-park',
   name: 'Marine Park',
   blurb: 'Across the road, the neighbors score the moves from lawn chairs, and the truck is getting a two. Flip the clock: by evening a couch has joined the judges.',
+  describe: 'The park facing the row: lawns, the Farragut statue with pigeons on his head, a playground, a picnic shelter, a red-roofed bath house and a beach down to Pleasure Bay. A swimmer goes in whatever the weather, a birthday party takes the shelter at four, and by night the playground is empty.',
   home: [40, 30],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING });

@@ -871,6 +871,7 @@ export default {
   id: 'crew-bar',
   name: 'The Crew Bar',
   blurb: 'Below the waterline, the crew are having a much better party. None of them eat at the buffet.',
+  describe: 'The crew\'s own hangout, under the buffet. A bar stands at the stern end, a checkered dance floor glows under strings of fairy lights, a karaoke stage sits at the front, and the galley\'s stores and the crew mess line the far wall. It\'s quiet at breakfast and a full party by three.',
 
   build(R) {
     deck(R, 'crew-bar', 'crew', { grid: false, name: false });

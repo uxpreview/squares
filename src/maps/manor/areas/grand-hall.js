@@ -1731,6 +1731,7 @@ export default {
   id: 'grand-hall',
   name: 'Grand Hall',
   blurb: 'The suit of armor keeps moving when nobody is looking. The portrait of the Lord is watching you, which is rude for a painting.',
+  describe: 'A plum-papered hall with a checkered marble floor, a round rug under the chandelier and the grand staircase climbing to the landing. A grandfather clock with a cat on top ticks on the left. Everyone passes through and nobody stays, and at midnight the clock strikes in the dark.',
 
   build(R) {
     R.floor(marble);

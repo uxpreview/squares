@@ -658,6 +658,7 @@ export default {
   id: 'pavement',
   name: 'The Pavement',
   blurb: 'The queue for the party goes right round the block. Nobody in it knows what it\'s for.',
+  describe: 'Paving slabs line the block\'s two front edges, with a red phone box ringing on the corner, a hot dog cart, a busker who stops for coins and a bus stop with no buses. From noon the queue builds with camping stools, flasks and dogs, and by 10pm it has melted away.',
   shape: PAVEMENT,
   home: [EDGE + 2, EDGE - 8], // the front corner
   build(R) {

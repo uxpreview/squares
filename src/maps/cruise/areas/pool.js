@@ -189,6 +189,7 @@ export default {
   id: 'pool',
   name: 'The Pool',
   blurb: 'Every lounger has had a towel on it since 5am and nobody on it. At the lifeboat drill, only one passenger is listening.',
+  describe: 'The middle of the Sun Deck, open air under strings of bunting. A big blue pool takes up most of it, with the Bottomless Bar along the back rail, a hot tub on a teak platform at the front right and loungers under striped umbrellas on the left. The cruise director keeps the deck games going all day.',
 
   build(R) {
     const [ox, oy, oz] = R.origin;

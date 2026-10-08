@@ -8,6 +8,11 @@
   --mustard: #EDB53B;
   --teal: #2E8B84;
   --case-ink: #8E2F3A; /* a whodunit's accent; its case file sets its own */
+  /* Small text in an ink too light to read at that size takes a deeper shade
+     of it, mixed with the ink: 4.5 to 1 on the paper and the cards. */
+  --coral-text: #A04E46;
+  --teal-text: #2B6F75;
+  --coral-on-ink: #E98065; /* and lighter, for small text on the ink */
   --flash: #F4F6FF; /* lightning */
   --display: "Bagel Fat One", "Arial Black", system-ui, sans-serif;
   --body: "Rethink Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -140,8 +145,11 @@ body[data-ready] .place-name span:not(.word) {
   from { transform: translateY(0.5em) rotate(-8deg); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+/* From 1%, not 0: the browser doesn't count text painted at 0 opacity as
+   painted, and the title had no "largest paint" at all (Lighthouse then gives
+   speed no score). 1% looks the same. */
 @keyframes fade-up {
-  from { transform: translateY(6px); opacity: 0; }
+  from { transform: translateY(6px); opacity: 0.01; }
   to { transform: none; opacity: 1; }
 }
 
@@ -357,6 +365,7 @@ body[data-screen="places"] .places-list > li { animation: fade-up 0.5s cubic-bez
 }
 .place-card:hover { background: var(--card); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--card-ink); }
 .place-card:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.place-pic, .place-body, .place-card-name, .place-card-sub, .place-card-tag { display: block; }
 .place-pic {
   aspect-ratio: 16 / 10;
   background:
@@ -367,7 +376,7 @@ body[data-screen="places"] .places-list > li { animation: fade-up 0.5s cubic-bez
 .place-pic canvas { display: block; width: 100%; height: 100%; }
 .place-body { padding: 16px 18px 18px; }
 .place-card-name { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.05; }
-.place-card-sub { margin: 2px 0 0; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-ink); }
+.place-card-sub { margin: 2px 0 0; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-ink); color: color-mix(in srgb, var(--card-ink) 55%, var(--ink)); }
 .place-card-tag { margin: 6px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--ink-soft); }
 .place-card-meta {
   display: flex;
@@ -388,8 +397,8 @@ body[data-screen="places"] .places-list > li { animation: fade-up 0.5s cubic-bez
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.place-badge[data-kind="progress"] { background: var(--card-ink); color: var(--card); }
-.place-badge[data-kind="done"] { background: var(--coral); color: var(--card); }
+.place-badge[data-kind="progress"] { background: var(--card-ink); background: color-mix(in srgb, var(--card-ink) 55%, var(--ink)); color: var(--card); }
+.place-badge[data-kind="done"] { background: var(--coral-text); color: var(--card); }
 .place-stat { color: var(--ink-soft); }
 .place-card.is-locked,
 .place-card:disabled { cursor: not-allowed; opacity: 1; box-shadow: none; border-color: #CFC3AD; }
@@ -567,6 +576,21 @@ button.invite:active .invite-card { box-shadow: 1px 1px 0 var(--coral); }
   animation: ping 1.9s 1.3s cubic-bezier(.2, .8, .3, 1) infinite;
 }
 @keyframes invite-in { from { opacity: 0; transform: scale(0.85); } }
+
+/* Keyboard play: the mark Enter taps under, a printer's registration mark in
+   the middle of the picture (play.js places it). It's the map's focus ring,
+   so the map itself draws none. */
+.aim {
+  position: fixed;
+  z-index: 9; /* over the cards pinned to the picture; it stays clear of the bars */
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  pointer-events: none;
+  animation: invite-in 0.25s ease both;
+}
+.aim svg { display: block; width: 100%; height: 100%; }
+#map:focus { outline: none; }
 @keyframes bob { 50% { transform: translateY(-4px); } }
 @keyframes ping {
   0% { transform: scale(1); opacity: 0.9; }
@@ -709,7 +733,7 @@ button.lift-floor {
 }
 button.lift-floor:hover { background: none; }
 button.lift-floor:active { transform: none; }
-.lift-name { opacity: 0.62; transition: opacity 0.3s ease; }
+.lift-name { opacity: 0.8; transition: opacity 0.3s ease; }
 /* A whodunit: evidence still on that floor, a glass and a number on a tag. */
 .lift-clues {
   display: inline-flex;
@@ -809,7 +833,7 @@ button.lift-floor[aria-current]:hover .lift-btn {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--coral);
+  color: var(--coral-text);
 }
 .room-name {
   flex: 0 1 auto;
@@ -824,6 +848,7 @@ button.lift-floor[aria-current]:hover .lift-btn {
 .room-info { flex: none; width: 18px; height: 18px; color: var(--ink-soft); }
 .room-pill[aria-expanded="true"] { background: var(--ink); color: var(--card); box-shadow: 2px 2px 0 var(--coral); }
 .room-pill[aria-expanded="true"] .room-info { color: var(--mustard); }
+.room-pill[aria-expanded="true"] .room-unit { color: var(--coral-on-ink); }
 
 /* The room's story: shown when you arrive, then behind the room name. */
 .story {
@@ -1057,7 +1082,7 @@ button.tray-grip:active { transform: none; }
   animation: tide-dot 1.6s ease-in-out infinite alternate;
 }
 @keyframes tide-dot { from { opacity: 1; } to { opacity: 0.35; } }
-.find-note.is-away { background: transparent; color: var(--teal); box-shadow: inset 0 0 0 1.5px var(--teal); }
+.find-note.is-away { background: transparent; color: var(--teal-text); box-shadow: inset 0 0 0 1.5px var(--teal); }
 .chip.is-away:not(.is-selected) .chip-label,
 .row.is-away .row-label { color: var(--ink-soft); }
 button.find-note.is-skip { min-height: 28px; padding: 0 10px; font: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; border: 0; }
@@ -1134,11 +1159,11 @@ button.group-head:active { transform: none; }
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--coral);
+  color: var(--coral-text);
 }
 .group-name { font-family: var(--display); font-size: 16px; }
 .group-frac { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.group.is-complete .group-frac { color: var(--coral); }
+.group.is-complete .group-frac { color: var(--coral-text); }
 .group.is-here {
   margin: 4px -10px 6px;
   padding: 0 10px 6px;
@@ -1326,7 +1351,7 @@ body[data-dock="right"] .story {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--coral);
+  color: var(--coral-text);
 }
 .complete-title { margin: 6px 0 0; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; }
 .complete-text { margin: 10px 0 0; font-size: 15px; font-weight: 600; line-height: 1.45; color: var(--ink-soft); text-wrap: pretty; }
@@ -1390,6 +1415,7 @@ body[data-case] .tray { visibility: hidden; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--case-ink);
+  color: color-mix(in srgb, var(--case-ink) 70%, var(--ink));
 }
 .case-title {
   margin: 6px 0 0;
@@ -1525,6 +1551,7 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--case-ink);
+  color: color-mix(in srgb, var(--case-ink) 70%, var(--ink));
 }
 .bubble-text { display: block; margin-top: 2px; font-size: 15.5px; font-weight: 600; line-height: 1.38; text-wrap: pretty; }
 /* A trail's log (ui/traillog.js): the sightings in order, the next one lit. */
@@ -1537,8 +1564,8 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
 }
 .sighting.is-found .sighting-n { background: var(--coral); border-color: var(--coral); color: var(--paper); }
 .sighting.is-next .sighting-n { background: var(--mustard); }
-.sighting.is-later { opacity: 0.55; }
-.sighting-later { margin: 7px 0 0; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.sighting.is-later { opacity: 0.7; }
+.sighting-later { margin: 7px 0 0; font-size: 14px; font-weight: 600; color: var(--ink); }
 .sighting-text { flex: 1; min-width: 0; }
 .sighting-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 2px 0 6px; }
 .sighting-zone { font-size: 14px; font-weight: 800; }
@@ -1633,3 +1660,18 @@ button.suspect .stamp { position: absolute; top: 14px; right: 6px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Without JavaScript ---------- */
+/* The places, in words, and why there's no picture. */
+.noscript {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: auto;
+  padding: calc(var(--safe-top) + 48px) 24px 48px;
+  background: var(--paper);
+}
+.noscript > * { max-width: 34em; }
+.noscript h1 { margin: 0 0 16px; font-family: var(--display); font-weight: 400; font-size: 56px; line-height: 0.9; }
+.noscript p, .noscript li { font-size: 16px; line-height: 1.5; }
+.noscript ul { padding-left: 1.2em; }

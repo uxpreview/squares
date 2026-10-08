@@ -170,6 +170,7 @@ export default {
   id: 'center',
   name: 'The Center',
   blurb: 'Where the turnpike lands. Two lots, one ice cream window, a tide board chalked up fresh this morning, and not one person reading it.',
+  describe: 'The bridge lands at the back right, and the boulevard runs past a bait shop and cottages to a boardwalk over the dunes. Sunbathers spread out by a little stone jetty, with no lifeguard. After dark the windows and streetlamps come on and the sea climbs to the dune fence.',
   home: [60, 36],
   build(R) {
     drawLand(R, land, { fade: nightK, inks: EVENING, surf: true });

@@ -90,6 +90,7 @@ export default {
     hint: 'Tap a house to open it.',
     whole: 'The whole street',
     complete: 'Every goose, moved in. The couch made it.',
+    describe: 'South Boston from over the harbor: the green, yellow and grey triple-deckers in a row along Farragut Road at the left, the street jammed with parked cars and moving trucks, then Marine Park, Pleasure Bay and Castle Island\'s fort by the port\'s cranes. The day runs from dawn through a rainy noon to a night of lit windows.',
   },
   qa: {
     goosePerZone: true,

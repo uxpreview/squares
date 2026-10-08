@@ -114,6 +114,7 @@ export default {
     whole: 'The whole ship',
     inside: 'on the ship', // the card: "You found 20 of the 37 things on the ship."
     complete: 'Patient zero was a stowaway iguana. It tried to get off at the gangway. Nobody gets off.',
+    describe: 'A cruise ship from above, cut open along its side like a dollhouse, four decks deep with the crew deck under the waterline. The deck in view is solid, the ones above float faintly over it, and a tiny palm island waits ahead. The sea turns from turquoise to gold to pink as the ship nears port.',
   },
   loop: LOOP,
   qa: {

@@ -632,6 +632,7 @@ export default {
   id: 'cabins',
   name: 'The Cabins',
   blurb: 'Cabin 7 is getting divorced with the door open. Every hour something else of Ray\'s lands in the corridor.',
+  describe: 'A long corridor of red carpet and portholes runs down the far wall, past the lift and the stairs, with a row of cabins along the front, every door open. Room service trays pile up by the hour, and by afternoon an audience sits on folding chairs outside cabin 7.',
 
   build(R) {
     deck(R, 'cabins', 'cabins', { grid: false, name: false });

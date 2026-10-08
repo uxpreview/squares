@@ -856,6 +856,7 @@ export default {
   id: 'billiard-room',
   name: 'Billiard Room',
   blurb: 'Rupert is losing at cards to the chauffeur. So far he has bet his car, his shoes and the house.',
+  describe: 'A dark green gentlemen\'s den: a billiard table with a cat on the baize, a fire and a chalked scoreboard on the left, leather armchairs at the back and a painting of geese playing poker. The chauffeur plays patience at the card table until Rupert sits down, then the lights go out mid-game.',
 
   build(R) {
     const [ox, oy, oz] = R.origin;

@@ -121,6 +121,7 @@ export default {
   id: 'yellow-2',
   name: 'The Overlap',
   blurb: 'The lease says noon, it is 11:58, and there has been one box left since ten. Flip the clock to see what he took.',
+  describe: 'Two of almost everything: two couches facing off, two cats glaring, a strip of tape down the middle of the floor. Before noon the old tenant and the new one hold a standoff at the kitchen table. After noon it\'s hers: books on the shelves, a desk, a big plant.',
   size: [15, 9],
   build(R) {
     const W = ROOM['yellow-2'];

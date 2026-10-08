@@ -458,6 +458,7 @@ export default {
   id: 'launchpad',
   name: 'Launch Pad',
   blurb: 'Rocket SQ-1 goes up once a day, at the height of the party. The mechanic has a new one built by dawn.',
+  describe: 'An open lot with a red-nosed rocket on its plinth by a tall red gantry. Mission control\'s screens line the right, the crew hut sits on the left, and a crowd waits behind a fence at the front. The board counts down through the evening, and after liftoff the pad sits scorched and empty.',
 
   build(R) {
     // The rocket goes up once, at the party's height (dayClock above).

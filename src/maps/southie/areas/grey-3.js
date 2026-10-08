@@ -93,6 +93,7 @@ export default {
   id: 'grey-3',
   name: 'The Roof Deck',
   blurb: 'A hot tub on the balcony and a plane over it every minute. Flip the clock: the builders left, mostly.',
+  describe: 'The penthouse: floor-to-ceiling windows, a navy kitchen island, a wine fridge and a sectional the builders are still assembling. After one a housewarming spills out onto the glass balcony, and whenever a plane comes over, every conversation stops mid-sentence. After midnight the guests sleep where they sat.',
   size: [15, 9],
   build(R) {
     apartment(R, { floor: 2, walls: ROOM['grey-3'], floorInk: ROOM['grey-3'].floor, siding: SIDING.grey, trim: TRIM.grey, modern: true });

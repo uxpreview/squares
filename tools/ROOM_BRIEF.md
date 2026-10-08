@@ -22,7 +22,7 @@ Everything is drawn in code on a canvas. Nothing is static: every zone should be
 
 1. **Only edit your own zone files** (listed in your task). Do not edit anything in `src/engine/`, `src/game/`, `src/ui/`, any `map.js` or `ambient.js`, `index.html`, `styles.css`, or anyone else's zone. If you need a helper, write it locally inside your zone file. If you find a bug in shared code, work around it and mention it in your final report.
 2. Do not run any git commands. Do not create other files except scratch screenshots outside the repo.
-3. A zone module exports `{ id, name, blurb, build(R) }`. Keep the `id` you were given. `name` is 1 to 3 words. `blurb` is one or two short, funny, plain sentences about what is going on. **No em dashes anywhere** in copy.
+3. A zone module exports `{ id, name, blurb, describe, build(R) }`. Keep the `id` you were given. `name` is 1 to 3 words. `blurb` is one or two short, funny, plain sentences about what is going on. `describe` is what a screen reader says the picture shows (it's read when a player Tabs to the map): what kind of place it is, how it's laid out, who's there doing what, how it changes with the clock, in 25 to 50 words (60 at most). It never says where a find is, names one or calls a lookalike a decoy. **No em dashes anywhere** in copy.
 4. Use colors from `C` or the level's style sheet only (plus mixes via `shade`, `tint`, `mix`, `alpha`); never a raw hex code. Use halftone `dots` on shadowed faces and big surfaces like the reference. Outline with the default ink stroke.
 
 ## Geometry
@@ -105,4 +105,4 @@ node tools/shoot.mjs <map> <out.png>                                        # th
 
 For example `node tools/shoot.mjs block/pool out.png` or `node tools/shoot.mjs tower/lobby out.png`. The script prints console errors. There must be none from your zone (a Google Fonts error is expected in a sandbox without internet and is fine). Check several `--t` values so moving things look right at different moments. Also make sure the finds and the goose are where they should be: spot finds visible, poke finds inside what opens (`--eval` can open them: `z.pokes.forEach((p) => p.set(true))`).
 
-When done, report: the zone names and blurbs, the finds, where the goose is, and anything in shared code you had to work around.
+When done, report: the zone names, blurbs and descriptions, the finds, where the goose is, and anything in shared code you had to work around.

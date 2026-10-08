@@ -1,16 +1,26 @@
-// Touch, mouse and wheel on the canvas: drag to pan (with a little inertia),
-// pinch or scroll to zoom, double-tap to zoom in (or back out from the
-// closest), tap to act. What a tap means is up to the game.
+// Touch, mouse, wheel and keys on the canvas: drag to pan (with a little
+// inertia), pinch or scroll to zoom, double-tap to zoom in (or back out from
+// the closest), tap to act. What a tap means is up to the game.
+//
+// Keys, while the canvas has focus (it's a Tab stop while input is on): the
+// arrows (or WASD) move the map under the aim, a point in the middle of the
+// picture, and where the map can't go any further (its edge, or all of it
+// on screen) the aim moves instead; + and - zoom round it; Enter or Space
+// taps it. A click doesn't give the canvas focus, so for the mouse the
+// arrows stay the game's.
 //
 // The map has soft edges (camera.range): drag past one and it gives, let go
 // and it springs back, so it can't be lost off screen.
 //
 // on: {
-//   down()          any touch or wheel (stops camera flights and drifts)
+//   down()          any touch, wheel or key (stops camera flights and drifts)
 //   tap(sx, sy)     a press and release that didn't move; true if it did
 //                   something (then it can't start a double tap)
 //   settle()        panning or zooming has come to rest
 //   clampZoom(z)    keep the zoom in range
+//   area()          optional: the picture's part of the screen, clear of the
+//                   UI, [left, top, right, bottom] (default: all of it); the
+//                   aim starts in its middle and stays inside it
 // }
 
 export function attachInput(canvas, camera, on) {
@@ -24,6 +34,12 @@ export function attachInput(canvas, camera, on) {
   // The last tap, for telling a double tap: a second tap this soon and this
   // near zooms instead of tapping again.
   let lastTap = null;
+  // Arrow keys held down, and for how long (a short press nudges, for lining
+  // up on something small; held, it picks up speed).
+  const held = new Set();
+  let heldFor = 0;
+  // How far the aim is off the middle of the picture, in px.
+  const off = { x: 0, y: 0 };
 
   const show = (p) => {
     const g = camera.give(p);
@@ -47,7 +63,7 @@ export function attachInput(canvas, camera, on) {
     // A new touch with no other finger down starts afresh: a finger whose
     // lift was never reported (a system gesture, a lost capture) would
     // otherwise still count, and the next drag would pinch against it.
-    if (e.isPrimary) { pointers.clear(); drag = pinch = null; }
+    if (e.isPrimary) { pointers.clear(); drag = pinch = null; recenter(); }
     // (A third finger is ignored: a pinch is two.)
     if (pointers.size >= 2) return;
     // (Capture can fail for a pointer the browser has already let go of.)
@@ -156,7 +172,106 @@ export function attachInput(canvas, camera, on) {
     wheelTimer = setTimeout(on.settle, 250);
   }, { passive: false });
 
+  // ---------- Keys ----------
+  const PAN = {
+    ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+    a: [-1, 0], d: [1, 0], w: [0, -1], s: [0, 1],
+  };
+  const keyOf = (e) => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+  const area = () => (on.area ? on.area() : [0, 0, view.vw, view.vh]);
+  // Where the keys tap: the middle of the picture, plus the aim's offset
+  // (kept a little inside the picture's edges).
+  function aim() {
+    const [l, t, r, b] = area(), m = 20;
+    const hx = Math.max(0, (r - l) / 2 - m), hy = Math.max(0, (b - t) / 2 - m);
+    off.x = Math.max(-hx, Math.min(hx, off.x));
+    off.y = Math.max(-hy, Math.min(hy, off.y));
+    return [(l + r) / 2 + off.x, (t + b) / 2 + off.y];
+  }
+  const recenter = () => { off.x = off.y = 0; };
+  // A click mustn't focus the map (the arrows would stop changing rooms for
+  // the mouse); Tab does. It still takes focus off a button, as a click
+  // anywhere else on the page would.
+  canvas.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const a = document.activeElement;
+    if (a && a !== canvas && a !== document.body && a.blur) a.blur();
+  });
+  canvas.addEventListener('keydown', (e) => {
+    if (!enabled || e.altKey || e.ctrlKey || e.metaKey) return;
+    const k = keyOf(e);
+    if (PAN[k]) {
+      e.preventDefault();
+      if (!held.size) {
+        on.down();
+        glide = null;
+        spring = false;
+        heldFor = 0;
+      }
+      held.add(k);
+    } else if (k === '+' || k === '=' || k === '-' || k === '_') {
+      e.preventDefault();
+      on.down();
+      const [sx, sy] = aim();
+      zoomBy(k === '-' || k === '_' ? 1 / 1.6 : 1.6, sx, sy);
+    } else if (k === 'Escape') {
+      recenter(); // (the game takes it from here: back out a level)
+    } else if (k === 'Enter' || k === ' ') {
+      e.preventDefault();
+      if (e.repeat) return;
+      on.down();
+      const [sx, sy] = aim();
+      on.tap(sx, sy);
+      // (Flying somewhere new, the aim goes back to the middle.)
+      if (camera.flying) recenter();
+      else on.settle();
+    }
+  });
+  const letKeysGo = () => {
+    if (!held.size) return;
+    held.clear();
+    if (!camera.flying) on.settle();
+  };
+  canvas.addEventListener('keyup', (e) => {
+    if (held.delete(keyOf(e)) && !held.size && !camera.flying) on.settle();
+  });
+  canvas.addEventListener('blur', letKeysGo);
+  // Zoom by f round a point on screen (it stays put), in a quick flight.
+  function zoomBy(f, sx, sy) {
+    const [wx, wy] = camera.toWorld(sx, sy);
+    const z = on.clampZoom(cam.z * f);
+    if (Math.abs(z - cam.z) < cam.z * 0.01) return;
+    // (The point under the aim stays under it: the aim stays where it is.)
+    camera.flyTo(camera.clamp({ x: wx - (sx - view.vw / 2) / z, y: wy - (sy - view.vh / 2) / z, z }), 0.25, on.settle, { straight: true });
+  }
+  // The held arrows move the map, slowly at first, then quicker, up to about
+  // a screen a second. Off the middle, the aim comes back first; then the
+  // map moves, as far as its edges let it (no spring for keys); the aim
+  // takes what's left, so it can reach anything on screen.
+  function keyPan(dt) {
+    heldFor += dt;
+    let dx = 0, dy = 0;
+    for (const k of held) { dx += PAN[k][0]; dy += PAN[k][1]; }
+    const n = Math.hypot(dx, dy);
+    if (!n) return;
+    const px = Math.min(view.vw, view.vh) * Math.min(1, 0.22 + heldFor * 0.7) * dt;
+    for (const [a, d] of [['x', dx / n], ['y', dy / n]]) {
+      let m = d * px;
+      if (!m) continue;
+      if (off[a] && Math.sign(m) !== Math.sign(off[a])) {
+        const back = Math.sign(m) * Math.min(Math.abs(m), Math.abs(off[a]));
+        off[a] += back;
+        m -= back;
+      }
+      const was = cam[a];
+      cam[a] = camera.clamp({ ...cam, [a]: cam[a] + m / cam.z })[a];
+      off[a] += m - (cam[a] - was) * cam.z;
+    }
+    aim(); // (keeps the aim inside the picture)
+  }
+
   function step(dt) {
+    if (held.size && !camera.flying && !drag && !pinch) { keyPan(dt); return; }
     if (drag || pinch || (!glide && !spring)) return;
     if (camera.flying || camera.drifting) { glide = null; spring = false; return; }
     const f = dt * 60; // frames at 60 a second, so a fling travels as far at any frame rate
@@ -190,11 +305,16 @@ export function attachInput(canvas, camera, on) {
 
   return {
     step,
+    // Where the keys tap now (the game draws its mark there).
+    aim,
     // True while the camera is being moved by hand (don't bake caches yet).
-    get busy() { return !!pinch || !!glide || spring; },
+    get busy() { return !!pinch || !!glide || spring || held.size > 0; },
     setEnabled(v) {
       enabled = v;
-      if (!v) { pointers.clear(); drag = pinch = glide = lastTap = null; spring = false; }
+      // (A Tab stop only while there's something to steer.)
+      canvas.tabIndex = v ? 0 : -1;
+      if (!v && document.activeElement === canvas) canvas.blur();
+      if (!v) { pointers.clear(); held.clear(); drag = pinch = glide = lastTap = null; spring = false; }
     },
   };
 }

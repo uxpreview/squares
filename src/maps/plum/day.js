@@ -446,15 +446,17 @@ const dave = vehicle('dave', 'Every King Tide Dave', C.red, [
 // Parked in his spot, dry: nothing about the truck moves (only what he says),
 // so the Turnpike, where he parks, draws it as a still picture, by day and
 // with its lamps lit by night, instead of drawing it fresh every frame.
-const DAVE_Z = roadZ(...DAVE_PARK);
+// (On first use: the land isn't worked out until something draws it.)
+let daveZ = null;
+const DAVE_Z = () => (daveZ ??= roadZ(...DAVE_PARK));
 export function daveParked(t) {
   const p = dave.at(t);
-  return !p.moving && Math.hypot(p.x - DAVE_PARK[0], p.y - DAVE_PARK[1]) < 0.05 && level(t) <= DAVE_Z + 0.02;
+  return !p.moving && Math.hypot(p.x - DAVE_PARK[0], p.y - DAVE_PARK[1]) < 0.05 && level(t) <= DAVE_Z() + 0.02;
 }
 export function parkedDave(R) {
   const [x, y] = DAVE_PARK;
-  R.thing(x, y, (ctx) => drawTruck(ctx, x, y, DAVE_Z, 'x', -1, 100), { on: (t) => daveParked(t) && !lightsOn(t) });
-  R.thing(x, y, (ctx) => drawTruck(ctx, x, y, DAVE_Z, 'x', -1, 312), { on: (t) => daveParked(t) && lightsOn(t) });
+  R.thing(x, y, (ctx) => drawTruck(ctx, x, y, DAVE_Z(), 'x', -1, 100), { on: (t) => daveParked(t) && !lightsOn(t) });
+  R.thing(x, y, (ctx) => drawTruck(ctx, x, y, DAVE_Z(), 'x', -1, 312), { on: (t) => daveParked(t) && lightsOn(t) });
 }
 
 // ---------- Traffic ----------

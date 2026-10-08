@@ -511,6 +511,7 @@ export default {
   id: 'observatory',
   name: 'Observatory',
   blurb: 'Every few seconds a star shoots across the wall and Gary misses it. Somebody has locked themselves in the dome with the big telescope and will not share.',
+  describe: 'A planetarium with star-painted walls and a big painted moon. A silver dome fills the middle, its astronomer up a ladder cranking it round. Stargazers recline by the projector on the left, a scientist reads a screen at the back, and kids queue at a rope by the door.',
 
   build(R) {
     R.floor((ctx) => {

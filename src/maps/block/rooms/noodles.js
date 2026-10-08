@@ -285,6 +285,7 @@ export default {
   id: 'noodles',
   name: 'Noodle Bar',
   blurb: 'The noodle challenge has been going for 47 minutes and the bowl is somehow fuller. Somebody keeps ordering the large, and nobody has asked them to pay.',
+  describe: 'A red noodle bar strung with paper lanterns. The open kitchen runs along the right wall under the menu boards, where the chef slaps noodles and a wok is on fire, on purpose. Diners pack the long counter and the tables, and in the lunch rush latecomers eat standing up.',
 
   build(R) {
     // ---------- room shell ----------

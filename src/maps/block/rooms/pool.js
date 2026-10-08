@@ -254,6 +254,7 @@ export default {
   id: 'pool',
   name: 'The Lido',
   blurb: 'The diver has been "about to jump" since noon. The lifeguard has a whistle and opinions.',
+  describe: 'An outdoor pool on a wooden deck under a big water tower. Sunbathers bake on loungers down the left, lap swimmers and a flamingo float share the water, and the lifeguard watches from a tall chair by the diving board. The water mirrors the sky, pink at the party and navy at night.',
 
   build(R) {
     R.floor((ctx) => {

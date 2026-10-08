@@ -80,11 +80,12 @@ export function createCasefile(o) {
       const li = el('li');
       const b = el('button', 'suspect' + (s.hidden ? ' is-hidden' : '') + (s.cleared ? ' is-cleared' : '') + (s.guilty ? ' is-guilty' : '') + (s.culprit && s.ready && !s.guilty ? ' is-ready' : ''));
       b.type = 'button';
-      b.append(portrait(s.hidden ? 'someone' : s.id), el('span', 'suspect-name', s.shown.name), el('span', 'suspect-role', s.shown.role));
+      // (Named by what's on it, a comma between each part for a screen reader.)
+      const gap = () => el('span', 'sr-only', ', ');
+      b.append(portrait(s.hidden ? 'someone' : s.id), el('span', 'suspect-name', s.shown.name), gap(), el('span', 'suspect-role', s.shown.role));
       const sp = stamp(s);
-      if (sp) b.append(sp);
-      if (s.hidden) b.append(el('span', 'suspect-clues', `Clues ${s.cluesFound} of ${s.clues}`));
-      b.setAttribute('aria-label', `${s.shown.name}, ${s.shown.role}.${s.cleared ? ' Cleared.' : ''}${s.guilty ? ' Guilty.' : ''}${s.hidden ? ` ${s.cluesFound} of ${s.clues} clues found.` : ''}`);
+      if (sp) b.append(gap(), sp);
+      if (s.hidden) b.append(gap(), el('span', 'suspect-clues', `Clues ${s.cluesFound} of ${s.clues}`));
       b.addEventListener('click', () => { o.sound('tick'); show('suspect', s.id); });
       li.append(b);
       ul.append(li);

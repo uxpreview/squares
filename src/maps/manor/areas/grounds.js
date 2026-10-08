@@ -1137,6 +1137,7 @@ export default {
   id: 'grounds',
   name: 'The Grounds',
   blurb: "Inspector Pidge's car is still stuck in the mud. The gardener is lost in his own maze again, and it only comes up to his waist.",
+  describe: 'The front of the house in the rain: lit arched windows, a BEWARE OF THE GOOSE sign by the front door, a gravel drive, a hedge maze and the family crypt. Pidge comes out to his car and gets sprayed with mud, and at midnight the crypt door creaks open and the bats leave.',
 
   build(R) {
     const people = R.walkers.filter((w) => !w.ghost);

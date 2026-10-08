@@ -165,6 +165,7 @@ export default {
   id: 'bakery',
   name: 'Dawn Bakery',
   blurb: 'It is 5am, the oven is roaring and the wedding cake wobbles every time somebody sneezes. There is a goose in the queue and it has a ticket.',
+  describe: 'A bakery built round a big brick oven, where a baker slides loaves in on a long paddle. Cooling racks of bread line the right wall, a glass counter of pastries faces the door, and an apprentice naps on the flour sacks. At dawn the queue runs out the door.',
 
   build(R) {
     // ---------- shell ----------

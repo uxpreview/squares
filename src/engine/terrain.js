@@ -61,49 +61,86 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 // the pixels along it, and two half coats of a see-through ink are lighter
 // than one full coat); opaque ink overlapping hides it, so the open sea
 // prints in one piece.
+//
+// The grids are worked out when something first asks for them, not when the
+// map's code loads: places load behind the title well before anything draws
+// them, and working out an island's every half unit in one go held up the
+// title's picture for a third of a second. land.prepare(stop) does the work
+// a row at a time until stop() says enough (the title's spare moments
+// between frames, main.js); whatever's left is done at once when it's needed.
 export function makeLand(o) {
   const step = o.step || 0.5;
   const nx = Math.round(o.w / step), ny = Math.round(o.d / step);
   const W = nx + 1, N = W * (ny + 1);
-  const H = new Float32Array(N);
-  for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) H[j * W + i] = o.height(i * step, j * step);
+  const defs = o.layers || [];
+  let g = null; // the finished grids
+  let w = null; // the work so far: heights, then each layer's field, row by row
+  function begin() { w = { H: new Float32Array(N), F: defs.map(() => new Float32Array(N)), stage: 0, j: 0 }; }
+  // One more row; false once there's none left.
+  function row() {
+    const { H, j } = w;
+    if (w.stage === 0) {
+      for (let i = 0; i <= nx; i++) H[j * W + i] = o.height(i * step, j * step);
+    } else if (w.stage <= defs.length) {
+      const L = defs[w.stage - 1], F = w.F[w.stage - 1];
+      for (let i = 0; i <= nx; i++) F[j * W + i] = L.field(i * step, j * step, H[j * W + i]);
+    } else return false;
+    if (++w.j > ny) { w.stage++; w.j = 0; }
+    return true;
+  }
+  function finish() {
+    const { H } = w;
+    // How much the ground turns toward the sides a box shades: toward +y (the
+    // face you see on the screen's left, the darker one) most, toward +x (the
+    // right) a little. Turned away from you, it catches the light.
+    const S = new Float32Array(N);
+    for (let j = 0; j <= ny; j++) {
+      for (let i = 0; i <= nx; i++) {
+        const i0 = Math.max(0, i - 1), i1 = Math.min(nx, i + 1), j0 = Math.max(0, j - 1), j1 = Math.min(ny, j + 1);
+        const hx = (H[j * W + i1] - H[j * W + i0]) / ((i1 - i0) * step);
+        const hy = (H[j1 * W + i] - H[j0 * W + i]) / ((j1 - j0) * step);
+        S[j * W + i] = -hy - 0.45 * hx;
+      }
+    }
+    let peak = -Infinity;
+    for (let k = 0; k < N; k++) if (H[k] > peak) peak = H[k];
+    g = { H, S, layers: defs.map((L, n) => ({ ...L, F: w.F[n] })), peak };
+    w = null;
+  }
+  function grids() {
+    if (g) return g;
+    if (!w) begin();
+    while (row());
+    finish();
+    return g;
+  }
+  // Some of the work, until stop() is true; true once it's all done.
+  function prepare(stop) {
+    if (g) return true;
+    if (!w) begin();
+    while (!stop()) if (!row()) { finish(); return true; }
+    return false;
+  }
 
   // Between the grid's points, the height is read off the cell around them.
   function h(x, y) {
+    const H = (g || grids()).H;
     const fx = clamp(x / step, 0, nx), fy = clamp(y / step, 0, ny);
     const i = Math.min(nx - 1, Math.floor(fx)), j = Math.min(ny - 1, Math.floor(fy));
     const u = fx - i, v = fy - j, k = j * W + i;
     return H[k] * (1 - u) * (1 - v) + H[k + 1] * u * (1 - v) + H[k + W + 1] * u * v + H[k + W] * (1 - u) * v;
   }
 
-  const layers = (o.layers || []).map((L) => {
-    const F = new Float32Array(N);
-    for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) F[j * W + i] = L.field(i * step, j * step, H[j * W + i]);
-    return { ...L, F };
-  });
-
-  // How much the ground turns toward the sides a box shades: toward +y (the
-  // face you see on the screen's left, the darker one) most, toward +x (the
-  // right) a little. Turned away from you, it catches the light.
-  const S = new Float32Array(N);
-  for (let j = 0; j <= ny; j++) {
-    for (let i = 0; i <= nx; i++) {
-      const i0 = Math.max(0, i - 1), i1 = Math.min(nx, i + 1), j0 = Math.max(0, j - 1), j1 = Math.min(ny, j + 1);
-      const hx = (H[j * W + i1] - H[j * W + i0]) / ((i1 - i0) * step);
-      const hy = (H[j1 * W + i] - H[j0 * W + i]) / ((j1 - j0) * step);
-      S[j * W + i] = -hy - 0.45 * hx;
-    }
-  }
-
   const water = {
     color: C.water, deep: C.navy, foam: C.white, wet: C.ink, side: C.water,
     alpha: 0.5, deepAlpha: 0.3, depth: 0.8, ...(o.water || {}),
   };
-  let peak = -Infinity;
-  for (let k = 0; k < N; k++) if (H[k] > peak) peak = H[k];
   return {
-    w: o.w, d: o.d, step, nx, ny, W, H, S, h, layers,
-    peak, // the highest the ground goes
+    w: o.w, d: o.d, step, nx, ny, W, h, prepare,
+    get H() { return grids().H; },
+    get S() { return grids().S; },
+    get layers() { return grids().layers; },
+    get peak() { return grids().peak; }, // the highest the ground goes
     base: o.base ?? -3,
     level: o.level || (() => -Infinity),
     top: o.top ?? 0,
