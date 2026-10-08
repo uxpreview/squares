@@ -1,6 +1,6 @@
-# Squares: notes for AI agents
+# Goose at Large: notes for AI agents
 
-An isometric hidden-object game drawn entirely on a 2D canvas. Vanilla JS modules, built with Vite. No frameworks, no runtime dependencies (fonts are the only npm packages that ship).
+Goose at Large (the repo, the folder, the address and the saves' keys still say squares) is an isometric hidden-object game drawn entirely on a 2D canvas. Vanilla JS modules, built with Vite. No frameworks, no runtime dependencies (fonts are the only npm packages that ship).
 
 The owner is a designer who vibe codes. Explain changes in plain language, say where to change things, and don't hand them a stack trace to debug.
 

@@ -1,6 +1,6 @@
 {
-  "name": "Squares",
-  "short_name": "Squares",
+  "name": "Goose at Large",
+  "short_name": "Goose",
   "description": "A hidden-object picture book you can walk through: five tiny places drawn in code, and a goose loose in every one.",
   "id": "./",
   "start_url": "./",

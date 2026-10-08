@@ -1,4 +1,4 @@
-# Squares
+# Goose at Large
 
 A hidden-object picture book you can walk through. Tiny animated places, drawn entirely in code in a six-ink risograph style, and every one has a loose goose.
 
@@ -173,8 +173,8 @@ docs/
 | I want to... | Change this |
 | --- | --- |
 | Lock places until you've found enough geese | `lockMaps: true` in `src/config.js`, and each place's `unlock.geese` in `src/maps/index.js` |
-| Remove the "← Lab" link when Squares lives on its own | `backLink: null` in `src/config.js` |
-| Change the title screen tagline | `tagline` in `src/config.js` |
+| Remove the "← Lab" link when the game lives on its own address | `backLink: null` in `src/config.js` |
+| Change the game's name, the title screen's wordmark or its tagline | `name`, `wordmark` (a line each) and `tagline` in `src/config.js`; the name is also in `index.html`'s head and `public/site.webmanifest` |
 | Rename a place or change its picker blurb | `src/maps/index.js` (picker) and that place's `map.js` (in-game) |
 | Change the palette | `C` at the top of `src/engine/art.js`. Every zone pulls from it. |
 | Change a zone's name, story or finds | The top of its file (`id`, `name`, `blurb`) and its `R.find(...)` calls |
@@ -269,4 +269,4 @@ Saved in the browser under `squares.save.v4`: what's been found per place, each 
 
 ## Deploying
 
-Squares lives at `squares.ryankm.com` and is listed on ryankm.com/lab as EXP-044. It's a Vite site: Vercel runs `npm run build` and serves `dist/`. The built game uses relative paths, so it also works from a subfolder. `vercel.json` also tells browsers to keep the built files (their names change with every build) for a year.
+Goose at Large lives at `squares.ryankm.com` (until gooseatlarge.com is registered; the repo, the folder and the saves' keys still say squares) and is listed on ryankm.com/lab as EXP-044. It's a Vite site: Vercel runs `npm run build` and serves `dist/`. The built game uses relative paths, so it also works from a subfolder. `vercel.json` also tells browsers to keep the built files (their names change with every build) for a year.

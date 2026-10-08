@@ -133,10 +133,12 @@ html, body {
 }
 .wordmark span,
 .place-name span { display: inline-block; }
+.wordmark .line { display: block; }
+.wordmark .sp,
 .place-name .sp { width: 0.28em; }
 .place-name .word { white-space: nowrap; }
 /* Letters drop in one after another. main.js sets --i on each. */
-body[data-ready] .wordmark span,
+body[data-ready] .wordmark span:not(.line),
 body[data-ready] .place-name span:not(.word) {
   animation: letter 0.7s cubic-bezier(.2, 1.5, .4, 1) both;
   animation-delay: calc(var(--i, 0) * 0.04s);
@@ -307,6 +309,14 @@ body[data-ready] .title-foot { animation: fade-up 0.6s 0.8s cubic-bezier(.2, .8,
   .title-actions .big-btn { min-width: 240px; }
   .title-progress { text-align: left; }
   .title-foot { top: auto; bottom: 24px; left: 56px; right: 24px; }
+}
+/* A phone on its side: the name on one line, sized to the height, so the
+   picture keeps the middle. (The widest phones get the column above, where
+   two lines fit.) */
+@media (max-height: 500px) and (max-width: 899px) {
+  .wordmark { font-size: clamp(44px, 15vh, 72px); }
+  .wordmark .line { display: inline-block; }
+  .wordmark .line + .line { margin-left: 0.28em; }
 }
 
 /* ---------- Pick a place ---------- */

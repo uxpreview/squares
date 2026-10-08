@@ -1,12 +1,12 @@
 # The Developer Award
 
-Session 18a, October 2026. Where Squares stands on the Awwwards Developer Award, what 18a changed, how to measure it again, and what's left for 18b. The plan is in [ROADMAP.md](ROADMAP.md) (session 18); why Awwwards first is in [STRATEGY.md](STRATEGY.md).
+Session 18a, October 2026. Where Goose at Large stands on the Awwwards Developer Award, what 18a changed, how to measure it again, and what's left for 18b. The plan is in [ROADMAP.md](ROADMAP.md) (session 18); why Awwwards first is in [STRATEGY.md](STRATEGY.md).
 
 ## How it's judged
 
 A Site of the Day goes on to a developer jury, who score it 1 to 10 on six things; an average over about 7 wins the award. Recent winners score highest on Animations and WPO (speed) and lowest on Semantics and Markup. [K: [Awwwards evaluation](https://www.awwwards.com/about-evaluation/), and the six scores published on winners' pages: [Messenger](https://www.awwwards.com/sites/messenger) 8.21 (Animations 9.0, WPO 8.8, Accessibility 7.6), [FUNCTION](https://www.awwwards.com/sites/function) 7.51, [Podium](https://www.awwwards.com/sites/podium) 7.27]
 
-| Criterion | What a developer juror looks at | Squares |
+| Criterion | What a developer juror looks at | Goose at Large |
 |---|---|---|
 | **Semantics / SEO** | Headings and landmarks, a title and description that say what it is, crawlable text, robots and a sitemap | Done in 18a (below) |
 | **Animations** | Smooth, purposeful motion, nothing janky, reduced motion respected | Already the strength: the picker card grows into its place, the drift, the pen loops. 18a removed the title's start-up stutters |
@@ -25,7 +25,7 @@ A Site of the Day goes on to a developer jury, who score it 1 to 10 on six thing
 - **Motion and flashes.** Reduced motion was already respected everywhere (the camera, the intro, cards, the case file). The Manor's lightning strobes twice per strike, strikes 15 to 25 seconds apart: under WCAG's three flashes a second. Left as is (several rooms key their art to its brightness).
 
 **Semantics and markup.**
-- The page's title follows where you are ("The Laundromat · The Block Party · Squares"); one `h1` per screen ("Pick a place" was an `h2`); the screens sit in a `main`; the picker cards are made of spans (a button can only hold phrasing content; they had headings and paragraphs inside); the case file is a `div` dialog; no empty headings.
+- The page's title follows where you are ("The Laundromat · The Block Party · Goose at Large", Squares until the rename); one `h1` per screen ("Pick a place" was an `h2`); the screens sit in a `main`; the picker cards are made of spans (a button can only hold phrasing content; they had headings and paragraphs inside); the case file is a `div` dialog; no empty headings.
 - The `<head>`: a description that says what it is, the canonical address, Open Graph and Twitter tags, the author, structured data (a `VideoGame`, free, in the browser), `color-scheme`.
 - Icons: `favicon.ico`, `apple-touch-icon.png`, 192 and 512 icons and a maskable one, all drawn from the goose favicon (`node tools/icons.mjs`); `site.webmanifest`; `robots.txt` and `sitemap.xml`; a `noscript` page listing the five places.
 - The W3C validator: no errors (warnings only for the `h1` of each screen, which show one at a time, and `aria-hidden` on things that start hidden).
@@ -81,9 +81,9 @@ The title on slow 4G with a 4x slower processor (`node tools/load.mjs`, three ru
 4. **Lighthouse 12** (`npx lighthouse@12`, which opens a visible Chrome; three runs each, the title): accessibility, best practices and SEO 100 everywhere. Performance on a phone 56, 60 and 67 (first paint 1.3 to 2.3 s, largest paint 2.1 to 4.4 s, no layout shift); on a desktop 71 all three times (0.5 s, 0.7 s, total blocking about 800 ms, nearly all of it the first frame on this older processor). So the phone score lands near 60, as in the cloud: the call under "The numbers" is the owner's, before 18b. The lead's recommendation: draw the title's map from one picture while it drifts. That's the option that moves the score, because the blocking is every frame's drawing, the whole time; starting the drift a second later only moves the first second. It costs the small movements on the title while it drifts.
 5. **By hand:** Chrome's keyboard play, Safari with Option+Tab, and VoiceOver (the place named and described, a room's name and story on arriving) all as described. `npm run smoke` and `npm run a11y` pass here too.
 
-## Left for 18b (with the rename)
+## Left for 18b
 
-- **The name and the address:** `<title>`, the description, `og:site_name` and `og:url`, `canonical`, the JSON-LD (`name`, `url`), `site.webmanifest` (`name`, `short_name`), `robots.txt` and `sitemap.xml` (the address), the `noscript` page, `src/config.js`. Everything that carries the name or the address is in those files; nothing else in the page does.
+- **The address** (the name changed on October 8, ahead of the domain): once gooseatlarge.com is registered, `canonical`, `og:url`, the JSON-LD's `url`, `robots.txt` and `sitemap.xml` move to it, and Vercel sends the old address there. A browser keeps saves per address, so the move needs a way to carry them over.
 - **Share images:** an `og:image` and `twitter:card` → `summary_large_image`, one per place if the hash routes get their own (they can't today: one page, one set of tags).
 - **The case study page** for ryankm.com (P5) and **the submission** ($65).
 - **Later (21):** the manifest's `display` goes from `browser` to `standalone` with offline play, when the game becomes installable. It's `browser` now on purpose, so Chrome doesn't offer to install a game that doesn't work offline yet.

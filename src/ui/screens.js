@@ -26,13 +26,22 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
   let leaving = null; // the picker fading away as a place grows out of it
 
   // ---------- Title ----------
+  // The wordmark a line at a time (config.wordmark), each letter its own
+  // span so they can drop in one after another.
   el.wordmark.setAttribute('aria-label', config.name);
-  el.wordmark.replaceChildren(...[...config.name].map((ch, i) => {
-    const s = document.createElement('span');
-    s.setAttribute('aria-hidden', 'true');
-    s.textContent = ch;
-    s.style.setProperty('--i', i);
-    return s;
+  let i = 0;
+  el.wordmark.replaceChildren(...(config.wordmark || [config.name]).map((words) => {
+    const line = document.createElement('span');
+    line.className = 'line';
+    line.setAttribute('aria-hidden', 'true');
+    for (const ch of words) {
+      const s = document.createElement('span');
+      if (ch === ' ') s.className = 'sp';
+      else s.textContent = ch;
+      s.style.setProperty('--i', i++);
+      line.append(s);
+    }
+    return line;
   }));
   el.tagline.textContent = config.tagline;
   if (config.backLink) {
@@ -156,7 +165,7 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
     if (config.teaseMore) {
       const li = document.createElement('li');
       li.className = 'place-tease';
-      li.innerHTML = '<p class="place-tease-title">More places on the way</p><p class="place-tease-text">New maps land here. The goose is already packing.</p>';
+      li.innerHTML = '<p class="place-tease-title">More places on the way</p><p class="place-tease-text">New maps land here. Geraldine is already packing.</p>';
       items.push(li);
     }
     el.list.replaceChildren(...items);

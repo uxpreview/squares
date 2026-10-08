@@ -129,7 +129,7 @@ const screens = createScreens({
 
 // ---------- Routes ----------
 // The page's title says where you are: "The Laundromat · The Block Party ·
-// Squares". The title screen keeps the one in index.html.
+// Goose at Large". The title screen keeps the one in index.html.
 const HOME = document.title;
 function titled(...parts) {
   const t = parts.filter(Boolean);

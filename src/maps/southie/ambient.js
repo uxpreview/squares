@@ -262,15 +262,17 @@ export function backdrop(ctx, t, world, fx) {
   const ink = n > 0.5 ? C.white : null;
   reg(ctx, (X0 + X1) / 2, Y0 + 1, ink);
   reg(ctx, (X0 + X1) / 2, Y1 - 1, ink);
+  // The caption ends by the bottom mark, on the paper: the land's front edge
+  // runs through the middle there.
   const k = 40;
   ctx.save();
-  ctx.translate((X0 + X1) / 2, Y1 - 4);
+  ctx.translate((X0 + X1) / 2 - 4, Y1 - 4);
   ctx.scale(1 / k, 1 / k);
   ctx.font = `${0.9 * k}px "Rethink Sans", system-ui, sans-serif`;
   ctx.fillStyle = alpha(n > 0.5 ? C.white : C.ink, 0.55);
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-  ctx.fillText('SQUARES  ·  MOVING DAY  ·  SOUTH BOSTON, SEPTEMBER 1ST', 0, 0);
+  ctx.fillText('GOOSE AT LARGE  ·  MOVING DAY  ·  SOUTH BOSTON, SEPTEMBER 1ST', 0, 0);
   ctx.restore();
 }
 

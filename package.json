@@ -1,8 +1,8 @@
 {
-  "name": "squares",
+  "name": "goose-at-large",
   "private": true,
   "version": "0.2.0",
-  "description": "A hidden-object picture book you can walk through. Every place has a loose goose.",
+  "description": "Goose at Large: a hidden-object picture book you can walk through. Every place has a loose goose.",
   "type": "module",
   "scripts": {
     "dev": "vite",

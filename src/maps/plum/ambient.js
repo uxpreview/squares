@@ -526,7 +526,7 @@ export function backdrop(ctx, t, world, fx) {
   ctx.font = `${0.9 * k}px "Rethink Sans", system-ui, sans-serif`;
   ctx.fillStyle = alpha(ink, 0.6);
   ctx.textBaseline = 'middle';
-  ctx.fillText('SQUARES  ·  PLUM ISLAND  ·  KING TIDE TONIGHT', 0, 0);
+  ctx.fillText('GOOSE AT LARGE  ·  PLUM ISLAND  ·  KING TIDE TONIGHT', 0, 0);
   ctx.restore();
 }
 
