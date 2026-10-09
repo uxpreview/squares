@@ -522,10 +522,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     hintsLeft: () => store.progress(world).hints,
     // How the whole place is going, toward finishing it.
     placeLine: () => {
+      const stillOut = (p) => { const n = world.totalThings - p.things; return `${n} ${n === 1 ? 'thing' : 'things'} still out there.`; };
       const p = store.progress(world);
       if (isCase()) return `${p.evidence} of ${world.totals.evidence} pieces of evidence`;
-      if (isTrail()) return p.met ? `Caught. ${world.totalThings - p.things} things still out there.` : `Sighting ${p.sightings + 1} of ${world.sightings.length} next`;
-      if (p.done) return p.all ? 'Every last thing, found.' : `Finished. ${world.totalThings - p.things} things still out there.`;
+      if (isTrail()) return p.met ? `Caught. ${stillOut(p)}` : `Sighting ${p.sightings + 1} of ${world.sightings.length} next`;
+      if (p.done) return p.all ? 'Every last thing, found.' : `Finished. ${stillOut(p)}`;
       const geese = world.totalGeese - p.geese, things = Math.max(0, world.need - p.things);
       const g = geese ? `${geese} ${geese === 1 ? 'goose' : 'geese'}` : '', t = things ? `${things} ${things === 1 ? 'thing' : 'things'}` : '';
       return `${[g, t].filter(Boolean).join(', ')} to finish`;
