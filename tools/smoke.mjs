@@ -86,6 +86,14 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('a card opens its place', (await S(page, () => location.hash)) === '#/block' && await page.isVisible('.tally'));
   check('tallies count the old save, on the Block Party', (await page.textContent('#tally-geese')) === '1/16' && (await things(page)) === '1/60');
 
+  // Back to the picker after growing out of it: the fade mustn't leave it invisible.
+  await page.click('#to-places');
+  await wait(page, 400);
+  const pickerOpacity = await S(page, () => getComputedStyle(document.getElementById('places')).opacity);
+  check('the picker comes back after a place grew out of it', (await S(page, () => location.hash)) === '#/maps' && await page.isVisible('#places') && pickerOpacity === '1', `opacity ${pickerOpacity}`);
+  await page.click('.place-card >> nth=0');
+  await wait(page, 1600);
+
   // Tap the laundromat's floor to go in.
   const [lx, ly] = await S(page, () => {
     const s = window.__squares, z = s.world.zones.find((x) => x.id === 'laundromat');
