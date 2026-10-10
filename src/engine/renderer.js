@@ -80,7 +80,7 @@ export function createRenderer(canvas, camera, o = {}) {
       const s0 = performance.now();
       // A zone with no picture yet always gets one now, but a cheap one if we're
       // out of time this frame; it sharpens up on a later frame.
-      snapshotZone(z, z.snap || snapCredit > 0 ? want : Math.min(want, 8), t, view.dpr);
+      snapshotZone(z, z.snap || snapCredit > 0 ? want : Math.min(want, 8), t, view.dpr, caching);
       snapCredit -= performance.now() - s0;
     }
   }
@@ -257,7 +257,6 @@ export function createRenderer(canvas, camera, o = {}) {
     // Cutaways
     const lift = world.cutaway.lift ?? LIFT;
     const ghost = world.cutaway.ghost ?? GHOST;
-    for (const c of world.drawOrder) if (c.zone !== focus) { if (c.backdrop) dropBackdrop(c); if (c.stills) dropStills(c); }
     // (A street of houses lifts only the floors over the room you're in, in
     // its own house, and dims nothing.)
     const column = world.cutaway.above === 'column';
@@ -307,6 +306,10 @@ export function createRenderer(canvas, camera, o = {}) {
     });
     // Let go of big pictures of chunks that have been off screen for a while.
     for (const c of world.drawOrder) if (c.snap && c.snapScale >= 17 && t - c.snapT > 6 && !visible.includes(c)) dropSnapshot(c);
+    // A neighbor's caches (its floor and still things, baked for its snapshot)
+    // stay while it's on screen; a few seconds off screen, they go.
+    for (const c of visible) c.seen = f0;
+    for (const c of world.drawOrder) if (c.zone !== focus && f0 - (c.seen || 0) > 3000) { if (c.backdrop) dropBackdrop(c); if (c.stills) dropStills(c); }
     // A zone's pen marks go on after the last of its chunks.
     const lastOf = new Map();
     for (const c of visible) lastOf.set(c.zone, c);

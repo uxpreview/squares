@@ -921,11 +921,23 @@ function paintInto(zone, key, scale, dpr, draw) {
 // Snapshot: the whole zone (moving parts included) at time t, rendered into a
 // bitmap. Zones you aren't looking at are shown as snapshots that refresh a
 // few at a time, which keeps a whole map moving smoothly.
-export function snapshotZone(zone, scale, t, dpr) {
+// A snapshot is painted the way the zone you're in is: its floor and walls
+// and its still things come from caches baked at the snapshot's size (once,
+// they don't move), and only what moves is drawn again. That makes a refresh
+// a fraction of the cost, so the neighbors keep up with the clock instead of
+// moving in jumps. (Until the caches are ready, or while walls move, it's
+// drawn whole.)
+export function snapshotZone(zone, scale, t, dpr, cached = true) {
   paintInto(zone, 'snap', scale, dpr, (g) => {
     Q.lines = scale > 6;
     Q.detail = scale > 4.5;
-    drawZoneVector(g, zone, t);
+    const st = cached ? stillsFor(g, zone, scale, dpr) : null;
+    if (cached && backdropFor(g, zone, scale, dpr, t)) {
+      drawBackdrop(g, zone);
+      drawZoneVector(g, zone, t, true, st);
+    } else {
+      drawZoneVector(g, zone, t, false, st);
+    }
     Q.lines = true;
     Q.detail = true;
   });
