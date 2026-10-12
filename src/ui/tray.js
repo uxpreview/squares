@@ -18,7 +18,8 @@ export function createTray(o) {
   //      shows(room, f): false to leave a find off the list for now (a trail's later sightings),
   //      away(room, f): true while a find that shows some of the time isn't here,
   //      skipFor(room, f): where a skip would bring it back ("low tide"), onSkip(room, f),
-  //      skipVerb(): what the skip is called ("Skip to", "Flip to") }
+  //      skipVerb(): what the skip is called ("Skip to", "Flip to"),
+  //      overall(): { got, total } for the whole place, to head the list with (an open place) }
   // A hint goes in two steps (see rules.js): its line shows on the list, by
   // the thing it's for (the note over the chips, and under its row); the
   // next press rings it in the room.
@@ -220,7 +221,9 @@ export function createTray(o) {
     const finds = sortFinds(room);
     const got = finds.filter((f) => o.isFound(room, f)).length;
     const all = got === finds.length;
-    el.count.textContent = `${got} of ${finds.length} found here`;
+    // (On an open place, one list for the whole map: the head counts all of it.)
+    const all0 = o.overall && o.overall();
+    el.count.textContent = all0 ? `${all0.got} of ${all0.total} found` : `${got} of ${finds.length} found here`;
     el.place.textContent = o.placeLine();
     const left = o.hintsLeft();
     el.hintCount.textContent = String(left);

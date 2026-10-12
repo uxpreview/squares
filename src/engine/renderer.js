@@ -59,12 +59,15 @@ export function createRenderer(canvas, camera, o = {}) {
   // an older laptop the other rooms move in small steps instead of the whole
   // picture lagging; on a quick one nothing changes.
   let snapQ = 1, everything = false;
-  function refreshSnapshots(list, t, k) {
+  // open: an open map, where every area on screen is a picture refreshed
+  // every frame while there's time (several budgets' worth); the valve still
+  // shrinks it when frames run slow.
+  function refreshSnapshots(list, t, k, open = false) {
     const want = snapScaleFor(k);
     snapQ = perf.gap > 25 ? Math.max(0.1, snapQ * 0.97) : Math.min(1, snapQ + 0.01);
     // Catch up faster when neighbors are still at a much lower resolution than the view.
     const blurry = list.some((z) => z.snapScale && z.snapScale < want * 0.5);
-    let budget = blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS * snapQ;
+    let budget = (blurry ? SNAP_BUDGET_MS * 2.5 : SNAP_BUDGET_MS * snapQ) * (open ? 4 : 1);
     // A tool taking a picture wants every neighbor at this moment, sharp.
     if (everything) { budget = Infinity; snapCredit = 0; everything = false; }
     snapCredit = Math.min(snapCredit + budget, budget * 3);
@@ -314,7 +317,12 @@ export function createRenderer(canvas, camera, o = {}) {
     const lastOf = new Map();
     for (const c of visible) lastOf.set(c.zone, c);
     const p0 = performance.now();
-    refreshSnapshots(visible.filter((c) => c.zone !== focus && c.zone !== o.live), t, k);
+    // An open map has no area you're in: every area on screen is a picture
+    // painted afresh each frame (cheap, from its caches, and steady while the
+    // camera moves). Pinched in past the sharpest picture, the few pieces on
+    // screen are drawn live instead, as the area you're in is elsewhere.
+    const open = !!world.map.open, deep = open && k * 0.95 > SNAP_CAP;
+    if (!deep) refreshSnapshots(visible.filter((c) => (open || c.zone !== focus) && c.zone !== o.live), t, k, open);
     perf.snap = perf.snap * 0.9 + (performance.now() - p0) * 0.1;
     setScreen(k, dpr);
 
@@ -396,7 +404,7 @@ export function createRenderer(canvas, camera, o = {}) {
       let a = (1 - (1 - ghost) * z.veil) * (1 - (1 - BELOW) * z.dim);
       if (drop) { ctx.translate(0, drop.dy); a *= drop.a; }
       if (a < 1) ctx.globalAlpha = a;
-      if (z === focus) {
+      if (open ? deep : z === focus) {
         const q0 = performance.now();
         Q.lines = k > 6;
         Q.detail = k > 4.5;

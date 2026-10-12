@@ -48,6 +48,8 @@ export default {
   // an area's edge (the owner's phone pass). No find sits behind anything
   // tall in front of it (the boot moved out from behind the tower for this).
   cutaway: { front: false },
+  // One big map: nothing to step into, every area alive, one list (play.js).
+  open: true,
   land,
   walkers,
   loop: LOOP,
