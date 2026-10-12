@@ -43,7 +43,11 @@ export default {
     place(townBeach, 'The Town'),
   ],
   order: ['center', 'town-beach', 'turnpike', 'north-point', 'refuge-dunes', 'refuge-beach', 'sound'],
-  cutaway: { front: true },
+  // Nothing is cut away in front of the area you're in: it's all open ground,
+  // and the cut sliced the tower, umbrellas and people standing in front of
+  // an area's edge (the owner's phone pass). No find sits behind anything
+  // tall in front of it (the boot moved out from behind the tower for this).
+  cutaway: { front: false },
   land,
   walkers,
   loop: LOOP,
