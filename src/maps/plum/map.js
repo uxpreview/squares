@@ -79,6 +79,7 @@ export default {
     zone: 'spot',
     invite: 'King tide tonight',
     hint: 'A goose on every stretch. Step in.',
+    open: 'Seven geese loose on the island, and plenty else. Pinch in and look around.',
     whole: 'The whole island',
     complete: 'Every goose, found. Here comes the tide.',
     describe: 'A long, low island in the sea: the refuge\'s dunes and closed beach to the left, the town\'s houses and the lighthouse to the right. Behind it lie the Sound and the marsh, and the one road in, over a drawbridge. At noon the marsh drains to mud, and by midnight the sea is over the road.',

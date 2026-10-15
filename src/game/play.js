@@ -103,7 +103,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // Can it be tapped at t? There, and if it's inside something, that's open.
   // (A trail's sighting only once it's the next one.)
   const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6) && (f.step == null || f.step === stepNow());
-  const words = () => ({ zone: 'room', invite: '', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
+  const words = () => ({ zone: 'room', invite: '', hint: '', open: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
   const isTrail = () => !!(world && world.goal === 'trail');
@@ -652,7 +652,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function hintLine(zone, f) {
     if (f.hint) return f.hint;
     const t = clock();
-    return whereIs(zone, f, findPos(f, t));
+    // (On an open place, the area first: you aren't standing in it.)
+    return (isOpen() ? `Over at ${zone.name}. ` : '') + whereIs(zone, f, findPos(f, t));
   }
 
   // A hint, a step at a time: the line first (it costs a hint), then a ring
@@ -1808,6 +1809,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       announce(`${world.map.name}. ${world.map.tagline}`);
       if (o.fresh) camera.jumpTo(v);
       else camera.flyTo(v, o.grow ? 1.1 : 1.2, null, { straight: !!o.grow });
+      // A first visit (nothing found yet) hears what to do: the place's open line.
+      const p = store.progress(world);
+      if (words().open && p.geese + p.things === 0) setTimeout(() => { if (active && store.progress(world).geese + store.progress(world).things === 0) toast(words().open, 5200); }, 1400);
     } else {
       on.place(world.id, null);
       announce(`${world.map.name}. ${world.map.tagline}`);
