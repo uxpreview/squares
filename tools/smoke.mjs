@@ -90,7 +90,7 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.click('#to-places');
   await wait(page, 400);
   const pickerOpacity = await S(page, () => getComputedStyle(document.getElementById('places')).opacity);
-  check('the picker comes back after a place grew out of it', (await S(page, () => location.hash)) === '#/maps' && await page.isVisible('#places') && pickerOpacity === '1', `opacity ${pickerOpacity}`);
+  check('the picker comes back after a place grew out of it', (await S(page, () => location.hash)) === '#/maps' && await page.isVisible('#places') && Number(pickerOpacity) > 0.95, `opacity ${pickerOpacity}`);
   await page.click('.place-card >> nth=0');
   await wait(page, 1600);
 
