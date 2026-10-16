@@ -19,7 +19,7 @@ import { boat, trap, signpost, board, house, gull, lettering } from '../kit.js';
 // ---------- Where things are ----------
 const SAIL = [19.4, 21.8]; // the sailboat, aground on the flats south of the channel
 const LAUNCH = [40.2, 26.2]; // the refuge's kayak launch, across from Lot 1
-const BOOT = [12.0, 23.0]; // right by One Boot's hopping spot
+const BOOT = [8.0, 23.0]; // right by One Boot's hopping spot, clear of the tower in front
 const BOTTLE = [8, 9.4];
 const PADDLE = [23, 22.6];
 const TOW = [21.8, 20.4]; // the towing sign on its piling, by the sailboat's bow
@@ -555,12 +555,12 @@ export default {
 
     // One Boot: lost a boot in the mud this morning and has spent the whole
     // low tide hopping round it on one foot, trying not to put a sock in the mud.
-    const c0 = plan(28, [11, 27.9], [
-      { to: [11, 26.4], speed: 0.7 }, { to: [10.9, 23.3], speed: 0.7 }, { until: 160, dir: 'r', stuck: true },
-      { to: [11, 26.4], speed: 0.7 }, { to: [11, 27.9], speed: 0.7 },
+    const c0 = plan(28, [7, 27.9], [
+      { to: [7, 26.4], speed: 0.7 }, { to: [6.9, 23.3], speed: 0.7 }, { until: 160, dir: 'r', stuck: true },
+      { to: [7, 26.4], speed: 0.7 }, { to: [7, 27.9], speed: 0.7 },
     ]);
     const c0Look = folk(41, { top: C.mustard, bottom: WADERS, shoes: BOOT_RED, hat: 'cap', style: 'short' });
-    R.mover((t) => c0(t) || away([11, 27.9]), (ctx, t, p) => {
+    R.mover((t) => c0(t) || away([7, 27.9]), (ctx, t, p) => {
       if (p.gone) return;
       const hop = Math.abs(Math.sin(t * 5.5)) * 0.28, z = h(p.x, p.y) + hop;
       const s = t % 14, reach = p.seg.stuck && s > 4 && s < 6.5;

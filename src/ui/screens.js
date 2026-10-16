@@ -242,7 +242,9 @@ export function createScreens({ config, maps, store, getWorld, renderer, reduceM
       el.places.inert = true;
       leaving = el.places.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'cubic-bezier(.4, 0, .6, 1)', fill: 'forwards' });
       const done = () => { leaving = null; };
-      leaving.onfinish = () => { el.places.hidden = true; done(); };
+      // Hidden, then the fade let go: its last frame (opacity 0) would
+      // otherwise hold, and the picker would come back invisible.
+      leaving.onfinish = () => { el.places.hidden = true; const a = leaving; done(); a.cancel(); };
       leaving.oncancel = done;
     }
     if (screen === 'places') el.places.inert = false;
