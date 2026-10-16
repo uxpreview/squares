@@ -2,6 +2,8 @@
 
 Session 8, October 2026. How the game grows from five places. The owner made the calls marked *(the owner)* and took every one of the lead's recommendations for the rest. The plan that follows from it is in [ROADMAP.md](ROADMAP.md). The name research is in [NAMING.md](NAMING.md) and isn't repeated here.
 
+**Update, October 12:** the owner moved the game to **one big map** per place: every area in view and alive at once, one list across the whole place, closer to Where's Waldo than a set of rooms. It also answers "The labels say where" below: a search is no longer inside one small named room. ROADMAP.md, session 19, has the plan; Plum Island is first.
+
 How to read it: **[K]** means we know it (played it, measured it, found a source). **[A]** means it's an assumption to test.
 
 ## The strategy, on one page

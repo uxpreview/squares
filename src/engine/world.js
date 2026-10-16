@@ -9,6 +9,8 @@
 //                                              // (size, shape: for one that isn't 16 x 16; see zone.js)
 //     order: ['zoneId', ...],                   // prev/next and list order (optional)
 //     cutaway: { front, above, walls, lift, ghost },  // how zones get out of the way (below)
+//     open: true,                               // one big map: nothing to step into, every area
+//                                               // alive, one list (optional; play.js)
 //     storeys: [{ id, name, short, z }],        // named floors, changed from the lift (optional)
 //     stairs: [{ zone, goes, run: [[x, y, z], [x, y, z]], r }],  // tap a staircase to change floors
 //                                                // (run: its bottom and top in the zone's own units;

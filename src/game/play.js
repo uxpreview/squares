@@ -91,6 +91,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const seenStory = new Set();
   const debug = { finds: false, calls: 0, pokes: 0, decoys: 0, step: null }; // QA: ring every find that's still hidden; tests: honks, pokes and decoys so far; step: hold a trail at a sighting
   const hasStoreys = () => !!(world && world.map.storeys && world.storeys.length > 1);
+  // An open place (map.open) is one big map with nothing to step into: every
+  // area stays in view and alive, the list stays up, and "here" is just the
+  // area in the middle of the screen. Pinch in to search; a tap on the map from
+  // far out zooms in on that spot.
+  const isOpen = () => !!(world && world.map.open);
 
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
   // Is a find there to be found at t? (Some only show at low tide.)
@@ -98,7 +103,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // Can it be tapped at t? There, and if it's inside something, that's open.
   // (A trail's sighting only once it's the next one.)
   const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6) && (f.step == null || f.step === stepNow());
-  const words = () => ({ zone: 'room', invite: '', hint: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
+  const words = () => ({ zone: 'room', invite: '', hint: '', open: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
   const isTrail = () => !!(world && world.goal === 'trail');
@@ -252,7 +257,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       }
       on.place(world.id, zone.id);
       // The story shows the first time you arrive, then lives behind the zone name.
-      if (!seenStory.has(zone.id)) { seenStory.add(zone.id); showStory(true, 5200); }
+      // (On an open place you pan past areas all the time: it stays behind the name.)
+      if (!seenStory.has(zone.id) && !isOpen()) { seenStory.add(zone.id); showStory(true, 5200); }
       else showStory(false);
       closer();
     }
@@ -416,7 +422,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // Back goes up one level: from a room out to the whole place, from there to
   // the places.
   function renderBack() {
-    const inRoom = mode === 'zone';
+    const inRoom = mode === 'zone' && !isOpen();
     ui.placesLabel.textContent = inRoom ? world.map.short || world.map.name : 'Places';
     // (Spoken names start with the words on the button, for voice control.)
     ui.places.setAttribute('aria-label', `${ui.placesLabel.textContent}, back to ${inRoom ? words().whole.toLowerCase() : 'the list of places'}`);
@@ -520,6 +526,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     hintStep: (zone, f) => store.hintStep(world.id, keyOf(zone, f)),
     hintLine: (zone, f) => hintLine(zone, f),
     hintsLeft: () => store.progress(world).hints,
+    overall: () => {
+      if (!isOpen() || isCase() || isTrail()) return null;
+      const p = store.progress(world);
+      return { got: p.geese + p.things, total: world.totalGeese + world.totalThings };
+    },
     // How the whole place is going, toward finishing it.
     placeLine: () => {
       const stillOut = (p) => { const n = world.totalThings - p.things; return `${n} ${n === 1 ? 'thing' : 'things'} still out there.`; };
@@ -641,7 +652,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function hintLine(zone, f) {
     if (f.hint) return f.hint;
     const t = clock();
-    return whereIs(zone, f, findPos(f, t));
+    // (On an open place, the area first: you aren't standing in it.)
+    return (isOpen() ? `Over at ${zone.name}. ` : '') + whereIs(zone, f, findPos(f, t));
   }
 
   // A hint, a step at a time: the line first (it costs a hint), then a ring
@@ -1574,6 +1586,19 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         return true;
       }
     }
+    // An open place: nothing to step into. From far out, a tap zooms in on
+    // the spot under it (it stays under your finger); close in, it ripples.
+    if (isOpen()) {
+      if (!zoomedIn) {
+        userAct();
+        const [X, Y] = camera.toWorld(sx, sy);
+        const z = clampZoom(Math.max(zoneModeZ() * 1.25, cam.z * 2));
+        camera.flyTo(camera.clamp({ x: X - (sx - view.vw / 2) / z, y: Y - (sy - view.vh / 2) / z, z }), 0.6, settle);
+        return true;
+      }
+      pops.push({ kind: 'ripple', t0: performance.now(), at: camera.toWorld(sx, sy) });
+      return false;
+    }
     // A staircase: on the whole house it changes floors, in a room it goes
     // up or down to the room at the other end.
     const st = stairAtScreen(sx, sy, zoomedIn);
@@ -1597,6 +1622,13 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // After free panning/zooming, decide whether we're in a zone or looking at the whole map.
   function settle() {
     if (!active) return;
+    // An open place: here is whatever's in the middle of the screen, at any zoom.
+    if (isOpen()) {
+      const i = zoneAtScreen(view.vw / 2, view.vh / 2, true);
+      if (i >= 0 && i !== current) showZoneUI(i);
+      if (i >= 0 && world.long(world.zones[i])) near = floorAt(world.zones[i], view.vw / 2, view.vh / 2);
+      return;
+    }
     if (cam.z < zoneModeZ()) {
       if (mode !== 'overview') showOverviewUI();
       return;
@@ -1630,7 +1662,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   ui.prev.addEventListener('click', () => step(-1));
   ui.next.addEventListener('click', () => step(1));
   ui.places.addEventListener('click', () => {
-    if (mode === 'zone') { userAct(); toOverview(); } else on.exit();
+    if (mode === 'zone' && !isOpen()) { userAct(); toOverview(); } else on.exit();
   });
   window.addEventListener('keydown', (e) => {
     // (The map, focused, has the arrows: input.js.)
@@ -1644,7 +1676,7 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
       if (casefile.back() || traillog.back()) return;
       if (!ui.story.hidden) showStory(false);
       else if (mode === 'zone' && tray.state === 'open' && tray.dock() === 'bottom') tray.setState('peek');
-      else if (mode === 'zone') { userAct(); toOverview(); }
+      else if (mode === 'zone' && !isOpen()) { userAct(); toOverview(); }
       else on.exit();
     }
   });
@@ -1766,6 +1798,20 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (i >= 0) {
       enterZone(i, { dur: o.jump ? 0.01 : 1.5 });
       if (o.jump) camera.jumpTo(zoneView(i));
+    } else if (isOpen()) {
+      // An open place starts on the whole map, list up, here being whatever
+      // area the middle of it falls in.
+      const first = world.map.invite ? world.indexOf(world.map.invite.zone) : -1;
+      showZoneUI(first >= 0 ? first : world.order[0]);
+      const v = overviewView();
+      const c = world.zoneAt(v.x, v.y);
+      if (c >= 0 && c !== current) showZoneUI(c);
+      announce(`${world.map.name}. ${world.map.tagline}`);
+      if (o.fresh) camera.jumpTo(v);
+      else camera.flyTo(v, o.grow ? 1.1 : 1.2, null, { straight: !!o.grow });
+      // A first visit (nothing found yet) hears what to do: the place's open line.
+      const p = store.progress(world);
+      if (words().open && p.geese + p.things === 0) setTimeout(() => { if (active && store.progress(world).geese + store.progress(world).things === 0) toast(words().open, 5200); }, 1400);
     } else {
       on.place(world.id, null);
       announce(`${world.map.name}. ${world.map.tagline}`);

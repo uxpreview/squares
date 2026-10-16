@@ -1078,6 +1078,50 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- An open place: one big map, one list (Plum Island, phone) ----------
+{
+  const page = await fresh({ width: 390, height: 844 }, () => { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); sessionStorage.setItem('seeded', '1'); } });
+  await page.goto(base + '#/plum');
+  await ready(page);
+  await wait(page, 2600);
+  const m = () => S(page, () => { const s = window.__squares; return { hash: location.hash, z: s.cam.z, x: s.cam.x, y: s.cam.y, flying: s.camera.flying }; });
+  check('an open place is open', await S(page, () => !!window.__squares.world.map.open));
+  check('its list is up from the start and counts the whole place', await page.isVisible('#tray') && /^0 of 35 found$/.test((await page.textContent('#tray-count')).trim()), await page.textContent('#tray-count'));
+  check('its back button goes to the places', (await page.textContent('#to-places-label')).trim() === 'Places');
+  check('a first visit hears what to do', /Pinch in and look around/.test(await page.textContent('#toast')));
+  // A find on screen, tapped where it is: found, and the camera doesn't fly off to frame its area.
+  const pick = await S(page, () => {
+    const s = window.__squares, t = s.clock.now();
+    for (const zone of s.world.zones) for (const f of zone.finds) {
+      if (f.goose || f.inside || (f.when && !f.when(t))) continue;
+      const [x, y, h] = typeof f.at === 'function' ? f.at(t) : f.at;
+      const [sx, sy] = s.camera.toScreen(zone.anchor[0] + (x - y), zone.anchor[1] + (x + y) / 2 - h * 1.12);
+      if (sx > 40 && sx < 350 && sy > 240 && sy < 600) return { key: zone.id + ':' + f.id, sx, sy };
+    }
+    return null;
+  });
+  const before = await m();
+  if (pick) { await page.mouse.click(pick.sx, pick.sy); await wait(page, 900); }
+  const after = await m();
+  check('a tap finds what\'s under it, anywhere on the map', !!pick && await S(page, (k) => window.__squares.store.isFound('plum', k), pick && pick.key), pick ? pick.key : 'nothing on screen');
+  check('and the camera stays where it was', Math.abs(after.z - before.z) < 1e-6 && Math.abs(after.x - before.x) < 1e-6);
+  check('the list counts it', /^1 of 35 found$/.test((await page.textContent('#tray-count')).trim()));
+  // Here follows the middle of the screen.
+  const far = await S(page, () => {
+    const s = window.__squares, now = document.getElementById('room-name').textContent.trim();
+    const z = s.world.zones.find((q) => q.name !== now);
+    const [X0, X1, Y0, Y1] = s.world.zoneBox(z);
+    s.cam.x = (X0 + X1) / 2; s.cam.y = (Y0 + Y1) / 2; s.play.settle();
+    return z.name;
+  });
+  await wait(page, 300);
+  check('the area\'s name follows the middle of the screen', (await page.textContent('#room-name')).trim() === far, far);
+  await page.click('#to-places');
+  await wait(page, 600);
+  check('Back goes straight to the places', (await S(page, () => location.hash)) === '#/maps');
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();
