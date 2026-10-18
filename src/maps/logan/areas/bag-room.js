@@ -20,7 +20,7 @@
 import { C, Q, P, box, rect, face, poly, paint, paintText, cylinder, table, tiles, alpha, tint, shade, mix, person, goose } from '../../../engine/art.js';
 import { pulse } from '../../../engine/actors.js';
 import { INK, PINK, BRAND, SIGN, RAMP, TONE, LIT, RUBBER } from '../style.js';
-import { bag, cart, look, vest, inHand, sign, hangSign, lettering, nightGlow } from '../kit.js';
+import { bag, cart, look, vest, inHand, sign, hangSign, lettering, nightGlow, zzz, asleep as dozing } from '../kit.js';
 import { AIR, FRONT, CHECK, SHORE } from '../plan.js';
 import { LOOP, hour, stopped } from '../clock.js';
 
@@ -271,17 +271,29 @@ function tapeRoll(c) {
   c.beginPath(); c.arc(0, 0.06, 0.05, 0, Math.PI * 2);
   c.fillStyle = C.woodLight; c.fill();
 }
-// A newspaper held up in both hands (read arms), or over the face (asleep).
-const paper = (asleep) => (c) => {
+// A newspaper held up in both hands (read arms).
+const paper = (c) => {
   c.beginPath();
-  if (asleep) c.rect(-0.42, -1.08, 0.64, 0.72);
-  else c.rect(-0.12, -0.36, 0.6, 0.66);
+  c.rect(-0.12, -0.36, 0.6, 0.66);
   paint(c, C.white, { lw: 0.03 });
   if (!Q.detail) return;
   c.fillStyle = alpha(C.ink, 0.45);
-  const [x, y] = asleep ? [-0.36, -1.0] : [-0.06, -0.28];
-  c.fillRect(x, y, 0.5, 0.08);
-  for (let i = 0; i < 4; i++) c.fillRect(x, y + 0.16 + i * 0.1, i % 2 ? 0.34 : 0.5, 0.03);
+  c.fillRect(-0.06, -0.28, 0.5, 0.08);
+  for (let i = 0; i < 4; i++) c.fillRect(-0.06, -0.12 + i * 0.1, i % 2 ? 0.34 : 0.5, 0.03);
+};
+// The same paper by night, opened and laid over his face like a tent (a
+// face: drawn over his head, so it covers it).
+const paperOver = (c, hy, back) => {
+  if (back) return;
+  c.beginPath();
+  c.moveTo(-0.2, hy - 0.24); c.lineTo(0.16, hy - 0.42); c.lineTo(0.5, hy - 0.2); c.lineTo(0.46, hy + 0.26); c.lineTo(0.14, hy + 0.12); c.lineTo(-0.16, hy + 0.3); c.closePath();
+  paint(c, C.white, { lw: 0.03 });
+  c.beginPath(); c.moveTo(0.16, hy - 0.42); c.lineTo(0.14, hy + 0.12);
+  c.strokeStyle = C.ink; c.lineWidth = 0.02; c.stroke();
+  if (!Q.detail) return;
+  c.fillStyle = alpha(C.ink, 0.45);
+  c.fillRect(0.2, hy - 0.22, 0.22, 0.06);
+  for (let i = 0; i < 3; i++) { c.fillRect(-0.12, hy - 0.12 + i * 0.1, 0.22, 0.025); c.fillRect(0.2, hy - 0.08 + i * 0.1, 0.22, 0.025); }
 };
 // Someone who holds still (drawn once, cached), with whatever they hold or
 // wear. o: person()'s, plus z, on (when they're there), depth.
@@ -539,6 +551,8 @@ function shelves(ctx) {
 // A cello, leaning on the cage's side.
 function cello(ctx, x, y, z) {
   const [X, Y] = P(x, y, z);
+  // Its shadow on the floor, so it stands rather than floats in the cage.
+  ctx.beginPath(); ctx.ellipse(X + 0.04, Y, 0.34, 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.16); ctx.fill();
   ctx.save();
   ctx.translate(X, Y); ctx.rotate(-0.12);
   ctx.beginPath();
@@ -922,15 +936,24 @@ function colaMachine(ctx) {
   lettering(ctx, 'x', x0 + w / 2, y0 + d + 0.006, 0.68, 'GANDER', 0.15, BRAND.ink, 'Bagel Fat One');
   lettering(ctx, 'y', x0 + w + 0.006, y0 + d / 2, 1.5, 'COLA', 0.2, BRAND.ink, 'Bagel Fat One');
 }
+// Half-height lockers in two tiers, no taller than the glass behind them (so
+// nobody in the hall behind is cut off at the neck, as if standing in them),
+// a hard hat and a lunchbox on top.
 function lockers(ctx) {
-  const x0 = 20.2, y0 = 30.3, d = 0.6, h = 1.7, col = mix(C.teal, C.grey, 0.45);
+  // (Steel blue, not teal: the hall's floor scrubber passing behind is teal.)
+  const x0 = 20.2, y0 = 30.3, d = 0.6, h = 1.05, col = mix(C.navy, C.grey, 0.55);
   box(ctx, x0, y0, 0, 3.2, d, h, col, { dens: 0.14 });
+  box(ctx, x0 + 2.3, y0 + 0.12, h, 0.5, 0.32, 0.26, C.red, { flat: true, lw: 0.025 });
+  const [X, Y] = P(x0 + 0.7, y0 + 0.3, h);
+  ctx.beginPath(); ctx.ellipse(X, Y - 0.02, 0.26, 0.09, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+  ctx.beginPath(); ctx.arc(X, Y - 0.04, 0.2, Math.PI, 0); ctx.closePath(); paint(ctx, C.white, { lw: 0.03 });
   if (!Q.detail) return;
   ctx.beginPath();
   for (let i = 1; i < 4; i++) line2(ctx, [x0 + i * 0.8, y0 + d + 0.004, 0.05], [x0 + i * 0.8, y0 + d + 0.004, h - 0.05]);
-  for (let i = 0; i < 4; i++) for (const z of [1.35, 1.45]) line2(ctx, [x0 + 0.2 + i * 0.8, y0 + d + 0.004, z], [x0 + 0.6 + i * 0.8, y0 + d + 0.004, z]);
+  line2(ctx, [x0 + 0.05, y0 + d + 0.004, h / 2], [x0 + 3.15, y0 + d + 0.004, h / 2]);
+  for (let i = 0; i < 4; i++) for (const z of [h / 2 - 0.14, h - 0.14]) line2(ctx, [x0 + 0.2 + i * 0.8, y0 + d + 0.004, z], [x0 + 0.6 + i * 0.8, y0 + d + 0.004, z]);
   ctx.strokeStyle = shade(col, 0.45); ctx.lineWidth = 0.025; ctx.stroke();
-  face(ctx, [[x0 + 1.75, y0 + d + 0.005, 0.95], [x0 + 2.05, y0 + d + 0.005, 0.95], [x0 + 2.05, y0 + d + 0.005, 1.15], [x0 + 1.75, y0 + d + 0.005, 1.15]], C.butter, { lw: 0.012 });
+  face(ctx, [[x0 + 1.75, y0 + d + 0.005, 0.62], [x0 + 2.05, y0 + d + 0.005, 0.62], [x0 + 2.05, y0 + d + 0.005, 0.8], [x0 + 1.75, y0 + d + 0.005, 0.8]], C.butter, { lw: 0.012 });
 }
 // The station clock on the island, telling the airport's time.
 function clockFace(ctx, x, y, z, t) {
@@ -1138,20 +1161,29 @@ export default {
       }
       return { any, pink };
     };
+    // (The beam inside the arch is drawn before its top; the lamp on the
+    // top, and the verdict on its side, after it, or the top hides them.)
     R.thing(14, 34.4, (ctx, t) => {
       const u = under(t);
       if (u.any) face(ctx, [[14, 32.95, BZ + 0.05], [14, 34.25, BZ + 0.05], [14, 34.25, 1.8], [14, 32.95, 1.8]], alpha(u.pink ? C.red : C.coral, 0.28), { stroke: false });
-      const [X, Y] = P(14, 33.6, 2.2);
-      ctx.beginPath(); ctx.ellipse(X, Y, 0.12, 0.07, 0, 0, Math.PI * 2);
-      paint(ctx, u.pink ? C.red : C.green, { lw: 0.025 });
     }, { anim: true, depth: 49.95 });
+    R.thing(14, 34.5, (ctx, t) => {
+      const u = under(t);
+      const [X, Y] = P(14, 33.6, 2.17);
+      ctx.beginPath(); ctx.ellipse(X, Y - 0.06, 0.13, 0.08, 0, 0, Math.PI * 2);
+      paint(ctx, u.pink ? C.red : C.green, { lw: 0.025 });
+      // Its verdict on the pink bag, lit up on the side of the arch.
+      if (!u.pink) return;
+      face(ctx, [[14.457, 32.8, 1.89], [14.457, 34.4, 1.89], [14.457, 34.4, 2.13], [14.457, 32.8, 2.13]], C.red, { lw: 0.02 });
+      lettering(ctx, 'y', 14.462, 33.6, 2.01, 'NO OWNER', 0.19, C.white, 'Bagel Fat One');
+    }, { anim: true, depth: 50.05 });
 
     // ---------- The island ----------
     R.thing(8.6, 35.8, (ctx) => sortBench(ctx));
     // A handler reading a tag through a magnifying glass; in the ground stop,
     // asleep against the bench.
     still(R, 8.7, 36.75, READER, { pose: 'stand', dir: 'l', arms: [2.35, 1.15], hold: held(2.35, lens), on: (t) => !stopped(t) });
-    still(R, 8.4, 36.3, READER, { z: -0.38, pose: 'sit', dir: 'l', arms: [0.4, 0.2], on: stopped });
+    still(R, 8.4, 36.3, dozing(READER), { z: -0.38, pose: 'sit', dir: 'l', arms: [0.4, 0.2], on: stopped });
     R.thing(11.95, 37.4, (ctx) => rushBin(ctx));
     // The lap board, on two posts.
     for (const x of [13.75, 16.25]) R.thing(x, 35.7, (ctx) => box(ctx, x - 0.05, 35.65, 0, 0.1, 0.1, 1.3, C.ink, { flat: true, stroke: false }));
@@ -1257,8 +1289,8 @@ export default {
     // paper all day, asleep under it at night.
     R.thing(8.9, 44.1, (ctx) => claimsDesk(ctx));
     const asleep = (t) => { const hh = hour(t); return hh >= 21 || hh < 6; };
-    still(R, 8.9, 42.75, KEEPER, { pose: 'sit', dir: 'l', arms: [1.0, 1.0], hold: paper(false), on: (t) => !asleep(t) });
-    still(R, 8.9, 42.75, KEEPER, { pose: 'sit', dir: 'l', arms: [2.1, 1.9], hold: paper(true), on: asleep });
+    still(R, 8.9, 42.75, KEEPER, { pose: 'sit', dir: 'l', arms: [1.0, 1.0], hold: paper, on: (t) => !asleep(t) });
+    still(R, 8.9, 42.75, { ...KEEPER, face: paperOver }, { pose: 'sit', dir: 'l', arms: [0.45, 0.35], on: asleep });
 
     // ---------- Loading the carts ----------
     // The thrower: pulls the next FRAGILE off the loop, winds up, heaves it
@@ -1345,8 +1377,7 @@ export default {
 
     // ---------- Words in the air ----------
     // The whacks, the hiss, the beeps, the parrot (who has learned the
-    // announcements), the tag reader's verdict on the pink bag, and the
-    // keeper's snores.
+    // announcements), and the sleepers' snores.
     R.air((ctx, t) => {
       if (!Q.detail) return;
       if (jam.k() < 0.5) {
@@ -1359,10 +1390,11 @@ export default {
       if (bs < 0.4) pop(ctx, 18.2, 38.6, 1.9 + bs * 0.5, 'BEEP', 0.24, C.red, 1 - bs / 0.4);
       const ps = ((t % 11) + 11) % 11;
       if (ps < 1.8) pop(ctx, 2.0, 31.0, 2.3, ps < 0.9 ? 'NOW BOARDING!' : 'SQUAWK!', 0.26, C.green);
-      if (under(t).pink) pop(ctx, 14, 33.6, 2.85, 'NO OWNER', 0.24, C.red);
       if (Q.detail) {
         const hh = hour(t);
-        if (hh >= 21 || hh < 6) for (let i = 0; i < 2; i++) { const q = ((t * 0.6 + i * 0.5) % 1); pop(ctx, 8.6 - q * 0.3, 42.4 - q * 0.3, 2.7 + q * 1.0, 'z', 0.3 + q * 0.2, C.navy, 1 - q); }
+        // (The kit's z's, as every sleeper in the airport snores.)
+        if (hh >= 21 || hh < 6) { zzz(ctx, 8.75, 42.6, 2.2, t); zzz(ctx, 8.75, 42.6, 2.2, t, 0.5); }
+        if (stopped(t)) zzz(ctx, 8.3, 36.2, 1.6, t, 0.25);
         if (stopped(t) && (((t % 9) + 9) % 9) < 1.5) {
           const [x, y] = onLoop(t, RIDERAT);
           pop(ctx, x, y, 3.0, 'WHEEE', 0.26, INK.safety);

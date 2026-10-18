@@ -29,7 +29,7 @@
 import { C, Q, alpha, mix, shade, tint, rng, hash, person, folk } from '../../engine/art.js';
 import { ZK } from '../../engine/iso.js';
 import { reg, birds, geeseV } from '../shared.js';
-import { W, D, CENTER } from './plan.js';
+import { W, D, CENTER, LAND, AIR, FRONT, CHECK } from './plan.js';
 import { LOOP, hour, at, snowK, nightK, settle, flying } from './clock.js';
 import { INK, LIT, LIVERY, paperAt } from './style.js';
 import { follow } from './finale.js';
@@ -1286,6 +1286,15 @@ function farPlane(ctx, t, p, dir, sc, o) {
 // dusk, easing after eleven), and fades out, so nothing repeats and nothing
 // pops at a tile's edge.
 const FLAKES = 9, MAXN = 120, LIFE = 2.6;
+// Indoors (the terminal, roof off, and the bag room under the gates) it
+// doesn't snow: a flake whose spot at head height is over their floor isn't
+// drawn, so the hall reads as inside and the snow as out.
+const INDOORS = [[0, LAND, W, AIR], [0, AIR, CHECK, FRONT]];
+const HEAD = 1.4 * ZK;
+function indoors(X, Y) {
+  const sum = 2 * (Y + HEAD), x = (sum + X) / 2, y = (sum - X) / 2;
+  return INDOORS.some(([x0, y0, x1, y1]) => x > x0 && x < x1 && y > y0 && y < y1);
+}
 function windAt(t) {
   let h = hour(t);
   if (h < 4) h += 24;
@@ -1313,7 +1322,7 @@ function snow(ctx, t, fx) {
         const f = 0.75 + 0.5 * hash(seed + i, c * 3 + 1);
         const X = (a + hash(seed + i, c * 3 + 2)) * P + vx * P * age * f + Math.sin(t * 1.4 + i) * 0.04 * P;
         const Y = (b + hash(seed + i, c * 3 + 3)) * P + vy * P * age * f;
-        if (X < vx0 - 1 || X > vx1 + 1 || Y < vy0 - 1 || Y > vy1 + 1) continue;
+        if (X < vx0 - 1 || X > vx1 + 1 || Y < vy0 - 1 || Y > vy1 + 1 || indoors(X, Y)) continue;
         const fade = Math.min(age, LIFE - age) < 0.45, k = (hash(seed + i, 9) > 0.72 ? 2 : 0) + (fade ? 0 : 1);
         const L = len * (k > 1 ? 1.3 : 1);
         paths[k].moveTo(X, Y); paths[k].lineTo(X - ux * L, Y - uy * L);

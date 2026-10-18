@@ -22,7 +22,7 @@ import {
 import { route, pulse, particles } from '../../../engine/actors.js';
 import { ZK, SLAB } from '../../../engine/iso.js';
 import { INK, SIGN, BRAND, LIT, BAGS, PINK, TONE, FRAME } from '../style.js';
-import { look, stay, bag, roller, nightGlow, turkeyMan, turkeyAsleep, TURKEY, words, spans, inHand, lieAlong, coatOver, asleep, lowWall, glassWall } from '../kit.js';
+import { look, stay, bag, roller, nightGlow, turkeyMan, turkeyAsleep, TURKEY, words, spans, inHand, lieAlong, coatOver, asleep, zzz, lowWall, glassWall } from '../kit.js';
 import { LAND, AIR, SEC, W, GATES } from '../plan.js';
 import { hour } from '../clock.js';
 
@@ -73,6 +73,10 @@ function line3(ctx, a, b, color = C.ink, lw = 0.05) {
   ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
 }
 const SKIN_SHUT = mix(C.blush, C.woodLight, 0.4);
+// The airport's own signs (black, yellow letters) in the kit's hand, the
+// regular weight its sign() letters in, as on every other area's signs (the
+// apron's C12 sign is in the same picture as this one's).
+const signWords = (ctx, along, x, y, z, text, size, ink, o = {}) => words(ctx, along, x, y, z, text, size, ink, { weight: 400, ...o });
 
 // ---------- Things people hold (a hold: drawn at the chest, facing right; kit.js inHand puts it in the hand) ----------
 function phoneHeld(ctx) {
@@ -298,10 +302,43 @@ function gooseBottle(ctx, x, y, z) {
   words(ctx, 'x', x, y + 0.13, z + 0.08, 'VODKA', 0.07, C.navy);
 }
 // A bag-tag ticket, as a reunited bag's trace (unused here) or a lost one.
-// A seat-saving coat thrown over a seat.
+// A seat-saving puffer coat hung on a seat's back: the hood over the top
+// with its pale trim, the body down the backrest to the cushion (the cushion
+// stays the seat's color), its quilted bands and zip, and the sleeves hanging
+// down outside the backrest onto the seat. So it reads as a coat, not a seat
+// of another color. Drawn on the screen from the seat's own points.
 function coatOnSeat(ctx, x, y, color) {
-  face(ctx, [[x - 0.35, y + 0.15, 0.74], [x + 0.35, y + 0.15, 0.74], [x + 0.38, y + 0.8, 0.72], [x - 0.3, y + 0.86, 0.7]], color, { lw: 0.03 });
-  face(ctx, [[x - 0.35, y + 0.08, 0.76], [x + 0.35, y + 0.08, 0.76], [x + 0.32, y + 0.1, 1.5], [x - 0.32, y + 0.1, 1.5]], tint(color, 0.08), { lw: 0.03 });
+  const dk = shade(color, 0.28);
+  const at = (dx, dy, z) => P(x + dx, y + dy, z);
+  const path = (pts) => { ctx.beginPath(); pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y))); ctx.closePath(); };
+  // The hood, over the top of the backrest.
+  const [hx, hy] = at(0.02, 0.08, 1.62);
+  ctx.beginPath(); ctx.ellipse(hx, hy, 0.25, 0.16, 0, 0, TAU); paint(ctx, dk, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(hx, hy + 0.02, 0.17, 0.08, 0, 0, TAU); paint(ctx, C.greyLight, { lw: 0.02, dots: Q.detail ? C.grey : null, density: 0.3 });
+  // The body, down the backrest, its hem a little way onto the cushion.
+  path([at(-0.3, 0.16, 1.5), at(-0.08, 0.16, 1.56), at(0.1, 0.16, 1.56), at(0.3, 0.16, 1.5), at(0.36, 0.16, 0.78),
+    at(0.36, 0.34, 0.74), at(0.14, 0.38, 0.74), at(-0.06, 0.33, 0.74), at(-0.36, 0.36, 0.74), at(-0.36, 0.16, 0.78)]);
+  paint(ctx, color, { lw: 0.03, dots: Q.detail ? dk : null, density: 0.12 });
+  if (Q.detail) {
+    ctx.beginPath();
+    for (const z of [1.28, 1.04]) { const a = at(-0.33, 0.161, z), b = at(0.33, 0.161, z); ctx.moveTo(...a); ctx.lineTo(...b); }
+    ctx.strokeStyle = dk; ctx.lineWidth = 0.03; ctx.stroke();
+  }
+  // The collar, open in a V, and the zip.
+  path([at(-0.14, 0.162, 1.56), at(0.0, 0.162, 1.38), at(0.14, 0.162, 1.56)]);
+  paint(ctx, dk, { lw: 0.025 });
+  ctx.beginPath(); ctx.moveTo(...at(0.0, 0.163, 1.38)); ctx.lineTo(...at(0.0, 0.163, 0.78)); ctx.lineTo(...at(0.02, 0.36, 0.745));
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+  // The sleeves, from the shoulders down outside the backrest and out
+  // along the cushion, their cuffs darker.
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const sx of [-1, 1]) {
+    const a = at(sx * 0.34, 0.18, 1.46), b = at(sx * 0.4, 0.22, 0.8), c = at(sx * 0.32, 0.62, 0.76);
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineTo(...c);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.21; ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = 0.15; ctx.stroke();
+    ctx.beginPath(); ctx.arc(c[0], c[1], 0.075, 0, TAU); ctx.fillStyle = dk; ctx.fill();
+  }
 }
 // An instrument case, lying (on a seat, or a pillow on the floor).
 function instCase(ctx, x, y, z, w = 0.8, d = 0.4, h = 0.26) {
@@ -405,7 +442,7 @@ export default {
           box(ctx, jx - 0.12, AIR - 0.5, 0, 0.24, 0.5, 1.6, FRAME, { lw: 0.03, flat: true });
           if (side < 0) {
             panel(ctx, jx - 0.45, jx + 0.15, AIR + 0.01, 1.05, 1.5, SIGN.board, { lw: 0.025 });
-            words(ctx, 'x', jx - 0.15, AIR + 0.02, 1.27, g, 0.28, SIGN.ink);
+            signWords(ctx, 'x', jx - 0.15, AIR + 0.02, 1.27, g, 0.28, SIGN.ink);
           }
         });
       }
@@ -429,13 +466,13 @@ export default {
       box(ctx, BX0, BY, BZ0, BX1 - BX0, BF - BY, BZ1 - BZ0, SIGN.board, { lw: 0.05, flat: true, top: shade(C.grey, 0.4) });
       panel(ctx, BX0 + 0.12, BX1 - 0.12, BF + 0.005, BZ1 - 0.5, BZ1 - 0.12, INK.signal, { stroke: false });
       words(ctx, 'x', BX0 + 2.0, BF + 0.01, BZ1 - 0.31, 'DEPARTURES', 0.3, SIGN.board, { font: 'Bagel Fat One' });
-      words(ctx, 'x', BX1 - 1.5, BF + 0.01, BZ1 - 0.31, '(EVENTUALLY)', 0.17, SIGN.board);
+      signWords(ctx, 'x', BX1 - 1.5, BF + 0.01, BZ1 - 0.31, '(EVENTUALLY)', 0.17, SIGN.board);
       panel(ctx, BX0 + 0.12, BX1 - 0.12, BF + 0.004, rowZ(0) - 0.19, rowZ(0) + 0.19, shade(C.grey, 0.62), { stroke: false });
       FLIGHTS.forEach((f, i) => {
         const z = rowZ(i), ink = f.one ? C.white : INK.signal;
-        words(ctx, 'x', BX0 + 0.3, BF + 0.01, z, f.code, 0.2, ink, { align: 'left' });
-        words(ctx, 'x', BX0 + 1.6, BF + 0.01, z, f.to, 0.2, ink, { align: 'left' });
-        words(ctx, 'x', BX0 + 4.0, BF + 0.01, z, f.gate, 0.2, ink, { align: 'left' });
+        signWords(ctx, 'x', BX0 + 0.3, BF + 0.01, z, f.code, 0.2, ink, { align: 'left' });
+        signWords(ctx, 'x', BX0 + 1.6, BF + 0.01, z, f.to, 0.2, ink, { align: 'left' });
+        signWords(ctx, 'x', BX0 + 4.0, BF + 0.01, z, f.gate, 0.2, ink, { align: 'left' });
         if (Q.detail) for (let k = 0; k < 18; k++) panel(ctx, BX0 + 4.75 + k * 0.165, BX0 + 4.88 + k * 0.165, BF + 0.004, z - 0.15, z + 0.15, shade(C.grey, 0.75), { stroke: false });
       });
     });
@@ -456,7 +493,7 @@ export default {
         ctx.save();
         const [X, Y] = P(BX0 + 4.75, BF + 0.01, z);
         ctx.translate(X, Y); ctx.scale(1, Math.max(0.08, sq)); ctx.translate(-X, -Y);
-        words(ctx, 'x', BX0 + 4.75, BF + 0.012, z, text, 0.2, color, { align: 'left' });
+        signWords(ctx, 'x', BX0 + 4.75, BF + 0.012, z, text, 0.2, color, { align: 'left' });
         ctx.restore();
       });
     }, { anim: true });
@@ -646,7 +683,9 @@ export default {
     onSeat(0, 1, 0, (ctx, x, y) => bag(ctx, x, y + 0.5, 0.72, { kind: 'duffel', color: C.green, lie: true }));
     sit(0, 1, 1, sitter(310, 'phone'));
     sit(0, 1, 2, sitter(311, 'pillow'));
-    sit(0, 1, 4, sitter(312, 'read'));
+    // (Seat 4 of this row stays empty: the Courier's words, day.js, hang
+    // over it while he sits on his stool at C12.)
+    sit(0, 1, 7, sitter(312, 'read'));
     sit(0, 1, 6, sitter(313, 'coffee'));
     sit(0, 1, 8, sitter(314, 'phone', { scale: 0.7 }));
     sit(1, 0, 0, sitter(320, 'phone'));
@@ -668,10 +707,32 @@ export default {
     // The student going home with a term's laundry.
     sit(2, 1, 1, sitter(335, 'phone', { top: C.green, hat: 'beanie' }));
     onSeat(2, 1, 2, (ctx, x, y) => {
-      const [X, Y] = P(x, y + 0.45, 0.72);
-      ctx.beginPath(); ctx.ellipse(X, Y - 0.42, 0.42, 0.48, 0, 0, TAU); paint(ctx, C.white, { lw: 0.035, dots: Q.detail ? C.grey : null, density: 0.2 });
-      ctx.beginPath(); ctx.moveTo(X - 0.08, Y - 0.88); ctx.lineTo(X, Y - 1.02); ctx.lineTo(X + 0.08, Y - 0.88); paint(ctx, C.white, { lw: 0.03 });
-      if (Q.detail) { ctx.beginPath(); ctx.ellipse(X + 0.18, Y - 0.3, 0.12, 0.06, 0.4, 0, TAU); ctx.fillStyle = C.pink; ctx.fill(); }
+      // A mesh sack, lumpy, cinched at the neck, a sock out of the top and a
+      // sleeve down the side.
+      const [X, Y] = P(x, y + 0.45, 0.72), MESH = tint(C.sky, 0.55);
+      const stroke = (pts, col, w) => {
+        ctx.beginPath(); ctx.moveTo(...pts[0]); ctx.quadraticCurveTo(...pts[1], ...pts[2]);
+        ctx.lineCap = 'round'; ctx.strokeStyle = C.ink; ctx.lineWidth = w + 0.05; ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
+      };
+      stroke([[X - 0.02, Y - 0.94], [X - 0.1, Y - 1.2], [X - 0.3, Y - 1.16]], C.coral, 0.08);
+      ctx.beginPath();
+      ctx.moveTo(X - 0.16, Y - 0.86);
+      ctx.quadraticCurveTo(X - 0.5, Y - 0.8, X - 0.46, Y - 0.44);
+      ctx.quadraticCurveTo(X - 0.54, Y - 0.12, X - 0.3, Y + 0.02);
+      ctx.quadraticCurveTo(X, Y + 0.09, X + 0.32, Y + 0.02);
+      ctx.quadraticCurveTo(X + 0.54, Y - 0.16, X + 0.44, Y - 0.48);
+      ctx.quadraticCurveTo(X + 0.5, Y - 0.8, X + 0.14, Y - 0.86);
+      ctx.closePath();
+      paint(ctx, MESH, { lw: 0.035, dots: Q.detail ? C.navy : null, density: 0.22 });
+      ctx.beginPath(); ctx.moveTo(X - 0.16, Y - 0.86); ctx.lineTo(X - 0.09, Y - 0.98); ctx.lineTo(X + 0.09, Y - 0.98); ctx.lineTo(X + 0.14, Y - 0.86); ctx.closePath();
+      paint(ctx, MESH, { lw: 0.03 });
+      ctx.beginPath(); ctx.moveTo(X - 0.17, Y - 0.87); ctx.lineTo(X + 0.15, Y - 0.87); ctx.moveTo(X + 0.12, Y - 0.87); ctx.quadraticCurveTo(X + 0.3, Y - 0.8, X + 0.22, Y - 0.6);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03; ctx.stroke();
+      // (The sleeve hangs from the neck down its front, flat, so the sack
+      // never reads as a teapot.)
+      stroke([[X + 0.06, Y - 0.9], [X + 0.2, Y - 0.62], [X + 0.12, Y - 0.24]], C.green, 0.11);
+      stroke([[X + 0.12, Y - 0.24], [X + 0.1, Y - 0.18], [X + 0.08, Y - 0.12]], shade(C.green, 0.3), 0.11);
+      if (Q.detail) { ctx.beginPath(); ctx.ellipse(X - 0.16, Y - 0.32, 0.12, 0.06, 0.4, 0, TAU); ctx.fillStyle = C.pink; ctx.fill(); }
     });
     sit(2, 1, 4, sitter(336, 'phone'));
     onSeat(2, 1, 5, (ctx, x, y) => coatOnSeat(ctx, x, y, C.red));
@@ -702,7 +763,7 @@ export default {
     sit(0, 0, 8, sitter(403, 'pillow'), CAMP);
     camp(0, 1, 0, 2, 404); camp(0, 1, 6, 8, 406);
     // The one still awake, lit by a phone.
-    sit(0, 1, 4, sitter(405, 'phone'), CAMP);
+    sit(0, 1, 9, sitter(405, 'phone'), CAMP);
     camp(1, 0, 0, 2, 407); camp(1, 0, 3, 5, 408); camp(1, 0, 7, 9, 409);
     camp(2, 0, 0, 1, 410); camp(2, 0, 2, 4, 411);
     camp(2, 1, 0, 2, 412);
@@ -717,18 +778,19 @@ export default {
       box(ctx, 103.15, 19.75, 0, 0.1, 0.1, 1.2, C.ink, { flat: true, stroke: false });
       disc(ctx, 103.2, 19.8, 0.01, 0.25, C.ink, { stroke: false });
       face(ctx, [[103.2, 19.2, 1.0], [103.2, 20.4, 1.0], [103.2, 20.4, 1.9], [103.2, 19.2, 1.9]], SIGN.board, { lw: 0.03 });
-      words(ctx, 'y', 103.21, 19.8, 1.7, 'PLEASE DO NOT', 0.13, SIGN.ink);
-      words(ctx, 'y', 103.21, 19.8, 1.48, 'SLEEP ACROSS', 0.13, SIGN.ink);
-      words(ctx, 'y', 103.21, 19.8, 1.26, 'THE SEATS', 0.13, SIGN.ink);
+      signWords(ctx, 'y', 103.21, 19.8, 1.7, 'PLEASE DO NOT', 0.13, SIGN.ink);
+      signWords(ctx, 'y', 103.21, 19.8, 1.48, 'SLEEP ACROSS', 0.13, SIGN.ink);
+      signWords(ctx, 'y', 103.21, 19.8, 1.26, 'THE SEATS', 0.13, SIGN.ink);
     });
 
     // ---------- The charging pole ----------
-    // Two outlets, nine phones. By night it's the campfire.
-    const POLE = [67.6, 19.4];
+    // Two outlets, nine phones. By night it's the campfire. (Its crowd keeps
+    // a step clear of the airport cart's lane behind it, day.js, y 16.9.)
+    const POLE = [67.6, 20.0];
     const chargers = [
-      [66.5, 18.5, 501, 'r', false], [68.7, 18.4, 502, 'l', true], [67.8, 17.9, 503, 'l', true],
-      [69.2, 19.7, 504, 'l', false], [66.1, 19.8, 505, 'r', false], [66.3, 20.9, 506, 'r', false],
-      [68.9, 20.9, 508, 'l', false],
+      [66.5, 19.1, 501, 'r', false], [68.7, 19.0, 502, 'l', true], [67.8, 18.5, 503, 'l', true],
+      [69.2, 20.3, 504, 'l', false], [66.1, 20.4, 505, 'r', false], [66.3, 21.5, 506, 'r', false],
+      [68.9, 21.5, 508, 'l', false],
     ];
     R.thing(POLE[0] + 0.25, POLE[1] + 0.25, (ctx) => {
       const [x, y] = POLE;
@@ -753,7 +815,7 @@ export default {
       const [bx, by] = P(cx, cy, cz);
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo((ax + bx) / 2, Math.max(ay, by) + 0.35, bx, by); ctx.stroke();
     };
-    const FLOOR_PHONES = [[66.6, 19.9], [68.6, 20.1], [68.2, 21.6], [66.2, 18.6]];
+    const FLOOR_PHONES = [[66.6, 20.5], [68.6, 20.7], [68.2, 22.2], [66.2, 19.2]];
     R.thing(POLE[0] + 0.26, POLE[1] + 0.26, (ctx) => {
       if (!Q.detail) return;
       ctx.lineWidth = 0.03; ctx.strokeStyle = C.ink;
@@ -772,32 +834,32 @@ export default {
       if (i === 3) return; // (the one waving his phone for a signal is live, below)
       stay(R, x, y, look(s, 'traveler', { ...DOING.phone, ...(i === 4 ? { arms: [1.5, 1.3] } : {}) }), { dir, back, on: DAYS });
     });
-    R.thing(69.2, 19.7, (ctx, t) => {
+    R.thing(69.2, 20.3, (ctx, t) => {
       const a = 2.5 + Math.sin(t * 1.3) * 0.5;
-      person(ctx, 69.2, 19.7, 0, { ...look(504, 'traveler', { hold: null }), pose: 'stand', dir: 'l', arms: [a, 0.3] }, t);
+      person(ctx, 69.2, 20.3, 0, { ...look(504, 'traveler', { hold: null }), pose: 'stand', dir: 'l', arms: [a, 0.3] }, t);
       if (!Q.detail) return;
       // (His hand, up at the end of his arm: he faces left.)
-      const [X, Y] = P(69.2, 19.7, 0);
+      const [X, Y] = P(69.2, 20.3, 0);
       const hx = X - (0.22 + Math.sin(a) * 0.72), hy = Y - 1.53 + Math.cos(a) * 0.72;
       ctx.beginPath(); ctx.roundRect(hx - 0.08, hy - 0.26, 0.16, 0.26, 0.03); paint(ctx, C.black, { lw: 0.02 });
       ctx.fillStyle = tint(C.sky, 0.4); ctx.fillRect(hx - 0.05, hy - 0.23, 0.1, 0.18);
     }, { anim: true, on: DAYS });
     // Two more, on their cases on the floor, and a man with his own power strip.
-    stay(R, 67.0, 20.6, look(507, 'traveler', DOING.phone), { pose: 'sit', dir: 'r', z: -0.35, on: DAYS });
-    R.thing(67.0, 20.62, (ctx) => bag(ctx, 67.0, 20.55, 0, { kind: 'case', color: C.purple, lie: true }), { depth: 87.55, on: DAYS });
-    stay(R, 65.7, 19.0, look(509, 'traveler', { arms: [1.4, 1.2], hold: (ctx) => {
+    stay(R, 67.0, 21.2, look(507, 'traveler', DOING.phone), { pose: 'sit', dir: 'r', z: -0.35, on: DAYS });
+    R.thing(67.0, 21.22, (ctx) => bag(ctx, 67.0, 21.15, 0, { kind: 'case', color: C.purple, lie: true }), { depth: 88.15, on: DAYS });
+    stay(R, 65.7, 19.6, look(509, 'traveler', { arms: [1.4, 1.2], hold: (ctx) => {
       ctx.beginPath(); ctx.rect(-0.05, -0.12, 0.5, 0.12); paint(ctx, C.white, { lw: 0.02 });
       for (let i = 0; i < 4; i++) { ctx.fillStyle = [C.coral, C.teal, C.black, C.purple][i]; ctx.fillRect(-0.02 + i * 0.12, -0.3, 0.08, 0.18); }
     } }), { dir: 'r', on: DAYS });
     // By night: asleep round it like a campfire, phones glowing.
-    stay(R, 66.2, 19.5, look(501, 'traveler', DOING.doze), { pose: 'sit', dir: 'r', z: -0.35, on: CAMP });
-    R.thing(66.2, 19.52, (ctx) => bag(ctx, 66.2, 19.45, 0, { kind: 'case', color: C.navy, lie: true }), { depth: 85.6, on: CAMP });
-    stay(R, 69.0, 19.6, look(502, 'traveler', DOING.doze), { pose: 'sit', dir: 'l', z: -0.35, on: CAMP });
-    R.thing(69.0, 19.62, (ctx) => bag(ctx, 69.0, 19.55, 0, { kind: 'duffel', color: C.teal, lie: true }), { depth: 88.5, on: CAMP });
-    R.thing(69.9, 21.2, (ctx) => lieAlong(ctx, 69.9, 21.2, 0, asleep({ ...sleeper(503), wear: coatOver(C.coral) })), { on: CAMP });
-    R.thing(66.9, 18.3, (ctx) => lieAlong(ctx, 66.9, 18.3, 0, asleep({ ...sleeper(505), wear: coatOver(C.navy) })), { on: CAMP });
-    R.thing(67.4, 21.9, (ctx) => lieAlong(ctx, 67.4, 21.9, 0, asleep({ ...sleeper(506), wear: coatOver(C.mustard) })), { on: CAMP });
-    R.light({ at: [67.6, 19.9, 0.4], r: 3, color: tint(C.sky, 0.3), k: (t) => (CAMP(t) ? 0.5 + Math.sin(t * 2) * 0.08 : 0) });
+    stay(R, 66.2, 20.1, look(501, 'traveler', DOING.doze), { pose: 'sit', dir: 'r', z: -0.35, on: CAMP });
+    R.thing(66.2, 20.12, (ctx) => bag(ctx, 66.2, 20.05, 0, { kind: 'case', color: C.navy, lie: true }), { depth: 86.2, on: CAMP });
+    stay(R, 69.0, 20.2, look(502, 'traveler', DOING.doze), { pose: 'sit', dir: 'l', z: -0.35, on: CAMP });
+    R.thing(69.0, 20.22, (ctx) => bag(ctx, 69.0, 20.15, 0, { kind: 'duffel', color: C.teal, lie: true }), { depth: 89.1, on: CAMP });
+    R.thing(69.9, 21.8, (ctx) => lieAlong(ctx, 69.9, 21.8, 0, asleep({ ...sleeper(503), wear: coatOver(C.coral) })), { on: CAMP });
+    R.thing(66.9, 18.9, (ctx) => lieAlong(ctx, 66.9, 18.9, 0, asleep({ ...sleeper(505), wear: coatOver(C.navy) })), { on: CAMP });
+    R.thing(67.4, 22.5, (ctx) => lieAlong(ctx, 67.4, 22.5, 0, asleep({ ...sleeper(506), wear: coatOver(C.mustard) })), { on: CAMP });
+    R.light({ at: [67.6, 20.5, 0.4], r: 3, color: tint(C.sky, 0.3), k: (t) => (CAMP(t) ? 0.5 + Math.sin(t * 2) * 0.08 : 0) });
 
     // ---------- The gates ----------
     // A desk at each, an agent behind it (back to you, facing the seats), the
@@ -834,12 +896,12 @@ export default {
         disc(ctx, sx, 29.15, 0.01, 0.22, C.ink, { stroke: false });
         box(ctx, sx - 0.7, 29.05, 1.3, 1.4, 0.12, 0.85, SIGN.board, { flat: true, lw: 0.03 });
         panel(ctx, sx - 0.64, sx + 0.64, 29.175, 1.88, 2.1, INK.signal, { stroke: false });
-        words(ctx, 'x', sx, 29.18, 1.99, g, 0.16, SIGN.board);
-        words(ctx, 'x', sx, 29.18, 1.72, G.to, 0.16, SIGN.ink);
+        signWords(ctx, 'x', sx, 29.18, 1.99, g, 0.16, SIGN.board);
+        signWords(ctx, 'x', sx, 29.18, 1.72, G.to, 0.16, SIGN.ink);
       });
       R.thing(sx, 29.22, (ctx, t) => {
         const s = G.status(t);
-        words(ctx, 'x', sx, 29.19, 1.45, s, 0.15, s === 'ON TIME' || s === 'DEPARTED' ? OK : s === 'CANCELED' ? BAD : INK.signal);
+        signWords(ctx, 'x', sx, 29.19, 1.45, s, 0.15, s === 'ON TIME' || s === 'DEPARTED' ? OK : s === 'CANCELED' ? BAD : INK.signal);
       }, { anim: true });
     }
     nightGlow(R, GATES.C12 + 3.4, 29.2, 1.7, 2, OK, 0.5);
@@ -878,8 +940,8 @@ export default {
       R.thing(55.7, 26.15, (ctx) => {
         box(ctx, 55.65, 26.05, 0.95, 0.1, 0.1, 0.4, C.ink, { flat: true, stroke: false });
         face(ctx, [[55.7, 25.6, 1.3], [55.7, 26.6, 1.3], [55.7, 26.6, 1.9], [55.7, 25.6, 1.9]], SIGN.board, { lw: 0.025 });
-        words(ctx, 'y', 55.71, 26.1, 1.72, 'GROUP 1', 0.15, SIGN.ink);
-        words(ctx, 'y', 55.71, 26.1, 1.48, done ? 'BOARDED!' : 'BOARDING SOON', done ? 0.13 : 0.1, done ? OK : SIGN.ink);
+        signWords(ctx, 'y', 55.71, 26.1, 1.72, 'GROUP 1', 0.15, SIGN.ink);
+        signWords(ctx, 'y', 55.71, 26.1, 1.48, done ? 'BOARDED!' : 'BOARDING SOON', done ? 0.13 : 0.11, done ? OK : SIGN.ink);
       }, { on: (t) => BOARDED(t) === done });
     }
     stay(R, 57.0, 27.2, orlando(604, { arms: [0.3, 0.3], top: C.coral, face: (ctx, hy, back) => {
@@ -914,8 +976,10 @@ export default {
       [73.5, 23.0, 701, 'trumpet'], [74.65, 23.0, 702, 'trumpet'], [75.8, 23.0, 711, 'mellophone'],
       [76.95, 23.0, 704, 'trombone'], [78.1, 23.0, 705, 'trombone'], [79.2, 23.0, 706, 'clarinet'],
       // (The front row, with a gap in the middle the size of a tuba.)
+      // (The bass drum stands past the floodlight mast outside the glass,
+      // apron.js x 86, which stands over x 79 here on screen and hid his face.)
       [72.5, 24.6, 707, 'mace'], [73.6, 24.6, 708, 'cymbals'], [74.7, 24.6, 709, 'snare'],
-      [79.2, 24.7, 710, 'bass'], [80.5, 23.2, 714, 'flag'],
+      [80.8, 24.8, 710, 'bass'], [80.5, 23.2, 714, 'flag'],
     ];
     const TUBA = [77.0, 24.6];
     const kid = (seed, o = {}) => look(seed, 'band', { hat: 'none', wear: uniform, scale: 0.86, ...o });
@@ -963,19 +1027,30 @@ export default {
     // is never taken for the other).
     R.poke({ id: 'director', at: [82.4, 23.9, 2.0], r: 0.8, sound: 'tick', when: DAYS, say: ['From the top. Again.', 'And... wait for the tuba.', 'Quiet zone? We ARE quiet.'] });
     // (By night he's asleep at the front of the heap, and the find goes with him.)
-    R.find({ id: 'tuba-player', label: 'The tuba player', after: 'bag-room:tuba', at: (t) => (DAYS(t) ? [TUBA[0], TUBA[1], 1.4] : [80.1, 25.6, 0.45]), r: 0.9, riddle: 'Tag: Marching Ducks, row 30. Big lungs.' });
-    // By night: asleep in a heap on their cases, still in their hats.
-    const BUNK = [[74.6, 23.1], [77.6, 23.1], [80.0 - 0.6, 23.1], [74.1, 24.3], [77.1, 24.3], [79.5, 24.3], [74.6, 25.4], [77.4, 25.4]];
+    const TUBA_NIGHT = [79.4, 25.7];
+    R.find({ id: 'tuba-player', label: 'The tuba player', after: 'bag-room:tuba', at: (t) => (DAYS(t) ? [TUBA[0], TUBA[1], 1.4] : [TUBA_NIGHT[0], TUBA_NIGHT[1], 1.0]), r: 0.9, riddle: 'Tag: Marching Ducks, row 30. Big lungs.' });
+    // By night: asleep in a heap on their cases, still in their hats. (Each
+    // lies clear of the apron's floodlight mast at x 86, outside the glass,
+    // which stands over x 77 to 80 of this heap on screen: lying across that
+    // line, its pole cut them in half.)
+    const BUNK = [[74.3, 23.1], [76.9, 23.1], [81.1, 23.1], [74.1, 24.3], [77.1, 24.3], [74.6, 25.4], [77.4, 25.4]];
     BUNK.forEach(([x, y], i) => {
       R.thing(x, y, (ctx) => {
         instCase(ctx, x - 2.0, y, 0, 0.7, 0.45, 0.22);
         lieAlong(ctx, x, y, 0.02, asleep(kid(720 + i), shako));
       }, { on: CAMP });
     });
-    R.thing(81.2, 25.6, (ctx, t) => {
+    // The tuba player sleeps sitting up on his case at the front of the heap
+    // (lying down, he reached the mast's pole), hugging the tuba once it's
+    // back.
+    R.thing(TUBA_NIGHT[0], TUBA_NIGHT[1], (ctx, t) => {
       const has = R.found('tuba-player');
-      instCase(ctx, 79.2, 25.6, 0, 0.7, 0.45, 0.22);
-      lieAlong(ctx, 81.2, 25.6, 0.02, asleep({ ...kid(712, { scale: 0.92 }), arms: has ? [1.4, 1.2] : [0.3, 0.2], wear: (c, b) => { uniform(c, b); if (has) sousaphoneCoil(c, b); } }, (c, hy) => { if (has) sousaphoneBell(c, hy, 0); }));
+      instCase(ctx, TUBA_NIGHT[0], TUBA_NIGHT[1] - 0.05, 0, 0.8, 0.5, 0.32);
+      person(ctx, TUBA_NIGHT[0], TUBA_NIGHT[1], -0.42, {
+        ...asleep({ ...kid(712, { scale: 0.92 }), wear: (c, b) => { uniform(c, b); if (has) sousaphoneCoil(c, b); } }, (c, hy) => { if (has) sousaphoneBell(c, hy, 0); }),
+        pose: 'sit', dir: 'l', arms: has ? [1.5, 1.2] : [0.5, 0.35],
+      }, 0);
+      zzz(ctx, TUBA_NIGHT[0] + 0.2, TUBA_NIGHT[1] - 0.2, 2.0, t);
     }, { anim: true, on: CAMP });
     R.thing(82.6, 24.2, (ctx) => lieAlong(ctx, 82.6, 24.2, 0, asleep({ ...look(713, 'traveler', { top: C.navy, style: 'bald', hat: 'none' }), wear: coatOver(C.navy) })), { on: CAMP });
 
@@ -1193,6 +1268,37 @@ export default {
     }, { anim: true });
     R.find({ id: 'bride', label: 'The bride', kind: 'hard', after: 'apron:dress', at: [BRIDE[0], BRIDE[1], 1.1], r: 0.8, riddle: 'Tag: Something borrowed, seat 12F.', hint: 'Someone by C14 is wearing a tiny veil with sweatpants.' });
 
+    // ---------- Past C14: the call home ----------
+    // A man pacing the window on a video call to his mother, the phone held
+    // out at arm's length, a pie for her standing on his case. The plan
+    // changes with the board. By night he's the feet out of the tent.
+    const CALL = (t) => {
+      const h = hrs(t);
+      if (h < 12) return ['Can you see me?', 'Landing by two!', 'Show me the bird.'];
+      if (h < 18) return ['Landing by six!', 'Save me a leg.', 'Keep it warm, Ma.'];
+      return ['Start without me.', 'Pass me round.', 'Is that the pie?'];
+    };
+    // (He talks while he stands at the far end: walking, his words would
+    // run into the floodlight mast outside the glass, apron.js.)
+    const pace = (t) => {
+      const a = 98.8, b = 102.5, y = 28.7, v = 0.55, T = (b - a) / v, k = pulse(t, 20) * 20;
+      if (k < T) return { x: a + k * v, y, moving: true, dir: 'r', back: false };
+      if (k < 11) return { x: b, y, moving: false, dir: 'l', back: false, talk: k - T };
+      if (k < 11 + T) return { x: b - (k - 11) * v, y, moving: true, dir: 'l', back: true };
+      return { x: a, y, moving: false, dir: 'r', back: false };
+    };
+    const caller = look(990, 'traveler', { top: C.green, hat: 'beanie', hatColor: C.mustard });
+    R.mover(pace, (ctx, t, p) => {
+      if (!DAYS(t)) return;
+      person(ctx, p.x, p.y, 0, { ...caller, pose: p.moving ? 'walk' : 'stand', dir: p.dir, back: p.back, arms: [2.3, p.moving ? Math.sin(t * 7) * 0.5 : 0.3], hold: inHand(2.3, phoneHeld) }, t);
+      if (Q.detail && p.talk > 0.3) speech(ctx, p.x + 0.4, p.y - 0.4, 2.75, CALL(t)[Math.floor(t / 20) % 3], { size: 0.34 });
+    });
+    R.thing(103.2, 28.6, (ctx) => {
+      bag(ctx, 103.2, 28.6, 0, { kind: 'case', color: C.navy, handle: true, along: 'y' });
+      box(ctx, 102.98, 28.38, 0.74, 0.44, 0.44, 0.16, C.white, { lw: 0.02 });
+      words(ctx, 'y', 103.425, 28.6, 0.82, 'PIE', 0.1, C.red);
+    }, { on: DAYS });
+
     // ---------- C14 after the ground stop ----------
     // A tent, and Friendsgiving on a blanket (clear of the late family's
     // camp at C14, day.js, at 89.6, 24.6).
@@ -1230,10 +1336,11 @@ export default {
       words(ctx, 'x', 87.35, 23.61, 0.22, 'GATE C14', 0.09, C.red);
     }, { on: CAMP });
     R.light({ at: [84.6, 24.1, 0.8], r: 1.6, color: LIT, k: (t) => (CAMP(t) ? 0.45 + Math.sin(t * 9) * 0.06 : 0) });
-    // A kid in a sleeping bag in the aisle, wriggling.
-    R.thing(92.6, 20.3, (ctx, t) => {
+    // A kid in a sleeping bag on the walkway in front of the seats (between
+    // the rows the seat backs hid him), wriggling.
+    R.thing(92.6, 23.2, (ctx, t) => {
       const w = Math.sin(t * 1.7) * 0.05;
-      const [X, Y] = P(91.9, 20.3, 0.18);
+      const [X, Y] = P(91.9, 23.2, 0.18);
       ctx.save(); ctx.translate(X, Y); ctx.rotate(Math.atan2(0.5, 1) + w);
       ctx.beginPath(); ctx.roundRect(-0.75, -0.24, 1.5, 0.48, 0.24); paint(ctx, C.coral, { lw: 0.035, dots: Q.detail ? C.mustard : null, density: 0.3 });
       ctx.beginPath(); ctx.arc(-0.78, -0.02, 0.2, 0, TAU); paint(ctx, SKIN_SHUT, { lw: 0.03 });
@@ -1244,12 +1351,14 @@ export default {
     // ---------- Passing through ----------
     // The man in the inflatable turkey (the one from the curb, the queue and
     // security: kit.js, TURKEY), here from noon, waddling up and down between
-    // C12 and the band (clear of the Courier's stool at C12). His flight to
-    // the parade is canceled with the rest.
+    // C12 and the band (clear of the Courier's stool at C12, of the seam at x
+    // 64, and of the apron's floodlight mast at x 70 outside the glass, which
+    // stands in front of x 64 here on screen and hid his face when he stopped
+    // there). His flight to the parade is canceled with the rest.
     const turkeyHere = (t) => { const h = hrs(t); return h >= TURKEY.gates[0] && h < TURKEY.gates[1]; };
     const turkeyAt = (t) => {
       const k = pulse(t, 22) * 22;
-      const a = 63.8, b = 69.8, L = b - a, v = 0.9, T = L / v, y = 25.3;
+      const a = 66.0, b = 69.6, L = b - a, v = 0.9, T = L / v, y = 25.3;
       if (k < 3) return { x: a, y, moving: false, dir: 'r' };
       if (k < 3 + T) return { x: a + (k - 3) * v, y, moving: true, dir: 'r' };
       if (k < 6 + T) return { x: b, y, moving: false, dir: 'l' };
@@ -1263,8 +1372,9 @@ export default {
     // And by night, asleep on the carpet where he waddled, his suit let down
     // over him like a blanket.
     R.thing(67.8, 25.3, (ctx) => turkeyAsleep(ctx, 67.8, 25.3, 0.02), { on: (t) => hrs(t) >= TURKEY.gates[1] });
-    // A kid being a plane, round and round the turkey.
-    const zoom = (t) => { const a = (t / 6) * TAU; return { x: 67.4 + Math.cos(a) * 1.6, y: 24.3 + Math.sin(a) * 0.75, dir: -Math.sin(a) * 1.6 - Math.cos(a) * 0.75 >= 0 ? 'r' : 'l', back: -Math.sin(a) * 1.6 + Math.cos(a) * 0.75 < 0 }; };
+    // A kid being a plane, round and round in front of the charging pole
+    // (a step clear of the turkey's beat, y 25.3: he used to fly through him).
+    const zoom = (t) => { const a = (t / 6) * TAU; return { x: 67.4 + Math.cos(a) * 1.6, y: 23.6 + Math.sin(a) * 0.7, dir: -Math.sin(a) * 1.6 - Math.cos(a) * 0.7 >= 0 ? 'r' : 'l', back: -Math.sin(a) * 1.6 + Math.cos(a) * 0.7 < 0 }; };
     R.mover(zoom, (ctx, t, p) => {
       if (!DAYS(t)) return;
       person(ctx, p.x, p.y, 0, { ...look(973, 'traveler', { top: C.sky, hat: 'none' }), pose: 'run', dir: p.dir, back: p.back, scale: 0.62, speed: 12, arms: [1.55, -1.55] }, t);
