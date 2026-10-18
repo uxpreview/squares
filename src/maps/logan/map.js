@@ -28,7 +28,8 @@ import bagRoom from './areas/bag-room.js';
 import apron from './areas/apron.js';
 import runway from './areas/runway.js';
 
-const place = (zone, tag) => ({ zone, at: [0, 0, 0], shape: [AREAS[zone.id]], tag, h: 3 });
+// h: how tall the area's picture reaches (the Curb's tower is 15 high).
+const place = (zone, tag, h = 3) => ({ zone, at: [0, 0, 0], shape: [AREAS[zone.id]], tag, h });
 
 export default {
   id: 'logan',
@@ -37,7 +38,7 @@ export default {
   subtitle: 'Boston Logan',
   tagline: 'The day before Thanksgiving: every flight late, every bag lost, a goose on the runway.',
   zones: [
-    place(curb, 'Landside'),
+    place(curb, 'Landside', 8),
     place(checkIn, 'Terminal C'),
     place(security, 'Terminal C'),
     place(gates, 'Terminal C'),
