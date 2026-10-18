@@ -22,7 +22,7 @@ import {
 } from '../../../engine/art.js';
 import { clamp, pulse, route } from '../../../engine/actors.js';
 import { INK, SIGN, BRAND, GLASS, RUBBER } from '../style.js';
-import { look, bag, lettering, board, zzz, lieAlong, coatOver, asleep, turkeyMan, TURKEY, lowWall, glassWall } from '../kit.js';
+import { look, bag, lettering, board, zzz, lieAlong, coatOver, asleep, turkeyMan, TURKEY, lowWall, glassWall, spans, inHand } from '../kit.js';
 import { LAND, AIR, CHECK, SEC } from '../plan.js';
 import { hour, nightK, LOOP } from '../clock.js';
 import { XRAY } from '../day.js';
@@ -168,9 +168,14 @@ function post(ctx, x, y) {
   cylinder(ctx, x, y, 0, 0.045, 0.95, STEEL, { flat: true, lw: 0.02 });
   disc(ctx, x, y, 0.97, 0.07, STEEL, { lw: 0.02 });
 }
-// The belt between two posts: along x at y, or along y at x.
-function strapX(ctx, a, b, y) {
-  face(ctx, [[a, y, 0.76], [b, y, 0.76], [b, y, 0.88], [a, y, 0.88]], INK.cranberry, { lw: 0.018 });
+// The belt between two posts: along x at y, or along y at x. A length of one
+// (open) has no inked ends, so lengths laid end to end read as one belt.
+function strapX(ctx, a, b, y, open = false) {
+  face(ctx, [[a, y, 0.76], [b, y, 0.76], [b, y, 0.88], [a, y, 0.88]], INK.cranberry, open ? { stroke: false } : { lw: 0.018 });
+  if (!open || !Q.lines) return;
+  ctx.beginPath();
+  for (const z of [0.76, 0.88]) { const [ax, ay] = P(a, y, z), [bx, by] = P(b, y, z); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.018; ctx.stroke();
 }
 function strapY(ctx, a, b, x) {
   face(ctx, [[x, a, 0.76], [x, b, 0.76], [x, b, 0.88], [x, a, 0.88]], shade(INK.cranberry, 0.12), { lw: 0.018 });
@@ -559,13 +564,16 @@ export default {
     glassWall(R, X0, X1, Y1);
 
     // ---------- The queue ----------
-    // The ropes, between their posts (each length its own thing, so the
-    // queue sorts round them).
+    // The ropes, in short lengths each sorted at its middle, and the posts on
+    // their own spots, so the queue sorts round them: whoever stands in front
+    // of a rope is drawn after it, whoever's behind before. (Sorted at the
+    // far end of a whole length between two posts, a rope and a post behind
+    // someone were painted across them.)
     ROPES.forEach(([y, xs]) => {
       for (let i = 1; i < xs.length; i++) {
-        const a = xs[i - 1], b = xs[i];
-        R.thing(b, y, (ctx) => { strapX(ctx, a, b, y); post(ctx, a, y); if (i === xs.length - 1) post(ctx, b, y); });
+        for (const [a, b] of spans(xs[i - 1], xs[i], 0.8)) R.thing((a + b) / 2, y, (ctx) => strapX(ctx, a, b, y, true));
       }
+      for (const x of xs) R.thing(x, y, (ctx) => post(ctx, x, y));
     });
     // The ends of the maze: closed at the far end, open at check-in's.
     R.thing(50.4, 14.65, (ctx) => { strapY(ctx, Y0 + 0.5, 14.65, 50.4); post(ctx, 50.4, Y0 + 0.5); });
@@ -576,7 +584,7 @@ export default {
       const y = LANE_Y[lane], dir = lane === 1 ? 'l' : 'r', back = lane === 1;
       const on = (t) => crowd(t) > i;
       const [ry, rxs] = ROPES[lane];
-      const rope = (ctx) => strapX(ctx, Math.max(rxs[0], x - 0.62), Math.min(rxs[rxs.length - 1], x + 0.62), ry);
+      const rope = (ctx) => strapX(ctx, Math.max(rxs[0], x - 0.62), Math.min(rxs[rxs.length - 1], x + 0.62), ry, true);
       if (i === 6) {
         // The man in the inflatable turkey, from ten till half past eleven
         // (check-in's queue before, the gates after: kit.js, TURKEY), seen
@@ -606,7 +614,7 @@ export default {
     R.thing(39.2, 15.15, (ctx) => {
       bag(ctx, 39.2, 15.2, 0, { kind: 'case', color: C.mustard, tag: C.white });
       person(ctx, 39.15, 15.15, -0.05, { ...look(233), pose: 'sit', dir: 'r', arms: [0.4, 0.2] }, 0);
-      strapX(ctx, 38.55, 39.8, ROPES[2][0]);
+      strapX(ctx, 38.55, 39.8, ROPES[2][0], true);
     }, { on: NIGHT });
     R.air((ctx, t) => { if (NIGHT(t)) zzz(ctx, 39.3, 15.1, 1.9, t + 1.3); }, { on: NIGHT });
 
@@ -640,8 +648,10 @@ export default {
       R.thing(TRAYS[0] + 0.5, TRAYS[1] + 0.45, (ctx) => {
         const r = rng(n);
         for (let i = 0; i < n; i++) {
-          const lean = n > 25 ? Math.pow(i / n, 2) * 0.45 : 0;
-          tray(ctx, TRAYS[0] + (r() - 0.5) * 0.08 + lean, TRAYS[1] + (r() - 0.5) * 0.06 - lean * 0.3, i * 0.11, null, 1.08);
+          // (It leans toward check-in, away from the rules board: leaning
+          // the other way, from where we look, it covered them.)
+          const lean = n > 25 ? Math.pow(i / n, 2) * 0.4 : 0;
+          tray(ctx, TRAYS[0] + (r() - 0.5) * 0.08 - lean, TRAYS[1] + (r() - 0.5) * 0.06, i * 0.11, null, 1.08);
         }
         if (Q.detail) onY(ctx, TRAYS[0], TRAYS[1] + 0.35, 0.25, (c) => { c.beginPath(); c.rect(-0.28, -0.13, 0.56, 0.26); paint(c, C.white, { lw: 0.015 }); words(c, n > 25 ? 'PLEASE' : 'TAKE', 0, -0.05, 0.08, C.ink); words(c, n > 25 ? 'TAKE ONE' : 'ONE', 0, 0.06, 0.08, C.ink); });
       }, { on: between(a, b) });
@@ -864,9 +874,11 @@ export default {
         hold: (c) => { c.beginPath(); c.roundRect(0.0, -0.1 - up * 0.4, 0.5, 0.3, 0.1); paint(c, C.coral, { lw: 0.025 }); },
       }, t);
     }, { anim: true, on: DAY });
-    // Collecting at lane A's end: arms full, shoes still in hand.
-    R.thing(35.3, 24.0, (ctx) => person(ctx, 35.3, 24.0, 0, {
-      ...look(153), pose: 'carry', dir: 'r', shoes: C.white,
+    // Off lane A to the bench: arms full, shoes still in hand. (Clear of the
+    // belt's end, where the Courier collects his parcel: there his "It's
+    // bread?" covered her.)
+    R.thing(34.6, 24.4, (ctx) => person(ctx, 34.6, 24.4, 0, {
+      ...look(153), pose: 'carry', dir: 'l', shoes: C.white,
       hold: (c) => { c.beginPath(); c.rect(-0.05, -0.05, 0.5, 0.08); paint(c, C.greyLight, { lw: 0.02 }); c.beginPath(); c.roundRect(0.0, -0.32, 0.45, 0.26, 0.08); paint(c, C.purple, { lw: 0.02 }); shoe(c, 0.22, -0.36, C.brown, 0, 'boot', 0.8); },
     }, 0), { on: DAY });
     // Loading lane B: a laptop, and someone holding one boot.
@@ -1018,12 +1030,14 @@ export default {
         globe(ctx, X0g + (X1g - X0g) * q, Y0g + (Y1g - Y0g) * q - Math.sin(q * Math.PI) * 0.6 + 0.12, 1.3, t, 7);
       }
     }, { anim: true, on: DAY });
-    R.thing(47.85, 24.05, (ctx) => {
-      bag(ctx, 47.45, 24.35, 0, { kind: 'pack', color: C.pink });
-      const [X, Y] = P(47.45, 24.35, 0.56);
+    // (She watches from the bin's other side: by the officer, from where we
+    // look the floodlight mast's lamp outside the glass stood over her.)
+    R.thing(51.65, 23.6, (ctx) => {
+      bag(ctx, 51.65, 23.6, 0, { kind: 'pack', color: C.pink });
+      const [X, Y] = P(51.65, 23.6, 0.56);
       globe(ctx, X - 0.05, Y + 0.05, 1.1, null, 4);
-      person(ctx, 47.85, 24.05, 0, { ...look(158), top: C.purple, pose: 'stand', dir: 'r', scale: 0.7, arms: [1.3, 1.1] }, 0);
     }, { on: DAY });
+    R.thing(51.5, 24.1, (ctx) => person(ctx, 51.5, 24.1, 0, { ...look(158), top: C.purple, pose: 'stand', dir: 'l', scale: 0.7, arms: [1.3, 1.1] }, 0), { on: DAY });
     // After dark, the same officer sits at the glass with one of them,
     // watching the real thing come down.
     R.thing(46.2, 28.2, (ctx, t) => {
@@ -1069,18 +1083,21 @@ export default {
     R.find({ id: 'skier', label: 'The skier', after: 'curb:skis', at: [47.6, 26.2, 1.8], r: 0.9, riddle: 'Tag: Salt Lake City. Clunks when he walks.' });
     // The officer with the wand: up and down, again and again. At night he's
     // sat down; the skier hasn't been told he can put his arms down either.
-    R.thing(49.6, 26.4, (ctx, t) => {
+    // (He works from the skier's left: on his right, from where we look, the
+    // apron's floodlight mast outside the glass stood in front of him.)
+    const WX = 46.6, WY = 26.75;
+    R.thing(WX, WY, (ctx, t) => {
       const a = 1.2 + Math.sin(t * 2) * 0.55;
-      person(ctx, 49.6, 26.4, 0, { ...officer(164), pose: 'stand', dir: 'l', arms: [a, -0.2] }, t);
-      const [hx, hy] = hand(49.6, 26.4, 0, 'l', a), dx = -Math.sin(a) * 0.5, dy = Math.cos(a) * 0.5;
+      person(ctx, WX, WY, 0, { ...officer(164), pose: 'stand', dir: 'r', arms: [a, -0.2] }, t);
+      const [hx, hy] = hand(WX, WY, 0, 'r', a), dx = Math.sin(a) * 0.5, dy = Math.cos(a) * 0.5;
       ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + dx, hy + dy); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.1; ctx.lineCap = 'round'; ctx.stroke();
       ctx.beginPath(); ctx.arc(hx + dx, hy + dy, 0.07, 0, TAU); ctx.fillStyle = INK.signal; ctx.fill();
     }, { anim: true, on: DAY });
-    R.thing(49.8, 26.6, (ctx) => {
-      box(ctx, 49.5, 26.3, 0, 0.6, 0.6, 0.45, C.woodLight, { flat: true, lw: 0.02 });
-      person(ctx, 49.8, 26.6, -0.3, { ...officer(164), pose: 'sit', dir: 'l', arms: [0.4, 0.3] }, 0);
+    R.thing(WX + 0.1, WY + 0.25, (ctx) => {
+      box(ctx, WX - 0.2, WY - 0.05, 0, 0.6, 0.6, 0.45, C.woodLight, { flat: true, lw: 0.02 });
+      person(ctx, WX + 0.1, WY + 0.25, -0.3, { ...officer(164), pose: 'sit', dir: 'r', arms: [0.4, 0.3] }, 0);
     }, { on: NIGHT });
-    R.air((ctx, t) => zzz(ctx, 49.7, 26.5, 1.9, t + 2.1), { on: NIGHT });
+    R.air((ctx, t) => zzz(ctx, WX, WY + 0.15, 1.9, t + 2.1), { on: NIGHT });
 
     // ---------- The bench, and the shoes ----------
     // PUT YOUR LIFE BACK TOGETHER HERE: a long bench, in two lengths (a seam).
@@ -1212,6 +1229,19 @@ export default {
       onY(ctx, 41.6, 26.69, 0.48, (c) => { words(c, 'CAUTION', 0, -0.12, 0.09, C.ink); words(c, 'WET', 0, 0.02, 0.1, C.ink); words(c, 'FLOOR', 0, 0.14, 0.1, C.ink); });
       cylinder(ctx, 37.2, 26.15, 0, 0.3, 0.45, INK.signal, { flat: true, lw: 0.025 });
     }, { on: NIGHT });
+    // By the glass by day, on his case: a man putting his shoes back on,
+    // holding up the second one. It's a red high heel. (The heap's mixed.)
+    // (Back from the glass, so his feet don't poke through it.)
+    R.thing(43.4, 28.1, (ctx) => {
+      bag(ctx, 42.75, 27.85, 0, { kind: 'pack', color: C.navy });
+      bag(ctx, 43.4, 28.1, 0, { kind: 'case', lie: true, color: C.teal, along: 'x', tag: C.white });
+      const a = 2.45;
+      person(ctx, 43.4, 28.1, 0.26 - 0.71, {
+        ...look(174, 'traveler', { dress: false, top: C.mustard }), pose: 'sit', dir: 'r', arms: [a, 0.5], shoes: C.white,
+        hold: inHand(a, (c) => shoe(c, 0.12, -0.12, C.red, 0, 'heel', 1.9)),
+      }, 0);
+      if (Q.detail) label(ctx, 43.8, 27.8, 2.0, '?', 0.42, C.ink);
+    }, { on: DAY });
     // Stuck for the night by the glass: a mother and her boy, asleep on a
     // blanket.
     R.thing(40.1, 28.3, (ctx) => {
