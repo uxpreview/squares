@@ -8,6 +8,7 @@ import { reg, birds, geeseV } from '../shared.js';
 import { W, D } from './plan.js';
 import { snowK } from './clock.js';
 import { INK } from './style.js';
+import { follow } from './finale.js';
 
 // Across the water, in world units behind the map's back edges (y < 0 is
 // west, across the inner harbor; x < 0 is south, toward South Boston).
@@ -43,6 +44,7 @@ export function backdrop(ctx, t, world) {
 }
 
 export function sky(ctx, t, world, fx) {
+  follow(fx);
   const [X0, X1] = world.overviewBox(false);
   birds(ctx, t, 0, (X1 - X0) / 2);
   // The snow: flakes falling over the whole airport, heavier with the storm.
