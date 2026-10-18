@@ -165,6 +165,7 @@ The owner's direction: many places should be real, recognizable places, because 
 
 
 ### Departures (an airport)
+**Greybox (session 20), at `#/logan`, hidden until it ships. Full brief in [levels/logan.md](levels/logan.md).** The owner moved it ahead of v2 (October 18). It's Logan on the day before Thanksgiving, one big map from the start, and its verb is **reunite**: five lost bags, each with an owner elsewhere in the airport. Where the brief and this sketch differ, the brief wins.
 - **Spin:** an airport with the terminal cut open. A lost suitcase rides the belts across the whole map, and the security X-ray lets you see inside bags.
 - **Mechanic:** the X-ray: tap the scanner to see inside a bag.
 - **Heroes and jokes:** the departures board where every delay grows; a family sprinting to their gate; the control tower; a goose on the runway (obviously).

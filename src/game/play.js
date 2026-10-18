@@ -100,9 +100,11 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const isFound = (zone, f) => store.isFound(world.id, keyOf(zone, f));
   // Is a find there to be found at t? (Some only show at low tide.)
   const here = (f, t) => !f.when || f.when(t);
+  // Has the find it comes after been found? (A bag before its owner.)
+  const unlocked = (f) => !f.after || isFound(f.after.zone, f.after.f);
   // Can it be tapped at t? There, and if it's inside something, that's open.
   // (A trail's sighting only once it's the next one.)
-  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6) && (f.step == null || f.step === stepNow());
+  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6) && (f.step == null || f.step === stepNow()) && unlocked(f);
   const words = () => ({ zone: 'room', invite: '', hint: '', open: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
@@ -518,8 +520,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // ---------- The find list ----------
   const tray = createTray({
     reduceMotion,
-    // A trail's sightings after the next one aren't on the list yet.
-    shows: (zone, f) => f.step == null || f.step <= stepNow(),
+    // A trail's sightings after the next one aren't on the list yet, nor a
+    // find that comes after one not yet found.
+    shows: (zone, f) => (f.step == null || f.step <= stepNow()) && unlocked(f),
     isFound: (zone, f) => isFound(zone, f),
     foundAge: (zone, f) => { const at = foundAt.get(world.id + '/' + keyOf(zone, f)); return at ? performance.now() - at : Infinity; },
     label: (zone, f) => (f.goose ? 'The goose' : f.label),
@@ -725,7 +728,10 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
         : `HONK. Goose ${p.geese} of ${world.totalGeese}.${zoneDone ? ` ${zone.name}, all found.` : ''}${earned}`);
     } else {
       sound('pen');
+      // (A find that others come after says what's on the list now.)
+      const freed = (f.unlocks || []).find((u) => !isFound(u.zone, u.f));
       toast(finished ? words().complete
+        : freed ? `Found: ${lower(f.label)}. ${freed.f.label} is on the list now.${earned}`
         : zoneDone ? `${zone.name}, all found.${earned}`
         : `Found: ${lower(f.label)}.${earned}`);
     }
@@ -843,7 +849,9 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     if (f.group === 'evidence' || newSuspect) nudgeCase(!!newSuspect || first);
     casefile.refresh();
   }
-  const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+  // Mid-sentence: "a tuba", "something left behind", but a name stays a
+  // name ("Uncle Ray", "Inspector Pidge": a capital later on, no article).
+  const lower = (s) => (/^(A|An|The)\b/.test(s) || !/\s[A-Z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 
   // ---------- Trails ----------
   // A find on a trail: a sighting says where it went next (the next
