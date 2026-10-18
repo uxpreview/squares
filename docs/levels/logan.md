@@ -151,11 +151,11 @@ Checked October 18, 2026 against Wikipedia's Logan article, the FAA and trade pr
 
 ## Engine and kit needs
 - [x] **Finds that come after another** (`after: 'zone:find'` on `R.find`): off the list, untappable and unhinted until the first is found, then a toast puts it on the list. QA taps the first before the second; smoke checks a pair. *(Session 20.)*
-- [ ] **A find's art reads whether it's found,** so a reunited owner is drawn with their bag (the tuba plays) and the bag leaves the belt. Small: the trail's `onStep` does it for one map; this wants it per find. *(The art session.)*
-- [ ] **Toy-scale planes** as a shared prop in the level's kit: about 16 units long and wide, so three fit at the gates and the people still read. *(The art session.)*
+- [x] **A find's art reads whether it's found** (`R.found('zone:find')`, any map): so a reunited owner is drawn with their bag (the tuba plays) and the bag goes home. The world holds a lookup the game fills in when it loads the map (`world.found`); until then nothing's found. Smoke checks it. *(Session 21.)*
+- [x] **Toy-scale planes** in the level's kit (`kit.js`, `plane`, `drawPlane`): 13 long and 13 across, a round body in pieces that sort with the people round it, three lookalike liveries. *(Session 21.)*
 - [ ] **The X-ray monitor:** a poke drawn with whatever bag is in its tunnel now. Art only.
 - [ ] **Snow:** flakes in the air from 3pm, the ground whitening with the evening (`fade`, as Moving Day's paper). Art only.
-- [ ] **The day's plate** (`plate.at(t)`), as Plum Island's sea. The greybox prints one harbor all day.
+- [x] **The day's plate** (`plate.at(t)`, style.js `paperAt`): a grey dawn, a bright cold morning, slate with the snow, pink at sunset, navy all night. *(Session 21.)*
 
 ## The greybox (session 20, gate 2)
 At `#/logan` (hidden from the picker until it ships). `npm run qa -- logan`: 15 passed, 0 failed; the warnings are small finds on a phone (the art sizes them), Pidge behind his newspaper and the FRAGILE bag flying past its thrower (both on purpose). Slowest view 9 to 39 ms a frame at 4x slowdown across two cloud runs (the Block's is about 30), with everything as plain blocks; `node tools/fps.mjs logan` on the owner's Mac comes after the art.
