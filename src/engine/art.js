@@ -570,7 +570,7 @@ export function person(ctx, x, y, z, o = {}, t = 0) {
   ctx.arc(0.02, hy, 0.31, 0, Math.PI * 2);
   paint(ctx, skin);
   drawHair(ctx, o.style || 'short', o.hair || HAIR[0], hy, back);
-  drawHat(ctx, o.hat, hy, t);
+  drawHat(ctx, o.hat, hy, t, o.hatColor);
   if (!back && Q.detail && pose !== 'sleep') {
     ctx.fillStyle = C.ink;
     ctx.beginPath();
@@ -622,21 +622,22 @@ function drawHair(ctx, style, color, hy, back) {
   }
 }
 
-function drawHat(ctx, hat, hy, t) {
+// color: the cap's or the beanie's (default coral and mustard).
+function drawHat(ctx, hat, hy, t, color) {
   if (!hat || hat === 'none') return;
   ctx.beginPath();
   if (hat === 'cap') {
     ctx.arc(0.02, hy - 0.08, 0.32, Math.PI, 0);
     ctx.closePath();
-    paint(ctx, C.coral);
+    paint(ctx, color || C.coral);
     // The brim, at the dome's foot and finely outlined: thick ink on a thin
     // brim read as a black bar across the eyes.
     ctx.beginPath();
     ctx.rect(0.12, hy - 0.15, 0.36, 0.08);
-    paint(ctx, C.coral, { lw: 0.025 });
+    paint(ctx, color || C.coral, { lw: 0.025 });
   } else if (hat === 'beanie') {
     ctx.arc(0.02, hy - 0.06, 0.34, Math.PI, 0);
-    paint(ctx, C.mustard);
+    paint(ctx, color || C.mustard);
     ctx.beginPath();
     ctx.arc(0.02, hy - 0.42, 0.08, 0, Math.PI * 2);
     paint(ctx, C.coral);

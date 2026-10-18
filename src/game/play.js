@@ -1742,6 +1742,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   function load(w) {
     if (world === w) return;
     world = w;
+    // Art that changes once something's found (R.found) reads the save.
+    world.found.is = (zone, f) => store.isFound(world.id, zone + ':' + f);
     mode = 'overview';
     current = -1;
     entered = false;

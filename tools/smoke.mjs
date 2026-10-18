@@ -1144,6 +1144,9 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   check('finding the bag says its owner is on the list', /The skier is on the list now/.test(await page.textContent('#toast')), await page.textContent('#toast'));
   check('and puts them on it', await listed());
   check('then a tap on them finds them', await tapSkier());
+  // The art can ask what's been found (R.found), to draw an owner with their bag.
+  const art = await S(page, () => { const s = window.__squares; return [s.world.found.is('security', 'skier'), s.world.found.is('gates', 'bride')]; });
+  check('and the art knows they\'re together again', art[0] && !art[1], JSON.stringify(art));
   await page.close();
 }
 

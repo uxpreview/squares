@@ -59,3 +59,35 @@ export function snowK(t) {
   if (h < 23) return 1;
   return 1 - (h - 23) / 2;
 }
+
+// How dark it is, 0 to 1, for printing the night: dusk from sunset (4:15pm)
+// to full dark by half past five, and the first light from 5:30am, gone by
+// seven. The terminal stays lit; outside, the ground and what stands on it
+// print in their night inks (style.js, dusk).
+export function nightK(t) {
+  const h = hour(t);
+  if (h >= 17.5 || h < 5.5) return 1;
+  if (h >= 16.2) return (h - 16.2) / 1.3;
+  if (h < 7) return 1 - (h - 5.5) / 1.5;
+  return 0;
+}
+// Lights on (the windows, the apron's floodlights, the runway's edges).
+export const lightsOn = (t) => nightK(t) >= 0.3;
+// Sunset, 0 to 1 and back: a pink harbor for a moment at 4:15pm, through the
+// snow.
+export function sunsetK(t) {
+  const h = hour(t);
+  if (h < 15.6 || h > 17) return 0;
+  return h < 16.25 ? (h - 15.6) / 0.65 : 1 - (h - 16.25) / 0.75;
+}
+// How much snow is lying outside, 0 to 1: it starts to stick at half past
+// three, covers everything by eight and stays; the night's thirty seconds
+// clear it for the morning (the loop starts again at 4am).
+export function settle(t) {
+  let h = hour(t);
+  if (h < DAWN) h += 24;
+  if (h < 15.5) return 0;
+  if (h < 20) return (h - 15.5) / 4.5;
+  if (h < 26) return 1;
+  return Math.max(0, 1 - (h - 26) / 1.5);
+}

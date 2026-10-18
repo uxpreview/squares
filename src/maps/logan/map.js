@@ -15,7 +15,7 @@
 //   front    | The Runway (the light pier over the water, the runway)
 import { W, D, AREAS } from './plan.js';
 import { LOOP, FLIGHT1, at } from './clock.js';
-import { PAPER } from './style.js';
+import { paperAt } from './style.js';
 import { walkers } from './day.js';
 import { backdrop, sky } from './ambient.js';
 import { sound as soundBed } from './sound.js';
@@ -28,7 +28,8 @@ import bagRoom from './areas/bag-room.js';
 import apron from './areas/apron.js';
 import runway from './areas/runway.js';
 
-const place = (zone, tag) => ({ zone, at: [0, 0, 0], shape: [AREAS[zone.id]], tag, h: 3 });
+// h: how tall the area's picture reaches (the Curb's tower is 15 high).
+const place = (zone, tag, h = 3) => ({ zone, at: [0, 0, 0], shape: [AREAS[zone.id]], tag, h });
 
 export default {
   id: 'logan',
@@ -37,7 +38,7 @@ export default {
   subtitle: 'Boston Logan',
   tagline: 'The day before Thanksgiving: every flight late, every bag lost, a goose on the runway.',
   zones: [
-    place(curb, 'Landside'),
+    place(curb, 'Landside', 8),
     place(checkIn, 'Terminal C'),
     place(security, 'Terminal C'),
     place(gates, 'Terminal C'),
@@ -53,13 +54,17 @@ export default {
   open: true,
   walkers,
   loop: LOOP,
-  // The paper is the harbor (decision 19: one harbor all day in the greybox).
-  // It's dark enough that the page's loose words print in cream.
-  plate: { paper: PAPER, kind: 'night', bleed: true },
-  invite: { zone: 'security', at: [39, 20.7, 1.9] },
+  // The paper is the harbor, and it follows the day (style.js, paperAt): a
+  // grey dawn, a bright cold morning, slate with the snow, pink at sunset,
+  // navy all night. It's dark enough all day that the page's loose words
+  // print in cream.
+  plate: { at: (t) => ({ paper: paperAt(t), kind: 'night' }), bleed: true, thumbAt: at(10.5) },
+  invite: { zone: 'security', at: [35, 20.86, 2.6] },
   // The ending: the clock jumps to Flight 1 holding short at the runway's
-  // end, the camera goes there, and the geese cross in front of it.
-  finale: { at: FLIGHT1, zone: 'runway', near: [86, 52.75], hold: 9 },
+  // end, the camera goes there (close: a runway's worth is wider than a
+  // phone), and the geese cross in front of it into the harbor. The card
+  // waits till the tower clears it and it's rolling (finale.js).
+  finale: { at: FLIGHT1, zone: 'runway', near: [86, 52.75], span: 8.5, hold: 18 },
   sound: soundBed,
   // On a phone held upright the overview fills the height round the terminal
   // and the airport runs off both sides, a swipe along it (decision 18); on

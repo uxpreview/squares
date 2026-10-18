@@ -1,9 +1,11 @@
 # Departures
 
-> Status: **Greybox** · Brief → Greybox → Art → QA → Preview → Shipped
-> Approvals: brief [x] (the lead's call, decisions 1 to 14) · greybox [x] (the lead's call, decisions 15 to 20) · preview [ ] (the owner)
+> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
+> Approvals: brief [x] (the lead's call, decisions 1 to 14) · greybox [x] (the lead's call, decisions 15 to 23) · preview [ ] (the owner)
 >
-> Session 20 (October 18, 2026). The owner asked for a new map and picked Departures, or a zoo idea. The lead chose Departures (decision 1) and built it as one big map from the start (decision 3). This session wrote the brief, built the one engine piece it needs (finds that unlock after another, decision 6) and greyboxed it at `#/logan`, hidden from the picker until it ships. Next session: the art.
+> Session 20 (October 18, 2026). The owner asked for a new map and picked Departures, or a zoo idea. The lead chose Departures (decision 1) and built it as one big map from the start (decision 3). This session wrote the brief, built the one engine piece it needs (finds that unlock after another, decision 6) and greyboxed it at `#/logan`, hidden from the picker until it ships.
+>
+> Session 21 (October 18, 2026): the art. The engine piece the reunions needed (`R.found`), the lead's kit, nine artists in parallel, the art director, and every area toured pinched in by four reviewers ("The art", below). Still hidden at `#/logan`. Next session: the blind playtest, `node tools/fps.mjs logan` on the owner's Mac, and gate 3.
 
 New places were meant to wait for v2 (STRATEGY.md, phase 3). The owner moved this one ahead of that on October 18, knowing the plan; ROADMAP 20 records it.
 
@@ -151,11 +153,11 @@ Checked October 18, 2026 against Wikipedia's Logan article, the FAA and trade pr
 
 ## Engine and kit needs
 - [x] **Finds that come after another** (`after: 'zone:find'` on `R.find`): off the list, untappable and unhinted until the first is found, then a toast puts it on the list. QA taps the first before the second; smoke checks a pair. *(Session 20.)*
-- [ ] **A find's art reads whether it's found,** so a reunited owner is drawn with their bag (the tuba plays) and the bag leaves the belt. Small: the trail's `onStep` does it for one map; this wants it per find. *(The art session.)*
-- [ ] **Toy-scale planes** as a shared prop in the level's kit: about 16 units long and wide, so three fit at the gates and the people still read. *(The art session.)*
-- [ ] **The X-ray monitor:** a poke drawn with whatever bag is in its tunnel now. Art only.
-- [ ] **Snow:** flakes in the air from 3pm, the ground whitening with the evening (`fade`, as Moving Day's paper). Art only.
-- [ ] **The day's plate** (`plate.at(t)`), as Plum Island's sea. The greybox prints one harbor all day.
+- [x] **A find's art reads whether it's found** (`R.found('zone:find')`, any map): so a reunited owner is drawn with their bag (the tuba plays) and the bag goes home. The world holds a lookup the game fills in when it loads the map (`world.found`); until then nothing's found. Smoke checks it. *(Session 21.)*
+- [x] **Toy-scale planes** in the level's kit (`kit.js`, `plane`, `drawPlane`): 13 long and 13 across, a round body in pieces that sort with the people round it, three lookalike liveries. *(Session 21.)*
+- [x] **The X-ray monitor:** a poke drawn with whatever bag is in its tunnel now, as an X-ray picture. *(Session 21, Security.)*
+- [x] **Snow:** flakes blowing in from 3pm, outdoors only (never over the terminal or the bag room); the ground whitening as it settles (`snowCover`, a still layer laid on in twelve steps, so it bakes into each area's cached floor). *(Session 21.)*
+- [x] **The day's plate** (`plate.at(t)`, style.js `paperAt`): a grey dawn, a bright cold morning, slate with the snow, pink at sunset, navy all night. *(Session 21.)*
 
 ## The greybox (session 20, gate 2)
 At `#/logan` (hidden from the picker until it ships). `npm run qa -- logan`: 15 passed, 0 failed; the warnings are small finds on a phone (the art sizes them), Pidge behind his newspaper and the FRAGILE bag flying past its thrower (both on purpose). Slowest view 9 to 39 ms a frame at 4x slowdown across two cloud runs (the Block's is about 30), with everything as plain blocks; `node tools/fps.mjs logan` on the owner's Mac comes after the art.
@@ -175,8 +177,31 @@ At `#/logan` (hidden from the picker until it ships). `npm run qa -- logan`: 15 
 
 **Left for the art:** everything drawn for real: the terminal's glass and roofline, the tower, toy planes, the people (10 to 18 an area), the night and the day's plate, the snow settling, the X-ray's pictures, the board's flights, the skyline, the finale (the geese crossing in a line in front of Flight 1), a reunited owner drawn with their bag (needs the engine piece above), and the sound bed tuned.
 
-## Open questions
-None blocking. Each was taken as the lead's call (Decisions); the owner can overturn any at the preview.
+## The art (session 21)
+Built by the lead's kit first, then nine artists in their own worktrees at once (the seven areas, the cast on the clock with the ending, and everything around the airport with its sound), then one art director, then four reviewers touring every area pinched in at six moments of the day. All of it in `src/maps/logan/`.
+
+**The kit** (`kit.js`, the lead's, then the art director's): toy planes as smooth solids (a round body in short pieces, swept wings, engines, a fin with the airline's name), in pieces that sort with the people round them and stay whole across the 16-unit seams (`seamSafe`), printed again at night with their windows lit; three lookalike airlines (style.js `LIVERY`: Spite, JetBlew, Northeast); tugs, bag carts and trains; luggage of every kind; people in parkas with beanies of their own colors (`hatColor`, a new option on people), and the crews (hi-vis, ear defenders, wands); the airport's black-and-yellow signs, boards and lettering; one herring gull; the terminal's low wall and glass; sleepers lying along the floor with their eyes shut; the turkey man; the night's veil and the snow lying, both baked into the cached floor in steps.
+
+**The places and what plays out:**
+- **The Curb:** the control tower (two segmented pylons, a glazed bridge, a lit cab, a beacon, 15 high), the garage, a road bowing round them between two tunnel mouths, the taxi stand (the goose's beak in the second cab's back window; the first has a lady in a fur hat: "This one's taken."), the hatchback family's eleven bags (the skis, red with a white stripe), the smokers' bin with a raccoon's tail, the Silver Line, the KISS & FLY couple, the water taxi's dock, Ray's family with their balloon. **The minivan** does eight laps, waved on by the trooper, the kid in the back sadder every lap.
+- **Check-in:** the queue that grows out the door and lies down after the storm (the goose in it with its own little case, the turkey man behind it in the morning), Grandma and her empty roasting pan, **the man at the scale** a layer an hour until he's a striped ball in a snorkel, the kiosks, the oversize drop, Our Lady of the Airways.
+- **Security:** the X-rays (each screen shows what's in its tunnel now: the Courier's bread, the turkey), **the man in the scanner** with his hands up all day (coffee at two, a blanket at seven, asleep on his feet at eleven), the skier wanded in his boots, the goose in a heap of shoes with a foot out, snow globes confiscated by the hour while the real snow falls outside, a beagle, the checkpoint asleep at night.
+- **The Gates:** **the board** (Flight 1 ON TIME, everything else later by the hour and CANCELED at six), **the band** short one tuba (playing once its player's found), Pidge behind THE DAILY HONK, the goose on a bar stool in a little beanie, the bride asleep on her case, the charging pole, and from 7:30pm the whole concourse camped out (the band asleep on their cases, a tent at C14, Friendsgiving).
+- **The Bag Room:** the belts through the flaps, the jam and its mallet, **the pink bag** on its endless lap (a party hat from six, ONE MORE LAP at midnight), FRAGILE thrown the hardest, the lost and found since 1987 with the goose behind KEEP SHUT, a cat, a dog, a parrot.
+- **The Apron:** the planes at their jet bridges (C12 Spite, C13 JetBlew, C14 Northeast), the goose in C14's hold with its tail caught under the door, the stowaway in the catering box, the pilot in bunny slippers, the dress on a cart bound for Honolulu, **the marshaller** waving in whatever comes, a fourth plane waiting on the de-icing pad all day for a gate and **de-iced orange** three times in the stuck night, the snowman in a safety vest.
+- **The Runway:** planes landing over the pier and taking off back over it in turn, **the plows** WAITING FOR SNOW / SINCE OCTOBER at the pier end, then sweeping in echelon all night; bird control's BANG (the gulls lift off the runway and the sky together), the spotter on his ladder, seals, Ray's box with a gull for company, the fire truck and its dalmatian.
+- **On the clock across areas** (`day.js`): the Courier's whole day (the water taxi at five, the queue, his bread through the X-ray, C12 on a folding stool from 11:27, asleep from nine, at C12's window holding up the parcel as Flight 1 leaves: "Tomorrow, then."); a family running late from the curb to C14; an airport cart up and down the concourse; the bag train; **the turkey man**, one man through the day (the first bus, the check-in queue, security, the gates, asleep under his feathers); Flight 1 pushed back, towed out and lined up.
+- **The ending** (`finale.js`): seven geese march along the grass and cross the runway in front of Flight 1, hop into the harbor and paddle out; the tower clears it, it rolls and lifts off over the pier. The camera frames the runway's end close (`span`), and the card comes when it's rolling (decision 31).
+- **Around** (`ambient.js`): Boston across the inner harbor in its real order (Castle Island's fort, Conley's cranes, the Seaport, downtown with the Custom House clock showing the game's time, Rowes Wharf, the North End with the Old North Church's two lanterns at night, Charlestown with Old Ironsides and Bunker Hill, the Zakim lit blue), printed in the harbor's far inks and cached as one picture; water taxis, a salt barge, a tanker, a lobster boat, a sailboat; the snow blowing in off the sea, far planes, gulls.
+- **Sound** (`sound.js`): beds by area through the day (the crowd's level, the storm's wind, the bag room's belts, the band, the TV at the bar, the de-icers), 119 cues (jets when the runway flies them, the chime, the BANG, horns, the plows' beeps, a cheer when the stop lifts, the chapel's organ at six), every one under a honk.
+
+**Checks** (in the cloud): `npm run qa -- logan` passes (16 passed, 0 failed, 33 things that answer a tap, 8 decoys; warnings: three hard finds small on a phone, on purpose, and the dalmatian off its area's framing while the fire truck clears the runway for Flight 1); the smoke test passes, with a check that the art knows when an owner's found. Speed in the cloud: every view within budget, the slowest the whole place at 27 ms at 4x against the 60 budget on a quiet machine (41 to 50 while artists were screenshotting). Real frames a second wait for the owner's Mac.
+
+## For the owner at the preview
+None blocking; each has the lead's recommendation, taken for now (Decisions 24 to 33).
+- **The airline names:** Spite (yellow all over, Flight 1 to Orlando, on time and never boarding), JetBlew, Northeast. Lookalikes, as the brief's rules ask. *Recommendation: keep them.*
+- **The chapel's organ at six,** when everything's canceled: a few spooky bars. *Recommendation: keep it; it's one line in sound.js if it's too much.*
+- **The card after the ending** comes at 18 seconds, with Flight 1 rolling and the geese out in the harbor (the cast's artist suggested 26, after liftoff). *Recommendation: 18; the liftoff plays on beside the card.*
 
 ## Decisions
 
@@ -208,3 +233,17 @@ Gate 2 (the greybox), the lead's calls, session 20:
 21. **Three gates, not four:** C12 (Flight 1), C13 (the band, and Pidge) and C14 (the bride). Four planes didn't fit the apron at toy scale with room for the people.
 22. **Flight 1 is the night's only plane.** Regular traffic runs 5am to the ground stop; after it, only Flight 1 goes, so nothing else is on the runway at the ending.
 23. **The Courier misses Flight 1.** He waits at C12 all day and watches it leave from the window, then takes the water taxi home. It keeps his walk inside the loop, and it's funnier than boarding.
+
+Session 21 (the art), the lead's calls:
+
+24. **Three lookalike airlines:** Spite (yellow all over: Flight 1 to Orlando), JetBlew (the band's flight to New York at C13) and Northeast (C14, the bride's, to Philadelphia). Traffic on the runway takes them in turn.
+25. **The night is printed, not dimmed** (Plum Island's answer): outside, the ground takes a veil of night ink and the big things print again in dusk inks; the terminal and the bag room stay lit in their day inks, so the hall glows against the snowy dark. People keep their day inks, so every find reads.
+26. **The harbor is the paper and follows the day;** the areas leave their water unpainted, so it always matches.
+27. **It only snows outside:** no flakes over the terminal or the bag room (its roof is off for us, not for them). Snow lies from 3:30pm and is gone by the next morning.
+28. **The turkey man is one man,** travelling with the day (the art director: four artists had each drawn him).
+29. **A fourth plane waits on the de-icing pad all day** "for a gate" (the art director), filling the apron's biggest empty patch and leading into the night's spraying.
+30. **The Courier waits at C12 all day and watches Flight 1 go from the window,** holding up the parcel ("Tomorrow, then."), then takes the water taxi home.
+31. **The ending is framed close** (the runway's end, `span: 8.5`) and the card waits 18 seconds, until Flight 1 is rolling.
+32. **The first visit's ring sits on X-ray lane A's screen,** where the card says to tap (it was in the walkway beside it).
+33. **The Curb's road bows round the tower and the garage** between two tunnel mouths, rather than running through them (the greybox put them on the road).
+

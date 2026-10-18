@@ -120,8 +120,12 @@ export function buildWorld(map) {
   const cutaway = { front: false, above: false, walls: null, ...(map.cutaway || { front: true }) };
   const walkers = map.walkers || [];
   const land = map.land || null;
+  // Whether a find has been found ('zone:find'), for art that changes once it
+  // is (a bag back with its owner). The game sets it when it loads the map;
+  // until then nothing has been found.
+  const found = { is: () => false };
   // (A zone can stand on the land without printing it: place.land false, a house.)
-  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers, land: place.land === false ? null : land }), { index }));
+  const zones = map.zones.map((place, index) => Object.assign(buildZone(place.zone, { ...place, walkers, found, land: place.land === false ? null : land }), { index }));
   const shells = zones.some((z) => z.shelled);
   // What's drawn, back to front: every zone's chunks (see zone.js).
   const drawOrder = sortChunks(zones.flatMap((z) => z.chunks));
@@ -330,6 +334,7 @@ export function buildWorld(map) {
     map,
     id: map.id,
     zones,
+    found,
     // Chunks, not zones: what the renderer draws, in order. Each has .zone.
     drawOrder,
     order,
