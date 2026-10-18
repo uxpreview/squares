@@ -24,6 +24,7 @@ import {
   C, Q, P, box, rect, disc, face, paint, person, label, glow, alpha, tint, shade, mix, hash, cylinder,
 } from '../../../engine/art.js';
 import { clamp } from '../../../engine/actors.js';
+import { ZK } from '../../../engine/iso.js';
 import { INK, TONE, LIT, dusk, nightPrint } from '../style.js';
 import {
   solid, hexa, frame, planeParts, planeShadow, bag, look, lettering, sign, snowCover, nightGround, printed, gull,
@@ -255,9 +256,25 @@ const PIECES = [
 // plane is wider than a chunk's picture, so drawn as one thing it was cut off
 // at a picture's edge; each piece is drawn by a chunk whose picture holds it
 // (the one it stands over, if it can), and sorts with whatever's round it.
+// A chunk prints its ground after the ones to its left have drawn their
+// things, so whatever part of a piece hangs over the next chunk's ground on
+// screen (a wing low over the grass, an engine just past a seam) was printed
+// over: that part is drawn again by that chunk, cut to its ground, at the
+// piece's own place in the order. (Landing over the pier, the near engine's
+// far half went under the grass at the seam at 16, so it looked tucked under
+// the pier's last deck.)
 // state(t): null, or { x, y, along, dir, z (in the air), livery, a (0..1) }.
 // (Other areas could use it for anything big that moves: Flight 1 too.)
 const AWAY = { x: 50, y: 54, gone: true };
+// The chunk at x0's ground on screen (and the sliver it tucks under the one
+// before it), as a clip.
+function groundClip(ctx, x0) {
+  const a = x0 - 0.22, b = chunkEnd(x0) + 0.3, c = FRONT - 0.3, d = D + 0.3;
+  ctx.beginPath();
+  [[a, c], [b, c], [b, d], [a, d]].forEach(([x, y], i) => { const [X, Y] = P(x, y, 0); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+  ctx.closePath();
+  ctx.clip();
+}
 function flyer(R, state) {
   let memoT = NaN, memo = null;
   const at = (t) => {
@@ -278,13 +295,42 @@ function flyer(R, state) {
       const hx = clamp(p.x, x0 + 0.01, chunkEnd(x0) - 0.01), hy = clamp(p.y, FRONT + 0.01, D - 0.01);
       // (Wings and tailplanes sort over what's on the grass under them.)
       const over = i === 1 || i === 2 || i === 12 || i === 13 ? 1.5 : 0;
-      return { draw: p.draw, x: hx, y: hy, ahead: p.x + p.y - hx - hy + (s.z || 0) * 0.9 + over };
-    }) };
+      const depth = p.x + p.y + (s.z || 0) * 0.9 + over;
+      // The chunks after its own whose ground it reaches over on screen: a
+      // point up at z covers the ground z * ZK back in x (and y), so its
+      // lowest point reaches furthest.
+      const reach = mx - (s.z || 0) * ZK;
+      const again = [x0 + 16, x0 + 32].filter((c) => c <= 96 && reach > c - 0.25);
+      return { draw: p.draw, x: hx, y: hy, ahead: depth - hx - hy, depth, again };
+    }), all: parts.slice().sort((p, q) => p.x + p.y - q.x - q.y) };
     return memo;
   };
+  // Coming in and going away it's faint and high over the water: drawn then
+  // as one thing over everything, laid on whole at its strength (in pieces,
+  // each piece faint on its own, it looked like glass, its far wing showing
+  // through its body).
+  const fade = (t) => { const m = at(t); return m && m.s.a >= 1 ? 1 : 0; };
+  const faint = R.air((ctx, t) => { const m = at(t); if (m) for (const p of m.all) p.draw(ctx); },
+    { whole: true, fade: (t) => { const m = at(t); return m && m.s.a < 1 ? m.s.a : 0; } });
+  // (Only ever near the pier end, where it's faint: the first two chunks.)
+  faint.area = [-14, FRONT - 18, 31, D];
   PIECES.forEach((_, i) => {
-    R.mover((t) => { const m = at(t); return m ? m.parts[i] : AWAY; }, (ctx, t, p) => { if (!p.gone) p.draw(ctx); },
-      { fade: (t) => { const m = at(t); return m ? m.s.a : 0; } });
+    R.mover((t) => { const m = at(t); return m ? m.parts[i] : AWAY; }, (ctx, t, p) => { if (!p.gone) p.draw(ctx); }, { fade });
+    // Drawn again over the next chunk's ground, and the one after.
+    for (const k of [0, 1]) {
+      R.mover((t) => {
+        const m = at(t), q = m && m.parts[i], c = q && q.again[k];
+        if (c == null) return AWAY;
+        const x = c + 0.01, y = q.y;
+        return { x, y, ahead: q.depth - x - y, c, draw: q.draw };
+      }, (ctx, t, p) => {
+        if (p.gone) return;
+        ctx.save();
+        groundClip(ctx, p.c);
+        p.draw(ctx);
+        ctx.restore();
+      }, { fade });
+    }
   });
   return at;
 }
@@ -549,7 +595,9 @@ function truckArt(ctx, ink, night) {
   face(ctx, [[x0 + 0.02, y1 + 0.01, 0.95], [DOOR.x0 - 0.05, y1 + 0.01, 0.95], [DOOR.x0 - 0.05, y1 + 0.01, roofCab - 0.08], [x0 + 0.02, y1 + 0.01, roofCab - 0.08]], night ? LIT : ink(shade(C.sky, 0.45)), { lw: 0.02 });
   face(ctx, [[DOOR.x0, y1 + 0.005, DOOR.z0], [DOOR.x1, y1 + 0.005, DOOR.z0], [DOOR.x1, y1 + 0.005, DOOR.z1], [DOOR.x0, y1 + 0.005, DOOR.z1]], night ? shade(LIT, 0.35) : dark, { lw: 0.02 });
   // A white stripe down the side, the roll-up lockers, the name.
-  face(ctx, [[x0, y1 + 0.006, 0.66], [x1, y1 + 0.006, 0.66], [x1, y1 + 0.006, 0.8], [x0, y1 + 0.006, 0.8]], ink(C.white), { stroke: false });
+  // (Broken at the doorway: the door carries its own piece, so it doesn't
+  // run across the open doorway and the dalmatian.)
+  for (const [a, b] of [[x0, DOOR.x0], [DOOR.x1, x1]]) face(ctx, [[a, y1 + 0.006, 0.66], [b, y1 + 0.006, 0.66], [b, y1 + 0.006, 0.8], [a, y1 + 0.006, 0.8]], ink(C.white), { stroke: false });
   face(ctx, [[x1 + 0.006, y0, 0.66], [x1 + 0.006, y1, 0.66], [x1 + 0.006, y1, 0.8], [x1 + 0.006, y0, 0.8]], ink(C.white), { stroke: false });
   for (const [a, b] of [[79.75, 80.75], [80.85, 81.85]]) {
     face(ctx, [[a, y1 + 0.008, 0.9], [b, y1 + 0.008, 0.9], [b, y1 + 0.008, 1.55], [a, y1 + 0.008, 1.55]], ink(C.greyLight), { lw: 0.02 });
@@ -593,6 +641,8 @@ function truckDoor(ctx, t, k) {
   const out = a < Math.PI / 4;
   const pts = (za, zb) => [[x0, y1 + 0.01, za], [fx, fy, za], [fx, fy, zb], [x0, y1 + 0.01, zb]];
   face(ctx, pts(z0, z1), ink(out ? C.red : shade(C.red, 0.35)), { lw: 0.03 });
+  // The side's white stripe, on the door.
+  face(ctx, pts(0.66, 0.8), ink(out ? C.white : shade(C.white, 0.3)), { stroke: false });
   // The window: dark glass (lit at night), and while it's shut a spotty ear
   // pressed to it, and a breath on the glass.
   const win = (u, z) => [x0 + (fx - x0) * u, y1 + 0.01 + (fy - y1 - 0.01) * u, z];

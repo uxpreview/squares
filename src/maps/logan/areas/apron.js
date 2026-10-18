@@ -47,9 +47,10 @@ const DE = [39.5, 32.6]; // the fourth plane on the pad: its x and nose
 const MARSH = [53.2, 44.3]; // the marshaller, between the pad and C12
 const PILOT = [73.2, 44.8]; // by C13's tail, clear of its tailplane
 const SNOWMAN = [41.6, 42.2];
+const DRUM = [41.8, 33.6]; // the de-icing crew's drum, by day
 const DRESS = [86.1, 44.3];
 const TUGAT = [70, 44.3];
-const GULL = [73.4, 41.0, 1.61]; // standing on C13's far wing
+const GULL = [72.6, 41.4, 1.65]; // standing on C13's far wing, clear of the fin
 
 const id = (c) => c;
 const inkAt = (t) => (nightPrint(t) ? dusk : id);
@@ -162,25 +163,36 @@ function tops(x, nose) {
   };
   return { body, near: wing(1), far: wing(-1), nearStab: stab(1), farStab: stab(-1) };
 }
+// The winglet at the tip of a parked plane's near wing (as the kit draws it),
+// in the airline's tail color.
+function winglet(ctx, x, nose, color) {
+  const v1 = PLANE.span / 2, h1 = HC - R0 * 0.2;
+  const tip = [[-8.15, h1 + 0.1], [-9.45, h1 + 0.1], [-9.6, h1 + 0.9], [-9.05, h1 + 0.9]].map(([u, h]) => [x + v1, nose - u, h]);
+  solid(ctx, hexa(tip, tip.map(([px, py, pz]) => [px + 0.12, py, pz]), color));
+}
 // Lay a color on a parked plane's tops, each piece just after the part it
-// lies on. o: { fade, on, stroke }
+// lies on. o: { fade, on, stroke, tip: the winglet's color, drawn again over
+// what's laid on the near wing (it stands up off the tip, in front of it) }
 function topsOn(R, x, nose, color, o = {}) {
   const T = tops(x, nose);
   const [sx, sy] = stabAt(x, nose);
-  const add = (ax, ay, d, faces) => R.thing(ax, ay, (ctx) => {
+  const add = (ax, ay, d, faces, after) => R.thing(ax, ay, (ctx) => {
     for (const f of faces) face(ctx, f, color, o.stroke ? { lw: 0.018 } : { stroke: false });
+    if (after) after(ctx);
   }, { fade: o.fade, on: o.on, depth: ax + ay + d });
   add(x - 3.25, nose + 7.6, 0.01, [T.far]);
   add(x - 1.6, nose + 12.6, 0.01, [T.farStab]);
   add(x, nose + 12.35, 0.02, T.body);
-  add(x + 3.25, nose + 7.4, 0.01, [T.near]);
+  add(x + 3.25, nose + 7.4, 0.01, [T.near], o.tip ? (ctx) => winglet(ctx, x, nose, o.tip) : null);
   add(sx, sy, 0.01, [T.nearStab]);
 }
-// Snow on a parked plane, in its day and its night print.
+// Snow on a parked plane, in its day and its night print. o: { livery, fade,
+// on }
 function snowOn(R, x, nose, o = {}) {
+  const tail = LIVERY[o.livery || 'northeast'].tail;
   for (const night of [false, true]) {
     topsOn(R, x, nose, night ? dusk(C.white) : C.white, {
-      stroke: true, fade: o.fade || settle, on: (t) => (!o.on || o.on(t)) && nightPrint(t) === night,
+      stroke: true, fade: o.fade || settle, on: (t) => (!o.on || o.on(t)) && nightPrint(t) === night, tip: night ? dusk(tail) : tail,
     });
   }
 }
@@ -739,16 +751,16 @@ export default {
     plane(R, X14, NOSE, { livery: 'northeast' });
     plane(R, DE[0], DE[1], { livery: 'northeast', on: onPad });
     R.poke({ id: 'waiting', at: [DE[0], DE[1] + 6.5, 1.8], r: 1.0, when: onPad, sound: 'tick', say: (t) => (stopped(t) ? 'Still waiting. Now for the snow too.' : 'Just waiting for a gate. Any gate.') });
-    snowOn(R, X13, NOSE);
-    snowOn(R, X14, NOSE);
-    snowOn(R, DE[0], DE[1], { on: (t) => onPad(t) && !stopped(t) });
-    topsOn(R, DE[0], DE[1], dusk(C.white), { stroke: true, fade: deSnow, on: stopped });
+    snowOn(R, X13, NOSE, { livery: 'jetblew' });
+    snowOn(R, X14, NOSE, { livery: 'northeast' });
+    snowOn(R, DE[0], DE[1], { livery: 'northeast', on: (t) => onPad(t) && !stopped(t) });
+    topsOn(R, DE[0], DE[1], dusk(C.white), { stroke: true, fade: deSnow, on: stopped, tip: dusk(LIVERY.northeast.tail) });
     topsOn(R, DE[0], DE[1], alpha(INK.safety, 0.62), { fade: deCoat, on: stopped });
 
     // Flight 1 parked at C12 (day.js's, cached: the kit's plane() too), and
     // the snow on it.
     flight1AtGate(R);
-    snowOn(R, X12, NOSE, { on: (t) => !ending(t) && wrap(t) < PUSH });
+    snowOn(R, X12, NOSE, { livery: 'spite', on: (t) => !ending(t) && wrap(t) < PUSH });
 
     // The jet bridges (C12's pulls back before Flight 1 goes).
     const docked = (t) => { const h = hour(t); return h >= 4 && h < 23.42; };
@@ -802,9 +814,11 @@ export default {
         box(ctx, X13 + 3.05, 34.2, 1.72, 0.7, 0.9, 1.2, ink(C.greyLight), { lw: 0.02 });
         box(ctx, X13 + 3.85, 34.2, 1.72, 0.7, 0.9, 1.2, ink(C.greyLight), { lw: 0.02 });
         for (let i = 0; i < 4; i++) rect(ctx, X13 + 3.15, 35.6 - i * 0.05, 0.5, 0.3, 1.74 + i * 0.07, ink(C.greyLight), { lw: 0.015 });
+        // (Sitting on the box's floor, in the middle of the opening: on a
+        // cart further right his head was cut off by the top of it.)
         const chew = Math.sin(t * 5) > 0;
-        person(ctx, X13 + 4.3, 35.95, 1.72, { ...look(66, 'traveler', { top: C.teal, hat: 'beanie', wear: pillow }), pose: 'sit', dir: 'l', scale: 0.8, arms: [chew ? 2.3 : 1.2, 0.9] }, 0);
-        rect(ctx, X13 + 4.0, 36.1, 0.45, 0.32, 2.15, ink(C.greyLight), { lw: 0.015 });
+        rect(ctx, X13 + 3.1, 36.05, 0.45, 0.32, 1.73, ink(C.greyLight), { lw: 0.015 });
+        person(ctx, X13 + 3.8, 35.95, 1.70 - 0.57, { ...look(66, 'traveler', { top: C.teal, hat: 'beanie', wear: pillow }), pose: 'sit', dir: 'l', scale: 0.8, arms: [chew ? 2.3 : 1.2, 0.9] }, 0);
         const [cx, cy] = P(X13 + 3.4, 36.3, 1.72);
         ctx.beginPath(); ctx.roundRect(cx - 0.06, cy - 0.24, 0.12, 0.24, 0.03); paint(ctx, BRAND.can, { lw: 0.015 });
         ctx.restore();
@@ -825,16 +839,16 @@ export default {
       if (k < 0.05) {
         face(ctx, [[xa, y + 0.004, za], [xb, y + 0.004, za], [xb, y + 0.004, za + 0.14], [xa, y + 0.004, za + 0.14]], ink(C.ink), { lw: 0.02 });
         const wig = Math.sin(t * 6) > 0.5 ? 0.04 : 0;
-        for (const fx of [X13 + 4.05, X13 + 4.45]) {
-          const [X, Y] = P(fx, y + 0.02, za + 0.06 + (fx > X13 + 4.2 ? wig : 0));
+        for (const fx of [X13 + 3.35, X13 + 3.75]) {
+          const [X, Y] = P(fx, y + 0.02, za + 0.06 + (fx > X13 + 3.55 ? wig : 0));
           ctx.beginPath(); ctx.ellipse(X, Y, 0.12, 0.06, 0, 0, Math.PI * 2); paint(ctx, C.red, { lw: 0.02 });
         }
         // Somebody's chewing.
         const m = (t % 5) / 5;
-        if (m < 0.45 && Q.detail) label(ctx, X13 + 4.2, y + 0.3, zb + 0.35 + m * 0.8, 'munch', 0.24, alpha(C.ink, 1 - m / 0.45), 'Rethink Sans');
+        if (m < 0.45 && Q.detail) label(ctx, X13 + 3.6, y + 0.3, zb + 0.35 + m * 0.8, 'munch', 0.24, alpha(C.ink, 1 - m / 0.45), 'Rethink Sans');
       }
     }, { anim: true, depth: X13 + 7.2 + 36.5 + 0.05 });
-    R.find({ id: 'stowaway', label: 'A stowaway', kind: 'poke', inside: meals, at: [X13 + 4.3, 35.95, 2.45], r: 0.8, hint: 'The catering box is eating its own meals.' });
+    R.find({ id: 'stowaway', label: 'A stowaway', kind: 'poke', inside: meals, at: [X13 + 3.8, 35.95, 2.35], r: 0.8, hint: 'The catering box is eating its own meals.' });
     // The catering driver, looking up at his box, wondering where lunch went.
     stay(R, X13 + 8.0, 34.6, look(43, 'ramp', { top: C.white, hat: 'cap' }), { dir: 'l', arms: [0.5, -0.5] });
 
@@ -943,8 +957,12 @@ export default {
     R.thing(DRESS[0] + 1.2, DRESS[1] + 0.62, (ctx, t) => {
       const ink = inkAt(t), x = DRESS[0], y = DRESS[1], z = 0.98;
       if (R.found('gates:bride')) {
-        // Gone home: the claim stub left on the bags.
-        rect(ctx, x - 0.15, y - 0.1, 0.32, 0.2, z, C.mustard, { lw: 0.02 });
+        // Gone home: her empty hanger and the torn-off claim stub left on
+        // the bags (in the night's ink after dark, like the bags).
+        cord(ctx, [[x - 0.45, y - 0.05, z + 0.02], [x + 0.15, y - 0.05, z + 0.02], [x - 0.15, y - 0.05, z + 0.28], [x - 0.45, y - 0.05, z + 0.02]], ink(C.grey), 0.035);
+        cord(ctx, [[x - 0.15, y - 0.05, z + 0.28], [x - 0.15, y - 0.05, z + 0.4], [x - 0.05, y - 0.05, z + 0.42]], ink(C.grey), 0.03);
+        rect(ctx, x + 0.2, y - 0.02, 0.32, 0.2, z, ink(C.white), { lw: 0.02 });
+        rect(ctx, x + 0.2, y - 0.02, 0.08, 0.2, z + 0.002, ink(C.red), { stroke: false });
         return;
       }
       // The garment bag, puffed up with tulle, its hanger and its tag.
@@ -1031,12 +1049,24 @@ export default {
       }
     });
     // By day the crew waits: one on a drum with a coffee, one with the hose.
-    printed(R, 38.1, 34.1, (ctx, ink) => cylinder(ctx, 37.8, 33.8, 0, 0.3, 0.75, ink(INK.safety), {}), { on: (t) => !stopped(t) });
-    R.thing(37.8, 33.8, (ctx) => person(ctx, 37.8, 33.8, 0.75, {
-      ...look(51, 'ramp', { hat: 'beanie' }), pose: 'sit', dir: 'r', arms: [1.4, 0.4],
+    // (The drum's on the near side of the waiting plane's nose, by the
+    // second truck: on the far side the nose hid him.)
+    const [DX, DY] = DRUM;
+    printed(R, DX + 0.3, DY + 0.3, (ctx, ink) => cylinder(ctx, DX, DY, 0, 0.3, 0.75, ink(INK.safety), {}), { on: (t) => !stopped(t) });
+    // (A sitter's seat is 0.71 over the z they're drawn at.)
+    R.thing(DX, DY, (ctx) => person(ctx, DX, DY, 0.05, {
+      ...look(51, 'ramp', { hat: 'beanie' }), pose: 'sit', dir: 'l', arms: [1.4, 0.4],
       hold: (c) => { c.beginPath(); c.rect(0.28, -0.22, 0.16, 0.2); paint(c, C.white, { lw: 0.02 }); },
-    }, 0), { on: (t) => !stopped(t), depth: 38.1 + 34.1 + 0.05 });
-    stay(R, 46.2, 36.4, look(53, 'ramp', { hat: 'helmet' }), { pose: 'read', dir: 'l', on: (t) => !stopped(t) });
+    }, 0), { on: (t) => !stopped(t), depth: DX + DY + 0.65 });
+    // (The one with the hose: its nozzle in his hands, the hose looped on the
+    // ground back to the truck's reel.)
+    printed(R, 46.2, 36.4, (ctx, ink) => {
+      // (From his hands, about (45.8, 36.8) a unit up, down to the ground and
+      // round to the reel at the truck's back.)
+      cord(ctx, [[45.8, 36.82, 0.98], [45.9, 36.95, 0.55], [45.98, 37.15, 0.12], [45.95, 37.42, 0.02], [45.6, 37.5, 0.02], [45.3, 37.3, 0.12], [45.2, 37.05, 0.45]], ink(C.black), 0.07);
+      person(ctx, 46.2, 36.4, 0, { ...look(53, 'ramp', { hat: 'helmet' }), pose: 'read', dir: 'l',
+        hold: (c) => { c.beginPath(); c.rect(0.1, 0.1, 0.42, 0.11); paint(c, C.grey, { lw: 0.02 }); c.beginPath(); c.rect(0.48, 0.07, 0.12, 0.17); paint(c, INK.safety, { lw: 0.02 }); } }, 0);
+    }, { on: (t) => !stopped(t) });
     // The snowman, built on the night shift, and the one who built it.
     for (const night of [false, true]) R.thing(SNOWMAN[0], SNOWMAN[1], (ctx) => snowman(ctx, SNOWMAN[0], SNOWMAN[1], night ? dusk : id), { on: (t) => dark(t) && nightPrint(t) === night });
     R.light({ at: [SNOWMAN[0], SNOWMAN[1], 1.75], r: 1.0, color: INK.safety, k: (t) => (dark(t) ? nightK(t) * 0.6 : 0) });
