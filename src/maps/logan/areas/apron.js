@@ -7,10 +7,10 @@
 // Running gags. The marshaller waves in everything that comes along the
 // service road with full ceremony: the bag train every time, a fuel truck at
 // dawn, a man on a bike at noon, a Canada goose in the evening snow, the
-// catering truck at midnight, and at 11:30pm Flight 1, at last. And in the
-// stuck night (6pm to 11:30pm) a fourth plane waits on the de-icing pad: it's
-// sprayed orange, snowed on, and sprayed again, three times, in a ground stop
-// where nothing can leave.
+// catering truck at midnight, and at 11:30pm Flight 1, at last. And a fourth
+// plane waits on the de-icing pad from 6am for a gate; in the stuck night
+// (6pm to 11:30pm) it's sprayed orange, snowed on, and sprayed again, three
+// times, in a ground stop where nothing can leave.
 //
 // The finds: the goose in C14's forward hold (its tail sticks out under the
 // door onto the belt loader, all day), a stowaway eating the meals in the
@@ -29,7 +29,7 @@ import { C, Q, P, box, rect, face, poly, paint, disc, cylinder, tiles, person, l
 import { clamp, particles } from '../../../engine/actors.js';
 import { ZK, SLAB } from '../../../engine/iso.js';
 import { INK, LIVERY, RAMP, BAGS, SIGN, BRAND, LIT, dusk, nightPrint } from '../style.js';
-import { planeParts, planeShadow, solid, hexa, frame, tug, cart, bag, look, stay, sign, hangSign, lettering, snowCover, nightGround, printed, mast } from '../kit.js';
+import { plane, seamSafe, gull, muffs, wands, solid, hexa, frame, tug, cart, bag, look, stay, sign, hangSign, lettering, snowCover, nightGround, printed, mast } from '../kit.js';
 import { AIR, FRONT, CHECK, W, GATES, NOSE, PLANE } from '../plan.js';
 import { LOOP, hour, at, dark, stopped, nightK, lightsOn, settle } from '../clock.js';
 import { flight1AtGate } from '../day.js';
@@ -131,27 +131,13 @@ function cap(R, x0, y0, x1, y1, z, o = {}) {
 }
 
 // ---------- Planes ----------
-// A parked plane, as the kit's plane() but with each piece anchored in the
-// chunk that's drawn last of the ones it stands over (its near tailplane
-// reaches past a seam at C13 and C14).
+// Parked planes are the kit's plane(), each piece anchored in the chunk that's
+// drawn last of the ones it stands over (kit.js, seamSafe): the near
+// tailplane reaches past a seam at C12, C13 and C14.
 const R0 = PLANE.body / 2, HC = 0.62 + R0;
 const BODY = [[0, 0.22, -0.28], [-0.55, 0.62, -0.12], [-1.6, 0.92, -0.02], [-2.6, 1, 0], [-4.6, 1, 0], [-6.6, 1, 0], [-8.6, 1, 0], [-10.2, 0.8, 0.28], [-11.7, 0.52, 0.62], [-13, 0.24, 0.9]];
-const stabAt = (x, nose) => {
-  const sx = x + 1.6, reach = x + 3.1;
-  return [Math.floor(reach / 16) > Math.floor(sx / 16) ? Math.floor(reach / 16) * 16 + 0.05 : sx, nose + 12.4];
-};
-function parked(R, x, nose, o = {}) {
-  const on = o.on || (() => true);
-  R.rug((ctx) => planeShadow(ctx, x, nose, 0, 'y'), o.on ? { on } : {});
-  const [sx, sy] = stabAt(x, nose);
-  for (const night of [false, true]) {
-    const parts = planeParts(x, nose, 0, 'y', { dir: -1, ...o, ink: night ? dusk : null, lit: night });
-    for (const p of parts) {
-      const stab = Math.abs(p.x - (x + 1.6)) < 0.01 && Math.abs(p.y - (nose + 12.4)) < 0.01;
-      R.thing(stab ? sx : p.x, stab ? sy : p.y, p.draw, { on: (t) => on(t) && nightPrint(t) === night });
-    }
-  }
-}
+// Where the near tailplane stands (as the kit's plane() puts it).
+const stabAt = (x, nose) => seamSafe(x + 1.6, nose + 12.4, x + 3.1, nose + 13);
 // The tops of a parked plane (its body, wings and tailplanes), for the snow
 // lying on it and the de-icing fluid: faces, lifted a hair.
 function tops(x, nose) {
@@ -422,21 +408,7 @@ function dolly(ctx, x, y, ink) {
 }
 
 // ---------- People ----------
-// Reflective stripes on a hi-vis vest (person()'s wear).
-function stripes(ctx, o) {
-  if (!Q.detail || o.dress) return;
-  ctx.fillStyle = C.greyLight;
-  for (const k of [0.22, 0.5]) ctx.fillRect(-0.28, o.hipY - k - 0.035, 0.56, 0.07);
-}
-// Ear defenders (person()'s face).
-function muffs(ctx, hy, back) {
-  ctx.beginPath(); ctx.arc(0.02, hy - 0.02, 0.36, Math.PI * 1.1, Math.PI * 1.9);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(back ? 0.02 : -0.07, hy + 0.04, 0.12, 0.15, 0, 0, Math.PI * 2);
-  paint(ctx, C.red, { lw: 0.03 });
-}
-// The ramp crew: safety orange, the stripes, sometimes ear defenders.
-const crew = (seed, extra = {}) => look(seed, 'ramp', { wear: stripes, ...(seed % 2 ? { face: muffs } : {}), ...extra });
+// (The crews dress from the kit: look(seed, 'ramp'), muffs, wands.)
 // A captain's cap: navy, a white crown, a gold badge, the peak.
 function pilotCap(ctx, hy, back) {
   ctx.beginPath();
@@ -469,60 +441,8 @@ function pillow(ctx, o) {
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.19; ctx.stroke();
   ctx.strokeStyle = C.mustard; ctx.lineWidth = 0.12; ctx.stroke();
 }
-// The marshaller's lit wands, out from her hands along her arms (the same
-// arms as person()'s: near aA, far aB).
-function wands(ctx, x, y, z, dir, [aA, aB], lit, s = 1) {
-  const [X, Y] = P(x, y, z), f = dir === 'l' ? -1 : 1;
-  ctx.save();
-  ctx.translate(X, Y); ctx.scale(f * s, s);
-  for (const [sx, a] of [[-0.22, aB], [0.22, aA]]) {
-    const hx = sx + Math.sin(a) * 0.72, hy = -1.53 + Math.cos(a) * 0.72;
-    const ex = hx + Math.sin(a) * 0.52, ey = hy + Math.cos(a) * 0.52;
-    if (lit) { ctx.beginPath(); ctx.arc((hx + ex) / 2, (hy + ey) / 2, 0.34, 0, Math.PI * 2); ctx.fillStyle = alpha(INK.safety, 0.28); ctx.fill(); }
-    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.lineCap = 'round';
-    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.17; ctx.stroke(); }
-    ctx.strokeStyle = lit ? tint(INK.safety, 0.4) : INK.safety; ctx.lineWidth = 0.11; ctx.stroke();
-  }
-  ctx.restore();
-}
 
 // ---------- Birds and the snowman ----------
-// A herring gull, about goose height sitting down: white, a grey back with
-// black wingtips, a yellow bill with its red spot, pink legs, a grudge. It
-// holds a boarding pass in its bill (flying standby).
-function gull(ctx, x, y, z, t, dir = 'r') {
-  const [X, Y] = P(x, y, z), f = dir === 'l' ? -1 : 1;
-  ctx.save();
-  ctx.translate(X, Y); ctx.scale(f, 1);
-  ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.16); ctx.fill();
-  ctx.strokeStyle = C.pink; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-0.04, -0.2); ctx.lineTo(-0.06, 0); ctx.moveTo(0.07, -0.2); ctx.lineTo(0.08, 0); ctx.stroke();
-  // The body and white tail.
-  ctx.beginPath(); ctx.ellipse(0, -0.33, 0.3, 0.16, -0.08, 0, Math.PI * 2);
-  ctx.moveTo(-0.24, -0.36); ctx.lineTo(-0.48, -0.42); ctx.lineTo(-0.27, -0.27);
-  paint(ctx, C.white, { lw: 0.04, dots: Q.detail ? C.greyLight : null, density: 0.1 });
-  // The folded wing: grey, its black tip past the tail with white spots.
-  ctx.beginPath(); ctx.moveTo(0.18, -0.42); ctx.quadraticCurveTo(-0.05, -0.52, -0.34, -0.42); ctx.lineTo(-0.3, -0.33); ctx.quadraticCurveTo(-0.02, -0.3, 0.18, -0.42);
-  paint(ctx, C.grey, { lw: 0.035 });
-  ctx.beginPath(); ctx.moveTo(-0.3, -0.42); ctx.lineTo(-0.56, -0.45); ctx.lineTo(-0.3, -0.34); ctx.closePath();
-  paint(ctx, C.black, { lw: 0.03 });
-  if (Q.detail) { ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(-0.48, -0.44, 0.022, 0, Math.PI * 2); ctx.fill(); }
-  // The head, looking about.
-  const look = Math.sin(t * 0.9) > 0.6 ? 0.04 : 0;
-  ctx.beginPath(); ctx.moveTo(0.16, -0.38); ctx.lineTo(0.22, -0.55); ctx.lineTo(0.3, -0.5); ctx.lineTo(0.26, -0.36); ctx.closePath(); paint(ctx, C.white, { lw: 0.03 });
-  ctx.beginPath(); ctx.arc(0.26 + look, -0.58, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
-  ctx.beginPath(); ctx.moveTo(0.33 + look, -0.6); ctx.lineTo(0.5 + look, -0.57); ctx.lineTo(0.47 + look, -0.53); ctx.lineTo(0.33 + look, -0.54); ctx.closePath();
-  paint(ctx, C.mustard, { lw: 0.02 });
-  ctx.beginPath(); ctx.arc(0.45 + look, -0.545, 0.018, 0, Math.PI * 2); ctx.fillStyle = C.red; ctx.fill();
-  ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0.29 + look, -0.6, 0.022, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(0.24 + look, -0.66); ctx.lineTo(0.33 + look, -0.63); ctx.stroke();
-  // The boarding pass.
-  if (Q.detail) {
-    ctx.beginPath(); ctx.rect(0.43 + look, -0.57, 0.17, 0.1); paint(ctx, C.white, { lw: 0.015 });
-    ctx.fillStyle = C.red; ctx.fillRect(0.43 + look, -0.57, 0.04, 0.1);
-  }
-  ctx.restore();
-}
 // A Canada goose: brown, a black neck and head, the white chinstrap. Not the
 // goose. pose: walk | stand | honk
 function canada(ctx, x, y, z, t, dir = 'r', pose = 'walk') {
@@ -766,9 +686,10 @@ export default {
     }
 
     // ---------- Along the glass ----------
-    // The de-icing fluid in its tanks, orange and green.
-    printed(R, 37.6, 31.65, (ctx, ink) => {
-      for (const [x, band, text] of [[35.3, INK.safety, 'TYPE I'], [37.0, C.green, 'TYPE IV']]) {
+    // The de-icing fluid in its tanks, orange and green (along from the
+    // shoes at security, so their tops stay clear of the goose in them).
+    printed(R, 35.0, 31.65, (ctx, ink) => {
+      for (const [x, band, text] of [[32.4, INK.safety, 'TYPE I'], [34.1, C.green, 'TYPE IV']]) {
         cylinder(ctx, x, 31.05, 0, 0.62, 2.5, ink(C.white), {});
         const [X, Y] = P(x, 31.05, 1.7);
         if (Q.detail) {
@@ -776,11 +697,11 @@ export default {
           label(ctx, x, 31.05, 1.05, text, 0.22, ink(C.ink), 'Rethink Sans');
         }
       }
-      cord(ctx, [[35.9, 31.6, 0.4], [36.4, 31.7, 0.4]], ink(C.grey), 0.06);
+      cord(ctx, [[33.0, 31.6, 0.4], [33.5, 31.7, 0.4]], ink(C.grey), 0.06);
     });
     for (const night of [false, true]) {
-      R.thing(37.6, 31.65, (ctx) => { for (const x of [35.3, 37.0]) disc(ctx, x, 31.05, 2.52, 0.6, night ? dusk(C.white) : C.white, { lw: 0.02 }); },
-        { fade: (t) => settle(t), depth: 69.3, on: (t) => nightPrint(t) === night });
+      R.thing(35.0, 31.65, (ctx) => { for (const x of [32.4, 34.1]) disc(ctx, x, 31.05, 2.52, 0.6, night ? dusk(C.white) : C.white, { lw: 0.02 }); },
+        { fade: (t) => settle(t), depth: 66.7, on: (t) => nightPrint(t) === night });
     }
     // Baggage cans waiting by C14, the FOD bin, the extinguishers.
     printed(R, 91.6, 31.85, (ctx, ink) => { uld(ctx, 88.6, 30.5, ink); uld(ctx, 90.2, 30.5, ink); });
@@ -809,20 +730,24 @@ export default {
     printed(R, 35.5, 44.85, (ctx, ink) => hangSign(ctx, 'x', 34.4, 44.85, 1.7, 2.2, 0.5, 'YIELD TO BAGS', { post: true, size: 0.24, board: ink(SIGN.board), ink: ink(SIGN.ink) }));
 
     // ---------- The planes ----------
-    // C12 is Flight 1 (day.js). C13 is the band's, C14 the bride's; at night
-    // a fourth waits on the de-icing pad.
-    parked(R, X13, NOSE, { livery: 'jetblew' });
-    parked(R, X14, NOSE, { livery: 'northeast' });
-    parked(R, DE[0], DE[1], { livery: 'northeast', on: stopped });
+    // C12 is Flight 1 (day.js). C13 is the band's, C14 the bride's. A fourth
+    // waits on the de-icing pad from six in the morning for a gate that never
+    // comes free (the busiest day of the year), and so it's still there in
+    // the ground stop, to be sprayed, snowed on and sprayed again.
+    const onPad = (t) => { const h = hour(t); return h >= 6 && h < 23.5; };
+    plane(R, X13, NOSE, { livery: 'jetblew' });
+    plane(R, X14, NOSE, { livery: 'northeast' });
+    plane(R, DE[0], DE[1], { livery: 'northeast', on: onPad });
+    R.poke({ id: 'waiting', at: [DE[0], DE[1] + 6.5, 1.8], r: 1.0, when: onPad, sound: 'tick', say: (t) => (stopped(t) ? 'Still waiting. Now for the snow too.' : 'Just waiting for a gate. Any gate.') });
     snowOn(R, X13, NOSE);
     snowOn(R, X14, NOSE);
+    snowOn(R, DE[0], DE[1], { on: (t) => onPad(t) && !stopped(t) });
     topsOn(R, DE[0], DE[1], dusk(C.white), { stroke: true, fade: deSnow, on: stopped });
     topsOn(R, DE[0], DE[1], alpha(INK.safety, 0.62), { fade: deCoat, on: stopped });
 
-    // Flight 1 parked at C12 (day.js's, cached; its near tailplane anchored
-    // past the seam at x 64 like the others), and the snow on it.
-    const stab12 = stabAt(X12, NOSE);
-    flight1AtGate({ ...R, thing: (x, y, draw, o) => (Math.abs(x - (X12 + 1.6)) < 0.01 && Math.abs(y - (NOSE + 12.4)) < 0.01 ? R.thing(stab12[0], stab12[1], draw, o) : R.thing(x, y, draw, o)) });
+    // Flight 1 parked at C12 (day.js's, cached: the kit's plane() too), and
+    // the snow on it.
+    flight1AtGate(R);
     snowOn(R, X12, NOSE, { on: (t) => !ending(t) && wrap(t) < PUSH });
 
     // The jet bridges (C12's pulls back before Flight 1 goes).
@@ -855,7 +780,7 @@ export default {
     cap(R, X13 + 7.3, 37.38, X13 + 9.5, 38.62, 1.51);
     R.mover(() => ({ x: X13 + 6.0, y: 38.05 }), (ctx, t) => {
       const k = (t / 3) % 1, toBelt = k > 0.5, lift = Math.sin(k * Math.PI * 2);
-      const lk = crew(41, { hat: 'beanie' });
+      const lk = look(41, 'ramp', { hat: 'beanie' });
       person(ctx, X13 + 6.0, 38.05, 0, { ...lk, pose: 'carry', dir: toBelt ? 'l' : 'r', arms: [1.1 + lift * 0.4, 1.0 + lift * 0.4] }, t);
       const [X, Y] = P(X13 + 6.0, 38.05, 1.15 + Math.max(0, lift) * 0.3);
       ctx.save(); ctx.translate(X + (toBelt ? -0.45 : 0.45), Y);
@@ -911,7 +836,7 @@ export default {
     }, { anim: true, depth: X13 + 7.2 + 36.5 + 0.05 });
     R.find({ id: 'stowaway', label: 'A stowaway', kind: 'poke', inside: meals, at: [X13 + 4.3, 35.95, 2.45], r: 0.8, hint: 'The catering box is eating its own meals.' });
     // The catering driver, looking up at his box, wondering where lunch went.
-    stay(R, X13 + 8.0, 34.6, crew(43, { top: C.white, hat: 'cap' }), { dir: 'l', arms: [0.5, -0.5] });
+    stay(R, X13 + 8.0, 34.6, look(43, 'ramp', { top: C.white, hat: 'cap' }), { dir: 'l', arms: [0.5, -0.5] });
 
     // ---------- C14: the hold, the goose, the fuel ----------
     const holdPoke = R.poke({ id: 'hold', at: [X14 + 1.55, 36.95, 1.0], r: 0.9, say: 'Something in here is honking.' });
@@ -945,7 +870,7 @@ export default {
       dir: 'r', pose: (t % 3.2) < 0.8 ? 'honk' : 'stand', hidden: holdPoke.k() < 0.5,
     }), { kind: 'poke', inside: holdPoke, hint: 'One plane\'s hold is honking.', scale: 0.82, bias: 4 });
     // The handler at the loader's foot, scratching his head at the belt.
-    stay(R, X14 + 6.3, 37.7, crew(45, { hat: 'helmet' }), { dir: 'l', arms: [2.7, 0.15] });
+    stay(R, X14 + 6.3, 37.7, look(45, 'ramp', { hat: 'helmet' }), { dir: 'l', arms: [2.7, 0.15] });
     printed(R, X14 + 7.9, 36.18, (ctx, ink) => cart(ctx, X14 + 6.8, 35.6, 0, 'x', 1, { bags: 11, ink }));
     cap(R, X14 + 5.7, 34.98, X14 + 7.9, 36.22, 1.51);
     // The fuel truck under the near wing, its hose run in, the driver
@@ -955,7 +880,7 @@ export default {
       fuelTruck(ctx, X14 + 8.2, 38.6, 'y', -1, ink, night);
     });
     cap(R, X14 + 7.96, 39.65, X14 + 8.44, 41.8, 1.66, { depth: X14 + 8.82 + 41.8 + 0.02 });
-    stay(R, X14 + 9.45, 41.65, crew(47, { hat: 'beanie' }), { pose: 'read', dir: 'l' });
+    stay(R, X14 + 9.45, 41.65, look(47, 'ramp', { hat: 'beanie' }), { pose: 'read', dir: 'l' });
 
     // ---------- C12's stand: Flight 1, on time all day ----------
     // The agent with the ON TIME paddle, and the bags for Orlando (a
@@ -992,7 +917,7 @@ export default {
     const nap = R.poke({ id: 'tug', at: [TUGAT[0], TUGAT[1], 1.6], r: 0.9, say: 'Five more minutes.', teach: true, hold: 2.2 });
     R.thing(TUGAT[0] + 0.7, TUGAT[1] + 0.52, (ctx, t) => {
       const awake = nap.k() > 0.5;
-      tug(ctx, TUGAT[0], TUGAT[1], 0, 'x', 1, { driver: crew(49, { hat: 'beanie' }), asleep: !awake, ink: inkAt(t) }, t);
+      tug(ctx, TUGAT[0], TUGAT[1], 0, 'x', 1, { driver: look(49, 'ramp', { hat: 'beanie' }), asleep: !awake, ink: inkAt(t) }, t);
       if (settle(t) > 0.05) rect(ctx, TUGAT[0] - 0.74, TUGAT[1] - 0.54, 0.86, 1.08, 1.78, alpha(nightPrint(t) ? dusk(C.white) : C.white, settle(t)), { lw: 0.02 });
       if (!Q.detail) return;
       if (awake) label(ctx, TUGAT[0] - 0.2, TUGAT[1], 2.5, '!', 0.5, C.red, 'Bagel Fat One');
@@ -1064,7 +989,7 @@ export default {
     R.find({ id: 'pilot', label: 'A pilot in slippers', at: [PILOT[0], PILOT[1], 1.2], r: 0.9 });
 
     // ---------- The gull on C13's wing, flying standby ----------
-    R.thing(GULL[0], GULL[1], (ctx, t) => gull(ctx, GULL[0], GULL[1], GULL[2], t, Math.sin(t * 0.35) > 0 ? 'r' : 'l'), { anim: true, depth: X13 - 3.25 + NOSE + 7.6 + 0.05 });
+    R.thing(GULL[0], GULL[1], (ctx, t) => gull(ctx, GULL[0], GULL[1], GULL[2], t, { dir: Math.sin(t * 0.35) > 0 ? 'r' : 'l', pass: true }), { anim: true, depth: X13 - 3.25 + NOSE + 7.6 + 0.05 });
     R.decoy({ id: 'gull', at: [GULL[0], GULL[1], GULL[2] + 0.35], r: 0.7, say: 'A gull, flying standby.' });
 
     // ---------- The de-icing pad ----------
@@ -1108,14 +1033,14 @@ export default {
     // By day the crew waits: one on a drum with a coffee, one with the hose.
     printed(R, 38.1, 34.1, (ctx, ink) => cylinder(ctx, 37.8, 33.8, 0, 0.3, 0.75, ink(INK.safety), {}), { on: (t) => !stopped(t) });
     R.thing(37.8, 33.8, (ctx) => person(ctx, 37.8, 33.8, 0.75, {
-      ...crew(51, { hat: 'beanie' }), pose: 'sit', dir: 'r', arms: [1.4, 0.4],
+      ...look(51, 'ramp', { hat: 'beanie' }), pose: 'sit', dir: 'r', arms: [1.4, 0.4],
       hold: (c) => { c.beginPath(); c.rect(0.28, -0.22, 0.16, 0.2); paint(c, C.white, { lw: 0.02 }); },
     }, 0), { on: (t) => !stopped(t), depth: 38.1 + 34.1 + 0.05 });
-    stay(R, 46.2, 36.4, crew(53, { hat: 'helmet' }), { pose: 'read', dir: 'l', on: (t) => !stopped(t) });
+    stay(R, 46.2, 36.4, look(53, 'ramp', { hat: 'helmet' }), { pose: 'read', dir: 'l', on: (t) => !stopped(t) });
     // The snowman, built on the night shift, and the one who built it.
     for (const night of [false, true]) R.thing(SNOWMAN[0], SNOWMAN[1], (ctx) => snowman(ctx, SNOWMAN[0], SNOWMAN[1], night ? dusk : id), { on: (t) => dark(t) && nightPrint(t) === night });
     R.light({ at: [SNOWMAN[0], SNOWMAN[1], 1.75], r: 1.0, color: INK.safety, k: (t) => (dark(t) ? nightK(t) * 0.6 : 0) });
-    stay(R, 43.9, 42.6, crew(55, { hat: 'beanie' }), { pose: 'point', dir: 'l', on: dark });
+    stay(R, 43.9, 42.6, look(55, 'ramp', { hat: 'beanie' }), { pose: 'point', dir: 'l', on: dark });
     R.find({ id: 'snowman', label: 'A snowman in a safety vest', kind: 'hard', when: dark, note: 'after dark', at: [SNOWMAN[0], SNOWMAN[1], 0.95], r: 0.8, riddle: 'Built on the night shift.', hint: 'Somebody at the de-icing pad had time on their hands after dark.' });
 
     // ---------- Cones ----------
@@ -1130,7 +1055,7 @@ export default {
       return { x: 68.4 + s * 2.4, y: 36.1, dir: k < 0.5 ? 'r' : 'l', moving: true };
     }, (ctx, t, p) => {
       const shovel = settle(t) > 0.25, f = p.dir === 'l' ? -1 : 1, push = Math.sin(t * 4) * 0.15;
-      person(ctx, p.x, p.y, 0, { ...crew(57, { hat: 'helmet' }), pose: 'walk', dir: p.dir, arms: [0.9 + push, 0.8 + push], speed: 4 }, t);
+      person(ctx, p.x, p.y, 0, { ...look(57, 'ramp', { hat: 'helmet' }), pose: 'walk', dir: p.dir, arms: [0.9 + push, 0.8 + push], speed: 4 }, t);
       const [X, Y] = P(p.x, p.y, 0);
       ctx.save(); ctx.translate(X, Y); ctx.scale(f, 1);
       ctx.beginPath(); ctx.moveTo(0.6 + push, -1.0); ctx.lineTo(1.1 + push, -0.05); ctx.strokeStyle = C.brown; ctx.lineWidth = 0.06; ctx.stroke();
@@ -1144,7 +1069,7 @@ export default {
     // ---------- The marshaller ----------
     const train = R.walkers.find((w) => w.id === 'train');
     const trainAt = train ? (t) => train.at(t) : null;
-    const MLOOK = crew(231, { hat: 'helmet', face: muffs, style: 'pony', hair: C.brown, dress: false });
+    const MLOOK = look(231, 'ramp', { hat: 'helmet', face: muffs, style: 'pony', hair: C.brown, dress: false });
     R.mover(() => ({ x: MARSH[0], y: MARSH[1] }), (ctx, t) => {
       const st = marshal(t, trainAt), arm = signal(st.mode, t);
       person(ctx, MARSH[0], MARSH[1], 0, { ...MLOOK, pose: 'stand', dir: st.dir, arms: arm }, t);

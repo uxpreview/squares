@@ -8,10 +8,10 @@
 // body, a wing, a fin): solid() works out which faces look toward you and
 // outlines only the edge of the shape, so a toy plane reads as one smooth
 // thing rather than a cage of lines.
-import { C, Q, P, LW, box, face, rect, paint, alpha, tint, shade, mix, person, folk, paintText, glow } from '../../engine/art.js';
+import { C, Q, P, LW, SKIN, box, face, rect, paint, alpha, tint, shade, mix, person, folk, paintText, label, glow } from '../../engine/art.js';
 import { ZK } from '../../engine/iso.js';
-import { INK, LIVERY, RAMP, BAGS, SIGN, LIT, dusk, nightPrint } from './style.js';
-import { PLANE } from './plan.js';
+import { INK, LIVERY, RAMP, BAGS, SIGN, LIT, WALL, GLASS, FRAME, dusk, nightPrint } from './style.js';
+import { PLANE, AIR } from './plan.js';
 import { tag } from '../greybox.js';
 import { nightK, settle, lightsOn } from './clock.js';
 
@@ -151,7 +151,12 @@ export function planeParts(x, y, z, along, o = {}) {
   const body = L.body, ink = o.ink || ((c) => c), lit = !!o.lit;
   const ring = (u, s, rise) => RING.map(([v, h]) => F.pt(u, v * R0 * s, HC + rise + h * R0 * s * 1.04));
   const parts = [];
-  const part = (u, v, draw) => { const [px, py] = F.at(u, v); parts.push({ x: px, y: py, draw }); };
+  // Each piece's spot (where it sorts), and how far it reaches ([u0, u1, v0,
+  // v1] in the plane's frame), so plane() can keep it out of a chunk seam.
+  const part = (u, v, draw, [u0, u1, v0, v1]) => {
+    const [px, py] = F.at(u, v), a = F.at(u0, v0), b = F.at(u1, v1);
+    parts.push({ x: px, y: py, draw, reach: [Math.max(a[0], b[0]), Math.max(a[1], b[1])] });
+  };
 
   // The gear, under everything else (its shadow is planeShadow, on the
   // ground).
@@ -161,7 +166,7 @@ export function planeParts(x, y, z, along, o = {}) {
       F.lbox(ctx, u - 0.05, u + 0.05, v - 0.04, v + 0.04, 0.15, HC - R0 - 0.1, C.grey, { flat: true, lw: 0.015 });
       F.lbox(ctx, u - 0.17, u + 0.17, v - 0.1, v + 0.1, 0, 0.32, C.ink, { flat: true, lw: 0.015 });
     }
-  });
+  }, [-7.6, -1.5, -1.2, 1.2]);
 
   // A wing: root under the body, swept back, the tip raised a little, a
   // winglet in the airline's color. side: 1 (the side you see) or -1.
@@ -203,8 +208,8 @@ export function planeParts(x, y, z, along, o = {}) {
   };
 
   // The far side first (it sorts behind the body by where it is).
-  part(-7.6, -PLANE.span / 4, (ctx) => { engine(-1)(ctx); wing(-1)(ctx); });
-  part(-12.6, -1.6, stab(-1));
+  part(-7.6, -PLANE.span / 4, (ctx) => { engine(-1)(ctx); wing(-1)(ctx); }, [-9.6, -4.3, -PLANE.span / 2, -R0 * 0.7]);
+  part(-12.6, -1.6, stab(-1), [-13, -11.1, -3.1, -R0 * 0.3]);
 
   // The body, in lengths between its sections, each one a solid of its own.
   for (let i = 0; i < BODY.length - 1; i++) {
@@ -256,11 +261,11 @@ export function planeParts(x, y, z, along, o = {}) {
         face(ctx, [dd(-3.5, -0.62), dd(-4.4, -0.62), dd(-4.4, -1.05), dd(-3.5, -1.05)], ink(k > 0.5 ? C.ink : mix(body, C.grey, 0.22)), { lw: 0.025 });
         if (k > 0.05) face(ctx, [dd(-3.5, -0.62), dd(-4.4, -0.62), F.pt(-4.4, R0 * 1.02 + 0.9 * k, HC - 0.62 + 0.25 * k), F.pt(-3.5, R0 * 1.02 + 0.9 * k, HC - 0.62 + 0.25 * k)], ink(mix(body, C.grey, 0.3)), { lw: 0.025 });
       }
-    });
+    }, [u1, u0, -R0, R0 + (u0 > -4.4 && u1 < -3.2 ? 0.95 : 0)]);
   }
   // The near side, then the fin on top.
-  part(-7.4, PLANE.span / 4, (ctx) => { engine(1)(ctx); wing(1)(ctx); });
-  part(-12.4, 1.6, stab(1));
+  part(-7.4, PLANE.span / 4, (ctx) => { engine(1)(ctx); wing(1)(ctx); }, [-9.6, -4.3, R0 * 0.7, PLANE.span / 2]);
+  part(-12.4, 1.6, stab(1), [-13, -11.1, R0 * 0.3, 3.1]);
   part(-12.2, 0.4, (ctx) => {
     const hb = HC + R0 * 0.62, w = 0.09;
     const fin = [F.pt(-9.7, -w, hb), F.pt(-12.9, -w, hb + 0.7), F.pt(-13.2, -w, hb + 3.2), F.pt(-12.2, -w, hb + 3.2)];
@@ -285,7 +290,7 @@ export function planeParts(x, y, z, along, o = {}) {
       if (on) glow(ctx, ...F.pt(-6, 0, HC + R0 * 1.1), 1.1, C.red, 0.9);
       glow(ctx, ...F.pt(-13.1, 0, hb + 3.25), 0.7, C.white, 0.6);
     }
-  });
+  }, [-13.2, -9.7, -0.09, 0.2]);
   return parts;
 }
 // A plane's shadow on the ground (flat: under everything standing). air: how
@@ -318,8 +323,17 @@ export function plane(R, x, nose, o = {}) {
   R.rug((ctx) => planeShadow(ctx, x, nose, 0, 'y'), o.on ? { on } : {});
   for (const night of [false, true]) {
     const parts = planeParts(x, nose, 0, 'y', { dir: -1, ...o, ink: night ? dusk : null, lit: night });
-    for (const p of parts) R.thing(p.x, p.y, p.draw, { on: (t) => on(t) && nightPrint(t) === night });
+    for (const p of parts) R.thing(...seamSafe(p.x, p.y, ...p.reach), p.draw, { on: (t) => on(t) && nightPrint(t) === night });
   }
+}
+// Where to stand something wide or tall that reaches from its spot (x, y)
+// to (x1, y1) at its front: in the area's last 16-unit chunk it reaches
+// into, just past the seam, so the chunk drawn after its own doesn't paint
+// over the part that reaches across (an area this big is drawn in chunks,
+// each after the ones behind it and to its left). Its spot otherwise.
+export function seamSafe(x, y, x1 = x, y1 = y) {
+  const S = 16, past = (a, b) => (Math.floor(b / S) > Math.floor(a / S) ? Math.floor(b / S) * S + 0.05 : a);
+  return [past(x, x1), past(y, y1)];
 }
 
 // ---------- The ramp: tugs and bag carts ----------
@@ -335,7 +349,7 @@ export function tug(ctx, x, y, z, along = 'x', dir = 1, o = {}, t = 0) {
   // The driver, then the posts and the roof over them.
   if (o.driver !== false) {
     const [px, py] = F.at(-0.25, 0);
-    person(ctx, px, py, z + 0.25, { ...(o.driver || folk(41, { top: INK.safety, hat: 'beanie' })), pose: o.asleep ? 'sit' : 'sit', dir: (along === 'x' ? dir > 0 : dir < 0) ? 'r' : 'l', scale: 0.82, ...(o.asleep ? { arms: [0.2, -0.2] } : {}) }, o.asleep ? 0 : t);
+    person(ctx, px, py, z + 0.25, { ...(o.driver || look(41, 'ramp', { hat: 'beanie' })), pose: o.asleep ? 'sit' : 'sit', dir: (along === 'x' ? dir > 0 : dir < 0) ? 'r' : 'l', scale: 0.82, ...(o.asleep ? { arms: [0.2, -0.2] } : {}) }, o.asleep ? 0 : t);
   }
   for (const v of [-0.45, 0.45]) F.lbox(ctx, -0.65, -0.58, v - 0.035, v + 0.035, 0.58, 1.1, C.ink, { flat: true, stroke: false });
   F.lbox(ctx, -0.72, 0.1, -0.52, 0.52, 1.68, 0.08, ink(col), { flat: true, lw: 0.03 });
@@ -471,27 +485,135 @@ function tagOn(ctx, x, y, z, color, ink) {
 // The day before Thanksgiving, in parkas: everyone's a traveler unless they
 // work here. look(seed, kind, extra) gives a person's style (folk(), with
 // the season's colors): kind is 'traveler' (parkas, beanies, the odd
-// matching sweatshirt), 'ramp' (safety orange, ear defenders as a beanie),
-// 'tsa' (navy, a grey shirt), 'agent' (the gate's navy with a cranberry
-// scarf color), 'pilot' (white shirt, navy, a cap), 'trooper' (navy, a
-// cap), 'band' (the Marching Ducks' cranberry), 'crew' (the fire and
-// plow crews' yellow).
+// matching sweatshirt), 'ramp' (safety orange with the reflective bands,
+// half of them in ear defenders), 'tsa' (navy, a grey shirt), 'agent' (the
+// gate's navy with a cranberry scarf color), 'pilot' (white shirt, navy, a
+// cap), 'trooper' (navy, a cap), 'band' (the Marching Ducks' cranberry),
+// 'crew' (the fire and plow crews' yellow, with the same bands).
 const PARKA = [C.navy, C.ink, INK.cranberry, C.teal, C.red, C.grey, C.purple, C.green, C.mustard, C.coral, C.black, tint(C.sky, 0.1)];
 export function look(seed, kind = 'traveler', extra = {}) {
   const base = folk(seed);
   const r = ((seed * 7919) % 97) / 97;
   switch (kind) {
-    case 'ramp': return { ...base, top: INK.safety, bottom: C.navy, hat: r < 0.6 ? 'beanie' : 'helmet', dress: false, ...extra };
+    case 'ramp': return { ...base, top: INK.safety, bottom: C.navy, hat: r < 0.6 ? 'beanie' : 'helmet', dress: false, wear: hiVis, ...(seed % 2 ? { face: muffs } : {}), ...extra };
     case 'tsa': return { ...base, top: shade(C.grey, 0.15), bottom: C.navy, dress: false, ...extra };
     case 'agent': return { ...base, top: C.navy, bottom: C.navy, ...extra };
     case 'pilot': return { ...base, top: C.white, bottom: C.navy, hat: 'cap', dress: false, ...extra };
     case 'trooper': return { ...base, top: shade(C.grey, 0.3), bottom: C.navy, hat: 'cap', dress: false, ...extra };
     case 'band': return { ...base, top: INK.cranberry, bottom: C.white, hat: 'cap', dress: false, ...extra };
-    case 'crew': return { ...base, top: INK.signal, bottom: C.ink, hat: 'helmet', dress: false, ...extra };
+    case 'crew': return { ...base, top: INK.signal, bottom: C.ink, hat: 'helmet', dress: false, wear: hiVis, ...extra };
     // (A traveler's beanie in a color of its own, never the parka's.)
     default: return { ...base, top: PARKA[seed % PARKA.length], hat: r < 0.35 ? 'beanie' : base.hat, hatColor: PARKA[(seed * 7 + 3) % PARKA.length], ...extra };
   }
 }
+// ---------- What the crews wear ----------
+// One hi-vis for the whole airport (person()'s wear): two reflective bands
+// round the jacket, on the ramp's orange and the crews' yellow alike.
+export function hiVis(ctx, b) {
+  if (!Q.detail || b.dress) return;
+  ctx.fillStyle = C.greyLight;
+  for (const k of [0.22, 0.5]) ctx.fillRect(-0.28, b.hipY - k - 0.035, 0.56, 0.07);
+}
+// A hi-vis vest over a shirt (a supervisor's, a snowman's): the vest, open
+// down the front, and the same bands. As a wear: vest() or vest(color).
+export const vest = (color = INK.safety) => (ctx, b) => {
+  ctx.beginPath();
+  ctx.roundRect(-0.29, b.top + 0.08, 0.58, b.hipY - b.top - 0.02, 0.14);
+  ctx.fillStyle = color; ctx.fill();
+  if (!b.back) { ctx.fillStyle = C.white; ctx.fillRect(-0.06, b.top + 0.08, 0.12, 0.42); }
+  hiVis(ctx, b);
+};
+// Ear defenders (person()'s face): a band over the head, red cups.
+export function muffs(ctx, hy, back) {
+  ctx.beginPath(); ctx.arc(0.02, hy - 0.02, 0.36, Math.PI * 1.1, Math.PI * 1.9);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(back ? 0.02 : -0.07, hy + 0.04, 0.12, 0.15, 0, 0, Math.PI * 2);
+  paint(ctx, C.red, { lw: 0.03 });
+}
+// A marshaller's wands, lit orange, out from the hands along the arms (the
+// same arms as person()'s: [near, far]), for someone standing at (x, y, z).
+export function wands(ctx, x, y, z, dir, [aA, aB], lit, s = 1) {
+  const [X, Y] = P(x, y, z), f = dir === 'l' ? -1 : 1;
+  ctx.save();
+  ctx.translate(X, Y); ctx.scale(f * s, s);
+  for (const [sx, a] of [[-0.22, aB], [0.22, aA]]) {
+    const hx = sx + Math.sin(a) * 0.72, hy = -1.53 + Math.cos(a) * 0.72;
+    const ex = hx + Math.sin(a) * 0.52, ey = hy + Math.cos(a) * 0.52;
+    if (lit) { ctx.beginPath(); ctx.arc((hx + ex) / 2, (hy + ey) / 2, 0.34, 0, Math.PI * 2); ctx.fillStyle = alpha(INK.safety, 0.28); ctx.fill(); }
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.lineCap = 'round';
+    if (Q.lines) { ctx.strokeStyle = C.ink; ctx.lineWidth = 0.17; ctx.stroke(); }
+    ctx.strokeStyle = lit ? tint(INK.safety, 0.4) : INK.safety; ctx.lineWidth = 0.11; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------- The man in the inflatable turkey ----------
+// One man, all day, on his way to the parade (the brief's crowd): off the
+// first Silver Line at the curb before five, in the check-in queue right
+// behind the goose from eight, through security at ten, at the gates from
+// noon, and asleep there from half past seven (turkeyAsleep). Each area
+// draws him only in its own hours (TURKEY), so there's only ever one of him.
+// A fan of tail feathers behind, a body like a beach ball, the turkey's own
+// head up on a neck over his, yellow turkey legs.
+export const TURKEY = { curb: [4, 8], checkIn: [8, 10], security: [10, 11.5], gates: [12, 19.5] };
+const TURKEY_LOOK = {
+  ...folk(77), top: C.brown, bottom: C.mustard, hat: 'none', style: 'short', dress: false,
+  wear: (ctx, b) => {
+    ctx.beginPath(); ctx.ellipse(0.02, b.hipY - 0.36, 0.56, 0.6, 0, 0, Math.PI * 2);
+    paint(ctx, C.brown, { lw: 0.04, dots: Q.detail ? shade(C.brown, 0.4) : null, density: 0.18 });
+    if (b.back) return;
+    ctx.beginPath(); ctx.ellipse(0.2, b.hipY - 0.3, 0.22, 0.34, 0, 0, Math.PI * 2); paint(ctx, C.woodLight, { lw: 0.03 });
+    ctx.beginPath(); ctx.ellipse(-0.24, b.hipY - 0.42, 0.24, 0.16, 0.5, 0, Math.PI * 2); paint(ctx, shade(C.brown, 0.18), { lw: 0.025 });
+  },
+  face: (ctx, hy, back) => {
+    // The turkey's own head and wattle, up on a neck over his.
+    const nx = back ? -0.05 : 0.1;
+    ctx.beginPath(); ctx.moveTo(nx, hy - 0.2); ctx.quadraticCurveTo(nx + 0.2, hy - 0.6, nx + 0.15, hy - 0.85);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.17; ctx.stroke(); ctx.strokeStyle = tint(C.brown, 0.3); ctx.lineWidth = 0.1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(nx + 0.17, hy - 0.9, 0.12, 0, Math.PI * 2); paint(ctx, tint(C.brown, 0.3), { lw: 0.025 });
+    if (back) return;
+    ctx.beginPath(); ctx.moveTo(nx + 0.26, hy - 0.92); ctx.lineTo(nx + 0.4, hy - 0.88); ctx.lineTo(nx + 0.26, hy - 0.84); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.015 });
+    ctx.beginPath(); ctx.ellipse(nx + 0.28, hy - 0.78, 0.04, 0.09, 0, 0, Math.PI * 2); paint(ctx, C.red, { lw: 0.015 });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(nx + 0.2, hy - 0.93, 0.022, 0, Math.PI * 2); ctx.fill();
+  },
+};
+// Him at (x, y, z). o: { pose, dir, back, arms, scale, bob } (t for the walk)
+export function turkeyMan(ctx, x, y, z, o = {}, t = 0) {
+  const s = o.scale || 1, f = o.dir === 'l' ? -1 : 1;
+  const fan = () => {
+    const [X, Y] = P(x, y, z);
+    const cx = X - f * (o.back ? -0.1 : 0.28) * s, cy = Y - (1.38 + (o.bob || 0)) * s;
+    const cols = [C.brown, C.mustard, C.coral, INK.cranberry, C.coral, C.mustard, C.brown];
+    for (let i = 0; i < cols.length; i++) {
+      const a = -Math.PI / 2 + (i - 3) * 0.3;
+      ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * 0.62 * s, cy + Math.sin(a) * 0.62 * s, 0.15 * s, 0.42 * s, a + Math.PI / 2, 0, Math.PI * 2);
+      paint(ctx, cols[i], { lw: 0.03 });
+    }
+  };
+  if (!o.back) fan();
+  person(ctx, x, y, z + (o.bob || 0), { ...TURKEY_LOOK, pose: o.pose || 'stand', dir: o.dir || 'r', back: !!o.back, scale: s, ...(o.arms ? { arms: o.arms } : { arms: [0.45, 0.35] }), speed: 6 }, t);
+  if (o.back) fan();
+}
+
+// Him asleep at the gates after the ground stop, on the floor along x (feet
+// at x, y; lieAlong's): the suit let down and pulled over him like a
+// blanket, its fan of feathers spread on the floor past his feet, the
+// turkey's head flopped beyond his.
+export function turkeyAsleep(ctx, x, y, z = 0) {
+  const cols = [C.brown, C.mustard, C.coral, INK.cranberry, C.coral, C.mustard, C.brown];
+  for (let i = 0; i < cols.length; i++) {
+    const a = -0.95 + i * 0.32, cx = x + 0.3 + Math.cos(a) * 0.55, cy = y + Math.sin(a) * 0.55;
+    const pts = [];
+    for (let k = 0; k < 10; k++) {
+      const b = (k / 10) * Math.PI * 2, u = Math.cos(b) * 0.4, v = Math.sin(b) * 0.13;
+      pts.push([cx + u * Math.cos(a) - v * Math.sin(a), cy + u * Math.sin(a) + v * Math.cos(a), z + 0.01]);
+    }
+    face(ctx, pts, cols[i], { lw: 0.025 });
+  }
+  lieAlong(ctx, x, y, z, asleep({ ...TURKEY_LOOK, wear: coatOver(C.brown) }), 0);
+}
+
 // Someone who stays put and holds still, drawn once and cached (cheap, so
 // the crowd can be big). Keep live people (R.mover, anim things) for the ones
 // doing something. o: { z, pose, dir, back, scale, arms, depth, on: (t) =>
@@ -516,15 +638,26 @@ export function roller(ctx, p, lk, t, o = {}) {
 }
 
 // ---------- Signs ----------
-// Lettering painted on an upright plane: along x (facing the lower left) or
-// y (the lower right), centred on (x, y, z).
-export function lettering(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
+// Words on an upright plane: along 'x' (the plane y = y, facing the lower
+// left) or 'y' (the plane x = x, the lower right), their middle at (x, y, z).
+// o: { font (Rethink Sans), weight (bold for Rethink Sans), align }
+export function words(ctx, along, x, y, z, text, size, color = C.ink, o = {}) {
   if (!Q.detail) return;
   ctx.save();
-  const [dx, dy] = along === 'x' ? P(0, y, 0) : P(x, 0, 0);
-  ctx.translate(dx, dy);
-  paintText(ctx, along === 'x' ? 'right' : 'left', along === 'x' ? x : y, z, text, size, ink, font);
+  ctx.transform(1, along === 'x' ? 0.5 : -0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
+  const k = 40;
+  ctx.scale(1 / k, 1 / k);
+  const font = o.font || 'Rethink Sans';
+  ctx.font = `${o.weight || (font === 'Rethink Sans' ? 700 : 400)} ${size * k}px "${font}", system-ui, sans-serif`;
+  ctx.textAlign = o.align || 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(text, 0, 0);
   ctx.restore();
+}
+// The same in the regular weight (the signs' and boards' lettering).
+export function lettering(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
+  words(ctx, along, x, y, z, text, size, ink, { font, weight: 400 });
 }
 // A board with lettering, upright, along x ('x': facing the lower left) or y
 // ('y': the lower right), centred on (x, y, z), w wide and h tall. The
@@ -549,6 +682,247 @@ export function hangSign(ctx, along, x, y, z, w, h, text, o = {}) {
     else box(ctx, px - 0.02, py - 0.02, z + h / 2, 0.04, 0.04, 1.2, C.ink, { flat: true, stroke: false });
   }
   sign(ctx, along, x, y, z, w, h, text, o);
+}
+// A board with lines of lettering on it, upright, along 'x' or 'y' as sign(),
+// centred on (x, y, z), w wide and h tall. lines: [text, size, ink?, font?],
+// top to bottom, set close round the middle (o.gap: the line spacing, 1.2
+// sizes) or spread down the board (o.even). o: { board, ink, font, edge }
+export function board(ctx, along, x, y, z, w, h, lines, o = {}) {
+  sign(ctx, along, x, y, z, w, h, null, { board: o.board || SIGN.board, edge: o.edge ?? 0.035 });
+  if (!Q.detail) return;
+  if (o.even) {
+    const gap = h / (lines.length + 0.4);
+    lines.forEach(([text, size, ink, font], i) => lettering(ctx, along, x, y, z + h / 2 - gap * (i + 0.7), text, size, ink || o.ink || SIGN.ink, font || o.font || 'Rethink Sans'));
+    return;
+  }
+  const gap = o.gap || 1.2;
+  let v = z + lines.reduce((s, l) => s + l[1] * gap, 0) / 2;
+  for (const [text, size, ink, font] of lines) {
+    v -= (size * gap) / 2;
+    lettering(ctx, along, x, y, v - size * 0.04, text, size, ink || o.ink || SIGN.ink, font || o.font || 'Rethink Sans');
+    v -= (size * gap) / 2;
+  }
+}
+
+// ---------- Long things, in pieces ----------
+// An area this big is drawn in 16-unit chunks, each after the ones behind it
+// and to its left; a long still thing (a counter, a belt, a row of seats, a
+// barrier) goes in short pieces that never cross a chunk's seam, so each
+// sorts on its own, nobody beside it is painted over, and no chunk paints
+// over a piece of it. spans(a, b, step): [a, b] in pieces at most step long,
+// cut at the seams.
+export function spans(a, b, step = 3) {
+  const cuts = [a];
+  for (let s = (Math.floor(a / 16) + 1) * 16; s < b - 1e-6; s += 16) if (s > a + 1e-6) cuts.push(s);
+  cuts.push(b);
+  const out = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const p = cuts[i], q = cuts[i + 1], n = Math.max(1, Math.ceil((q - p) / step - 1e-6));
+    for (let k = 0; k < n; k++) out.push([p + ((q - p) * k) / n, p + ((q - p) * (k + 1)) / n]);
+  }
+  return out;
+}
+// A long still thing as pieces (spans of o.step, 1), each its own thing sorted
+// at its front corner (or its back one, o.back: a belt things ride on), so
+// people beside it sort right. draw(ctx, u0, u1, first, last) draws the piece
+// from u0 to u1 along x or y, across c0..c1. o: { step, back, bias, on }
+export function pieces(R, along, a, b, c0, c1, draw, o = {}) {
+  const list = spans(a, b, o.step || 1);
+  list.forEach(([u0, u1], i) => {
+    const depth = (o.back ? u0 + c0 : u1 + c1) + (o.bias || 0);
+    const x = along === 'x' ? (u0 + u1) / 2 : (c0 + c1) / 2, y = along === 'x' ? (c0 + c1) / 2 : (u0 + u1) / 2;
+    R.thing(x, y, (ctx) => draw(ctx, u0, u1, i === 0, i === list.length - 1), { depth, ...(o.on ? { on: o.on } : {}) });
+  });
+}
+// Edges of a solid, inked.
+function inkEdges(ctx, edges, lw = 0.04) {
+  if (!Q.lines) return;
+  ctx.beginPath();
+  for (const [a, b] of edges) { const [ax, ay] = P(...a), [bx, by] = P(...b); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+}
+// One piece of a long box, from u0 to u1 along x (y0..y1 deep, z0 up h),
+// drawn so the seams with its neighbors aren't inked. o: { a / b: its start
+// or end is a real end; front, top, side: colors; dots, lw }
+export function barX(ctx, u0, u1, y0, y1, z0, h, col, o = {}) {
+  const z1 = z0 + h;
+  face(ctx, [[u0, y1, z0], [u1, y1, z0], [u1, y1, z1], [u0, y1, z1]], o.front || shade(col, 0.22), { stroke: false, dots: o.dots ? shade(col, 0.55) : null, density: 0.2 });
+  face(ctx, [[u0, y0, z1], [u1, y0, z1], [u1, y1, z1], [u0, y1, z1]], o.top || col, { stroke: false });
+  if (o.b) face(ctx, [[u1, y0, z0], [u1, y1, z0], [u1, y1, z1], [u1, y0, z1]], o.side || shade(col, 0.1), { stroke: false });
+  const e = [[[u0, y0, z1], [u1, y0, z1]], [[u0, y1, z1], [u1, y1, z1]], [[u0, y1, z0], [u1, y1, z0]]];
+  if (o.a) e.push([[u0, y1, z0], [u0, y1, z1]], [[u0, y0, z1], [u0, y1, z1]]);
+  if (o.b) e.push([[u1, y0, z0], [u1, y0, z1]], [[u1, y1, z0], [u1, y1, z1]], [[u1, y0, z0], [u1, y1, z0]], [[u1, y0, z1], [u1, y1, z1]]);
+  inkEdges(ctx, e, o.lw);
+}
+// The same along y (x0..x1 wide).
+export function barY(ctx, u0, u1, x0, x1, z0, h, col, o = {}) {
+  const z1 = z0 + h;
+  face(ctx, [[x1, u0, z0], [x1, u1, z0], [x1, u1, z1], [x1, u0, z1]], o.front || shade(col, 0.1), { stroke: false, dots: o.dots ? shade(col, 0.5) : null, density: 0.16 });
+  face(ctx, [[x0, u0, z1], [x1, u0, z1], [x1, u1, z1], [x0, u1, z1]], o.top || col, { stroke: false });
+  if (o.b) face(ctx, [[x0, u1, z0], [x1, u1, z0], [x1, u1, z1], [x0, u1, z1]], o.side || shade(col, 0.22), { stroke: false });
+  const e = [[[x0, u0, z1], [x0, u1, z1]], [[x1, u0, z1], [x1, u1, z1]], [[x1, u0, z0], [x1, u1, z0]]];
+  if (o.a) e.push([[x1, u0, z0], [x1, u0, z1]], [[x0, u0, z1], [x1, u0, z1]]);
+  if (o.b) e.push([[x0, u1, z0], [x0, u1, z1]], [[x1, u1, z0], [x1, u1, z1]], [[x0, u1, z0], [x1, u1, z0]], [[x0, u1, z1], [x1, u1, z1]]);
+  inkEdges(ctx, e, o.lw);
+}
+
+// ---------- The terminal's walls ----------
+// Roof off and walls low (decision 16), and one terminal from end to end:
+// check-in, security and the gates share these. The landside wall along the
+// curb, from x0 to x1 with its face at y + d: cream, a cranberry band, and
+// any words painted on it (o.words: [[x, z, text, size, ink, font], ...]).
+// o: { d (0.4), h (1.1), color }
+export function lowWall(R, x0, x1, y, o = {}) {
+  const d = o.d ?? 0.4, h = o.h ?? 1.1, color = o.color || WALL, list = o.words || [];
+  for (const [a, b] of spans(x0, x1, 3)) {
+    // (Sorted at its front left corner: anyone standing in front of it is
+    // drawn after it.)
+    R.thing(a + 0.05, y + d, (ctx) => {
+      box(ctx, a, y, 0, b - a, d, h, color, { lw: 0.035, top: tint(color, 0.4), flat: true });
+      face(ctx, [[a, y + d + 0.005, 0.5], [b, y + d + 0.005, 0.5], [b, y + d + 0.005, 0.62], [a, y + d + 0.005, 0.62]], INK.cranberry, { stroke: false });
+      if (!Q.detail || !list.length) return;
+      ctx.save();
+      const pts = [[a, y + d, 0], [b, y + d, 0], [b, y + d, h], [a, y + d, h]].map((q) => P(...q));
+      ctx.beginPath(); pts.forEach(([X, Y], i) => (i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y))); ctx.closePath(); ctx.clip();
+      for (const [x, z, text, size, ink, font] of list) words(ctx, 'x', x, y + d + 0.01, z, text, size, ink, { font });
+      ctx.restore();
+    });
+  }
+}
+// The airside glass from x0 to x1, its face at y (the sill behind it): a low
+// sill, a band of glass with a glint, a rail along the top, mullions.
+export function glassWall(R, x0, x1, y = AIR) {
+  for (const [a, b] of spans(x0, x1, 2)) {
+    // (Sorted at its front right corner: everyone inside is drawn before it.)
+    R.thing(b - 0.05, y, (ctx) => {
+      box(ctx, a, y - 0.4, 0, b - a, 0.4, 0.3, tint(INK.concrete, 0.2), { lw: 0.03, flat: true });
+      face(ctx, [[a, y - 0.05, 0.3], [b, y - 0.05, 0.3], [b, y - 0.05, 1.1], [a, y - 0.05, 1.1]], GLASS, { stroke: false });
+      if (Q.detail) {
+        const m = a + (b - a) * 0.3;
+        face(ctx, [[m, y - 0.04, 0.4], [m + 0.25, y - 0.04, 0.4], [m + 0.55, y - 0.04, 1.0], [m + 0.3, y - 0.04, 1.0]], alpha(C.white, 0.35), { stroke: false });
+      }
+      box(ctx, a, y - 0.3, 1.08, b - a, 0.25, 0.06, FRAME, { flat: true, lw: 0.025 });
+      box(ctx, a, y - 0.3, 0.3, 0.06, 0.25, 0.8, FRAME, { flat: true, lw: 0.02 });
+      box(ctx, b - 0.06, y - 0.3, 0.3, 0.06, 0.25, 0.8, FRAME, { flat: true, lw: 0.02 });
+    });
+  }
+}
+
+// ---------- Small things people do ----------
+// Something held in the hand at the end of the near arm, raised a (as
+// person()'s arms[0]): a hold is drawn from the chest, so this moves it out
+// to the hand; o.turn turns it down the arm (a mallet, a scanner).
+export const inHand = (a, draw, o = {}) => (ctx, t) => {
+  ctx.save();
+  ctx.translate(-0.13 + Math.sin(a) * 0.72, -0.3 + Math.cos(a) * 0.72);
+  if (o.turn) ctx.rotate(-a);
+  draw(ctx, t);
+  ctx.restore();
+};
+// Eyes shut, over the open ones person() draws: a face, for someone of skin
+// (their look's skin). shut(skin) is the face; shutEyes draws it in one.
+export function shutEyes(ctx, hy, skin = SKIN[0]) {
+  if (!Q.detail) return;
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.arc(0.1, hy + 0.02, 0.05, 0, Math.PI * 2); ctx.arc(0.24, hy + 0.02, 0.05, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.03;
+  ctx.beginPath(); ctx.moveTo(0.06, hy + 0.03); ctx.lineTo(0.14, hy + 0.03); ctx.moveTo(0.2, hy + 0.03); ctx.lineTo(0.28, hy + 0.03); ctx.stroke();
+}
+export const shut = (skin) => (ctx, hy, back) => { if (!back) shutEyes(ctx, hy, skin); };
+// A look, asleep: its eyes shut, then its own face (ear defenders, a veil)
+// and any more faces given (a band hat).
+export const asleep = (lk, ...faces) => ({
+  ...lk,
+  face: (ctx, hy, back, t) => {
+    if (!back) shutEyes(ctx, hy, lk.skin);
+    if (lk.face) lk.face(ctx, hy, back, t);
+    for (const f of faces) f(ctx, hy, back, t);
+  },
+});
+// Z's rising off a sleeper whose head is at (x, y, z).
+export function zzz(ctx, x, y, z, t, off = 0) {
+  if (!Q.detail) return;
+  const k = ((t * 0.6 + off) % 1 + 1) % 1;
+  label(ctx, x - 0.3 * k, y - 0.3 * k, z + k * 1.1, 'z', 0.42 + k * 0.3, alpha(C.ink, 1 - k));
+}
+// Someone lying down on a seat, a bag or the floor at height z: the engine's
+// 'lie', turned to run along the floor, feet at (x, y) and the head about
+// 1.8 away. o: { along ('x' or 'y'), head (-1: toward the axis's minus end,
+// the default; 1: its plus end), pose ('lie', or 'sleep' for the z's), arms }
+export function lieAlong(ctx, x, y, z, lk, t = 0, o = {}) {
+  const [X, Y] = P(x, y, z), X_ = (o.along || 'x') === 'x', back = (o.head || -1) < 0;
+  ctx.save();
+  ctx.translate(X, Y); ctx.rotate(Math.atan2(0.5, 1) * (X_ ? 1 : -1)); ctx.translate(-X, -Y);
+  person(ctx, x, y, z, { ...lk, pose: o.pose || 'lie', dir: X_ === back ? 'r' : 'l', ...(o.arms ? { arms: o.arms } : {}) }, t);
+  ctx.restore();
+}
+// A coat (or a blanket) over someone lying down, over the legs and hips: a
+// person's wear.
+export const coatOver = (color) => (ctx, b) => {
+  ctx.beginPath();
+  ctx.roundRect(-0.36, b.hipY - 0.45, 0.72, 1.3, 0.16);
+  paint(ctx, color, { lw: 0.04, dots: Q.detail ? shade(color, 0.45) : null, density: 0.15 });
+};
+
+// ---------- Gulls ----------
+// The one herring gull everyone draws (on the curb's lamppost, on a wing at
+// C13, all over the runway): white, a grey back, black wingtips with white
+// spots, a yellow bill with its red spot, pink legs, a pale eye under a flat
+// brow. Unimpressed. About 0.7 tall standing, two thirds of the goose, on
+// (x, y, z). o: { dir ('r' or 'l'), fly (wings out, flapping), peck (head
+// down), look (turns its head now and then), pass (a boarding pass in its
+// bill: flying standby), phase, s (its size, 1) }
+export function gull(ctx, x, y, z, t, o = {}) {
+  const [X, Y] = P(x, y, z);
+  const f = o.dir === 'l' ? -1 : 1, s = 0.82 * (o.s || 1), ph = o.phase || 0;
+  ctx.save();
+  ctx.translate(X, Y); ctx.scale(f * s, s);
+  if (o.fly) {
+    // In the air: its shadow on the ground under it, then the far wing, the
+    // body and head, the near wing.
+    if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, (z * ZK) / s, 0.3, 0.11, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.12); ctx.fill(); }
+    const fl = Math.sin(t * 12 + ph) * 0.33;
+    const wing = (dy, near) => {
+      ctx.beginPath(); ctx.moveTo(-0.08, -0.15); ctx.quadraticCurveTo(-0.22, -0.45 - dy, -0.54, -0.33 - dy * 1.6); ctx.lineTo(-0.15, -0.1); ctx.closePath();
+      paint(ctx, near ? C.greyLight : shade(C.greyLight, 0.12), { lw: 0.035 });
+      ctx.beginPath(); ctx.moveTo(-0.42, -0.31 - dy * 1.3); ctx.lineTo(-0.54, -0.33 - dy * 1.6); ctx.lineTo(-0.38, -0.25 - dy * 1.1); ctx.closePath(); ctx.fillStyle = C.black; ctx.fill();
+    };
+    ctx.save(); ctx.scale(1, -1); ctx.translate(0, 0.24); wing(-fl * 0.7, false); ctx.restore();
+    ctx.beginPath(); ctx.ellipse(0, -0.12, 0.3, 0.1, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.04 });
+    ctx.beginPath(); ctx.arc(0.27, -0.16, 0.085, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+    ctx.beginPath(); ctx.moveTo(0.33, -0.18); ctx.lineTo(0.47, -0.15); ctx.lineTo(0.33, -0.13); ctx.closePath(); ctx.fillStyle = C.mustard; ctx.fill();
+    wing(fl, true);
+    ctx.restore();
+    return;
+  }
+  if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
+  ctx.strokeStyle = C.pink; ctx.lineWidth = 0.06; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-0.06, -0.3); ctx.lineTo(-0.08, 0); ctx.moveTo(0.07, -0.3); ctx.lineTo(0.08, 0); ctx.stroke();
+  // The body, and the folded wing over it: grey, its black tip past the tail
+  // with white spots.
+  ctx.beginPath(); ctx.ellipse(0, -0.44, 0.36, 0.2, -0.08, 0, Math.PI * 2);
+  paint(ctx, C.white, { lw: 0.04 });
+  ctx.beginPath();
+  ctx.moveTo(0.22, -0.56); ctx.quadraticCurveTo(-0.1, -0.66, -0.36, -0.5); ctx.lineTo(-0.6, -0.5); ctx.lineTo(-0.36, -0.36); ctx.quadraticCurveTo(-0.05, -0.32, 0.22, -0.42); ctx.closePath();
+  paint(ctx, C.grey, { lw: 0.035 });
+  ctx.beginPath(); ctx.moveTo(-0.3, -0.52); ctx.lineTo(-0.6, -0.5); ctx.lineTo(-0.34, -0.4); ctx.closePath(); paint(ctx, C.black, { lw: 0.03 });
+  if (Q.detail) { ctx.fillStyle = C.white; for (const sx of [-0.42, -0.5]) { ctx.beginPath(); ctx.arc(sx, -0.48, 0.022, 0, Math.PI * 2); ctx.fill(); } }
+  // The head (down, pecking; or turned the other way now and then).
+  if (o.look && Math.sin(t * 0.45 + ph) + Math.sin(t * 1.3 + ph) * 0.3 > 0.55) ctx.scale(-1, 1);
+  if (o.peck) ctx.translate(0.1, 0.2);
+  ctx.beginPath(); ctx.arc(0.27, -0.68, 0.14, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
+  ctx.beginPath(); ctx.moveTo(0.38, -0.7); ctx.lineTo(0.62, -0.69); ctx.quadraticCurveTo(0.6, -0.62, 0.52, -0.63); ctx.lineTo(0.38, -0.63); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.025 });
+  if (Q.detail) {
+    ctx.beginPath(); ctx.arc(0.53, -0.64, 0.022, 0, Math.PI * 2); ctx.fillStyle = C.red; ctx.fill();
+    ctx.beginPath(); ctx.arc(0.31, -0.71, 0.035, 0, Math.PI * 2); ctx.fillStyle = C.butter; ctx.fill();
+    ctx.beginPath(); ctx.arc(0.315, -0.705, 0.016, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0.26, -0.735); ctx.lineTo(0.37, -0.735); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
+    if (o.pass) {
+      ctx.beginPath(); ctx.rect(0.55, -0.71, 0.22, 0.13); paint(ctx, C.white, { lw: 0.018 });
+      ctx.fillStyle = C.red; ctx.fillRect(0.55, -0.71, 0.05, 0.13);
+    }
+  }
+  ctx.restore();
 }
 
 // ---------- Outside: the night and the snow ----------

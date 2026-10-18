@@ -18,7 +18,7 @@
 import { C, Q, P, box, rect, face, paint, cylinder, person, speech, label, alpha, tint, shade, mix, glow } from '../../../engine/art.js';
 import { particles } from '../../../engine/actors.js';
 import { INK, LIT, SIGN, BAGS, BRAND, LIVERY, dusk, nightPrint } from '../style.js';
-import { solid, hexa, bag, look, stay, sign, hangSign, lettering, snowCover, nightGround, nightGlow } from '../kit.js';
+import { solid, hexa, bag, look, stay, sign, hangSign, lettering, snowCover, nightGround, nightGlow, gull, turkeyMan, TURKEY, spans } from '../kit.js';
 import { W } from '../plan.js';
 import { hour, nightK, lightsOn, settle, stopped, LOOP } from '../clock.js';
 
@@ -69,20 +69,6 @@ function heart(ctx, X, Y, r, fill) {
 const post = (ctx, x, y, z, h, color = C.ink, r = 0.05) => box(ctx, x - r, y - r, z, r * 2, r * 2, h, color, { flat: true, lw: 0.025 });
 // Lettering in Bagel Fat One, for the painted signs.
 const big = (ctx, along, x, y, z, text, size, ink) => lettering(ctx, along, x, y, z, text, size, ink, 'Bagel Fat One');
-// Something long along x (a barrier, a billboard), in pieces that never cross
-// one of the area's 16-unit seams (each piece is drawn by the picture of the
-// stretch it stands in).
-function pieces(x0, x1, step) {
-  const out = [];
-  let a = x0;
-  while (a < x1 - 1e-6) {
-    const seam = (Math.floor(a / 16 + 1e-9) + 1) * 16;
-    const b = Math.min(x1, a + step, seam);
-    out.push([a, b]);
-    a = b;
-  }
-  return out;
-}
 
 // ---------- Inks ----------
 const WALK = tint(INK.concrete, 0.32); // the sidewalks
@@ -454,41 +440,6 @@ function ferry(ctx, x, y, ang, t, o = {}) {
 const HULL_C = INK.signal;
 
 // ---------- Up close: the people and creatures ----------
-// The gull on the lamppost: as carefully drawn as any goose. Grey back, black
-// wingtips with white spots, a yellow beak with its red spot, pink legs, a
-// pale eye and a very flat brow. It turns its head now and then.
-function gull(ctx, x, y, z, t) {
-  const [X, Y] = P(x, y, z);
-  const f = Math.sin(t * 0.45) + Math.sin(t * 1.3) * 0.3 > 0.55 ? -1 : 1;
-  ctx.save();
-  ctx.translate(X, Y);
-  if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, TAU); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
-  ctx.strokeStyle = C.pink; ctx.lineWidth = 0.06; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-0.06, -0.3); ctx.lineTo(-0.08, 0); ctx.moveTo(0.07, -0.3); ctx.lineTo(0.08, 0); ctx.stroke();
-  // Body and tail.
-  ctx.beginPath();
-  ctx.ellipse(0, -0.44, 0.36, 0.2, -0.08, 0, TAU);
-  paint(ctx, C.white, { lw: 0.04 });
-  // The folded wing, grey, its tip black with white spots, over the tail.
-  ctx.beginPath();
-  ctx.moveTo(0.22, -0.56); ctx.quadraticCurveTo(-0.1, -0.66, -0.36, -0.5); ctx.lineTo(-0.6, -0.5); ctx.lineTo(-0.36, -0.36); ctx.quadraticCurveTo(-0.05, -0.32, 0.22, -0.42); ctx.closePath();
-  paint(ctx, C.grey, { lw: 0.035 });
-  ctx.beginPath(); ctx.moveTo(-0.3, -0.52); ctx.lineTo(-0.6, -0.5); ctx.lineTo(-0.34, -0.4); ctx.closePath(); paint(ctx, C.black, { lw: 0.03 });
-  if (Q.detail) { ctx.fillStyle = C.white; for (const sx of [-0.42, -0.5]) { ctx.beginPath(); ctx.arc(sx, -0.48, 0.022, 0, TAU); ctx.fill(); } }
-  // Head, turned which way it's looking.
-  ctx.scale(f, 1);
-  ctx.beginPath(); ctx.arc(0.27, -0.68, 0.14, 0, TAU); paint(ctx, C.white, { lw: 0.035 });
-  ctx.beginPath(); ctx.moveTo(0.38, -0.7); ctx.lineTo(0.62, -0.69); ctx.quadraticCurveTo(0.6, -0.62, 0.52, -0.63); ctx.lineTo(0.38, -0.63); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.025 });
-  if (Q.detail) {
-    ctx.beginPath(); ctx.arc(0.53, -0.64, 0.022, 0, TAU); ctx.fillStyle = C.red; ctx.fill();
-    // A pale eye, half shut, under a flat brow: unimpressed.
-    ctx.beginPath(); ctx.arc(0.31, -0.71, 0.035, 0, TAU); ctx.fillStyle = C.butter; ctx.fill();
-    ctx.beginPath(); ctx.arc(0.315, -0.705, 0.016, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(0.26, -0.735); ctx.lineTo(0.37, -0.735); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
-  }
-  ctx.restore();
-}
-
 // The raccoon in the bin, eating somebody's pretzel. out: how far it's up.
 function raccoon(ctx, x, y, z, t, out) {
   const [X, Y] = P(x, y, z);
@@ -629,30 +580,6 @@ function hatLady(ctx, X, Y) {
   ctx.beginPath(); ctx.ellipse(X, Y - 0.09, 0.17, 0.11, 0, 0, TAU); paint(ctx, C.white, { lw: 0.02, dots: C.grey, density: 0.12 });
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.018;
   for (const ex of [-0.05, 0.05]) { ctx.beginPath(); ctx.arc(X + ex, Y + 0.03, 0.035, 0, TAU); ctx.stroke(); }
-}
-
-// A man in an inflatable turkey costume: the fan of tail feathers behind
-// him, the round brown body, a turkey's head on top.
-const TURKEY = {
-  ...look(77), top: C.brown, bottom: C.brown, hat: 'none', style: 'bald',
-  wear: (ctx, b) => {
-    ctx.beginPath(); ctx.ellipse(0, b.hipY - 0.38, 0.5, 0.55, 0, 0, TAU);
-    paint(ctx, C.brown, { lw: 0.04, dots: shade(C.brown, 0.4), density: 0.18 });
-    ctx.beginPath(); ctx.ellipse(0.22, b.hipY - 0.4, 0.2, 0.32, 0, 0, TAU); paint(ctx, C.woodLight, { lw: 0.03 });
-  },
-  face: (ctx, hy) => {
-    ctx.beginPath(); ctx.ellipse(0.32, hy + 0.14, 0.06, 0.12, 0.2, 0, TAU); paint(ctx, C.red, { lw: 0.02 });
-    ctx.beginPath(); ctx.moveTo(0.3, hy - 0.02); ctx.lineTo(0.45, hy + 0.03); ctx.lineTo(0.3, hy + 0.06); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.015 });
-  },
-};
-function fan(ctx, x, y, z) {
-  const [X, Y] = P(x, y, z + 1.45);
-  const cols = [C.brown, C.mustard, C.coral, C.brown, C.red, C.mustard, C.brown];
-  for (let i = 0; i < 7; i++) {
-    const a = Math.PI + 0.25 + (i / 6) * (Math.PI - 0.5);
-    ctx.beginPath(); ctx.ellipse(X + Math.cos(a) * 0.55, Y + Math.sin(a) * 0.55, 0.16, 0.42, a + Math.PI / 2, 0, TAU);
-    paint(ctx, cols[i], { lw: 0.025 });
-  }
 }
 
 // ---------- The big still things ----------
@@ -1002,7 +929,7 @@ export default {
     cap(100.8, 0.4, 2.35, W - 100.8, 4.0);
 
     // The barriers along the back, and pigeons on them.
-    for (const [x0, x1] of [[12, 27], [62, 100.5]]) for (const [a, b] of pieces(x0, x1, 5)) {
+    for (const [x0, x1] of [[12, 27], [62, 100.5]]) for (const [a, b] of spans(x0, x1, 5)) {
       print(a, 0.65, (ctx, ink) => barrier(ctx, ink, a, b), { depth: a + 0.15 });
       cap(a, 0.3, 0.6, b - a, 0.2);
     }
@@ -1266,7 +1193,7 @@ export default {
       nightGlow(R, x, y - 1.15, 3.55, 3.2, LIT, 0.85);
       cap(x - 0.09, y - 0.09, 4.15, 0.18, 0.18);
     }
-    R.thing(25.85, 7.25, (ctx, t) => gull(ctx, 25.8, 7.2, 4.15, t), { anim: true, depth: 25.8 + 7.2 + 0.05 });
+    R.thing(25.85, 7.25, (ctx, t) => gull(ctx, 25.8, 7.2, 4.15, t, { look: true }), { anim: true, depth: 25.8 + 7.2 + 0.05 });
 
     // ---------- The smokers' corner, and the bin ----------
     R.thing(27.9, 11.9, (ctx) => {
@@ -1535,7 +1462,7 @@ export default {
     // ---------- The Silver Line ----------
     // The stop's shelter (open toward the terminal, its people facing you),
     // the SL sign, a man who always just misses the bus, and someone in a
-    // turkey costume who rides it in every time.
+    // turkey costume off the first bus of the day (kit.js, turkeyMan).
     print(95.6, 8.55, (ctx, ink) => {
       face(ctx, [[89, 8.45, 0.15], [95.5, 8.45, 0.15], [95.5, 8.45, 2.85], [89, 8.45, 2.85]], alpha(ink(tint(C.sky, 0.3)), 0.55), { lw: 0.04 });
       for (const x of [89, 91.15, 93.3, 95.5]) post(ctx, x, 8.45, 0, 2.98, ink(STEEL), 0.05);
@@ -1623,13 +1550,16 @@ export default {
         if (p.sigh && Q.detail) speech(ctx, p.x, p.y, 2.7, 'Wait!', { size: 0.34 });
       }
     });
-    // The turkey: off the bus, and the long walk down the curb to the doors.
+    // The man in the turkey: off the first bus of the day (half past four),
+    // and the long waddle down the curb to check-in's doors, in by eight
+    // (where check-in has him in the queue; the kit's TURKEY says when he's
+    // where, so there's only ever one of him).
     const TK = [[94.0, 3.7], [96.4, 10.4], [34, 10.8], [32.9, 11.5], [19.8, 11.5], [19.3, 11.9]];
     const TK_LEN = TK.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - TK[i][0], p[1] - TK[i][1]), 0);
     R.mover((t) => {
-      const tt = mod(t, BUS_CYCLE) - 5.6;
-      let d = tt * 1.25;
-      if (tt < 0 || d > TK_LEN) return HIDE;
+      const tt = mod(t, LOOP) - 5.6;
+      let d = tt * 1.8;
+      if (tt < 0 || d > TK_LEN || hour(t) >= TURKEY.curb[1]) return HIDE;
       for (let i = 1; i < TK.length; i++) {
         const [ax, ay] = TK[i - 1], [bx, by] = TK[i], l = Math.hypot(bx - ax, by - ay);
         if (d <= l) { const k = d / l, dX = (bx - ax) - (by - ay), dY = (bx - ax) + (by - ay); return { x: lerp(ax, bx, k), y: lerp(ay, by, k), dir: dX >= 0 ? 'r' : 'l', back: dY < 0 }; }
@@ -1638,9 +1568,7 @@ export default {
       return HIDE;
     }, (ctx, t, p) => {
       if (p.hide) return;
-      if (!p.back) fan(ctx, p.x, p.y, 0);
-      person(ctx, p.x, p.y, 0, { ...TURKEY, pose: 'walk', dir: p.dir, back: p.back, speed: 5 }, t);
-      if (p.back) fan(ctx, p.x, p.y, 0);
+      turkeyMan(ctx, p.x, p.y, 0, { pose: 'walk', dir: p.dir, back: p.back }, t);
     });
     // Somebody late, with a case, off the curb and running for the doors.
     const LATE = [[80.1, 6.4], [80.1, 10.15], [34.5, 10.15], [33.4, 11.45], [19.7, 11.45]];

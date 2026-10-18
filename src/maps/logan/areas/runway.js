@@ -23,11 +23,10 @@
 import {
   C, Q, P, box, rect, disc, face, paint, person, label, glow, alpha, tint, shade, mix, hash, cylinder,
 } from '../../../engine/art.js';
-import { ZK } from '../../../engine/iso.js';
 import { clamp } from '../../../engine/actors.js';
 import { INK, TONE, LIT, dusk, nightPrint } from '../style.js';
 import {
-  solid, hexa, frame, planeParts, planeShadow, bag, look, lettering, sign, snowCover, nightGround, printed,
+  solid, hexa, frame, planeParts, planeShadow, bag, look, lettering, sign, snowCover, nightGround, printed, gull,
 } from '../kit.js';
 import { W, D, FRONT, SHORE, SEAWALL, STRIP, CENTER } from '../plan.js';
 import { LOOP, hour, flying, snowK, nightK, lightsOn, settle } from '../clock.js';
@@ -919,37 +918,6 @@ function gullAt(g, t) {
   const y = home[1] + (Math.cos(a) - Math.cos(g.phase)) * g.swing * 0.5 * Math.sin(q * Math.PI);
   return { x, y, z: up * g.lift, fly: up > 0.02 ? 1 : 0, dir: Math.cos(a) >= 0 ? 'r' : 'l' };
 }
-// A herring gull: white, a grey back with black tips, a yellow bill, pink
-// legs; about half the goose's height. In the air, wings out and flapping.
-function gull(ctx, x, y, z, t, o) {
-  const [X, Y] = P(x, y, z);
-  const f = o.dir === 'l' ? -1 : 1, s = 1.2;
-  ctx.save(); ctx.translate(X, Y); ctx.scale(f * s, s);
-  if (o.fly) {
-    const fl = Math.sin(t * 12 + o.phase) * 0.22;
-    if (Q.detail) { ctx.save(); ctx.translate(0, (z * ZK) / s); ctx.beginPath(); ctx.ellipse(0, 0, 0.2, 0.08, 0, 0, TAU); ctx.fillStyle = alpha(C.ink, 0.12); ctx.fill(); ctx.restore(); }
-    const wing = (dy) => {
-      ctx.beginPath(); ctx.moveTo(-0.05, -0.1); ctx.quadraticCurveTo(-0.15, -0.3 - dy, -0.36, -0.22 - dy * 1.6); ctx.lineTo(-0.1, -0.07); ctx.closePath(); paint(ctx, C.greyLight, { lw: 0.025 });
-    };
-    wing(fl);
-    ctx.beginPath(); ctx.ellipse(0, -0.08, 0.2, 0.065, 0, 0, TAU); paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath(); ctx.arc(0.18, -0.11, 0.055, 0, TAU); paint(ctx, C.white, { lw: 0.025 });
-    ctx.beginPath(); ctx.moveTo(0.22, -0.12); ctx.lineTo(0.31, -0.1); ctx.lineTo(0.22, -0.09); ctx.fillStyle = C.mustard; ctx.fill();
-    ctx.save(); ctx.scale(1, -1); ctx.translate(0, 0.16); wing(-fl * 0.7); ctx.restore();
-  } else {
-    if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.2, 0.08, 0, 0, TAU); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
-    ctx.beginPath(); ctx.moveTo(-0.04, -0.17); ctx.lineTo(-0.05, 0); ctx.moveTo(0.04, -0.17); ctx.lineTo(0.05, 0);
-    ctx.strokeStyle = C.blush; ctx.lineWidth = 0.035; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(-0.02, -0.25, 0.2, 0.1, -0.12, 0, TAU); paint(ctx, C.white, { lw: 0.03 });
-    ctx.beginPath(); ctx.moveTo(0.1, -0.33); ctx.quadraticCurveTo(-0.08, -0.38, -0.22, -0.3); ctx.lineTo(-0.3, -0.24); ctx.quadraticCurveTo(-0.08, -0.22, 0.1, -0.26); ctx.closePath(); paint(ctx, C.grey, { lw: 0.025 });
-    ctx.beginPath(); ctx.moveTo(-0.22, -0.3); ctx.lineTo(-0.34, -0.25); ctx.lineTo(-0.24, -0.25); ctx.closePath(); ctx.fillStyle = C.ink; ctx.fill();
-    const peck = o.peck ? 0.12 : 0;
-    ctx.beginPath(); ctx.arc(0.15, -0.38 + peck, 0.075, 0, TAU); paint(ctx, C.white, { lw: 0.025 });
-    ctx.beginPath(); ctx.moveTo(0.2, -0.39 + peck); ctx.lineTo(0.31, -0.37 + peck); ctx.lineTo(0.2, -0.35 + peck); ctx.closePath(); ctx.fillStyle = C.mustard; ctx.fill();
-    ctx.beginPath(); ctx.arc(0.17, -0.4 + peck, 0.018, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
-  }
-  ctx.restore();
-}
 
 // ---------- In the water ----------
 // Boulders at the seawall's foot, and the flat-topped seal rocks.
@@ -1223,11 +1191,13 @@ export default {
     const EDGES = [PLAT[1], 6, 8, 10, 12, 14, SHORE];
     for (let j = 1; j < EDGES.length; j++) {
       const x0 = EDGES[j - 1], x1 = EDGES[j];
-      printed(R, x1, PIER[0], (ctx, ink, night) => pierPiece(ctx, ink, night, x0, x1, false), { depth: x0 + PIER[0] + 0.5 });
+      // (Each stood in its own chunk, the last one too, short of the seam at
+      // the shore: in the next chunk it was drawn over a plane coming in.)
+      printed(R, Math.min(x1, SHORE - 0.05), PIER[0], (ctx, ink, night) => pierPiece(ctx, ink, night, x0, x1, false), { depth: x0 + PIER[0] + 0.5 });
     }
     // Its near railings, in front of whoever's on it.
     printed(R, PLAT[1], PLAT[3], (ctx, ink) => rail(ctx, PLAT[0], PLAT[1], PLAT[3] - 0.04, ink), { depth: SPOT[0] + SPOT[1] + 0.2 });
-    for (let x0 = PLAT[1]; x0 < SHORE - 0.01; x0 += 4) printed(R, Math.min(SHORE, x0 + 4), PIER[1], (ctx, ink) => rail(ctx, x0, Math.min(SHORE, x0 + 4), PIER[1] - 0.04, ink));
+    for (let x0 = PLAT[1]; x0 < SHORE - 0.01; x0 += 4) printed(R, Math.min(SHORE - 0.05, x0 + 4), PIER[1], (ctx, ink) => rail(ctx, x0, Math.min(SHORE, x0 + 4), PIER[1] - 0.04, ink));
     // The planes' lights on it after dark, and the rabbit: a flash running
     // down the bars toward the runway, twice a second.
     const rabbit = R.air((ctx, t) => {
@@ -1352,7 +1322,7 @@ export default {
       R.mover((t) => { const p = gullAt(g, t); return { ...p, ahead: p.z * 1.2 }; }, (ctx, t, p) => {
         if (p.gone) return;
         const peck = !p.fly && Math.sin(t * 0.9 + g.phase * 3) > 0.82;
-        gull(ctx, p.x, p.y, p.z, t, { dir: p.dir, fly: p.fly, phase: g.phase, peck });
+        gull(ctx, p.x, p.y, p.z, t, { dir: p.dir, fly: p.fly, phase: g.phase, peck, look: true });
       });
       void i;
     });

@@ -84,6 +84,14 @@ export const RAMP = { tug: INK.signal, cart: tint(INK.tarmac, 0.35), canopy: INK
 // one pink bag that rides the loop all day.
 export const BAGS = [C.ink, C.navy, C.black, C.navy, INK.cranberry, C.teal, C.grey, C.red, C.purple, C.mustard, C.green, C.coral];
 export const PINK = C.pink;
+// The terminal's walls, one terminal from end to end (kit.js, lowWall and
+// glassWall): the landside wall, its band, and the airside glass.
+export const WALL = tint(INK.snow, 0.15);
+export const GLASS = alpha(tint(C.sky, 0.25), 0.4);
+export const FRAME = shade(C.grey, 0.25);
+// The belts' rubber, from check-in's counters through the bag room to
+// security's X-rays.
+export const RUBBER = shade(INK.tarmac, 0.45);
 // Wayfinding: the airport's signs, black on yellow.
 export const SIGN = { board: C.black, ink: INK.signal };
 // The fake brand, for every place: Gander Cola. "Take a gander."

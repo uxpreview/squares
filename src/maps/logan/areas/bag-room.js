@@ -19,8 +19,8 @@
 // y 32, so long things are cut there and big ones kept clear of them.
 import { C, Q, P, box, rect, face, poly, paint, paintText, cylinder, table, tiles, alpha, tint, shade, mix, person, goose } from '../../../engine/art.js';
 import { pulse } from '../../../engine/actors.js';
-import { INK, PINK, BRAND, SIGN, RAMP, TONE, LIT } from '../style.js';
-import { bag, cart, look, sign, hangSign, lettering, nightGlow } from '../kit.js';
+import { INK, PINK, BRAND, SIGN, RAMP, TONE, LIT, RUBBER } from '../style.js';
+import { bag, cart, look, vest, inHand, sign, hangSign, lettering, nightGlow } from '../kit.js';
 import { AIR, FRONT, CHECK, SHORE } from '../plan.js';
 import { LOOP, hour, stopped } from '../clock.js';
 
@@ -28,7 +28,7 @@ import { LOOP, hour, stopped } from '../clock.js';
 const FLOOR = mix(INK.concrete, C.grey, 0.38); // sealed concrete, back of house
 const SKIRT = mix(C.grey, C.greyLight, 0.35); // the belts' steel sides
 const STEEL = mix(C.greyLight, C.white, 0.3);
-const RUBBER = mix(C.ink, C.grey, 0.3); // the belts' tops
+// (The belts' tops: the style sheet's RUBBER, as at check-in and security.)
 const WALL = mix(INK.concrete, C.white, 0.3);
 const GRANITE = mix(C.grey, INK.concrete, 0.4);
 const PLATE = mix(C.grey, C.greyLight, 0.55); // the island's deck
@@ -220,22 +220,8 @@ function hatch(ctx, x0, y0, x1, y1, color, step = 0.55) {
 }
 
 // ---------- People ----------
-// Hi-vis: two silver bands round a ramp jacket (person()'s wear).
-function hiVis(c, b) {
-  if (!Q.detail) return;
-  c.fillStyle = alpha(C.white, 0.85);
-  c.fillRect(-0.28, b.top + 0.34, 0.56, 0.06);
-  c.fillRect(-0.28, b.top + 0.58, 0.56, 0.06);
-}
-// The supervisor's vest, over a white shirt.
-function vest(c, b) {
-  c.beginPath();
-  c.roundRect(-0.29, b.top + 0.08, 0.58, b.hipY - b.top - 0.02, 0.14);
-  c.fillStyle = INK.signal;
-  c.fill();
-  if (!b.back) { c.fillStyle = C.white; c.fillRect(-0.06, b.top + 0.08, 0.12, 0.42); }
-  hiVis(c, b);
-}
+// The handlers dress from the kit (look(seed, 'ramp'): the airport's one
+// hi-vis, ear defenders on half of them), the supervisor in the kit's vest.
 // Reading glasses.
 function specs(c, hy, back) {
   if (back || !Q.detail) return;
@@ -245,28 +231,20 @@ function specs(c, hy, back) {
   c.arc(0.24, hy + 0.02, 0.07, 0, Math.PI * 2);
   c.strokeStyle = C.ink; c.lineWidth = 0.03; c.stroke();
 }
-const RAMPLK = (seed, extra = {}) => ({ ...look(seed, 'ramp', extra), wear: hiVis });
-const SUPER = { ...look(204, 'ramp', { top: C.white, hat: 'helmet' }), wear: vest };
+const RAMPLK = (seed, extra = {}) => look(seed, 'ramp', extra);
+const SUPER = look(204, 'ramp', { top: C.white, hat: 'helmet', wear: vest() });
 const THROWER = RAMPLK(211, { hat: 'beanie', scale: 1.08 });
 const DUCKER = RAMPLK(215, { hat: 'helmet' });
 const CARRIER = RAMPLK(216);
 const PULLER = RAMPLK(218, { hat: 'beanie' });
 const SCANNER = RAMPLK(219);
-const READER = { ...look(222, 'ramp', { hat: 'beanie' }), wear: hiVis, face: specs };
+const READER = look(222, 'ramp', { hat: 'beanie', face: specs });
 const TAPER = RAMPLK(224, { hat: 'helmet' });
 const RIDER = RAMPLK(226, { hat: 'beanie' });
 const KEEPER = { ...look(228, 'agent', { hair: C.greyLight, style: 'bald', top: C.navy }), face: specs };
 
-// Something held in the near hand, along the arm (a: the arm's angle as
-// person() takes it). For person()'s hold, which draws from near the
-// shoulder: this moves to the hand and turns down the arm.
-const inHand = (a, draw) => (c, t) => {
-  c.save();
-  c.translate(0.22 - 0.35 + Math.sin(a) * 0.72, -0.3 + Math.cos(a) * 0.72);
-  c.rotate(-a);
-  draw(c, t);
-  c.restore();
-};
+// Something held in the near hand, turned down the arm (kit.js, inHand).
+const held = (a, draw) => inHand(a, draw, { turn: true });
 function mallet(c) {
   c.beginPath(); c.moveTo(0, -0.05); c.lineTo(0, 0.82);
   c.lineCap = 'round';
@@ -1128,17 +1106,18 @@ export default {
     // CLEAR box: three whacks at the top of the heap, then a rest, leaning on it.
     const SUP = [27.3, 33.9];
     R.thing(SUP[0], SUP[1], (ctx, t) => {
-      if (jam.k() > 0.5) { person(ctx, SUP[0], SUP[1], 0, { ...SUPER, pose: 'cheer', dir: 'l', arms: [Math.PI - 0.3, -(Math.PI - 0.3)], hold: inHand(Math.PI - 0.3, mallet) }, t); return; }
+      if (jam.k() > 0.5) { person(ctx, SUP[0], SUP[1], 0, { ...SUPER, pose: 'cheer', dir: 'l', arms: [Math.PI - 0.3, -(Math.PI - 0.3)], hold: held(Math.PI - 0.3, mallet) }, t); return; }
       const s = whackS(t);
       let a = 0.5, b = -0.55;
       if (s < 2.4) { const q = (s % 0.8) / 0.8; a = q < 0.65 ? 2.1 + (q / 0.65) * 1.4 : 3.5 - ((q - 0.65) / 0.35) * 1.4; b = a - 0.12; }
-      person(ctx, SUP[0], SUP[1], 0, { ...SUPER, pose: 'stand', dir: 'l', arms: [a, b], hold: inHand(a, mallet) }, t);
+      person(ctx, SUP[0], SUP[1], 0, { ...SUPER, pose: 'stand', dir: 'l', arms: [a, b], hold: held(a, mallet) }, t);
     }, { anim: true });
-    // DAYS WITHOUT A JAM: 0, and its beacon.
+    // The merge's sign, and its beacon. (Security already counts the days
+    // without a snow globe: here the bags merge like Boston drives.)
     R.thing(28.2, 32.9, (ctx) => {
       hangSign(ctx, 'x', 28.2, 32.9, 1.85, 2.2, 0.8, null, { post: true });
-      lettering(ctx, 'x', 28.2, 32.905, 2.05, 'DAYS WITHOUT A JAM', 0.15, SIGN.ink);
-      lettering(ctx, 'x', 28.2, 32.905, 1.72, '0', 0.34, C.white, 'Bagel Fat One');
+      lettering(ctx, 'x', 28.2, 32.905, 2.05, 'MERGE AHEAD', 0.15, SIGN.ink);
+      lettering(ctx, 'x', 28.2, 32.905, 1.72, 'BOSTON RULES', 0.22, C.white, 'Bagel Fat One');
     });
     R.thing(28.2, 32.95, (ctx, t) => beacon(ctx, 28.2, 32.9, 2.25, t, jam.k()), { anim: true, depth: 28.2 + 32.9 + 0.05 });
 
@@ -1171,7 +1150,7 @@ export default {
     R.thing(8.6, 35.8, (ctx) => sortBench(ctx));
     // A handler reading a tag through a magnifying glass; in the ground stop,
     // asleep against the bench.
-    still(R, 8.7, 36.75, READER, { pose: 'stand', dir: 'l', arms: [2.35, 1.15], hold: inHand(2.35, lens), on: (t) => !stopped(t) });
+    still(R, 8.7, 36.75, READER, { pose: 'stand', dir: 'l', arms: [2.35, 1.15], hold: held(2.35, lens), on: (t) => !stopped(t) });
     still(R, 8.4, 36.3, READER, { z: -0.38, pose: 'sit', dir: 'l', arms: [0.4, 0.2], on: stopped });
     R.thing(11.95, 37.4, (ctx) => rushBin(ctx));
     // The lap board, on two posts.
@@ -1180,7 +1159,7 @@ export default {
     // The scanner: a beep at the belt every couple of seconds.
     R.thing(18.9, 37.6, (ctx, t) => {
       const s = ((t % 2.2) + 2.2) % 2.2;
-      person(ctx, 18.9, 37.6, 0, { ...SCANNER, pose: 'point', dir: 'l', hold: inHand(1.5, gun) }, t);
+      person(ctx, 18.9, 37.6, 0, { ...SCANNER, pose: 'point', dir: 'l', hold: held(1.5, gun) }, t);
       if (s < 0.3 && Q.detail) {
         const [X, Y] = P(18.9, 37.6, 0), b = P(18.0, 39.4, BZ + 0.3);
         ctx.beginPath(); ctx.moveTo(X - 1.24, Y - 1.46); ctx.lineTo(b[0], b[1]);
@@ -1360,7 +1339,7 @@ export default {
     // ---------- The bag hospital ----------
     R.thing(27.6, 39.0, (ctx, t) => {
       const w = Math.sin(t * 3);
-      person(ctx, 27.6, 39.0, 0, { ...TAPER, dir: 'l', arms: [1.35 + w * 0.35, 1.05 - w * 0.35], hold: inHand(1.35 + w * 0.35, tapeRoll) }, t);
+      person(ctx, 27.6, 39.0, 0, { ...TAPER, dir: 'l', arms: [1.35 + w * 0.35, 1.05 - w * 0.35], hold: held(1.35 + w * 0.35, tapeRoll) }, t);
     }, { anim: true });
     R.thing(27.7, 40.4, (ctx) => hospital(ctx));
 

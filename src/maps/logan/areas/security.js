@@ -21,8 +21,8 @@ import {
   alpha, tint, shade, mix, rng, pick,
 } from '../../../engine/art.js';
 import { clamp, pulse, route } from '../../../engine/actors.js';
-import { INK, SIGN, BRAND } from '../style.js';
-import { look, bag, lettering } from '../kit.js';
+import { INK, SIGN, BRAND, GLASS, RUBBER } from '../style.js';
+import { look, bag, lettering, board, zzz, lieAlong, coatOver, asleep, turkeyMan, TURKEY, lowWall, glassWall } from '../kit.js';
 import { LAND, AIR, CHECK, SEC } from '../plan.js';
 import { hour, nightK, LOOP } from '../clock.js';
 import { XRAY } from '../day.js';
@@ -65,14 +65,13 @@ const TRAYS = [30.9, 23.85]; // the stack of trays nobody takes back
 
 // ---------- Inks ----------
 const FLOOR = mix(C.greyLight, C.grey, 0.3);
-const WALL = tint(INK.concrete, 0.3);
 const STEEL = mix(C.greyLight, C.white, 0.3);
 const STEEL_D = shade(C.grey, 0.25);
 const MACHINE = tint(C.grey, 0.45);
-const RUBBER = mix(C.ink, INK.tarmac, 0.5);
+// (The belts' RUBBER is the style sheet's, as at check-in and the bag room.)
 const TRAY = C.grey;
 const BEZEL = mix(C.ink, C.grey, 0.25);
-const GLASS = alpha(tint(C.sky, 0.2), 0.3);
+
 const XR = { bg: C.night, ghost: alpha(C.mint, 0.3), mid: alpha(C.tealLight, 0.55), hi: C.mint, metal: C.white };
 
 // ---------- The clock ----------
@@ -124,29 +123,10 @@ function onX(ctx, x, y, z, draw) {
   const [X, Y] = P(x, y, z);
   ctx.save(); ctx.transform(1, -0.5, 0, 1, X, Y); draw(ctx); ctx.restore();
 }
-// A board with lines of lettering, upright, along x (facing the lower left)
-// or y. lines: [[text, size, font?]...], top to bottom.
-function board(ctx, along, x, y, z, w, h, lines, o = {}) {
-  const pts = along === 'x'
-    ? [[x - w / 2, y, z - h / 2], [x + w / 2, y, z - h / 2], [x + w / 2, y, z + h / 2], [x - w / 2, y, z + h / 2]]
-    : [[x, y + w / 2, z - h / 2], [x, y - w / 2, z - h / 2], [x, y - w / 2, z + h / 2], [x, y + w / 2, z + h / 2]];
-  face(ctx, pts, o.board || SIGN.board, { lw: 0.04 });
-  const gap = h / (lines.length + 0.4);
-  lines.forEach(([text, size, font], i) => {
-    const zz = z + h / 2 - gap * (i + 0.7);
-    lettering(ctx, along, x, y, zz, text, size, o.ink || SIGN.ink, font || 'Rethink Sans');
-  });
-}
 // Where a standing person's near hand is (screen units), with that arm at a.
 function hand(x, y, z, dir, a, s = 1) {
   const [X, Y] = P(x, y, z), f = dir === 'l' ? -1 : 1;
   return [X + f * s * (0.22 + Math.sin(a) * 0.72), Y + s * (-1.53 + Math.cos(a) * 0.72)];
-}
-// Little z's rising off someone asleep.
-function zzz(ctx, x, y, z, t) {
-  if (!Q.detail) return;
-  const k = (t * 0.5) % 1;
-  label(ctx, x + 0.3 * k, y - 0.3 * k, z + k * 0.9, 'z', 0.42 + k * 0.26, alpha(C.ink, Math.min(1, 1.6 - 1.6 * k)));
 }
 // A security officer: the kit's look, with a badge.
 const badge = (ctx, b) => {
@@ -514,26 +494,6 @@ const SLOTS = [
   [33.9, 1], [35.8, 1], [37.7, 1], [39.6, 1], [41.5, 1], [43.4, 1], [45.3, 1], [47.2, 1],
   [48.0, 0], [46.2, 0], [44.3, 0], [42.4, 0], [40.5, 0], [38.6, 0], [36.7, 0], [34.9, 0], [33.0, 0], [31.2, 0],
 ];
-// The man in an inflatable turkey suit, in the queue at the rush: from behind,
-// a fan of feathers and a body like a beach ball.
-function turkeySuit(ctx, x, y) {
-  const [X, Y] = P(x, y, 0);
-  const fan = [C.brown, C.mustard, C.coral, C.red, C.coral, C.mustard, C.brown];
-  for (let i = 0; i < 7; i++) {
-    const a = -Math.PI / 2 + (i - 3) * 0.3;
-    ctx.beginPath(); ctx.ellipse(X + Math.cos(a) * 0.62, Y - 1.35 + Math.sin(a) * 0.62, 0.15, 0.42, a + Math.PI / 2, 0, TAU);
-    paint(ctx, fan[i], { lw: 0.03 });
-  }
-  person(ctx, x, y, 0, { ...look(214), top: C.brown, bottom: C.ink, hat: undefined, pose: 'stand', dir: 'l', back: true }, 0);
-  ctx.beginPath(); ctx.ellipse(X, Y - 1.2, 0.55, 0.52, 0, 0, TAU); paint(ctx, C.wood, { dots: C.brown, density: 0.22 });
-  // the wings, and the neck curling up on the far side with its wattle
-  ctx.beginPath(); ctx.ellipse(X + 0.42, Y - 1.15, 0.14, 0.3, -0.3, 0, TAU); paint(ctx, shade(C.wood, 0.15), { lw: 0.03 });
-  ctx.beginPath(); ctx.moveTo(X - 0.35, Y - 1.5); ctx.quadraticCurveTo(X - 0.55, Y - 1.9, X - 0.42, Y - 2.25);
-  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.2; ctx.lineCap = 'round'; ctx.stroke();
-  ctx.strokeStyle = C.wood; ctx.lineWidth = 0.13; ctx.stroke();
-  ctx.beginPath(); ctx.arc(X - 0.42, Y - 2.28, 0.13, 0, TAU); paint(ctx, C.wood, { lw: 0.03 });
-  ctx.beginPath(); ctx.ellipse(X - 0.5, Y - 2.15, 0.05, 0.1, 0.3, 0, TAU); paint(ctx, C.red, { lw: 0.02 });
-}
 
 export default {
   id: 'security',
@@ -591,28 +551,12 @@ export default {
     });
 
     // ---------- The walls ----------
-    // The landside wall along the back, waist high (no doors here: the queue
-    // comes in from check-in), in pieces so the queue sorts round it.
-    // (Each sorts by its front-left corner: anyone standing in front of it
-    // in the queue is drawn after it.)
-    for (let x = X0; x < X1 - 0.01; x += 2) {
-      R.thing(x + 0.05, Y0 + 0.4, (ctx) => {
-        box(ctx, x, Y0, 0, 2, 0.4, 1.0, WALL, { flat: true, lw: 0.035 });
-        face(ctx, [[x, Y0 + 0.401, 0.6], [x + 2, Y0 + 0.401, 0.6], [x + 2, Y0 + 0.401, 0.72], [x, Y0 + 0.401, 0.72]], INK.cranberry, { stroke: false });
-        box(ctx, x - 0.01, Y0 - 0.03, 1.0, 2.02, 0.46, 0.1, C.white, { flat: true, lw: 0.03 });
-      });
-    }
-    // The airside glass along the front, low: the apron and its de-icers
-    // through it.
-    for (let x = X0; x < X1 - 0.01; x += 2) {
-      R.thing(x + 2, Y1, (ctx) => {
-        box(ctx, x, Y1 - 0.3, 0, 2, 0.3, 0.26, shade(C.grey, 0.35), { flat: true, lw: 0.03 });
-        face(ctx, [[x, Y1, 0.26], [x + 2, Y1, 0.26], [x + 2, Y1, 1.04], [x, Y1, 1.04]], GLASS, { lw: 0.018 });
-        if (Q.detail) face(ctx, [[x + 0.4, Y1, 0.4], [x + 0.7, Y1, 0.4], [x + 1.0, Y1, 0.95], [x + 0.7, Y1, 0.95]], alpha(C.white, 0.35), { stroke: false });
-        box(ctx, x, Y1 - 0.25, 1.04, 2, 0.2, 0.06, STEEL, { flat: true, lw: 0.025 });
-        box(ctx, x, Y1 - 0.25, 0.26, 0.07, 0.2, 0.78, C.grey, { flat: true, lw: 0.018 });
-      });
-    }
+    // The terminal's landside wall along the back, waist high (no doors here:
+    // the queue comes in from check-in), and the airside glass along the
+    // front, the apron and its de-icers through it: the kit's, the same from
+    // check-in to the gates.
+    lowWall(R, X0, X1, Y0);
+    glassWall(R, X0, X1, Y1);
 
     // ---------- The queue ----------
     // The ropes, between their posts (each length its own thing, so the
@@ -634,9 +578,12 @@ export default {
       const [ry, rxs] = ROPES[lane];
       const rope = (ctx) => strapX(ctx, Math.max(rxs[0], x - 0.62), Math.min(rxs[rxs.length - 1], x + 0.62), ry);
       if (i === 6) {
-        // the turkey suit, only at the rush (the queue's 22 then)
-        R.thing(x, y, (ctx) => { turkeySuit(ctx, x, y); rope(ctx); }, { on: (t) => crowd(t) > 20 });
-        R.thing(x, y, (ctx) => { person(ctx, x, y, 0, { ...look(206), pose: 'stand', dir, back }, 0); rope(ctx); }, { on: (t) => on(t) && crowd(t) <= 20 });
+        // The man in the inflatable turkey, from ten till half past eleven
+        // (check-in's queue before, the gates after: kit.js, TURKEY), seen
+        // from behind: the fan of feathers, the turkey's head up over his.
+        const his = (t) => on(t) && between(...TURKEY.security)(t);
+        R.thing(x, y, (ctx) => { turkeyMan(ctx, x, y, 0, { dir, back }); rope(ctx); }, { on: his });
+        R.thing(x, y, (ctx) => { person(ctx, x, y, 0, { ...look(206), pose: 'stand', dir, back }, 0); rope(ctx); }, { on: (t) => on(t) && !his(t) });
         return;
       }
       let lk = look(200 + i * 3), extra = {}, kit = null;
@@ -668,7 +615,7 @@ export default {
     for (const [a, b, wait] of WAITS) {
       R.thing(35.4, 12.7, (ctx) => {
         for (const e of [32.7, 34.5]) box(ctx, e - 0.02, 12.68, 3.95, 0.04, 0.04, 1.3, C.ink, { flat: true, stroke: false });
-        board(ctx, 'x', 33.6, 12.7, 3.55, 3.2, 0.95, [['WAIT FROM HERE', 0.22], [wait, 0.36, 'Bagel Fat One']]);
+        board(ctx, 'x', 33.6, 12.7, 3.55, 3.2, 0.95, [['WAIT FROM HERE', 0.22], [wait, 0.36, null, 'Bagel Fat One']], { even: true });
       }, { on: between(a, b) });
     }
 
@@ -683,7 +630,7 @@ export default {
       ...officer(140), pose: 'read', dir: 'l',
       hold: (c) => { c.beginPath(); c.rect(-0.05, -0.22, 0.3, 0.2); paint(c, C.white, { lw: 0.02 }); c.beginPath(); c.arc(0.02, -0.05, 0.11, 0, TAU); paint(c, alpha(C.sky, 0.5), { lw: 0.03 }); },
     }, 0), { on: DAY });
-    R.thing(41.2, 15.5, (ctx) => board(ctx, 'x', 40.8, 15.47, 0.62, 0.62, 0.32, [['CLOSED', 0.16]], { board: C.white, ink: C.red }), { on: NIGHT });
+    R.thing(41.2, 15.5, (ctx) => board(ctx, 'x', 40.8, 15.47, 0.62, 0.62, 0.32, [['CLOSED', 0.16]], { board: C.white, ink: C.red, even: true }), { on: NIGHT });
 
     // ---------- The trays and the divest table ----------
     // The trays nobody takes back stack up all day, by the table: by night
@@ -738,7 +685,7 @@ export default {
     R.thing(30.4, 22.7, (ctx) => {
       box(ctx, 30.35, 21.8, 0, 0.07, 0.07, 1.45, C.ink, { flat: true, lw: 0.015 });
       disc(ctx, 30.39, 21.84, 0.01, 0.2, STEEL_D, { lw: 0.02 });
-      board(ctx, 'y', 30.4, 21.85, 1.85, 1.75, 0.8, [['SHOES OFF. BELTS OFF.', 0.11], ['LAPTOPS OUT.', 0.11], ['DIGNITY: IN THE TRAY.', 0.11]]);
+      board(ctx, 'y', 30.4, 21.85, 1.85, 1.75, 0.8, [['SHOES OFF. BELTS OFF.', 0.11], ['LAPTOPS OUT.', 0.11], ['DIGNITY: IN THE TRAY.', 0.11]], { even: true });
     });
     // At the table: a man whose trousers need their belt back, and a woman
     // getting her laptop out of a bag that was packed around it.
@@ -983,7 +930,7 @@ export default {
       cylinder(ctx, 44.5, 23.8, 0.72, 0.24, 0.08, C.ink, { flat: true, lw: 0.02 });
       cylinder(ctx, 44.42, 23.72, 0.8, 0.07, 0.17, C.white, { flat: true, lw: 0.015 });
       post(ctx, 45.0, 24.3);
-      board(ctx, 'x', 45.0, 24.3, 1.25, 0.9, 0.5, [['BACK IN', 0.13], ['5 MIN', 0.2, 'Bagel Fat One']], { board: C.white, ink: C.ink });
+      board(ctx, 'x', 45.0, 24.3, 1.25, 0.9, 0.5, [['BACK IN', 0.13], ['5 MIN', 0.2, null, 'Bagel Fat One']], { board: C.white, ink: C.ink, even: true });
     });
     // Waiting for the scanner: one taps her foot, one checks his watch.
     R.thing(42.6, 19.4, (ctx, t) => person(ctx, 42.6, 19.4, Math.max(0, Math.sin(t * 9)) * 0.04, { ...look(156), pose: 'stand', dir: 'l', arms: [0.7, 0.7] }, t), { anim: true, on: DAY });
@@ -1025,7 +972,7 @@ export default {
         face(ctx, [[bx, by, 0], [bx, by + bd, 0], [bx, by + bd, bh], [bx, by, bh]], alpha(C.sky, 0.2), { lw: 0.015 });
         // The tally on its stick at the back.
         box(ctx, bx + 0.79, by + 0.08, bh, 0.04, 0.04, 0.75, C.ink, { flat: true, stroke: false });
-        board(ctx, 'x', bx + 0.8, by + 0.1, bh + 0.95, 1.3, 0.5, [['DAYS WITHOUT A', 0.11], ['SNOW GLOBE: 0', 0.16, 'Bagel Fat One']], { board: C.white, ink: C.red });
+        board(ctx, 'x', bx + 0.8, by + 0.1, bh + 0.95, 1.3, 0.5, [['DAYS WITHOUT A', 0.11], ['SNOW GLOBE: 0', 0.16, null, 'Bagel Fat One']], { board: C.white, ink: C.red, even: true });
         // The sword, point down, its hilt up out of the top.
         face(ctx, [[bx + 0.45, by + 0.5, 0.05], [bx + 0.55, by + 0.5, 0.05], [bx + 0.62, by + 0.5, 1.25], [bx + 0.48, by + 0.5, 1.25]], C.greyLight, { lw: 0.018 });
         box(ctx, bx + 0.32, by + 0.45, 1.25, 0.46, 0.1, 0.06, C.mustard, { flat: true, lw: 0.015 });
@@ -1053,7 +1000,7 @@ export default {
         face(ctx, [[bx, by + bd, 0], [bx + bw, by + bd, 0], [bx + bw, by + bd, bh], [bx, by + bd, bh]], GLASS, { lw: 0.025 });
         face(ctx, [[bx + bw, by, 0], [bx + bw, by + bd, 0], [bx + bw, by + bd, bh], [bx + bw, by, bh]], alpha(tint(C.sky, 0.3), 0.36), { lw: 0.025 });
         for (const [rx, ry, rw, rd] of [[bx - 0.03, by - 0.03, bw + 0.06, 0.08], [bx - 0.03, by + bd - 0.05, bw + 0.06, 0.08], [bx - 0.03, by, 0.08, bd], [bx + bw - 0.05, by, 0.08, bd]]) box(ctx, rx, ry, bh, rw, rd, 0.05, STEEL, { flat: true, lw: 0.018 });
-        board(ctx, 'x', bx + bw / 2, by + bd + 0.005, 0.32, 1.35, 0.32, [['NOT COMING BACK', 0.15]]);
+        board(ctx, 'x', bx + bw / 2, by + bd + 0.005, 0.32, 1.35, 0.32, [['NOT COMING BACK', 0.15]], { even: true });
       }, { on: between(a, b) });
     }
     R.poke({ id: 'bin', at: [50.2, 23.1, 1.2], r: 0.9, teach: true, sound: 'clunk', say: ['Not one of these is coming back.', 'Shampoo, a sword, snow globes.', 'Somebody will miss that sword.'] });
@@ -1159,8 +1106,7 @@ export default {
     R.thing(32.6, 26.65, (ctx) => person(ctx, 32.6, 26.65, -0.18, { ...look(170, 'traveler', { hair: C.greyLight, style: 'bald' }), pose: 'sit', dir: 'r', arms: [0.6, 0.45] }, 0), { on: DAY, depth: 35.4 + 27.2 + 0.05 });
     R.thing(34.6, 26.65, (ctx) => person(ctx, 34.6, 26.65, -0.18, { ...look(171), pose: 'sit', dir: 'l', arms: [1.0, 1.0], shoes: C.white }, 0), { on: DAY, depth: 35.4 + 27.2 + 0.06 });
     R.thing(33.4, 26.7, (ctx) => {
-      person(ctx, 33.4, 26.7, 0.55, { ...look(172), pose: 'lie', dir: 'r' }, 0);
-      face(ctx, [[32.3, 26.5, 0.75], [34.0, 26.5, 0.75], [34.0, 27.0, 0.72], [32.3, 27.0, 0.72]], C.green, { lw: 0.025 });
+      lieAlong(ctx, 34.7, 26.75, 0.55, asleep({ ...look(172), wear: coatOver(C.green) }));
     }, { on: NIGHT, depth: 35.4 + 27.2 + 0.05 });
     // A dad hopping about with one shoe on.
     R.thing(38.4, 26.6, (ctx, t) => {
@@ -1270,8 +1216,8 @@ export default {
     // blanket.
     R.thing(40.1, 28.3, (ctx) => {
       rect(ctx, 37.5, 26.6, 2.6, 1.7, 0.01, C.purple, { lw: 0.02 });
-      person(ctx, 38.2, 27.0, 0.05, { ...look(182), pose: 'lie', dir: 'l', scale: 0.7 }, 0);
-      person(ctx, 39.0, 27.7, 0.05, { ...look(181), pose: 'lie', dir: 'l' }, 0);
+      lieAlong(ctx, 39.2, 26.95, 0.05, asleep({ ...look(182), scale: 0.7 }));
+      lieAlong(ctx, 40.0, 27.75, 0.05, asleep({ ...look(181), wear: coatOver(C.lilac) }));
     }, { on: NIGHT });
 
     // The tiny bottle of hot sauce, in a sock, in a tray, on the table.
