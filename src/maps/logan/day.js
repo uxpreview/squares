@@ -833,9 +833,9 @@ function famDraw(ctx, t, p) {
     const along = Math.abs(mx) >= Math.abs(my) ? 'x' : 'y';
     const cx = p.x - mx * 1.0, cy = p.y - my * 1.0;
     who(p.x, p.y, 0, DAD, { pose: pose2, dir: f.dir, back: f.back, arms: pose2 === 'run' ? [-0.7, 0.9 + Math.sin(t * 9) * 0.5] : null });
-    // (Mum a little to the side: down the concourse that's between the
-    // band's front row and the gate desks.)
-    who(p.x - mx * 0.5 + nx * 0.6, p.y - my * 0.5 + ny * 0.6, 0, MUM, { pose: pose2, dir: f.dir, back: f.back, phase: 2 });
+    // (Mum just off Dad's shoulder: beside him she ran through the check-in
+    // glass and the band's front row.)
+    who(p.x - mx * 0.5 + nx * 0.35, p.y - my * 0.5 + ny * 0.35, 0, MUM, { pose: pose2, dir: f.dir, back: f.back, phase: 2 });
     kit(cx, cy, 0.06, { kind: 'case', lie: true, color: KID_CASE, along, tag: C.mustard });
     who(cx, cy, -0.17, KID, { pose: 'sit', dir: f.dir, back: f.back, scale: 0.62, arms: [Math.PI - 0.5, -Math.PI + 0.5] });
     // The strap from the case to Dad's hand.
