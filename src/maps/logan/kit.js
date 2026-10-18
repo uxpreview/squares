@@ -488,7 +488,8 @@ export function look(seed, kind = 'traveler', extra = {}) {
     case 'trooper': return { ...base, top: shade(C.grey, 0.3), bottom: C.navy, hat: 'cap', dress: false, ...extra };
     case 'band': return { ...base, top: INK.cranberry, bottom: C.white, hat: 'cap', dress: false, ...extra };
     case 'crew': return { ...base, top: INK.signal, bottom: C.ink, hat: 'helmet', dress: false, ...extra };
-    default: return { ...base, top: PARKA[seed % PARKA.length], hat: r < 0.35 ? 'beanie' : base.hat, ...extra };
+    // (A traveler's beanie in a color of its own, never the parka's.)
+    default: return { ...base, top: PARKA[seed % PARKA.length], hat: r < 0.35 ? 'beanie' : base.hat, hatColor: PARKA[(seed * 7 + 3) % PARKA.length], ...extra };
   }
 }
 // Someone who stays put and holds still, drawn once and cached (cheap, so
@@ -556,7 +557,9 @@ export function hangSign(ctx, along, x, y, z, w, h, text, o = {}) {
 // one stamp). Put it after the ground, its paint and snowCover, so the snow
 // goes blue at night too (the floodlights' glows brighten it again).
 export function nightGround(R, rects, k = 0.42) {
-  R.rug((ctx) => { for (const [x0, y0, x1, y1] of rects) rect(ctx, x0, y0, x1 - x0, y1 - y0, 0.004, alpha(C.night, k), { stroke: false }); }, { fade: (t) => nightK(t) });
+  // (In twelve steps, so it bakes into the area's cached floor: a fade alone
+  // kept everything flat drawn after it out of the cache.)
+  R.rug((ctx) => { for (const [x0, y0, x1, y1] of rects) rect(ctx, x0, y0, x1 - x0, y1 - y0, 0.004, alpha(C.night, k), { stroke: false }); }, { fade: (t) => nightK(t), step: (t) => Math.round(nightK(t) * 12) });
 }
 // The snow lying on outdoor ground (boxes [x0, y0, x1, y1]): white, drifted
 // against the edges and thinner in the middle, laid on as it settles (still,
@@ -580,7 +583,7 @@ export function snowCover(R, rects, o = {}) {
       }
     }
     for (const [x0, y0, x1, y1] of o.clear || []) rect(ctx, x0, y0, x1 - x0, y1 - y0, 0.009, alpha(INK.tarmac, 0.55), { stroke: false });
-  }, { fade: (t) => settle(t) });
+  }, { fade: (t) => settle(t), step: (t) => Math.round(settle(t) * 12) });
 }
 // Snow on top of a still thing (a box's top), the same way: a cap that
 // shows as it settles. For a moving thing, draw it with snowK yourself.
