@@ -871,19 +871,33 @@ function boatInk(t, back) {
   const p = paperAt(t), n = qk(nightK(t), 8), s = qk(snowK(t) * 0.15, 8), b = qk(back + s, 16);
   return (c) => mix(mix(c, C.night, n * 0.42), p, b);
 }
-// The wake behind a moving boat and a curl at its bow, on the water.
+// The wake behind a moving boat and a curl at its bow, on the water: each
+// arm of the V a run of short, wobbling wavelets that fade as they spread
+// (one straight line an arm read as stiff white spokes).
 function wake(ctx, F, L, B, k, t, back) {
   if (!Q.detail || k <= 0.05) return;
-  ctx.beginPath();
+  const A = 0.55 * (1 - back);
+  const seg = (a, b, al, w) => {
+    ctx.beginPath(); ctx.moveTo(PX(a[0], a[1]), PY(a[0], a[1])); ctx.lineTo(PX(b[0], b[1]), PY(b[0], b[1]));
+    ctx.strokeStyle = alpha(C.white, al); ctx.lineWidth = w; ctx.stroke();
+  };
+  ctx.lineCap = 'round';
   for (const s of [-1, 1]) {
-    const a = F(-L / 2, s * B * 0.4, 0), b = F(-L / 2 - 2.6 * k, s * (B * 0.4 + 1.1 * k), 0);
-    ctx.moveTo(PX(a[0], a[1]), PY(a[0], a[1])); ctx.lineTo(PX(b[0], b[1]), PY(b[0], b[1]));
-    const c = F(L / 2 - 0.1, s * 0.2, 0), d = F(L / 2 - 0.9, s * (B * 0.5 + 0.25), 0);
-    ctx.moveTo(PX(c[0], c[1]), PY(c[0], c[1])); ctx.lineTo(PX(d[0], d[1]), PY(d[0], d[1]));
+    // The V, in five wavelets from the stern outward.
+    for (let i = 0; i < 5; i++) {
+      const u0 = i / 5, u1 = u0 + 0.13, wob = Math.sin(t * 3 + i * 1.7) * 0.06;
+      const at = (u) => F(-L / 2 - 2.8 * k * u, s * (B * 0.4 + 1.2 * k * u) + wob, 0);
+      seg(at(u0), at(u1), A * (1 - u0 * 0.8), 0.08 - i * 0.008);
+    }
+    // The bow's curl, short.
+    seg(F(L / 2 - 0.15, s * 0.22, 0), F(L / 2 - 0.7, s * (B * 0.5 + 0.18), 0), A * 0.8, 0.07);
   }
-  const m = F(-L / 2 - 0.3, 0, 0), e = F(-L / 2 - 1.6 * k, Math.sin(t * 3) * 0.15, 0);
-  ctx.moveTo(PX(m[0], m[1]), PY(m[0], m[1])); ctx.lineTo(PX(e[0], e[1]), PY(e[0], e[1]));
-  ctx.strokeStyle = alpha(C.white, 0.55 * (1 - back)); ctx.lineWidth = 0.09; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
+  // Foam in the boat's track, broken.
+  for (let i = 0; i < 3; i++) {
+    const u = (i + ((t * 1.3) % 1)) / 3, x = -L / 2 - 0.3 - 1.8 * k * u;
+    seg(F(x, Math.sin(t * 3 + i) * 0.1, 0), F(x - 0.35 * k, Math.sin(t * 3 + i + 0.6) * 0.1, 0), A * (1 - u * 0.7), 0.09);
+  }
+  ctx.lineCap = 'butt';
 }
 // Running lights after dark: red to port, green to starboard, white up top.
 function runLights(ctx, F, L, B, h, n) {
