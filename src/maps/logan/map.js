@@ -61,8 +61,10 @@ export default {
   plate: { at: (t) => ({ paper: paperAt(t), kind: 'night' }), bleed: true, thumbAt: at(10.5) },
   invite: { zone: 'security', at: [35, 20.86, 2.6] },
   // The ending: the clock jumps to Flight 1 holding short at the runway's
-  // end, the camera goes there, and the geese cross in front of it.
-  finale: { at: FLIGHT1, zone: 'runway', near: [86, 52.75], hold: 9 },
+  // end, the camera goes there (close: a runway's worth is wider than a
+  // phone), and the geese cross in front of it into the harbor. The card
+  // waits till the tower clears it and it's rolling (finale.js).
+  finale: { at: FLIGHT1, zone: 'runway', near: [86, 52.75], span: 8.5, hold: 18 },
   sound: soundBed,
   // On a phone held upright the overview fills the height round the terminal
   // and the airport runs off both sides, a swipe along it (decision 18); on
