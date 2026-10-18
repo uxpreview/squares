@@ -7,7 +7,8 @@
 // of plows sweeps the runway side by side, again and again.
 import { C, folk } from '../../../engine/art.js';
 import { ground, block, pin, figure, drawBlock } from '../../greybox.js';
-import { TONE, INK, line, water, drawPlane, run } from '../style.js';
+import { TONE, INK, line, water, run } from '../style.js';
+import { drawPlane } from '../kit.js';
 import { W, D, FRONT, SHORE, SEAWALL, STRIP, CENTER } from '../plan.js';
 import { dark, stopped, flying } from '../clock.js';
 
@@ -87,7 +88,7 @@ export default {
 
     // Traffic by day, the plows after dark.
     R.mover((t) => { const p = traffic(t); return p ? { x: p.x, y: CENTER, z: p.z, name: p.name } : { x: -50, y: CENTER, z: 0, gone: true }; },
-      (ctx, t, p) => { if (!p.gone) drawPlane(ctx, p.x, CENTER, p.z, 'x', { name: p.name }); });
+      (ctx, t, p) => { if (!p.gone) drawPlane(ctx, p.x, CENTER, 0, 'x', { z: p.z, livery: p.name === 'LANDING' ? 'jetblew' : 'northeast', dir: p.name === 'LANDING' ? 1 : -1 }); });
     R.mover((t) => ({ x: plows(t), y: CENTER, on: dark(t) && stopped(t) }), (ctx, t, p) => {
       if (!p.on) return;
       for (let i = 0; i < 5; i++) drawBlock(ctx, p.x + i * 0.7, STRIP[1] + 0.2 + i * 0.9, 0, 1.4, 0.8, 1, INK.safety, i === 2 ? 'PLOWS' : null);

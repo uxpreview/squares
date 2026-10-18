@@ -7,7 +7,8 @@
 // waits, and is sprayed again.
 import { C, folk } from '../../../engine/art.js';
 import { ground, block, pin, figure, drawBlock } from '../../greybox.js';
-import { TONE, BLOCK, INK, line, plane, run } from '../style.js';
+import { TONE, BLOCK, INK, line, run } from '../style.js';
+import { plane } from '../kit.js';
 import { AIR, FRONT, CHECK, W, GATES, NOSE, PLANE, ROAD } from '../plan.js';
 import { dark } from '../clock.js';
 
@@ -29,8 +30,8 @@ export default {
     // Jet bridges from the gates' glass to the planes' doors.
     for (const x of Object.values(GATES)) run(R, x - 0.8, AIR, 1.6, NOSE - AIR + 0.4, 1.3, BLOCK.wall, null, { z: 1.4 });
     // The planes at C13 and C14 (C12's is Flight 1, drawn by the map's clock).
-    plane(R, GATES.C13, NOSE, { name: 'C13 NEW YORK' });
-    plane(R, GATES.C14, NOSE, { name: 'C14' });
+    plane(R, GATES.C13, NOSE, { livery: 'jetblew' });
+    plane(R, GATES.C14, NOSE, { livery: 'northeast' });
 
     // The hold of C14's plane: the goose is in it, on the bags.
     const hold = R.poke({ id: 'hold', at: [GATES.C14 + 1.7, NOSE + 4.6, 1.2], r: 0.9, say: 'Something in here is honking.' });

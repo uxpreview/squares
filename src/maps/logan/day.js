@@ -18,7 +18,8 @@
 import { C, folk, person } from '../../engine/art.js';
 import { schedule } from '../../engine/actors.js';
 import { tag, drawBlock } from '../greybox.js';
-import { INK, BLOCK, drawPlane } from './style.js';
+import { INK, BLOCK } from './style.js';
+import { drawPlane } from './kit.js';
 import { GATES, NOSE, ROAD, CENTER, STRIP } from './plan.js';
 import { LOOP, at, hour } from './clock.js';
 
@@ -96,7 +97,7 @@ export const walkers = [
       // it, lifting off past the middle.
       const onRunway = p.y > ROAD - 1;
       const z = onRunway && p.moving ? Math.max(0, (60 - p.x) * 0.12) : 0;
-      drawPlane(ctx, p.x, p.y, z, onRunway ? 'x' : 'y', { name: 'FLIGHT 1' });
+      drawPlane(ctx, p.x, p.y, 0, onRunway ? 'x' : 'y', { z, livery: 'spite', t, lit: true });
     },
   },
 ];

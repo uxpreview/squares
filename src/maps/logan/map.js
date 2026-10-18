@@ -15,7 +15,7 @@
 //   front    | The Runway (the light pier over the water, the runway)
 import { W, D, AREAS } from './plan.js';
 import { LOOP, FLIGHT1, at } from './clock.js';
-import { PAPER } from './style.js';
+import { paperAt } from './style.js';
 import { walkers } from './day.js';
 import { backdrop, sky } from './ambient.js';
 import { sound as soundBed } from './sound.js';
@@ -53,9 +53,11 @@ export default {
   open: true,
   walkers,
   loop: LOOP,
-  // The paper is the harbor (decision 19: one harbor all day in the greybox).
-  // It's dark enough that the page's loose words print in cream.
-  plate: { paper: PAPER, kind: 'night', bleed: true },
+  // The paper is the harbor, and it follows the day (style.js, paperAt): a
+  // grey dawn, a bright cold morning, slate with the snow, pink at sunset,
+  // navy all night. It's dark enough all day that the page's loose words
+  // print in cream.
+  plate: { at: (t) => ({ paper: paperAt(t), kind: 'night' }), bleed: true, thumbAt: at(10.5) },
   invite: { zone: 'security', at: [39, 20.7, 1.9] },
   // The ending: the clock jumps to Flight 1 holding short at the runway's
   // end, the camera goes there, and the geese cross in front of it.

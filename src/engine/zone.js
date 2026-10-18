@@ -76,6 +76,8 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //                 for a room with things standing outside it (a street front)
 //   place.opts:   anything the map wants to tell the zone (R.opts), so a
 //                 zone file shared by two maps can draw differently on one
+//   place.found:  { is(zone, find) }, whether a find's been found (R.found);
+//                 given by buildWorld and set by the game
 //   place.land:   the map's ground with height and its water (terrain.js),
 //                 given by buildWorld to every zone of a map with a land;
 //                 false for a zone that stands on the land without printing it
@@ -165,6 +167,13 @@ export function buildZone(def, place = {}) {
     walkers: place.walkers || [],
     // What the map tells this zone (place.opts), or {}.
     opts: place.opts || {},
+    // Has a find been found? key: 'zone:find', or a find's id in this zone.
+    // For art that changes once it is (an owner drawn with the bag they were
+    // missing): anything drawn with it must be anim.
+    found: (key) => {
+      const i = key.indexOf(':');
+      return !!place.found?.is(i < 0 ? def.id : key.slice(0, i), i < 0 ? key : key.slice(i + 1));
+    },
     // The ground's height at a point (0 on a flat floor), for standing things
     // on it; and the map's land, if it has one (its water: land.level(t)).
     ground: (x, y) => (ground ? ground(x, y) : 0),
