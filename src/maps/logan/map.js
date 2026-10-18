@@ -58,7 +58,7 @@ export default {
   // navy all night. It's dark enough all day that the page's loose words
   // print in cream.
   plate: { at: (t) => ({ paper: paperAt(t), kind: 'night' }), bleed: true, thumbAt: at(10.5) },
-  invite: { zone: 'security', at: [39, 20.7, 1.9] },
+  invite: { zone: 'security', at: [35, 20.86, 2.6] },
   // The ending: the clock jumps to Flight 1 holding short at the runway's
   // end, the camera goes there, and the geese cross in front of it.
   finale: { at: FLIGHT1, zone: 'runway', near: [86, 52.75], hold: 9 },
