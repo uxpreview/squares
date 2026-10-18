@@ -34,10 +34,10 @@
 //
 // npm run qa checks every walk: never faster than a run (planes taxi at a
 // run, toy planes).
-import { C, Q, P, SKIN, HAIR, folk, person, face, paint, speech, label, glow, alpha, mix, tint, shade, paintText } from '../../engine/art.js';
+import { C, Q, P, SKIN, HAIR, folk, person, face, paint, speech, glow, alpha, mix, tint, shade, paintText } from '../../engine/art.js';
 import { schedule } from '../../engine/actors.js';
 import { INK, LIVERY, RAMP, LIT, dusk, nightPrint } from './style.js';
-import { solid, hexa, frame, tug, cart, bag, look, plane } from './kit.js';
+import { solid, hexa, frame, tug, cart, bag, look, plane, shutEyes, zzz, asleep as asleep_, lieAlong } from './kit.js';
 import { GATES, NOSE, PLANE, CENTER } from './plan.js';
 import { LOOP, at, hour, lightsOn, settle } from './clock.js';
 import { finale, ending, LINEUP, ROLL_AT, radio, radioBubble, crossers } from './finale.js';
@@ -55,21 +55,6 @@ function lines(t, list, every, on, off = 0) {
 }
 // Which way someone faces on the screen, walking or driving (hx, hy).
 const facing = (hx, hy) => ({ dir: hx - hy >= 0 ? 'r' : 'l', back: hx + hy < -0.01 });
-// Closed eyes, over the ones person() draws (for face()).
-function shut(g, hy, skin) {
-  g.fillStyle = skin;
-  g.beginPath(); g.arc(0.1, hy + 0.02, 0.05, 0, Math.PI * 2); g.arc(0.24, hy + 0.02, 0.05, 0, Math.PI * 2); g.fill();
-  if (!Q.detail) return;
-  g.strokeStyle = C.ink; g.lineWidth = 0.025;
-  g.beginPath(); g.moveTo(0.06, hy + 0.03); g.lineTo(0.14, hy + 0.04); g.moveTo(0.2, hy + 0.04); g.lineTo(0.28, hy + 0.03); g.stroke();
-}
-// Z's rising off a sleeper whose head is at (x, y, z).
-function zzz(ctx, x, y, z, t, off = 0) {
-  if (!Q.detail) return;
-  const k = ((t * 0.6 + off) % 1 + 1) % 1;
-  label(ctx, x - 0.3 * k, y - 0.3 * k, z + k * 1.1, 'z', 0.42 + k * 0.3, alpha(C.ink, 1 - k));
-}
-
 // ---------- The Courier ----------
 // The shared universe's delivery man: a mustard jacket, brown trousers, his
 // brown cap and his satchel, and the parcel for G. Goose, Flight 1.
@@ -108,7 +93,7 @@ function satchel(g, b) {
 }
 const courierLook = folk(300, { skin: SKIN_C, hair: HAIR[1], style: 'short', top: C.mustard, bottom: BROWN, dress: false, shoes: C.black, wear: satchel });
 const courierFace = (snow, asleep) => (g, hy, back) => {
-  if (asleep && !back) shut(g, hy, SKIN_C);
+  if (asleep && !back) shutEyes(g, hy, SKIN_C);
   if (snow) beanie(g, hy, back); else cap(g, hy, back);
 };
 
@@ -863,12 +848,13 @@ function famDraw(ctx, t, p) {
     else line = lines(t, ['Are we there yet?', 'We ran for this.', 'Four hours, it says.', 'Can I have a donut?', 'Camping, then.'], 13, 3.4, 6);
     lz = 2.7;
   } else {
-    // Asleep across the floor; the kid on the case.
+    // Asleep across the floor (lying along it, as everyone at the gates
+    // does), the kid on the case.
     kit(C14[0] + 0.3, C14[1] - 0.6, 0.06, { kind: 'case', lie: true, color: KID_CASE, along: 'x', tag: C.mustard });
-    who(C14[0] - 0.4, C14[1] + 0.1, 0, DAD, { pose: 'sleep', dir: 'r', still: true });
-    who(C14[0] + 1.3, C14[1] + 0.7, 0, MUM, { pose: 'sleep', dir: 'l', still: true });
-    who(C14[0] + 0.3, C14[1] - 0.6, 0.15, KID, { pose: 'sleep', dir: 'r', scale: 0.62, still: true });
-    items.push([C14[0] + C14[1] + 2, () => { zzz(ctx, C14[0] - 1.2, C14[1] - 0.6, 0.9, t); zzz(ctx, C14[0] + 0.9, C14[1] + 0.2, 0.9, t, 0.5); }]);
+    items.push([C14[0] - 0.4 + C14[1] + 0.1, () => lieAlong(ctx, C14[0] - 0.4, C14[1] + 0.1, 0, asleep_(DAD), 0, { along: 'x', head: -1 })]);
+    items.push([C14[0] - 1.2 + C14[1] + 1.3, () => lieAlong(ctx, C14[0] - 1.2, C14[1] + 1.3, 0, asleep_(MUM), 0, { along: 'x', head: 1 })]);
+    items.push([C14[0] + 0.3 + C14[1] - 0.6, () => lieAlong(ctx, C14[0] + 0.3, C14[1] - 0.6, 0.15, { ...asleep_(KID), scale: 0.62 }, 0, { along: 'x', head: -1 })]);
+    items.push([C14[0] + C14[1] + 2, () => { zzz(ctx, C14[0] - 2.2, C14[1] - 0.3, 0.6, t); zzz(ctx, C14[0] + 0.6, C14[1] + 0.9, 0.6, t, 0.5); }]);
   }
   items.sort((a1, b1) => a1[0] - b1[0]);
   for (const [, d] of items) d();
@@ -896,7 +882,6 @@ function cartDraw(ctx, t, p) {
   const d = p.dir === 'r' ? 1 : -1, F = frame(p.x, p.y, 0, 'x', d);
   const asleep = p.pose === 'park' && (wrap(t) > at(21) || wrap(t) < 18);
   const body = C.white;
-  const sleepFace = (lk, skin) => ({ ...lk, face: (g, hy, back) => { if (!back) shut(g, hy, skin); if (lk.face) lk.face(g, hy, back); } });
   // The far wheels, the chassis and its stripe, the hood.
   for (const u of [-0.8, 0.8]) for (const v of [-0.55, 0.55]) F.lbox(ctx, u - 0.18, u + 0.18, v - 0.08, v + 0.08, 0, 0.34, C.ink, { flat: true, lw: 0.02 });
   F.lbox(ctx, -1.25, 1.25, -0.6, 0.6, 0.22, 0.34, body, { lw: 0.04, dots: shade(body, 0.4) });
@@ -907,13 +892,13 @@ function cartDraw(ctx, t, p) {
   const front = () => {
     seat(0.15, 0.75, 0.1);
     const [x, y] = F.at(0.42, 0);
-    person(ctx, x, y, -0.02, { ...(asleep ? sleepFace(CART_DRIVER, CART_DRIVER.skin) : CART_DRIVER), pose: 'sit', dir: d > 0 ? 'r' : 'l', arms: [1.2, 1.1] }, asleep ? 0 : t);
+    person(ctx, x, y, -0.02, { ...(asleep ? asleep_(CART_DRIVER) : CART_DRIVER), pose: 'sit', dir: d > 0 ? 'r' : 'l', arms: [1.2, 1.1] }, asleep ? 0 : t);
   };
   const rear = () => {
     seat(-0.85, -0.25, -0.2);
     const [x, y] = F.at(-0.55, 0);
     const wave = p.pose === 'end' && !asleep;
-    person(ctx, x, y, -0.02, { ...(asleep ? sleepFace(OLD, OLD.skin) : OLD), pose: 'sit', dir: d > 0 ? 'l' : 'r', arms: wave ? [Math.PI - 0.5 + Math.sin(t * 8) * 0.3, 0.4] : [0.6, 0.5] }, asleep ? 0 : t);
+    person(ctx, x, y, -0.02, { ...(asleep ? asleep_(OLD) : OLD), pose: 'sit', dir: d > 0 ? 'l' : 'r', arms: wave ? [Math.PI - 0.5 + Math.sin(t * 8) * 0.3, 0.4] : [0.6, 0.5] }, asleep ? 0 : t);
   };
   // Whichever bench is further back on the screen first.
   if (d > 0) { rear(); front(); } else { front(); rear(); }
