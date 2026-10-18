@@ -26,7 +26,7 @@
 // X-ray lane A's start (37.2, 16.6), round it by x 39.4 to its end (37.6,
 // 25.5), along y 25.7 to his stool at C12 (59, 24.2) and the window (58.4,
 // 29.1); home by x 53.4, y 16.4 and y 13.1. The family runs the same way (y
-// 13 in check-in, y 16.6 in security, y 25.6 down the concourse) to C14
+// 13 in check-in, y 16.6 in security, y 25.9 down the concourse) to C14
 // (89.6, 24.6). The cart drives y 16.9 from x 54.5 to 100.5. The bag train
 // runs two lanes, y 47.2 out and y 45.9 back, from x 14 in the bag room to
 // x 99.5, through a door in the bag room's right wall. Flight 1 parks with
@@ -796,7 +796,7 @@ const famWalk = schedule([
   [5.5, 8.0], { until: T_RUN, hide: true },
   { speed: 3 },
   [5.0, 11.4], [5.0, 13.0], [29.0, 13.0], [30.4, 16.5], [35.4, 16.6], { wait: 3, pose: 'shoes', dir: 'r', back: true },
-  [39.4, 16.6], [39.4, 25.3], [53.0, 25.6], [88.2, 25.6], C14, { until: at(21), pose: 'camp', dir: 'l', back: false },
+  [39.4, 16.6], [39.4, 25.6], [53.0, 25.9], [88.2, 25.9], C14, { until: at(21), pose: 'camp', dir: 'l', back: false },
   { until: LOOP, pose: 'sleep' },
 ], { loop: LOOP, name: 'The family running late', speed: 1.3 });
 const T_C14 = 96.7;
@@ -833,7 +833,9 @@ function famDraw(ctx, t, p) {
     const along = Math.abs(mx) >= Math.abs(my) ? 'x' : 'y';
     const cx = p.x - mx * 1.0, cy = p.y - my * 1.0;
     who(p.x, p.y, 0, DAD, { pose: pose2, dir: f.dir, back: f.back, arms: pose2 === 'run' ? [-0.7, 0.9 + Math.sin(t * 9) * 0.5] : null });
-    who(p.x - mx * 0.5 + nx * 0.8, p.y - my * 0.5 + ny * 0.8, 0, MUM, { pose: pose2, dir: f.dir, back: f.back, phase: 2 });
+    // (Mum a little to the side: down the concourse that's between the
+    // band's front row and the gate desks.)
+    who(p.x - mx * 0.5 + nx * 0.6, p.y - my * 0.5 + ny * 0.6, 0, MUM, { pose: pose2, dir: f.dir, back: f.back, phase: 2 });
     kit(cx, cy, 0.06, { kind: 'case', lie: true, color: KID_CASE, along, tag: C.mustard });
     who(cx, cy, -0.17, KID, { pose: 'sit', dir: f.dir, back: f.back, scale: 0.62, arms: [Math.PI - 0.5, -Math.PI + 0.5] });
     // The strap from the case to Dad's hand.
