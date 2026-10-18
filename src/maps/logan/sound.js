@@ -44,12 +44,14 @@ const storm = (h) => ramp(15, 17.5, h) * (1 - ramp(23, 25.5, h));
 
 // ---------- Cues ----------
 const cues = [];
-// Jets on the runway, by day: one lands at the start of every half minute
-// and one takes off in the middle (runway.js's traffic), none from the
-// ground stop.
-for (let t = 0; t < LOOP; t += 30) {
-  if (flying(t + 2)) cues.push({ at: t + 2, name: 'jet', level: 0.8, zone: 'runway' });
-  if (flying(t + 16)) cues.push({ at: t + 16, name: 'jet', level: 0.8, zone: 'runway' });
+// Jets on the runway, by day, as runway.js's traffic flies them: every half
+// minute a plane touches down (4 seconds in) and turns round to take off
+// (16.5 seconds in), but only in a cycle that ends before the ground stop.
+for (let n = 1; n * 30 < LOOP; n++) {
+  const ts = n * 30 - 0.5;
+  if (!flying(ts) || !flying(ts + 27)) continue;
+  cues.push({ at: n * 30 + 4, name: 'jet', level: 0.8, zone: 'runway' });
+  cues.push({ at: n * 30 + 16.5, name: 'jet', level: 0.8, zone: 'runway' });
 }
 // Flight 1 to Orlando, at last, rolling down the runway after midnight.
 cues.push({ at: at(24.05) + 1, name: 'jet', level: 0.8, zone: 'runway' });
