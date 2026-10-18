@@ -74,4 +74,16 @@ export default [
     hidden: true,
     load: () => import('./crossroads/map.js'),
   },
+  {
+    id: 'logan',
+    name: 'Departures',
+    subtitle: 'Boston Logan',
+    tagline: 'The day before Thanksgiving: every flight late, every bag lost, a goose on the runway.',
+    ink: '#F2C230',
+    // Logan on the busiest travel day of the year, one big map from the start
+    // (docs/levels/logan.md). In greybox: hidden from the picker until it
+    // ships; open it at #/logan.
+    hidden: true,
+    load: () => import('./logan/map.js'),
+  },
 ];

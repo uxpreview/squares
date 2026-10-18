@@ -146,6 +146,14 @@ src/
       sound.js         The mix (the road, the harbor, the rain, each apartment inside) and the day's cues
       ambient.js       Around it: City Point's rooftops, Dorchester Heights, the Seaport, the planes, the rain
       areas/           Nine apartments (a file per floor of each house) and three outdoor areas
+    logan/           Departures: Boston Logan the day before Thanksgiving, one big map (greybox; hidden until it ships)
+      plan.js          Where everything is: the curb, the terminal's three areas, the bag room, the apron, the runway
+      clock.js         The day (the rush, the snow, the ground stop, Flight 1), and what's on when
+      style.js         The style sheet: the harbor inks, the greybox tones, toy planes, long blocks in pieces
+      day.js           On the clock across areas: the Courier, the bag train, Flight 1
+      ambient.js       Across the water: the skyline in blocks; the snow
+      sound.js         The mix (the terminal, the roads, the harbor) and the jets on the clock
+      areas/           Seven areas, in the plan's own units
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/
@@ -212,6 +220,7 @@ docs/
 | Who goes green on the cruise ship, and when | `SICK` and `HERRING` in `src/maps/cruise/style.js` (an area's own passengers: `passenger(R, x, y, seed, { sick })` in its file) |
 | The cruise ship's day and the dial's skips | `at()`, `MOMENTS` and `seaAt` in `src/maps/cruise/style.js`; everyone's walk is `src/maps/cruise/day.js` |
 | A flat thing that changes only now and then (the evening's ground) | `step: (t) => n` on it: it's baked into the room's cached floor and baked again when its step changes (see "step" in `src/engine/zone.js`) |
+| Make a find wait for another (a lost bag before its owner) | `after: 'zone:find'` on the find (`R.find` or the greybox's `pin`): it's off the list and can't be tapped till that one's found (`src/game/case.js`) |
 | Make a find show only some of the time | `when: (t) => true or false` and `note: 'low tide'` on the find (`R.find` or the greybox's `pin`) |
 | How often the other rooms' pictures refresh | `SNAP_BUDGET_MS` in `src/engine/renderer.js`; it shrinks by itself (`snapQ`) when frames are slow |
 | Find list look and behavior | `src/ui/tray.js`; styles under "The tray" in `styles.css` |

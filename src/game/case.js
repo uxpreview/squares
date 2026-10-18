@@ -50,6 +50,20 @@ export function setUp(world) {
       f.inside = p;
     }
   }
+  // A find can come after another, anywhere in the place ('zone:find', or a
+  // find's id in its own zone): Departures' bag and its owner. It's off the
+  // list and out of reach until that one's found. Both are ordinary finds,
+  // so saves need nothing new.
+  const all = new Map();
+  for (const z of world.zones) for (const f of z.finds) all.set(keyOf(z, f), { zone: z, f });
+  for (const z of world.zones) for (const f of z.finds) {
+    if (typeof f.after !== 'string') continue;
+    const key = f.after.includes(':') ? f.after : z.id + ':' + f.after;
+    const first = all.get(key);
+    if (!first) throw new Error(`${z.id}: the find "${f.id}" comes after "${f.after}", which isn't a find in this place.`);
+    f.after = first;
+    (first.f.unlocks = first.f.unlocks || []).push({ zone: z, f });
+  }
   // A trail (trail.js): follow something loose, sighting by sighting.
   if (world.map.trail) return setUpTrail(world);
   if (!c) return world;

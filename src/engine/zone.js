@@ -200,11 +200,14 @@ export function buildZone(def, place = {}) {
     // camouflaged or only there now and then). hint: a sentence that points
     // without giving it away (the first step of a hint). riddle: a hard find's
     // line under its label, saying roughly where. inside: the poke it's in
-    // (it can only be tapped while that's open).
-    find: ({ id, label, at, r = 0.9, when, note, out, kind, hint, riddle, inside }) => finds.push({
+    // (it can only be tapped while that's open). after: another find
+    // ('zone:find', or an id in this zone) that has to be found first; the
+    // game keeps this one off the list till then (src/game/case.js).
+    find: ({ id, label, at, r = 0.9, when, note, out, kind, hint, riddle, inside, after }) => finds.push({
       id, label, at, r, kind: kind || 'spot',
       ...(when ? { when } : {}), ...(note ? { note } : {}), ...(out ? { out } : {}),
       ...(hint ? { hint } : {}), ...(riddle ? { riddle } : {}), ...(inside ? { inside } : {}),
+      ...(after ? { after } : {}),
     }),
     // The loose goose. pos: [x, y, z?] or (t) => ({ x, y, z?, dir, pose })
     goose: (pos, o = {}) => {

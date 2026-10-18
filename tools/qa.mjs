@@ -875,8 +875,11 @@ async function tapFind(p, zoneId, findId) {
     const s = window.__squares, z = s.world.zones.find((x) => x.id === zoneId), f = z.finds.find((x) => x.id === findId);
     // (A trail's sighting is tapped with the trail held at it, as if the ones before were found.)
     s.play.trailTo(f.step ?? null);
+    // (A find that comes after another, with that one found first, as a player would.)
+    const first = f.after && typeof f.after === 'object' ? f.after.zone.id + ':' + f.after.f.id : null;
+    const unlock = first && !s.store.isFound(s.world.id, first) ? s.store.markFound(s.world.id, first) : false;
     if (f.inside && !f.inside.open) { f.inside.set(true); return true; }
-    return f.step != null;
+    return f.step != null || !!unlock;
   }, { zoneId, findId });
   if (inside) await p.waitForTimeout(320);
   const [sx, sy] = await p.evaluate(({ zoneId, findId }) => {

@@ -1122,6 +1122,31 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- A find that comes after another: Departures' bags and their owners (desktop) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); sessionStorage.setItem('seeded', '1'); } });
+  await page.goto(base + '#/logan');
+  await ready(page);
+  await wait(page, 2600);
+  const listed = async () => (await page.textContent('#tray-full')).includes('The skier');
+  const tapSkier = async () => {
+    await S(page, () => window.__squares.play.enterZone('security', { dur: 0.01 }));
+    await wait(page, 700);
+    const [sx, sy] = await findOnScreen(page, 'security', 'skier');
+    await page.mouse.click(sx, sy);
+    await wait(page, 300);
+    return S(page, () => window.__squares.store.isFound('logan', 'security:skier'));
+  };
+  check('an owner is off the list until their bag is found', !(await listed()));
+  check('and a tap on them finds nothing yet', !(await tapSkier()));
+  await S(page, () => { const s = window.__squares, z = s.world.zones.find((x) => x.id === 'curb'); s.play.markFound(z, z.finds.find((f) => f.id === 'skis')); });
+  await wait(page, 200);
+  check('finding the bag says its owner is on the list', /The skier is on the list now/.test(await page.textContent('#toast')), await page.textContent('#toast'));
+  check('and puts them on it', await listed());
+  check('then a tap on them finds them', await tapSkier());
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();
