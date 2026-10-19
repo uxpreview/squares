@@ -172,6 +172,13 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Shape:** wide: landside road, the terminal, the apron and planes, the runway in front.
 - **Layout (sketch):** the landside road and taxis along the back; the terminal cut open along it, left to right: security, the departures board and shops, two gates, baggage reclaim; jet bridges out to three planes on the apron, a belt from the terminal to the first plane's hold; baggage carts and the control tower on the right; the runway along the front with a plane taking off and a goose on it.
 - **Needs:** Today. Could be Logan later, to sit with the Boston places.
+
+### Primacy (an office in the woods)
+**Research (session 22). Everything known so far is in [levels/primacy.md](levels/primacy.md).** The owner's old workplace at 1577 New Britain Avenue, Farmington, Connecticut: a 1988 office of linked hipped-roof wings around an octagon and a turret, dug into a slope over a state forest, two storeys from the lot and three from the woods, with a fire pit out back. Personal, so the owner fills in the inside.
+- **Mechanic:** not yet. A place isn't picked until it has one.
+- **Shape:** a cliff of white windows over the woods, the lot behind; or the low roofline from the lot.
+- **Needs:** terrain for the slope (Plum Island's `land`), storeys.
+
 ## Spins on the inspiration
 
 - **The Deep Shift** (chasm, ref 3/19): a mining town down a canyon wall, with the miners digging into something that's digging back.
