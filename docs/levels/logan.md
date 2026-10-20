@@ -213,16 +213,16 @@ What a frame cost, measured: Chrome's graphics process was busy 98% of the time 
 
 | | 1.5x before | 1.5x after | 2x before | 2x after |
 |---|---|---|---|---|
-| The whole place | 39 | 41 | 40 | 39 |
-| Security | 20 | 23 | 8 | 14 |
-| Check-in | 16 | 19 | 10 | 12 |
-| The Gates | 23 | 22 | 15 | 16 |
+| The whole place | 39 | 42 | 40 | 38 |
+| Security | 20 | 23 | 8 | 13 |
+| Check-in | 16 | 19 | 10 | 13 |
+| The Gates | 23 | 24 | 15 | 16 |
 | The Curb | 40 | 38 | 25 | 27 |
-| The Bag Room | 20 | 21 | 16 | 17 |
-| The Apron | 26 | 31 | 21 | 25 |
-| The Runway | 27 | 31 | 22 | 23 |
+| The Bag Room | 20 | 22 | 16 | 17 |
+| The Apron | 26 | 29 | 21 | 27 |
+| The Runway | 27 | 33 | 22 | 27 |
 
-The "after" columns were measured before the last few rigid things (the plows, the landing planes, the apron's trucks) and the clock's memory went in; later runs were spoiled by other work on the laptop (load averages of 5 to 7), so they aren't in the table. At set moments in Security at 2x (`--eval` to set the clock): night (9pm, snowing) 10 to 15, dawn 13.5 to 15, noon 21 to 22.
+A view moves a frame or two a second between runs; runs while other apps worked the laptop (Draw Things, a busy Chrome) came out far lower and aren't counted. At set moments in Security at 2x (`--eval` to set the clock): night (9pm, snowing) 10 to 15, dawn 13.5 to 15, noon 21 to 22.
 
 **What's left, and why:** the rest is people. Each one is about 25 shapes, there are 100 to 150 on screen in the terminal's views, and almost all of them move every frame (walking, typing, the band marking time). Things that were tried and taken back: caching a moving thing while its drawing stays the same frame to frame (a quarter of the live shapes qualify, but taking every one's fingerprint cost the page more than the graphics process saved: 2 frames a second worse at 1.5x), and culling things off the screen's edge (the graphics process already skips them cheaply). Bigger wins would change how it looks or moves, so they're the owner's call: drawing the people in areas off the middle of the screen at half rate, or leaving the halftone dots off people while they move.
 
