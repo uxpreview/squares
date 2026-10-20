@@ -51,7 +51,7 @@
 
 import { S, WALL, SLAB, ZK, isoX, isoY, zoneBounds } from './iso.js';
 import { footprint } from './footprint.js';
-import { C, Q, setScreen, goose as drawGoose, box, onLeft, onRight, shade, alpha, glow } from './art.js';
+import { C, Q, setScreen, goose as drawGoose, box, onLeft, onRight, shade, alpha, glow, glowAt } from './art.js';
 
 const LAYERS = ['floor', 'wall', 'decor', 'rug', 'thing', 'dark', 'light', 'shell', 'air'];
 const WALL_L = 1, DECOR_L = 2, RUG_L = 3, THING = 4, SHELL_L = 7;
@@ -757,6 +757,13 @@ function stamp(ctx, st, it, m) {
   if (!spot) return false;
   if (!m) { m = ctx.getTransform(); ctx.setTransform(1, 0, 0, 1, 0, 0); }
   ctx.drawImage(st.sheet, spot[0], spot[1], spot[4], spot[5], st.X + spot[2], st.Y + spot[3], spot[4], spot[5]);
+  // Its glows, set aside when it was cached, go on over it live.
+  const gl = it.glows && it.glows[st.detail ? 1 : 0];
+  if (gl && gl.length) {
+    ctx.setTransform(m);
+    for (const [X, Y, r, color, a] of gl) glowAt(ctx, X, Y, r, color, a);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
   return m;
 }
 
@@ -943,6 +950,7 @@ export function snapshotZone(zone, scale, t, dpr, cached = true) {
   paintInto(zone, 'snap', scale, dpr, (g) => {
     Q.lines = scale > 6;
     Q.detail = scale > 4.5;
+    Q.rigid = cached;
     const st = cached ? stillsFor(g, zone, scale, dpr) : null;
     if (cached && backdropFor(g, zone, scale, dpr, t)) {
       drawBackdrop(g, zone);
@@ -952,6 +960,7 @@ export function snapshotZone(zone, scale, t, dpr, cached = true) {
     }
     Q.lines = true;
     Q.detail = true;
+    Q.rigid = false;
   });
   zone.snapScale = scale;
   zone.snapT = t;
@@ -1000,7 +1009,51 @@ function bakeBackdrop(zone, k, fx, fy, dpr, t = 0) {
   // stamp and a layer over it.)
   const key = stepKey(zone, t);
   drawItems(g, zone, key ? t : 0, baked);
-  zone.bd = { k, fx, fy, sx, sy, wallK: (zone.zone || zone).wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0, key };
+  zone.bd = { k, fx, fy, sx, sy, wallK: (zone.zone || zone).wallK, lines: Q.lines, detail: Q.detail, X: 0, Y: 0, key, bands: bandsOf(zone, k, fx - sx, fy - sy, w, h) };
+}
+
+// A chunk's backdrop holds only its patch (cut to it, see chunk()): its
+// floor, a diamond, with a strip above its back edges and one below its
+// front ones, which fills about half the box round it (a sliver of an area
+// along its edge, a thin diagonal, much less). Stamping the box costs an
+// older laptop's graphics chip every transparent pixel in it, three screens'
+// worth on Departures, so it goes on in bands, each as wide as the patch is
+// across it. Null to stamp the whole box (a zone in one piece, which isn't
+// cut, or on ground with height).
+// (ox, oy: where the zone's corner is in the picture, in pixels.)
+function bandsOf(piece, k, ox, oy, w, h) {
+  const zone = piece.zone;
+  if (!zone || !piece.cell || zone.ground) return null;
+  // The box the patch fits in: the chunk's floor (and the sliver it tucks
+  // under the one behind), from below the slab to the top of the walls.
+  const [x0, y0, x1, y1] = piece.rect, over = 0.2;
+  const xa = x0 - over, ya = y0 - over, xb = x1, yb = y1;
+  const up = (zone.walls ? zone.walls.h + 9 : 1.5) * ZK, down = (SLAB + 1.5) * ZK;
+  // Across the screen at X, the floor runs from s0 / 2 to s1 / 2 down it.
+  const reach = (X) => {
+    const lo = Math.max(ya, xa - X), hi = Math.min(yb, xb - X);
+    return lo > hi ? null : [(X + 2 * lo) / 2 - up, (X + 2 * hi) / 2 + down];
+  };
+  const X0 = xa - yb, X1 = xb - ya, Y0 = (xa + ya) / 2 - up, Y1 = (xb + yb) / 2 + down;
+  const n = Math.max(1, Math.min(6, Math.round((Y1 - Y0) / 4)));
+  const bands = [];
+  const step = Math.max(0.05, 1 / k);
+  for (let i = 0; i < n; i++) {
+    const a = Y0 + ((Y1 - Y0) * i) / n, b = Y0 + ((Y1 - Y0) * (i + 1)) / n;
+    let l = Infinity, r = -Infinity;
+    for (let X = X0; X <= X1 + step; X += step) {
+      const c = reach(Math.min(X, X1));
+      if (c && c[0] <= b && c[1] >= a) { l = Math.min(l, X); r = Math.max(r, Math.min(X, X1)); }
+    }
+    if (!(l <= r)) continue;
+    // (Whole pixels, two to spare all round, and none past the picture.)
+    const px0 = Math.max(0, Math.floor((l - step) * k + ox) - 2), px1 = Math.min(w, Math.ceil((r + step) * k + ox) + 2);
+    const py0 = Math.max(0, Math.floor(a * k + oy) - (i ? 0 : 2)), py1 = Math.min(h, i === n - 1 ? h : Math.floor(b * k + oy));
+    if (px1 > px0 && py1 > py0) bands.push([px0, py0, px1 - px0, py1 - py0]);
+  }
+  // (The bands meet without overlapping: the last runs to the picture's foot.)
+  if (bands.length) bands[0][3] += bands[0][1], bands[0][1] = 0;
+  return bands;
 }
 
 // Where ctx (positioned at the zone's corner, k device px per unit) puts the
@@ -1033,10 +1086,11 @@ export function backdropFor(ctx, zone, k, dpr, t = 0) {
 }
 
 export function drawBackdrop(ctx, zone) {
-  const { X, Y, sx, sy } = zone.bd;
+  const { X, Y, sx, sy, bands } = zone.bd;
   const m = ctx.getTransform();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(zone.backdrop, X + sx, Y + sy);
+  if (bands) for (const [x, y, w, h] of bands) ctx.drawImage(zone.backdrop, x, y, w, h, X + sx + x, Y + sy + y, w, h);
+  else ctx.drawImage(zone.backdrop, X + sx, Y + sy);
   ctx.setTransform(m);
 }
 
@@ -1066,8 +1120,10 @@ export function dropSnapshot(zone) {
 // same fraction of a pixel they were drawn at, so they match drawing live.
 //
 // First each thing's footprint is measured (once per zone, a few things a
-// frame, with a stand-in canvas: see footprint.js). Things it can't measure,
-// like glows screened over what's under them, stay live.
+// frame, with a stand-in canvas: see footprint.js). Things it can't measure
+// stay live. A glow in one (a plane's wingtip light, a taxi's tail lights)
+// is screened over what's under it, so it can't go in the sheet: it's set
+// aside when the thing is measured and goes on live over its stamp.
 const FIND_MS = 3; // time per frame for measuring
 const SHEET_W = 2048; // px, the sheet's width
 const SHEET_MAX = 6e6; // px, its most area (anything past it stays live)
@@ -1083,19 +1139,25 @@ function measureStills(zone, budget) {
     if (it.layer > THING || it.anim || it.backdrop || it.walls) continue;
     // In full detail and at low detail (some things draw differently far
     // out), with words showing: the footprint covers every way it draws.
+    // (Its glows are set aside, to go on live over its stamp: one list at
+    // low detail, one at full.)
     let box = null;
+    const glows = [];
     try {
       for (const detail of [true, false]) {
         const g = footprint();
         Q.detail = Q.lines = detail;
         Q.pxPerUnit = 64;
+        Q.glows = glows[detail ? 1 : 0] = [];
         fresh(g);
         it.draw(g, 0);
         const r = g.box;
         if (r) box = box ? [Math.min(box[0], r[0]), Math.min(box[1], r[1]), Math.max(box[2], r[2]), Math.max(box[3], r[3])] : r;
       }
     } catch { box = null; }
+    Q.glows = null;
     if (box) ms.boxes[it.order] = box;
+    if (box && (glows[0].length || glows[1].length)) it.glows = glows;
   }
   Q.lines = q.lines;
   Q.detail = q.detail;
@@ -1142,6 +1204,7 @@ function bakeStills(zone, k, fx, fy, dpr) {
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.clearRect(0, 0, cv.width, cv.height);
   setScreen(k, dpr);
+  Q.glows = []; // (set aside: they go on live, see measureStills)
   for (const [p, ax, ay] of placed) {
     g.save();
     g.beginPath();
@@ -1152,6 +1215,7 @@ function bakeStills(zone, k, fx, fy, dpr) {
     p.it.draw(g, 0);
     g.restore();
   }
+  Q.glows = null;
   zone.stills = { sheet: cv, spots, k, fx, fy, lines: Q.lines, detail: Q.detail, X: 0, Y: 0, area };
 }
 

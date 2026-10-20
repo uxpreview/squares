@@ -34,7 +34,7 @@
 //
 // npm run qa checks every walk: never faster than a run (planes taxi at a
 // run, toy planes).
-import { C, Q, P, SKIN, HAIR, folk, person, face, paint, speech, glow, alpha, mix, tint, shade, paintText } from '../../engine/art.js';
+import { C, Q, P, SKIN, HAIR, folk, person, face, paint, speech, glow, alpha, mix, tint, shade, paintText, rigid } from '../../engine/art.js';
 import { schedule } from '../../engine/actors.js';
 import { INK, LIVERY, RAMP, LIT, dusk, nightPrint } from './style.js';
 import { solid, hexa, frame, tug, cart, bag, look, plane, shutEyes, zzz, asleep as asleep_, lieAlong } from './kit.js';
@@ -749,7 +749,8 @@ const trainWalkers = CARS.map((back, i) => ({
     const F = frame(p.x, p.y, 0, along, dir);
     const snow = settle(t);
     if (!i) {
-      tug(ctx, p.x, p.y, 0, along, dir, { driver: TRAIN_DRIVER, ink }, p.moving ? t : 0);
+      // (Rigid: the tug and each cart are one picture each, stamped as they go.)
+      rigid(ctx, `train-tug|${along}${dir}|${ink === dusk}`, p.x, p.y, 0, (g) => tug(g, p.x, p.y, 0, along, dir, { driver: TRAIN_DRIVER, ink }, p.moving ? t : 0));
       if (snow > 0.02) face(ctx, [F.pt(-0.68, -0.48, 1.77), F.pt(0.06, -0.48, 1.77), F.pt(0.06, 0.48, 1.77), F.pt(-0.68, 0.48, 1.77)], alpha(C.white, 0.9 * snow), { lw: 0.015 });
       if (lightsOn(t) && Q.detail) {
         if ((t * 1.6 + 0.3) % 1 < 0.5) glow(ctx, ...F.pt(-0.3, 0, 1.86), 1.1, C.mustard, 0.8);
@@ -761,7 +762,7 @@ const trainWalkers = CARS.map((back, i) => ({
     // first cart's, C13 the second's; the third comes back full (wrong plane).
     const trip = ((Math.floor(p.s / LP) % 4) + 4) % 4, k = ((p.s % LP) + LP) % LP;
     const empty = (i === 1 && k > S14 + 0.6) || (i === 2 && k > S13 + 0.6);
-    cart(ctx, p.x, p.y, 0, along, dir, { ink, empty, bags: trip * 3 + i + 2 });
+    rigid(ctx, `train-cart|${along}${dir}|${ink === dusk}|${empty}|${trip * 3 + i + 2}`, p.x, p.y, 0, (g) => cart(g, p.x, p.y, 0, along, dir, { ink, empty, bags: trip * 3 + i + 2 }));
     if (snow > 0.02) face(ctx, [F.pt(-1.08, -0.6, 1.53), F.pt(1.08, -0.6, 1.53), F.pt(1.08, 0.6, 1.53), F.pt(-1.08, 0.6, 1.53)], alpha(C.white, 0.9 * snow), { lw: 0.015 });
   },
 }));
@@ -882,11 +883,14 @@ function cartDraw(ctx, t, p) {
   const d = p.dir === 'r' ? 1 : -1, F = frame(p.x, p.y, 0, 'x', d);
   const asleep = p.pose === 'park' && (wrap(t) > at(21) || wrap(t) < 18);
   const body = C.white;
-  // The far wheels, the chassis and its stripe, the hood.
-  for (const u of [-0.8, 0.8]) for (const v of [-0.55, 0.55]) F.lbox(ctx, u - 0.18, u + 0.18, v - 0.08, v + 0.08, 0, 0.34, C.ink, { flat: true, lw: 0.02 });
-  F.lbox(ctx, -1.25, 1.25, -0.6, 0.6, 0.22, 0.34, body, { lw: 0.04, dots: shade(body, 0.4) });
-  if (Q.detail) F.lface(ctx, [[-1.25, 0.6, 0.36], [1.25, 0.6, 0.36], [1.25, 0.6, 0.46], [-1.25, 0.6, 0.46]], C.navy, { stroke: false });
-  F.lbox(ctx, 0.85, 1.25, -0.6, 0.6, 0.56, 0.36, body, { lw: 0.035 });
+  // The far wheels, the chassis and its stripe, the hood. (Rigid: one
+  // picture each way it faces, under the people, and one of its roof.)
+  rigid(ctx, `airport-cart|${d}`, p.x, p.y, 0, (g) => {
+    for (const u of [-0.8, 0.8]) for (const v of [-0.55, 0.55]) F.lbox(g, u - 0.18, u + 0.18, v - 0.08, v + 0.08, 0, 0.34, C.ink, { flat: true, lw: 0.02 });
+    F.lbox(g, -1.25, 1.25, -0.6, 0.6, 0.22, 0.34, body, { lw: 0.04, dots: shade(body, 0.4) });
+    if (Q.detail) F.lface(g, [[-1.25, 0.6, 0.36], [1.25, 0.6, 0.36], [1.25, 0.6, 0.46], [-1.25, 0.6, 0.46]], C.navy, { stroke: false });
+    F.lbox(g, 0.85, 1.25, -0.6, 0.6, 0.56, 0.36, body, { lw: 0.035 });
+  });
   // Two benches back to back: the driver facing forward, the old man backward.
   const seat = (u0, u1, bu) => { F.lbox(ctx, u0, u1, -0.55, 0.55, 0.56, 0.2, C.navy, { flat: true, lw: 0.03 }); F.lbox(ctx, bu - 0.05, bu + 0.05, -0.55, 0.55, 0.76, 0.5, C.navy, { flat: true, lw: 0.03 }); };
   const front = () => {
@@ -903,9 +907,11 @@ function cartDraw(ctx, t, p) {
   // Whichever bench is further back on the screen first.
   if (d > 0) { rear(); front(); } else { front(); rear(); }
   // The roof on its posts, and the beacon, flashing while it goes.
-  for (const u of [-1.1, 1.1]) for (const v of [-0.55, 0.55]) F.lbox(ctx, u - 0.03, u + 0.03, v - 0.03, v + 0.03, 0.56, 1.9, C.ink, { flat: true, stroke: false });
-  F.lbox(ctx, -1.25, 1.25, -0.66, 0.66, 2.46, 0.08, body, { flat: true, lw: 0.03 });
-  F.lbox(ctx, -0.12, 0.12, -0.12, 0.12, 2.54, 0.16, C.mustard, { flat: true, lw: 0.02 });
+  rigid(ctx, `airport-cart-roof|${d}`, p.x, p.y, 0, (g) => {
+    for (const u of [-1.1, 1.1]) for (const v of [-0.55, 0.55]) F.lbox(g, u - 0.03, u + 0.03, v - 0.03, v + 0.03, 0.56, 1.9, C.ink, { flat: true, stroke: false });
+    F.lbox(g, -1.25, 1.25, -0.66, 0.66, 2.46, 0.08, body, { flat: true, lw: 0.03 });
+    F.lbox(g, -0.12, 0.12, -0.12, 0.12, 2.54, 0.16, C.mustard, { flat: true, lw: 0.02 });
+  });
   if (p.moving && Q.detail && (t * 2.2) % 1 < 0.5) glow(ctx, ...F.pt(0, 0, 2.66), 1.4, C.mustard, 0.9);
   let line = null;
   if (p.moving) line = lines(t, ['BEEP BEEP', 'BEEP BEEP', 'Coming through!'], 5, 1.5);

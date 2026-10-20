@@ -716,13 +716,13 @@ function shoreStill(ctx, t, fx, T, lit) {
 }
 
 // The still part only changes when its inks step with the day, its windows
-// re-roll (every five seconds) or the snow settles, so it's painted into a
+// re-roll (every five seconds, after dark) or the snow settles, so it's painted into a
 // picture of its own at the camera's scale, with a margin round the view,
 // and stamped every frame. It's painted again when any of that changes, the
 // zoom changes, or a pan runs past the margin. (A thumbnail draws it
 // straight.)
 const SHORE_BOX = [-100, -80, 130, 46]; // the far shore's page box, iso units
-let shot = null; // { cv, key, box }
+let shot = null; // { cv, key, box, W, H: the picture's size in its canvas }
 const clip = (a, b) => { const r = [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])]; return r[2] > r[0] && r[3] > r[1] ? r : null; };
 function farShore(ctx, t, fx, T) {
   const n = nightK(t), lit = n > 0.3 ? qk(n, 8) : 0;
@@ -731,26 +731,37 @@ function farShore(ctx, t, fx, T) {
   if (!view || fx.thumb || Math.abs(m.b) > 1e-6 || Math.abs(m.d - k) > 1e-6 || k < 0.5) return direct();
   const need = clip(SHORE_BOX, view);
   if (need) {
-    const key = toneKey + '|' + Math.floor(t / 5) + '|' + lit + '|' + Q.detail + Q.lines + '|' + k.toFixed(5);
-    const inside = shot && shot.key === key && need[0] >= shot.box[0] && need[1] >= shot.box[1] && need[2] <= shot.box[2] && need[3] <= shot.box[3];
-    if (!inside) {
-      const w = view[2] - view[0], h = view[3] - view[1];
-      let box = clip(SHORE_BOX, [view[0] - w * 0.5, view[1] - h * 0.5, view[2] + w * 0.5, view[3] + h * 0.5]);
+    // (The windows re-roll every five seconds only while some are lit.)
+    const key = toneKey + '|' + (lit > 0 ? Math.floor(t / 5) : '') + '|' + lit + '|' + Q.detail + Q.lines + '|' + k.toFixed(5);
+    const covers = shot && need[0] >= shot.box[0] && need[1] >= shot.box[1] && need[2] <= shot.box[2] && need[3] <= shot.box[3];
+    if (!covers || shot.key !== key) {
+      // A pan past the margin or a zoom paints a margin of half the view all
+      // round, so a drag doesn't paint it again every few frames. A step of
+      // the day's inks (twice a second at dawn and dusk) or the windows
+      // re-rolling, with the view where it was, paints a slim one: at the
+      // big margin, those repaints cost an older laptop a sixth of its frames.
+      const w = view[2] - view[0], h = view[3] - view[1], mg = covers ? 0.12 : 0.5;
+      let box = clip(SHORE_BOX, [view[0] - w * mg, view[1] - h * mg, view[2] + w * mg, view[3] + h * mg]);
       // Whole device pixels, so the picture stamps back sharp.
       box = [Math.floor(box[0] * k) / k, Math.floor(box[1] * k) / k, Math.ceil(box[2] * k) / k, Math.ceil(box[3] * k) / k];
       const W = Math.round((box[2] - box[0]) * k), H = Math.round((box[3] - box[1]) * k);
       if (W * H > 24e6 || W < 1 || H < 1) return direct();
+      // (The canvas only grows, and the picture sits in its corner, so a
+      // slim repaint after a wide one doesn't make a new canvas.)
       const cv = (shot && shot.cv) || document.createElement('canvas');
-      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      if (cv.width < W || cv.height < H) { cv.width = Math.max(cv.width, W); cv.height = Math.max(cv.height, H); }
       const g = cv.getContext('2d');
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, W, H);
+      g.save();
+      g.beginPath(); g.rect(0, 0, W, H); g.clip();
       g.setTransform(k, 0, 0, k, -box[0] * k, -box[1] * k);
       g.lineJoin = 'round';
       shoreStill(g, t, { view: box }, T, lit);
-      shot = { cv, key, box };
+      g.restore();
+      shot = { cv, key, box, W, H };
     }
-    ctx.drawImage(shot.cv, shot.box[0], shot.box[1], shot.cv.width / k, shot.cv.height / k);
+    ctx.drawImage(shot.cv, 0, 0, shot.W, shot.H, shot.box[0], shot.box[1], shot.W / k, shot.H / k);
   }
   shoreLive(ctx, t, fx, T, lit);
 }
@@ -1326,7 +1337,13 @@ function snow(ctx, t, fx) {
   // How fast they go, in tiles a second, and a streak along it.
   const vx = windAt(t), vy = 0.4, sl = Math.hypot(vx, vy), ux = vx / sl, uy = vy / sl;
   const len = (0.4 + vx * 9) / css, big = 1 + 0.6 * s;
-  const paths = [new Path2D(), new Path2D(), new Path2D(), new Path2D()]; // small faint, small, big faint, big
+  // Four kinds of flake: small faint, small, big faint, big.
+  const KINDS = [[1.8, 0.4], [1.8, 0.85], [2.6 * big, 0.4], [2.6 * big, 0.88]];
+  const m = ctx.getTransform();
+  const stamped = Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6 && Math.abs(m.a - m.d) < 1e-6;
+  const paths = stamped ? null : [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
+  const spr = stamped ? KINDS.map(([w, a], k) => flake(k, m.a, ux, uy, len * (k > 1 ? 1.3 : 1), w / css, a)) : null;
+  const spots = [[], [], [], []];
   const tx0 = Math.floor(vx0 / P) - 1, tx1 = Math.floor(vx1 / P), ty0 = Math.floor(vy0 / P) - 1, ty1 = Math.floor(vy1 / P);
   for (let a = tx0; a <= tx1; a++) {
     for (let b = ty0; b <= ty1; b++) {
@@ -1338,17 +1355,55 @@ function snow(ctx, t, fx) {
         const Y = (b + hash(seed + i, c * 3 + 3)) * P + vy * P * age * f;
         if (X < vx0 - 1 || X > vx1 + 1 || Y < vy0 - 1 || Y > vy1 + 1 || indoors(X, Y)) continue;
         const fade = Math.min(age, LIFE - age) < 0.45, k = (hash(seed + i, 9) > 0.72 ? 2 : 0) + (fade ? 0 : 1);
+        if (spr) { spots[k].push(X, Y); continue; }
         const L = len * (k > 1 ? 1.3 : 1);
         paths[k].moveTo(X, Y); paths[k].lineTo(X - ux * L, Y - uy * L);
       }
     }
   }
   ctx.save();
-  ctx.lineCap = 'round';
-  [[1.8, 0.4], [1.8, 0.85], [2.6 * big, 0.4], [2.6 * big, 0.88]].forEach(([w, a], k) => {
-    ctx.strokeStyle = alpha(C.white, a); ctx.lineWidth = w / css; ctx.stroke(paths[k]);
-  });
+  if (spr) {
+    // Each flake stamped from its kind's picture: a few hundred small
+    // stamps of one picture go on in one pass, where a stroke of the whole
+    // flurry made the graphics chip work over the whole screen four times.
+    spr.forEach((f, k) => {
+      const pts = spots[k], w = f.cv.width / f.k, h = f.cv.height / f.k;
+      for (let i = 0; i < pts.length; i += 2) ctx.drawImage(f.cv, pts[i] - f.x, pts[i + 1] - f.y, w, h);
+    });
+  } else {
+    ctx.lineCap = 'round';
+    KINDS.forEach(([w, a], k) => {
+      ctx.strokeStyle = alpha(C.white, a); ctx.lineWidth = w / css; ctx.stroke(paths[k]);
+    });
+  }
   ctx.restore();
+}
+// One kind of flake (i), drawn once at the screen's scale (k device px a
+// unit): a streak from (0, 0) back along the wind (ux, uy), L long and lw
+// wide, in white at a. Drawn again when the zoom, the wind or the snow's
+// weight moves it by a hair (its sizes kept to a quarter of a pixel, its
+// angle to a third of a degree). x, y: where (0, 0) sits in it, in units.
+const flakes = [];
+function flake(i, k, ux, uy, L, lw, a) {
+  const ang = Math.round((Math.atan2(uy, ux) * 180) / Math.PI * 3) / 3;
+  const Lp = Math.round(L * k * 4) / 4, wp = Math.round(lw * k * 4) / 4;
+  const key = k.toFixed(4) + '|' + ang + '|' + Lp + '|' + wp + '|' + a;
+  let f = flakes[i];
+  if (f && f.key === key) return f;
+  const r = (ang * Math.PI) / 180, dx = -Math.cos(r) * Lp, dy = -Math.sin(r) * Lp, pad = wp / 2 + 2;
+  const x0 = Math.min(0, dx) - pad, y0 = Math.min(0, dy) - pad;
+  const cv = (f && f.cv) || document.createElement('canvas');
+  const W = Math.ceil(Math.max(0, dx) + pad - x0), H = Math.ceil(Math.max(0, dy) + pad - y0);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const g = cv.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, W, H);
+  g.lineCap = 'round';
+  g.strokeStyle = alpha(C.white, a);
+  g.lineWidth = wp;
+  g.beginPath(); g.moveTo(-x0, -y0); g.lineTo(dx - x0, dy - y0); g.stroke();
+  f = flakes[i] = { cv, key, k, x: -x0 / k, y: -y0 / k };
+  return f;
 }
 
 // The world the page last drew, so the sound can ask whether a find's been

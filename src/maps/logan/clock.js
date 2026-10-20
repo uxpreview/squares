@@ -18,14 +18,20 @@ const DAWN = 4;
 const PACE = [[0, 4], [20, 6], [100, 11], [140, 14], [190, 18], [290, 23.5], [330, 24.5], [360, 28]];
 const wrap = (t) => (((t % LOOP) + LOOP) % LOOP);
 
-// The hour at t (0 to 24).
+// The hour at t (0 to 24). (Asked thousands of times a frame, by everything
+// that comes and goes with the day, so it keeps its last answer.)
+let lastT = NaN, lastH = 0;
 export function hour(t) {
+  if (t === lastT) return lastH;
   const s = wrap(t);
+  let h = DAWN;
   for (let i = 1; i < PACE.length; i++) {
     const [s0, h0] = PACE[i - 1], [s1, h1] = PACE[i];
-    if (s <= s1) return (h0 + ((h1 - h0) * (s - s0)) / (s1 - s0)) % 24;
+    if (s <= s1) { h = (h0 + ((h1 - h0) * (s - s0)) / (s1 - s0)) % 24; break; }
   }
-  return DAWN;
+  lastT = t;
+  lastH = h;
+  return h;
 }
 
 // The loop time at an hour (the first one after 4am).

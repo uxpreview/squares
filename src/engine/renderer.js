@@ -412,6 +412,7 @@ export function createRenderer(canvas, camera, o = {}) {
         // the floor and walls, and every standing thing that doesn't move;
         // draw them live until then.
         const cache = o.still && !drop && caching;
+        Q.rigid = cache;
         const st = cache ? stillsFor(ctx, c, k, dpr) : null;
         if (cache && backdropFor(ctx, c, k, dpr, t)) {
           drawBackdrop(ctx, c);
@@ -429,6 +430,7 @@ export function createRenderer(canvas, camera, o = {}) {
       }
       Q.lines = true;
       Q.detail = true;
+      Q.rigid = false;
       if (o.marks && z.veil < 0.5 && lastOf.get(z) === c) o.marks(ctx, z, t, now);
       ctx.restore();
     }

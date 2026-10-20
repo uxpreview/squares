@@ -197,6 +197,35 @@ Built by the lead's kit first, then nine artists in their own worktrees at once 
 
 **Checks** (in the cloud): `npm run qa -- logan` passes (16 passed, 0 failed, 33 things that answer a tap, 8 decoys; warnings: three hard finds small on a phone, on purpose, and the dalmatian off its area's framing while the fire truck clears the runway for Flight 1); the smoke test passes, with a check that the art knows when an owner's found. Speed in the cloud: every view within budget, the slowest the whole place at 27 ms at 4x against the 60 budget on a quiet machine (41 to 50 while artists were screenshotting). Real frames a second wait for the owner's Mac.
 
+## Speed on the owner's laptop (October 20)
+
+The owner played it on the 2017 MacBook Pro (Intel HD 630) and found it laggy. A sibling change fixed the sharpness step-down (it settles at 1.25x and about 40 frames a second); this one makes the airport cheaper to draw, so it holds a sharper picture. Nothing looks different at normal viewing.
+
+What a frame cost, measured: Chrome's graphics process was busy 98% of the time replaying the canvas's drawing calls (about 4,000 shapes and pictures a frame in Security), not the page's own code. What changed:
+- **The snow** went on as four huge strokes the graphics chip worked over the whole screen four times; each flake is now a stamp of one small picture per kind (`ambient.js`, `flake`). Night in Security at 2x: 10 to 15 frames a second.
+- **The far shore** (Boston's skyline, a picture four times the screen) was painted again every five seconds by day for windows that aren't lit, and at the full margin each time the harbor's tone stepped (twice a second at dawn and dusk). It now re-rolls windows only after dark, and a tone step repaints only the view and a slim margin.
+- **Glows inside still things** (a parked plane's wingtip lights at night, a taxi's tail lights) kept the whole thing out of the cache, drawn shape by shape every frame. The engine now sets a still thing's glows aside when it caches it and lays them on live over its stamp (`zone.js`, `measureStills`; `art.js`, `Q.glows`). Every still thing in Departures caches now.
+- **Rigid things** (`art.js`, `rigid`): something that slides without changing is drawn once into a picture of its own and stamped as it goes, landing on whole pixels: the bag train's tug and carts, the airport cart's chassis and roof, the Silver Line bus on its straights (the snow on its roof stays live), the trucks on the apron, every bag (`kit.js`, `bag`), the X-ray's trays and riders, the shoe pile shut or open, standing gulls (one picture per way they can look), the parked plows while their beacons are off, and the landing and departing planes, piece by piece. A few new pictures a frame at most, and only while the camera's still.
+- **Floor pictures** of a big area's chunks go on in bands as wide as the floor across them, not as their whole box (the box is about half empty, a sliver along an area's edge nearly all empty).
+- **The clock's hour** keeps its last answer (thousands of asks a frame).
+
+`node tools/fps.mjs logan`, frames a second, before and after (1440 x 800; each view is measured at its own moment of the morning, Security near 5am to the Runway near 8, so dawn's costs show):
+
+| | 1.5x before | 1.5x after | 2x before | 2x after |
+|---|---|---|---|---|
+| The whole place | 39 | 42 | 40 | 38 |
+| Security | 20 | 23 | 8 | 13 |
+| Check-in | 16 | 19 | 10 | 13 |
+| The Gates | 23 | 24 | 15 | 16 |
+| The Curb | 40 | 38 | 25 | 27 |
+| The Bag Room | 20 | 22 | 16 | 17 |
+| The Apron | 26 | 29 | 21 | 27 |
+| The Runway | 27 | 33 | 22 | 27 |
+
+A view moves a frame or two a second between runs; runs while other apps worked the laptop (Draw Things, a busy Chrome) came out far lower and aren't counted. At set moments in Security at 2x (`--eval` to set the clock): night (9pm, snowing) 10 to 15, dawn 13.5 to 15, noon 21 to 22.
+
+**What's left, and why:** the rest is people. Each one is about 25 shapes, there are 100 to 150 on screen in the terminal's views, and almost all of them move every frame (walking, typing, the band marking time). Things that were tried and taken back: caching a moving thing while its drawing stays the same frame to frame (a quarter of the live shapes qualify, but taking every one's fingerprint cost the page more than the graphics process saved: 2 frames a second worse at 1.5x), and culling things off the screen's edge (the graphics process already skips them cheaply). Bigger wins would change how it looks or moves, so they're the owner's call: drawing the people in areas off the middle of the screen at half rate, or leaving the halftone dots off people while they move.
+
 ## For the owner at the preview
 None blocking; each has the lead's recommendation, taken for now (Decisions 24 to 33).
 - **The airline names:** Spite (yellow all over, Flight 1 to Orlando, on time and never boarding), JetBlew, Northeast. Lookalikes, as the brief's rules ask. *Recommendation: keep them.*
