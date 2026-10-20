@@ -1,8 +1,0 @@
-{
- "note": "Maps OpenStreetMap metres (x east, y north, origin 41.7116,-72.8601) to the owner aerial photo pixels (1574x2362, road at top). u = a*x + b*y + tx, v = b*x - a*y + ty.",
- "a": -2.110071076619942,
- "b": 14.782497756042352,
- "tx": 601.7567313515125,
- "ty": 1171.9711584522638,
- "px_per_m": 14.932335378492716
-}

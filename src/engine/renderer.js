@@ -47,7 +47,7 @@ export function createRenderer(canvas, camera, o = {}) {
   const perf = { ms: 0, snap: 0, focus: 0, zones: 0, back: 0, sky: 0, gap: 16, n: 0, worst: 0, total: 0, lays: 0, get snapQ() { return snapQ; } };
   let snapCredit = 0;
   let lastT = 0, lastFrame = 0;
-  let slowFrames = 0;
+  let slowFor = 0; // seconds of slow frames in a row
   let intro = null;
   let caching = true; // tools can turn the room's caches off, to compare
 
@@ -100,20 +100,25 @@ export function createRenderer(canvas, camera, o = {}) {
   let quickFrames = 0, upWait = 180, steppedUp = -1e9, settled = 0;
   function sharpness(cap, world) {
     view.dprCap = cap;
-    slowFrames = quickFrames = 0;
+    slowFor = quickFrames = 0;
     settled = performance.now() + 1500; // the step's own hitch isn't a slow frame
     camera.measure();
     if (world) for (const c of world.drawOrder) { dropBackdrop(c); dropStills(c); }
   }
   function watchFrameRate(gap, world) {
-    if (!(gap > 0) || gap > 0.25 || document.hidden) return; // tab switches, first frame
+    // (A gap over a second is a tab switch or the first frame. Up to one is a
+    // real frame: the laptop drew Departures' Security at 2 a second, and a
+    // quarter-second cap here never saw it, so it never stepped down.)
+    if (!(gap > 0) || gap > 1 || document.hidden) return;
     perf.gap = perf.gap * 0.95 + gap * 1000 * 0.05;
     const now = performance.now();
     if (now < 4000 || now < settled) return;
     if (!(view.dprAuto ?? !navigator.webdriver)) return;
-    slowFrames = perf.gap > 28 ? slowFrames + 1 : 0;
+    // Slow time, not slow frames: 90 frames was three seconds at 30 a second,
+    // but 45 seconds at 2.
+    slowFor = perf.gap > 28 ? slowFor + gap : 0;
     quickFrames = perf.gap < 18 ? quickFrames + 1 : 0;
-    if (slowFrames > 90 && view.dpr > SHARP[SHARP.length - 1]) {
+    if (slowFor > 2 && view.dpr > SHARP[SHARP.length - 1]) {
       if (now - steppedUp < 10000) upWait = Math.min(upWait * 2, 7200);
       sharpness(SHARP.find((s) => s < view.dpr), world);
     } else if (quickFrames > upWait && view.dprCap < SHARP[0] && (window.devicePixelRatio || 1) > view.dpr) {
