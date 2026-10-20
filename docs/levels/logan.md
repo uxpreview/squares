@@ -1,11 +1,13 @@
 # Departures
 
-> Status: **Art** · Brief → Greybox → Art → QA → Preview → Shipped
-> Approvals: brief [x] (the lead's call, decisions 1 to 14) · greybox [x] (the lead's call, decisions 15 to 23) · preview [ ] (the owner)
+> Status: **Shipped** · Brief → Greybox → Art → QA → Preview → Shipped
+> Approvals: brief [x] (the lead's call, decisions 1 to 14) · greybox [x] (the lead's call, decisions 15 to 23) · preview [x] (the owner, October 20)
 >
 > Session 20 (October 18, 2026). The owner asked for a new map and picked Departures, or a zoo idea. The lead chose Departures (decision 1) and built it as one big map from the start (decision 3). This session wrote the brief, built the one engine piece it needs (finds that unlock after another, decision 6) and greyboxed it at `#/logan`, hidden from the picker until it ships.
 >
 > Session 21 (October 18, 2026): the art. The engine piece the reunions needed (`R.found`), the lead's kit, nine artists in parallel, the art director, and every area toured pinched in by four reviewers ("The art", below). Still hidden at `#/logan`. Next session: the blind playtest, `node tools/fps.mjs logan` on the owner's Mac, and gate 3.
+>
+> October 20, 2026 (local, the owner's Mac): the owner played it, found it laggy, and two fixes went in ("Speed on the owner's laptop", below). Then the owner opened it: it's in the picker. Gate 3 was the owner playing it on their own laptop; the blind playtest wasn't run (decision 34).
 
 New places were meant to wait for v2 (STRATEGY.md, phase 3). The owner moved this one ahead of that on October 18, knowing the plan; ROADMAP 20 records it.
 
@@ -227,7 +229,7 @@ A view moves a frame or two a second between runs; runs while other apps worked 
 **What's left, and why:** the rest is people. Each one is about 25 shapes, there are 100 to 150 on screen in the terminal's views, and almost all of them move every frame (walking, typing, the band marking time). Things that were tried and taken back: caching a moving thing while its drawing stays the same frame to frame (a quarter of the live shapes qualify, but taking every one's fingerprint cost the page more than the graphics process saved: 2 frames a second worse at 1.5x), and culling things off the screen's edge (the graphics process already skips them cheaply). Bigger wins would change how it looks or moves, so they're the owner's call: drawing the people in areas off the middle of the screen at half rate, or leaving the halftone dots off people while they move.
 
 ## For the owner at the preview
-None blocking; each has the lead's recommendation, taken for now (Decisions 24 to 33).
+None blocking; each had the lead's recommendation, and the owner shipped it as it is, so all three stand (Decisions 24 to 34).
 - **The airline names:** Spite (yellow all over, Flight 1 to Orlando, on time and never boarding), JetBlew, Northeast. Lookalikes, as the brief's rules ask. *Recommendation: keep them.*
 - **The chapel's organ at six,** when everything's canceled: a few spooky bars. *Recommendation: keep it; it's one line in sound.js if it's too much.*
 - **The card after the ending** comes at 18 seconds, with Flight 1 rolling and the geese out in the harbor (the cast's artist suggested 26, after liftoff). *Recommendation: 18; the liftoff plays on beside the card.*
@@ -276,3 +278,6 @@ Session 21 (the art), the lead's calls:
 32. **The first visit's ring sits on X-ray lane A's screen,** where the card says to tap (it was in the walkway beside it).
 33. **The Curb's road bows round the tower and the garage** between two tunnel mouths, rather than running through them (the greybox put them on the road).
 
+Gate 3 (the preview), the owner, October 20:
+
+34. **Shipped without the blind playtest.** The owner played it on the 2017 MacBook Pro, and once the sharpness step-down was fixed (it now steps after two seconds of slow frames, and sees frames as slow as one a second) and the airport was made lighter to draw (PR #51), opened it. The three questions above stand as recommended.
