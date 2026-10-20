@@ -8,7 +8,7 @@
 // body, a wing, a fin): solid() works out which faces look toward you and
 // outlines only the edge of the shape, so a toy plane reads as one smooth
 // thing rather than a cage of lines.
-import { C, Q, P, LW, SKIN, box, face, rect, paint, alpha, tint, shade, mix, person, folk, paintText, label, glow } from '../../engine/art.js';
+import { C, Q, P, LW, SKIN, box, face, rect, paint, alpha, tint, shade, mix, person, folk, paintText, label, glow, rigid } from '../../engine/art.js';
 import { ZK } from '../../engine/iso.js';
 import { INK, LIVERY, RAMP, BAGS, SIGN, LIT, WALL, GLASS, FRAME, dusk, nightPrint } from './style.js';
 import { PLANE, AIR } from './plan.js';
@@ -412,6 +412,22 @@ export function train(ctx, x, y, z, along, dir, n = 3, o = {}, t = 0) {
 // color for its tag (or false), fragile (the sticker), handle (the pull-up
 // handle up), s (its size, 1), ink }
 export function bag(ctx, x, y, z, o = {}) {
+  // (Rigid: one picture for each look, stamped as it rides a belt.)
+  if (Q.rigid) {
+    const key = `bag|${o.kind}|${o.color}|${o.along}|${!!o.lie}|${o.tag}|${!!o.fragile}|${!!o.handle}|${o.s}|${inkId(o.ink)}`;
+    return rigid(ctx, key, x, y, z, (g) => drawBag(g, x, y, z, o));
+  }
+  drawBag(ctx, x, y, z, o);
+}
+// A number for each ink mapper (the night print, a dusk), for a picture's key.
+const inks = new WeakMap();
+let inkN = 0;
+function inkId(ink) {
+  if (!ink) return 0;
+  if (!inks.has(ink)) inks.set(ink, ++inkN);
+  return inks.get(ink);
+}
+function drawBag(ctx, x, y, z, o) {
   const ink = o.ink || ((c) => c), kind = o.kind || 'case', s = o.s || 1, col = o.color || C.navy;
   const X = (o.along || 'x') === 'x';
   const lw = 0.025;
@@ -875,9 +891,15 @@ export const coatOver = (color) => (ctx, b) => {
 export function gull(ctx, x, y, z, t, o = {}) {
   const [X, Y] = P(x, y, z);
   const f = o.dir === 'l' ? -1 : 1, s = 0.82 * (o.s || 1), ph = o.phase || 0;
+  if (!o.fly) {
+    // Standing, it only ever looks one of a few ways (which way it faces,
+    // pecking or not, its head turned or not): a picture for each (rigid).
+    const turned = !!o.look && Math.sin(t * 0.45 + ph) + Math.sin(t * 1.3 + ph) * 0.3 > 0.55;
+    return rigid(ctx, `gull|${f * s}|${!!o.peck}|${turned}|${!!o.pass}`, x, y, z, (g) => standing(g, X, Y, f * s, s, turned, o));
+  }
   ctx.save();
   ctx.translate(X, Y); ctx.scale(f * s, s);
-  if (o.fly) {
+  {
     // In the air: its shadow on the ground under it, then the far wing, the
     // body and head, the near wing.
     if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, (z * ZK) / s, 0.3, 0.11, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.12); ctx.fill(); }
@@ -893,8 +915,13 @@ export function gull(ctx, x, y, z, t, o = {}) {
     ctx.beginPath(); ctx.moveTo(0.33, -0.18); ctx.lineTo(0.47, -0.15); ctx.lineTo(0.33, -0.13); ctx.closePath(); ctx.fillStyle = C.mustard; ctx.fill();
     wing(fl, true);
     ctx.restore();
-    return;
   }
+}
+// A gull standing, at (X, Y) on the screen, sx across (its size, turned to
+// face left when it's less than 0) and s up.
+function standing(ctx, X, Y, sx, s, turned, o) {
+  ctx.save();
+  ctx.translate(X, Y); ctx.scale(sx, s);
   if (Q.detail) { ctx.beginPath(); ctx.ellipse(0, 0, 0.3, 0.1, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(C.ink, 0.15); ctx.fill(); }
   ctx.strokeStyle = C.pink; ctx.lineWidth = 0.06; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-0.06, -0.3); ctx.lineTo(-0.08, 0); ctx.moveTo(0.07, -0.3); ctx.lineTo(0.08, 0); ctx.stroke();
@@ -908,7 +935,7 @@ export function gull(ctx, x, y, z, t, o = {}) {
   ctx.beginPath(); ctx.moveTo(-0.3, -0.52); ctx.lineTo(-0.6, -0.5); ctx.lineTo(-0.34, -0.4); ctx.closePath(); paint(ctx, C.black, { lw: 0.03 });
   if (Q.detail) { ctx.fillStyle = C.white; for (const sx of [-0.42, -0.5]) { ctx.beginPath(); ctx.arc(sx, -0.48, 0.022, 0, Math.PI * 2); ctx.fill(); } }
   // The head (down, pecking; or turned the other way now and then).
-  if (o.look && Math.sin(t * 0.45 + ph) + Math.sin(t * 1.3 + ph) * 0.3 > 0.55) ctx.scale(-1, 1);
+  if (turned) ctx.scale(-1, 1);
   if (o.peck) ctx.translate(0.1, 0.2);
   ctx.beginPath(); ctx.arc(0.27, -0.68, 0.14, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.035 });
   ctx.beginPath(); ctx.moveTo(0.38, -0.7); ctx.lineTo(0.62, -0.69); ctx.quadraticCurveTo(0.6, -0.62, 0.52, -0.63); ctx.lineTo(0.38, -0.63); ctx.closePath(); paint(ctx, C.mustard, { lw: 0.025 });

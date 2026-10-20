@@ -18,7 +18,7 @@
 // plan.js (this area sits at the map's corner).
 import {
   C, Q, P, box, rect, disc, cylinder, face, paint, person, goose, label, tiles,
-  alpha, tint, shade, mix, rng, pick,
+  alpha, tint, shade, mix, rng, pick, rigid,
 } from '../../../engine/art.js';
 import { clamp, pulse, route } from '../../../engine/actors.js';
 import { INK, SIGN, BRAND, GLASS, RUBBER } from '../style.js';
@@ -735,10 +735,15 @@ export default {
         }
         return py == null ? out : out.filter((it) => Math.abs(it.y - py) > 1.1);
       };
+      // (Rigid: each of the eight things that ride, and each tray, is one
+      // picture, stamped as it rides.)
       const drawRider = (ctx, it) => {
+        const ti = mod(it.n * 3 + lane, IN_TRAY.length), k = mod(it.n, 8);
+        rigid(ctx, `xray|${it.tray ? 't' + ti : k}`, cx, it.y, BELT_Z, (g) => rider(g, it, ti, k));
+      };
+      const rider = (ctx, it, ti, k) => {
         const z = BELT_Z, y = it.y;
-        if (it.tray) { tray(ctx, cx, y, z, IN_TRAY[mod(it.n * 3 + lane, IN_TRAY.length)]); return; }
-        const k = mod(it.n, 8);
+        if (it.tray) { tray(ctx, cx, y, z, IN_TRAY[ti]); return; }
         if (k === 0) tray(ctx, cx, y, z, IN_TRAY[0]);
         else if (k === 1) bag(ctx, cx, y, z, { kind: 'duffel', color: C.brown, along: 'y' });
         else if (k === 2) bag(ctx, cx, y, z, { kind: 'case', color: C.purple, lie: true, along: 'y', tag: C.white });
@@ -1181,10 +1186,14 @@ export default {
           ctx.beginPath(); ctx.arc(X + 0.03, Y - 0.03, 0.03, 0, TAU); ctx.fillStyle = C.ink; ctx.fill();
         }
       }
-      for (const s of lid) {
-        const e = clamp(k), arc = Math.sin(e * Math.PI) * 0.5;
-        shoe(ctx, s.X + s.fx * e, s.Y + s.fy * e - arc, s.col, s.ang + e * 2.2, s.kind);
-      }
+      const lift = (g, e) => {
+        const arc = Math.sin(e * Math.PI) * 0.5;
+        for (const s of lid) shoe(g, s.X + s.fx * e, s.Y + s.fy * e - arc, s.col, s.ang + e * 2.2, s.kind);
+      };
+      // (Shut or open, the shoes on top are one picture; flying off, live.)
+      const e = clamp(k);
+      if (e === 0 || e === 1) rigid(ctx, `shoe-lid|${e}`, 0, 0, 0, (g) => lift(g, e));
+      else lift(ctx, e);
     }, { anim: true, depth: GX + GY + 0.6 });
     R.goose((t) => ({ x: GX, y: GY, z: 0.1, dir: 'r', pose: pulse(t, 6) > 0.8 ? 'honk' : 'sit', hidden: shoes.k() < 0.5 }),
       { kind: 'poke', inside: shoes, hint: 'Somebody\'s shoes are honking.' });

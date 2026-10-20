@@ -21,7 +21,7 @@
 // drawn by the chunk it's over, and a whole toy plane is wider than one
 // chunk's picture, so planes are drawn in pieces (flyer, below).
 import {
-  C, Q, P, box, rect, disc, face, paint, person, label, glow, alpha, tint, shade, mix, hash, cylinder,
+  C, Q, P, box, rect, disc, face, paint, person, label, glow, alpha, tint, shade, mix, hash, cylinder, rigid,
 } from '../../../engine/art.js';
 import { clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
@@ -285,6 +285,11 @@ function flyer(R, state) {
     const night = nightPrint(t);
     const o = { dir: s.dir, z: s.z, livery: s.livery, ink: night ? dusk : null, lit: night, t };
     const parts = planeParts(s.x, s.y, 0, s.along, o);
+    // (Rigid: each piece is one picture while the plane only slides along;
+    // its look changes with the night print, its gear going up and its
+    // beacon blinking.)
+    const look = `${s.livery}|${s.along}|${s.dir}|${night}|${(s.z || 0) > 1.5}|${night && Math.sin(t * 6) > 0.4}`;
+    for (const [i, p] of parts.entries()) { const d = p.draw; p.draw = (ctx) => rigid(ctx, `plane|${i}|${look}`, s.x, s.y, s.z || 0, d); }
     const F = frame(s.x, s.y, 0, s.along, s.dir);
     memo = { s, parts: parts.map((p, i) => {
       const [u0, u1, v0, v1] = PIECES[i];
@@ -1354,7 +1359,7 @@ export default {
         // By day they wait (the one in front with his arm out for the snow,
         // waving once it comes); after the night's work they sleep.
         const doing = !parked ? 'drive' : s < T0 ? (i === 0 && snowK(t) > 0 ? 'cheer' : DOING[i]) : 'sleep';
-        plow(ctx, p.rx, p.y, p.dir, {
+        const o = {
           ink: night ? dusk : null,
           driver: DRIVERS[i],
           doing,
@@ -1362,7 +1367,11 @@ export default {
           lights: working && lightsOn(t),
           snow: parked && settle(t) > 0.35,
           plate: PLATES[i],
-        }, t);
+        };
+        // Parked with its beacon off and the driver keeping still, it's one
+        // picture (rigid); turning, dozing or waving, drawn as it goes.
+        if (!o.beacon && doing !== 'sleep' && doing !== 'cheer') rigid(ctx, `plow|${i}|${p.dir}|${night}|${doing}|${o.lights}|${o.snow}`, p.rx, p.y, 0, (g) => plow(g, p.rx, p.y, p.dir, o, t));
+        else plow(ctx, p.rx, p.y, p.dir, o, t);
         if (working && p.moving && settle(t) > 0.15 && Math.abs(p.v) > 0.6) spray(ctx, p.rx, p.y, p.dir, t, i, i === 4);
       });
     });

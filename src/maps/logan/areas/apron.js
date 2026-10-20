@@ -25,7 +25,7 @@
 // across a seam is anchored at its front corner (drawn by the chunk that goes
 // last), and each jet bridge keeps left of the seam that runs just past its
 // gate's door (at the gate's x + 2).
-import { C, Q, P, box, rect, face, poly, paint, disc, cylinder, tiles, person, label, paintText, alpha, tint, shade, mix } from '../../../engine/art.js';
+import { C, Q, P, box, rect, face, poly, paint, disc, cylinder, tiles, person, label, paintText, alpha, tint, shade, mix, rigid } from '../../../engine/art.js';
 import { clamp, particles } from '../../../engine/actors.js';
 import { ZK, SLAB } from '../../../engine/iso.js';
 import { INK, LIVERY, RAMP, BAGS, SIGN, BRAND, LIT, dusk, nightPrint } from '../style.js';
@@ -1122,8 +1122,9 @@ export default {
       ctx.save();
       ctx.globalAlpha *= a;
       const ink = inkAt(t), night = nightPrint(t);
-      if (v.kind === 'fuel') fuelTruck(ctx, v.x, VLANE, 'x', 1, ink, night);
-      else if (v.kind === 'catering') catering(ctx, v.x, VLANE, 0, ink, night, { side: true, half: 0.85 });
+      // (The trucks are one picture each, stamped as they drive: rigid.)
+      if (v.kind === 'fuel') rigid(ctx, `fuel-truck|${night}`, v.x, VLANE, 0, (g) => fuelTruck(g, v.x, VLANE, 'x', 1, ink, night));
+      else if (v.kind === 'catering') rigid(ctx, `catering-truck|${night}`, v.x, VLANE, 0, (g) => catering(g, v.x, VLANE, 0, ink, night, { side: true, half: 0.85 }));
       else if (v.kind === 'bike') bike(ctx, v.x - 0.7, VLANE, v.face, t, ink, v.moving);
       else canada(ctx, v.x - 0.4, VLANE, 0, t, v.face > 0 ? 'r' : 'l', v.moving ? 'walk' : (t % 2 < 0.7 ? 'honk' : 'stand'));
       // A reversing truck beeps.

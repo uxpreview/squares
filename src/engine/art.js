@@ -2,6 +2,7 @@
 // Every primitive draws in room-local 3D units (x, y, z) and projects itself.
 
 import { ZK, S, WALL, SLAB } from './iso.js';
+import { footprint } from './footprint.js';
 
 // ---------- Palette (a six-ink risograph set plus a few mixes) ----------
 export const C = {
@@ -41,7 +42,12 @@ export const CLOTH = [C.coral, C.teal, C.mustard, C.navy, C.blush, C.green, C.wh
 
 // Quality flags, set by the renderer for each pass. own: drawing into a zone's
 // own picture (a snapshot), where only that zone's pixels are on the canvas.
-export const Q = { lines: true, detail: true, pxPerUnit: 20, own: false };
+// glows: a list while a still thing is measured or cached (zone.js): glow()
+// sets its glows aside there instead of drawing them, to go on live over
+// its stamp (a glow is screened over what's under it, so it can't be cached).
+// rigid: whether rigid() may keep pictures (set by the renderer while the
+// camera is still and caches are on).
+export const Q = { lines: true, detail: true, pxPerUnit: 20, own: false, glows: null, rigid: false };
 
 // ---------- Seeded randomness ----------
 export function rng(seed = 1) {
@@ -963,11 +969,86 @@ function glowSprite(color) {
 export function glow(ctx, x, y, z, r, color = C.butter, k = 1) {
   if (!(k > 0.01) || !(r > 0)) return;
   const X = x - y, Y = (x + y) / 2 - z * ZK;
+  if (Q.glows) {
+    // Set aside, where it lands in the units the drawing started in.
+    const m = ctx.getTransform();
+    Q.glows.push([m.a * X + m.c * Y + m.e, m.b * X + m.d * Y + m.f, r * Math.hypot(m.a, m.b), color, ctx.globalAlpha * Math.min(1, k)]);
+    return;
+  }
+  glowAt(ctx, X, Y, r, color, k);
+}
+// The same, centred on (X, Y) on the screen (iso units).
+export function glowAt(ctx, X, Y, r, color = C.butter, k = 1) {
+  if (!(k > 0.01) || !(r > 0)) return;
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   ctx.globalAlpha *= Math.min(1, k);
   ctx.drawImage(glowSprite(color), X - r, Y - r, r * 2, r * 2);
   ctx.restore();
+}
+
+// ---------- Rigid things ----------
+// Something that moves without changing (a bag on a belt, a cart in a
+// train, a bus): draw(ctx) draws it at (x, y, z), and it looks the same
+// wherever it's drawn as long as key is the same (key: everything its look
+// depends on, as a string). It's drawn once into a picture of its own and
+// stamped where it is, a few hundred shapes for the cost of one, landing
+// on the nearest whole device pixel. Glows in it go on live over the stamp.
+// Drawn live while the camera moves (the picture's scale would change every
+// frame), faded, or turned.
+const rigids = new Map();
+let madeAt = 0, made = 0;
+export function rigid(ctx, key, x, y, z, draw) {
+  if (!Q.rigid || Q.glows) return draw(ctx);
+  const m = ctx.getTransform(), k = m.a;
+  if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || Math.abs(m.d - k) > k * 1e-5 || ctx.globalAlpha < 1 || ctx.globalCompositeOperation !== 'source-over') return draw(ctx);
+  const X = x - y, Y = (x + y) / 2 - z * ZK;
+  const fk = key + '|' + k.toFixed(4) + '|' + Q.lines + Q.detail;
+  let r = rigids.get(fk);
+  if (!r) {
+    // (A few new pictures a frame at most: past that, live till the next.)
+    const now = performance.now();
+    if (now - madeAt > 12) { madeAt = now; made = 0; }
+    if (++made > 6) return draw(ctx);
+    r = make(fk, k, X, Y, draw);
+    // (A few hundred, the oldest let go first.)
+    if (rigids.size > 400) rigids.delete(rigids.keys().next().value);
+    rigids.set(fk, r);
+  }
+  if (!r.cv) return draw(ctx);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(r.cv, Math.round(m.e + X * k) - r.ox, Math.round(m.f + Y * k) - r.oy);
+  ctx.setTransform(m);
+  for (const [gx, gy, gr, color, a] of r.glows) glowAt(ctx, X + gx, Y + gy, gr, color, a);
+}
+// Its picture, with (X, Y) on the screen at pixel (ox, oy); { cv: null } if
+// it can't be measured (it's drawn live).
+function make(fk, k, X, Y, draw) {
+  const was = Q.glows;
+  try {
+    const fp = footprint();
+    fp.setTransform(1, 0, 0, 1, -X, -Y);
+    Q.glows = [];
+    draw(fp);
+    const b = fp.box, glows = Q.glows;
+    if (!b) return { cv: null };
+    const ox = Math.ceil(-b[0] * k) + 1, oy = Math.ceil(-b[1] * k) + 1;
+    const cv = document.createElement('canvas');
+    cv.width = ox + Math.ceil(b[2] * k) + 1;
+    cv.height = oy + Math.ceil(b[3] * k) + 1;
+    const g = cv.getContext('2d');
+    g.setTransform(k, 0, 0, k, ox - X * k, oy - Y * k);
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    Q.glows = [];
+    draw(g);
+    // (Its glows, from the stand-in, are where they land from (X, Y).)
+    return { cv, ox, oy, glows };
+  } catch {
+    return { cv: null };
+  } finally {
+    Q.glows = was;
+  }
 }
 
 // Rug on the floor.

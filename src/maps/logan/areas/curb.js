@@ -15,7 +15,7 @@
 //
 // World units (plan.js AREAS: the curb is 0..104 x 0..12, y from the back).
 // Traffic runs one way, right to left on the screen.
-import { C, Q, P, box, rect, face, paint, cylinder, person, speech, label, alpha, tint, shade, mix, glow } from '../../../engine/art.js';
+import { C, Q, P, box, rect, face, paint, cylinder, person, speech, label, alpha, tint, shade, mix, glow, rigid } from '../../../engine/art.js';
 import { particles } from '../../../engine/actors.js';
 import { INK, LIT, SIGN, BAGS, BRAND, LIVERY, dusk, nightPrint } from '../style.js';
 import { solid, hexa, bag, look, stay, sign, board, lettering, snowCover, nightGround, nightGlow, gull, turkeyMan, TURKEY, spans, asleep, zzz, inHand } from '../kit.js';
@@ -409,11 +409,15 @@ function busPart(ctx, x, y, ang, o = {}) {
     for (const sv of [-0.78, 0.78]) tq(ctx, F, [[eu, sv - 0.12, 0.45], [eu, sv + 0.12, 0.45], [eu, sv + 0.12, 0.75], [eu, sv - 0.12, 0.75]], o.lit ? tint(C.red, 0.2) : ink(C.red), { lw: 0.015 });
     if (o.lit) for (const sv of [-0.78, 0.78]) glow(ctx, ...F.pt(-L2, sv, 0.6), 0.5, C.red, 0.8);
   }
-  if (o.snow > 0.01) {
-    ctx.save(); ctx.globalAlpha *= Math.min(1, o.snow);
-    tq(ctx, F, [[-L2 + 0.08, -hw + 0.08, H + 0.01], [L2 - 0.08, -hw + 0.08, H + 0.01], [L2 - 0.08, hw - 0.08, H + 0.01], [-L2 + 0.08, hw - 0.08, H + 0.01]], ink(C.white), { lw: 0.02 });
-    ctx.restore();
-  }
+  busSnow(ctx, x, y, ang, o);
+}
+// The snow on a bus's roof (o.snow: how much, o.ink).
+function busSnow(ctx, x, y, ang, o) {
+  if (!(o.snow > 0.01) || !Q.detail) return;
+  const F = heading(x, y, 0, ang), ink = o.ink || ID, L2 = BUS_L / 2, hw = 1.0, H = 2.2;
+  ctx.save(); ctx.globalAlpha *= Math.min(1, o.snow);
+  tq(ctx, F, [[-L2 + 0.08, -hw + 0.08, H + 0.01], [L2 - 0.08, -hw + 0.08, H + 0.01], [L2 - 0.08, hw - 0.08, H + 0.01], [-L2 + 0.08, hw - 0.08, H + 0.01]], ink(C.white), { lw: 0.02 });
+  ctx.restore();
 }
 
 // The water taxi: a little yellow and white ferry, 5.4 long, its bow toward
@@ -1688,7 +1692,13 @@ export default {
         const night = nightPrint(t), ink = night ? dusk : null, lit = lightsOn(t);
         const open = p.b.stop && p.b.k > 0.06 && p.b.k < 0.94;
         inTunnels(ctx, p.x, p.y, () => {
-          busPart(ctx, p.x, p.y, p.ang, { ink, lit, snow: settle(t), seed: p.b.n * 2 + which, doors: which > 0 ? [1.55] : [0.75], open, tail: which < 0, name: which < 0, nameU: 0.2 });
+          const o = { ink, lit, snow: settle(t), seed: p.b.n * 2 + which, doors: which > 0 ? [1.55] : [0.75], open, tail: which < 0, name: which < 0, nameU: 0.2 };
+          // Along a straight, one picture of it (rigid), and the snow on its
+          // roof over that; round a bend, drawn as it turns.
+          if (Math.abs(Math.sin(p.ang * 2)) < 1e-6) {
+            rigid(ctx, `bus|${which}|${p.ang.toFixed(4)}|${night}|${lit}|${o.seed}|${open}`, p.x, p.y, 0, (g) => busPart(g, p.x, p.y, p.ang, { ...o, snow: 0 }));
+            busSnow(ctx, p.x, p.y, p.ang, o);
+          } else busPart(ctx, p.x, p.y, p.ang, o);
           if (which > 0) {
             // The bellows, toward the back section.
             const q = pose(p.b.s, 0.3), F = heading(q.x, q.y, 0, q.ang);
