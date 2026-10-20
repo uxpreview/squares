@@ -165,19 +165,13 @@ The owner's direction: many places should be real, recognizable places, because 
 
 
 ### Departures (an airport)
-**Greybox (session 20), at `#/logan`, hidden until it ships. Full brief in [levels/logan.md](levels/logan.md).** The owner moved it ahead of v2 (October 18). It's Logan on the day before Thanksgiving, one big map from the start, and its verb is **reunite**: five lost bags, each with an owner elsewhere in the airport. Where the brief and this sketch differ, the brief wins.
+**Shipped (October 20). Full brief in [levels/logan.md](levels/logan.md).** The owner moved it ahead of v2 (October 18). It's Logan on the day before Thanksgiving, one big map from the start, and its verb is **reunite**: five lost bags, each with an owner elsewhere in the airport. Where the brief and this sketch differ, the brief wins.
 - **Spin:** an airport with the terminal cut open. A lost suitcase rides the belts across the whole map, and the security X-ray lets you see inside bags.
 - **Mechanic:** the X-ray: tap the scanner to see inside a bag.
 - **Heroes and jokes:** the departures board where every delay grows; a family sprinting to their gate; the control tower; a goose on the runway (obviously).
 - **Shape:** wide: landside road, the terminal, the apron and planes, the runway in front.
 - **Layout (sketch):** the landside road and taxis along the back; the terminal cut open along it, left to right: security, the departures board and shops, two gates, baggage reclaim; jet bridges out to three planes on the apron, a belt from the terminal to the first plane's hold; baggage carts and the control tower on the right; the runway along the front with a plane taking off and a goose on it.
 - **Needs:** Today. Could be Logan later, to sit with the Boston places.
-
-### Primacy (an office in the woods)
-**Research (session 22). Everything known so far is in [levels/primacy.md](levels/primacy.md).** The owner's old workplace at 1577 New Britain Avenue, Farmington, Connecticut: a 1988 office of linked hipped-roof wings around an octagon and a turret, dug into a slope over a state forest, two storeys from the lot and three from the woods, with a fire pit out back. Personal, so the owner fills in the inside.
-- **Mechanic:** not yet. A place isn't picked until it has one.
-- **Shape:** a cliff of white windows over the woods, the lot behind; or the low roofline from the lot.
-- **Needs:** terrain for the slope (Plum Island's `land`), storeys.
 
 ## Spins on the inspiration
 
