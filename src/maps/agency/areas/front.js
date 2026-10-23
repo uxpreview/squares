@@ -7,7 +7,7 @@
 import { C, folk, cylinder } from '../../../engine/art.js';
 import { block, pin, drawBlock, tag } from '../../greybox.js';
 import { TONE, BLOCK, INK, BRAND } from '../style.js';
-import { floorOf, backWall, sill, pod, staff, room, worker } from '../kit.js';
+import { floorOf, backWall, sill, pod, staff, room, worker, drawTower } from '../kit.js';
 import { bearOClock, H } from '../clock.js';
 import { TOWER, PITCH, SILL, DOOR } from '../plan.js';
 
@@ -24,10 +24,7 @@ export default {
 
     // The stair tower: an octagon (a drum, in the greybox) with a pointed
     // roof, and the call button nobody should press.
-    R.thing(TOWER.x, TOWER.y + TOWER.r, (ctx) => {
-      cylinder(ctx, TOWER.x, TOWER.y, 0, TOWER.r, TOWER.h, C.white);
-      drawBlock(ctx, TOWER.x - 0.8, TOWER.y - 0.8, TOWER.h, 1.6, 1.6, 2, INK.maple, 'STAIR TOWER');
-    });
+    R.thing(TOWER.x + TOWER.r * 0.7, TOWER.y + TOWER.r * 0.7, (ctx, t) => drawTower(ctx, t), { anim: true });
     R.poke({ id: 'call', at: [TOWER.x + 1.6, TOWER.y + TOWER.r + 0.3, 1.3], r: 0.7, say: 'Floors 1 and 2 are closed. Don\'t ask.' });
 
     // Reception: the desk, the bell (the thing a first visit is nudged to
@@ -72,6 +69,6 @@ export default {
       riddle: 'The one everyone\'s been looking for since nine.', hint: 'When the bear comes, the IT man puts down what he was holding on the big table.' }, 4);
 
     // A peninsula of desks by the front windows, west of the pitch room.
-    staff(R, pod(R, 36, 'front', 3), 545, { empty: [3], texts: ['EMAIL', 'TIMESHEET', 'EMAIL', 'INVOICES', 'EMAIL', 'TIMESHEET'] });
+    staff(R, pod(R, 36, 'front', 3), 545, { empty: [3], kinds: ['email', 'sheet', 'email', 'shop', 'email', 'calendar'] });
   },
 };

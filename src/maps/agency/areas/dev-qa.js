@@ -31,7 +31,7 @@ export default {
     sill(R, 88, 104, { end: true });
 
     // Standing desks off the back wall (Dev stay late).
-    staff(R, pod(R, 92, 'back', 2), 580, { texts: ['CODE', 'CODE', '400 TABS', 'CODE'], each: () => ({ always: dev, pose: 'stand' }) });
+    staff(R, pod(R, 92, 'back', 2), 580, { kinds: ['code', 'code', 'terminal', 'code'], each: () => ({ always: dev, pose: 'stand' }) });
     // The server closet: the goose is in there.
     const closet = R.poke({ id: 'servers', at: [101.8, 4.6, 1.4], r: 0.9, say: 'Warm in here. Something is nesting on the router.' });
     R.thing(102, 2.4, (ctx, t) => drawBlock(ctx, 100.2, 0.4, 0, 3.4, 4, 2.8, closet.k() > 0.5 ? C.green : (Math.floor(t * 2) % 2 ? C.navy : C.ink), closet.k() > 0.5 ? 'OPEN' : 'SERVERS'), { anim: true });
@@ -61,7 +61,7 @@ export default {
 
     // Desks off the front wall, and at bear o'clock the cat video.
     const front = [...pod(R, 91.6, 'front', 3), ...pod(R, 96.4, 'front', 2)];
-    staff(R, front, 590, { empty: [2], texts: ['CODE', 'CODE', 'CODE', 'TERMINAL', 'CODE', 'DOCS', 'CODE', (t) => (bearOClock(t) ? 'CAT VIDEO' : 'TERMINAL'), 'TERMINAL', 'CODE'], each: () => ({ always: dev }) });
+    staff(R, front, 590, { empty: [2], kinds: ['code', 'code', 'code', 'terminal', 'code', 'email', 'code', (t) => (bearOClock(t) ? 'cat' : 'terminal'), 'terminal', 'code'], each: () => ({ always: dev }) });
     const cat = front[7];
     pin(R, { id: 'cat-video', label: 'A cat video', kind: 'hard', at: [cat.mon[0] + 0.2, cat.mon[1], 2.3], r: 0.6, when: bearOClock, note: 'bear o\'clock',
       riddle: 'Left playing on a screen while its owner watches something bigger.', hint: 'At bear o\'clock one of Dev\'s screens stops pretending to be code.' }, 4);

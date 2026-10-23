@@ -23,8 +23,8 @@ export default {
     sill(R, 56, 72);
 
     // Desks off the back wall, and between them the wall of rejected logos.
-    staff(R, pod(R, 59.4, 'back', 2), 550, { texts: ['MOOD BOARD', 'MOOD BOARD', 'FONTS', 'MOOD BOARD'] });
-    staff(R, pod(R, 68.6, 'back', 2), 555, { empty: [2], texts: ['LOGO V37', 'LOGO V38', 'LOGO V39', 'LOGO FINAL FINAL'] });
+    staff(R, pod(R, 59.4, 'back', 2), 550, { kinds: ['mood', 'mood', 'helvetica', 'mood'] });
+    staff(R, pod(R, 68.6, 'back', 2), 555, { empty: [2], kinds: ['logo', 'logo', 'logo', 'logo'] });
     block(R, 62.6, 0.4, 3, 0.3, 2.4, C.white, 'REJECTED LOGOS');
     pin(R, { id: 'logo', label: 'A rejected logo', at: [64.1, 0.6, 1.9], r: 0.7 }, 1);
 
@@ -54,9 +54,9 @@ export default {
     // every hour), a Pantone swatch, and at bear o'clock the screen with the
     // forbidden font.
     const front = [...pod(R, 59.6, 'front', 3), ...pod(R, 68.4, 'front', 3)];
-    staff(R, front, 565, { empty: [6, 10], texts: [
-      'KERNING', (t) => (Math.floor(H(t)) % 2 ? 'G A N D E R' : 'G A ND E R'), 'MOOD BOARD', 'PHOTOS', 'FONTS', 'PHOTOS',
-      'MOOD BOARD', 'LOGO', 'MOOD BOARD', (t) => (bearOClock(t) ? 'COMIC SANS' : 'HELVETICA'), 'MOOD BOARD', 'PHOTOS',
+    staff(R, front, 565, { empty: [6, 10], kinds: [
+      'mood', 'kern', 'mood', 'photos', 'helvetica', 'photos',
+      'mood', 'logo', 'mood', (t) => (bearOClock(t) ? 'comic' : 'helvetica'), 'mood', 'photos',
     ] });
     pin(R, { id: 'pantone', label: 'A Pantone swatch', at: [front[4].mon[0] + 0.1, front[4].mon[1] + 0.5, 1.2], r: 0.6 }, 3);
     const cs = front[9];

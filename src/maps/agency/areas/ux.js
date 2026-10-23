@@ -55,7 +55,7 @@ export default {
     // Desks off the front wall: the eye-tracking glasses, and a sticky note
     // in the wrong color on a chair at bear o'clock.
     const front = [...pod(R, 75.6, 'front', 3), ...pod(R, 84.4, 'front', 3)];
-    staff(R, front, 575, { empty: [3, 9], texts: ['SURVEY', 'PROTOTYPE', 'NOTES', 'SURVEY', 'PERSONAS', 'NOTES', 'PROTOTYPE', 'HEATMAP', 'NOTES', 'SURVEY', 'PROTOTYPE', 'NOTES'] });
+    staff(R, front, 575, { empty: [3, 9], kinds: ['survey', 'photos', 'email', 'survey', 'social', 'email', 'photos', 'heatmap', 'email', 'survey', 'photos', 'email'] });
     pin(R, { id: 'eye-tracker', label: 'A pair of eye-tracking glasses', at: [front[6].mon[0] - 0.2, front[6].mon[1] + 0.5, 1.25], r: 0.6 }, 3);
     pin(R, { id: 'wrong-sticky', label: 'A sticky note in the wrong color', kind: 'hard', at: [front[10].x, front[10].y, 0.85], r: 0.6, when: bearOClock, note: 'bear o\'clock',
       riddle: 'One of these is not like the others, on a seat left in a hurry.', hint: 'At bear o\'clock, look on the chairs by UX\'s front windows for a note that isn\'t yellow.' }, 4);

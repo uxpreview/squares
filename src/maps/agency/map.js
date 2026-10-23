@@ -16,7 +16,8 @@
 //      ...................... The Lot ......................................
 import { W, D, FLOOR, AREAS } from './plan.js';
 import { LOOP, at, dial } from './clock.js';
-import { PAPER } from './style.js';
+import { paperAt } from './style.js';
+import { nightK } from './clock.js';
 import { walkers } from './day.js';
 import { backdrop, sky } from './ambient.js';
 import { sound as soundBed } from './sound.js';
@@ -57,7 +58,8 @@ export default {
   open: true,
   walkers,
   loop: LOOP,
-  plate: { paper: PAPER, thumbAt: at(10.8) },
+  // The paper is the woods' floor, and it follows the day (style.js, paperAt).
+  plate: { at: (t) => ({ paper: paperAt(t), kind: nightK(t) > 0.5 ? 'night' : '' }), bleed: true, thumbAt: at(10.8) },
   dial,
   invite: { zone: 'front', at: [36.4, 8.8, 1.3] },
   // The ending: bear o'clock at the pitch. The clock jumps to the bear on

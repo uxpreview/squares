@@ -21,7 +21,7 @@ export default {
     sill(R, 16, 32);
 
     // Desks off the back wall.
-    staff(R, pod(R, 20, 'back', 2), 520, { empty: [1], texts: ['ANALYTICS', 'ANALYTICS', 'SHOPPING', 'ANALYTICS'] });
+    staff(R, pod(R, 20, 'back', 2), 520, { empty: [1], kinds: ['chart', 'chart', 'shop', 'chart'] });
 
     // The Funnel, and its cupboard (the tote bag of tote bags).
     room(R, 16.6, 6.4, 24.6, 11.8, 'THE FUNNEL', { door: 21 });
@@ -53,7 +53,7 @@ export default {
     // Desks off the front wall: the fantasy football lineup on a screen, and
     // a trophy left out at bear o'clock.
     const front = [...pod(R, 19.6, 'front', 3), ...pod(R, 27.6, 'front', 3)];
-    staff(R, front, 530, { empty: [4, 8], texts: ['SOCIAL', 'FANTASY FOOTBALL', 'SOCIAL', 'DECK', 'SOCIAL', 'EMAIL', 'SOCIAL', 'DECK', 'EMAIL', 'SOCIAL', 'EMAIL', 'DECK'] });
+    staff(R, front, 530, { empty: [4, 8], kinds: ['social', 'football', 'social', 'slides', 'social', 'email', 'social', 'slides', 'email', 'social', 'email', 'slides'] });
     const ff = front[1].mon;
     pin(R, { id: 'fantasy', label: 'A fantasy football lineup', at: [ff[0] + 0.2, ff[1], ff[2] + 0.5], r: 0.6 }, 3);
     pin(R, { id: 'trophy', label: 'A participation trophy', kind: 'hard', at: [front[7].mon[0] - 0.1, front[7].mon[1] - 0.5, 1.3], r: 0.6, when: bearOClock, note: 'bear o\'clock',

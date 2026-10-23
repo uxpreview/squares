@@ -10,6 +10,7 @@ import { C, folk, person, Q } from '../../../engine/art.js';
 import { route } from '../../../engine/actors.js';
 import { ground, block, pin, drawBlock, tag, figure } from '../../greybox.js';
 import { TONE, BLOCK, INK } from '../style.js';
+import { car, bear } from '../kit.js';
 import { BD, BW, W, D, ROW_A, ROW_B, AISLE, ROAD, DRIVE, BAY, DUMPSTER, DOOR, CEO_CAR, DOUG_CAR } from '../plan.js';
 import { bearAt, at, H, staffed, BEAR_TIMES } from '../clock.js';
 
@@ -53,25 +54,29 @@ export default {
     // at five (staffed), so the lot empties by night.
     bays('a').forEach((x, i) => {
       const color = BLOCK.car[i % BLOCK.car.length], k = ((i * 7) % 10) / 10;
-      R.thing(x, ROW_A[0] + 2.2, (ctx, t) => { if (staffed(t) > k * 0.9 || i % 5 === 0) drawBlock(ctx, x - 0.9, ROW_A[0] + 0.3, 0, 1.8, 3.8, 1.3, color, null); }, { anim: true });
+      R.thing(x, ROW_A[0] + 3.6, (ctx, t) => { if (staffed(t) > k * 0.9 || i % 5 === 0) car(ctx, x, ROW_A[0] + 2.2, 0, color, { dir: -1, leaves: i % 3 === 0 }); }, { anim: true });
     });
     bays('b').forEach((x, i) => {
       const color = BLOCK.car[(i + 3) % BLOCK.car.length], k = ((i * 3) % 10) / 10;
-      R.thing(x, ROW_B[0] + 2.2, (ctx, t) => { if (staffed(t) > k * 0.9 || i % 6 === 0) drawBlock(ctx, x - 0.9, ROW_B[0] + 0.3, 0, 1.8, 3.8, 1.3, color, null); }, { anim: true });
+      R.thing(x, ROW_B[0] + 3.6, (ctx, t) => { if (staffed(t) > k * 0.9 || i % 6 === 0) car(ctx, x, ROW_B[0] + 2.2, 0, color, { dir: 1, leaves: i % 4 === 1 }); }, { anim: true });
     });
 
     // The CEO's car, across two spaces (the bear sits on its roof at 4:30).
-    block(R, CEO_CAR[0] - 1.6, ROW_A[0] + 0.3, 3.2, 3.8, 1.4, C.black, 'CEO (2 SPACES)');
+    // Parked on the line, across both spaces, and long.
+    R.thing(CEO_CAR[0], ROW_A[0] + 3.8, (ctx) => {
+      ctx.save();
+      car(ctx, CEO_CAR[0], CEO_CAR[1], 0, C.black, { dir: -1, tall: true, long: 3.4 });
+      ctx.restore();
+    });
     pin(R, { id: 'two-spaces', label: 'A car across two spaces', at: [CEO_CAR[0], CEO_CAR[1], 1.6], r: 0.9 }, 1);
     R.poke({ id: 'alarm', at: [60, ROW_A[0] + 2.2, 1.4], r: 0.8, say: 'WEE-OO WEE-OO. Nobody looks up.' });
 
     // Doug's car, and Doug, eating. At one the bear comes for his sandwich and
     // he ducks under the dashboard.
-    block(R, DOUG_CAR[0] - 0.9, ROW_B[0] + 0.3, 1.8, 3.8, 1.3, C.green, null);
-    R.thing(DOUG_CAR[0], DOUG_CAR[1] + 0.1, (ctx, t) => {
-      const ducked = BEAR_TIMES[1] && ((t % 360) + 360) % 360 > BEAR_TIMES[1][0] && ((t % 360) + 360) % 360 < BEAR_TIMES[1][1] + 2;
-      if (!ducked) person(ctx, DOUG_CAR[0], DOUG_CAR[1] + 0.4, 0.4, { ...folk(600, { top: C.brown }), pose: 'sit', dir: 'l' }, t);
-      if (Q.detail) tag(ctx, DOUG_CAR[0], DOUG_CAR[1], 2.8, ducked ? 'DOUG (DUCKING)' : 'DOUG (LUNCH)', { size: 0.32 });
+    R.thing(DOUG_CAR[0], DOUG_CAR[1] + 1.4, (ctx, t) => {
+      const s = ((t % 360) + 360) % 360;
+      const ducked = BEAR_TIMES[1] && s > BEAR_TIMES[1][0] && s < BEAR_TIMES[1][1] + 2;
+      car(ctx, DOUG_CAR[0], DOUG_CAR[1], 0, C.green, { dir: 1, riders: ducked ? [] : [{ front: true, v: -0.3, top: C.brown, eat: true, lift: Math.abs(Math.sin(t * 2)) * 0.04 }] });
     }, { anim: true });
     pin(R, { id: 'doug', label: 'Someone eating lunch in their car', at: [DOUG_CAR[0], DOUG_CAR[1] + 0.4, 1.9], r: 0.8 }, 2);
 
@@ -112,8 +117,7 @@ export default {
     // The bear.
     R.mover((t) => bearAt(t), (ctx, t, p) => {
       if (p.away) return;
-      drawBlock(ctx, p.x - 0.8, p.y - 0.45, p.z, 1.6, 0.9, 1.1, BLOCK.bear, null);
-      if (Q.detail) tag(ctx, p.x, p.y, p.z + 1.8, p.pose === 'eat' ? 'BEAR (LUNCH)' : p.pose === 'dig' ? 'BEAR (DUMPSTER)' : p.pose === 'sit' ? 'BEAR (ON CAR)' : 'BEAR', { size: 0.36, fill: INK.sticky });
+      bear(ctx, p.x, p.y, p.z, t, { pose: p.moving ? 'walk' : (p.pose === 'stand' ? 'look' : p.pose), dir: p.dir, run: p.moving });
     }, { bias: 0.2 });
     figure; at; D;
   },

@@ -62,7 +62,7 @@ export default {
 
     // The assistants' desks by the front windows.
     const front = pod(R, 11.6, 'front', 3);
-    staff(R, front, 510, { empty: [2], texts: ['CALENDAR', 'CALENDAR', 'GOLF', 'CALENDAR', 'TRAVEL', 'CALENDAR'] });
+    staff(R, front, 510, { empty: [2], kinds: ['calendar', 'calendar', 'golf', 'calendar', 'shop', 'calendar'] });
     tag; INK;
   },
 };

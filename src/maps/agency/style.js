@@ -5,6 +5,7 @@
 // carpet, glass, sticky-note yellow). Add recurring props (a desk, a sign, a
 // character's look) here once, rather than in each area.
 import { C, alpha, tint, shade, mix } from '../../engine/art.js';
+import { H } from './clock.js';
 
 export const INK = {
   leaves: '#D49A52',
@@ -30,6 +31,10 @@ export const FRAME = shade(C.grey, 0.2);
 export const PRIMAL = INK.maple;
 // The fake brand, for every place, and today's client: Gander Cola.
 export const BRAND = { name: 'GANDER COLA', line: 'TAKE A GANDER', can: C.red, ink: C.white };
+// The office chairs and the desks' dividers.
+export const CHAIR = shade(INK.carpet, 0.45);
+export const FABRIC = tint(INK.carpet, 0.25);
+
 // A screen showing work (a spreadsheet's grey) and one that isn't.
 export const SCREEN = { work: tint(C.greyLight, 0.4), play: C.tealLight, off: C.ink };
 
@@ -60,3 +65,26 @@ export const BLOCK = {
   sign: INK.sticky,
   machine: tint(C.grey, 0.2),
 };
+
+// ---------- The woods through the day ----------
+// The paper follows the clock: a misty morning (paler), bright October
+// leaves all afternoon, gold before sunset (about 6pm), and a deep blue-green
+// night under the trees. Blended in 32 steps so the colors stay few. At night
+// the page's loose words print in cream (kind: 'night').
+const qk = (k) => Math.round(k * 32) / 32;
+export const WOODS = {
+  dawn: mix(INK.leaves, C.greyLight, 0.35),
+  day: INK.leaves,
+  gold: mix(INK.leaves, C.mustard, 0.35),
+  dusk: mix(INK.leaves, INK.maple, 0.3),
+  night: mix(INK.pine, C.night, 0.55),
+};
+const DAY = [[7, WOODS.dawn], [9, WOODS.day], [16.6, WOODS.day], [17.5, WOODS.gold], [18.3, WOODS.dusk], [19.2, WOODS.night], [30.2, WOODS.night], [31, WOODS.dawn]];
+export function paperAt(t) {
+  const h = H(t);
+  for (let i = 1; i < DAY.length; i++) {
+    const [h0, c0] = DAY[i - 1], [h1, c1] = DAY[i];
+    if (h <= h1) return mix(c0, c1, qk((h - h0) / (h1 - h0)));
+  }
+  return WOODS.night;
+}
