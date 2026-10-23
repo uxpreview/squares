@@ -65,19 +65,21 @@ const coffee = schedule([
 // to the window at bear o'clock (4:25), and down again after. In the ending
 // they stay at the glass, watching the geese go.
 const glassAt = (i) => [PITCH[0] + 4 + i * 1.8, SILL, FLOOR];
+// Through the pitch room's door (on its back wall, front.js), never its glass.
+const PITCH_DOOR = 47.7;
 const clients = [0, 1, 2].map((i) => {
   const seat = [PITCH[0] + 4.6 + i * 2.2, PITCH[1] + 2.2, FLOOR];
   const glass = glassAt(i);
   const day = schedule([
     ROADSIDE(50 + i),
     { speed: 2 },
-    { until: at(14.5) + i * 0.6 },
+    { until: at(14.2) + i * 0.6 },
     [50 + i, AISLE, 0], [DOOR[0], AISLE, 0], FOOT, INSIDE, TOP,
-    [TOP[0] + 1 + i, SPINE, FLOOR], [seat[0], PITCH[1] - 0.6, FLOOR], seat,
+    [TOP[0] + 1 + i, SPINE, FLOOR], [PITCH_DOOR, SPINE, FLOOR], [PITCH_DOOR, PITCH[1] + 1, FLOOR], [seat[0], PITCH[1] + 1, FLOOR], seat,
     { until: at(16.42) + i * 0.6, pose: 'sit' },
     glass, { until: at(17.05), pose: 'point' },
     seat, { until: at(17.25), pose: 'stand', say: i === 1 ? 'We love the goose.' : null },
-    [seat[0], PITCH[1] - 0.6, FLOOR], [TOP[0] + 1 + i, SPINE, FLOOR], TOP, INSIDE, FOOT, [DOOR[0], AISLE, 0], [50 + i, AISLE, 0],
+    [seat[0], PITCH[1] + 1, FLOOR], [PITCH_DOOR, PITCH[1] + 1, FLOOR], [PITCH_DOOR, SPINE, FLOOR], [TOP[0] + 1 + i, SPINE, FLOOR], TOP, INSIDE, FOOT, [DOOR[0], AISLE, 0], [50 + i, AISLE, 0],
   ], { loop: LOOP, name: `Client ${i + 1}` });
   const still = { x: glass[0], y: glass[1], z: glass[2], dir: 'l', back: false, moving: false };
   return (t) => {
