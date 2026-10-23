@@ -316,13 +316,16 @@ function word(ctx, b, text, ink, font, size = 0.32) {
 export function screen(R, s, kind, o = {}) {
   const [mx, my, mz] = s.mon;
   const facing = s.side === 'r';
-  if (!facing) { R.thing(mx, my, (ctx) => drawMonitor(ctx, mx, my, mz, 'off', 0, false)); return; }
+  // It stands on its desk, in front of the divider, so it sorts after both
+  // (the desk and the divider sort by their front corners).
+  const depth = (s.cx ?? mx) + DESK.w + 0.1 + my + DESK.d / 2;
+  if (!facing) { R.thing(mx, my, (ctx) => drawMonitor(ctx, mx, my, mz, 'off', 0, false), { depth }); return; }
   R.thing(mx, my, (ctx, t) => {
     const on = o.always || (o.here ? o.here(t) : staffed(t) > 0.5);
     const real = on && (rushK(t) > 0.5 || !watched(mx, t));
     const k = !on ? 'off' : real ? (typeof kind === 'function' ? kind(t) : kind) : 'sheet';
     drawMonitor(ctx, mx, my, mz, k, t, true);
-  }, { anim: true });
+  }, { anim: true, depth });
 }
 
 // ---------- People at desks ----------
