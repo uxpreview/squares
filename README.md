@@ -147,6 +147,7 @@ src/
       ambient.js       Around it: City Point's rooftops, Dorchester Heights, the Seaport, the planes, the rain
       areas/           Nine apartments (a file per floor of each house) and three outdoor areas
     logan/           Departures: Boston Logan the day before Thanksgiving, one big map
+    agency/          Pitch Day: a digital agency's top floor and a bear in the lot (hidden, in progress)
       plan.js          Where everything is: the curb, the terminal's three areas, the bag room, the apron, the runway
       clock.js         The day (the rush, the snow, the ground stop, Flight 1), and what's on when
       style.js         The style sheet: the harbor inks, the greybox tones, toy planes, long blocks in pieces

@@ -173,6 +173,11 @@ The owner's direction: many places should be real, recognizable places, because 
 - **Layout (sketch):** the landside road and taxis along the back; the terminal cut open along it, left to right: security, the departures board and shops, two gates, baggage reclaim; jet bridges out to three planes on the apron, a belt from the terminal to the first plane's hold; baggage carts and the control tower on the right; the runway along the front with a plane taking off and a goose on it.
 - **Needs:** Today. Could be Logan later, to sit with the Boston places.
 
+### Pitch Day (a digital agency)
+**Greybox, then art (session 23). Full brief in [levels/agency.md](levels/agency.md).** The owner's Primacy idea in a new shape (October 23): Primal, a digital agency from another universe, on the day of the Gander Cola pitch. The top floor of a building in the woods (the floors under it empty since the reorg), open desks off the walls and glass rooms, and a bear in the parking lot.
+- **Verb:** bear o'clock. Three times a day the bear comes into the lot, everyone runs to the windows, and what they leave at their desks is out where you can find it.
+- **Needs:** a raised top floor (`place.below`, built in session 23).
+
 ## Spins on the inspiration
 
 - **The Deep Shift** (chasm, ref 3/19): a mining town down a canyon wall, with the miners digging into something that's digging back.
