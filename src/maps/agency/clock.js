@@ -114,10 +114,10 @@ const bear = schedule([
   { speed: 40 }, [CEO_CAR[0], ACROSS],
   // 4:30: across the road to the CEO's car under the pitch room, and up onto
   // its roof. It sits there through the end of the pitch.
-  { until: at(16.35) },
+  { until: at(16.2) },
   { speed: 2.6 },
   [CEO_CAR[0] + 0.6, ROW_B[1] + 0.9], [CEO_CAR[0] + 1.6, AISLE], [CEO_CAR[0], ROW_A[1] + 0.4],
-  { until: at(17.05), pose: 'sit' },
+  { until: at(17.5), pose: 'sit' },
   [CEO_CAR[0] + 1.6, AISLE], [CEO_CAR[0] + 0.6, ROW_B[1] + 0.9], [CEO_CAR[0], ACROSS],
   // 10pm: the lot to itself, end to end.
   { speed: 40 }, [60, ACROSS],
