@@ -21,6 +21,7 @@ import { ZK } from '../../../engine/iso.js';
 import { TONE, INK, BRAND } from '../style.js';
 import {
   floorOf, backWall, sill, pod, staff, chair, screen, clutter, plant, mug, papers, DESK,
+  faceTransform, words, dash, ALONG_X, ALONG_Y, DOWN,
 } from '../kit.js';
 import { bearOClock, rushK, seated, watched, staffed, nightK, H } from '../clock.js';
 
@@ -43,26 +44,6 @@ const BEANBAG = [68.2, 8.6];
 const DECKS = [70.5, 6.4];
 
 // ---------- Drawing on a face ----------
-// Sets ctx so (u, v) runs along a face: u along the vector U, v down along V
-// (both 3D, per unit), from the 3D point O. Words and little pictures then
-// draw flat in u, v.
-function onFace(ctx, O, U, V) {
-  const [X, Y] = P3(...O);
-  ctx.transform(U[0] - U[1], (U[0] + U[1]) / 2 - U[2] * ZK, V[0] - V[1], (V[0] + V[1]) / 2 - V[2] * ZK, X, Y);
-}
-// Faces we can see: along x (toward +y), and along y (toward +x, u runs
-// toward -y so words read left to right).
-const ALONG_X = [1, 0, 0], ALONG_Y = [0, -1, 0], DOWN = [0, 0, -1];
-function words(ctx, text, u, v, size, color, font = '"Rethink Sans", sans-serif', weight = 700, align = 'center') {
-  ctx.save();
-  ctx.scale(1 / 40, 1 / 40);
-  ctx.font = `${weight} ${size * 40}px ${font}`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  ctx.fillText(text, u * 40, v * 40);
-  ctx.restore();
-}
 function rr(ctx, u, v, w, h, fill, o = {}) {
   ctx.beginPath();
   ctx.rect(u, v, w, h);
@@ -70,35 +51,6 @@ function rr(ctx, u, v, w, h, fill, o = {}) {
 }
 const COMIC = '"Comic Sans MS", "Comic Neue", cursive';
 const BAGEL = '"Bagel Fat One", "Arial Black", sans-serif';
-
-// A polyline, walked a fraction k of its length: [x, y, dx, dy].
-function along(pts, k) {
-  let len = 0;
-  const seg = [];
-  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); len += d; }
-  let s = Math.max(0, Math.min(1, k)) * len;
-  for (let i = 0; i < seg.length; i++) {
-    if (s <= seg[i] || i === seg.length - 1) {
-      const a = pts[i], b = pts[i + 1], f = seg[i] ? Math.min(1, s / seg[i]) : 0;
-      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, b[0] - a[0], b[1] - a[1]];
-    }
-    s -= seg[i];
-  }
-  return [...pts[0], 0, 0];
-}
-const lengthOf = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
-// Running for the glass at bear o'clock along a path (the first point is
-// wherever they are now): where they are, facing the way they're going, and
-// facing the lot once they're there.
-function dash(t, path, travel, delay) {
-  const r = rushK(t, travel, delay);
-  if (r <= 0) return null;
-  const back = r < rushK(t - 0.1, travel, delay);
-  const [x, y, dx, dy] = along(path, r);
-  if (r >= 1) return { x, y, dir: 'l', back: false, moving: false, r };
-  const sx = back ? -1 : 1;
-  return { x, y, dir: (dx - dy) * sx >= 0 ? 'r' : 'l', back: (dx + dy) * sx < -0.01, moving: true, r };
-}
 
 // ---------- The day's moments ----------
 const shootOn = (t) => { const h = H(t); return h > 8.9 && h < 17.05; };
@@ -206,7 +158,7 @@ function drawSign(ctx) {
   face(ctx, [[x + 0.25, y - w / 2, 0], [x + 0.25, y + w / 2, 0], [x, y + w / 2, h], [x, y - w / 2, h]], C.ink, { lw: 0.035 });
   face(ctx, [[x + 0.23, y - w / 2 + 0.08, 0.1], [x + 0.23, y + w / 2 - 0.08, 0.1], [x + 0.02, y + w / 2 - 0.08, h - 0.08], [x + 0.02, y - w / 2 + 0.08, h - 0.08]], C.white, { stroke: false });
   ctx.save();
-  onFace(ctx, [x + 0.04, y + w / 2 - 0.08, h - 0.1], ALONG_Y, [0.155, 0, -0.97]);
+  faceTransform(ctx, [ALONG_Y, [0.155, 0, -0.97]], x + 0.04, y + w / 2 - 0.08, h - 0.1);
   words(ctx, 'TALENT:', 0.52, 0.17, 0.17, C.ink);
   words(ctx, 'GOOSE', 0.52, 0.42, 0.3, BRAND.can, BAGEL, 400);
   if (Q.detail) words(ctx, 'CALL TIME 9AM', 0.52, 0.68, 0.11, C.ink, undefined, 600);
@@ -288,7 +240,7 @@ function drawCork(ctx, x0, x1, cards) {
   box(ctx, x0, y - 0.08, z0, x1 - x0, 0.08, z1 - z0, C.brown, { flat: true, lw: 0.035, left: C.brown });
   face(ctx, [[x0 + 0.08, y + 0.001, z0 + 0.08], [x1 - 0.08, y + 0.001, z0 + 0.08], [x1 - 0.08, y + 0.001, z1 - 0.08], [x0 + 0.08, y + 0.001, z1 - 0.08]], CORK, { stroke: false, dots: shade(CORK, 0.35), density: 0.25 });
   ctx.save();
-  onFace(ctx, [x0, y + 0.005, z1], ALONG_X, DOWN);
+  faceTransform(ctx, [ALONG_X, DOWN], x0, y + 0.005, z1);
   for (const c of cards) logoCard(ctx, ...c);
   ctx.restore();
 }
@@ -352,7 +304,7 @@ function drawNeon(ctx, t) {
   const x = (BOARD.x0 + BOARD.x1) / 2, y = BOARD.y - 0.02, z = BOARD.z1 + 0.42;
   glow(ctx, x, y + 0.3, z, 2.2 + night, C.pink, 0.35 + night * 0.4);
   ctx.save();
-  onFace(ctx, [x, y, z], ALONG_X, DOWN);
+  faceTransform(ctx, [ALONG_X, DOWN], x, y, z);
   ctx.scale(1 / 40, 1 / 40);
   ctx.font = `400 ${0.46 * 40}px ${BAGEL}`;
   ctx.textBaseline = 'middle';
@@ -380,7 +332,7 @@ function drawEasel(ctx, x, y, which) {
   const c = [[x - 0.7, y + 0.06, 0.92], [x + 0.7, y + 0.06, 0.92], [x + 0.7, y + 0.06 - lean, 2.02], [x - 0.7, y + 0.06 - lean, 2.02]];
   face(ctx, c, C.white, { lw: 0.035 });
   ctx.save();
-  onFace(ctx, c[3], ALONG_X, [0, lean / 1.1, -1]);
+  faceTransform(ctx, [ALONG_X, [0, lean / 1.1, -1]], ...c[3]);
   if (which === 0) {
     words(ctx, 'GANDER: VIBES', 0.7, 0.13, 0.13, C.ink);
     const tiles = [[0.1, 0.26, 0.38, 0.32, INK.maple], [0.52, 0.26, 0.3, 0.42, C.mustard], [0.86, 0.26, 0.44, 0.28, C.teal], [0.1, 0.62, 0.3, 0.36, C.blush], [0.44, 0.72, 0.42, 0.28, BRAND.can], [0.9, 0.58, 0.4, 0.42, INK.pine]];
@@ -459,7 +411,7 @@ function drawTape(ctx) {
   const c = [[cx - w / 2, cy + 0.08, z], [cx + w / 2, cy + 0.08, z], [cx + w / 2, cy - 0.15, z + hh], [cx - w / 2, cy - 0.15, z + hh]];
   face(ctx, c, C.white, { lw: 0.025 });
   ctx.save();
-  onFace(ctx, c[3], ALONG_X, [0, 0.23 / hh, -1]);
+  faceTransform(ctx, [ALONG_X, [0, 0.23 / hh, -1]], ...c[3]);
   words(ctx, 'NOT UNTIL', w / 2, 0.16, 0.17, C.red, BAGEL, 400);
   words(ctx, 'AFTER THE PITCH', w / 2, 0.38, 0.15, C.ink);
   ctx.restore();
@@ -623,31 +575,6 @@ function specs(ctx, hy, back) {
   ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.stroke();
 }
 
-// People at the back desks, who run for the glass by the aisles (round the
-// photo set, not through it). Like the kit's staff, but each with a path.
-function backDesks(R, seats, seed, o) {
-  seats.forEach((s, i) => {
-    if ((o.empty || []).includes(i)) { chair(R, s); screen(R, s, 'off', { here: () => false }); return; }
-    const look = folk(seed + i);
-    const k = ((seed * 13 + i * 7) % 10) / 10;
-    const delay = (k * 7) % 1.4;
-    chair(R, s);
-    const path = o.path(s, i);
-    const travel = 2.2 + lengthOf(path) / 4.4;
-    R.mover((t) => {
-      if (!seated(t, k)) return { x: s.x, y: s.y, gone: true };
-      const d = dash(t, path, travel, delay);
-      return d || { x: s.x, y: s.y, sit: true, dir: s.dir };
-    }, (ctx, t, p) => {
-      if (p.gone) return;
-      const pose = p.sit ? 'sit' : p.moving ? 'run' : ((s.x * 7) % 3 < 1 ? 'point' : 'stand');
-      person(ctx, p.x, p.y, p.sit ? 0.2 : 0, { ...look, pose, dir: p.dir, back: p.back }, t);
-    }, { bias: 0.15 });
-    screen(R, s, o.kinds[i], { here: (t) => seated(t, k) });
-    clutter(R, s, seed + i);
-  });
-}
-
 export default {
   id: 'creative',
   name: 'Creative',
@@ -660,19 +587,23 @@ export default {
     sill(R, 56, 72);
 
     // ---- The back desks: the left pair runs round the set, the right pair
-    // down the middle and down the right-hand side.
+    // down the middle and down the right-hand side, then along the front
+    // pods' backs to the gap between them (the right end of the glass is
+    // full of UX).
     const MID = 64.1; // the aisle past the photographer
     const toMid = (s, glass) => [[s.x, s.y], [s.side === 'l' ? 56.7 : 62.1, s.y], [s.side === 'l' ? 56.7 : 62.1, 5.2], [MID, 5.2], [MID, 12.8], [63.3, 18.2], glass];
-    backDesks(R, pod(R, 59.4, 'back', 2), 550, {
+    const by = (path) => (i, s) => { const p = path(s, i); return { window: p[p.length - 1], via: p.slice(1, -1) }; };
+    staff(R, pod(R, 59.4, 'back', 2), 550, {
+      empty: [3],
       kinds: ['mood', 'mood', 'helvetica', 'mood'],
-      path: (s, i) => toMid(s, [[62.5, 23.6], [63.5, 24.0], [64.6, 23.6], [65.6, 25.1]][i]),
+      each: by((s, i) => toMid(s, [[61.9, 24.55], [62.5, 24.55], [63.1, 24.55], [63.7, 24.55]][i])),
     });
-    backDesks(R, pod(R, 68.6, 'back', 2), 555, {
+    staff(R, pod(R, 68.6, 'back', 2), 555, {
       empty: [2],
       kinds: ['logo', 'logo', 'logo', 'logo'],
-      path: (s, i) => (s.side === 'l'
-        ? [[s.x, s.y], [65.9, s.y], [65.9, 4.8], [64.7, 5.4], [64.7, 13.2], [64.0, 18.4], [65.5, 23.4]]
-        : [[s.x, s.y], [71.55, s.y], [71.55, 23.0], i === 1 ? [71.3, 24.0] : [70.95, 23.3]]),
+      each: by((s, i) => (s.side === 'l'
+        ? [[s.x, s.y], [65.9, s.y], [65.9, 4.8], [64.7, 5.4], [64.7, 13.2], [64.0, 18.4], [65.5, 24.55]]
+        : [[s.x, s.y], [71.55, s.y], [71.55, 19.6], [65.2, 19.6], i === 1 ? [63.4, 23.85] : [64.6, 23.85]])),
     });
 
     // ---- The corkboard of rejected logos, MAKE IT POP over it.
@@ -683,7 +614,7 @@ export default {
       [0.52, 0.45, 'hash', 0.48, -0.04], [0.55, 1.1, 'swoosh', 0.46, 0.05], [0.5, 1.62, 'circle', 0.36, -0.06],
     ]));
     R.thing(64.62, BOARD.y + 0.01, (ctx, t) => drawNeon(ctx, t), { anim: true });
-    R.find({ id: 'logo', label: 'A rejected logo', at: [BOARD.x0 + 0.6, BOARD.y, BOARD.z1 - 0.7], r: 0.7 });
+    R.find({ id: 'logo', label: 'A rejected logo', at: [BOARD.x0 + 0.6, BOARD.y, BOARD.z1 - 0.7], r: 0.8 });
 
     // ---- The photo set. The sweep on the floor, the paper in two pieces.
     R.rug((ctx) => {
@@ -706,7 +637,7 @@ export default {
     R.thing(SIGN[0] + 0.3, SIGN[1] + 0.6, drawSign);
     R.thing(SIGN[0] + 0.31, SIGN[1] + 0.61, (ctx, t) => {
       ctx.save();
-      onFace(ctx, [SIGN[0] + 0.04, SIGN[1] + 0.52, 0.55], ALONG_Y, [0.155, 0, -0.97]);
+      faceTransform(ctx, [ALONG_Y, [0.155, 0, -0.97]], SIGN[0] + 0.04, SIGN[1] + 0.52, 0.55);
       words(ctx, signLine(t), 0.52, 0.12, 0.13, C.red, COMIC, 700);
       ctx.restore();
     }, { anim: true });
@@ -755,7 +686,7 @@ export default {
       };
     };
     const kyleLook = { ...KYLE, face: hood(kyleState) };
-    const kylePath = [[61.6, 12.0], [62.9, 18.4], [63.2, 25.15]];
+    const kylePath = [[61.6, 12.0], [62.9, 18.4], [63.5, 25.3]];
     const kyle = R.mover((t) => {
       const h = H(t);
       if (h < 8.75 || h >= 18.6) return { x: STOOL[0], y: STOOL[1], gone: true };
@@ -788,7 +719,7 @@ export default {
     R.mover((t) => {
       const h = H(t);
       if (h < 8.6 || h >= 17.3) return { x: SNAPPER[0], y: SNAPPER[1], gone: true };
-      const d = dash(t, [SNAPPER, [64.0, 18.0], [64.2, 25.3]], 6.0, 0.2);
+      const d = dash(t, [SNAPPER, [64.0, 18.0], [64.4, 25.3]], 6.0, 0.2);
       if (d) return { ...d, rush: true };
       const u = phase(t);
       const boss = watched(SNAPPER[0], t);
@@ -817,9 +748,9 @@ export default {
       }
       const n = Math.floor(t / CYCLE);
       if (Q.detail && shootOn(t)) {
-        if (p.boss) speech(ctx, p.x, p.y, 2.75, 'Any minute now!', { size: 0.4, dx: 3.0 });
-        else if (u > 6.3 && u < 7.5) speech(ctx, p.x, p.y, 2.75, 'And... flap!', { size: 0.4, dx: 3.0 });
-        else if (n % 2 === 0 && u > 2.4 && u < 5) speech(ctx, p.x, p.y, 2.75, lines[(n / 2) % lines.length], { size: 0.4, dx: 3.3 });
+        if (p.boss) speech(ctx, p.x, p.y, 2.75, 'Any minute now!', { size: 0.36, dx: 3.0 });
+        else if (u > 6.3 && u < 7.5) speech(ctx, p.x, p.y, 2.75, 'And... flap!', { size: 0.36, dx: 3.0 });
+        else if (n % 2 === 0 && u > 2.4 && u < 5) speech(ctx, p.x, p.y, 2.75, lines[(n / 2) % lines.length], { size: 0.36, dx: 3.3 });
       }
     }, { bias: 0.1 });
 
@@ -846,7 +777,7 @@ export default {
       if (gameOn(t)) return { x: 70.1, y: 16.1, dir: 'l', game: true };
       if (h >= 17.05) return { x: HOME[0], y: HOME[1], gone: true };
       const m = moRoute(t);
-      const d = dash(t, [[m.x, m.y], [62.6, 19.6], [65.0, 24.3]], 4.5, 0.9);
+      const d = dash(t, [[m.x, m.y], [62.6, 19.6], [64.9, 24.55]], 4.5, 0.9);
       return d ? { ...d, rush: true } : m;
     }, (ctx, t, p) => {
       if (p.gone) return;
@@ -858,7 +789,7 @@ export default {
       if (p.rush) { person(ctx, p.x, p.y, 0, { ...MO, pose: p.moving ? 'run' : 'stand', dir: p.dir, back: p.back }, t); return; }
       if (p.at) {
         person(ctx, p.x, p.y, 0, { ...MO, pose: 'point', dir: 'l' }, t);
-        if (Q.detail && p.u > 19.6 && p.u < 22.6 && !watched(p.x, t)) speech(ctx, p.x, p.y, 2.7, 'Nope.', { size: 0.4 });
+        if (Q.detail && p.u > 19.6 && p.u < 22.6 && !watched(p.x, t)) speech(ctx, p.x, p.y, 2.7, 'Nope.', { size: 0.36 });
       } else if (p.moving) {
         person(ctx, p.x, p.y, 0, { ...MO, pose: 'walk', dir: p.dir, back: p.back }, t);
       } else {
@@ -868,15 +799,23 @@ export default {
       }
     }, { bias: 0.1 });
 
-    // ---- The beanbag corner: a rug, a beanbag with a designer asleep on
-    // it (through bear o'clock and all), the record player, a big plant.
+    // ---- The beanbag corner: a rug, a beanbag with a designer sunk in it,
+    // headphones on, nodding along to the record (through bear o'clock and
+    // all: she never hears the shout), the record player, a big plant.
     R.rug(drawRug);
     R.thing(BEANBAG[0] + 0.6, BEANBAG[1] + 0.4, drawBeanbag);
-    const NAP = folk(571, { top: C.leaf, bottom: C.navy, style: 'curly' });
+    const cans = (ctx, hy) => {
+      ctx.beginPath(); ctx.arc(0.02, hy, 0.37, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 0.09; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(-0.08, hy + 0.04, 0.1, 0.14, 0, 0, Math.PI * 2);
+      paint(ctx, C.pink, { lw: 0.03 });
+    };
+    const VIBE = { ...folk(571, { top: C.leaf, bottom: C.navy, style: 'curly' }), face: cans };
     R.mover(() => ({ x: BEANBAG[0] + 0.1, y: BEANBAG[1] + 0.2 }), (ctx, t, p) => {
       const h = H(t);
       if (h < 9.5 || h >= 17.2) return;
-      person(ctx, p.x + 0.25, p.y, 0.45, { ...NAP, pose: 'sleep', dir: 'r' }, t);
+      const nod = Math.abs(Math.sin(t * 4.2)) * 0.06;
+      person(ctx, p.x + 0.15, p.y, 0.3 - nod, { ...VIBE, pose: 'sit', dir: 'r', arms: [0.9, 0.7] }, t);
     }, { bias: 0.7 });
     R.thing(DECKS[0] + 0.5, DECKS[1] + 0.45, drawDecks);
     R.thing(DECKS[0] + 0.52, DECKS[1] + 0.47, drawSpin, { anim: true });
@@ -942,20 +881,18 @@ export default {
       }
       if (Q.detail) { const [X, Y] = P3(70.9, y, 0.18); ctx.beginPath(); ctx.arc(X, Y, 0.09, 0, Math.PI * 2); ctx.fillStyle = C.coral; ctx.fill(); }
     });
-    R.find({ id: 'skateboard', label: 'A skateboard', at: [70.9, 17.35, 0.2], r: 0.7 });
+    R.find({ id: 'skateboard', label: 'A skateboard', at: [70.9, 17.35, 0.2], r: 0.8 });
 
     // ---- The front desks: Theo kerning (Mo moves it back every hour), a
     // Pantone swatch, and at bear o'clock the screen with the forbidden font.
     const front = [...pod(R, 59.6, 'front', 3), ...pod(R, 68.4, 'front', 3)];
-    const WIN = { 2: [56.8, 25.0], 3: [62.35, 24.7], 4: [56.5, 24.1], 9: [71.15, 25.15], 11: [71.7, 24.3] };
     const FRONT_KINDS = [
       'mood', 'kern', 'mood', 'photos', 'helvetica', 'photos',
       'mood', 'logo', 'mood', (t) => (bearOClock(t) ? 'comic' : 'helvetica'), 'mood', 'photos',
     ];
     staff(R, front, 565, {
-      empty: [6, 10],
+      empty: [4, 6, 10],
       look: (i) => (i === 1 ? { top: C.mustard, hat: 'beanie', hatColor: C.teal, bottom: C.ink } : {}),
-      each: (i) => (WIN[i] ? { window: WIN[i] } : {}),
       kinds: FRONT_KINDS,
     });
     // Theo, pleased with himself, every time he's nudged it.
@@ -963,7 +900,7 @@ export default {
     R.mover(() => ({ x: theo.x, y: theo.y + 0.02 }), (ctx, t) => {
       const u = ((t % 40) + 40) % 40;
       if (!Q.detail || u < 0.6 || u > 3.4 || !seated(t, 0.2) || rushK(t) > 0 || watched(theo.mon[0], t)) return;
-      speech(ctx, theo.x, theo.y, 2.65, 'Perfect.', { size: 0.4 });
+      speech(ctx, theo.x, theo.y, 2.65, 'Perfect.', { size: 0.36 });
     }, { bias: 0.3 });
     // The swatch, fanned out on a desk.
     const sw = [58.9, 21.6, DESK_TOP];
@@ -983,7 +920,7 @@ export default {
       });
       ctx.beginPath(); ctx.arc(X, Y, 0.035, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
     });
-    R.find({ id: 'pantone', label: 'A Pantone swatch', at: [sw[0], sw[1] - 0.15, sw[2] + 0.1], r: 0.6 });
+    R.find({ id: 'pantone', label: 'A Pantone swatch', at: [sw[0], sw[1] - 0.15, sw[2] + 0.1], r: 0.8 });
     const cs = front[9];
     R.find({ id: 'comic-sans', label: 'A document in Comic Sans', kind: 'hard', at: [cs.mon[0] + 0.06, cs.mon[1], 1.7], r: 0.6, when: bearOClock, note: 'bear o\'clock',
       riddle: 'The forbidden font, out while its owner looks at the bear.', hint: 'At bear o\'clock one of Creative\'s screens shows something nobody is supposed to use.' });

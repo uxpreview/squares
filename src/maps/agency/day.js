@@ -128,7 +128,7 @@ function body(ctx, t, p, look, arm, item) {
   person(ctx, p.x, p.y, p.z + (pose === 'sit' ? 0.15 : 0), o, t);
 }
 // A line over someone's head, close up only (and only while they stand).
-function say(ctx, p, text, size = 0.42) {
+function say(ctx, p, text, size = 0.36) {
   if (!text || p.moving || !Q.detail || Q.pxPerUnit < 10) return;
   speech(ctx, p.x, p.y, p.z + (p.pose === 'sit' ? 2.6 : 3), text, { size });
 }

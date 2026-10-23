@@ -9,12 +9,18 @@
 //   pairs facing each other across a divider (the owner's "desks facing each
 //   other against the wall"); it returns the seats
 // - worker(R, seat, look, o): someone at a seat, who runs to the front
-//   windows at bear o'clock (clock.js, rushK) and comes back, and goes home
-//   at five; staff(R, seats, ...) fills a peninsula
+//   windows at bear o'clock (clock.js, rushK), round the furniture (o.via),
+//   and comes back, and goes home at five; staff(R, seats, ...) fills a
+//   peninsula
+// - along / dash: walking a path, and running one to the glass at bear
+//   o'clock, for anyone the areas add
+// - onFace / words: painting signs, posters and screens flat on a face;
+//   lettering for one line of it
 // - screen(R, seat, kind): the monitor at a seat; the ones facing us show
 //   what their owner is really doing (a little picture: SCREENS), and flip to
 //   a spreadsheet when the CEO's near (clock.js, watched)
-// - room(R, ...): a glass meeting room in the spine; glass(ctx, ...)
+// - room(R, ...): a glass meeting room in the spine; glass(ctx, ...);
+//   drawChairY, a chair facing along y (meeting tables)
 // - drawTower(ctx): the stair tower, an octagon, the hero
 // - car(ctx, ...), bear(ctx, ...), maple / pine (trees), plant, mug, papers
 import { C, Q, box, face, rect, paint, person, folk, alpha, tint, shade, mix, paintText, hash } from '../../engine/art.js';
@@ -127,20 +133,80 @@ function facade(ctx, x0, x1, o) {
   }
 }
 
-// Words painted on a wall that runs along x (a face toward +y) or along y
-// (toward +x), centered at (x, y, z), size in units.
-export function lettering(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
+// ---------- Painting on faces ----------
+// Every sign, poster, screen and sticky note is drawn flat on a face. onFace
+// sets the canvas so (u, v) runs along one, from the point (x, y, z), in world
+// units, and draws fn there. along: 'x' (an upright face toward +y, u along
+// x), 'y' (toward +x, u toward -y, so words read left to right), 'floor' (u
+// along x, v along y), or [U, V], two 3D vectors (per unit) for a face at any
+// angle (a leaning easel, a door half open). On the upright faces v runs down.
+export const ALONG_X = [1, 0, 0], ALONG_Y = [0, -1, 0], DOWN = [0, 0, -1];
+export function faceTransform(ctx, along, x, y, z) {
+  const X = x - y, Y = (x + y) / 2 - z * ZK;
+  if (along === 'x') ctx.transform(1, 0.5, 0, ZK, X, Y);
+  else if (along === 'y') ctx.transform(1, -0.5, 0, ZK, X, Y);
+  else if (along === 'floor') ctx.transform(1, 0.5, -1, 0.5, X, Y);
+  else {
+    const [U, V] = along;
+    ctx.transform(U[0] - U[1], (U[0] + U[1]) / 2 - U[2] * ZK, V[0] - V[1], (V[0] + V[1]) / 2 - V[2] * ZK, X, Y);
+  }
+}
+export function onFace(ctx, along, x, y, z, fn) {
   ctx.save();
-  if (along === 'x') ctx.transform(1, 0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
-  else ctx.transform(1, -0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
-  const k = 40;
-  ctx.scale(1 / k, 1 / k);
-  ctx.font = `700 ${size * k}px "${font}", "Arial Black", sans-serif`;
-  ctx.textAlign = 'center';
+  faceTransform(ctx, along, x, y, z);
+  fn(ctx);
+  ctx.restore();
+}
+// Words at (u, v) on a face (inside onFace), size in units. font: a family
+// name ('Bagel Fat One'), or a whole CSS list when it has quotes or commas.
+const fontOf = (font) => (/[",]/.test(font) ? font : `"${font}", "Arial Black", sans-serif`);
+export function words(ctx, text, u, v, size, ink = C.ink, font = 'Rethink Sans', weight = 700, align = 'center') {
+  ctx.save();
+  ctx.translate(u, v);
+  ctx.scale(1 / 40, 1 / 40);
+  ctx.font = `${weight} ${size * 40}px ${fontOf(font)}`;
+  ctx.textAlign = align;
   ctx.textBaseline = 'middle';
   ctx.fillStyle = ink;
   ctx.fillText(text, 0, 0);
   ctx.restore();
+}
+// Words painted on a wall that runs along x (a face toward +y) or along y
+// (toward +x), centered at (x, y, z), size in units.
+export function lettering(ctx, along, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
+  onFace(ctx, along, x, y, z, (c) => words(c, text, 0, 0, size, ink, font));
+}
+
+// ---------- Paths ----------
+// A point k (0 to 1) of the way along a path of [x, y] points, and which way
+// that leg runs: { x, y, dx, dy }.
+export const pathLength = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+export function along(pts, k) {
+  let d = Math.max(0, Math.min(1, k)) * pathLength(pts);
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+    const l = Math.hypot(bx - ax, by - ay);
+    if (d <= l || i === pts.length - 1) {
+      const f = l ? Math.min(1, d / l) : 1;
+      return { x: ax + (bx - ax) * f, y: ay + (by - ay) * f, dx: bx - ax, dy: by - ay };
+    }
+    d -= l;
+  }
+  return { x: pts[0][0], y: pts[0][1], dx: 0, dy: 0 };
+}
+// Running to the front glass at bear o'clock along a path (its first point
+// is where they start, the last the glass), round the furniture, and back
+// once the bear's gone. null while they're at home; otherwise where they
+// are, facing the way they're going (and the lot, once they're there).
+// travel: seconds to the glass (by default from the path's length).
+export function dash(t, path, travel, delay = 0) {
+  const T = travel ?? 1.8 + pathLength(path) / 3.4;
+  const r = rushK(t, T, delay);
+  if (r <= 0) return null;
+  const p = along(path, r);
+  if (r >= 1) return { x: p.x, y: p.y, dir: 'l', back: false, moving: false, r };
+  const s = r < rushK(t - 0.1, T, delay) ? -1 : 1; // on the way back
+  return { x: p.x, y: p.y, dir: (p.dx - p.dy) * s >= 0 ? 'r' : 'l', back: (p.dx + p.dy) * s < -0.01, moving: true, r };
 }
 
 // The low back wall along y = 0 (waist height, a cap on it), and the
@@ -185,8 +251,8 @@ export function pod(R, cx, wall, n = 3, o = {}) {
     R.thing(cx, y0 + DESK.d - 0.1, (ctx) => {
       box(ctx, cx - 0.06, y0 + 0.1, 0, 0.12, DESK.d - 0.2, 1.7, FABRIC, { flat: true, lw: 0.035, top: tint(FABRIC, 0.2) });
     });
-    seats.push({ x: cx - DESK.w - 0.75, y, dir: 'r', side: 'l', cx, mon: [cx - 0.4, y, DESK.top], top: [cx - 0.95, y + (i % 2 ? 0.45 : -0.45), DESK.top] });
-    seats.push({ x: cx + DESK.w + 0.75, y, dir: 'l', side: 'r', cx, mon: [cx + 0.4, y, DESK.top], top: [cx + 0.95, y + (i % 2 ? -0.45 : 0.45), DESK.top] });
+    seats.push({ x: cx - DESK.w - 0.75, y, dir: 'r', side: 'l', cx, row: i, wall, mon: [cx - 0.4, y, DESK.top], top: [cx - 0.95, y + (i % 2 ? 0.45 : -0.45), DESK.top] });
+    seats.push({ x: cx + DESK.w + 0.75, y, dir: 'l', side: 'r', cx, row: i, wall, mon: [cx + 0.4, y, DESK.top], top: [cx + 0.95, y + (i % 2 ? -0.45 : 0.45), DESK.top] });
   }
   return seats;
 }
@@ -222,6 +288,24 @@ export function drawChair(ctx, x, y, z, color = CHAIR, away = 1, part = 'all') {
     const bx = x + away * 0.3;
     box(ctx, bx - 0.05, y - 0.3, z + 0.6, 0.1, 0.6, 0.8, color, { flat: true, lw: 0.03, top: tint(color, 0.15) });
   }
+}
+
+// A chair facing along y (the meeting tables, the lab): its back toward +y
+// (away 1) or -y (away -1). part: 'seat', 'back' or 'all' (the back drawn
+// behind or in front of the seat as it should be). high: an executive's.
+export function drawChairY(ctx, x, y, z = 0, color = CHAIR, away = 1, part = 'all', high = false) {
+  const back = () => box(ctx, x - 0.3, away > 0 ? y + 0.25 : y - 0.35, z + 0.6, 0.6, 0.1, high ? 1.15 : 0.8, color, { flat: true, lw: 0.03, top: tint(color, 0.15) });
+  if (part !== 'seat' && away < 0 && part === 'all') back();
+  if (part !== 'back') {
+    if (Q.detail) for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2;
+      const [X, Y] = P3(x + Math.cos(a) * 0.3, y + Math.sin(a) * 0.3, z + 0.05);
+      ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
+    }
+    box(ctx, x - 0.04, y - 0.04, z + 0.08, 0.08, 0.08, 0.4, C.ink, { flat: true, stroke: false });
+    box(ctx, x - 0.32, y - 0.32, z + 0.48, 0.64, 0.64, 0.14, color, { flat: true, lw: 0.03, top: tint(color, 0.1) });
+  }
+  if (part === 'back' || (part === 'all' && away > 0)) back();
 }
 
 // ---------- Screens ----------
@@ -332,23 +416,31 @@ export function screen(R, s, kind, o = {}) {
 // Someone at a seat. They come in at their own minute in the morning (k: 0
 // to 1), run to the front windows at bear o'clock (setting off a moment after
 // the shout, depending on how far they are: back desks go further), and go
-// home at five. o: { k, window: [x, y], pose (at the desk), at (at the
-// glass), always(t) (here when; Dev stay late), chair: false (no chair) }
+// home at five. o: { k, window: [x, y], via: [[x, y], ...] (the way there,
+// round the furniture), pose (at the desk), at (at the glass), always(t)
+// (here when; Dev stay late), chair: false (no chair) }
+//
+// Where they stand at the glass, by default: a peninsula's rows spread out
+// along it, away from the divider, so three people from one side of a pod
+// don't stand in one spot; the back desks stand a step behind them.
+export function glassSpot(s) {
+  const out = s.side === 'l' ? -1 : 1, row = s.row ?? 0;
+  if (s.wall === 'back' || (s.wall == null && s.y < BD / 2)) return [s.x + out * (0.31 + row * 0.62), SILL - 0.75];
+  return [s.x + out * row * 0.62, SILL];
+}
 export function worker(R, s, look, o = {}) {
   const k = o.k ?? 0.5;
-  const win = o.window || [s.x, s.y < BD / 2 ? SILL - 1.1 : SILL];
-  const travel = 2.2 + Math.abs(win[1] - s.y) / 3.2;
+  const win = o.window || glassSpot(s);
+  // Out of the chair into the aisle beside it, then down it to the glass.
+  const path = [[s.x, s.y], ...(o.via || [[win[0], s.y]]), win];
+  const travel = 2.2 + pathLength(path) / 3.2;
   const delay = o.delay ?? ((k * 7) % 1.4);
   if (o.chair !== false) chair(R, s);
   const sitting = (o.pose || 'sit') === 'sit';
   R.mover((t) => {
     const here = o.always ? o.always(t) : seated(t, k);
     if (!here) return { x: s.x, y: s.y, gone: true };
-    const r = rushK(t, travel, delay);
-    if (r <= 0) return { x: s.x + (sitting ? 0 : (s.side === 'r' ? -0.35 : 0.35)), y: s.y, sit: true, dir: s.dir };
-    // Out of the chair into the aisle, then straight to the glass.
-    const y = s.y + (win[1] - s.y) * r;
-    return { x: s.x + (win[0] - s.x) * r, y, moving: r < 1, dir: 'l', back: false };
+    return dash(t, path, travel, delay) || { x: s.x + (sitting ? 0 : (s.side === 'r' ? -0.35 : 0.35)), y: s.y, sit: true, dir: s.dir };
   }, (ctx, t, p) => {
     if (p.gone) return;
     const pose = p.sit ? (o.pose || 'sit') : p.moving ? 'run' : (o.at || ((s.x * 7) % 3 < 1 ? 'point' : 'stand'));

@@ -715,8 +715,8 @@ export default {
       if (!Q.detail) return;
       const b = bearAt(t);
       const near = !b.away && Math.hypot(b.x - p.x, b.y - p.y) < 17;
-      if (near) speech(ctx, p.x, p.y, 2.7, 'No, it\'s fine. It\'s a bear.', { size: 0.3 });
-      else if (t % 15 < 3.5) speech(ctx, p.x, p.y, 2.7, lines[Math.floor(t / 15) % lines.length], { size: 0.3 });
+      if (near) speech(ctx, p.x, p.y, 2.7, 'No, it\'s fine. It\'s a bear.', { size: 0.36 });
+      else if (t % 15 < 3.5) speech(ctx, p.x, p.y, 2.7, lines[Math.floor(t / 15) % lines.length], { size: 0.36 });
     }, { bias: 0.1 });
 
     // ---------- The left end: the leaf pile, the BEAR XING sign ----------
@@ -845,7 +845,7 @@ export default {
         ctx.restore();
       }
     }, { anim: true });
-    R.find({ id: 'raccoon', label: 'A raccoon', kind: 'poke', inside: lid, at: [DUMP.x0 + 1.5, DUMP.y1 - 0.2, 1.75], r: 0.7, hint: 'The bear isn\'t the only one who likes the dumpster.' });
+    R.find({ id: 'raccoon', label: 'A raccoon', kind: 'poke', inside: lid, at: [DUMP.x0 + 1.5, DUMP.y1 - 0.2, 1.75], r: 0.8, hint: 'The bear isn\'t the only one who likes the dumpster.' });
 
     // ---------- A lost car key, on the curb ----------
     R.thing(KEY[0], KEY[1] + 0.1, (ctx) => {

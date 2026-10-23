@@ -14,7 +14,7 @@ import { C, Q, box, rect, face, paint, person, folk, alpha, tint, shade, mix, ha
 import { ZK } from '../../../engine/iso.js';
 import { route, clamp } from '../../../engine/actors.js';
 import { TONE, INK, CHAIR } from '../style.js';
-import { floorOf, backWall, sill, pod, staff, room, chair, desk, lettering, papers, plant, mug, SILL } from '../kit.js';
+import { floorOf, backWall, sill, pod, staff, room, chair, desk, lettering, papers, plant, mug, SILL, onFace, words, dash, drawChairY } from '../kit.js';
 import { bearOClock, rushK, seated, watched, nightK, H, BEAR_TIMES, LOOP } from '../clock.js';
 
 const TAU = Math.PI * 2;
@@ -25,65 +25,7 @@ const COAT = mix(C.wood, C.greyLight, 0.45); // Pidge's trench coat
 const HAT = shade(C.brown, 0.15);
 const LAB_H = 2.4; // the lab's glass walls
 
-// ---------- Drawing on a face ----------
-// Local coordinates on a face toward +y (u along x) or toward +x (u toward
-// -y, so it reads left to right on screen), v down (minus z); or flat on the
-// floor (a along x, b along y).
-function faceX(ctx, x, y, z, draw) {
-  ctx.save(); ctx.transform(1, 0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK); draw(ctx); ctx.restore();
-}
-function faceY(ctx, x, y, z, draw) {
-  ctx.save(); ctx.transform(1, -0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK); draw(ctx); ctx.restore();
-}
-function onFloor(ctx, x, y, z, draw) {
-  ctx.save(); ctx.transform(1, 0.5, -1, 0.5, x - y, (x + y) / 2 - z * ZK); draw(ctx); ctx.restore();
-}
-// Words in a face's local coordinates (already transformed).
-function words(ctx, text, u, v, size, ink = C.ink, font = 'Rethink Sans', weight = 700) {
-  const k = 40;
-  ctx.save();
-  ctx.translate(u, v);
-  ctx.scale(1 / k, 1 / k);
-  ctx.font = `${weight} ${size * k}px "${font}", "Arial Black", sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = ink;
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
-
 // ---------- Going to the glass at bear o'clock ----------
-// A point k (0..1) of the way along a path, and which way that faces.
-function along(pts, k) {
-  let total = 0;
-  const lens = [];
-  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); lens.push(l); total += l; }
-  let d = k * total;
-  for (let i = 0; i < lens.length; i++) {
-    if (d <= lens[i] || i === lens.length - 1) {
-      const f = lens[i] ? Math.min(1, d / lens[i]) : 0;
-      const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
-      return { x: ax + (bx - ax) * f, y: ay + (by - ay) * f, dX: (bx - ax) - (by - ay), dY: (bx - ax) + (by - ay) };
-    }
-    d -= lens[i];
-  }
-  return { x: pts[0][0], y: pts[0][1], dX: 0, dY: 0 };
-}
-// Where someone is on their run to the glass and back (null at home): from
-// `from` along `pts`, setting off `delay` seconds after the shout.
-function rush(t, from, pts, delay) {
-  const path = [from, ...pts];
-  let len = 0;
-  for (let i = 1; i < path.length; i++) len += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]);
-  const travel = len / 3.4;
-  const r = rushK(t, travel, delay);
-  if (r <= 0) return null;
-  const p = along(path, r);
-  if (r >= 1) return { x: p.x, y: p.y, moving: false, dir: 'l', back: false };
-  const home = rushK(t - 0.15, travel, delay) > r;
-  const dX = home ? -p.dX : p.dX, dY = home ? -p.dY : p.dY;
-  return { x: p.x, y: p.y, moving: true, dir: dX >= 0 ? 'r' : 'l', back: dY < -0.01 };
-}
 // The loop second the current bear o'clock started at (for whoever was
 // somewhere else on their route when the shout went up).
 function shoutAt(t) {
@@ -239,17 +181,6 @@ function phone(ctx, x, y) {
   ctx.fillStyle = C.tealLight; ctx.fillRect(x - 0.05, y - 0.09, 0.1, 0.17);
 }
 
-// A plain chair facing +y (its back toward -y), for the lab and the waiting
-// chairs.
-function chairY(ctx, x, y, color = CHAIR, part = 'all') {
-  if (part !== 'back') {
-    box(ctx, x - 0.04, y - 0.04, 0.08, 0.08, 0.08, 0.4, C.ink, { flat: true, stroke: false });
-    box(ctx, x - 0.3, y - 0.3, 0.08, 0.6, 0.08, 0.04, C.ink, { flat: true, stroke: false });
-    box(ctx, x - 0.32, y - 0.32, 0.48, 0.64, 0.64, 0.13, color, { flat: true, lw: 0.03 });
-  }
-  if (part !== 'seat') box(ctx, x - 0.3, y - 0.36, 0.6, 0.6, 0.1, 0.8, color, { flat: true, lw: 0.03, top: tint(color, 0.15) });
-}
-
 export default {
   id: 'ux',
   name: 'UX',
@@ -278,7 +209,7 @@ export default {
     R.thing(74.5, 0.72, (ctx) => {
       for (const lx of [73.2, 75.8]) box(ctx, lx, 0.6, 0, 0.06, 0.06, 0.95, C.grey, { flat: true, lw: 0.02 });
       box(ctx, 73.0, 0.6, 0.95, 3.0, 0.1, 1.45, C.white, { flat: true, lw: 0.03 });
-      faceX(ctx, 74.5, 0.71, 2.1, (g) => {
+      onFace(ctx, 'x', 74.5, 0.71, 2.1, (g) => {
         words(g, 'P4: TIME ON TASK', 0, 0, 0.22, C.ink);
         words(g, 'TASK: BUY ANYTHING', 0, 0.28, 0.15, C.teal);
       });
@@ -286,7 +217,7 @@ export default {
     R.thing(74.5, 0.74, (ctx, t) => {
       const n = clamp(Math.floor(here(t) - 9), 0, 18);
       if (!n) return;
-      faceX(ctx, 73.3, 0.71, 1.5, (g) => {
+      onFace(ctx, 'x', 73.3, 0.71, 1.5, (g) => {
         g.strokeStyle = C.coral; g.lineWidth = 0.05; g.lineCap = 'round';
         g.beginPath();
         let u = 0;
@@ -306,7 +237,7 @@ export default {
       box(ctx, 72.95, 4.8, 0.2, 0.8, 1.2, 0.05, C.grey, { flat: true, lw: 0.025 });
       box(ctx, 73.3, 5.32, 0.91, 0.1, 0.16, 0.25, C.ink, { flat: true, stroke: false });
       box(ctx, 73.35, 4.7, 1.12, 0.1, 1.4, 0.82, C.black, { flat: true, lw: 0.03 });
-      faceY(ctx, 73.46, 5.4, 1.53, (g) => {
+      onFace(ctx, 'y', 73.46, 5.4, 1.53, (g) => {
         g.fillStyle = C.white; g.fillRect(-0.64, -0.36, 1.28, 0.72);
         g.fillStyle = C.teal; g.fillRect(-0.64, -0.36, 1.28, 0.12);
         const tiles = [C.coral, C.mustard, C.sky, C.leaf, C.pink, C.lilac];
@@ -317,7 +248,7 @@ export default {
     });
     R.thing(73.42, 6.02, (ctx, t) => {
       if (here(t) < 8.9) return;
-      faceY(ctx, 73.47, 5.4, 1.53, (g) => {
+      onFace(ctx, 'y', 73.47, 5.4, 1.53, (g) => {
         const u = Math.sin(t * 0.9) * 0.45, v = Math.sin(t * 1.4) * 0.22;
         g.beginPath(); g.moveTo(u, v); g.lineTo(u + 0.0, v + 0.14); g.lineTo(u + 0.04, v + 0.1); g.lineTo(u + 0.1, v + 0.1); g.closePath();
         paint(g, C.white, { lw: 0.015 });
@@ -357,7 +288,7 @@ export default {
       cylinder(ctx, 77.8, 3.4, 1.1, 0.17, 0.46, tint(C.sky, 0.5), { flat: true });
       ctx.restore();
       cylinder(ctx, 77.8, 3.4, 1.56, 0.18, 0.06, C.coral, { flat: true });
-      if (Q.detail) faceX(ctx, 77.8, 3.58, 1.3, (g) => words(g, 'CANDY', 0, 0, 0.08, C.ink));
+      if (Q.detail) onFace(ctx, 'x', 77.8, 3.58, 1.3, (g) => words(g, 'CANDY', 0, 0, 0.08, C.ink));
     }, { anim: true, ...ON_DESK });
     R.thing(77.85, 5.86, (ctx, t) => {
       const n = upTo(DESK_NOTES, here(t));
@@ -370,7 +301,7 @@ export default {
     const glassR1 = [[75.3, 3.4], [75.6, 6.2], [76.0, 7.6], [80.8, 12.4], [80.8, 18.6], [79.0, 19.8], [79.0, SILL]];
     R.mover((t) => {
       if (!seated(t, 0.3)) return { x: R1.x, y: R1.y, gone: true };
-      const r = rush(t, [R1.x, R1.y], glassR1, 0.6);
+      const r = dash(t, [[R1.x, R1.y], ...glassR1], undefined, 0.6);
       return r || { x: R1.x, y: R1.y, sit: true };
     }, (ctx, t, p) => {
       if (p.gone) return;
@@ -447,7 +378,7 @@ export default {
     }, { anim: true });
     // Over the door: quiet, please.
     R.thing(78.3, 6.86, (ctx) => {
-      faceX(ctx, 78.3, 6.82, 1.85, (g) => {
+      onFace(ctx, 'x', 78.3, 6.82, 1.85, (g) => {
         g.beginPath(); g.roundRect(-0.62, -0.17, 1.24, 0.34, 0.06); paint(g, C.red, { lw: 0.025 });
         words(g, 'TESTING. SHH.', 0, 0.01, 0.17, C.white);
       });
@@ -495,7 +426,7 @@ export default {
     });
     // The sign that makes everyone tap the glass.
     R.thing(86.0, 6.86, (ctx) => {
-      faceX(ctx, 86.0, 6.82, 1.5, (g) => {
+      onFace(ctx, 'x', 86.0, 6.82, 1.5, (g) => {
         g.beginPath(); g.rect(-0.55, -0.22, 1.1, 0.44); paint(g, C.white, { lw: 0.025 });
         words(g, 'PLEASE DON\'T', 0, -0.08, 0.13, C.ink);
         words(g, 'TAP THE GLASS', 0, 0.09, 0.13, C.red);
@@ -520,14 +451,14 @@ export default {
     R.thing(83.2, 0.75, (ctx) => {
       for (const lx of [81.9, 84.3]) box(ctx, lx, 0.62, 0, 0.06, 0.06, 1.0, C.grey, { flat: true, lw: 0.02 });
       box(ctx, 81.7, 0.62, 1.0, 2.9, 0.1, 1.2, C.white, { flat: true, lw: 0.03 });
-      faceX(ctx, 83.15, 0.73, 1.6, (g) => {
+      onFace(ctx, 'x', 83.15, 0.73, 1.6, (g) => {
         words(g, 'TASK 1 OF 1', 0, -0.24, 0.17, C.teal);
         words(g, 'BUY ANYTHING', 0, 0.05, 0.28, C.ink, 'Bagel Fat One', 400);
         words(g, 'TAKE YOUR TIME!', 0, 0.32, 0.13, C.coral);
       });
     });
-    R.thing(84, 2.72, (ctx) => chairY(ctx, 84, 3.05, CHAIR, 'back'));
-    R.thing(84, 3.0, (ctx) => chairY(ctx, 84, 3.05, CHAIR, 'seat'));
+    R.thing(84, 2.72, (ctx) => drawChairY(ctx, 84, 3.05, 0, CHAIR, -1, 'back'));
+    R.thing(84, 3.0, (ctx) => drawChairY(ctx, 84, 3.05, 0, CHAIR, -1, 'seat'));
     desk(R, 82.6, 3.9, 3.0, 1.2);
     R.thing(84.3, 5.15, (ctx) => {
       // The laptop, its back to us (a Primal sticker), and the tissues.
@@ -541,7 +472,7 @@ export default {
       mug(ctx, 83.15, 4.5, 1.1, C.white);
       // His name card.
       face(ctx, [[83.4, 4.95, 1.1], [84.0, 4.95, 1.1], [84.0, 4.85, 1.3], [83.4, 4.85, 1.3]], C.white, { lw: 0.02 });
-      if (Q.detail) faceX(ctx, 83.7, 4.9, 1.2, (g) => words(g, 'P4', 0, 0, 0.13, C.ink));
+      if (Q.detail) onFace(ctx, 'x', 83.7, 4.9, 1.2, (g) => words(g, 'P4', 0, 0, 0.13, C.ink));
     });
     R.thing(86.9, 1.5, (ctx) => {
       // The camera that's recorded every minute of it.
@@ -589,7 +520,7 @@ export default {
           // The goose note: a persona card with a goose on it.
           const { x, z, s } = DECOY;
           face(ctx, [[x, BOARD.y + 0.01, z], [x + s, BOARD.y + 0.01, z + 0.03], [x + s, BOARD.y + 0.01, z + s + 0.03], [x, BOARD.y + 0.01, z + s]], NOTE, { lw: 0.025 });
-          faceX(ctx, x + s / 2, BOARD.y + 0.02, z + 0.2, (g) => {
+          onFace(ctx, 'x', x + s / 2, BOARD.y + 0.02, z + 0.2, (g) => {
             g.save(); g.translate(0.02, -0.02);
             drawGoose(g, 0, 0, 0, 0, { scale: 0.36, pose: 'stand', dir: 'r' });
             g.restore();
@@ -614,7 +545,7 @@ export default {
       const h = here(t);
       if (h < 8.7 || h > 19.6) return { x: 73.9, y: 9.35, gone: true };
       const p0 = walk(shoutAt(t));
-      const r = rush(t, [p0.x, p0.y], glassSticky(p0.x), 1.0);
+      const r = dash(t, [[p0.x, p0.y], ...glassSticky(p0.x)], undefined, 1.0);
       if (r) return r;
       return { ...walk(t), at: true };
     }, (ctx, t, p) => {
@@ -637,32 +568,28 @@ export default {
     // ---------- The participants' waiting corner ----------
     // Participant 5 was due at ten.
     R.thing(85.3, 9.7, (ctx) => {
-      chairY(ctx, 85.3, 9.8);
-      chairY(ctx, 86.4, 9.8);
+      drawChairY(ctx, 85.3, 9.8, 0, CHAIR, -1);
+      drawChairY(ctx, 86.4, 9.8, 0, CHAIR, -1);
       // A jacket on one of them: participant 5 gave up at lunch.
       box(ctx, 86.1, 9.48, 0.62, 0.6, 0.12, 0.55, C.coral, { flat: true, lw: 0.025 });
     });
     R.thing(84.6, 9.5, (ctx) => {
       box(ctx, 84.57, 9.17, 0, 0.06, 0.06, 1.4, C.grey, { flat: true, lw: 0.02 });
       box(ctx, 84.2, 9.18, 1.4, 0.8, 0.05, 0.6, C.white, { flat: true, lw: 0.025 });
-      faceX(ctx, 84.6, 9.24, 1.7, (g) => {
+      onFace(ctx, 'x', 84.6, 9.24, 1.7, (g) => {
         words(g, 'PARTICIPANTS', 0, -0.13, 0.11, C.teal);
         words(g, 'PLEASE WAIT', 0, 0.02, 0.13, C.ink);
         words(g, 'NEXT: P5', 0, 0.18, 0.1, C.coral);
       });
     });
+    // The thank-you table: a stack of $25 gift cards, one fewer per
+    // participant. Still a tall stack.
     R.thing(87.3, 9.1, (ctx) => {
-      box(ctx, 87.0, 8.8, 0, 0.6, 0.6, 1.0, C.white, { flat: true, lw: 0.03 });
-      cylinder(ctx, 87.3, 9.1, 1.0, 0.26, 0.6, tint(C.sky, 0.3), { flat: true });
-      box(ctx, 87.2, 9.38, 0.7, 0.12, 0.06, 0.08, C.ink, { flat: true, stroke: false });
+      box(ctx, 87.0, 8.8, 0, 0.6, 0.6, 0.75, C.white, { flat: true, lw: 0.03 });
+      for (let i = 0; i < 5; i++) box(ctx, 87.05 + (i % 2) * 0.04, 8.9 - (i % 2) * 0.03, 0.75 + i * 0.05, 0.4, 0.28, 0.05, i % 2 ? C.butter : C.white, { flat: true, lw: 0.012 });
+      face(ctx, [[87.1, 9.32, 0.75], [87.5, 9.32, 0.75], [87.5, 9.28, 1.0], [87.1, 9.28, 1.0]], C.teal, { lw: 0.015 });
+      if (Q.detail) onFace(ctx, 'x', 87.3, 9.3, 0.875, (g) => words(g, '$25 THANKS!', 0, 0, 0.065, C.white));
     });
-    R.thing(87.32, 9.12, (ctx, t) => {
-      // A glug, now and then.
-      const k = (t % 9) / 1.4;
-      if (k > 1 || !Q.detail) return;
-      const [X, Y] = P(87.3, 9.1, 1.1 + k * 0.45);
-      ctx.beginPath(); ctx.arc(X, Y, 0.05 + k * 0.03, 0, TAU); paint(ctx, C.white, { lw: 0.015 });
-    }, { anim: true });
     R.thing(87.4, 11.4, (ctx) => plant(ctx, 87.4, 11.3, 0, 1.6));
 
     // ---------- The card sort ----------
@@ -676,7 +603,7 @@ export default {
         rect(ctx, x - 0.85, 14.6, 1.7, 0.55, 0.01, C.white, { lw: 0.025 });
         paintText(ctx, 'floor', x, 14.88, text, 0.22, ink);
       }
-      const card = (x, y, a, z = 0.012) => onFloor(ctx, x, y, z, (g) => {
+      const card = (x, y, a, z = 0.012) => onFace(ctx, 'floor', x, y, z, (g) => {
         g.rotate(a);
         g.beginPath(); g.rect(-0.22, -0.15, 0.44, 0.3); paint(g, C.white, { lw: 0.022 });
         if (Q.detail) { g.strokeStyle = alpha(C.ink, 0.45); g.lineWidth = 0.025; g.beginPath(); g.moveTo(-0.14, -0.03); g.lineTo(0.12, -0.03); g.moveTo(-0.14, 0.05); g.lineTo(0.04, 0.05); g.stroke(); }
@@ -694,11 +621,11 @@ export default {
     R.goose((t) => ({ x: G[0], y: G[1], z: 0, pose: 'sit', dir: Math.floor(t / 7) % 3 === 1 ? 'r' : 'l' }),
       { kind: 'hard', hint: 'Someone sorted a goose into the pile marked Misc.' });
     R.thing(G[0] + 0.03, G[1] + 0.03, (ctx) => {
-      onFloor(ctx, G[0] - 0.02, G[1], 0.36, (g) => { g.rotate(0.5); g.beginPath(); g.rect(-0.2, -0.14, 0.4, 0.28); paint(g, C.white, { lw: 0.022 }); });
+      onFace(ctx, 'floor', G[0] - 0.02, G[1], 0.36, (g) => { g.rotate(0.5); g.beginPath(); g.rect(-0.2, -0.14, 0.4, 0.28); paint(g, C.white, { lw: 0.022 }); });
     });
     R.thing(G[0] + 0.45, G[1] + 0.35, (ctx) => {
       for (let i = 0; i < 4; i++) {
-        onFloor(ctx, G[0] + 0.15 + i * 0.05, G[1] + 0.3 - i * 0.04, 0.03 + i * 0.045, (g) => { g.rotate(0.3 + i * 0.5); g.beginPath(); g.rect(-0.22, -0.15, 0.44, 0.3); paint(g, C.white, { lw: 0.022 }); });
+        onFace(ctx, 'floor', G[0] + 0.15 + i * 0.05, G[1] + 0.3 - i * 0.04, 0.03 + i * 0.045, (g) => { g.rotate(0.3 + i * 0.5); g.beginPath(); g.rect(-0.22, -0.15, 0.44, 0.3); paint(g, C.white, { lw: 0.022 }); });
       }
     });
     // Someone's coffee, at the edge of it.
@@ -715,7 +642,7 @@ export default {
       ctx.stroke();
       box(ctx, 81.88, 14.05, 0.7, 0.14, 1.9, 0.08, C.brown, { flat: true, lw: 0.02 });
       box(ctx, 81.85, 14.1, 0.78, 0.08, 1.8, 1.9, C.white, { flat: true, lw: 0.03 });
-      faceY(ctx, 81.94, 15.0, 1.73, (g) => {
+      onFace(ctx, 'y', 81.94, 15.0, 1.73, (g) => {
         g.fillStyle = C.coral; g.fillRect(-0.9, -0.95, 1.8, 0.28);
         words(g, 'PERSONA', 0, -0.81, 0.18, C.white, 'Bagel Fat One', 400);
         // The stock photo: a woman delighted by a laptop.
@@ -748,7 +675,7 @@ export default {
     const glassBrenda = [[82.4, 18.2], [81.0, 19.8], [81.0, SILL]];
     R.mover((t) => {
       if (!seated(t, 0.2)) return { x: BR[0], y: BR[1], gone: true };
-      return rush(t, BR, glassBrenda, 0.3) || { x: BR[0], y: BR[1], home: true };
+      return dash(t, [BR, ...glassBrenda], undefined, 0.3) || { x: BR[0], y: BR[1], home: true };
     }, (ctx, t, p) => {
       if (p.gone) return;
       const c = t % 19;
@@ -778,7 +705,7 @@ export default {
       stages.forEach(([x, , v], i) => { const pt = P(x, y(v), 0.012); if (i) ctx.lineTo(...pt); else ctx.moveTo(...pt); });
       ctx.lineTo(...P(88, y(-1), 0.012));
       ctx.stroke();
-      for (const [x, , v] of stages) onFloor(ctx, x, y(v), 0.014, (g) => {
+      for (const [x, , v] of stages) onFace(ctx, 'floor', x, y(v), 0.014, (g) => {
         g.beginPath(); g.arc(0, 0, 0.13, 0, TAU); paint(g, v > 0 ? C.butter : tint(C.sky, 0.2), { lw: 0.02 });
         g.fillStyle = C.ink; g.fillRect(-0.06, -0.05, 0.025, 0.025); g.fillRect(0.035, -0.05, 0.025, 0.025);
         g.strokeStyle = C.ink; g.lineWidth = 0.02; g.beginPath();
@@ -815,7 +742,7 @@ export default {
       ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025; ctx.beginPath();
       ctx.moveTo(...P(EG[0] + 0.05, EG[1] + 0.15, EG[2])); ctx.quadraticCurveTo(...P(EG[0] - 0.05, EG[1] - 0.3, EG[2]), ...P(eye.mon[0] + 0.2, eye.mon[1] + 0.3, 1.14));
       ctx.stroke();
-      onFloor(ctx, EG[0], EG[1], EG[2], (g) => {
+      onFace(ctx, 'floor', EG[0], EG[1], EG[2], (g) => {
         g.rotate(-0.6);
         for (const u of [-0.18, 0.18]) { g.beginPath(); g.arc(u, 0, 0.15, 0, TAU); paint(g, alpha(tint(C.sky, 0.3), 0.85), { lw: 0.05 }); }
         g.strokeStyle = C.ink; g.lineWidth = 0.05; g.beginPath(); g.moveTo(-0.04, 0); g.lineTo(0.04, 0);
@@ -823,20 +750,20 @@ export default {
         g.beginPath(); g.arc(0, -0.04, 0.035, 0, TAU); g.fillStyle = C.red; g.fill();
       });
     });
-    R.find({ id: 'eye-tracker', label: 'A pair of eye-tracking glasses', at: [EG[0], EG[1], EG[2] + 0.08], r: 0.6 });
+    R.find({ id: 'eye-tracker', label: 'A pair of eye-tracking glasses', at: [EG[0], EG[1], EG[2] + 0.08], r: 0.8 });
 
     // At bear o'clock, on the chair someone just left: a note that isn't
     // yellow.
     const ws = front[10];
     R.thing(ws.x + 0.01, ws.y + 0.01, (ctx, t) => {
       if (!bearOClock(t)) return;
-      onFloor(ctx, ws.x - 0.12, ws.y, 0.64, (g) => {
+      onFace(ctx, 'floor', ws.x - 0.12, ws.y, 0.64, (g) => {
         g.rotate(0.35);
         g.beginPath(); g.rect(-0.2, -0.2, 0.4, 0.4); paint(g, C.pink, { lw: 0.025 });
         g.strokeStyle = alpha(C.ink, 0.6); g.lineWidth = 0.025; g.beginPath(); g.moveTo(-0.1, -0.03); g.lineTo(0.09, -0.03); g.moveTo(-0.1, 0.05); g.lineTo(0.03, 0.05); g.stroke();
       });
     }, { anim: true });
-    R.find({ id: 'wrong-sticky', label: 'A sticky note in the wrong color', kind: 'hard', at: [ws.x - 0.12, ws.y, 0.7], r: 0.6, when: bearOClock, note: 'bear o\'clock',
+    R.find({ id: 'wrong-sticky', label: 'A rebel sticky note', kind: 'hard', at: [ws.x - 0.12, ws.y, 0.7], r: 0.6, when: bearOClock, note: 'bear o\'clock',
       riddle: 'Not like the others, on a seat left in a hurry.', hint: 'At bear o\'clock, look on the chairs by UX\'s front windows for a note that isn\'t yellow.' });
   },
 };

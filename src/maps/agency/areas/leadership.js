@@ -16,7 +16,7 @@ import { C, Q, HAIR, box, rect, disc, cylinder, face, paint, person, folk, alpha
 import { ZK } from '../../../engine/iso.js';
 import { clamp } from '../../../engine/actors.js';
 import { TONE, INK, FABRIC } from '../style.js';
-import { floorOf, backWall, sill, pod, staff, room, worker, screen, desk, chair, drawChair, drawMonitor, lettering, glass, plant, papers, DESK } from '../kit.js';
+import { floorOf, backWall, sill, pod, staff, room, worker, screen, desk, chair, drawChair, drawChairY, drawMonitor, lettering, glass, plant, papers, onFace, words, DESK } from '../kit.js';
 import { bearOClock, H, rushK, seated, nightK, ceo } from '../clock.js';
 
 const P3 = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
@@ -33,39 +33,12 @@ function line3(ctx, pts, color, w) {
   ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.stroke();
 }
-// Words lying flat on a desk or a seat, reading along x.
-function flat(ctx, x, y, z, text, size, ink = C.ink, font = 'Rethink Sans') {
-  ctx.save();
-  ctx.transform(1, 0.5, -1, 0.5, x - y, (x + y) / 2 - z * ZK);
-  const k = 40;
-  ctx.scale(1 / k, 1 / k);
-  ctx.font = `700 ${size * k}px "${font}", sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = ink;
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
 // A round thing on a face toward +x (a head on a magazine cover, a wheel).
 function dotY(ctx, x, y, z, r, fill, o = { lw: 0.02 }) {
   const pts = [];
   for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; pts.push([x, y + Math.cos(a) * r, z + Math.sin(a) * r]); }
   face(ctx, pts, fill, o);
 }
-// A leather chair with its back toward +y (away 1) or -y (away -1), for
-// chairs that face along y (the kit's face along x).
-function chairY(ctx, x, y, color, away = 1, high = false) {
-  if (Q.detail) for (let k = 0; k < 5; k++) {
-    const a = (k / 5) * Math.PI * 2;
-    const [X, Y] = P3(x + Math.cos(a) * 0.3, y + Math.sin(a) * 0.3, 0.05);
-    ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
-  }
-  box(ctx, x - 0.04, y - 0.04, 0.08, 0.08, 0.08, 0.4, C.ink, { flat: true, stroke: false });
-  const back = () => box(ctx, x - 0.32, away > 0 ? y + 0.24 : y - 0.36, 0.6, 0.64, 0.12, high ? 1.15 : 0.8, color, { flat: true, lw: 0.03, top: tint(color, 0.15) });
-  if (away < 0) back();
-  box(ctx, x - 0.33, y - 0.33, 0.48, 0.66, 0.66, 0.15, color, { flat: true, lw: 0.03, top: tint(color, 0.1) });
-  if (away > 0) back();
-}
-
 // The day's slide: one more every hour (the fig's line says the same).
 const slideAt = (t) => Math.max(1, Math.floor(H(t) - 7));
 const SLIDES = ['HELLO!', 'WHO WE ARE', 'THE ASK', 'SYNERGY', 'GROWTH', 'MORE GROWTH', 'THE GOOSE', 'VISION Q4', 'NUMBERS', 'BIG NUMBERS', 'WHY US', 'WHY NOT', 'THANK YOU', 'Q&A', 'BONUS SLIDE', 'ANOTHER ONE', 'STILL HERE'];
@@ -441,7 +414,7 @@ export default {
       lettering(ctx, 'x', 3.6, 6.8, 1.7, 'DANA. CEO.', 0.22, alpha(C.ink, 0.55), 'Bagel Fat One');
     });
     R.thing(2.5, 2.2, (ctx) => standingDesk(ctx));
-    R.thing(2.25, 3.25, (ctx) => chairY(ctx, 2.25, 2.9, shade(C.purple, 0.25), 1, true));
+    R.thing(2.25, 3.25, (ctx) => drawChairY(ctx, 2.25, 2.9, 0, shade(C.purple, 0.25), 1, 'all', true));
     R.thing(1.6, 3.15, (ctx) => gooseneck(ctx));
     R.decoy({ id: 'lamp', at: [1.65, 1.6, 1.75], r: 0.6, say: 'A gooseneck lamp. Close, though.' });
     R.light({ at: [1.9, 1.75, 1.6], r: 1.6, color: C.butter, k: (t) => nightK(t) * 0.8 });
@@ -504,7 +477,7 @@ export default {
       box(ctx, 2.35, 10.7, 0, 0.1, 0.1, 0.4, C.ink, { flat: true, stroke: false });
       // Six copies of the same magazine.
       for (let i = 0; i < 3; i++) box(ctx, 2.15 + i * 0.03, 10.35 + i * 0.05, 0.45 + i * 0.03, 0.35, 0.45, 0.03, C.coral, { flat: true, lw: 0.015 });
-      flat(ctx, 2.38, 10.65, 0.55, 'BOLD', 0.12, C.white, 'Bagel Fat One');
+      onFace(ctx, 'floor', 2.38, 10.65, 0.55, (c) => words(c, 'BOLD', 0, 0, 0.12, C.white, 'Bagel Fat One'));
     });
     const intern = folk(530, { top: C.sky, bottom: C.navy, style: 'short', hair: HAIR[3], dress: false });
     const folder = (ctx) => { ctx.beginPath(); ctx.rect(-0.05, -0.1, 0.32, 0.4); paint(ctx, C.coral, { lw: 0.025 }); };
@@ -518,7 +491,7 @@ export default {
       else {
         person(ctx, p.x, p.y, 0.05, { ...intern, pose: 'sit', dir: 'r', hold: folder }, t);
         const s = ((t % 31) + 31) % 31;
-        if (s < 3.5 && Q.detail) speech(ctx, p.x, p.y, 2.6, 'Is she free yet?', { size: 0.3 });
+        if (s < 3.5 && Q.detail) speech(ctx, p.x, p.y, 2.6, 'Is she free yet?', { size: 0.36 });
       }
     }, { bias: 1.6 });
 
@@ -563,23 +536,16 @@ export default {
       lettering(ctx, 'x', (x0 + x1) / 2, y1 + 0.004, 1.75, 'BEST PITCH 2009', 0.07, C.butter);
       glass(ctx, x0 + 0.05, y1 - 0.02, 0.1, x1 - x0 - 0.1, 0.02, h - 0.2, 0.2);
     });
-    // The water cooler, glugging now and then.
+    // The suggestion box, padlocked, its slot taped over.
     R.thing(14.8, 11.0, (ctx) => {
-      box(ctx, 14.55, 10.55, 0, 0.5, 0.45, 1.05, C.white, { flat: true, lw: 0.03 });
-      qx(ctx, 14.65, 14.75, 11.001, 0.75, 0.82, C.red, { stroke: false });
-      qx(ctx, 14.85, 14.95, 11.001, 0.75, 0.82, C.teal, { stroke: false });
-      cylinder(ctx, 14.8, 10.78, 1.05, 0.2, 0.55, tint(C.sky, 0.2), { flat: true });
+      box(ctx, 14.76, 10.74, 0, 0.08, 0.08, 1.05, C.grey, { flat: true, lw: 0.02 });
+      box(ctx, 14.5, 10.55, 1.05, 0.6, 0.45, 0.5, C.wood, { flat: true, lw: 0.03 });
+      qx(ctx, 14.56, 15.04, 11.001, 1.4, 1.46, C.ink, { stroke: false });
+      lettering(ctx, 'x', 14.8, 11.002, 1.24, 'IDEAS', 0.13, C.white, 'Bagel Fat One');
+      // The tape across the slot, and the padlock.
+      face(ctx, [[14.5, 10.6, 1.56], [15.1, 10.95, 1.56], [15.1, 11.0, 1.56], [14.5, 10.65, 1.56]], C.butter, { lw: 0.012 });
+      box(ctx, 14.95, 11.0, 1.12, 0.12, 0.04, 0.14, C.mustard, { flat: true, lw: 0.015 });
     });
-    R.thing(14.81, 11.01, (ctx, t) => {
-      const s = ((t % 9) + 9) % 9;
-      if (s > 1.6 || !Q.detail) return;
-      for (let i = 0; i < 3; i++) {
-        const u = clamp((s - i * 0.3) / 1);
-        if (u <= 0 || u >= 1) continue;
-        const [X, Y] = P3(14.8 + (i - 1) * 0.06, 10.98, 1.1 + u * 0.45);
-        ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.015 });
-      }
-    }, { anim: true });
 
     // ---------- The CFO's office ----------
     // The golden stapler, a calculator whose tape has reached the floor and is
@@ -650,7 +616,7 @@ export default {
       ctx.beginPath(); ctx.moveTo(X, Y + 0.05); ctx.lineTo(X, Y + 1.25); ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.02; ctx.stroke();
     });
     const tie = (ctx, b) => { if (b.back) return; ctx.beginPath(); ctx.moveTo(0.04, b.top + 0.05); ctx.lineTo(0.12, b.top + 0.05); ctx.lineTo(0.13, b.hipY - 0.1); ctx.lineTo(0.08, b.hipY); ctx.lineTo(0.03, b.hipY - 0.1); ctx.closePath(); paint(ctx, C.red, { lw: 0.02 }); };
-    worker(R, { x: 12.2, y: 3.2, dir: 'r', side: 'l' }, folk(501, { top: C.white, bottom: C.ink, style: 'bald', wear: tie }), { k: 0.1, window: [14.8, 24.6] });
+    worker(R, { x: 12.2, y: 3.2, dir: 'r', side: 'l' }, folk(501, { top: C.white, bottom: C.ink, style: 'bald', wear: tie }), { k: 0.1, via: [[12.2, 7.5], [15.2, 9.5], [15.2, 23.6]], window: [15.4, 24.6] });
     // The letter, on the seat he just left: only while he's at the window.
     R.thing(12.3, 3.35, (ctx, t) => {
       if (!bearOClock(t)) return;
@@ -658,7 +624,7 @@ export default {
       face(ctx, [[x - 0.24, y - 0.17, z], [x + 0.24, y - 0.17, z], [x + 0.24, y + 0.17, z], [x - 0.24, y + 0.17, z]], C.white, { lw: 0.03 });
       line3(ctx, [[x - 0.24, y - 0.17, z + 0.001], [x, y, z + 0.001], [x + 0.24, y - 0.17, z + 0.001]], alpha(C.ink, 0.6), 0.015);
       disc(ctx, x, y + 0.02, z + 0.002, 0.05, C.red, { lw: 0.01 });
-      flat(ctx, x, y + 0.11, z + 0.002, 'I QUIT (DRAFT 9)', 0.045, C.ink);
+      onFace(ctx, 'floor', x, y + 0.11, z + 0.002, (c) => words(c, 'I QUIT (DRAFT 9)', 0, 0, 0.045, C.ink));
     }, { anim: true });
     R.find({ id: 'letter', label: 'An unsent resignation letter', kind: 'hard', at: [12.22, 3.2, 0.7], r: 0.8, when: bearOClock, note: 'bear o\'clock',
       riddle: 'Keeping his options open, on the seat he just left.', hint: 'When the bear comes, the money man leaves something on his chair.' });
@@ -695,7 +661,7 @@ export default {
     // The table, and its chairs either side: empty but for one at the head.
     for (let i = 0; i < 5; i++) {
       const x0 = TB.x0 + i * SEG, x1 = x0 + SEG, cx = (x0 + x1) / 2;
-      R.thing(cx, 15.75, (ctx) => chairY(ctx, cx, 15.65, BOARD_CHAIR, -1));
+      R.thing(cx, 15.75, (ctx) => drawChairY(ctx, cx, 15.65, 0, BOARD_CHAIR, -1));
       R.thing(x1, TB.y1, (ctx) => {
         if (i === 1 || i === 3) box(ctx, cx - 0.2, (TB.y0 + TB.y1) / 2 - 0.25, 0, 0.4, 0.5, TB.top - 0.08, C.ink, { flat: true, stroke: false });
         box(ctx, x0, TB.y0, TB.top - 0.08, SEG, TB.y1 - TB.y0, 0.08, mix(C.wood, C.brown, 0.35), { flat: true, lw: 0.035, left: shade(C.brown, 0.2), right: shade(C.brown, 0.1) });
@@ -726,7 +692,7 @@ export default {
           }
         }
       });
-      R.thing(cx, 18.65, (ctx) => chairY(ctx, cx, 18.3, BOARD_CHAIR, 1));
+      R.thing(cx, 18.65, (ctx) => drawChairY(ctx, cx, 18.3, 0, BOARD_CHAIR, 1));
     }
     // The phone's light, green when someone's on it.
     R.thing(TB.x0 + 3.5 * SEG + 0.31, 17.01, (ctx, t) => {
@@ -734,7 +700,7 @@ export default {
       const [X, Y] = P3(TB.x0 + 3.5 * SEG + 0.3, 17.0, TB.top + 0.04);
       ctx.beginPath(); ctx.arc(X, Y, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.leaf; ctx.fill();
     }, { anim: true });
-    R.thing(2.35, 17.35, (ctx) => chairY(ctx, 2.35, 17.0, BOARD_CHAIR, -1));
+    R.thing(2.35, 17.35, (ctx) => drawChairY(ctx, 2.35, 17.0, 0, BOARD_CHAIR, -1));
     // The man at the head of the table, on a call by himself. He doesn't go
     // to the window: he's presenting.
     const caller = { x: 11.25, y: 17.0, dir: 'l', side: 'r' };
@@ -752,17 +718,8 @@ export default {
       person(ctx, p.x, p.y, 0.2, { ...callerLook, pose: s < 4 ? 'point' : 'sit', arms: s < 4 ? [1.4 + Math.sin(t * 5) * 0.2, 0.5] : undefined, dir: 'l' }, t);
       if (!Q.detail) return;
       const line = bearOClock(t) ? 'Hold on. There\'s a bear.' : s < 3.5 ? LINES[Math.floor(t / 7) % LINES.length] : null;
-      if (line) speech(ctx, p.x, p.y, 2.75, line, { size: 0.3 });
+      if (line) speech(ctx, p.x, p.y, 2.75, line, { size: 0.36 });
     }, { bias: 0.6 });
-    // The robot vacuum, along the front glass and back, all day.
-    R.mover((t) => {
-      const u = ((t / 36) % 1 + 1) % 1, k = u < 0.5 ? u * 2 : 2 - u * 2;
-      return { x: 2.2 + k * 10.4, y: 19.25 };
-    }, (ctx, t, p) => {
-      cylinder(ctx, p.x, p.y, 0, 0.28, 0.1, C.greyLight, { flat: true });
-      const [X, Y] = P3(p.x, p.y, 0.11);
-      ctx.beginPath(); ctx.arc(X, Y, 0.06, 0, Math.PI * 2); ctx.fillStyle = Math.sin(t * 4) > 0 ? C.tealLight : C.ink; ctx.fill();
-    });
     // The credenza nobody opens: a door slid a crack open, a white feather in the gap,
     // another on the carpet. Inside, the offsite planning: a goose and a
     // lantern.
@@ -842,7 +799,7 @@ export default {
     R.find({ id: 'toupee', label: 'A toupee', kind: 'poke', inside: drawerPoke, at: [3.2, 22.45, 1.0], r: 0.8, hint: 'The founder left something in his desk drawer that he used to wear.' });
     // His chair, his fishing hat hung on it.
     R.thing(3.2, 20.95, (ctx) => {
-      chairY(ctx, 3.2, 20.95, shade(C.brown, 0.15), -1);
+      drawChairY(ctx, 3.2, 20.95, 0, shade(C.brown, 0.15), -1);
       // His fishing hat, on the corner of it.
       const [X, Y] = P3(3.4, 20.62, 1.42);
       ctx.beginPath(); ctx.ellipse(X, Y, 0.22, 0.08, 0, 0, Math.PI * 2); paint(ctx, mix(C.green, C.wood, 0.4), { lw: 0.02 });

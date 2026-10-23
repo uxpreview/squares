@@ -12,9 +12,8 @@
 // at nine.
 import { C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, goose, speech, plant as pot, shade, tint, alpha, hash } from '../../../engine/art.js';
 import { schedule, particles } from '../../../engine/actors.js';
-import { ZK } from '../../../engine/iso.js';
 import { TONE, INK, BRAND, CHAIR, SIDING, PRIMAL } from '../style.js';
-import { floorOf, backWall, sill, pod, staff, room, drawTower, lettering, mug, papers, plant } from '../kit.js';
+import { floorOf, backWall, sill, pod, staff, room, drawTower, lettering, mug, papers, plant, onFace, words, dash, drawChairY } from '../kit.js';
 import { bearOClock, rushK, seated, H, LOOP } from '../clock.js';
 import { TOWER, PITCH, DOOR } from '../plan.js';
 
@@ -23,34 +22,6 @@ const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, k) => a + (b - a) * k;
 
 // ---------- Painting on faces ----------
-// Draw flat on an upright face along x (facing +y, toward the bottom left) or
-// along y (facing +x), from (x, y, z): local u runs along the face to the
-// right on screen, v runs down.
-function onX(ctx, x, y, z, fn) {
-  ctx.save();
-  ctx.transform(1, 0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
-  fn(ctx);
-  ctx.restore();
-}
-function onY(ctx, x, y, z, fn) {
-  ctx.save();
-  ctx.transform(1, -0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
-  fn(ctx);
-  ctx.restore();
-}
-// Words at (u, v) in a face's own units.
-function words(ctx, u, v, text, size, color = C.ink, font = 'Rethink Sans', align = 'center') {
-  if (!Q.detail) return;
-  ctx.save();
-  ctx.translate(u, v);
-  ctx.scale(1 / 40, 1 / 40);
-  ctx.font = `700 ${size * 40}px "${font}", "Arial Black", sans-serif`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
 function sheet(ctx, u, v, w, h, fill = C.white, lw = 0.025) {
   ctx.beginPath();
   ctx.rect(u, v, w, h);
@@ -76,26 +47,10 @@ function goosePic(ctx, u, v, s) {
 }
 // A speech bubble, small, only close up.
 function say(ctx, x, y, z, text) {
-  if (Q.detail && text) speech(ctx, x, y, z, text, { size: 0.34 });
+  if (Q.detail && text) speech(ctx, x, y, z, text, { size: 0.36 });
 }
 
 // ---------- People on their own clocks ----------
-// A point k (0 to 1) of the way along a path of [x, y] points.
-function along(pts, k) {
-  const L = [];
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); L.push(l); total += l; }
-  let d = k * total;
-  for (let i = 0; i < L.length; i++) {
-    if (d <= L[i] || i === L.length - 1) {
-      const f = L[i] ? clamp(d / L[i]) : 1;
-      return [lerp(pts[i][0], pts[i + 1][0], f), lerp(pts[i][1], pts[i + 1][1], f)];
-    }
-    d -= L[i];
-  }
-  return pts[pts.length - 1];
-}
-const pathLen = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
 // Someone who drops what they're doing at bear o'clock and runs to the glass
 // (via: the way there, round the furniture), and comes back after. base(t)
 // is where they'd be otherwise ({ gone } while they're not here).
@@ -103,11 +58,8 @@ function rush(base, via, delay = 0.4) {
   return (t) => {
     const p = base(t);
     if (p.gone || p.hidden) return p;
-    const travel = 1.8 + pathLen([[p.x, p.y], ...via]) / 3.4;
-    const r = rushK(t, travel, delay);
-    if (r <= 0) return p;
-    const [x, y] = along([[p.x, p.y], ...via], r);
-    return { x, y, moving: r < 1, pose: r < 1 ? 'run' : 'point', dir: 'l', back: false, rushing: true };
+    const d = dash(t, [[p.x, p.y], ...via], undefined, delay);
+    return d ? { ...d, pose: d.moving ? 'run' : 'point', rushing: true } : p;
   };
 }
 // Inside the stair tower (on the way up or down), nobody's drawn.
@@ -162,7 +114,7 @@ const tri = (v) => 1 - Math.abs((((v % 2) + 2) % 2) - 1);
 // down to 1.15): local u 0 to 3, v 0 to 1.4.
 function tvPicture(ctx, t) {
   const show = tvShows(t);
-  onY(ctx, 40.52, 23.5, 2.55, (c) => {
+  onFace(ctx, 'y', 40.52, 23.5, 2.55, (c) => {
     const W = 3, Hh = 1.4;
     const bg = show === 'off' ? C.black : show === 'deck' ? (Math.floor(wrap(t) / 3.5) % 4 === 1 || Math.floor(wrap(t) / 3.5) % 4 === 2 ? C.white : BRAND.can) : C.navy;
     c.beginPath(); c.rect(0, 0, W, Hh); c.fillStyle = bg; c.fill();
@@ -172,45 +124,32 @@ function tvPicture(ctx, t) {
       const u = tri(t * 0.17) * (W - 1.3), v = tri(t * 0.23) * (Hh - 0.42);
       c.beginPath(); c.rect(u + 0.05, v + 0.05, 1.2, 0.32);
       c.strokeStyle = C.white; c.lineWidth = 0.03; c.stroke();
-      words(c, u + 0.65, v + 0.22, 'NO SIGNAL', 0.2, C.white);
+      words(c, 'NO SIGNAL', u + 0.65, v + 0.22, 0.2, C.white);
       return;
     }
     if (show === 'search') {
-      words(c, W / 2, Hh / 2, 'SEARCHING' + '.'.repeat(Math.floor(t * 3) % 4), 0.2, C.white, 'Rethink Sans', 'center');
+      words(c, 'SEARCHING' + '.'.repeat(Math.floor(t * 3) % 4), W / 2, Hh / 2, 0.2, C.white, 'Rethink Sans', 700, 'center');
       return;
     }
     // The Gander Cola deck.
     const slide = Math.floor(wrap(t) / 3.5) % 4;
     if (slide === 0) {
-      words(c, W / 2, 0.58, 'GANDER COLA', 0.42, C.white, 'Bagel Fat One');
-      words(c, W / 2, 1.05, 'TAKE A GANDER', 0.16, C.white);
+      words(c, 'GANDER COLA', W / 2, 0.58, 0.42, C.white, 'Bagel Fat One');
+      words(c, 'TAKE A GANDER', W / 2, 1.05, 0.16, C.white);
     } else if (slide === 1) {
-      words(c, 0.2, 0.22, 'SALES, WITH US', 0.15, C.ink, 'Rethink Sans', 'left');
+      words(c, 'SALES, WITH US', 0.2, 0.22, 0.15, C.ink, 'Rethink Sans', 700, 'left');
       [0.25, 0.4, 0.55, 0.85, 1.0].forEach((v, i) => { c.beginPath(); c.rect(0.5 + i * 0.42, 1.25 - v, 0.28, v); c.fillStyle = i === 4 ? BRAND.can : C.grey; c.fill(); });
     } else if (slide === 2) {
       goosePic(c, 1.0, 1.05, 0.95);
-      words(c, 2.05, 0.6, 'THE GOOSE', 0.2, BRAND.can, 'Bagel Fat One');
-      words(c, 2.05, 0.9, 'IS THE BRAND.', 0.14, C.ink);
+      words(c, 'THE GOOSE', 2.05, 0.6, 0.2, BRAND.can, 'Bagel Fat One');
+      words(c, 'IS THE BRAND.', 2.05, 0.9, 0.14, C.ink);
     } else {
-      words(c, W / 2, Hh / 2, 'QUESTIONS?', 0.34, C.white, 'Bagel Fat One');
+      words(c, 'QUESTIONS?', W / 2, Hh / 2, 0.34, C.white, 'Bagel Fat One');
     }
   });
 }
 
 // ---------- Furniture ----------
-// A chair at a table, its back toward -y (side -1) or +y (side 1).
-function seatY(ctx, x, y, side, color = CHAIR) {
-  if (Q.detail) for (let k = 0; k < 5; k++) {
-    const a = (k / 5) * Math.PI * 2;
-    const [X, Y] = P(x + Math.cos(a) * 0.3, y + Math.sin(a) * 0.3, 0.04);
-    ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill();
-  }
-  box(ctx, x - 0.04, y - 0.04, 0.06, 0.08, 0.08, 0.38, C.ink, { flat: true, stroke: false });
-  const by = side < 0 ? y - 0.37 : y + 0.27;
-  if (side < 0) box(ctx, x - 0.28, by, 0.56, 0.56, 0.1, 0.78, color, { flat: true, lw: 0.03, top: tint(color, 0.15) });
-  box(ctx, x - 0.3, y - 0.3, 0.44, 0.6, 0.6, 0.13, color, { flat: true, lw: 0.03 });
-  if (side > 0) box(ctx, x - 0.28, by, 0.56, 0.56, 0.1, 0.78, color, { flat: true, lw: 0.03, top: tint(color, 0.15) });
-}
 // One half of the pitch table (split at the seam at x 48), and what's on it
 // all day: a printed deck at every place, Gander Cola, the laptop.
 const TABLE = { y0: 21.6, y1: 23.6, top: 1.13 };
@@ -261,13 +200,13 @@ function fridgeFront(ctx, k, t) {
     // Inside: lit, three shelves of Gander Cola, a lunch with a name on it.
     face(ctx, [[x0 + 0.06, y, 0.12], [x1 - 0.06, y, 0.12], [x1 - 0.06, y, h - 0.08], [x0 + 0.06, y, h - 0.08]], C.butter, { lw: 0.03 });
     for (const sz of [0.75, 1.35, 1.9]) face(ctx, [[x0 + 0.06, y, sz], [x1 - 0.06, y, sz], [x1 - 0.06, y + 0.02, sz + 0.03], [x0 + 0.06, y + 0.02, sz + 0.03]], C.white, { lw: 0.02 });
-    onX(ctx, x0, y + 0.01, h, (c) => {
+    onFace(ctx, 'x', x0, y + 0.01, h, (c) => {
       for (const [v, n] of [[0.6, 5], [1.15, 5]]) for (let i = 0; i < n; i++) {
         c.beginPath(); c.roundRect(0.14 + i * 0.22, v - 0.03, 0.16, 0.26, 0.04); paint(c, BRAND.can, { lw: 0.02 });
         c.fillStyle = C.white; c.fillRect(0.16 + i * 0.22, v + 0.08, 0.12, 0.03);
       }
       sheet(c, 0.2, 1.42, 0.55, 0.3, C.sky);
-      words(c, 0.47, 1.57, 'NOT GREG\'S', 0.08, C.ink);
+      words(c, 'NOT GREG\'S', 0.47, 1.57, 0.08, C.ink);
       c.beginPath(); c.roundRect(0.85, 1.38, 0.3, 0.34, 0.05); paint(c, C.coral, { lw: 0.02 });
       sheet(c, 0.25, 1.98, 0.8, 0.2, C.leaf);
     });
@@ -282,11 +221,11 @@ function fridgeFront(ctx, k, t) {
     face(ctx, [[x0, y, 1.75], [x1, y, 1.75]], null, { lw: 0.03 });
     box(ctx, x1 - 0.2, y, 0.9, 0.06, 0.06, 0.65, C.grey, { flat: true, lw: 0.02 });
     box(ctx, x1 - 0.2, y, 1.85, 0.06, 0.06, 0.4, C.grey, { flat: true, lw: 0.02 });
-    onX(ctx, x0, y + 0.01, h, (c) => {
+    onFace(ctx, 'x', x0, y + 0.01, h, (c) => {
       sheet(c, 0.18, 1.0, 0.8, 0.5);
-      words(c, 0.58, 1.13, 'LABELED', 0.11, C.red);
-      words(c, 0.58, 1.27, 'FOOD ONLY', 0.11, C.red);
-      words(c, 0.58, 1.4, '(GREG)', 0.07, C.ink);
+      words(c, 'LABELED', 0.58, 1.13, 0.11, C.red);
+      words(c, 'FOOD ONLY', 0.58, 1.27, 0.11, C.red);
+      words(c, '(GREG)', 0.58, 1.4, 0.07, C.ink);
       for (const [u, v, col] of [[0.3, 0.3, C.mustard], [0.6, 0.45, C.teal], [0.85, 0.25, C.pink], [0.4, 1.9, C.coral]]) { c.beginPath(); c.arc(u, v, 0.06, 0, Math.PI * 2); paint(c, col, { lw: 0.02 }); }
       sheet(c, 0.55, 1.7, 0.35, 0.45, C.white);
       goosePic(c, 0.72, 2.02, 0.28);
@@ -394,6 +333,20 @@ export default {
         cable(C.teal, [[40.7, 23.0], [42.8, 25.0], [43.6, 24.2]]);
       }
     });
+    // The logo rug at the top of the stair, the first thing a client sees:
+    // Primal's bear, in a ring, in Primal red.
+    R.rug((ctx) => onFace(ctx, 'floor', 42.4, 10.4, 0, (c) => {
+      c.beginPath(); c.arc(0, 0, 1.9, 0, Math.PI * 2); paint(c, PRIMAL, { lw: 0.03 });
+      c.beginPath(); c.arc(0, 0, 1.65, 0, Math.PI * 2); c.strokeStyle = tint(PRIMAL, 0.45); c.lineWidth = 0.06; c.stroke();
+      if (!Q.detail) return;
+      // The bear, side on, walking.
+      c.fillStyle = tint(PRIMAL, 0.75);
+      c.beginPath(); c.ellipse(-0.1, -0.15, 0.75, 0.38, 0, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(0.72, -0.32, 0.27, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(0.62, -0.58, 0.09, 0, Math.PI * 2); c.fill();
+      for (const lx of [-0.6, -0.3, 0.2, 0.45]) c.fillRect(lx, 0.05, 0.17, 0.38);
+      words(c, 'PRIMAL', 0, 0.95, 0.42, tint(PRIMAL, 0.75), 'Bagel Fat One', 400);
+    }));
     R.rug((ctx) => {
       // PLEASE WAIT HERE, on the floor in front of reception.
       if (!Q.detail) return;
@@ -416,17 +369,17 @@ export default {
     const call = R.poke({ id: 'call', at: [44.9, 6.85, 1.3], r: 0.7, say: 'Floors 1 and 2 are closed. Don\'t ask.', hold: 1.5 });
     R.thing(44.9, 6.82, (ctx) => {
       const y = 6.785;
-      onX(ctx, 44.6, y, 1.55, (c) => {
+      onFace(ctx, 'x', 44.6, y, 1.55, (c) => {
         sheet(c, 0.12, 0, 0.3, 0.5, C.greyLight);
         sheet(c, -0.95, -0.95, 0.9, 0.35, C.white);
-        words(c, -0.5, -0.82, 'FLOORS 1 & 2', 0.09, C.ink);
-        words(c, -0.5, -0.7, 'CLOSED', 0.09, C.red);
+        words(c, 'FLOORS 1 & 2', -0.5, -0.82, 0.09, C.ink);
+        words(c, 'CLOSED', -0.5, -0.7, 0.09, C.red);
       });
       lettering(ctx, 'x', 44, y + 0.01, 3.1, '3', 0.45, PRIMAL, 'Bagel Fat One');
     });
     R.thing(44.92, 6.84, (ctx, t) => {
       const lit = call.k() > 0.1 && Math.sin(t * 12) > -0.6;
-      onX(ctx, 44.6, 6.79, 1.55, (c) => {
+      onFace(ctx, 'x', 44.6, 6.79, 1.55, (c) => {
         for (const [v, up] of [[0.14, true], [0.35, false]]) {
           c.beginPath(); c.arc(0.27, v, 0.07, 0, Math.PI * 2); paint(c, lit && up ? C.mustard : C.white, { lw: 0.02 });
           c.beginPath(); c.moveTo(0.23, v + (up ? 0.02 : -0.02)); c.lineTo(0.31, v + (up ? 0.02 : -0.02)); c.lineTo(0.27, v + (up ? -0.03 : 0.03)); c.closePath(); c.fillStyle = C.ink; c.fill();
@@ -443,7 +396,7 @@ export default {
       lettering(ctx, 'x', 35.5, 5.21, 1.12, 'IDEAS WITH TEETH', 0.19, C.ink);
       pot(ctx, 38.25, 5.4, 0, 0, { kind: 'palm', scale: 1.15, potColor: C.white });
     }, { depth: 38 });
-    R.thing(33.3, 5.85, (ctx) => seatY(ctx, 33.3, 6.1, -1, CHAIR));
+    R.thing(33.3, 5.85, (ctx) => drawChairY(ctx, 33.3, 6.1, 0, CHAIR, -1));
     R.goose([33.3, 6.1, 0.6], { kind: 'hard', dir: 'r', pose: 'sit', hint: 'Somebody is covering reception, and doing a better job than the sign.' });
     // The receptionist's headset, on the goose.
     R.thing(33.35, 6.11, (ctx) => {
@@ -473,12 +426,12 @@ export default {
       if (Q.detail) for (let i = 0; i < 4; i++) { const [X, Y] = P(33.45 + (i % 2) * 0.09, 9.12 + (i >> 1) * 0.09, 1.43); ctx.beginPath(); ctx.arc(X, Y, 0.035, 0, Math.PI * 2); ctx.fillStyle = i % 2 ? C.red : C.white; ctx.fill(); }
       plant(ctx, 36.6, 7.9, 1.08, 0.45);
       // The sign.
-      onX(ctx, 33.3, 9.405, 0.95, (c) => {
+      onFace(ctx, 'x', 33.3, 9.405, 0.95, (c) => {
         sheet(c, 0, 0, 3.4, 0.56, C.white, 0.03);
-        words(c, 1.7, 0.29, 'BACK IN 5 MINUTES', 0.3, C.red, 'Bagel Fat One');
+        words(c, 'BACK IN 5 MINUTES', 1.7, 0.29, 0.3, C.red, 'Bagel Fat One');
         c.beginPath(); c.rect(2.6, 0.48, 0.42, 0.34); paint(c, INK.sticky, { lw: 0.02 });
-        words(c, 2.81, 0.6, 'since', 0.08, C.ink);
-        words(c, 2.81, 0.72, '9am', 0.08, C.ink);
+        words(c, 'since', 2.81, 0.6, 0.08, C.ink);
+        words(c, '9am', 2.81, 0.72, 0.08, C.ink);
       });
     });
     // The bell (the thing to ring first) and the phone's hold light.
@@ -548,10 +501,10 @@ export default {
       box(ctx, 38.8, 1.3, 0, 1.3, 0.9, 0.85, C.greyLight, { flat: true, lw: 0.035 });
       box(ctx, 38.9, 1.35, 0.85, 1.1, 0.8, 0.22, C.white, { flat: true, lw: 0.03 });
       box(ctx, 39.0, 2.2, 0.55, 0.9, 0.3, 0.04, C.white, { flat: true, lw: 0.02 });
-      onX(ctx, 38.8, 2.205, 0.8, (c) => {
+      onFace(ctx, 'x', 38.8, 2.205, 0.8, (c) => {
         c.beginPath(); c.rect(0.65, 0.05, 0.42, 0.34); paint(c, INK.sticky, { lw: 0.02 });
-        words(c, 0.86, 0.15, 'JAMMED', 0.08, C.ink);
-        words(c, 0.86, 0.27, 'AGAIN', 0.08, C.ink);
+        words(c, 'JAMMED', 0.86, 0.15, 0.08, C.ink);
+        words(c, 'AGAIN', 0.86, 0.27, 0.08, C.ink);
       });
     });
     R.thing(40.1, 2.21, (ctx, t) => {
@@ -571,25 +524,25 @@ export default {
         ctx.stroke();
       }
       box(ctx, 49.95, 0.48, 2.08, 4.5, 0.42, 0.72, C.woodLight, { flat: true, lw: 0.035, top: tint(C.woodLight, 0.2) });
-      onX(ctx, 49.95, 0.905, 2.8, (c) => {
+      onFace(ctx, 'x', 49.95, 0.905, 2.8, (c) => {
         for (let i = 1; i < 5; i++) { c.beginPath(); c.moveTo(i * 0.9, 0.05); c.lineTo(i * 0.9, 0.67); c.strokeStyle = shade(C.woodLight, 0.35); c.lineWidth = 0.025; c.stroke(); }
         for (let i = 0; i < 5; i++) { c.fillStyle = C.ink; c.fillRect(i * 0.9 + (i % 2 ? 0.1 : 0.74), 0.5, 0.05, 0.14); }
       });
       // The notice board: HAVE YOU SEEN THIS GOOSE?, the lost and found, a
       // flyer for tonight's fire pit.
-      onX(ctx, 48.32, 0.485, 2.68, (c) => {
+      onFace(ctx, 'x', 48.32, 0.485, 2.68, (c) => {
         c.beginPath(); c.rect(0, 0, 1.5, 0.95); paint(c, C.woodLight, { lw: 0.035, dots: C.wood, density: 0.3 });
         sheet(c, 0.08, 0.06, 0.62, 0.8, C.white);
-        words(c, 0.39, 0.15, 'HAVE YOU SEEN', 0.075, C.ink);
-        words(c, 0.39, 0.25, 'THIS GOOSE?', 0.085, C.red);
+        words(c, 'HAVE YOU SEEN', 0.39, 0.15, 0.075, C.ink);
+        words(c, 'THIS GOOSE?', 0.39, 0.25, 0.085, C.red);
         goosePic(c, 0.38, 0.62, 0.42);
-        words(c, 0.39, 0.79, 'answers to "Gerald"', 0.045, C.ink);
+        words(c, 'answers to "Gerald"', 0.39, 0.79, 0.045, C.ink);
         sheet(c, 0.8, 0.1, 0.58, 0.48, C.white);
-        words(c, 1.09, 0.17, 'LOST & FOUND', 0.06, C.ink);
+        words(c, 'LOST & FOUND', 1.09, 0.17, 0.06, C.ink);
         for (let i = 0; i < 5; i++) { c.fillStyle = C.grey; c.fillRect(0.86, 0.25 + i * 0.065, 0.35 + ((i * 13) % 10) / 70, 0.025); }
         c.beginPath(); c.rect(0.82, 0.64, 0.5, 0.26); paint(c, C.coral, { lw: 0.02 });
-        words(c, 1.07, 0.73, 'FIRE PIT', 0.065, C.white);
-        words(c, 1.07, 0.83, '5PM', 0.06, C.white);
+        words(c, 'FIRE PIT', 1.07, 0.73, 0.065, C.white);
+        words(c, '5PM', 1.07, 0.83, 0.06, C.white);
         for (const [u, v] of [[0.39, 0.08], [1.09, 0.12], [1.07, 0.66]]) { c.beginPath(); c.arc(u, v, 0.025, 0, Math.PI * 2); c.fillStyle = C.red; c.fill(); }
       });
     }, { depth: 49 });
@@ -597,7 +550,7 @@ export default {
     R.thing(51.5, 1.6, (ctx) => {
       box(ctx, 48.6, 0.48, 0, 5.8, 1.12, 1.04, tint(INK.birch, 0.15), { flat: true, lw: 0.04 });
       box(ctx, 48.55, 0.48, 1.04, 5.9, 1.17, 0.07, shade(C.grey, 0.25), { flat: true, lw: 0.035 });
-      onX(ctx, 48.6, 1.605, 1.0, (c) => {
+      onFace(ctx, 'x', 48.6, 1.605, 1.0, (c) => {
         c.strokeStyle = shade(INK.birch, 0.3); c.lineWidth = 0.025;
         for (let i = 1; i < 6; i++) { c.beginPath(); c.moveTo(i * 0.97, 0.08); c.lineTo(i * 0.97, 0.92); c.stroke(); }
         c.fillStyle = C.ink;
@@ -618,12 +571,12 @@ export default {
     // The note, taped up over the sink (readable, close up).
     R.find({ id: 'note', label: 'A passive-aggressive note', at: [50.37, 0.5, 1.62], r: 0.8 });
     R.thing(50.5, 0.6, (ctx) => {
-      onX(ctx, 49.86, 0.49, 1.98, (c) => {
+      onFace(ctx, 'x', 49.86, 0.49, 1.98, (c) => {
         c.save(); c.translate(0.5, 0.35); c.rotate(-0.04); c.translate(-0.5, -0.35);
         sheet(c, 0.05, 0.02, 0.92, 0.68, C.white, 0.03);
-        words(c, 0.51, 0.15, 'YOUR MOTHER', 0.14, C.red, 'Bagel Fat One');
-        words(c, 0.51, 0.31, 'DOESN\'T WORK', 0.14, C.red, 'Bagel Fat One');
-        words(c, 0.51, 0.47, 'HERE.', 0.14, C.red, 'Bagel Fat One');
+        words(c, 'YOUR MOTHER', 0.51, 0.15, 0.14, C.red, 'Bagel Fat One');
+        words(c, 'DOESN\'T WORK', 0.51, 0.31, 0.14, C.red, 'Bagel Fat One');
+        words(c, 'HERE.', 0.51, 0.47, 0.14, C.red, 'Bagel Fat One');
         c.fillStyle = C.ink; c.fillRect(0.2, 0.58, 0.62, 0.025);
         c.fillStyle = alpha(C.butter, 0.85); c.fillRect(0.3, -0.02, 0.4, 0.09);
         c.restore();
@@ -633,7 +586,7 @@ export default {
     // donut box.
     R.thing(49.15, 1.3, (ctx) => {
       box(ctx, 48.7, 0.65, 1.11, 0.92, 0.62, 0.5, C.white, { flat: true, lw: 0.03 });
-      onX(ctx, 48.7, 1.271, 1.58, (c) => {
+      onFace(ctx, 'x', 48.7, 1.271, 1.58, (c) => {
         c.beginPath(); c.rect(0.06, 0.06, 0.58, 0.34); paint(c, C.ink, { lw: 0.02 });
         c.beginPath(); c.rect(0.7, 0.06, 0.16, 0.34); paint(c, C.greyLight, { lw: 0.02 });
       });
@@ -643,11 +596,11 @@ export default {
       const on = !p.hidden && !p.rushing && p.microwave;
       if (!on) return;
       const s = wrap(t) % 9, left = Math.max(0, Math.ceil(30 - (s / 7) * 30));
-      onX(ctx, 48.7, 1.272, 1.58, (c) => {
+      onFace(ctx, 'x', 48.7, 1.272, 1.58, (c) => {
         c.beginPath(); c.rect(0.08, 0.08, 0.54, 0.3); c.fillStyle = C.butter; c.fill();
         const a = t * 2;
         c.beginPath(); c.ellipse(0.35 + Math.cos(a) * 0.1, 0.28, 0.14, 0.05, 0, 0, Math.PI * 2); paint(c, C.sky, { lw: 0.015 });
-        words(c, 0.78, 0.13, s < 7 ? `0:${String(left).padStart(2, '0')}` : 'END', 0.06, C.leaf);
+        words(c, s < 7 ? `0:${String(left).padStart(2, '0')}` : 'END', 0.78, 0.13, 0.06, C.leaf);
       });
     }, { anim: true });
     // The smell, rising and drifting along the kitchen.
@@ -669,17 +622,24 @@ export default {
       box(ctx, 52.8, 1.12, 1.11, 0.45, 0.25, 0.05, C.ink, { flat: true, lw: 0.02 });
       box(ctx, 52.95, 1.1, 1.58, 0.15, 0.25, 0.08, C.ink, { flat: true, lw: 0.02 });
       mug(ctx, 53.02, 1.25, 1.16, C.white);
-      onX(ctx, 52.58, 1.325, 1.97, (c) => {
+      onFace(ctx, 'x', 52.58, 1.325, 1.97, (c) => {
         c.save(); c.translate(0.45, 0.16); c.rotate(0.06);
         sheet(c, -0.36, -0.12, 0.72, 0.38, C.white, 0.025);
-        words(c, 0, -0.02, 'OUT OF ORDER', 0.11, C.red, 'Bagel Fat One');
-        words(c, 0, 0.12, 'Filed by QA', 0.065, C.ink);
+        words(c, 'OUT OF ORDER', 0, -0.02, 0.11, C.red, 'Bagel Fat One');
+        words(c, 'Filed by QA', 0, 0.12, 0.065, C.ink);
+        c.restore();
+      });
+      // QA's ticket on it (Dev and QA's bug board has the other copy).
+      onFace(ctx, 'x', 53.33, 1.33, 1.42, (c) => {
+        c.save(); c.rotate(-0.08);
+        sheet(c, -0.15, -0.15, 0.3, 0.3, INK.sticky, 0.02);
+        if (Q.detail) { words(c, 'BUG', 0, -0.06, 0.09, C.ink); words(c, '#' + 411, 0, 0.07, 0.09, C.red); }
         c.restore();
       });
       // The donut box (a regional chain's lookalike), two left.
       box(ctx, 53.6, 0.72, 1.11, 0.85, 0.6, 0.14, C.pink, { flat: true, lw: 0.025 });
       face(ctx, [[53.6, 0.72, 1.25], [54.45, 0.72, 1.25], [54.45, 0.56, 1.82], [53.6, 0.56, 1.82]], C.pink, { lw: 0.025 });
-      onX(ctx, 53.6, 0.7, 1.62, (c) => words(c, 0.42, 0, 'DUNKER\'S', 0.13, C.coral, 'Bagel Fat One'));
+      onFace(ctx, 'x', 53.6, 0.7, 1.62, (c) => words(c, 'DUNKER\'S', 0.42, 0, 0.13, C.coral, 'Bagel Fat One'));
       for (const [dx, dy, col] of [[53.85, 1.05, C.mustard], [54.17, 1.1, C.pink]]) {
         disc(ctx, dx, dy, 1.27, 0.15, tint(C.wood, 0.1), { lw: 0.02 });
         disc(ctx, dx, dy, 1.29, 0.12, col, { stroke: false });
@@ -704,13 +664,13 @@ export default {
       const { x0, x1, y0, y1 } = ISL;
       box(ctx, x0 + 0.1, y0 + 0.1, 0, x1 - x0 - 0.2, y1 - y0 - 0.2, 1.04, tint(C.teal, 0.25), { flat: true, lw: 0.035 });
       box(ctx, x0, y0, 1.04, x1 - x0, y1 - y0, 0.08, C.white, { flat: true, lw: 0.035 });
-      onX(ctx, x0 + 0.1, y1 - 0.095, 1.04, (c) => {
+      onFace(ctx, 'x', x0 + 0.1, y1 - 0.095, 1.04, (c) => {
         // Bunting and the banner.
         const n = 7;
         for (let i = 0; i < n; i++) { c.beginPath(); c.moveTo(0.05 + i * 0.3, 0.02); c.lineTo(0.33 + i * 0.3, 0.02); c.lineTo(0.19 + i * 0.3, 0.24); c.closePath(); paint(c, [C.pink, C.mustard, C.sky, C.coral][i % 4], { lw: 0.015 }); }
         sheet(c, 0.1, 0.34, 1.9, 0.5, C.white);
-        words(c, 1.05, 0.48, 'HAPPY BIRTHDAY', 0.19, PRIMAL, 'Bagel Fat One');
-        words(c, 1.05, 0.7, 'STEVE', 0.2, C.purple, 'Bagel Fat One');
+        words(c, 'HAPPY BIRTHDAY', 1.05, 0.48, 0.19, PRIMAL, 'Bagel Fat One');
+        words(c, 'STEVE', 1.05, 0.7, 0.2, C.purple, 'Bagel Fat One');
       });
       // The cake stand, the plate with the slice, forks, napkins.
       disc(ctx, 50.55, 4.3, 1.13, 0.52, C.white, { lw: 0.025 });
@@ -770,19 +730,19 @@ export default {
     room(R, PITCH[0], PITCH[1], PITCH[2], PITCH[3], '', { door: 47.7, back: true, table: false });
     // Its sign on the glass, and the welcome board outside.
     R.thing(44.5, 18.6, (ctx) => {
-      onX(ctx, 43.3, 18.52, 1.95, (c) => {
-        words(c, 1.2, 0, 'PITCH ROOM', 0.26, C.ink, 'Bagel Fat One');
-        words(c, 1.2, 0.22, 'booked all day (Dana)', 0.1, C.ink);
+      onFace(ctx, 'x', 43.3, 18.52, 1.95, (c) => {
+        words(c, 'PITCH ROOM', 1.2, 0, 0.26, C.ink, 'Bagel Fat One');
+        words(c, 'booked all day (Dana)', 1.2, 0.22, 0.1, C.ink);
       });
     }, { depth: 63.9 });
     R.thing(51.0, 17.45, (ctx) => {
       for (const [lx, ly] of [[50.45, 17.25], [51.5, 17.25]]) box(ctx, lx, ly, 0, 0.06, 0.06, 1.0, C.wood, { flat: true, lw: 0.02 });
       box(ctx, 50.95, 17.0, 0, 0.06, 0.06, 2.0, C.wood, { flat: true, lw: 0.02 });
       box(ctx, 50.3, 17.32, 0.95, 1.4, 0.06, 1.1, C.white, { flat: true, lw: 0.03 });
-      onX(ctx, 50.3, 17.385, 2.05, (c) => {
-        words(c, 0.7, 0.16, 'WELCOME,', 0.13, C.ink);
-        words(c, 0.7, 0.4, 'GANDER', 0.24, BRAND.can, 'Bagel Fat One');
-        words(c, 0.7, 0.66, 'COLA!', 0.24, BRAND.can, 'Bagel Fat One');
+      onFace(ctx, 'x', 50.3, 17.385, 2.05, (c) => {
+        words(c, 'WELCOME,', 0.7, 0.16, 0.13, C.ink);
+        words(c, 'GANDER', 0.7, 0.4, 0.24, BRAND.can, 'Bagel Fat One');
+        words(c, 'COLA!', 0.7, 0.66, 0.24, BRAND.can, 'Bagel Fat One');
         goosePic(c, 0.66, 1.0, 0.2);
       });
     });
@@ -795,7 +755,7 @@ export default {
       box(ctx, 40.32, 20.35, 1.05, 0.18, 3.3, 1.6, C.black, { flat: true, lw: 0.035 });
       // The box of cables behind it.
       box(ctx, 40.25, 18.75, 0, 0.95, 0.7, 0.55, C.woodLight, { flat: true, lw: 0.03, top: tint(C.woodLight, 0.15) });
-      onX(ctx, 40.25, 19.455, 0.4, (c) => words(c, 0.47, 0.15, 'CABLES?', 0.13, C.ink));
+      onFace(ctx, 'x', 40.25, 19.455, 0.4, (c) => words(c, 'CABLES?', 0.47, 0.15, 0.13, C.ink));
       if (Q.detail) {
         ctx.lineCap = 'round';
         for (const [col, a, b] of [[C.ink, 0.2, 0.5], [C.white, 0.5, 0.3], [C.red, 0.7, 0.6]]) {
@@ -813,7 +773,7 @@ export default {
       box(ctx, 43.25, 21.95, 1.13, 0.55, 0.75, 0.03, C.grey, { flat: true, lw: 0.02 });
       face(ctx, [[43.27, 21.97, 1.16], [43.27, 22.68, 1.16], [43.17, 22.68, 1.62], [43.17, 21.97, 1.62]], C.grey, { lw: 0.025 });
       face(ctx, [[43.29, 22.02, 1.2], [43.29, 22.63, 1.2], [43.2, 22.63, 1.58], [43.2, 22.02, 1.58]], BRAND.can, { stroke: false });
-      onY(ctx, 43.3, 22.6, 1.42, (c) => words(c, 0.29, 0, 'GANDER', 0.09, C.white, 'Bagel Fat One'));
+      onFace(ctx, 'y', 43.3, 22.6, 1.42, (c) => words(c, 'GANDER', 0.29, 0, 0.09, C.white, 'Bagel Fat One'));
       // A six-pack of Gander Cola.
       for (let i = 0; i < 6; i++) cylinder(ctx, 46.9 + (i % 3) * 0.17, 22.45 + Math.floor(i / 3) * 0.17, 1.13, 0.07, 0.24, BRAND.can, { top: C.greyLight });
     }, { depth: 69.1 });
@@ -828,8 +788,8 @@ export default {
       cylinder(ctx, 51.5, 22.6, 1.13, 0.11, 0.4, tint(C.sky, 0.4), { top: C.sky });
     }, { depth: 73.8 });
     for (const px of PLACES) {
-      R.thing(px, 20.5, (ctx) => seatY(ctx, px, 20.6, -1, CHAIR));
-      R.thing(px, 24.9, (ctx) => seatY(ctx, px, 24.5, 1, CHAIR));
+      R.thing(px, 20.5, (ctx) => drawChairY(ctx, px, 20.6, 0, CHAIR, -1));
+      R.thing(px, 24.9, (ctx) => drawChairY(ctx, px, 24.5, 0, CHAIR, 1));
     }
     // The water glasses, laid out one by one in the afternoon (Bea, below).
     const GLASSES = [[49, 22.05], [51.2, 22.05], [51.2, 23.15], [49, 23.15], [46.8, 23.15], [46.8, 22.05], [44.6, 23.15], [44.6, 22.05]];
@@ -1004,6 +964,52 @@ export default {
     };
     const chatA = chatter([46.7, 10.35], 'r', 0.3, [[47.7, 17.4], [47.7, 19.4], [50.0, 25.05]], folk(580, { top: C.coral, dress: false }), 0);
     const chatB = chatter([48.25, 10.05], 'l', 0.6, [[48.2, 17.4], [48.1, 19.4], [51.4, 25.05]], folk(583, { top: C.purple }), 1);
+
+    // ---------- The client's cola, for the pitch ----------
+    // Three cases stacked by the pitch room, the top one open and short by a
+    // few cans already, and a sign nobody reads.
+    R.thing(41.1, 16.7, (ctx) => {
+      for (let i = 0; i < 3; i++) {
+        const x = 40.4 + (i === 1 ? 0.08 : 0), y = 15.9 - (i === 2 ? 0.06 : 0), z = i * 0.34;
+        box(ctx, x, y, z, 1.3, 0.7, 0.34, BRAND.can, { flat: true, lw: 0.025 });
+        face(ctx, [[x, y + 0.701, z + 0.12], [x + 1.3, y + 0.701, z + 0.12], [x + 1.3, y + 0.701, z + 0.2], [x, y + 0.701, z + 0.2]], C.white, { stroke: false });
+      }
+      // The open case: cans, and the gaps where cans were.
+      for (let k = 0; k < 6; k++) {
+        if (k === 1 || k === 4) continue;
+        cylinder(ctx, 40.62 + (k % 3) * 0.4, 16.07 + Math.floor(k / 3) * 0.34, 1.02, 0.12, 0.2, BRAND.can, { top: tint(C.grey, 0.4) });
+      }
+      // The sign, on a stick.
+      box(ctx, 41.75, 16.62, 0, 0.05, 0.05, 1.5, C.wood, { flat: true, lw: 0.015 });
+      face(ctx, [[41.3, 16.68, 1.15], [42.2, 16.68, 1.15], [42.2, 16.68, 1.6], [41.3, 16.68, 1.6]], C.white, { lw: 0.02 });
+      if (Q.detail) onFace(ctx, 'x', 41.75, 16.69, 1.375, (c) => {
+        words(c, 'FOR THE PITCH', 0, -0.08, 0.1, C.ink);
+        words(c, 'DO NOT DRINK', 0, 0.08, 0.1, C.red);
+      });
+    });
+
+    // ---------- The lunch and learn ----------
+    // A high table by the kitchen, two stools, a plate of crackers, and the
+    // sign that explains why nobody came.
+    R.thing(54.2, 9.6, (ctx) => {
+      box(ctx, 54.13, 8.93, 0, 0.14, 0.14, 1.1, C.ink, { flat: true, stroke: false });
+      cylinder(ctx, 54.2, 9.0, 1.1, 0.55, 0.06, C.white);
+      disc(ctx, 54.05, 8.95, 1.17, 0.2, C.white, { lw: 0.015 });
+      if (Q.detail) for (let i = 0; i < 5; i++) disc(ctx, 54.0 + (i % 3) * 0.09, 8.9 + Math.floor(i / 3) * 0.1, 1.18, 0.045, C.woodLight, { lw: 0.01 });
+    });
+    for (const [sx, sy] of [[53.3, 9.3], [55.1, 9.1]]) R.thing(sx, sy + 0.2, (ctx) => {
+      box(ctx, sx - 0.03, sy - 0.03, 0, 0.06, 0.06, 0.8, C.ink, { flat: true, stroke: false });
+      cylinder(ctx, sx, sy, 0.8, 0.22, 0.08, PRIMAL);
+    });
+    R.thing(54.6, 10.85, (ctx) => {
+      face(ctx, [[54.0, 10.75, 0], [55.2, 10.75, 0], [55.2, 10.6, 1.25], [54.0, 10.6, 1.25]], C.white, { lw: 0.025 });
+      if (Q.detail) onFace(ctx, [[1, 0, 0], [0, 0.12, -1]], 54.6, 10.63, 1.12, (c) => {
+        words(c, 'LUNCH & LEARN', 0, 0, 0.13, PRIMAL, 'Bagel Fat One', 400);
+        words(c, 'TODAY: SYNERGY', 0, 0.22, 0.1, C.ink);
+        words(c, '(LUNCH NOT', 0, 0.42, 0.09, C.ink);
+        words(c, 'PROVIDED)', 0, 0.56, 0.09, C.ink);
+      });
+    });
 
     // ---------- Desks by the front windows ----------
     staff(R, pod(R, 36, 'front', 3), 545, { empty: [3], kinds: ['email', 'sheet', 'email', 'shop', 'email', 'calendar'] });

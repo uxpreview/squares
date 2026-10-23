@@ -13,10 +13,9 @@
 // The area's chunks meet at x 96 and y 16 (zone.js, chunksOf): anything wide
 // and tall keeps a unit clear, and what stands on the duck desk (which runs
 // over y 16) is drawn by the front chunk, with the desk.
-import { C, Q, box, face, paint, paintText, person, folk, alpha, tint, shade, mix, speech, cylinder, goose as drawGoose, label, P, HAIR } from '../../../engine/art.js';
-import { ZK } from '../../../engine/iso.js';
+import { C, Q, box, rect, face, paint, paintText, person, folk, alpha, tint, shade, mix, speech, cylinder, goose as drawGoose, label, P, HAIR } from '../../../engine/art.js';
 import { INK, TONE, CHAIR } from '../style.js';
-import { floorOf, backWall, sill, pod, staff, screen, drawDesk, drawChair, clutter, mug, papers, plant } from '../kit.js';
+import { floorOf, backWall, sill, pod, staff, screen, drawDesk, drawChair, clutter, mug, papers, plant, onFace, words, along, pathLength, SILL } from '../kit.js';
 import { bearOClock, H, dev, rushK, seated, nightK, LOOP } from '../clock.js';
 
 // The deploy's progress: up all day, stuck at 99% from about 4:45, rolled
@@ -35,30 +34,8 @@ function deployWord(t) {
 }
 
 const wrap = (t) => (((t % LOOP) + LOOP) % LOOP);
-const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 
 // ---------- Little helpers ----------
-// Draw on a face along x (toward +y) or along y (toward +x), centered at
-// (x, y, z), in world units: u runs left to right as we see it, v down.
-function plane(ctx, along, x, y, z, fn) {
-  ctx.save();
-  if (along === 'x') ctx.transform(1, 0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
-  else ctx.transform(1, -0.5, 0, ZK, x - y, (x + y) / 2 - z * ZK);
-  fn(ctx);
-  ctx.restore();
-}
-// Words in a plane's units.
-function txt(ctx, s, u, v, size, color, align = 'center', font = 'Rethink Sans', weight = 700) {
-  ctx.save();
-  ctx.translate(u, v);
-  ctx.scale(1 / 40, 1 / 40);
-  ctx.font = `${weight} ${size * 40}px "${font}", "Arial Black", sans-serif`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  ctx.fillText(s, 0, 0);
-  ctx.restore();
-}
 function prect(ctx, u0, v0, w, h, fill, o = {}) {
   ctx.beginPath();
   ctx.rect(u0, v0, w, h);
@@ -66,31 +43,14 @@ function prect(ctx, u0, v0, w, h, fill, o = {}) {
 }
 // One of QA's tickets: a sticky square saying BUG and its number.
 function ticket(ctx, along, x, y, z, num, col = INK.sticky) {
-  plane(ctx, along, x, y, z, (g) => {
+  onFace(ctx, along, x, y, z, (g) => {
     prect(g, -0.17, -0.17, 0.34, 0.34, col);
     if (Q.detail) {
-      txt(g, 'BUG', 0, -0.07, 0.1, C.ink);
-      txt(g, '#' + num, 0, 0.07, 0.1, C.red);
+      words(g, 'BUG', 0, -0.07, 0.1, C.ink);
+      words(g, '#' + num, 0, 0.07, 0.1, C.red);
     }
   });
 }
-// Walk a path of [x, y] points, k from 0 to 1; returns [x, y, dx, dy].
-function along(pts, k) {
-  const seg = [];
-  let L = 0;
-  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(l); L += l; }
-  let d = clamp(k) * L;
-  for (let i = 0; i < seg.length; i++) {
-    if (d <= seg[i] || i === seg.length - 1) {
-      const u = seg[i] ? Math.min(1, d / seg[i]) : 1, [ax, ay] = pts[i], [bx, by] = pts[i + 1];
-      return [ax + (bx - ax) * u, ay + (by - ay) * u, bx - ax, by - ay];
-    }
-    d -= seg[i];
-  }
-  return [...pts[pts.length - 1], 0, 0];
-}
-const pathLen = (pts) => pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
-
 // Hoodies and headphones, for people's looks (person's wear and face).
 function hoodie(color) {
   return (ctx, b) => {
@@ -173,6 +133,27 @@ export default {
     backWall(R, 88, 104);
     sill(R, 88, 104, { end: true });
 
+    // ---------- The end of UX's journey map ----------
+    // Their paper strip runs out of UX along the floor, and its last stage is
+    // over here: whatever the user couldn't do, it's Dev's problem now.
+    R.rug((ctx) => {
+      rect(ctx, 88, 18.7, 2.7, 0.8, 0.008, C.white, { lw: 0.025 });
+      paintText(ctx, 'floor', 89.4, 18.88, 'BLAME DEV', 0.17, C.ink);
+      const [ax, ay] = P(88, 19.39, 0.012), [bx, by] = P(89.4, 19.44, 0.012);
+      ctx.strokeStyle = C.coral; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      onFace(ctx, 'floor', 89.4, 19.44, 0.014, (g) => {
+        g.beginPath(); g.arc(0, 0, 0.13, 0, Math.PI * 2); paint(g, C.coralLight, { lw: 0.02 });
+        g.fillStyle = C.ink; g.fillRect(-0.06, -0.05, 0.025, 0.025); g.fillRect(0.035, -0.05, 0.025, 0.025);
+        g.strokeStyle = C.ink; g.lineWidth = 0.02; g.beginPath(); g.moveTo(-0.06, 0.07); g.lineTo(0.06, 0.04); g.stroke();
+      });
+    });
+    // Its end, rolled up.
+    R.thing(90.75, 19.5, (ctx) => {
+      box(ctx, 90.6, 18.65, 0, 0.3, 0.9, 0.28, C.white, { flat: true, lw: 0.025 });
+      const [X, Y] = P(90.9, 19.1, 0.14);
+      ctx.beginPath(); ctx.ellipse(X, Y, 0.05, 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = C.wood; ctx.fill();
+    });
+
     // ---------- On the floor ----------
     R.rug((ctx) => {
       // Cables from the closet to the desks and the screen, taped down
@@ -232,15 +213,15 @@ export default {
     // gets them up, and the bear turns up halfway through it.
     BACK_SEATS.forEach((b, j) => {
       const look = devLook(580 + j, j, { face: headphones([C.coral, C.mustard, C.teal, C.white][j]), scale: b.tall ? 1.14 : 1, style: ['short', 'curly', 'pony', 'short'][j] });
-      const L = pathLen(b.path), dur = L / UP_SPEED;
+      const L = pathLength(b.path), dur = L / UP_SPEED;
       const go = UP_GO + j * 0.7, back = UP_BACK + j * 0.4;
       const spot = b.path[b.path.length - 1];
       R.mover((t) => {
         if (!dev(t)) return { x: b.x, y: b.y, gone: true };
         const s = wrap(t);
-        if (s >= go && s < go + dur) { const [x, y, dx, dy] = along(b.path, (s - go) / dur); return { x, y, moving: true, dir: dx - dy > 0 ? 'r' : 'l', back: false }; }
+        if (s >= go && s < go + dur) { const { x, y, dx, dy } = along(b.path, (s - go) / dur); return { x, y, moving: true, dir: dx - dy > 0 ? 'r' : 'l', back: false }; }
         if (s >= go + dur && s < back) return { x: spot[0], y: spot[1], up: true };
-        if (s >= back && s < back + dur) { const [x, y, dx, dy] = along([...b.path].reverse(), (s - back) / dur); return { x, y, moving: true, dir: dx - dy > 0 ? 'r' : 'l', back: dx + dy < 0 }; }
+        if (s >= back && s < back + dur) { const { x, y, dx, dy } = along([...b.path].reverse(), (s - back) / dur); return { x, y, moving: true, dir: dx - dy > 0 ? 'r' : 'l', back: dx + dy < 0 }; }
         return { x: b.stand[0], y: b.stand[1], desk: true };
       }, (ctx, t, p) => {
         if (p.gone) return;
@@ -274,20 +255,20 @@ export default {
         }
         box(ctx, x - 0.02, y0, 0.85, 0.1, y1 - y0, 1.55, C.white, { flat: true, lw: 0.035 });
         box(ctx, x + 0.08, y0 + 0.3, 0.85, 0.12, y1 - y0 - 0.6, 0.06, C.grey, { flat: true, lw: 0.02 });
-        plane(ctx, 'y', x + 0.085, (y0 + y1) / 2, 1.62, (g) => {
+        onFace(ctx, 'y', x + 0.085, (y0 + y1) / 2, 1.62, (g) => {
           g.lineCap = 'round'; g.lineJoin = 'round';
-          txt(g, 'THE ARCHITECTURE', -0.9, -0.6, 0.15, C.navy, 'center');
-          txt(g, '(DO NOT ERASE)', 0.95, -0.6, 0.12, C.red, 'center');
-          const boxAt = (u, v, w, s, col) => { g.beginPath(); g.rect(u - w / 2, v - 0.14, w, 0.28); g.strokeStyle = col; g.lineWidth = 0.035; g.stroke(); txt(g, s, u, v, 0.13, col); };
+          words(g, 'THE ARCHITECTURE', -0.9, -0.6, 0.15, C.navy);
+          words(g, '(DO NOT ERASE)', 0.95, -0.6, 0.12, C.red);
+          const boxAt = (u, v, w, s, col) => { g.beginPath(); g.rect(u - w / 2, v - 0.14, w, 0.28); g.strokeStyle = col; g.lineWidth = 0.035; g.stroke(); words(g, s, u, v, 0.13, col); };
           boxAt(-1.25, -0.2, 0.6, 'API', C.navy);
           boxAt(1.15, -0.25, 0.5, 'DB', C.teal);
           boxAt(-1.2, 0.45, 0.7, 'AUTH', C.navy);
-          txt(g, '???', 0.05, 0.12, 0.2, C.red);
+          words(g, '???', 0.05, 0.12, 0.2, C.red);
           // A cloud that says MAGIC.
           g.beginPath();
           for (const [cu, cv, r] of [[0.95, 0.42, 0.14], [1.15, 0.36, 0.17], [1.38, 0.43, 0.13], [1.15, 0.5, 0.14]]) { g.moveTo(cu + r, cv); g.arc(cu, cv, r, 0, Math.PI * 2); }
           g.fillStyle = C.white; g.fill(); g.strokeStyle = C.purple; g.lineWidth = 0.03; g.stroke();
-          txt(g, 'MAGIC', 1.15, 0.43, 0.1, C.purple);
+          words(g, 'MAGIC', 1.15, 0.43, 0.1, C.purple);
           const arrow = (pts, col) => {
             g.beginPath(); g.moveTo(...pts[0]);
             if (pts.length === 3) g.quadraticCurveTo(...pts[1], ...pts[2]); else g.lineTo(...pts[1]);
@@ -317,15 +298,15 @@ export default {
         // A vent on the roof, and the door's frame.
         box(ctx, x0 + 1.2, y0 + 1.4, h, 1.0, 1.0, 0.18, C.grey, { flat: true, lw: 0.025 });
         face(ctx, [[door[0] - 0.08, y1 + 0.005, 0], [door[1] + 0.08, y1 + 0.005, 0], [door[1] + 0.08, y1 + 0.005, 2.3], [door[0] - 0.08, y1 + 0.005, 2.3]], shade(wall, 0.4), { lw: 0.03 });
-        plane(ctx, 'x', (door[0] + door[1]) / 2, y1 + 0.01, 2.5, (g) => txt(g, 'SERVERS', 0, 0, 0.2, C.ink));
+        onFace(ctx, 'x', (door[0] + door[1]) / 2, y1 + 0.01, 2.5, (g) => words(g, 'SERVERS', 0, 0, 0.2, C.ink));
         // The vent grille left of the door (its lights blink: below).
         face(ctx, [[x0 + 0.12, y1 + 0.01, 1.1], [x0 + 0.62, y1 + 0.01, 1.1], [x0 + 0.62, y1 + 0.01, 2.1], [x0 + 0.12, y1 + 0.01, 2.1]], C.black, { lw: 0.025 });
         // DAYS SINCE LAST INCIDENT: 0.
         face(ctx, [[door[1] + 0.22, y1 + 0.01, 1.15], [x1 - 0.12, y1 + 0.01, 1.15], [x1 - 0.12, y1 + 0.01, 2.15], [door[1] + 0.22, y1 + 0.01, 2.15]], C.white, { lw: 0.025 });
-        plane(ctx, 'x', (door[1] + 0.22 + x1 - 0.12) / 2, y1 + 0.015, 1.65, (g) => {
-          txt(g, 'DAYS SINCE', 0, -0.36, 0.11, C.ink);
-          txt(g, 'LAST INCIDENT', 0, -0.23, 0.11, C.ink);
-          txt(g, '0', 0, 0.12, 0.5, C.red, 'center', 'Rethink Sans', 800);
+        onFace(ctx, 'x', (door[1] + 0.22 + x1 - 0.12) / 2, y1 + 0.015, 1.65, (g) => {
+          words(g, 'DAYS SINCE', 0, -0.36, 0.11, C.ink);
+          words(g, 'LAST INCIDENT', 0, -0.23, 0.11, C.ink);
+          words(g, '0', 0, 0.12, 0.5, C.red, 'Rethink Sans', 800);
         });
       });
       // The door (and what's behind it), the blinking lights, and the heat.
@@ -434,27 +415,27 @@ export default {
         box(ctx, x0, y, 1.0, x1 - x0, 0.3, 2.0, C.black, { flat: true, lw: 0.04 });
         // NO DEPLOYS ON FRIDAYS, right over it.
         box(ctx, x0 + 0.1, y + 0.05, 3.12, x1 - x0 - 0.2, 0.12, 0.58, C.red, { flat: true, lw: 0.035 });
-        plane(ctx, 'x', cx, y + 0.18, 3.41, (g) => txt(g, 'NO DEPLOYS ON FRIDAYS', 0, 0, 0.3, C.white, 'center', 'Rethink Sans', 800));
+        onFace(ctx, 'x', cx, y + 0.18, 3.41, (g) => words(g, 'NO DEPLOYS ON FRIDAYS', 0, 0, 0.3, C.white, 'Rethink Sans', 800));
         // Someone's sticky on the sign.
-        plane(ctx, 'x', x1 - 0.35, y + 0.19, 3.08, (g) => {
+        onFace(ctx, 'x', x1 - 0.35, y + 0.19, 3.08, (g) => {
           g.save(); g.rotate(0.12); prect(g, -0.28, -0.2, 0.56, 0.4, INK.sticky);
-          txt(g, 'JUST THIS', 0, -0.07, 0.09, C.ink); txt(g, 'ONCE', 0, 0.07, 0.09, C.ink); g.restore();
+          words(g, 'JUST THIS', 0, -0.07, 0.09, C.ink); words(g, 'ONCE', 0, 0.07, 0.09, C.ink); g.restore();
         });
       });
       R.thing(cx, y + 0.51, (ctx, t) => {
         const word = deployWord(t), touched = dep.k() > 0.5;
         // Rolling back drains the bar, in red.
         const p = word === 'ROLLING BACK' ? Math.max(0, Math.round(99 * (1 - (H(t) - 16.92) / 0.2))) : deploy(t);
-        plane(ctx, 'x', cx, y + 0.305, 2.0, (g) => {
+        onFace(ctx, 'x', cx, y + 0.305, 2.0, (g) => {
           prect(g, -2.25, -0.88, 4.5, 1.76, C.ink, { stroke: false });
           if (touched) {
-            txt(g, 'DO NOT TOUCH', 0, -0.1, 0.5, C.red, 'center', 'Rethink Sans', 800);
-            txt(g, 'This means you.', 0, 0.4, 0.2, C.white);
+            words(g, 'DO NOT TOUCH', 0, -0.1, 0.5, C.red, 'Rethink Sans', 800);
+            words(g, 'This means you.', 0, 0.4, 0.2, C.white);
             return;
           }
           const back = word === 'ROLLING BACK';
-          txt(g, word, -2.0, -0.5, 0.3, back && Math.floor(t * 3) % 2 ? C.red : C.white, 'left', 'Rethink Sans', 800);
-          txt(g, `${p}%`, 2.0, -0.45, 0.55, INK.sticky, 'right', 'Rethink Sans', 800);
+          words(g, word, -2.0, -0.5, 0.3, back && Math.floor(t * 3) % 2 ? C.red : C.white, 'Rethink Sans', 800, 'left');
+          words(g, `${p}%`, 2.0, -0.45, 0.55, INK.sticky, 'Rethink Sans', 800, 'right');
           // The bar.
           prect(g, -2.0, -0.08, 4.0, 0.36, C.black, { stroke: C.white, lw: 0.035 });
           const blinkOn = p < 99 || Math.floor(t * 2) % 2 === 0;
@@ -466,7 +447,7 @@ export default {
               const w = 0.6 + ((n + i) * 37 % 100) / 50;
               prect(g, -2.0, 0.42 + i * 0.13, w, 0.06, i === 2 ? C.tealLight : C.grey, { stroke: false });
             }
-            txt(g, 'ETA: 2 MIN', 2.0, 0.6, 0.15, C.tealLight, 'right');
+            words(g, 'ETA: 2 MIN', 2.0, 0.6, 0.15, C.tealLight, 'Rethink Sans', 700, 'right');
           }
         });
       }, { anim: true });
@@ -537,7 +518,7 @@ export default {
           }
         }
       }, { anim: true, depth: CAN.x + 16.22 });
-      R.find({ id: 'duck', label: 'A rubber duck', at: [92.2, 15.75, 1.35], r: 0.6, hint: 'Someone in Dev is explaining their code to a very good listener.' });
+      R.find({ id: 'duck', label: 'A rubber duck', at: [92.2, 15.75, 1.35], r: 0.8, hint: 'Someone in Dev is explaining their code to a very good listener.' });
       R.find({ id: 'energy', label: 'A pyramid of energy drinks', at: (t) => [CAN.x, CAN.y, 1.1 + rows(t) * 0.1], r: 0.8, hint: 'Dev runs on something green and fizzy, and they keep the empties.' });
       // Zzz, drifting out from under the desk.
       R.thing(92.8, 16.9, (ctx, t) => {
@@ -557,7 +538,7 @@ export default {
         const pizza = H(t) >= 20.15;
         const pose = pizza ? 'carry' : ['point', 'wave', 'read', 'point', 'stand'][Math.floor(t / 1.7) % 5];
         person(ctx, p.x, p.y, 0, { ...look, pose, dir: 'l', speed: 5, hold: pizza ? slice : null }, t);
-        if (Q.detail && !pizza && t % 17 < 2.8) speech(ctx, p.x, p.y, 2.75, LINES[Math.floor(t / 17) % LINES.length], { size: 0.42 });
+        if (Q.detail && !pizza && t % 17 < 2.8) speech(ctx, p.x, p.y, 2.75, LINES[Math.floor(t / 17) % LINES.length], { size: 0.36 });
       });
     }
 
@@ -576,7 +557,7 @@ export default {
           face(ctx, [[bx, fy + 0.01, 0.56], [bx + 0.11, fy + 0.01, 0.56], [bx + 0.11, fy + 0.01, 0.56 + hh], [bx, fy + 0.01, 0.56 + hh]], cols[i], { lw: 0.015 });
         }
         face(ctx, [[x0 + 0.15, fy + 0.01, 0.11], [x0 + 0.85, fy + 0.01, 0.11], [x0 + 0.85, fy + 0.01, 0.4], [x0 + 0.15, fy + 0.01, 0.4]], C.woodLight, { lw: 0.02 });
-        plane(ctx, 'x', x0 + 0.5, fy + 0.015, 0.26, (g) => txt(g, 'CABLES?', 0, 0, 0.1, C.brown));
+        onFace(ctx, 'x', x0 + 0.5, fy + 0.015, 0.26, (g) => words(g, 'CABLES?', 0, 0, 0.1, C.brown));
         face(ctx, [[x0 + 0.95, fy + 0.01, 0.11], [x0 + 1.35, fy + 0.01, 0.11], [x0 + 1.35, fy + 0.01, 0.22], [x0 + 0.95, fy + 0.01, 0.22]], C.ink, { lw: 0.015 });
         // On top: the plush goose, with its ribbon, and a little cactus.
         drawGoose(ctx, 97.45, 15.3, h, 0, { pose: 'sit', dir: 'l', scale: 0.72 });
@@ -596,21 +577,23 @@ export default {
       const fy = 1.255;
       face(ctx, [[95.03, fy, 0.08], [95.87, fy, 0.08], [95.87, fy, 0.97], [95.03, fy, 0.97]], tint(C.sky, 0.35), { lw: 0.025 });
       for (const z0 of [0.18, 0.5]) for (let i = 0; i < 5; i++) face(ctx, [[95.1 + i * 0.15, fy + 0.005, z0], [95.2 + i * 0.15, fy + 0.005, z0], [95.2 + i * 0.15, fy + 0.005, z0 + 0.22], [95.1 + i * 0.15, fy + 0.005, z0 + 0.22]], C.leaf, { lw: 0.012 });
-      plane(ctx, 'x', 95.45, fy + 0.01, 0.88, (g) => txt(g, 'DEV ONLY', 0, 0, 0.09, C.red));
+      onFace(ctx, 'x', 95.45, fy + 0.01, 0.88, (g) => words(g, 'DEV ONLY', 0, 0, 0.09, C.red));
     });
-    // A beanbag, with somebody's hoodie on it.
+    // Mechanical keyboards, still in their boxes: the ones that were "too
+    // loud", "not loud enough" and "the wrong kind of loud".
     R.thing(89.1, 4.9, (ctx) => {
-      const [X, Y] = P(89.0, 4.6, 0);
-      ctx.beginPath(); ctx.ellipse(X, Y - 0.3, 0.62, 0.38, 0, 0, Math.PI * 2); paint(ctx, C.mustard, { dots: shade(C.mustard, 0.4), density: 0.18 });
-      ctx.beginPath(); ctx.ellipse(X - 0.05, Y - 0.5, 0.36, 0.16, 0.1, 0, Math.PI * 2); paint(ctx, C.purple, { lw: 0.025 });
-      ctx.beginPath(); ctx.ellipse(X + 0.25, Y - 0.38, 0.1, 0.18, 0.6, 0, Math.PI * 2); paint(ctx, C.purple, { lw: 0.02 });
+      ['TOO LOUD', 'NOT LOUD', 'WRONG LOUD'].forEach((w, i) => {
+        const z = i * 0.16, x = 88.55 + (i % 2) * 0.06;
+        box(ctx, x, 4.35, z, 1.1, 0.42, 0.16, [C.ink, C.white, C.teal][i], { flat: true, lw: 0.02 });
+        if (Q.detail) onFace(ctx, 'x', x + 0.55, 4.775, z + 0.08, (g) => words(g, w, 0, 0, 0.075, i === 1 ? C.ink : C.white));
+      });
     });
     // The robot vacuum, doing laps of the empty bit of floor (BUG #399:
     // "it is afraid of the shelf").
     R.mover((t) => {
       const pts = [[99.6, 13.0], [103.1, 13.0], [103.1, 17.6], [99.6, 17.6], [99.6, 13.0]];
-      const L = pathLen(pts), k = ((t * 0.55) % L) / L;
-      const [x, y] = along(pts, k);
+      const L = pathLength(pts), k = ((t * 0.55) % L) / L;
+      const { x, y } = along(pts, k);
       return { x, y };
     }, (ctx, t, p) => {
       cylinder(ctx, p.x, p.y, 0, 0.3, 0.12, C.ink, { top: shade(C.grey, 0.3), flat: true });
@@ -633,7 +616,7 @@ export default {
       });
       const pbox = (ctx, x, y, z, open, slices) => {
         box(ctx, x, y, z, 0.8, 0.8, 0.1, C.white, { flat: true, lw: 0.025 });
-        if (!open) { plane(ctx, 'x', x + 0.4, y + 0.81, z + 0.05, (g) => txt(g, 'PIZZA', 0, 0, 0.07, C.red)); return; }
+        if (!open) { onFace(ctx, 'x', x + 0.4, y + 0.81, z + 0.05, (g) => words(g, 'PIZZA', 0, 0, 0.07, C.red)); return; }
         // The lid up at the back, and what's left.
         face(ctx, [[x, y, z + 0.1], [x + 0.8, y, z + 0.1], [x + 0.8, y - 0.05, z + 0.85], [x, y - 0.05, z + 0.85]], tint(C.white, 0.1), { lw: 0.025 });
         if (slices > 0) {
@@ -672,13 +655,13 @@ export default {
           box(ctx, x + 0.15, y, 0.05, 0.1, 0.1, 0.85, C.ink, { flat: true, stroke: false });
         }
         box(ctx, x, y0, 0.85, 0.4, y1 - y0, 1.6, C.wood, { flat: true, lw: 0.035 });
-        plane(ctx, 'y', fx, cy, 1.65, (g) => {
+        onFace(ctx, 'y', fx, cy, 1.65, (g) => {
           prect(g, -1.9, -0.7, 3.8, 1.4, C.woodLight, { lw: 0.025, dots: shade(C.woodLight, 0.3), density: 0.25 });
-          txt(g, 'BUGS', -1.85, -0.55, 0.16, C.red, 'left', 'Rethink Sans', 800);
-          txt(g, '411 AND COUNTING', 1.85, -0.55, 0.11, C.ink, 'right');
-          txt(g, 'NEW', -0.6, -0.33, 0.1, C.ink);
-          txt(g, 'WONTFIX', 0.55, -0.33, 0.1, C.ink);
-          txt(g, 'FIXED', 1.45, -0.33, 0.1, C.ink);
+          words(g, 'BUGS', -1.85, -0.55, 0.16, C.red, 'Rethink Sans', 800, 'left');
+          words(g, '411 AND COUNTING', 1.85, -0.55, 0.11, C.ink, 'Rethink Sans', 700, 'right');
+          words(g, 'NEW', -0.6, -0.33, 0.1, C.ink);
+          words(g, 'WONTFIX', 0.55, -0.33, 0.1, C.ink);
+          words(g, 'FIXED', 1.45, -0.33, 0.1, C.ink);
           // The other columns: tickets everywhere, and one fixed.
           const cols = [C.pink, INK.sticky, C.mint, INK.sticky, C.pink];
           for (let i = 0; i < 9; i++) {
@@ -693,14 +676,14 @@ export default {
       // The blind over NEW, and under it, BUG #412.
       R.thing(x + 0.2, y1 + 0.01, (ctx) => {
         const k = board.k();
-        plane(ctx, 'y', fx + 0.01, cy, 1.65, (g) => {
+        onFace(ctx, 'y', fx + 0.01, cy, 1.65, (g) => {
           const u0 = -1.05, u1 = -0.15, top = -0.22, bottom = 0.65;
           if (k > 0.05) {
             // The card: a bear, in the lot, severity high.
             prect(g, u0 + 0.02, top + 0.05, u1 - u0 - 0.04, bottom - top - 0.1, C.white, { lw: 0.02 });
-            txt(g, 'BUG #412', u0 + 0.08, top + 0.15, 0.12, C.red, 'left', 'Rethink Sans', 800);
-            txt(g, 'BEAR IN LOT', u0 + 0.08, top + 0.32, 0.1, C.ink, 'left');
-            txt(g, 'SEVERITY: HIGH', u0 + 0.08, top + 0.48, 0.08, C.red, 'left');
+            words(g, 'BUG #412', u0 + 0.08, top + 0.15, 0.12, C.red, 'Rethink Sans', 800, 'left');
+            words(g, 'BEAR IN LOT', u0 + 0.08, top + 0.32, 0.1, C.ink, 'Rethink Sans', 700, 'left');
+            words(g, 'SEVERITY: HIGH', u0 + 0.08, top + 0.48, 0.08, C.red, 'Rethink Sans', 700, 'left');
             g.beginPath(); g.ellipse(u1 - 0.2, top + 0.62, 0.12, 0.07, 0, 0, Math.PI * 2); g.moveTo(u1 - 0.04, top + 0.56); g.arc(u1 - 0.08, top + 0.56, 0.05, 0, Math.PI * 2);
             g.fillStyle = C.black; g.fill();
           }
@@ -708,7 +691,7 @@ export default {
           const hh = (bottom - top) * (1 - k);
           if (hh > 0.01) {
             prect(g, u0, top, u1 - u0, hh, C.white, { lw: 0.02 });
-            if (hh > 0.5) { txt(g, 'QA ONLY', (u0 + u1) / 2, top + 0.25, 0.12, C.ink); txt(g, 'NO PEEKING', (u0 + u1) / 2, top + 0.42, 0.09, C.ink); }
+            if (hh > 0.5) { words(g, 'QA ONLY', (u0 + u1) / 2, top + 0.25, 0.12, C.ink); words(g, 'NO PEEKING', (u0 + u1) / 2, top + 0.42, 0.09, C.ink); }
           }
           prect(g, u0 - 0.04, top - 0.08, u1 - u0 + 0.08, 0.09, C.grey, { lw: 0.02 });
           // A red corner of something new, peeking out underneath.
@@ -727,7 +710,7 @@ export default {
       box(ctx, 100.5, 22.9, 0, 0.8, 0.8, 0.55, C.woodLight, { lw: 0.03, dotsL: shade(C.woodLight, 0.4) });
       face(ctx, [[100.5, 23.7, 0.55], [101.3, 23.7, 0.55], [101.3, 23.98, 0.75], [100.5, 23.98, 0.75]], C.woodLight, { lw: 0.025 });
       const [WX, WY] = P(100.75, 23.5, 0.6); ctx.beginPath(); ctx.arc(WX, WY, 0.09, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.015 });
-      plane(ctx, 'x', 100.9, 23.71, 0.3, (g) => txt(g, 'TESTED', 0, 0, 0.13, C.brown, 'center', 'Rethink Sans', 800));
+      onFace(ctx, 'x', 100.9, 23.71, 0.3, (g) => words(g, 'TESTED', 0, 0, 0.13, C.brown, 'Rethink Sans', 800));
     });
     // Priya's chair: she stands on it to test the ceiling, and it wobbles
     // (BUG #303).
@@ -756,11 +739,11 @@ export default {
           // Pushing a ceiling tile up, to see if it holds.
           person(ctx, p.x, p.y, p.z, { ...look, pose: 'stand', dir: 'r', arms: [Math.PI - 0.22, -Math.PI + 0.22] }, t);
           tile(ctx, p.x + Math.sin(t * 3) * 0.05, p.y, p.z + 2.0 + Math.max(0, Math.sin(t * 1.6)) * 0.12);
-          if (Q.detail && (t + 5) % 23 < 2.4) speech(ctx, p.x, p.y, p.z + 2.9, 'Filed.', { size: 0.42 });
+          if (Q.detail && (t + 5) % 23 < 2.4) speech(ctx, p.x, p.y, p.z + 2.9, 'Filed.', { size: 0.36 });
           return;
         }
         person(ctx, p.x, p.y, 0, { ...look, pose: p.moving ? 'run' : 'read', dir: 'l', hold: p.moving ? null : clip }, t);
-        if (Q.detail && !p.moving && t % 9 < 2.6) speech(ctx, p.x, p.y, 2.6, 'Severity: HIGH.', { size: 0.42, dx: 1.3 });
+        if (Q.detail && !p.moving && t % 9 < 2.6) speech(ctx, p.x, p.y, 2.6, 'Severity: HIGH.', { size: 0.36, dx: 1.3 });
       }, { bias: 0.08 });
     }
 
@@ -772,7 +755,9 @@ export default {
       empty: [2],
       kinds: KINDS,
       look: (i) => ({ dress: false, top: HOOD[(i + 4) % HOOD.length], wear: hoodie(HOOD[(i + 4) % HOOD.length]), ...(i % 3 === 0 ? { face: headphones(C.coral) } : {}) }),
-      each: () => ({ always: dev }),
+      // The two pods stand close: the second's left side waits a step behind
+      // the first's right side at the glass.
+      each: (i, s) => (i >= 6 && s.side === 'l' ? { always: dev, window: [s.x - 0.3 - s.row * 0.62, SILL - 0.7] } : { always: dev }),
     });
     // Hoodies on the backs of chairs: the empty desk's, and a few others.
     chairHoodie(R, front[2], C.green);

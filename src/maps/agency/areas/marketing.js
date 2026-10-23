@@ -15,7 +15,7 @@ import { C, Q, box, face, paint, person, folk, goose, label, speech, shade, tint
 import { ease, clamp } from '../../../engine/actors.js';
 import { ZK } from '../../../engine/iso.js';
 import { TONE, INK, PRIMAL, FABRIC } from '../style.js';
-import { floorOf, backWall, sill, pod, staff, room, lettering, drawChair, mug, plant, bear } from '../kit.js';
+import { floorOf, backWall, sill, pod, staff, room, lettering, drawChair, mug, plant, bear, onFace, words, along, dash, ALONG_X, DOWN } from '../kit.js';
 import { bearOClock, rushK, seated, H, ceo } from '../clock.js';
 import { SILL } from '../plan.js';
 import { walkers } from '../day.js';
@@ -31,31 +31,8 @@ const RING = [23.3, 15.2, 1.85];
 const LANE = 22.45;
 
 // ---------- Drawing on a flat face ----------
-// Draws on the vertical plane through (x, y, z) running along (dx, dy):
-// u along it, v up (fn's units are world units).
-function onPlane(ctx, x, y, z, dx, dy, fn) {
-  const [X, Y] = P3(x, y, z);
-  ctx.save();
-  ctx.transform(dx - dy, (dx + dy) / 2, 0, ZK, X, Y);
-  ctx.scale(1, -1);
-  fn(ctx);
-  ctx.restore();
-}
-const onX = (ctx, x, y, z, fn) => onPlane(ctx, x, y, z, 1, 0, fn);
-// Words on that plane.
-function words(ctx, x, y, z, dx, dy, text, size, ink = C.ink, font = 'Rethink Sans') {
-  const [X, Y] = P3(x, y, z);
-  ctx.save();
-  ctx.transform(dx - dy, (dx + dy) / 2, 0, ZK, X, Y);
-  const k = 40;
-  ctx.scale(1 / k, 1 / k);
-  ctx.font = `700 ${size * k}px "${font}", "Arial Black", sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = ink;
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
+// The boards here draw with v running up (the kit's onFace runs it down).
+const UP = [0, 0, 1];
 // A marker line through local points.
 function line(ctx, pts, ink, w = 0.05, close = false) {
   ctx.beginPath();
@@ -121,29 +98,15 @@ function stickies(ctx, y, notes) {
 
 // Somewhere along a path of points, 0 at the start, 1 at the end, and which
 // way they're facing walking it forward.
-function along(pts, r) {
-  const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
-  let d = clamp(r) * lens.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < lens.length; i++) {
-    if (d <= lens[i] || i === lens.length - 1) {
-      const k = lens[i] ? Math.min(1, d / lens[i]) : 0;
-      const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
-      const dx = bx - ax, dy = by - ay;
-      return { x: ax + dx * k, y: ay + dy * k, dir: dx - dy >= 0 ? 'r' : 'l', back: dx + dy < -0.01 };
-    }
-    d -= lens[i];
-  }
-  return { x: pts[0][0], y: pts[0][1], dir: 'r', back: false };
+function heading(pts, r) {
+  const q = along(pts, r);
+  return { x: q.x, y: q.y, dir: q.dx - q.dy >= 0 ? 'r' : 'l', back: q.dx + q.dy < -0.01 };
 }
 // Off to the front glass at bear o'clock along a path (and back): the pose
 // of someone at p, or p itself while there's no bear.
 function rushing(t, p, path, travel, delay) {
-  const r = rushK(t, travel, delay);
-  if (r <= 0) return p;
-  const q = along([[p.x, p.y], ...path], r);
-  const coming = rushK(t + 0.1, travel, delay) < r;
-  if (r >= 1) return { x: q.x, y: q.y, pose: 'point', dir: 'l', back: false, rush: true };
-  return { x: q.x, y: q.y, pose: 'run', dir: coming ? (q.dir === 'r' ? 'l' : 'r') : q.dir, back: coming ? !q.back : q.back, rush: true };
+  const d = dash(t, [[p.x, p.y], ...path], travel, delay);
+  return d ? { x: d.x, y: d.y, pose: d.moving ? 'run' : 'point', dir: d.dir, back: d.back, rush: true } : p;
 }
 
 // ---------- The Gantt chart ----------
@@ -234,7 +197,7 @@ function amAt(t) {
   let p;
   if (h >= 16 && h < 16.45) {
     const r = h < 16.15 ? (h - 16) / 0.15 : h < 16.3 ? 1 : 1 - (h - 16.3) / 0.15;
-    const q = along(AM_DOOR, r);
+    const q = heading(AM_DOOR, r);
     const walking = r > 0 && r < 1;
     p = walking ? { ...q, pose: 'walk', dir: h < 16.15 ? q.dir : (q.dir === 'r' ? 'l' : 'r'), back: h < 16.15 ? q.back : !q.back }
       : r >= 1 ? { x: q.x, y: q.y, pose: 'point', dir: 'l', back: true, door: true } : { x: q.x, y: q.y, pose: 'read', dir: 'l' };
@@ -243,7 +206,7 @@ function amAt(t) {
     const s = sticky(t), frac = h - Math.floor(h);
     p = { x: s.x + 0.55, y: 15.35, pose: s.moving ? 'point' : 'read', dir: 'l', ontrack: h >= 9 && frac >= 0.12 && frac < 0.3 };
   }
-  return rushing(t, p, [[LANE, 16.4], [LANE, 18.5], [23.2, SILL]], 3.4, 0.3);
+  return rushing(t, p, [[LANE, 16.4], [LANE, 18.5], [23.9, SILL - 0.75]], 3.4, 0.3);
 }
 
 // Kevin, hauling swag boxes from the swag closet to the backdrop behind
@@ -255,9 +218,9 @@ function kevinAt(t) {
   if (!seated(t, 0.35)) return { x: 28.7, y: 11.4, gone: true };
   const s = ((t % KEVIN_T) + KEVIN_T) % KEVIN_T;
   if (s < KEVIN_WAIT) return { x: 28.7, y: 11.4, pose: 'stand', dir: 'r', back: true, box: false };
-  if (s < KEVIN_WAIT + KEVIN_WALK) { const q = along(KEVIN, (s - KEVIN_WAIT) / KEVIN_WALK); return { ...q, pose: 'walk', box: true, moving: true }; }
+  if (s < KEVIN_WAIT + KEVIN_WALK) { const q = heading(KEVIN, (s - KEVIN_WAIT) / KEVIN_WALK); return { ...q, pose: 'walk', box: true, moving: true }; }
   if (s < 2 * KEVIN_WAIT + KEVIN_WALK) return { x: 28.15, y: 15.55, pose: 'carry', dir: 'l', back: true, box: s < KEVIN_WAIT * 1.5 + KEVIN_WALK };
-  const q = along(KEVIN, 1 - (s - 2 * KEVIN_WAIT - KEVIN_WALK) / KEVIN_WALK);
+  const q = heading(KEVIN, 1 - (s - 2 * KEVIN_WAIT - KEVIN_WALK) / KEVIN_WALK);
   return { ...q, pose: 'walk', dir: q.dir === 'r' ? 'l' : 'r', back: !q.back, box: false, moving: true };
 }
 
@@ -268,7 +231,7 @@ const SEATS = [{ x: 19.7, y: 10.45, k: 0.25, look: LOOKS.a1, d: 0.5 }, { x: 22.3
 function seatAt(t, s, i) {
   if (!seated(t, s.k)) return { x: s.x, y: s.y, gone: true };
   const p = { x: s.x, y: s.y, pose: 'sit', dir: 'r', back: true, sit: true };
-  return rushing(t, p, [[21.0, 11.1], [21.0, 12.9], [LANE, 13.8], [LANE, 18.2], [21.9 + i * 0.7, SILL]], 5.2, s.d);
+  return rushing(t, p, [[21.0, 11.1], [21.0, 12.9], [LANE, 13.8], [LANE, 18.2], [23.6 + i * 0.65, SILL]], 5.2, s.d);
 }
 
 export default {
@@ -284,7 +247,16 @@ export default {
 
     // ---------- Desks off the back wall ----------
     const backSeats = pod(R, 20, 'back', 2);
-    staff(R, backSeats, 520, { empty: [1], kinds: ['chart', 'chart', 'shop', 'chart'] });
+    // At bear o'clock they go round the Funnel, not through its glass: the
+    // left side down past its end, the right side out by the swag closet and
+    // down the lane past Kayleigh's set.
+    staff(R, backSeats, 520, {
+      empty: [1],
+      kinds: ['chart', 'chart', 'shop', 'chart'],
+      each: (i, s) => (s.side === 'l'
+        ? { via: [[16.25, s.y], [16.25, 18.6]], window: [i === 0 ? 16.7 : 17.3, SILL - 0.75] }
+        : { via: [[s.x, 5.3], [25.6, 5.3], [25.6, 13.2], [LANE, 14.2], [LANE, 18.4]], window: [22.6, SILL - 0.75] }),
+    });
     // A box of lanyards on the empty desk.
     const [lx, ly, lz] = backSeats[1].top;
     R.thing(lx, ly + 0.2, (ctx) => {
@@ -303,19 +275,19 @@ export default {
     // ---------- The back corner: two more funnels, swag, a bear ----------
     board(R, 23.6, 26.6, 2.3, (ctx, y) => {
       lettering(ctx, 'x', 25.1, y, 2.05, 'THE FUNNEL v7', 0.19, C.ink);
-      onX(ctx, 24.9, y, 1.28, (c) => funnel(c, 1.5, 1.0, C.teal, [0.36, 0.72]));
+      onFace(ctx, [ALONG_X, UP], 24.9, y, 1.28, (c) => funnel(c, 1.5, 1.0, C.teal, [0.36, 0.72]));
       lettering(ctx, 'x', 24.9, y, 1.63, 'TOFU', 0.12, C.teal);
       lettering(ctx, 'x', 24.9, y, 1.37, 'MOFU', 0.1, C.teal);
       lettering(ctx, 'x', 24.9, y, 1.16, 'BOFU', 0.07, C.teal);
-      onX(ctx, 24.9, y, 0, (c) => line(c, [[0.18, 0.86], [0.75, 0.86], [0.65, 0.92], [0.75, 0.86], [0.65, 0.8]], C.red, 0.04));
+      onFace(ctx, [ALONG_X, UP], 24.9, y, 0, (c) => line(c, [[0.18, 0.86], [0.75, 0.86], [0.65, 0.92], [0.75, 0.86], [0.65, 0.8]], C.red, 0.04));
       lettering(ctx, 'x', 26.05, y, 0.86, '$$$', 0.15, C.red);
       stickies(ctx, y, [[23.75, 1.95, INK.sticky], [26.2, 1.6, C.pink], [26.2, 1.3, INK.sticky]]);
     });
     board(R, 27.4, 30.6, 2.3, (ctx, y) => {
       lettering(ctx, 'x', 29.0, y, 2.05, 'THE FUNNEL v8 FINAL', 0.17, C.ink);
-      onX(ctx, 28.6, y, 1.42, (c) => funnel(c, 1.3, 0.85, C.purple, [0.5]));
+      onFace(ctx, [ALONG_X, UP], 28.6, y, 1.42, (c) => funnel(c, 1.3, 0.85, C.purple, [0.5]));
       // Something falling out of the bottom of the funnel.
-      onX(ctx, 28.6, y, 0, (c) => {
+      onFace(ctx, [ALONG_X, UP], 28.6, y, 0, (c) => {
         markerGoose(c, 0.05, 0.86, 0.32, 2.4, C.ink);
         line(c, [[-0.25, 0.98], [-0.32, 0.9]], C.ink, 0.025);
         line(c, [[0.3, 0.98], [0.37, 0.9]], C.ink, 0.025);
@@ -347,7 +319,7 @@ export default {
     room(R, 16.6, 6.4, 24.6, 11.8, 'THE FUNNEL', { door: 21 });
     board(R, 19.2, 22.6, 6.62, (ctx, y) => {
       lettering(ctx, 'x', 20.9, y, 2.05, 'FUNNEL WORKSHOP', 0.17, C.ink);
-      onX(ctx, 20.4, y, 1.3, (c) => funnel(c, 1.4, 0.95, PRIMAL, [0.33, 0.66]));
+      onFace(ctx, [ALONG_X, UP], 20.4, y, 1.3, (c) => funnel(c, 1.4, 0.95, PRIMAL, [0.33, 0.66]));
       lettering(ctx, 'x', 21.8, y, 1.66, 'AWARENESS', 0.1, C.ink);
       lettering(ctx, 'x', 21.8, y, 1.4, 'CONSIDERATION', 0.08, C.ink);
       lettering(ctx, 'x', 21.8, y, 1.17, 'CONVERSION', 0.09, C.ink);
@@ -390,6 +362,7 @@ export default {
       if (p.gone) return;
       const k = Math.sin(t * 0.7) > 0.3;
       person(ctx, p.x, p.y, 0, { ...LOOKS.presenter, pose: k ? 'point' : 'stand', dir: 'l', hold: k ? null : marker }, t);
+      if (Q.detail && bearOClock(t)) speech(ctx, p.x, p.y, 2.75, 'Any questions? Guys?', { size: 0.36 });
     });
     // The cupboard: so full of swag the lid won't shut. Inside, a tote bag
     // full of tote bags springs up.
@@ -441,14 +414,14 @@ export default {
       const mid = (u) => [DOOR.hx + dx * u, DOOR.y + dy * u];
       // The funnel decal, and the handle.
       const [fx, fy] = mid(0.8);
-      onPlane(ctx, fx, fy, 1.45, -dx, -dy, (c) => funnel(c, 0.55, 0.45, PRIMAL, [0.5]));
-      words(ctx, fx, fy, 1.05, -dx, -dy, 'THE FUNNEL', 0.09, C.ink);
+      onFace(ctx, [[-dx, -dy, 0], UP], fx, fy, 1.45, (c) => funnel(c, 0.55, 0.45, PRIMAL, [0.5]));
+      onFace(ctx, [[-dx, -dy, 0], DOWN], fx, fy, 1.05, (c) => words(c, 'THE FUNNEL', 0, 0, 0.09, C.ink));
       const [hx, hy] = mid(1.4);
       box(ctx, hx - 0.03, hy - 0.03, 0.9, 0.06, 0.06, 0.35, C.grey, { flat: true, lw: 0.02 });
       if (sticky(t).col >= 8 && (H(t) >= 16.15 || H(t) < 9)) {
         const [sx, sy] = mid(0.25);
-        onPlane(ctx, sx, sy, 1.5, -dx, -dy, (c) => { c.beginPath(); c.rect(-0.2, -0.17, 0.4, 0.34); c.fillStyle = INK.sticky; c.fill(); c.strokeStyle = C.ink; c.lineWidth = 0.015; c.stroke(); });
-        words(ctx, sx, sy, 1.5, -dx, -dy, 'LAUNCH', 0.085, C.ink);
+        onFace(ctx, [[-dx, -dy, 0], UP], sx, sy, 1.5, (c) => { c.beginPath(); c.rect(-0.2, -0.17, 0.4, 0.34); c.fillStyle = INK.sticky; c.fill(); c.strokeStyle = C.ink; c.lineWidth = 0.015; c.stroke(); });
+        onFace(ctx, [[-dx, -dy, 0], DOWN], sx, sy, 1.5, (c) => words(c, 'LAUNCH', 0, 0, 0.085, C.ink));
       }
     }, { anim: true });
 
@@ -559,7 +532,7 @@ export default {
         if (col) face(ctx, [[COL0 + a * COLW + 0.03, y, z - 0.08], [Math.min(GX1 - 0.12, COL0 + b * COLW - 0.03), y, z - 0.08], [Math.min(GX1 - 0.12, COL0 + b * COLW - 0.03), y, z + 0.08], [COL0 + a * COLW + 0.03, y, z + 0.08]], col, { stroke: false });
       });
       // CREATIVE runs off the end, onto the wall, in pen.
-      onX(ctx, GX1 - 0.1, y, 1.0, (c) => line(c, [[0, 0], [0.18, 0], [0.12, 0.06], [0.18, 0], [0.12, -0.06]], C.purple, 0.03));
+      onFace(ctx, [ALONG_X, UP], GX1 - 0.1, y, 1.0, (c) => line(c, [[0, 0], [0.18, 0], [0.12, 0.06], [0.18, 0], [0.12, -0.06]], C.purple, 0.03));
       // Where TODAY is.
       face(ctx, [[COL0 + 0.45, y, 0.35], [COL0 + 0.45, y, 2.05]], null, { lw: 0.025, stroke: C.red });
     });
@@ -575,6 +548,9 @@ export default {
     R.mover(amAt, (ctx, t, p) => {
       if (p.gone) return;
       person(ctx, p.x, p.y, 0, { ...LOOKS.am, pose: p.pose, dir: p.dir, back: p.back, hold: p.pose === 'read' ? clipboard : null }, t);
+      if (!Q.detail) return;
+      if (!p.rush && p.ontrack) speech(ctx, p.x, p.y, 2.75, 'Still on track!', { size: 0.36 });
+      else if (p.door) speech(ctx, p.x, p.y, 2.75, 'It\'s more of a soft launch.', { size: 0.36 });
     }, { bias: 0.15 });
 
     // ---------- Take 47 ----------
@@ -600,8 +576,8 @@ export default {
       box(ctx, x - 0.03, y - 0.03, 0.7, 0.06, 0.06, z - 0.95, C.ink, { flat: true, stroke: false });
       // A cue card clipped to the stand: the whole script.
       box(ctx, x - 0.02, y + 0.08, 0.95, 0.04, 0.5, 0.34, C.white, { flat: true, lw: 0.02, right: C.white });
-      words(ctx, x + 0.03, y + 0.33, 1.18, 0, -1, 'HI GUYS!', 0.08, C.ink);
-      words(ctx, x + 0.03, y + 0.33, 1.05, 0, -1, 'SWAG DROP!!', 0.07, PRIMAL);
+      onFace(ctx, 'y', x + 0.03, y + 0.33, 1.18, (c) => words(c, 'HI GUYS!', 0, 0, 0.08, C.ink));
+      onFace(ctx, 'y', x + 0.03, y + 0.33, 1.05, (c) => words(c, 'SWAG DROP!!', 0, 0, 0.07, PRIMAL));
       const lit = H(t) > 8.6;
       const th = 0.32 + (Math.PI / 2 - 0.32) * rushK(t, 2.4, 0.2);
       const ux = -Math.sin(th), uy = Math.cos(th);
@@ -644,23 +620,19 @@ export default {
     }, { bias: 0.15 });
     R.find({ id: 'ring-light', label: 'A ring light', at: [RING[0], RING[1], RING[2]], r: 0.8 });
 
-    // What ruins each take, said over her head while she's on her mark.
-    R.air((ctx, t) => {
-      if (!Q.detail) return;
-      const p = kayleigh(t);
-      const am = amAt(t);
-      if (!am.gone && !am.rush && am.ontrack) speech(ctx, am.x, am.y, 2.75, 'Still on track!', { size: 0.34 });
-      else if (!am.gone && am.door) speech(ctx, am.x, am.y, 2.75, 'It\'s more of a soft launch.', { size: 0.34 });
-      if (bearOClock(t) && seated(t, 0.1)) speech(ctx, 23.3, 7.4, 2.75, 'Any questions? Guys?', { size: 0.34 });
-      if (p.pose !== 'film') return;
+    // What ruins each take, said over her head while she's on her mark (in a
+    // mover that stands where she does, so the bubble is never cut at a seam
+    // of the floor's pictures).
+    R.mover(() => ({ x: MARK[0], y: MARK[1] + 0.05 }), (ctx, t) => {
+      if (!Q.detail || kayleigh(t).pose !== 'film') return;
       let say = null;
       const c = ceo(t), k = kevinAt(t);
       if (bearOClock(t)) say = 'Pivoting to bear content.';
       else if (c.y > 11.5 && c.y < 14.5 && Math.abs(c.x - MARK[0]) < 3.5) say = 'CUT. Hi, Dana!';
       else if (thumping(t) && closet.k() < 0.5) say = 'CUT. Was that a honk?';
       else if (!k.gone && k.moving && k.y > 14.2) say = 'Kevin, you\'re in it!';
-      if (say) speech(ctx, MARK[0], MARK[1], 2.75, say, { size: 0.34 });
-    });
+      if (say) speech(ctx, MARK[0], MARK[1], 2.75, say, { size: 0.36 });
+    }, { bias: 0.3 });
 
     // ---------- The launch party's leftovers ----------
     R.rug((ctx) => {
@@ -703,7 +675,7 @@ export default {
     // The fantasy football lineup on a screen, and a trophy taken out of a
     // drawer at bear o'clock, while its owner's at the window.
     const front = [...pod(R, 19.6, 'front', 3), ...pod(R, 27.6, 'front', 3)];
-    staff(R, front, 530, { empty: [4, 8], kinds: ['social', 'football', 'social', 'slides', 'social', 'email', 'social', 'slides', 'email', 'social', 'email', 'slides'] });
+    staff(R, front, 530, { empty: [4, 8, 10], kinds: ['social', 'football', 'social', 'slides', 'social', 'email', 'social', 'slides', 'email', 'social', 'email', 'slides'] });
     const ff = front[1].mon;
     R.find({ id: 'fantasy', label: 'A fantasy football lineup', at: [ff[0] + 0.2, ff[1], ff[2] + 0.5], r: 0.75 });
     const [tx, ty, tz] = [front[7].mon[0] + 0.45, front[7].mon[1] - 0.7, front[7].mon[2]];
