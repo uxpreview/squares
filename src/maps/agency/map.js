@@ -21,6 +21,7 @@ import { nightK } from './clock.js';
 import { walkers } from './day.js';
 import { backdrop, sky } from './ambient.js';
 import { sound as soundBed } from './sound.js';
+import { FIN_AT, CROSSED } from './finale.js';
 
 import leadership from './areas/leadership.js';
 import marketing from './areas/marketing.js';
@@ -62,10 +63,13 @@ export default {
   plate: { at: (t) => ({ paper: paperAt(t), kind: nightK(t) > 0.5 ? 'night' : '' }), bleed: true, thumbAt: at(10.8) },
   dial,
   invite: { zone: 'front', at: [36.4, 8.8, 1.3] },
-  // The ending: bear o'clock at the pitch. The clock jumps to the bear on
-  // the CEO's car under the pitch room, everyone (the clients too) at the
-  // window, and the geese walk out of the front door past it into the woods.
-  finale: { at: at(16.6), zone: 'lot', near: [47, 30], span: 14, hold: 12 },
+  // The ending: bear o'clock at the pitch. The clock jumps to the bear just
+  // sat down on the CEO's car under the pitch room, everyone (the clients
+  // too) at the window, and the geese walk out of the front door past it
+  // into the woods
+  // (finale.js). The card waits till they're across the road: the camera's
+  // two seconds, their walk, and a beat.
+  finale: { at: FIN_AT, zone: 'lot', near: [47, 32], span: 14, hold: Math.round(2 + CROSSED + 1) },
   sound: soundBed,
   // On a phone held upright the overview fills the height round the front of
   // house and Creative, and the floor runs off both sides; on its side and

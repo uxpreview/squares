@@ -55,12 +55,13 @@ export function at(h) {
 
 // ---------- The day ----------
 // How full the floor is, 0 to 1: arriving from 7:30, everyone in by 8:45,
-// gone to the fire pit from 5. Dev stay till midnight (dev(t)).
+// gone to the fire pit from 5:20 (after the pitch, so the ending's lot is
+// still full). Dev stay till midnight (dev(t)).
 export function staffed(t) {
   const h = H(t);
-  if (h < 7.5 || h >= 17.4) return 0;
+  if (h < 7.5 || h >= 17.75) return 0;
   if (h < 8.75) return (h - 7.5) / 1.25;
-  if (h > 17) return 1 - (h - 17) / 0.4;
+  if (h > 17.35) return 1 - (h - 17.35) / 0.4;
   return 1;
 }
 // Is a seat taken? Each seat comes in at its own minute and leaves at its own
