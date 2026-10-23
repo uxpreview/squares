@@ -53,7 +53,8 @@ export const DOOR = [44, BD];
 export const TOWER = { x: 44, y: 4, r: 3, h: 8.5 };
 export const PITCH = [40, 18.4, 55.4, 25.6];
 
-// The CEO's car, across two spaces right under the pitch room.
-export const CEO_CAR = [49.5, ROW_A[0] + 2.2];
+// The CEO's car, across two spaces right under the pitch room: centred on
+// the line between two bays (lines every BAY from x 6), so it fills both.
+export const CEO_CAR = [50.4, ROW_A[0] + 2.2];
 // Doug's car, where he eats lunch at one.
 export const DOUG_CAR = [21.5, ROW_B[0] + 2.2];

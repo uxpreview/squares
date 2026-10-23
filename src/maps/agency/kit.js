@@ -592,9 +592,10 @@ export function drawTower(ctx, t = 0) {
 // A car, 1.5 wide and 2.8 long, parked along y with its nose toward the
 // building (dir -1) or away (1), with whoever's inside drawn in it (o.riders:
 // [{ front, v, skin, hair, top, lift, eat }]). o: { tall (an SUV), long,
-// leaves (on its roof) }
+// wide (across: the body, wheels and cabin scale with it), leaves (on its
+// roof) }
 export function car(ctx, x, y, z, color, o = {}) {
-  const dir = o.dir || -1, L = o.long || 2.8, W = 1.5;
+  const dir = o.dir || -1, L = o.long || 2.8, W = o.wide || 1.5, ws = W / 1.5;
   const at = (u, v) => [x + v, y + u * dir];
   const pt = (u, v, h) => [...at(u, v), z + h];
   const lface = (pts, col, op) => face(ctx, pts.map(([u, v, h]) => pt(u, v, h)), col, op);
@@ -604,17 +605,17 @@ export function car(ctx, x, y, z, color, o = {}) {
   };
   const glassC = mix(tint(C.sky, 0.25), color, 0.12);
   const sc = L / 2.8;
-  const cb0 = -0.95 * sc, cb1 = 0.55 * sc, rf0 = -0.78 * sc, rf1 = 0.22 * sc, cw = 0.63, h0 = 0.78, h1 = o.tall ? 1.55 : 1.3;
+  const cb0 = -0.95 * sc, cb1 = 0.55 * sc, rf0 = -0.78 * sc, rf1 = 0.22 * sc, cw = 0.63 * ws, h0 = 0.78, h1 = o.tall ? 1.55 : 1.3;
   if (!Q.detail) {
     lbox(-L / 2, L / 2, -W / 2, W / 2, 0.2, 0.6, color, { flat: true, lw: 0.045 });
     lbox(cb0, cb1, -cw, cw, h0, h1 - h0, glassC, { flat: true, top: tint(color, 0.08), lw: 0.04 });
     return;
   }
-  for (const u of [-0.9 * sc, 0.9 * sc]) for (const v of [-0.5, 0.5]) lbox(u - 0.27, u + 0.27, v - 0.12, v + 0.12, 0, 0.42, C.ink, { flat: true, lw: 0.02 });
+  for (const u of [-0.9 * sc, 0.9 * sc]) for (const v of [-0.5 * ws, 0.5 * ws]) lbox(u - 0.27, u + 0.27, v - 0.12, v + 0.12, 0, 0.42, C.ink, { flat: true, lw: 0.02 });
   lbox(-L / 2, L / 2, -W / 2, W / 2, 0.22, 0.56, color, { flat: true, lw: 0.045 });
   // The back end, the one we see when it's nosed in: red lights.
   const back = dir < 0 ? -L / 2 : L / 2;
-  for (const v of [-0.48, 0.48]) lface([[back, v - 0.16, 0.56], [back, v + 0.16, 0.56], [back, v + 0.16, 0.7], [back, v - 0.16, 0.7]], C.red, { lw: 0.02 });
+  for (const v of [-0.48 * ws, 0.48 * ws]) lface([[back, v - 0.16, 0.56], [back, v + 0.16, 0.56], [back, v + 0.16, 0.7], [back, v - 0.16, 0.7]], C.red, { lw: 0.02 });
   const darkC = mix(C.ink, color, 0.2);
   lface([[cb0, -cw, h0], [cb1, -cw, h0], [rf1, -cw, h1], [rf0, -cw, h1]], darkC, { lw: 0.03 });
   lface([[cb0, -cw, h0], [cb1, -cw, h0], [cb1, cw, h0], [cb0, cw, h0]], darkC, { stroke: false });
@@ -633,7 +634,7 @@ export function car(ctx, x, y, z, color, o = {}) {
   lface([[cb0, cw, h0], [cb1, cw, h0], [rf1, cw, h1], [rf0, cw, h1]], pane, { lw: 0.03 });
   lface([[rf0, -cw, h1], [rf1, -cw, h1], [rf1, cw, h1], [rf0, cw, h1]], tint(color, 0.08), { lw: 0.04 });
   if (o.leaves) for (let i = 0; i < 5; i++) {
-    const [lx, ly] = at(rf0 + hash(i, x) * (rf1 - rf0), -0.5 + hash(x, i)); const [X, Y] = P3(lx, ly, z + h1 + 0.02);
+    const [lx, ly] = at(rf0 + hash(i, x) * (rf1 - rf0), (-0.5 + hash(x, i)) * ws); const [X, Y] = P3(lx, ly, z + h1 + 0.02);
     ctx.beginPath(); ctx.ellipse(X, Y, 0.1, 0.05, i, 0, Math.PI * 2); ctx.fillStyle = i % 2 ? INK.maple : C.mustard; ctx.fill();
   }
 }

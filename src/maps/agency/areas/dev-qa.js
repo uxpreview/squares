@@ -103,6 +103,10 @@ const CEO_AT = [94, 13];
 const UP_GO = 64, UP_BACK = 87.3, UP_SPEED = 2.4;
 
 const CLOSET = { x0: 100.2, y0: 0.4, x1: 103.6, y1: 4.4, h: 2.8, door: [100.95, 102.25] };
+// The closet rattles for a second or so every 12 (the goose shifting on the
+// router), and honks at the end of it.
+const rattle = (t) => { const s = ((t % 12) + 12) % 12; return s < 1.2 ? Math.sin(s * 40) * (1 - s / 1.2) : 0; };
+const honking = (t) => { const s = ((t % 12) + 12) % 12; return s > 0.6 && s < 2.2; };
 const SCREEN_X = [96.9, 101.7], SCREEN_Y = 8.45; // the deploy screen, clear of the seam at x 96
 const DUCK_DESK = [90.6, 14.6, 4, 1.6];
 const SHELF = [96.8, 15.0, 1.5, 0.6, 1.0];
@@ -332,8 +336,10 @@ export default {
           for (const ax of [101.3, 101.95]) { const [X, Y] = P(ax, 4.1, 0.73); ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + (ax > 101.5 ? 0.12 : -0.1), Y - 0.45); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke(); }
           for (let i = 0; i < 4; i++) { const [X, Y] = P(101.3 + i * 0.18, 4.5, 0.6); ctx.fillStyle = Math.sin(t * 9 + i * 2) > 0 ? C.leaf : C.green; ctx.fillRect(X - 0.03, Y - 0.03, 0.06, 0.06); }
         }
-        // The door swings out on its left hinge.
-        const a = k * 1.75, L = door[1] - door[0];
+        // The door swings out on its left hinge. Shut, it rattles now and
+        // then, with a honk from inside.
+        const rat = k < 0.05 ? rattle(t) : 0;
+        const a = k * 1.75 + rat * 0.09, L = door[1] - door[0];
         const ex = door[0] + Math.cos(a) * L, ey = y1 + 0.02 + Math.sin(a) * L;
         const doorC = tint(C.grey, 0.25);
         face(ctx, [[door[0], y1 + 0.02, 0], [ex, ey, 0], [ex, ey, 2.2], [door[0], y1 + 0.02, 2.2]], k > 0.5 ? shade(doorC, 0.1) : doorC, { lw: 0.035 });
@@ -348,6 +354,15 @@ export default {
           ctx.restore();
           ticket(ctx, 'x', door[0] + 0.35, y1 + 0.04, 1.15, '288', C.pink);
         }
+        if (k < 0.05 && ((t % 12) + 12) % 12 < 1.2 && Q.detail) {
+          // Rattle lines either side of the door, and the honk.
+          const [TX, TY] = P((door[0] + door[1]) / 2, y1 + 0.1, 1.4);
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.lineCap = 'round';
+          ctx.beginPath();
+          for (const sx of [-1, 1]) { ctx.moveTo(TX + sx * 0.75, TY - 0.2); ctx.lineTo(TX + sx * 0.98, TY - 0.38); ctx.moveTo(TX + sx * 0.8, TY + 0.05); ctx.lineTo(TX + sx * 1.08, TY); }
+          ctx.stroke();
+        }
+        if (k < 0.05 && honking(t)) speech(ctx, (door[0] + door[1]) / 2, y1 + 0.1, 2.75, 'honk', { size: 0.34 });
         // Heat coming off the roof.
         if (Q.detail) {
           ctx.save();
@@ -362,11 +377,14 @@ export default {
           ctx.restore();
         }
       }, { anim: true });
-      // A white feather on the floor outside.
-      R.thing(102.8, 5.0, (ctx) => {
-        const [X, Y] = P(102.8, 5.0, 0.02);
-        ctx.beginPath(); ctx.ellipse(X, Y, 0.2, 0.07, -0.4, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
-        ctx.beginPath(); ctx.moveTo(X - 0.22, Y + 0.1); ctx.lineTo(X + 0.16, Y - 0.06); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.02; ctx.stroke();
+      // A white feather on the floor outside, a big one, and a little one
+      // half under the door.
+      R.thing(101.5, 5.6, (ctx) => {
+        const [X, Y] = P(101.5, 5.6, 0.02);
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.42, 0.14, -0.4, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
+        ctx.beginPath(); ctx.moveTo(X - 0.46, Y + 0.2); ctx.lineTo(X + 0.34, Y - 0.13); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.03; ctx.stroke();
+        const [X2, Y2] = P(101.3, 4.75, 0.02);
+        ctx.beginPath(); ctx.ellipse(X2, Y2, 0.2, 0.07, 0.3, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
       });
       // The goose, nesting on the warm router.
       R.goose((t) => ({ x: 101.65, y: 4.32, z: 0.73, dir: 'l', pose: 'sit', hidden: closet.k() < 0.5 }),
@@ -702,15 +720,24 @@ export default {
     }
     // The box of things Priya has tested.
     R.thing(100.9, 23.7, (ctx) => {
-      // What's sticking out: a keyboard, a chair wheel, a gooseneck lamp.
+      // What's sticking out: a keyboard, a chair wheel, a desk phone's
+      // handset with its curly cord (lying flat, nothing neck-like: a
+      // bendy lamp here looked like a goose).
       box(ctx, 100.65, 23.05, 0.3, 0.12, 0.5, 0.5, C.ink, { flat: true, lw: 0.02 });
-      const [LX, LY] = P(101.05, 23.2, 0.55);
-      ctx.beginPath(); ctx.moveTo(LX, LY); ctx.quadraticCurveTo(LX + 0.1, LY - 0.5, LX + 0.35, LY - 0.45); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke();
-      ctx.beginPath(); ctx.arc(LX + 0.38, LY - 0.4, 0.09, Math.PI * 1.1, Math.PI * 0.1); paint(ctx, C.coral, { lw: 0.02 });
       box(ctx, 100.5, 22.9, 0, 0.8, 0.8, 0.55, C.woodLight, { lw: 0.03, dotsL: shade(C.woodLight, 0.4) });
       face(ctx, [[100.5, 23.7, 0.55], [101.3, 23.7, 0.55], [101.3, 23.98, 0.75], [100.5, 23.98, 0.75]], C.woodLight, { lw: 0.025 });
       const [WX, WY] = P(100.75, 23.5, 0.6); ctx.beginPath(); ctx.arc(WX, WY, 0.09, 0, Math.PI * 2); paint(ctx, C.ink, { lw: 0.015 });
       onFace(ctx, 'x', 100.9, 23.71, 0.3, (g) => words(g, 'TESTED', 0, 0, 0.13, C.brown, 'Rethink Sans', 800));
+      // The handset, lying across the open top, its cord trailing over the
+      // front.
+      box(ctx, 100.75, 23.3, 0.56, 0.45, 0.13, 0.07, C.white, { flat: true, lw: 0.02 });
+      box(ctx, 100.7, 23.27, 0.57, 0.13, 0.19, 0.11, C.white, { flat: true, lw: 0.02 });
+      box(ctx, 101.1, 23.27, 0.57, 0.13, 0.19, 0.11, C.white, { flat: true, lw: 0.02 });
+      if (Q.detail) {
+        ctx.beginPath();
+        for (let i = 0; i <= 14; i++) { const [X, Y] = P(101.2 + i * 0.006, 23.45 + i * 0.022, 0.6 - i * 0.03); const r = 0.035; ctx[i ? 'lineTo' : 'moveTo'](X + Math.cos(i * 2.2) * r, Y + Math.sin(i * 2.2) * r); }
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.02; ctx.stroke();
+      }
     });
     // Priya's chair: she stands on it to test the ceiling, and it wobbles
     // (BUG #303).

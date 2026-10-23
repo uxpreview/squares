@@ -10,7 +10,7 @@
 // takes notes until lunch and falls asleep. And the sticky notes spread all
 // day: the wall fills by mid-afternoon, then the floor, the observation
 // room's glass, its desk and the sleeping researcher.
-import { C, Q, box, rect, face, paint, person, folk, alpha, tint, shade, mix, hash, P, paintText, cylinder, goose as drawGoose, rigid } from '../../../engine/art.js';
+import { C, Q, box, rect, face, paint, person, folk, alpha, tint, shade, mix, hash, P, paintText, cylinder, goose as drawGoose, rigid, glow } from '../../../engine/art.js';
 import { ZK } from '../../../engine/iso.js';
 import { route, clamp } from '../../../engine/actors.js';
 import { TONE, INK, CHAIR } from '../style.js';
@@ -425,13 +425,57 @@ export default {
       box(ctx, 80.4, 0.4, LAB_H - 0.06, 7.2, 0.1, 0.06, C.white, { flat: true, lw: 0.02 });
     });
     // The sign that makes everyone tap the glass.
-    R.thing(86.0, 6.86, (ctx) => {
-      onFace(ctx, 'x', 86.0, 6.82, 1.5, (g) => {
+    R.thing(86.95, 6.86, (ctx) => {
+      onFace(ctx, 'x', 86.95, 6.82, 1.5, (g) => {
         g.beginPath(); g.rect(-0.55, -0.22, 1.1, 0.44); paint(g, C.white, { lw: 0.025 });
         words(g, 'PLEASE DON\'T', 0, -0.08, 0.13, C.ink);
         words(g, 'TAP THE GLASS', 0, 0.09, 0.13, C.red);
       });
     });
+    // IN SESSION over the doorway, its red light on while P4 is in there.
+    R.thing(84.0, 6.9, (ctx, t) => {
+      const on = here(t) >= 8.9;
+      const y = 6.82;
+      box(ctx, 83.35, 6.72, 1.98, 1.3, 0.1, 0.4, C.black, { flat: true, lw: 0.025 });
+      onFace(ctx, 'x', 84.0, y + 0.005, 2.18, (g) => words(g, 'IN SESSION', 0, 0.02, 0.17, on ? C.red : shade(C.red, 0.5), 'Bagel Fat One', 400));
+      // The light, on top.
+      box(ctx, 83.92, 6.74, 2.38, 0.16, 0.06, 0.04, C.ink, { flat: true, stroke: false });
+      const [X, Y] = P(84.0, 6.77, 2.5);
+      ctx.beginPath(); ctx.arc(X, Y, 0.15, Math.PI, 0); ctx.closePath(); paint(ctx, on ? C.red : shade(C.red, 0.5), { lw: 0.025 });
+      if (on) glow(ctx, 84.0, 6.77, 2.48, 0.7, C.red, 0.55 + Math.sin(t * 2.4) * 0.25);
+    }, { anim: true, depth: 95 });
+    // Now and then, while it's shut, P4 presses his magnifying glass to the
+    // glass from inside: his shadow, a big eye in the lens, a glint.
+    const peek = (t) => { const s = ((t % 10) + 10) % 10; return s > 6.5 ? clamp(Math.min((s - 6.5) / 0.3, (10 - s) / 0.3)) : 0; };
+    R.thing(85.55, 6.86, (ctx, t) => {
+      const k = peek(t) * (1 - mirror.k()) * (here(t) >= 8.9 ? 1 : 0);
+      if (k < 0.02) return;
+      onFace(ctx, 'x', 85.55, 6.825, 1.4, (g) => {
+        g.save();
+        g.globalAlpha *= 0.3 * k;
+        // His shadow: hat and head, pressed close.
+        g.beginPath(); g.ellipse(-0.05, 0.1, 0.3, 0.32, 0, 0, TAU); g.fillStyle = C.ink; g.fill();
+        g.beginPath(); g.ellipse(-0.05, -0.2, 0.45, 0.08, 0, 0, TAU); g.fill();
+        g.beginPath(); g.rect(-0.28, -0.5, 0.46, 0.32); g.fill();
+        g.restore();
+        g.save();
+        g.globalAlpha *= k;
+        // The lens, the eye in it, the handle.
+        g.lineCap = 'round';
+        g.strokeStyle = C.ink; g.lineWidth = 0.1; g.beginPath(); g.moveTo(0.14, 0.18); g.lineTo(0.36, 0.48); g.stroke();
+        g.strokeStyle = C.brown; g.lineWidth = 0.06; g.stroke();
+        g.beginPath(); g.arc(0, 0, 0.24, 0, TAU); paint(g, tint(C.sky, 0.55), { lw: 0.05 });
+        g.beginPath(); g.arc(-0.02, 0.01, 0.12, 0, TAU); paint(g, C.coral, { lw: 0.02 });
+        g.beginPath(); g.arc(-0.01, 0.01, 0.06, 0, TAU); g.fillStyle = C.ink; g.fill();
+        // The glint: a four-point star at the rim.
+        const tw = 0.7 + Math.sin(t * 9) * 0.3, gx = 0.15, gy = -0.16;
+        g.beginPath();
+        g.moveTo(gx, gy - 0.16 * tw); g.lineTo(gx + 0.03, gy - 0.03); g.lineTo(gx + 0.16 * tw, gy); g.lineTo(gx + 0.03, gy + 0.03);
+        g.lineTo(gx, gy + 0.16 * tw); g.lineTo(gx - 0.03, gy + 0.03); g.lineTo(gx - 0.16 * tw, gy); g.lineTo(gx - 0.03, gy - 0.03); g.closePath();
+        g.fillStyle = C.white; g.fill();
+        g.restore();
+      });
+    }, { anim: true });
     // The mirror over the top, while it's shut.
     R.thing(87.6, 6.82, (ctx) => {
       const s = 1 - mirror.k();

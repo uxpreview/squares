@@ -455,13 +455,14 @@ export default {
 
     // ---------- The couch, the Courier's all day ----------
     // He sits on the first cushion (day.js); the earbud is down the side of
-    // the second, a bit of white wire showing at the seam.
+    // the second, a loop of white wire showing at the seam, and every so
+    // often the cushion shifts (something under it, pressing up).
     const couch = R.poke({ id: 'couch', at: [34.4, 16.9, 0.7], r: 0.9, say: 'Crumbs, a pen, forty cents.' });
     R.thing(34.3, 15.98, (ctx) => {
       couchPart(ctx, 14.25, 16.0, -1);
       cushion(ctx, 14.25, 16.0);
     });
-    R.thing(34.3, 17.85, (ctx) => {
+    R.thing(34.3, 17.85, (ctx, t) => {
       const k = couch.k();
       couchPart(ctx, 16.0, 17.55, 0);
       if (k > 0.05) {
@@ -475,17 +476,22 @@ export default {
         ctx.beginPath(); ctx.ellipse(X, Y - 0.06, 0.09, 0.07, 0.3, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
         ctx.beginPath(); ctx.moveTo(X + 0.06, Y - 0.02); ctx.lineTo(X + 0.12, Y + 0.1); ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.stroke(); ctx.strokeStyle = C.white; ctx.lineWidth = 0.025; ctx.stroke();
       }
-      cushion(ctx, 16.0, 17.55, k * 0.25, k > 0.05 ? k : 0);
-      if (k <= 0.05 && Q.detail) {
-        // A loop of white wire out of the seam between the cushions.
-        const [X, Y] = P(34.1, 16.02, COUCH.seat + COUCH.cushion);
-        ctx.beginPath(); ctx.moveTo(X - 0.05, Y); ctx.bezierCurveTo(X - 0.1, Y - 0.25, X + 0.25, Y - 0.25, X + 0.2, Y + 0.02);
-        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.055; ctx.stroke();
-        ctx.strokeStyle = C.white; ctx.lineWidth = 0.03; ctx.stroke();
+      // The shift: a little hop and settle, for a second every 9.
+      const sh = (t % 9) < 1.1 ? Math.abs(Math.sin((t % 9) * 8.5)) * 0.06 * (1 - (t % 9) / 1.1) : 0;
+      cushion(ctx, 16.0, 17.55, k * 0.25 + (k <= 0.05 ? sh : 0), k > 0.05 ? k : 0);
+      if (k <= 0.05) {
+        // A big loop of white wire out of the seam between the cushions,
+        // over the second one, the bud on the end of it.
+        const [X, Y] = P(34.55, 16.02, COUCH.seat + COUCH.cushion + sh);
+        ctx.beginPath(); ctx.moveTo(X - 0.1, Y); ctx.bezierCurveTo(X - 0.25, Y - 0.55, X + 0.55, Y - 0.6, X + 0.42, Y + 0.08);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke();
+        ctx.strokeStyle = C.white; ctx.lineWidth = 0.045; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(X + 0.44, Y + 0.12, 0.09, 0.07, 0.4, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.03 });
       }
       box(ctx, COUCH.x0, 17.55, 0.06, COUCH.x1 - COUCH.x0, 0.3, 0.75, TEAL, { flat: true, lw: 0.035, top: tint(TEAL, 0.15) });
     }, { anim: true });
-    R.find({ id: 'earbud', label: 'A lost earbud', kind: 'poke', inside: couch, at: [34.5, 16.8, 0.45], r: 0.8, hint: 'Somebody lost something small down the side of the couch.' });
+    R.find({ id: 'earbud', label: 'A lost earbud', kind: 'poke', inside: couch, at: [34.5, 16.8, 0.45], r: 0.9, hint: 'Somebody lost something small down the side of the couch.' });
     // A coffee table with this month's AD WEAK, and a plant.
     R.thing(36.3, 17.5, (ctx) => {
       box(ctx, 35.7, 16.3, 0, 1.2, 1.2, 0.42, C.wood, { flat: true, lw: 0.03, top: tint(C.wood, 0.15) });
@@ -753,15 +759,26 @@ export default {
         box(ctx, 40.32, ly - 0.05, 0.05, 0.1, 0.1, 1.05, C.ink, { flat: true, stroke: false });
       }
       box(ctx, 40.32, 20.35, 1.05, 0.18, 3.3, 1.6, C.black, { flat: true, lw: 0.035 });
-      // The box of cables behind it.
+      // The box of cables behind it: a tangle spilling over its front edge
+      // and down to the floor, plugs on the ends (hanging, not looped up
+      // like a bag's handles).
       box(ctx, 40.25, 18.75, 0, 0.95, 0.7, 0.55, C.woodLight, { flat: true, lw: 0.03, top: tint(C.woodLight, 0.15) });
-      onFace(ctx, 'x', 40.25, 19.455, 0.4, (c) => words(c, 'CABLES?', 0.47, 0.15, 0.13, C.ink));
+      onFace(ctx, 'x', 40.25, 19.455, 0.36, (c) => words(c, 'CABLES?', 0.47, 0.1, 0.13, C.ink));
       if (Q.detail) {
-        ctx.lineCap = 'round';
-        for (const [col, a, b] of [[C.ink, 0.2, 0.5], [C.white, 0.5, 0.3], [C.red, 0.7, 0.6]]) {
-          const [X, Y] = P(40.35 + a * 0.7, 18.85 + b * 0.5, 0.56);
-          ctx.beginPath(); ctx.moveTo(X, Y); ctx.bezierCurveTo(X - 0.2, Y - 0.4, X + 0.3, Y - 0.45, X + 0.2, Y + 0.05);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        // The tangle on top.
+        for (const [col, a] of [[C.ink, 0.15], [C.red, 0.45], [C.white, 0.75]]) {
+          const [X, Y] = P(40.3 + a * 0.85, 19.0, 0.56);
+          ctx.beginPath(); ctx.moveTo(X - 0.1, Y); ctx.quadraticCurveTo(X + 0.05, Y - 0.08, X + 0.15, Y + 0.02); ctx.quadraticCurveTo(X + 0.05, Y + 0.1, X - 0.05, Y + 0.04);
           ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 0.04; ctx.stroke();
+        }
+        // Two hanging over the front edge, down the box to the floor.
+        for (const [col, a, end] of [[C.ink, 0.06, 0.05], [C.white, 0.84, 0.18]]) {
+          const x = 40.25 + a * 0.95;
+          const pts = [P(x, 19.1, 0.56), P(x + 0.02, 19.46, 0.55), P(x + 0.08, 19.47, 0.3), P(x + 0.18, 19.6, end)];
+          ctx.beginPath(); ctx.moveTo(...pts[0]); ctx.bezierCurveTo(...pts[1], ...pts[2], ...pts[3]);
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.07; ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = 0.04; ctx.stroke();
+          ctx.beginPath(); ctx.rect(pts[3][0] - 0.03, pts[3][1] - 0.04, 0.12, 0.08); paint(ctx, C.grey, { lw: 0.02 });
         }
       }
     }, { depth: 63.6 });
@@ -966,18 +983,33 @@ export default {
     const chatB = chatter([48.25, 10.05], 'l', 0.6, [[48.2, 17.4], [48.1, 19.4], [51.4, 25.05]], folk(583, { top: C.purple }), 1);
 
     // ---------- The client's cola, for the pitch ----------
-    // Three cases stacked by the pitch room, the top one open and short by a
-    // few cans already, and a sign nobody reads.
+    // Three red plastic crates of bottles stacked by the pitch room, the top
+    // one short by a few already, and a sign nobody reads. (Bottle tops and
+    // slatted sides, no handles: they read as drinks, not bags.)
     R.thing(41.1, 16.7, (ctx) => {
+      const slot = shade(BRAND.can, 0.55);
       for (let i = 0; i < 3; i++) {
         const x = 40.4 + (i === 1 ? 0.08 : 0), y = 15.9 - (i === 2 ? 0.06 : 0), z = i * 0.34;
         box(ctx, x, y, z, 1.3, 0.7, 0.34, BRAND.can, { flat: true, lw: 0.025 });
-        face(ctx, [[x, y + 0.701, z + 0.12], [x + 1.3, y + 0.701, z + 0.12], [x + 1.3, y + 0.701, z + 0.2], [x, y + 0.701, z + 0.2]], C.white, { stroke: false });
+        // The slats: a row of dark gaps along the front and the side, the
+        // bottles' glass showing through.
+        for (let j = 0; j < 5; j++) {
+          const u = x + 0.1 + j * 0.24;
+          face(ctx, [[u, y + 0.702, z + 0.08], [u + 0.15, y + 0.702, z + 0.08], [u + 0.15, y + 0.702, z + 0.26], [u, y + 0.702, z + 0.26]], slot, { stroke: false });
+          face(ctx, [[u + 0.04, y + 0.704, z + 0.12], [u + 0.1, y + 0.704, z + 0.12], [u + 0.1, y + 0.704, z + 0.26], [u + 0.04, y + 0.704, z + 0.26]], tint(C.sky, 0.3), { stroke: false });
+        }
+        for (let j = 0; j < 3; j++) {
+          const v = y + 0.08 + j * 0.2;
+          face(ctx, [[x + 1.302, v, z + 0.08], [x + 1.302, v + 0.13, z + 0.08], [x + 1.302, v + 0.13, z + 0.26], [x + 1.302, v, z + 0.26]], slot, { stroke: false });
+        }
       }
-      // The open case: cans, and the gaps where cans were.
-      for (let k = 0; k < 6; k++) {
-        if (k === 1 || k === 4) continue;
-        cylinder(ctx, 40.62 + (k % 3) * 0.4, 16.07 + Math.floor(k / 3) * 0.34, 1.02, 0.12, 0.2, BRAND.can, { top: tint(C.grey, 0.4) });
+      // The top crate, open: bottle necks and red caps in rows, and the
+      // gaps where bottles were.
+      for (let k = 0; k < 10; k++) {
+        if (k === 2 || k === 6 || k === 7) continue;
+        const bx = 40.55 + (k % 5) * 0.25, by = 16.0 + Math.floor(k / 5) * 0.32;
+        cylinder(ctx, bx, by, 1.02, 0.07, 0.22, tint(C.sky, 0.25), { top: tint(C.sky, 0.25) });
+        cylinder(ctx, bx, by, 1.24, 0.06, 0.05, BRAND.can, { top: tint(BRAND.can, 0.2) });
       }
       // The sign, on a stick.
       box(ctx, 41.75, 16.62, 0, 0.05, 0.05, 1.5, C.wood, { flat: true, lw: 0.015 });

@@ -37,6 +37,7 @@ const SOFTBOX = [57.0, 10.6];
 const TRIPOD = [62.6, 10.9];
 const SNAPPER = [63.6, 11.0]; // the photographer
 const SIGN = [58.9, 11.2];
+const BIN_LOGO = [62.25, 16.82, 1.05]; // the rejected logo, on top of the bin by the easels
 const TABLE = { x0: 64.6, y0: 14.6, x1: 69.4, y1: 17.2, h: 1.0 };
 const BOARD = { x0: 62.1, x1: 65.1, y: 0.62, z0: 0.45, z1: 2.4 };
 const EASELS = [[57.6, 17.2], [60.6, 16.9]];
@@ -614,7 +615,6 @@ export default {
       [0.52, 0.45, 'hash', 0.48, -0.04], [0.55, 1.1, 'swoosh', 0.46, 0.05], [0.5, 1.62, 'circle', 0.36, -0.06],
     ]));
     R.thing(64.62, BOARD.y + 0.01, (ctx, t) => drawNeon(ctx, t), { anim: true });
-    R.find({ id: 'logo', label: 'A rejected logo', at: [BOARD.x0 + 0.6, BOARD.y, BOARD.z1 - 0.7], r: 0.8 });
 
     // ---- The photo set. The sweep on the floor, the paper in two pieces.
     R.rug((ctx) => {
@@ -828,13 +828,31 @@ export default {
     R.thing(56.7, 16.2, (ctx) => {
       for (let i = 0; i < 3; i++) face(ctx, [[56.35 + i * 0.06, 15.0, 0], [56.35 + i * 0.06, 16.2, 0], [56.6 + i * 0.06, 16.2, 1.1], [56.6 + i * 0.06, 15.0, 1.1]], [C.white, C.butter, C.white][i], { lw: 0.025 });
     });
-    R.thing(62.3, 16.9, (ctx) => {
-      box(ctx, 61.95, 16.55, 0, 0.5, 0.5, 0.55, C.grey, { flat: true, lw: 0.025, top: shade(C.grey, 0.4) });
-      if (Q.detail) for (let i = 0; i < 4; i++) {
-        const [X, Y] = P3(62.1 + hash(i, 3) * 0.3, 16.7 + hash(i, 5) * 0.3, 0.6 + hash(i, 7) * 0.1);
-        ctx.beginPath(); ctx.arc(X, Y, 0.1, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+    // On top of the bin's crumpled paper, the worst logo of all, smoothed
+    // out again so everyone can see why: the goose in sunglasses, GaNdEr,
+    // circled in red, NO.
+    R.thing(62.3, 17.2, (ctx) => {
+      box(ctx, 61.9, 16.5, 0, 0.62, 0.62, 0.58, C.grey, { flat: true, lw: 0.025, top: shade(C.grey, 0.4) });
+      for (let i = 0; i < 5; i++) {
+        const [X, Y] = P3(62.0 + hash(i, 3) * 0.42, 16.6 + hash(i, 5) * 0.42, 0.62 + hash(i, 7) * 0.1);
+        ctx.beginPath(); ctx.arc(X, Y, 0.11, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
       }
+      ctx.save();
+      faceTransform(ctx, [ALONG_X, [0, 0.5, -0.87]], BIN_LOGO[0] - 0.48, BIN_LOGO[1] - 0.24, BIN_LOGO[2] + 0.42);
+      ctx.scale(1.2, 1.2);
+      logoCard(ctx, 0.4, 0.4, 'shades', 0.8, 0.06);
+      // Its creases, from being screwed up first.
+      if (Q.detail) {
+        ctx.strokeStyle = alpha(C.ink, 0.25); ctx.lineWidth = 0.012;
+        ctx.beginPath();
+        ctx.moveTo(0.05, 0.3); ctx.lineTo(0.42, 0.36); ctx.lineTo(0.78, 0.22);
+        ctx.moveTo(0.3, 0.04); ctx.lineTo(0.36, 0.45); ctx.lineTo(0.28, 0.8);
+        ctx.moveTo(0.1, 0.7); ctx.lineTo(0.5, 0.62);
+        ctx.stroke();
+      }
+      ctx.restore();
     });
+    R.find({ id: 'logo', label: 'A rejected logo', at: BIN_LOGO, r: 0.8 });
 
     // ---- The ping-pong table: taped off till the pitch is done.
     R.thing(67, TABLE.y1, drawTable);

@@ -511,13 +511,15 @@ export default {
     // sits on its roof, through the end of the pitch.)
     const [cx, cy] = CEO_CAR;
     R.thing(cx, cy + 1.75, (ctx) => {
-      car(ctx, cx, cy, 0, C.black, { dir: -1, tall: true, long: 3.4 });
+      car(ctx, cx, cy, 0, C.black, { dir: -1, tall: true, long: 3.4, wide: 2.6 });
       const y = cy + 1.71;
       face(ctx, [[cx - 0.3, y, 0.3], [cx + 0.3, y, 0.3], [cx + 0.3, y, 0.5], [cx - 0.3, y, 0.5]], C.white, { lw: 0.02 });
       lettering(ctx, 'x', cx, y + 0.005, 0.4, 'DANA 1', 0.13, C.navy, 'Bagel Fat One');
     });
-    R.thing(48.0, BD + 0.5, (ctx) => postSign(ctx, 48.0, BD + 0.45, 1.25, 0.7, 0.6, C.white, [['RESERVED', 0.15, 'Bagel Fat One'], ['CEO', 0.17, 'Bagel Fat One']], C.navy));
-    R.thing(50.6, BD + 0.5, (ctx) => postSign(ctx, 50.6, BD + 0.45, 1.25, 0.7, 0.6, C.white, [['RESERVED', 0.15, 'Bagel Fat One'], ['ALSO CEO', 0.14, 'Bagel Fat One']], C.navy));
+    // One sign at the head of each of her two bays.
+    const [ra, rb] = [cx - BAY / 2, cx + BAY / 2];
+    R.thing(ra, BD + 0.5, (ctx) => postSign(ctx, ra, BD + 0.45, 1.25, 0.7, 0.6, C.white, [['RESERVED', 0.15, 'Bagel Fat One'], ['CEO', 0.17, 'Bagel Fat One']], C.navy));
+    R.thing(rb, BD + 0.5, (ctx) => postSign(ctx, rb, BD + 0.45, 1.25, 0.7, 0.6, C.white, [['RESERVED', 0.15, 'Bagel Fat One'], ['ALSO CEO', 0.14, 'Bagel Fat One']], C.navy));
     R.find({ id: 'two-spaces', label: 'A car across two spaces', at: [cx, cy, 1.0], r: 0.9 });
 
     // ---------- Doug ----------
@@ -595,14 +597,15 @@ export default {
 
     // ---------- The charger ----------
     // A gas car at the electric charger all day, sticky notes piling up on its
-    // back window; an electric car waits behind it in the aisle, blinker on.
+    // back window; an electric car waits behind it in the aisle, nose to the
+    // bay, blinker on (queuing, straight: only the CEO parks badly).
     // At five the gas car goes, the electric car pulls in and charges all
     // night. (The cable, meanwhile, lies on the ground, not plugged in.)
     const GAS = [8.1, 17.15], EV_IN = [8.2, 8.6], PULL = [17.2, 17.32];
     const gasHere = (t) => between(t, GAS[0], GAS[1]);
     const evWaits = (t) => between(t, EV_IN[1], PULL[0]);
     const evCharging = (t) => H(t) >= PULL[1];
-    const EVC = C.teal, EVY = VAN.y0 + 0.85;
+    const EVC = C.teal, EVY = VAN.y0 + 0.85, EVW = ROW_A[1] + 1.0;
     R.thing(CHARGER[0], CHARGER[1] + 0.2, (ctx) => {
       const [x, y] = CHARGER;
       box(ctx, x - 0.25, y - 0.2, 0, 0.5, 0.4, 0.1, CONCRETE, { flat: true, lw: 0.02 });
@@ -644,7 +647,7 @@ export default {
       }
       if (between(t, PULL[0], PULL[1])) {
         const k = (H(t) - PULL[0]) / (PULL[1] - PULL[0]);
-        return { x: EV_BAY, y: EVY + (ROW_A[0] + 2.2 - EVY) * k, along: 'y' };
+        return { x: EV_BAY, y: EVW + (ROW_A[0] + 2.2 - EVW) * k, along: 'y' };
       }
       return { x: EV_BAY, y: EVY, gone: true };
     }, (ctx, t, p) => {
@@ -652,12 +655,12 @@ export default {
       if (p.along === 'x') rigid(ctx, 'lot-ev-x', p.x, p.y, 0, (g) => autoX(g, p.x, p.y, 0, EVC, -1, { riders: [{ v: 0.25, top: C.lilac }] }));
       else rigid(ctx, 'lot-ev-y', p.x, p.y, 0, (g) => car(g, p.x, p.y, 0, EVC, { dir: -1, riders: [{ front: true, v: 0.25, top: C.lilac }] }));
     }, { bias: 0.8 });
-    R.thing(EV_BAY, EVY + 0.8, (ctx) => autoX(ctx, EV_BAY, EVY, 0, EVC, -1, { riders: [{ v: 0.25, top: C.lilac }] }), { fade: (t) => (evWaits(t) ? 1 : 0) });
-    R.thing(EV_BAY + 1.45, EVY + 0.8, (ctx, t) => {
+    R.thing(EV_BAY, EVW + 1.5, (ctx) => car(ctx, EV_BAY, EVW, 0, EVC, { dir: -1, riders: [{ front: true, v: 0.25, top: C.lilac }] }), { fade: (t) => (evWaits(t) ? 1 : 0) });
+    R.thing(EV_BAY + 0.5, EVW + 1.51, (ctx, t) => {
       if ((t * 1.5) % 1 > 0.5) return;
-      const x = EV_BAY + 1.41;
-      face(ctx, [[x, EVY + 0.3, 0.56], [x, EVY + 0.62, 0.56], [x, EVY + 0.62, 0.7], [x, EVY + 0.3, 0.7]], C.mustard, { lw: 0.02 });
-      glow(ctx, x, EVY + 0.46, 0.63, 0.8, C.mustard, 0.9);
+      const y = EVW + 1.41;
+      face(ctx, [[EV_BAY + 0.32, y, 0.56], [EV_BAY + 0.64, y, 0.56], [EV_BAY + 0.64, y, 0.7], [EV_BAY + 0.32, y, 0.7]], C.mustard, { lw: 0.02 });
+      glow(ctx, EV_BAY + 0.48, y, 0.63, 0.8, C.mustard, 0.9);
     }, { anim: true, on: evWaits });
     // Charging, all night: plugged in at last.
     R.thing(EV_BAY, ROW_A[0] + 3.7, (ctx) => {

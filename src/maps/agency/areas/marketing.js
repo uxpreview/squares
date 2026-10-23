@@ -364,27 +364,48 @@ export default {
       person(ctx, p.x, p.y, 0, { ...LOOKS.presenter, pose: k ? 'point' : 'stand', dir: 'l', hold: k ? null : marker }, t);
       if (Q.detail && bearOClock(t)) speech(ctx, p.x, p.y, 2.75, 'Any questions? Guys?', { size: 0.36 });
     });
-    // The cupboard: so full of swag the lid won't shut. Inside, a tote bag
-    // full of tote bags springs up.
+    // The cupboard: so full of swag the lid won't shut, and now and then it
+    // bumps up (the totes inside shifting), straps flapping out of the gap.
+    // Inside, a tote bag full of tote bags springs up.
     const cupboard = R.poke({ id: 'cupboard', at: [17.6, 7.6, 0.9], r: 0.8, say: 'Swag overflow. The closet is full.' });
     R.thing(17.6, 8.4, (ctx) => {
       box(ctx, 17.0, 6.8, 0, 1.2, 1.6, 1.15, C.wood, { lw: 0.035, top: shade(C.wood, 0.55), dots: shade(C.wood, 0.45) });
       face(ctx, [[18.2, 6.95, 0.1], [18.2, 8.25, 0.1], [18.2, 8.25, 1.0], [18.2, 6.95, 1.0]], tint(C.wood, 0.2), { lw: 0.025 });
-      box(ctx, 18.2, 7.0, 0.45, 0.04, 0.06, 0.3, C.ink, { flat: true, stroke: false });
-      lettering(ctx, 'y', 18.21, 7.6, 0.6, 'OVERFLOW 2', 0.14, PRIMAL);
+      box(ctx, 18.2, 7.0, 0.3, 0.04, 0.06, 0.22, C.ink, { flat: true, stroke: false });
+      // OVERFLOW, on a card taped high on its side, over the table, big
+      // enough to read.
+      face(ctx, [[17.06, 8.415, 0.66], [18.14, 8.415, 0.66], [18.14, 8.415, 1.08], [17.06, 8.415, 1.08]], C.white, { lw: 0.025 });
+      lettering(ctx, 'x', 17.6, 8.42, 0.93, 'OVERFLOW', 0.17, PRIMAL, 'Bagel Fat One');
+      lettering(ctx, 'x', 17.6, 8.42, 0.76, 'TOTES. DO NOT ADD.', 0.08, C.ink);
     });
+    // The bump: a second or so of it every 11.
+    const bumpK = (t) => { const s = ((t % 11) + 11) % 11; return s < 1.2 ? Math.abs(Math.sin(s * 7.8)) * (1 - s / 1.2) : 0; };
     R.thing(17.6, 8.45, (ctx, t) => {
       const k = cupboard.k();
+      const bump = k < 0.05 ? bumpK(t) : 0;
       // The lid, hinged at the back, ajar with straps poking out; open, up.
-      const a = 0.12 + k * 1.6;
+      const a = 0.12 + bump * 0.3 + k * 1.6;
       const lid = (col) => face(ctx, [[17.0, 6.8, 1.15], [18.2, 6.8, 1.15], [18.2, 6.8 + 1.6 * Math.cos(a), 1.15 + 1.6 * Math.sin(a)], [17.0, 6.8 + 1.6 * Math.cos(a), 1.15 + 1.6 * Math.sin(a)]], col, { lw: 0.03 });
       if (k < 0.05) {
         lid(tint(C.wood, 0.25));
-        // Straps hanging out of the gap.
-        [C.teal, C.coral, C.mustard].forEach((col, i) => {
-          const [X, Y] = P3(17.3 + i * 0.3, 8.4, 1.22);
-          ctx.beginPath(); ctx.arc(X, Y + 0.1, 0.11, -0.2, Math.PI + 0.2); ctx.strokeStyle = col; ctx.lineWidth = 0.05; ctx.stroke();
+        // Straps hanging out of the gap, flapping when it bumps.
+        const ey = 6.8 + 1.6 * Math.cos(a), ez = 1.15 + 1.6 * Math.sin(a);
+        [C.teal, C.coral, C.mustard, C.teal].forEach((col, i) => {
+          const [X, Y] = P3(17.2 + i * 0.27, ey, ez - 0.02);
+          const fl = bump * Math.sin(t * 14 + i * 2) * 0.5;
+          ctx.beginPath(); ctx.moveTo(X - 0.1, Y); ctx.bezierCurveTo(X - 0.14 + fl * 0.3, Y + 0.3 + bump * 0.1, X + 0.14 + fl * 0.3, Y + 0.3 + bump * 0.1, X + 0.1, Y);
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.08; ctx.stroke();
+          ctx.strokeStyle = col; ctx.lineWidth = 0.05; ctx.stroke();
         });
+        if (bump > 0.05 && Q.detail) {
+          // Thump lines, as the swag closet's.
+          const [TX, TY] = P3(17.6, 7.6, 1.75);
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04;
+          ctx.beginPath();
+          for (const sx of [-1, 1]) { ctx.moveTo(TX + sx * 0.3, TY - 0.05); ctx.lineTo(TX + sx * 0.5, TY - 0.25); ctx.moveTo(TX + sx * 0.35, TY + 0.1); ctx.lineTo(TX + sx * 0.6, TY + 0.02); }
+          ctx.stroke();
+        }
         return;
       }
       lid(tint(C.wood, 0.25));

@@ -367,7 +367,7 @@ function drawer(ctx, k) {
   const out = k * 0.55, y = WD.y1 - 0.02 + out, x0 = WD.x0 + 0.95, x1 = WD.x1 - 0.95, z0 = 0.8, z1 = 1.04;
   if (k > 0.02) {
     box(ctx, x0 + 0.05, y - 0.6, z0 + 0.02, x1 - x0 - 0.1, 0.6, z1 - z0 - 0.06, shade(C.brown, 0.3), { flat: true, lw: 0.02 });
-    toupee(ctx, (x0 + x1) / 2, y - 0.3, z1 - 0.06);
+    toupee(ctx, (x0 + x1) / 2, y - 0.3, z1 - 0.02);
   }
   box(ctx, x0, y, z0, x1 - x0, 0.05, z1 - z0, mix(C.wood, C.brown, 0.3), { flat: true, lw: 0.025 });
   qx(ctx, (x0 + x1) / 2 - 0.1, (x0 + x1) / 2 + 0.1, y + 0.051, z0 + 0.1, z0 + 0.14, C.mustard, { stroke: false });
@@ -377,16 +377,30 @@ function drawer(ctx, k) {
     ctx.beginPath();
     for (let i = 0; i < 4; i++) { ctx.moveTo(X - 0.06 + i * 0.04, Y); ctx.quadraticCurveTo(X - 0.1 + i * 0.05, Y - 0.12, X - 0.02 + i * 0.06, Y - 0.15); }
     ctx.strokeStyle = C.ink; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.strokeStyle = HAIR[2]; ctx.lineWidth = 0.025; ctx.stroke();
+    ctx.strokeStyle = C.brown; ctx.lineWidth = 0.025; ctx.stroke();
   }
 }
 function toupee(ctx, x, y, z) {
+  // A hairpiece: a domed mat of brown hair on a sheet of tissue, combed
+  // over, with the swoop at the front and a side parting.
+  const hair = C.brown, hi = tint(C.brown, 0.3), lo = shade(C.brown, 0.35);
   const [X, Y] = P3(x, y, z);
-  ctx.beginPath(); ctx.ellipse(X, Y - 0.06, 0.32, 0.16, 0, Math.PI, 0); ctx.ellipse(X, Y - 0.06, 0.32, 0.07, 0, 0, Math.PI);
-  paint(ctx, HAIR[2], { lw: 0.03, dots: shade(HAIR[2], 0.5), density: 0.3 });
+  ctx.beginPath(); ctx.ellipse(X, Y, 0.42, 0.17, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
+  ctx.beginPath();
+  ctx.moveTo(X - 0.34, Y);
+  ctx.bezierCurveTo(X - 0.34, Y - 0.3, X + 0.3, Y - 0.32, X + 0.34, Y - 0.04);
+  ctx.quadraticCurveTo(X + 0.4, Y - 0.16, X + 0.3, Y - 0.24); // the swoop
+  ctx.quadraticCurveTo(X + 0.42, Y - 0.1, X + 0.34, Y + 0.03);
+  ctx.quadraticCurveTo(X, Y + 0.1, X - 0.34, Y);
+  ctx.closePath();
+  paint(ctx, hair, { lw: 0.03 });
   if (Q.detail) {
-    ctx.beginPath(); for (let i = 0; i < 5; i++) { ctx.moveTo(X - 0.18 + i * 0.08, Y - 0.06); ctx.quadraticCurveTo(X - 0.12 + i * 0.08, Y - 0.2, X - 0.06 + i * 0.08, Y - 0.12); }
-    ctx.strokeStyle = shade(HAIR[2], 0.4); ctx.lineWidth = 0.02; ctx.stroke();
+    // Combed strands, light on the crown, and the parting.
+    ctx.lineCap = 'round';
+    ctx.beginPath(); for (let i = 0; i < 5; i++) { const u = -0.24 + i * 0.11; ctx.moveTo(X + u, Y - 0.02); ctx.quadraticCurveTo(X + u + 0.06, Y - 0.22, X + u + 0.2, Y - 0.2); }
+    ctx.strokeStyle = hi; ctx.lineWidth = 0.025; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X - 0.12, Y - 0.24); ctx.quadraticCurveTo(X - 0.18, Y - 0.12, X - 0.2, Y - 0.01);
+    ctx.strokeStyle = lo; ctx.lineWidth = 0.025; ctx.stroke();
   }
 }
 
@@ -509,7 +523,9 @@ export default {
       lettering(ctx, 'x', 9.9, 10.07, 1.46, '3. SYNERGY', 0.11, C.ink);
       lettering(ctx, 'x', 9.9, 10.07, 1.2, '4. TBD', 0.11, alpha(C.ink, 0.5));
     });
-    // The trophy cabinet: Primal's wins, the last one in 2009.
+    // The awards cabinet: Primal's wins, the last one in 2009. Plaques and
+    // framed awards, no cups (a cup here sent players looking for
+    // Marketing's participation trophy).
     R.thing(14.4, 8.25, (ctx) => {
       const x0 = 13.3, x1 = 15.5, y0 = 7.6, y1 = 8.25, h = 1.9;
       box(ctx, x0, y0, 0, x1 - x0, y1 - y0, h, C.wood, { flat: true, lw: 0.03 });
@@ -523,13 +539,14 @@ export default {
             qx(ctx, x - 0.15, x + 0.15, y1 - 0.2, z + 0.05, z + 0.45, C.wood, { lw: 0.015 });
             qx(ctx, x - 0.09, x + 0.09, y1 - 0.199, z + 0.14, z + 0.36, gold, { lw: 0.01 });
           } else {
-            // A cup on a plinth, handles and all.
-            box(ctx, x - 0.1, y1 - 0.35, z + 0.05, 0.2, 0.2, 0.1, C.ink, { flat: true, stroke: false });
-            const [X, Y] = P3(x, y1 - 0.25, z + 0.15);
-            ctx.fillStyle = gold; ctx.fillRect(X - 0.025, Y - 0.15, 0.05, 0.15);
-            ctx.beginPath(); ctx.moveTo(X - 0.16, Y - 0.4); ctx.lineTo(X + 0.16, Y - 0.4); ctx.quadraticCurveTo(X + 0.15, Y - 0.14, X, Y - 0.14); ctx.quadraticCurveTo(X - 0.15, Y - 0.14, X - 0.16, Y - 0.4);
-            paint(ctx, gold, { lw: 0.02 });
-            ctx.beginPath(); ctx.arc(X - 0.17, Y - 0.32, 0.06, 0, Math.PI * 2); ctx.arc(X + 0.17, Y - 0.32, 0.06, 0, Math.PI * 2); ctx.strokeStyle = gold; ctx.lineWidth = 0.025; ctx.stroke();
+            // A framed award: a certificate, its gold seal, its ribbon.
+            qx(ctx, x - 0.18, x + 0.18, y1 - 0.2, z + 0.05, z + 0.55, C.black, { lw: 0.015 });
+            qx(ctx, x - 0.14, x + 0.14, y1 - 0.199, z + 0.09, z + 0.51, C.white, { stroke: false });
+            if (Q.detail) for (const zz of [0.42, 0.35, 0.29]) qx(ctx, x - 0.09, x + 0.09, y1 - 0.198, z + zz, z + zz + 0.018, C.grey, { stroke: false });
+            const [X, Y] = P3(x + 0.06, y1 - 0.197, z + 0.18);
+            ctx.beginPath(); ctx.arc(X, Y, 0.05, 0, Math.PI * 2); paint(ctx, gold, { lw: 0.012 });
+            ctx.beginPath(); ctx.moveTo(X - 0.03, Y + 0.03); ctx.lineTo(X - 0.05, Y + 0.11); ctx.moveTo(X + 0.03, Y + 0.03); ctx.lineTo(X + 0.05, Y + 0.11);
+            ctx.strokeStyle = C.red; ctx.lineWidth = 0.025; ctx.stroke();
           }
         }
       }
@@ -724,6 +741,11 @@ export default {
     // another on the carpet. Inside, the offsite planning: a goose and a
     // lantern.
     const CZ = { x0: 10.3, x1: 12.6, y0: 14.7, y1: 15.7, h: 1.45 };
+    // A rattle for a second or so every 13, and a honk after it.
+    const cyc = (t) => ((t % 13) + 13) % 13;
+    const rattleK = (t) => (cyc(t) < 1.2 ? Math.sin(cyc(t) * 38) * (1 - cyc(t) / 1.2) : 0);
+    const rattling = (t) => cyc(t) < 1.2;
+    const honkNow = (t) => cyc(t) > 0.7 && cyc(t) < 2.3;
     const walnut = mix(C.brown, C.ink, 0.15);
     const credenza = R.poke({ id: 'credenza', at: [11.7, 15.4, 0.8], r: 0.9, say: 'VISION 2030. Do not open until 2030.' });
     R.thing(11.45, 14.75, (ctx) => {
@@ -748,19 +770,30 @@ export default {
       // Sliding doors: the left one fixed, the right one slid a crack open
       // (a feather in the gap), or right across in front of the left.
       qx(ctx, x0 + 0.03, mid + 0.02, y1 + 0.01, 0.06, h - 0.06, tint(walnut, 0.1), { lw: 0.03 });
-      const dx = -0.1 - k * (w - 0.12);
+      // Shut, it's ajar a good hand's width; now and then it rattles.
+      const rat = k < 0.1 ? rattleK(t) : 0;
+      const dx = -0.3 + rat * 0.05 - k * (w - 0.32);
       qx(ctx, mid + dx, x1 - 0.03 + dx, y1 + 0.04, 0.06, h - 0.06, tint(walnut, 0.05), { lw: 0.03 });
       if (Q.detail) {
         qx(ctx, mid - 0.16, mid - 0.1, y1 + 0.02, 0.5, 0.7, C.mustard, { stroke: false });
         qx(ctx, mid + dx + 0.08, mid + dx + 0.14, y1 + 0.05, 0.5, 0.7, C.mustard, { stroke: false });
       }
-      if (k < 0.1 && Q.detail) {
-        // The feather, caught in the gap.
-        const [X, Y] = P3(x1 - 0.08, y1 + 0.05, 0.72);
-        ctx.save(); ctx.translate(X, Y); ctx.rotate(0.6 + Math.sin(t * 1.3) * 0.08);
-        ctx.beginPath(); ctx.ellipse(0, -0.14, 0.06, 0.17, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.02 });
-        ctx.beginPath(); ctx.moveTo(0, 0.02); ctx.lineTo(0, -0.28); ctx.strokeStyle = C.greyLight; ctx.lineWidth = 0.015; ctx.stroke();
+      if (k < 0.1) {
+        // The feather, caught in the gap, sticking well out.
+        const [X, Y] = P3(x1 - 0.17, y1 + 0.06, 0.78);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(0.5 + Math.sin(t * 1.3) * 0.08 + rat * 0.15);
+        ctx.beginPath(); ctx.ellipse(0, -0.22, 0.1, 0.28, 0, 0, Math.PI * 2); paint(ctx, C.white, { lw: 0.025 });
+        ctx.beginPath(); ctx.moveTo(0, 0.08); ctx.lineTo(0, -0.46); ctx.strokeStyle = C.grey; ctx.lineWidth = 0.02; ctx.stroke();
         ctx.restore();
+        if (rattling(t) && Q.detail) {
+          // Thump lines off its top corners, as Marketing's swag closet.
+          const [TX, TY] = P3((x0 + x1) / 2, y1, h + 0.25);
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.lineCap = 'round';
+          ctx.beginPath();
+          for (const sx of [-1, 1]) { ctx.moveTo(TX + sx * 0.9, TY - 0.05); ctx.lineTo(TX + sx * 1.1, TY - 0.25); ctx.moveTo(TX + sx * 0.95, TY + 0.12); ctx.lineTo(TX + sx * 1.2, TY + 0.04); }
+          ctx.stroke();
+        }
+        if (honkNow(t)) speech(ctx, x1 - 0.3, y1, h + 0.3, 'honk', { size: 0.32 });
       }
       box(ctx, x0 - 0.02, y1 - 0.06, h - 0.07, x1 - x0 + 0.04, 0.12, 0.07, tint(walnut, 0.12), { flat: true, lw: 0.02 });
     }, { anim: true });
