@@ -84,4 +84,14 @@ export default [
     // (docs/levels/logan.md).
     load: () => import('./logan/map.js'),
   },
+  {
+    id: 'agency',
+    name: 'Pitch Day',
+    tagline: 'The pitch is at four. Seven geese are loose on the floor, and there\'s a bear in the lot.',
+    ink: '#B8452F',
+    // Primal, a digital agency (docs/levels/agency.md). Hidden until it ships;
+    // open it at #/agency.
+    hidden: true,
+    load: () => import('./agency/map.js'),
+  },
 ];

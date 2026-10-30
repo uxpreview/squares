@@ -78,6 +78,10 @@ export const WALL_T = 0.45; // wall thickness, the same as art.js walls()
 //                 zone file shared by two maps can draw differently on one
 //   place.found:  { is(zone, find) }, whether a find's been found (R.found);
 //                 given by buildWorld and set by the game
+//   place.below:  how far under its floor its picture goes (default the slab):
+//                 for a floor standing on storeys that aren't on the map (an
+//                 office's top floor over two empty ones), drawn from the
+//                 outside under its front edges as deep as this
 //   place.land:   the map's ground with height and its water (terrain.js),
 //                 given by buildWorld to every zone of a map with a land;
 //                 false for a zone that stands on the land without printing it
@@ -105,7 +109,7 @@ export function buildZone(def, place = {}) {
     }
     hi = Math.max(hi, land.top - oz);
   }
-  const base = land ? land.base - oz : -SLAB;
+  const base = land ? land.base - oz : -Math.max(SLAB, place.below || 0);
   const zone = {
     def,
     id: def.id,
@@ -119,7 +123,7 @@ export function buildZone(def, place = {}) {
     fixed: !!place.fixed,
     open: !!place.open,
     anchor: [isoX(ox, oy), isoY(ox, oy, oz)],
-    bounds: zoneBounds(w, d, h, place.reach, land ? { hi, base } : null),
+    bounds: zoneBounds(w, d, h, place.reach, land || place.below ? { hi, base } : null),
     items: [],
     anim: [],
     finds: [],
@@ -494,7 +498,7 @@ function cellPath(zone, rect, over, rise = null) {
   const [x0, y0, x1, y1] = rect;
   const e = 1e-3;
   const has = (x, y) => zone.rects.some((r) => x >= r[0] && x < r[2] && y >= r[1] && y < r[3]);
-  const up = rise ?? (zone.walls ? zone.walls.h + 9 : 1.5), down = -(SLAB + 1.5);
+  const up = rise ?? (zone.walls ? zone.walls.h + 9 : 1.5), down = -(Math.max(SLAB, -zone.base) + 1.5);
   // The pieces of [a, b] split wherever a rect of the zone starts or ends.
   const cuts = (a, b, axis) => {
     const at = [a, b];
@@ -704,7 +708,8 @@ function roomPath(zone) {
   const H = (zone.walls ? zone.walls.h : zone.h) + 0.2;
   const t0 = -WALL_T - 0.05;
   const p = new Path2D();
-  quad(p, [[t0, zone.d, H], [t0, t0, H], [zone.w, t0, H], [zone.w, t0, -SLAB], [zone.w, zone.d, -SLAB], [t0, zone.d, -SLAB]]);
+  const B = Math.min(-SLAB, zone.base);
+  quad(p, [[t0, zone.d, H], [t0, t0, H], [zone.w, t0, H], [zone.w, t0, B], [zone.w, zone.d, B], [t0, zone.d, B]]);
   zone.roomPath = p;
   return p;
 }
@@ -1028,7 +1033,7 @@ function bandsOf(piece, k, ox, oy, w, h) {
   // under the one behind), from below the slab to the top of the walls.
   const [x0, y0, x1, y1] = piece.rect, over = 0.2;
   const xa = x0 - over, ya = y0 - over, xb = x1, yb = y1;
-  const up = (zone.walls ? zone.walls.h + 9 : 1.5) * ZK, down = (SLAB + 1.5) * ZK;
+  const up = (zone.walls ? zone.walls.h + 9 : 1.5) * ZK, down = (Math.max(SLAB, -zone.base) + 1.5) * ZK;
   // Across the screen at X, the floor runs from s0 / 2 to s1 / 2 down it.
   const reach = (X) => {
     const lo = Math.max(ya, xa - X), hi = Math.min(yb, xb - X);
