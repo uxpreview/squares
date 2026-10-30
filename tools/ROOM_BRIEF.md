@@ -88,6 +88,7 @@ Some places are streets of houses seen from outside (Moving Day's triple-deckers
 ## Density and life (this is the important part)
 
 - Aim for 10 to 18 people doing specific, legible, funny things (not just standing). Use varied `folk(seed, {...})` styles, poses, hats, scales (kids around 0.7).
+- Animals come from the kit: `animal(ctx, x, y, z, { kind, pose, dir, wool, color, phase }, t)` in `src/engine/animals.js` (a donkey, sheep woolly, half sheared or sheared, a goat, a pig, a dog, a cat, a hen; poses stand, walk, run, graze, lie, sit, peck). Drawn `anim`, at people scale. They count against the same speed budget as people, and QA's covered check looks at their bodies. One that crosses areas goes on the level's clock as a walker with `animal: true`; a paddock's fence is a map `fence` it only crosses at a gate.
 - At least 8 distinct animated things: people walking routes, machines, particles (steam, bubbles, sparks, snow), blinking lights, swinging, bouncing, spinning.
 - Lots of props and clutter: shelves stocked with little items, signs with text (`paintText` on walls, `label`), posters (`frame`), plants, rugs, tables.
 - At least one running gag or little story that plays out over time (like the pool's diver who walks out, bounces, dives, swims to the ladder and climbs out).

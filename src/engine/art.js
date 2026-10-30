@@ -439,7 +439,8 @@ export function walls(ctx, o = {}) {
 // the head's center at (0.02, hy). Both draw in the person's own units, facing
 // right (the person is flipped for you when they face left).
 // For tools: watch.person(ctx, x, y, r) is called with each person's head
-// (a circle in the units ctx is in), so QA can see who's drawn where.
+// (a circle in the units ctx is in), and each animal's body (animals.js), so
+// QA can see who's drawn where.
 export const watch = { person: null };
 
 export function person(ctx, x, y, z, o = {}, t = 0) {

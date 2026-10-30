@@ -20,8 +20,9 @@
 //            painted over by their own furniture (warnings, each with a
 //            close-up in covered/: a person behind a lamp post is fine, one
 //            walking inside a wall isn't, and only eyes can tell)
-//   walkers  people on the map's timeline go through doors, never walls, and
-//            never faster than a run
+//   walkers  people and animals on the map's timeline go through doors and
+//            gates, never walls or fences (map.fences), and never faster
+//            than a run
 //   land     (places with ground and water) the ground never climbs toward
 //            the viewer too steeply to draw ground-first (engine/terrain.js)
 //   sound    every cue and bed plays, and the place's sound (every bed, its mix
@@ -141,6 +142,7 @@ try {
       defaultStorey: w.storeys[w.defaultStorey] ? w.storeys[w.defaultStorey].id : null,
       order: w.order.map((i) => w.zones[i].id),
       walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
+      animals: w.walkers.filter((k) => k.animal).length,
       land: !!m.land,
       zones: w.zones.map((z) => ({
         id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '', describe: z.def.describe || '', long: w.long(z),
@@ -515,7 +517,7 @@ try {
     const saveFiles = (x, name) => x.shots.forEach((d, j) => fs.writeFileSync(path.join(dir, `${name}-${j ? 'on-top' : 'drawn'}.png`), Buffer.from(d.split(',')[1], 'base64')));
     cov.people.forEach((x, i) => {
       save(x, `person-${i}`);
-      warn('covered', `${x.zone} at ${x.t}s: someone's head is ${Math.round(x.share * 100)}% covered by something drawn after them (inside a wall or a counter? behind a post is fine). Close-up: ${rel(path.join(dir, `person-${i}-drawn.png`))}`);
+      warn('covered', `${x.zone} at ${x.t}s: someone's head (or an animal's body) is ${Math.round(x.share * 100)}% covered by something drawn after them (inside a wall or a counter? behind a post is fine). Close-up: ${rel(path.join(dir, `person-${i}-drawn.png`))}`);
     });
     cov.finds.forEach((x, i) => {
       save(x, `find-${i}`);
@@ -548,14 +550,16 @@ try {
     }, info.loop);
     let walkOk = true;
     for (const r of walk) {
-      if (r.kind === 'wall') { walkOk = false; fail('walkers', `${r.who} walks through the ${r.side} wall of ${byId.get(r.zone).name} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a door.`); }
+      if (r.kind === 'wall' && r.fence) { walkOk = false; fail('walkers', `${r.who} goes through ${r.fence} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a gate.`); }
+      else if (r.kind === 'wall') { walkOk = false; fail('walkers', `${r.who} walks through the ${r.side} wall of ${byId.get(r.zone).name} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a door.`); }
       else {
         if (r.fastest > 3.6) { walkOk = false; fail('walkers', `${r.who} moves at ${r.fastest.toFixed(1)} units a second somewhere; a run is 3.`); }
         // (Someone who leaves the map on purpose, a car off to the mainland, says so: away.)
         if (r.outside > 0.2 && !r.away) warn('walkers', `${r.who} spends ${r.outside.toFixed(1)}s outside every area, where nobody draws them.`);
       }
     }
-    if (walkOk) pass('walkers', `${info.walkers.length} people walk the ${info.loop}s loop through doors, never walls, never faster than a run.`);
+    const who = info.animals ? `${info.walkers.length - info.animals} people and ${info.animals} animals` : `${info.walkers.length} people`;
+    if (walkOk) pass('walkers', `${who} walk the ${info.loop}s loop through doors and gates, never walls or fences, never faster than a run.`);
   }
 
   // ---------- On screen and tappable ----------

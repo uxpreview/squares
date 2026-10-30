@@ -65,6 +65,8 @@ src/
   engine/          Drawing and moving around. Knows nothing about geese or scores.
     iso.js           The 3D-to-screen math and zone size
     art.js           The ink box: palette, halftone dots, glows, people, the goose, furniture
+    animals.js       The animal kit: a donkey, sheep (woolly, half sheared, sheared), a goat,
+                     a pig, a dog, a cat and a hen, drawn like people (E6's first slice)
     actors.js        Motion helpers: walking routes, orbits, particles, people on a clock
     weather.js       A storm (lightning on a schedule), bolts, rain
     zone.js          Turns a zone file into layers; walls that drop down; lights and dark;
