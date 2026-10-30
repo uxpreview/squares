@@ -10,7 +10,7 @@
 // Steve's cake: HAPPY BIRTHDAY STEVE, a slice gone an hour, each taken by
 // someone asking who Steve is; nobody takes the last one, until the cleaner
 // at nine.
-import { C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, goose, speech, plant as pot, shade, tint, alpha, hash } from '../../../engine/art.js';
+import { C, Q, P, box, rect, disc, cylinder, face, paint, person, folk, goose, speech, plant as pot, shade, tint, alpha, mix, hash } from '../../../engine/art.js';
 import { schedule, particles } from '../../../engine/actors.js';
 import { TONE, INK, BRAND, CHAIR, SIDING, PRIMAL } from '../style.js';
 import { floorOf, backWall, sill, pod, staff, room, drawTower, lettering, mug, papers, plant, onFace, words, dash, drawChairY } from '../kit.js';
@@ -48,6 +48,51 @@ function goosePic(ctx, u, v, s) {
 // A speech bubble, small, only close up.
 function say(ctx, x, y, z, text) {
   if (Q.detail && text) speech(ctx, x, y, z, text, { size: 0.36 });
+}
+
+// The office dog (the real office is pet friendly): asleep on her bed in
+// the lobby all day, an ear twitching, until bear o'clock, when she sits up
+// and tells the bear about it.
+const DOG = [38.4, 10.2];
+function officeDog(ctx, t) {
+  const [x, y] = DOG, fur = mix(C.mustard, C.wood, 0.45), dk = shade(fur, 0.3);
+  const [BX, BY] = P(x, y, 0);
+  ctx.beginPath(); ctx.ellipse(BX, BY, 1.0, 0.52, 0, 0, Math.PI * 2);
+  paint(ctx, INK.maple, { lw: 0.03 });
+  ctx.beginPath(); ctx.ellipse(BX, BY - 0.05, 0.76, 0.36, 0, 0, Math.PI * 2);
+  paint(ctx, tint(INK.maple, 0.35), { stroke: false });
+  const up = bearOClock(t);
+  ctx.save();
+  ctx.translate(BX, BY - 0.12);
+  ctx.scale(1.35, 1.35);
+  if (!up) {
+    // Curled up, nose to tail, breathing.
+    const br = 1 + Math.sin(t * 1.6) * 0.03;
+    ctx.beginPath(); ctx.ellipse(0, 0, 0.48 * br, 0.24 * br, 0, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.03 });
+    ctx.beginPath(); ctx.ellipse(-0.36, 0.02, 0.18, 0.15, 0, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.03 });
+    const tw = (t % 5) < 0.25 ? -0.1 : 0;
+    ctx.beginPath(); ctx.ellipse(-0.3, -0.06 + tw, 0.08, 0.13, -0.5, 0, Math.PI * 2); paint(ctx, dk, { lw: 0.02 });
+    ctx.beginPath(); ctx.ellipse(0.42, 0.04, 0.16, 0.07, 0.3, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.025 });
+    ctx.fillStyle = C.ink;
+    ctx.beginPath(); ctx.arc(-0.52, 0.04, 0.035, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 0.025;
+    ctx.beginPath(); ctx.arc(-0.37, -0.01, 0.05, 0.2, Math.PI - 0.2); ctx.stroke();
+  } else {
+    // Sitting up, facing the windows, tail going.
+    const wag = Math.sin(t * 14) * 0.5;
+    ctx.save(); ctx.translate(-0.3, -0.1); ctx.rotate(-0.6 + wag * 0.4);
+    ctx.beginPath(); ctx.ellipse(-0.18, 0, 0.2, 0.05, 0, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.025 });
+    ctx.restore();
+    ctx.beginPath(); ctx.ellipse(0, -0.25, 0.26, 0.36, 0.15, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.03 });
+    ctx.beginPath(); ctx.ellipse(0.12, -0.68, 0.18, 0.16, 0, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.03 });
+    ctx.beginPath(); ctx.ellipse(0.3, -0.63, 0.1, 0.07, 0, 0, Math.PI * 2); paint(ctx, fur, { lw: 0.025 });
+    ctx.beginPath(); ctx.ellipse(0.02, -0.68, 0.07, 0.14, 0.3, 0, Math.PI * 2); paint(ctx, dk, { lw: 0.02 });
+    ctx.fillStyle = C.ink;
+    ctx.beginPath(); ctx.arc(0.39, -0.64, 0.035, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0.16, -0.72, 0.025, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  if (up && (t % 1.4) < 0.8) say(ctx, x, y, 1.7, 'WOOF.');
 }
 
 // ---------- People on their own clocks ----------
@@ -452,6 +497,9 @@ export default {
       // Line 1 on hold, all day.
       if (Math.floor(t * 1.5) % 2) { const [PX, PY] = P(35.85, 7.95, 1.19); ctx.beginPath(); ctx.arc(PX, PY, 0.04, 0, Math.PI * 2); ctx.fillStyle = C.coral; ctx.fill(); }
     }, { anim: true });
+
+    // The office dog, on her bed in the lobby, by the reception desk.
+    R.thing(DOG[0], DOG[1] + 0.5, (ctx, t) => officeDog(ctx, t), { anim: true });
 
     // ---------- The couch, the Courier's all day ----------
     // He sits on the first cushion (day.js); the earbud is down the side of

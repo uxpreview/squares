@@ -17,6 +17,7 @@ import { route, clamp } from '../../../engine/actors.js';
 import { ZK, SLAB } from '../../../engine/iso.js';
 import { INK, TONE, BLOCK } from '../style.js';
 import { car, bear, lettering, maple, pine } from '../kit.js';
+import { STONE, PRIMAL } from '../style.js';
 import { BD, BW, W, D, ROW_A, ROW_B, AISLE, ROAD, DRIVE, BAY, DUMPSTER, DOOR, CEO_CAR, DOUG_CAR } from '../plan.js';
 import { bearAt, at, H, staffed, BEAR_TIMES, nightK, LOOP } from '../clock.js';
 
@@ -183,6 +184,23 @@ function postSign(ctx, x, y, z0, w, h, panel, lines, ink = C.ink) {
   box(ctx, x - 0.04, y - 0.04, 0, 0.08, 0.08, z0 + h, shade(C.grey, 0.3), { flat: true, stroke: false });
   face(ctx, [[x - w / 2, y + 0.05, z0], [x + w / 2, y + 0.05, z0], [x + w / 2, y + 0.05, z0 + h], [x - w / 2, y + 0.05, z0 + h]], panel, { lw: 0.03 });
   lines.forEach(([text, size, font], i) => lettering(ctx, 'x', x, y + 0.06, z0 + h - (i + 0.6) * (h / lines.length), text, size, ink, font || 'Rethink Sans'));
+}
+
+// The sign at the foot of the drive: a low charcoal slab on a stone base,
+// PRIMAL on it, in a bed of clipped shrubs under a red Japanese maple (the
+// real office's sign, by its drive under big red maples).
+const MONUMENT = [116.6, 38.2];
+function monument(ctx) {
+  const [x, y] = MONUMENT, slab = mix(C.ink, C.grey, 0.25);
+  for (const [dx, dy] of [[-1.05, 0.15], [1.05, 0.1], [-0.6, 0.55], [0.6, 0.55]]) {
+    const [X, Y] = P(x + dx, y + dy, 0.25);
+    ctx.beginPath(); ctx.ellipse(X, Y, 0.42, 0.28, 0, 0, Math.PI * 2);
+    paint(ctx, mix(C.green, INK.pine, 0.4), { lw: 0.03, dots: Q.detail ? shade(C.green, 0.4) : null, density: 0.3 });
+  }
+  box(ctx, x - 1.1, y - 0.25, 0, 2.2, 0.5, 0.3, STONE, { flat: true, lw: 0.03 });
+  box(ctx, x - 0.95, y - 0.15, 0.3, 1.9, 0.3, 0.95, slab, { flat: true, lw: 0.035 });
+  lettering(ctx, 'x', x, y + 0.16, 0.85, 'PRIMAL', 0.36, C.white, 'Bagel Fat One');
+  face(ctx, [[x - 0.55, y + 0.16, 0.5], [x + 0.55, y + 0.16, 0.5], [x + 0.55, y + 0.16, 0.54], [x - 0.55, y + 0.16, 0.54]], PRIMAL, { stroke: false });
 }
 
 // The staff-made BEAR XING sign: a diamond of yellow card taped to a broom
@@ -460,6 +478,8 @@ export default {
     R.thing(116.9, 14.5, (ctx) => pine(ctx, 116.9, 14.5, 0, 1.2));
     R.thing(116.6, 21, (ctx) => maple(ctx, 116.6, 21, 0, 1.05, C.mustard));
     R.thing(116.3, 31, (ctx) => pine(ctx, 116.3, 31, 0, 1));
+    R.thing(117.3, 35.8, (ctx) => maple(ctx, 117.3, 35.8, 0, 0.75, INK.maple));
+    R.thing(MONUMENT[0], MONUMENT[1] + 0.7, (ctx) => monument(ctx));
     for (const [x, y, arm] of LAMPS) {
       R.thing(x, y + 0.2, (ctx) => lampPost(ctx, x, y, arm));
       const [hx, hy] = lampHead(x, y, arm);

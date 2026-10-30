@@ -2,7 +2,8 @@
 //
 // Under (backdrop): a New England wood at the end of October, behind the
 // building and at its left end: maples gone red, orange and gold, pines,
-// birches, a few trees already bare. A path runs back from the top of the
+// birches, a few trees already bare, and past it a ridge with two radio
+// masts, their lights blinking. A path runs back from the top of the
 // drive to the fire pit in its clearing, where everyone goes at five: lit
 // from five, little figures round it in the evening, a glow in the night.
 // A little mist at dawn, an owl after dark, print marks and the caption.
@@ -36,6 +37,11 @@ const PIT = [53, -19];
 const PATH = [[110.5, -0.4], [106, -4.6], [97, -8.8], [84, -11.6], [70, -14.6], [58.6, -17.4]];
 // The owl's snag, at the edge of the wood beside the lot's left end.
 const OWL = [-2.6, 30.8];
+// The ridge across the swamp, past the far edge of the wood, and its two
+// radio masts: what the real office's back windows look out on (the photos
+// people post from there are of them, in rainbows and snow). [x, y, s]
+const RIDGE = [48, -48];
+const MASTS = [[45.5, -47.2, 1], [50.2, -48.6, 0.82]];
 
 const dSeg = (px, py, [ax, ay], [bx, by]) => {
   const dx = bx - ax, dy = by - ay, u = clamp(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy));
@@ -81,7 +87,8 @@ const KEEP = [
     (front ? FRONT : BACK).push([x, y, kind, s, r(6)]);
   }
   const byDepth = (p, q) => p[0] + p[1] - q[0] - q[1] || p[0] - q[0];
-  BACK.push([PIT[0], PIT[1], 'pit', 1, 0], [OWL[0], OWL[1], 'snag', 1, 0]);
+  BACK.push([PIT[0], PIT[1], 'pit', 1, 0], [OWL[0], OWL[1], 'snag', 1, 0], [RIDGE[0], RIDGE[1] - 3, 'ridge', 1, 0]);
+  for (const [x, y, s] of MASTS) BACK.push([x, y, 'mast', s, 0]);
   BACK.sort(byDepth);
   FRONT.sort(byDepth);
 })();
@@ -170,18 +177,75 @@ function snag(ctx, n) {
   if (Q.detail) { ctx.fillStyle = C.ink; for (let k = 0; k < 3; k++) { const [X, Y] = P3(OWL[0] + 0.12, OWL[1] + 0.12, 0.5 + k * 0.7); ctx.fillRect(X - 0.12, Y, 0.12, 0.05); } }
 }
 
+// The ridge: a long low hump of far woods, a shade deeper than the paper.
+function ridge(ctx, n) {
+  const [X, Y] = P3(RIDGE[0], RIDGE[1], 0);
+  // By night a shade under the dark wood, so it stays a far hill.
+  const c = mix(mix(INK.leaves, INK.maple, 0.22), shade(WOODS.night, 0.2), n);
+  ctx.beginPath();
+  ctx.moveTo(X - 26, Y + 1);
+  ctx.bezierCurveTo(X - 16, Y - 2.4, X - 6, Y - 4.2, X + 2, Y - 3.6);
+  ctx.bezierCurveTo(X + 10, Y - 3, X + 18, Y - 1.4, X + 26, Y + 1);
+  ctx.closePath();
+  ctx.save(); ctx.globalAlpha *= 0.55;
+  paint(ctx, c, { stroke: false, dots: shade(c, 0.3), density: 0.12 });
+  ctx.restore();
+}
+// A radio mast: a thin lattice in red and white bands, tapering to a point,
+// held by guy wires. Its lights are live (mastLights).
+const MAST_H = 22;
+function mast(ctx, x, y, s, n) {
+  const [X, Y] = P3(x, y, 0), h = MAST_H * s, w0 = 0.5 * s, w1 = 0.08 * s;
+  ctx.save();
+  ctx.strokeStyle = alpha(C.ink, 0.35); ctx.lineWidth = 0.03;
+  ctx.beginPath();
+  for (const k of [0.4, 0.7]) for (const dx of [-6, 6, -3.5, 3.5]) { ctx.moveTo(X, Y - h * k); ctx.lineTo(X + dx * s, Y + Math.abs(dx) * 0.18 * s); }
+  ctx.stroke();
+  const bands = 7;
+  for (let i = 0; i < bands; i++) {
+    const a = i / bands, b = (i + 1) / bands, wa = w0 + (w1 - w0) * a, wb = w0 + (w1 - w0) * b;
+    ctx.beginPath();
+    ctx.moveTo(X - wa, Y - h * a); ctx.lineTo(X + wa, Y - h * a); ctx.lineTo(X + wb, Y - h * b); ctx.lineTo(X - wb, Y - h * b); ctx.closePath();
+    ctx.fillStyle = sink(i % 2 ? C.white : INK.maple, n); ctx.fill();
+  }
+  if (Q.detail) {
+    // The lattice: a zigzag up the middle.
+    ctx.beginPath();
+    for (let i = 0; i <= 28; i++) { const a = i / 28, w = w0 + (w1 - w0) * a; ctx.lineTo(X + (i % 2 ? w : -w), Y - h * a); }
+    ctx.strokeStyle = alpha(C.ink, 0.5); ctx.lineWidth = 0.025; ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(X - w0, Y); ctx.lineTo(X - w1, Y - h); ctx.lineTo(X + w1, Y - h); ctx.lineTo(X + w0, Y);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 0.04; ctx.stroke();
+  ctx.restore();
+}
+// The masts' lights: red, slow, all day; brighter and glowing after dark.
+function mastLights(ctx, t, n) {
+  for (const [x, y, s] of MASTS) {
+    const [X, Y] = P3(x, y, 0), h = MAST_H * s;
+    const on = (t + s * 0.7) % 2 < 1;
+    for (const k of [1, 0.5]) {
+      if (n > 0.3 && on) glowAt(ctx, X, Y - h * k, 1.6, C.red, n * 0.8);
+      ctx.beginPath(); ctx.arc(X, Y - h * k, 0.13, 0, Math.PI * 2);
+      ctx.fillStyle = on ? C.red : shade(C.red, 0.45); ctx.fill();
+    }
+  }
+}
+
 function drawTree(ctx, tr, n, view) {
   const [x, y, kind, s, v] = tr;
   if (view) {
     const X = x - y, Y = (x + y) / 2;
-    const mx = kind === 'pit' ? 7 : 2;
-    if (X < view[0] - mx || X > view[2] + mx || Y < view[1] - 0.5 || Y - HK * s > view[3] + 0.5) return;
+    const mx = kind === 'pit' ? 7 : kind === 'ridge' ? 27 : kind === 'mast' ? 7 : 2;
+    const up = kind === 'mast' ? MAST_H * s : HK * s;
+    if (X < view[0] - mx || X > view[2] + mx || Y < view[1] - 0.5 || Y - up > view[3] + 0.5) return;
   }
   if (kind === 'pine') pine(ctx, x, y, s, n, v);
   else if (kind === 'birch') birch(ctx, x, y, s, n);
   else if (kind === 'bare') bare(ctx, x, y, s, n, v);
   else if (kind === 'pit') pit(ctx, n);
   else if (kind === 'snag') snag(ctx, n);
+  else if (kind === 'ridge') ridge(ctx, n);
+  else if (kind === 'mast') mast(ctx, x, y, s, n);
   else maple(ctx, x, y, s, LEAF[kind], n, v);
 }
 // The path's worn earth, under the trees.
@@ -356,6 +420,7 @@ function owl(ctx, t, n) {
 export function backdrop(ctx, t, world, fx) {
   const n = nightStep(t);
   picture(backShot, ctx, fx, BACK_BOX, 'b' + n + Q.detail + Q.lines, (g, view) => paintBack(g, n, view));
+  mastLights(ctx, t, n);
   fire(ctx, t, n);
   crowd(ctx, t, n);
   owl(ctx, t, n);

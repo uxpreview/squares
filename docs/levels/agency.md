@@ -147,6 +147,17 @@ Office life, affectionate: the meetings, the jargon, the broken coffee machine, 
 ## Real places, checked
 It's from another universe on purpose (decision 2), so there's nothing to check against a map. What's carried over from the real building, as winks: the octagon (the stair tower, decision 3), a building in the woods with a lot in front, the empty floors under the one that's used (the owner), the fire pit (off the map, where everyone goes at five), and a bear.
 
+**More winks, from the research** (session 24, October 30). The Primacy research (sessions 22 and 23: the town's property card, Google's photos and Street View, the owner's aerial and flyover) was dropped from the docs on October 20; it's kept on the [survey page](https://claude.ai/artifact/XtFLEwKGeBPhcBgyykwyC1) and in git history (PR #50). What it added here, none of it named or real (decision 2 still holds):
+
+- **The building's face** takes the real front's colors: tan clapboard, brown trim bands at each floor and brown window frames, a stone base (the town's 2022 photo). The stair tower and the low walls follow, as one siding (`SIDING`, `TRIM`, `STONE` in style.js).
+- **The stair tower wears the firm's mark,** a red disc with a white p high on its front, as the real turret does.
+- **The view from the back windows:** a ridge past the woods with two red and white radio masts, their lights blinking, glowing after dark (`ambient.js`). Most photos people post from the real office are of that ridge and its masts.
+- **The sign at the foot of the drive:** a low charcoal slab, PRIMAL, on a stone base in clipped shrubs under a red Japanese maple, as the real one stands by its drive under red maples (`lot.js`).
+- **The office dog** (the real office is pet friendly): asleep on her bed in the lobby all day, sitting up at bear o'clock to tell the bear about it ("WOOF."). Art, not a find (`front.js`).
+- **Where it all began:** a framed photo of the garage Walt started in, 1994, beside his tractor (the real firm began in a garage as an accounting systems shop).
+
+Left out on purpose: the real building's walk-out lower floor (the brief's two empty storeys already say "only the top floor is used"), its two 1988 pools (unconfirmed), its lift, and the black roller blinds and sloped ceilings inside (the floor is drawn roofless).
+
 ## Engine and kit needs
 - [x] **A raised top floor** (`place.below`, any map): an area can stand on storeys that aren't part of the map, and draw them from the outside under its own front edges, the way a slab is drawn but as deep as it likes. The office's six areas stand at z 6.4 on two empty storeys. *(Session 23.)*
 - [x] **The day's plate** (`plate.at(t)`, style.js `paperAt`): a misty morning, bright leaves, gold before six, a blue-green night. *(Session 23.)*
@@ -239,3 +250,9 @@ Session 23 (the art), the lead's calls:
 30. **The ending starts at 4:30** (`finale.js`, `FIN_AT`): the geese are across the road in about twelve seconds and the card comes at fifteen.
 31. **Gary stays a sight gag,** not a find: the building's face is part of each office area's cached floor picture, so a tap there can't be told from a tap on the floor above.
 32. **Pidge is in a mirror box** (the test room's glass silvered while it's shut), so the poke really hides him.
+
+Session 24 (the research's winks), the owner's ask, the lead's calls:
+
+33. **Winks, not a copy.** The research only adds look and jokes the real building suggests (above); the plan, the finds, the cast and the clock are unchanged.
+34. **The siding goes tan.** The front reads closer to the real one and still stands off the leaf paper by its brown trim and dark windows; overturn it to go back to white (`SIDING` in style.js, one line).
+35. **The masts stand past the wood's edge,** on the open paper behind it, so no tree draws over them and they don't hide anything; their lights are drawn live over the woods' cached picture.

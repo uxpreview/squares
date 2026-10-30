@@ -27,7 +27,7 @@ import { C, Q, box, face, rect, paint, person, folk, alpha, tint, shade, mix, pa
 import { ZK } from '../../engine/iso.js';
 import { BD, BW, FLOOR, STOREY, SILL, BACK, FRONT, TOWER } from './plan.js';
 import { rushK, seated, watched, staffed, dark, nightK } from './clock.js';
-import { SIDING, DARK_GLASS, INK, PRIMAL, BRAND, CHAIR, FABRIC } from './style.js';
+import { SIDING, TRIM, STONE, DARK_GLASS, INK, PRIMAL, BRAND, CHAIR, FABRIC } from './style.js';
 
 const P3 = (x, y, z) => [x - y, (x + y) / 2 - z * ZK];
 const LW = 0.045;
@@ -44,10 +44,10 @@ export function glass(ctx, x, y, z, w, d, h, k = 0.4) {
 // ---------- The floor and the building under it ----------
 // An area's carpet (tiles in two tones, no slab: the storeys under it stand
 // in for one), and the outside of floors one and two under its front edge:
-// white clapboard, a dark window every 2.4 units with a white frame, a band
-// at each floor. o: { floor, end (the building's right-hand end face too),
-// lit: [x] (a window lit on floor two, Gary's), door: x (the front door, at
-// the foot, under PRIMAL's sign) }
+// tan clapboard, a dark window every 2.4 units in a brown frame, a brown
+// trim band at each floor, a stone base. o: { floor, end (the building's
+// right-hand end face too), lit: [x] (a window lit on floor two, Gary's),
+// door: x (the front door, at the foot, under PRIMAL's sign) }
 export function floorOf(R, x0, x1, o = {}) {
   const carpet = o.floor || INK.carpet;
   R.floor((ctx) => {
@@ -82,7 +82,7 @@ function facade(ctx, x0, x1, o) {
     ctx.restore();
   }
   const win = (pts, lit) => {
-    face(ctx, pts.frame, C.white, { lw: 0.035 });
+    face(ctx, pts.frame, TRIM, { lw: 0.035 });
     face(ctx, pts.glass, lit ? C.butter : DARK_GLASS, { stroke: false, dots: lit ? null : shade(DARK_GLASS, 0.4), density: 0.15 });
     if (!lit && Q.detail) { ctx.save(); ctx.globalAlpha *= 0.35; face(ctx, pts.glint, C.white, { stroke: false }); ctx.restore(); }
   };
@@ -117,11 +117,12 @@ function facade(ctx, x0, x1, o) {
     }
     // The band at each floor line.
     const zb = F + (s + 1) * STOREY;
-    face(ctx, [[x0, BD + 0.02, zb - 0.16], [x1, BD + 0.02, zb - 0.16], [x1, BD + 0.02, zb], [x0, BD + 0.02, zb]], shade(SIDING, 0.32), { stroke: false });
-    if (o.end) face(ctx, [[BW + 0.02, 0, zb - 0.16], [BW + 0.02, BD, zb - 0.16], [BW + 0.02, BD, zb], [BW + 0.02, 0, zb]], shade(SIDING, 0.25), { stroke: false });
+    face(ctx, [[x0, BD + 0.02, zb - 0.3], [x1, BD + 0.02, zb - 0.3], [x1, BD + 0.02, zb], [x0, BD + 0.02, zb]], TRIM, { stroke: false });
+    if (o.end) face(ctx, [[BW + 0.02, 0, zb - 0.3], [BW + 0.02, BD, zb - 0.3], [BW + 0.02, BD, zb], [BW + 0.02, 0, zb]], shade(TRIM, 0.1), { stroke: false });
   }
-  // The foundation, where the building meets the lot.
-  face(ctx, [[x0, BD + 0.02, F], [x1, BD + 0.02, F], [x1, BD + 0.02, F + 0.35], [x0, BD + 0.02, F + 0.35]], C.grey, { stroke: false, dots: shade(C.grey, 0.4), density: 0.25 });
+  // The stone base, where the building meets the lot.
+  face(ctx, [[x0, BD + 0.02, F], [x1, BD + 0.02, F], [x1, BD + 0.02, F + 0.7], [x0, BD + 0.02, F + 0.7]], STONE, { stroke: false, dots: shade(STONE, 0.4), density: 0.35 });
+  if (o.end) face(ctx, [[BW + 0.02, 0, F], [BW + 0.02, BD, F], [BW + 0.02, BD, F + 0.7], [BW + 0.02, 0, F + 0.7]], tint(STONE, 0.05), { stroke: false, dots: shade(STONE, 0.4), density: 0.35 });
   if (o.door != null) {
     const d = o.door, y = BD + 0.02;
     // The glass doors, a canopy, and PRIMAL over them.
@@ -543,7 +544,7 @@ export function room(R, x0, y0, x1, y1, name, o = {}) {
 }
 
 // ---------- The stair tower ----------
-// An octagon of white clapboard rising out of the floor at the back of the
+// An octagon of tan clapboard rising out of the floor at the back of the
 // front of house, tall windows, a red door at its foot facing the floor, a
 // pointed roof in Primal's red, and a bear for a weathervane.
 export function drawTower(ctx, t = 0) {
@@ -565,7 +566,16 @@ export function drawTower(ctx, t = 0) {
       face(ctx, [[...p0, 0], [...p1, 0], [...p1, 2.4], [...p0, 2.4]], PRIMAL, { lw: 0.035 });
       face(ctx, [[...mid(0.48), 0.1], [...mid(0.52), 0.1], [...mid(0.52), 2.3], [...mid(0.48), 2.3]], shade(PRIMAL, 0.3), { stroke: false });
     }
-    for (const z0 of front ? [4, 6.2] : [1.6, 4, 6.2]) face(ctx, [[...p0, z0], [...p1, z0], [...p1, z0 + 1.5], [...p0, z0 + 1.5]], lit ? C.butter : DARK_GLASS, { lw: 0.03 });
+    for (const z0 of front ? [4] : [1.6, 4, 6.2]) face(ctx, [[...p0, z0], [...p1, z0], [...p1, z0 + 1.5], [...p0, z0 + 1.5]], lit ? C.butter : DARK_GLASS, { lw: 0.03 });
+    // The mark high on the front, as the real turret wears its firm's: a
+    // red disc with a white p.
+    if (front) {
+      const [mx, my] = mid(0.5), ux = (bx - ax) / Math.hypot(bx - ax, by - ay), zc = 6.95;
+      const ring = (r) => Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return [mx + ux * r * Math.cos(a), my + 0.02, zc + r * Math.sin(a)]; });
+      face(ctx, ring(0.78), C.white, { lw: 0.035 });
+      face(ctx, ring(0.66), PRIMAL, { stroke: false });
+      lettering(ctx, 'x', mx, my + 0.03, zc + 0.05, 'p', 1.0, C.white, 'Bagel Fat One');
+    }
   }
   // The eaves, then the roof: eight triangles to a point, the near ones.
   const top = [cx, cy, h + 4.2];

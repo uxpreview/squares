@@ -324,6 +324,20 @@ function tractorPhoto(ctx) {
   dotY(ctx, x + 0.012, y0 + 0.36, z0 + 0.48, 0.07, C.blush, { lw: 0.01 });
   qy(ctx, x + 0.014, y0 + 0.3, y0 + 0.43, z0 + 0.53, z0 + 0.58, C.red, { stroke: false });
 }
+// Where it all began: the garage he started in, in 1994, framed beside the
+// tractor (the real firm began in a garage, as an accounting systems shop).
+function garagePhoto(ctx) {
+  const x = 0.95, y0 = 21.2, y1 = 21.9, z0 = 1.38, z1 = 1.9;
+  qy(ctx, x, y0 - 0.05, y1 + 0.05, z0 - 0.05, z1 + 0.05, C.wood, { lw: 0.025 });
+  qy(ctx, x + 0.005, y0, y1, z0, z1, tint(C.sky, 0.3), { lw: 0.015 });
+  qy(ctx, x + 0.007, y0, y1, z0, z0 + 0.08, C.grey, { stroke: false });
+  // The garage, its roof, its door half up, a desk and a computer inside.
+  qy(ctx, x + 0.009, y0 + 0.12, y1 - 0.12, z0 + 0.08, z0 + 0.34, C.white, { lw: 0.01 });
+  face(ctx, [[x + 0.01, y0 + 0.08, z0 + 0.34], [x + 0.01, y1 - 0.08, z0 + 0.34], [x + 0.01, (y0 + y1) / 2, z0 + 0.46]], C.brown, { lw: 0.01 });
+  qy(ctx, x + 0.012, y0 + 0.2, y1 - 0.2, z0 + 0.08, z0 + 0.2, shade(C.grey, 0.6), { stroke: false });
+  qy(ctx, x + 0.014, y0 + 0.3, y0 + 0.42, z0 + 0.12, z0 + 0.18, C.butter, { stroke: false });
+  if (Q.detail) lettering(ctx, 'y', x + 0.016, (y0 + y1) / 2, z1 - 0.03, '1994', 0.06, C.ink);
+}
 // His desk, dusty, kept just so: a calendar on March 2021, a nameplate, a
 // beige computer whose screensaver still bounces.
 const WD = { x0: 1.8, x1: 4.6, y0: 21.2, y1: 22.2, top: 1.15 };
@@ -807,7 +821,7 @@ export default {
 
     // ---------- Walt's office, kept as it was ----------
     // He "stepped back" to Vermont in 2021. The putting green, the signed
-    // guitar, the maple syrup, the tractor; and Bev, who still dusts it all
+    // guitar, the maple syrup, the tractor, the garage he started in; and Bev, who still dusts it all
     // every day and putts on his green at lunch.
     room(R, 0.4, 20.4, 7.4, 25.6, null, { door: 5, back: true, table: false });
     R.rug((ctx) => {
@@ -842,6 +856,7 @@ export default {
     for (const [y0, y1, s] of [[21.0, 22.0, 1], [22.0, 23.0, 7], [23.0, 24.0, 13], [24.0, 24.9, 19]]) R.thing(1.2, y1, (ctx) => syrupShelf(ctx, y0, y1, s));
     R.thing(1.0, 23.95, (ctx) => {
       tractorPhoto(ctx);
+      garagePhoto(ctx);
       // A wheel of cheddar.
       cylinder(ctx, 0.9, 24.4, 1.3, 0.2, 0.14, C.butter, { top: tint(C.butter, 0.2) });
     });

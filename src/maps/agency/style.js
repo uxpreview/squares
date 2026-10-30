@@ -21,9 +21,12 @@ export const INK = {
 // to every edge of the screen.
 export const PAPER = INK.leaves;
 
-// The building: white siding, dark glass on the empty floors, the office's
-// low walls and windows.
-export const SIDING = tint(INK.birch, 0.1);
+// The building: tan clapboard (the real one's front is tan, with brown trim
+// bands and a stone base: the owner's old office, session 23's research),
+// dark glass on the empty floors, the office's low walls and windows.
+export const SIDING = mix(INK.birch, INK.leaves, 0.2);
+export const TRIM = mix(C.brown, C.wood, 0.35);
+export const STONE = mix(C.grey, C.brown, 0.25);
 export const DARK_GLASS = mix(C.navy, INK.asphalt, 0.35);
 export const GLASS = alpha(tint(C.sky, 0.35), 0.35);
 export const FRAME = shade(C.grey, 0.2);
