@@ -84,4 +84,12 @@ export default [
     // (docs/levels/logan.md).
     load: () => import('./logan/map.js'),
   },
+  {
+    id: 'farm',
+    name: "The Farm",
+    tagline: "A Saturday in June at a 1690 farm in Newbury that has booked a wedding, a vintage base ball game, sheep shearing and an archaeology dig on the same day. Foul balls land in the cake, a half-sheared sheep joins the wedding, and Roger the donkey gets into every photo.",
+    ink: '#8A6A4F',
+    hidden: true, // unfinished: out of the picker until it ships (open it at #/farm)
+    load: () => import('./farm/map.js'),
+  },
 ];
