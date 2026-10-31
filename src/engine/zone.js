@@ -212,11 +212,13 @@ export function buildZone(def, place = {}) {
     // (it can only be tapped while that's open). after: another find
     // ('zone:find', or an id in this zone) that has to be found first; the
     // game keeps this one off the list till then (src/game/case.js).
-    find: ({ id, label, at, r = 0.9, when, note, out, kind, hint, riddle, inside, after }) => finds.push({
+    // layer: in a poke with steps (a dig square), the step it's at; it can
+    // only be tapped with the square dug down to there.
+    find: ({ id, label, at, r = 0.9, when, note, out, kind, hint, riddle, inside, after, layer }) => finds.push({
       id, label, at, r, kind: kind || 'spot',
       ...(when ? { when } : {}), ...(note ? { note } : {}), ...(out ? { out } : {}),
       ...(hint ? { hint } : {}), ...(riddle ? { riddle } : {}), ...(inside ? { inside } : {}),
-      ...(after ? { after } : {}),
+      ...(after ? { after } : {}), ...(layer != null ? { layer } : {}),
     }),
     // The loose goose. pos: [x, y, z?] or (t) => ({ x, y, z?, dir, pose })
     goose: (pos, o = {}) => {
@@ -242,7 +244,15 @@ export function buildZone(def, place = {}) {
     //      sound: what it plays (default 'pop'), hold: seconds it stays open
     //      (default: until tapped again), decoy: true for a goose lookalike,
     //      teach: true for the one a first visit is nudged to tap,
-    //      when: (t) => true while it's there to tap (someone passing through) }
+    //      when: (t) => true while it's there to tap (someone passing through),
+    //      steps: for something that goes down rather than open (a dig
+    //      square): how many steps it has, the first being shut. A tap takes
+    //      it down one; a tap at the bottom fills it back in. Draw it with
+    //      poke.step() (0 to steps - 1, easing between them); k() is the same
+    //      as a share of the way down. say is a line per step it arrives at
+    //      (the first for step 1, the last for filling it in). A find inside
+    //      one sits at a layer (R.find's layer) and can only be tapped there;
+    //      once found, the square stays at that layer. }
     // This is the one thing in a zone that isn't a pure function of t: it
     // follows the player's taps, on the page's own clock.
     poke: (o) => {
@@ -250,9 +260,22 @@ export function buildZone(def, place = {}) {
         id: o.id, at: o.at, r: o.r ?? 0.9, say: o.say || null, sound: o.sound ?? 'pop', hold: o.hold || 0,
         decoy: !!o.decoy, teach: !!o.teach, open: false, since: -1e9, pinned: false, taps: 0,
         ...(o.when ? { when: o.when } : {}),
-        // Open (true) or shut (false), from a tap or a tool.
+        // With steps: the step it's at (a whole number) and the one it left.
+        ...(o.steps > 1 ? { steps: o.steps, layer: 0, was: 0, pin: 0 } : {}),
+        // Open (true) or shut (false), from a tap or a tool. With steps, true
+        // goes down one (or fills it in at the bottom) and a number goes to
+        // that step.
         set(v) {
           const now = performance.now();
+          if (p.steps) {
+            const to = v === true ? (p.layer + 1) % p.steps : v === false ? 0 : Math.max(0, Math.min(p.steps - 1, v | 0));
+            if (to === p.layer) return;
+            p.was = p.step();
+            p.layer = to;
+            p.open = to > 0;
+            p.since = now;
+            return;
+          }
           if (p.hold && p.open && now - p.since > p.hold * 1000) { p.open = false; p.since = p.since + p.hold * 1000; }
           if (v === p.open) return;
           p.open = v;
@@ -260,12 +283,27 @@ export function buildZone(def, place = {}) {
         },
         // How open it is now, 0..1, easing over a quarter of a second.
         k() {
+          if (p.steps) return p.step() / (p.steps - 1);
           if (p.pinned) return 1;
           let open = p.open, since = p.since;
           const now = performance.now();
           if (open && p.hold && now - since > p.hold * 1000) { open = false; since += p.hold * 1000; }
           const e = Math.min(1, (now - since) / 250), s = 1 - Math.pow(1 - e, 3);
           return open ? s : 1 - s;
+        },
+        // With steps: which step it's at now, easing from the last over a
+        // quarter of a second (0 to steps - 1). Pinned, the found find's layer.
+        step() {
+          if (!p.steps) return p.k();
+          if (p.pinned) return p.pin;
+          const e = Math.min(1, (performance.now() - p.since) / 250), s = 1 - Math.pow(1 - e, 3);
+          return p.was + (p.layer - p.was) * s;
+        },
+        // Whether a find inside it can be tapped now: open, or with steps,
+        // dug down to its layer.
+        shows(f) {
+          if (!p.steps) return p.k() > 0.6;
+          return Math.abs(p.step() - (f.layer ?? p.steps - 1)) < 0.4;
         },
       };
       zone.pokes.push(p);

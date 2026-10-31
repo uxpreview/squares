@@ -1150,6 +1150,35 @@ const findOnScreen = (page, zoneId, findId) => S(page, ([z, f]) => {
   await page.close();
 }
 
+// ---------- A dig: the Farm's squares go down a layer a tap (desktop) ----------
+{
+  const page = await fresh({ width: 1400, height: 1000 }, () => { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); sessionStorage.setItem('seeded', '1'); } });
+  await page.goto(base + '#/farm');
+  await ready(page);
+  await wait(page, 2600);
+  await S(page, () => window.__squares.play.enterZone('house', { dur: 0.01 }));
+  await wait(page, 700);
+  // The hair restorer bottle is two layers down the East Yard's square.
+  const layer = () => S(page, () => window.__squares.world.zones.find((z) => z.id === 'house').pokes.find((p) => p.id === 'east-yard').layer);
+  const found = () => S(page, () => window.__squares.store.isFound('farm', 'house:bottle'));
+  const tap = async () => { const [sx, sy] = await findOnScreen(page, 'house', 'bottle'); await page.mouse.click(sx, sy); await wait(page, 400); };
+  await tap();
+  check('a tap on a square at the grass digs it down a layer, and finds nothing in the 1800s', (await layer()) === 1 && !(await found()), `layer ${await layer()}`);
+  await tap();
+  check('a second tap takes it down to the 1800s', (await layer()) === 2 && !(await found()), `layer ${await layer()}`);
+  await tap();
+  check('and a tap there finds what\'s in the 1800s', await found());
+  await tap();
+  check('once found, the square stays dug to that layer', (await S(page, () => window.__squares.world.zones.find((z) => z.id === 'house').pokes.find((p) => p.id === 'east-yard').step())) === 2);
+  // Animals on the clock, and the paddock's fence (QA's walking check).
+  const animals = await S(page, () => {
+    const w = window.__squares.world;
+    return { n: w.walkers.filter((k) => k.animal).length, fence: !!w.blocked({ x: 46, y: 60 }, { x: 40, y: 54 }), gate: !w.blocked({ x: 46, y: 59 }, { x: 46, y: 55 }) };
+  });
+  check('animals walk on the clock, and only leave the paddock by its gate', animals.n >= 4 && animals.fence && animals.gate, JSON.stringify(animals));
+  await page.close();
+}
+
 check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 await server.close();

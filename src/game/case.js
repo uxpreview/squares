@@ -49,6 +49,10 @@ export function setUp(world) {
       if (!p) throw new Error(`${z.id}: the find "${f.id}" is inside "${f.inside}", which isn't one of its pokes.`);
       f.inside = p;
     }
+    // A find at a layer is in a dig square (a poke with steps), above its bottom.
+    if (f.layer != null && !(f.inside && f.inside.steps && f.layer > 0 && f.layer < f.inside.steps)) {
+      throw new Error(`${z.id}: the find "${f.id}" is at layer ${f.layer}, but isn't inside a dig square that goes that deep (R.poke({ steps })).`);
+    }
   }
   // A find can come after another, anywhere in the place ('zone:find', or a
   // find's id in its own zone): Departures' bag and its owner. It's off the

@@ -165,10 +165,10 @@ try {
           return {
             id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null, window,
             kind: f.kind || 'spot', inside: f.inside ? f.inside.id : null, riddle: f.riddle || '', hint: f.hint || '',
-            step: f.step ?? null,
+            step: f.step ?? null, layer: f.layer ?? null,
           };
         }),
-        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, say: typeof p.say === 'function' ? [...new Set([0, 60, 120, 180, 240, 300].flatMap((t) => [].concat(p.say(t) || [])))] : [].concat(p.say || []) })),
+        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, steps: p.steps || 0, say: typeof p.say === 'function' ? [...new Set([0, 60, 120, 180, 240, 300].flatMap((t) => [].concat(p.say(t) || [])))] : [].concat(p.say || []) })),
       })),
       // A whodunit's case file (src/game/case.js): its suspects and their lines.
       case: m.case ? {
@@ -289,6 +289,9 @@ try {
         if (f.kind === 'hard' && !f.goose && !f.riddle) warn('mix', `${z.name}: "${f.label}" is hard but has no riddle (a line that says roughly where).`);
         if (f.kind !== 'spot' && !f.hint) warn('mix', `${z.name}: "${f.goose ? 'The goose' : f.label}" has no hint line of its own, so its hint says where it is, roughly.`);
         if (f.riddle && f.riddle.length > 60) warn('mix', `${z.name}: the riddle for "${f.label}" is ${f.riddle.length} characters; under 60 fits the list.`);
+        // A dig find (in a square, at a layer) counts as the kind it says
+        // (poke, or hard), and its hint's first line names the layer.
+        if (f.layer != null && !/layer|down|bottom|1900s|1800s|1690/i.test(f.hint)) warn('mix', `${z.name}: "${f.label}" is ${f.layer} layers down a square, but its hint doesn't say how deep.`);
       }
       for (const p of z.pokes) for (const line of p.say) if (line.length > 40) warn('mix', `${z.name}: "${line}" (${p.id}) is long for a bubble; under 40.`);
     }
@@ -297,7 +300,9 @@ try {
     if (!decoys) warn('mix', 'The place has no decoys (R.decoy): nothing that looks like the goose but isn\'t.');
     for (const z of info.zones) for (const p of z.pokes) if (p.decoy && !p.say.length) { mixOk = false; fail('mix', `${z.name}: the decoy "${p.id}" says nothing; a decoy answers back.`); }
     if (tuned < info.zones.length) warn('mix', `${info.zones.length - tuned} of ${info.zones.length} areas have no kinds of find yet (all spot); their place's retune gives them their spread.`);
-    if (mixOk) pass('mix', `${tuned} of ${info.zones.length} areas tuned, ${pokes} things that answer a tap, ${decoys} ${decoys === 1 ? 'decoy' : 'decoys'}.`);
+    const squares = info.zones.reduce((n, z) => n + z.pokes.filter((p) => p.steps).length, 0);
+    const dug = info.zones.reduce((n, z) => n + z.finds.filter((f) => f.layer != null).length, 0);
+    if (mixOk) pass('mix', `${tuned} of ${info.zones.length} areas tuned, ${pokes} things that answer a tap, ${decoys} ${decoys === 1 ? 'decoy' : 'decoys'}${squares ? `, ${squares} dig squares with ${dug} finds in them` : ''}.`);
   }
 
   if (findsOk) pass('finds', `${things} things and ${geese} ${geese === 1 ? 'goose' : 'geese'} across ${info.zones.length} areas.`);
@@ -882,6 +887,13 @@ async function tapFind(p, zoneId, findId) {
     // (A find that comes after another, with that one found first, as a player would.)
     const first = f.after && typeof f.after === 'object' ? f.after.zone.id + ':' + f.after.f.id : null;
     const unlock = first && !s.store.isFound(s.world.id, first) ? s.store.markFound(s.world.id, first) : false;
+    // (A dig square is tapped down to the find's layer, a layer a tap, as a
+    // player digs; at the bottom a tap fills it in and starts again.)
+    if (f.inside && f.inside.steps) {
+      let n = 0;
+      while (f.inside.layer !== f.layer && n++ < f.inside.steps) s.play.poke(zoneId, f.inside.id);
+      return n > 0;
+    }
     if (f.inside && !f.inside.open) { f.inside.set(true); return true; }
     return f.step != null || !!unlock;
   }, { zoneId, findId });
