@@ -85,11 +85,23 @@ export default [
     load: () => import('./logan/map.js'),
   },
   {
+    id: 'agency',
+    name: 'Pitch Day',
+    tagline: 'The pitch is at four. Seven geese are loose on the floor, and there\'s a bear in the lot.',
+    ink: '#B8452F',
+    // Primal, a digital agency (docs/levels/agency.md). Hidden until it ships;
+    // open it at #/agency.
+    hidden: true,
+    load: () => import('./agency/map.js'),
+  },
+  {
     id: 'farm',
-    name: "The Farm",
-    tagline: "A Saturday in June at a 1690 farm in Newbury that has booked a wedding, a vintage base ball game, sheep shearing and an archaeology dig on the same day. Foul balls land in the cake, a half-sheared sheep joins the wedding, and Roger the donkey gets into every photo.",
+    name: 'The Farm',
+    tagline: 'A June Saturday booked four times: a wedding, base ball, shearing and a dig.',
     ink: '#8A6A4F',
-    hidden: true, // unfinished: out of the picker until it ships (open it at #/farm)
+    // Spencer-Peirce-Little Farm, double booked (docs/levels/farm.md). Hidden
+    // until it ships; open it at #/farm.
+    hidden: true,
     load: () => import('./farm/map.js'),
   },
 ];
