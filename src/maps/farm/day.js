@@ -91,7 +91,7 @@ const carCat = schedule(carSteps, { loop: LOOP, name: 'The car cat' });
 
 // The other cat, along the stone walls between the barn and the house.
 const wallSteps = [[30.4, 47]];
-for (let t = 10; t < LOOP - 40; t += 40) wallSteps.push([33.4, 41.2], { until: t + 10, pose: 'sit' }, [37.6, 36.9], { until: t + 24, pose: 'lie' }, [30.4, 47], { until: t + 36 });
+for (let t = 10; t < LOOP - 40; t += 40) wallSteps.push([33.4, 41.2], { until: t + 10, pose: 'sit' }, [34.4, 39.4], { until: t + 24, pose: 'lie' }, [30.4, 47], { until: t + 36 });
 const wallCat = schedule(wallSteps, { loop: LOOP, name: 'The barn cat' });
 
 // A dog walker and her dog round the fields' trail, dawn to dark.

@@ -14,7 +14,8 @@ import { LANE, PARKING } from '../plan.js';
 import { during, since } from '../clock.js';
 import { BLOCK, INK, square, treeAt, crowd, blockWhile, guest } from '../style.js';
 
-// The lane's double row of trees: every few units along it, either side.
+// The lane's double row of trees: every few units along it, either side,
+// tall (old elms) so the lane and the parking field show under them.
 function trees(R) {
   for (let i = 1; i < LANE.length; i++) {
     const [ax, ay] = LANE[i - 1], [bx, by] = LANE[i];
@@ -22,7 +23,7 @@ function trees(R) {
     for (let u = 2; u < L; u += 4.2) {
       for (const side of [-2.6, 2.6]) {
         const x = ax + ((bx - ax) * u) / L + nx * side, y = ay + ((by - ay) * u) / L + ny * side;
-        if (R.shape.some(([x0, y0, x1, y1]) => x > x0 + 0.5 && x < x1 - 0.5 && y > y0 + 0.5 && y < y1 - 0.5)) treeAt(R, x, y, { h: 5, r: 1.7 });
+        if (R.shape.some(([x0, y0, x1, y1]) => x > x0 + 0.5 && x < x1 - 0.5 && y > y0 + 0.5 && y < y1 - 0.5)) treeAt(R, x, y, { h: 7.5, r: 1.6 });
       }
     }
   }

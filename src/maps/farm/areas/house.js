@@ -68,9 +68,10 @@ export default {
     // Cocktail hour on the lawn toward the barn, five till six.
     const [ax0, ay0, ax1, ay1] = COCKTAILS;
     block(R, ax0 + 0.4, ay0 + 0.6, 2.4, 0.9, 1.1, C.white, 'BAR');
+    // (Clear of the house's gable: anyone with less than 4.6 between their x
+    // and y stands behind it, from here.)
     const mingle = [];
-    // (Clear of the house's gable: closer, they'd stand behind it.)
-    for (let i = 0; i < 22; i++) mingle.push([ax0 + 0.8 + (i % 4) * 1.1 + (Math.floor(i / 4) % 2) * 0.5, ay0 + 1.8 + Math.floor(i / 4) * 1.1, i % 3 ? 'stand' : 'wave', i % 2 ? 'l' : 'r']);
+    for (let y = ay0 + 1.8; y < ay1; y += 1.05) for (let x = ax0 + 0.6 + ((y * 2) % 1); x < ax1; x += 1.1) if (x - y < -4.8 && mingle.length < 22) mingle.push([x, y, mingle.length % 3 ? 'stand' : 'wave', mingle.length % 2 ? 'l' : 'r']);
     crowd(R, mingle, during(17, 18), { seed: 91 });
     // The tour guide, on the hour from eleven to four, and the ten-minute tours.
     figure(R, 43.5, 47.6, folk(902, { top: C.green }), 'TOURS', { dir: 'r' });
