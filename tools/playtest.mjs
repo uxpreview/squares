@@ -140,7 +140,8 @@ if (mode === 'prepare') {
         if (f.inside) {
           const [px, py, ph] = typeof f.inside.at === 'function' ? f.inside.at(t) : f.inside.at;
           const [qx, qy] = s.camera.toScreen(zone.anchor[0] + px - py, zone.anchor[1] - zone.lift + (px + py) / 2 - ph * 1.12);
-          poke = { sx: qx, sy: qy, r: Math.max(f.inside.r * s.cam.z, 22) };
+          // (A dig square: tapped down a layer at a time, as many taps as its layer.)
+          poke = { sx: qx, sy: qy, r: Math.max(f.inside.r * s.cam.z, 22), ...(f.inside.steps ? { taps: f.layer } : {}) };
         }
         // The goose: where its lookalikes are, so a tap on one can be followed
         // by a second guess, as a player hears "not a goose" and looks again.
@@ -344,7 +345,7 @@ for (const [id, finds] of Object.entries(answers)) {
       // (Tapping the thing it's inside opens it: that's finding it.)
       const dp = f.poke ? Math.hypot(gx - f.poke.sx, gy - f.poke.sy) : Infinity;
       hit = d <= f.r || (f.poke && dp <= f.poke.r);
-      result = hit ? (d <= f.r ? 'found' : 'found (by opening it)') : `missed by ${Math.round(Math.min(d - f.r, f.poke ? dp - f.poke.r : Infinity))}px`;
+      result = hit ? (d <= f.r ? 'found' : f.poke.taps ? 'found (by digging)' : 'found (by opening it)') : `missed by ${Math.round(Math.min(d - f.r, f.poke ? dp - f.poke.r : Infinity))}px`;
       if (hit) hits++;
       result += second;
     }

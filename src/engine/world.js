@@ -20,7 +20,10 @@
 //     backdrop(ctx, t, world, fx), sky(ctx, t, world, fx),  // drawn under / over the zones (optional)
 //     plate: { paper, kind },                   // the sheet this place is printed on (optional);
 //                                               // or { at(t) => { paper, kind } }: one that changes with the clock (a day)
-//     walkers: [{ id, at(t), draw(ctx, t, p) }], // people on a shared timeline (optional)
+//     walkers: [{ id, at(t), draw(ctx, t, p), animal }], // people (and animals: animal true) on a
+//                                               // shared timeline (optional)
+//     fences: [{ name, pts: [[x, y], ...], gates: [[x, y, w], ...] }],  // lines on open ground the
+//                                               // walkers only cross at a gate (w: its width; optional)
 //     land,                                     // ground with height and water (engine/terrain.js, optional)
 //     words: { ... },                           // map-specific copy (see src/game/play.js)
 //   }
@@ -40,7 +43,10 @@
 // Walkers: people who move between zones on one clock. Each is drawn by the zone
 // they're standing in, so they walk out of one room's door and into the next.
 // at(t) gives world units { x, y, z, ... }; draw gets the same point in the
-// zone's own units. See schedule() in src/engine/actors.js.
+// zone's own units. See schedule() in src/engine/actors.js. An animal is a
+// walker whose draw() calls animal() (engine/animals.js); a fence (a paddock's,
+// a pen's) is a line it may only cross at a gate, as a wall at a door (QA's
+// walking check).
 
 import { buildZone, inside, wallHeight, WALL_T } from './zone.js';
 import { S, ZK, SLAB, unproject } from './iso.js';
@@ -308,6 +314,8 @@ export function buildWorld(map) {
   // a wall rather than a door? Returns null, or { zone, side, x, y } where it
   // hits. Walls count at their full height, as they are when you're in the room.
   function blocked(p, q) {
+    const f = fenced(p, q);
+    if (f) return f;
     for (const z of zones) {
       const o = z.walls;
       if (!o) continue;
@@ -325,6 +333,24 @@ export function buildWorld(map) {
         const through = z.doors.some((dd) => dd.side === side && u >= u0 + dd.at - dd.w / 2 + 0.15 &&
           u <= u0 + dd.at + dd.w / 2 - 0.15 && zz < z.oz + dd.h);
         if (!through) return { zone: z.id, side, x: left ? plane : u, y: left ? u : plane, z: zz };
+      }
+    }
+    return null;
+  }
+  // Whether a step from p to q crosses a fence anywhere but a gate.
+  function fenced(p, q) {
+    for (const fc of map.fences || []) {
+      for (let i = 1; i < fc.pts.length; i++) {
+        const [ax, ay] = fc.pts[i - 1], [bx, by] = fc.pts[i];
+        const ex = bx - ax, ey = by - ay, dx = q.x - p.x, dy = q.y - p.y;
+        const den = dx * ey - dy * ex;
+        if (Math.abs(den) < 1e-9) continue;
+        const u = ((ax - p.x) * ey - (ay - p.y) * ex) / den; // along the step
+        const v = ((ax - p.x) * dy - (ay - p.y) * dx) / den; // along the fence
+        if (u < 0 || u > 1 || v < 0 || v > 1) continue;
+        const x = p.x + dx * u, y = p.y + dy * u;
+        if ((fc.gates || []).some(([gx, gy, gw]) => Math.hypot(x - gx, y - gy) <= (gw ?? 2) / 2)) continue;
+        return { fence: fc.name || 'fence', x, y, z: p.z || 0 };
       }
     }
     return null;

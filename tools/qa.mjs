@@ -20,8 +20,9 @@
 //            painted over by their own furniture (warnings, each with a
 //            close-up in covered/: a person behind a lamp post is fine, one
 //            walking inside a wall isn't, and only eyes can tell)
-//   walkers  people on the map's timeline go through doors, never walls, and
-//            never faster than a run
+//   walkers  people and animals on the map's timeline go through doors and
+//            gates, never walls or fences (map.fences), and never faster
+//            than a run
 //   land     (places with ground and water) the ground never climbs toward
 //            the viewer too steeply to draw ground-first (engine/terrain.js)
 //   sound    every cue and bed plays, and the place's sound (every bed, its mix
@@ -141,6 +142,7 @@ try {
       defaultStorey: w.storeys[w.defaultStorey] ? w.storeys[w.defaultStorey].id : null,
       order: w.order.map((i) => w.zones[i].id),
       walkers: w.walkers.filter((k) => !k.ghost).map((k) => k.name || k.id), // ghosts (echoes, apparitions) aren't people
+      animals: w.walkers.filter((k) => k.animal).length,
       land: !!m.land,
       zones: w.zones.map((z) => ({
         id: z.id, name: z.name, tag: z.tag, blurb: z.def.blurb || '', describe: z.def.describe || '', long: w.long(z),
@@ -163,10 +165,10 @@ try {
           return {
             id: f.id, label: f.label, goose: !!f.goose, r: f.r, moving: new Set(spots).size > 1, group: f.group || null, window,
             kind: f.kind || 'spot', inside: f.inside ? f.inside.id : null, riddle: f.riddle || '', hint: f.hint || '',
-            step: f.step ?? null,
+            step: f.step ?? null, layer: f.layer ?? null,
           };
         }),
-        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, say: typeof p.say === 'function' ? [...new Set([0, 60, 120, 180, 240, 300].flatMap((t) => [].concat(p.say(t) || [])))] : [].concat(p.say || []) })),
+        pokes: z.pokes.map((p) => ({ id: p.id, decoy: p.decoy, steps: p.steps || 0, say: typeof p.say === 'function' ? [...new Set([0, 60, 120, 180, 240, 300].flatMap((t) => [].concat(p.say(t) || [])))] : [].concat(p.say || []) })),
       })),
       // A whodunit's case file (src/game/case.js): its suspects and their lines.
       case: m.case ? {
@@ -287,6 +289,9 @@ try {
         if (f.kind === 'hard' && !f.goose && !f.riddle) warn('mix', `${z.name}: "${f.label}" is hard but has no riddle (a line that says roughly where).`);
         if (f.kind !== 'spot' && !f.hint) warn('mix', `${z.name}: "${f.goose ? 'The goose' : f.label}" has no hint line of its own, so its hint says where it is, roughly.`);
         if (f.riddle && f.riddle.length > 60) warn('mix', `${z.name}: the riddle for "${f.label}" is ${f.riddle.length} characters; under 60 fits the list.`);
+        // A dig find (in a square, at a layer) counts as the kind it says
+        // (poke, or hard), and its hint's first line names the layer.
+        if (f.layer != null && !/layer|down|bottom|1900s|1800s|1690/i.test(f.hint)) warn('mix', `${z.name}: "${f.label}" is ${f.layer} layers down a square, but its hint doesn't say how deep.`);
       }
       for (const p of z.pokes) for (const line of p.say) if (line.length > 40) warn('mix', `${z.name}: "${line}" (${p.id}) is long for a bubble; under 40.`);
     }
@@ -295,7 +300,9 @@ try {
     if (!decoys) warn('mix', 'The place has no decoys (R.decoy): nothing that looks like the goose but isn\'t.');
     for (const z of info.zones) for (const p of z.pokes) if (p.decoy && !p.say.length) { mixOk = false; fail('mix', `${z.name}: the decoy "${p.id}" says nothing; a decoy answers back.`); }
     if (tuned < info.zones.length) warn('mix', `${info.zones.length - tuned} of ${info.zones.length} areas have no kinds of find yet (all spot); their place's retune gives them their spread.`);
-    if (mixOk) pass('mix', `${tuned} of ${info.zones.length} areas tuned, ${pokes} things that answer a tap, ${decoys} ${decoys === 1 ? 'decoy' : 'decoys'}.`);
+    const squares = info.zones.reduce((n, z) => n + z.pokes.filter((p) => p.steps).length, 0);
+    const dug = info.zones.reduce((n, z) => n + z.finds.filter((f) => f.layer != null).length, 0);
+    if (mixOk) pass('mix', `${tuned} of ${info.zones.length} areas tuned, ${pokes} things that answer a tap, ${decoys} ${decoys === 1 ? 'decoy' : 'decoys'}${squares ? `, ${squares} dig squares with ${dug} finds in them` : ''}.`);
   }
 
   if (findsOk) pass('finds', `${things} things and ${geese} ${geese === 1 ? 'goose' : 'geese'} across ${info.zones.length} areas.`);
@@ -515,7 +522,7 @@ try {
     const saveFiles = (x, name) => x.shots.forEach((d, j) => fs.writeFileSync(path.join(dir, `${name}-${j ? 'on-top' : 'drawn'}.png`), Buffer.from(d.split(',')[1], 'base64')));
     cov.people.forEach((x, i) => {
       save(x, `person-${i}`);
-      warn('covered', `${x.zone} at ${x.t}s: someone's head is ${Math.round(x.share * 100)}% covered by something drawn after them (inside a wall or a counter? behind a post is fine). Close-up: ${rel(path.join(dir, `person-${i}-drawn.png`))}`);
+      warn('covered', `${x.zone} at ${x.t}s: someone's head (or an animal's body) is ${Math.round(x.share * 100)}% covered by something drawn after them (inside a wall or a counter? behind a post is fine). Close-up: ${rel(path.join(dir, `person-${i}-drawn.png`))}`);
     });
     cov.finds.forEach((x, i) => {
       save(x, `find-${i}`);
@@ -548,14 +555,16 @@ try {
     }, info.loop);
     let walkOk = true;
     for (const r of walk) {
-      if (r.kind === 'wall') { walkOk = false; fail('walkers', `${r.who} walks through the ${r.side} wall of ${byId.get(r.zone).name} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a door.`); }
+      if (r.kind === 'wall' && r.fence) { walkOk = false; fail('walkers', `${r.who} goes through ${r.fence} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a gate.`); }
+      else if (r.kind === 'wall') { walkOk = false; fail('walkers', `${r.who} walks through the ${r.side} wall of ${byId.get(r.zone).name} at ${r.t.toFixed(1)}s (x ${r.x.toFixed(1)}, y ${r.y.toFixed(1)}), not through a door.`); }
       else {
         if (r.fastest > 3.6) { walkOk = false; fail('walkers', `${r.who} moves at ${r.fastest.toFixed(1)} units a second somewhere; a run is 3.`); }
         // (Someone who leaves the map on purpose, a car off to the mainland, says so: away.)
         if (r.outside > 0.2 && !r.away) warn('walkers', `${r.who} spends ${r.outside.toFixed(1)}s outside every area, where nobody draws them.`);
       }
     }
-    if (walkOk) pass('walkers', `${info.walkers.length} people walk the ${info.loop}s loop through doors, never walls, never faster than a run.`);
+    const who = info.animals ? `${info.walkers.length - info.animals} people and ${info.animals} animals` : `${info.walkers.length} people`;
+    if (walkOk) pass('walkers', `${who} walk the ${info.loop}s loop through doors and gates, never walls or fences, never faster than a run.`);
   }
 
   // ---------- On screen and tappable ----------
@@ -878,6 +887,13 @@ async function tapFind(p, zoneId, findId) {
     // (A find that comes after another, with that one found first, as a player would.)
     const first = f.after && typeof f.after === 'object' ? f.after.zone.id + ':' + f.after.f.id : null;
     const unlock = first && !s.store.isFound(s.world.id, first) ? s.store.markFound(s.world.id, first) : false;
+    // (A dig square is tapped down to the find's layer, a layer a tap, as a
+    // player digs; at the bottom a tap fills it in and starts again.)
+    if (f.inside && f.inside.steps) {
+      let n = 0;
+      while (f.inside.layer !== f.layer && n++ < f.inside.steps) s.play.poke(zoneId, f.inside.id);
+      return n > 0;
+    }
     if (f.inside && !f.inside.open) { f.inside.set(true); return true; }
     return f.step != null || !!unlock;
   }, { zoneId, findId });

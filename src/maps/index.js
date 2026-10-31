@@ -94,4 +94,14 @@ export default [
     hidden: true,
     load: () => import('./agency/map.js'),
   },
+  {
+    id: 'farm',
+    name: 'The Farm',
+    tagline: 'A June Saturday booked four times: a wedding, base ball, shearing and a dig.',
+    ink: '#8A6A4F',
+    // Spencer-Peirce-Little Farm, double booked (docs/levels/farm.md). Hidden
+    // until it ships; open it at #/farm.
+    hidden: true,
+    load: () => import('./farm/map.js'),
+  },
 ];

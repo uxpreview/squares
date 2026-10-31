@@ -2,7 +2,9 @@
 // the page; QA calls it, and so does `node tools/covered.mjs <level>`):
 //
 //   people   someone drawn inside a solid thing: their head is painted over
-//            by something drawn after them (a counter, a car, a bunk)
+//            by something drawn after them (a counter, a car, a bunk). Animals
+//            count too, by their bodies (engine/animals.js): a sheep inside
+//            a fence's rails is fine, one inside the barn wall isn't
 //   finds    a find painted over by its own furniture: whatever draws the find
 //            shows nothing at its spot, yet drawn again on top it would
 //

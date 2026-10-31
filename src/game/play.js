@@ -104,7 +104,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   const unlocked = (f) => !f.after || isFound(f.after.zone, f.after.f);
   // Can it be tapped at t? There, and if it's inside something, that's open.
   // (A trail's sighting only once it's the next one.)
-  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.k() > 0.6) && (f.step == null || f.step === stepNow()) && unlocked(f);
+  // (In a dig square, only at its layer.)
+  const reach = (f, t) => here(f, t) && (!f.inside || f.inside.shows(f)) && (f.step == null || f.step === stepNow()) && unlocked(f);
   const words = () => ({ zone: 'room', invite: '', hint: '', open: '', whole: 'The whole map', complete: 'Every goose, found.', ...world.map.words });
   const isCase = () => !!(world && world.goal === 'case');
   const theCase = () => caseState(world, (key) => store.isFound(world.id, key), store.caseOf(world.id));
@@ -703,8 +704,8 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     const now = performance.now();
     foundAt.set(world.id + '/' + keyOf(zone, f), now);
     pops.push({ zone, f, t0: now, kind: 'burst' });
-    // Whatever it was inside stays open now.
-    if (f.inside) f.inside.pinned = true;
+    // Whatever it was inside stays open now (a dig square, at its layer).
+    if (f.inside) pinTo(f.inside, f);
     try { navigator.vibrate && navigator.vibrate(f.goose ? [18, 40, 18] : 12); } catch {}
     const p = renderTally();
     renderInvite();
@@ -781,15 +782,19 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
     // (Its lines can follow the clock: say(t), someone different by afternoon.)
     const said = typeof pk.say === 'function' ? pk.say(clock()) : pk.say;
     const lines = said ? [].concat(said) : [];
-    const line = lines.length ? lines[pk.taps % lines.length] : '';
+    // (A dig square says the step it arrives at: the first line for the
+    // first layer down, the last for filling it in. Pinned, where it is.)
+    const next = pk.steps ? (pk.pinned ? pk.pin : (pk.layer + 1) % pk.steps) : 0;
+    const line = !lines.length ? '' : pk.steps ? lines[(next + pk.steps - 1) % pk.steps % lines.length] : lines[pk.taps % lines.length];
     pk.taps++;
     poked = true;
     if (pk.decoy) debug.decoys++;
     else {
       debug.pokes++;
       // A find inside keeps it open once found; otherwise a tap opens it, and
-      // the next shuts it (unless it shuts on its own: hold).
-      if (!pk.pinned) pk.set(pk.hold ? true : !pk.open);
+      // the next shuts it (unless it shuts on its own: hold). A dig square
+      // goes down a layer, or at the bottom fills back in.
+      if (!pk.pinned) pk.set(pk.hold || pk.steps ? true : !pk.open);
     }
     if (pk.sound) sound(pk.sound);
     try { navigator.vibrate && navigator.vibrate(pk.decoy ? [8, 30, 8] : 8); } catch {}
@@ -820,9 +825,15 @@ export function createPlay({ camera, store, reduceMotion, clock, setClock, on })
   // After loading a place: whatever holds a find already found stays open.
   function pinPokes() {
     for (const z of world.zones) {
-      for (const pk of z.pokes) { pk.pinned = false; pk.open = false; pk.since = -1e9; pk.taps = 0; }
-      for (const f of z.finds) if (f.inside && isFound(z, f)) f.inside.pinned = true;
+      for (const pk of z.pokes) { pk.pinned = false; pk.open = false; pk.since = -1e9; pk.taps = 0; if (pk.steps) pk.layer = pk.was = pk.pin = 0; }
+      for (const f of z.finds) if (f.inside && isFound(z, f)) pinTo(f.inside, f);
     }
+  }
+  // Keep a poke open for good, with a find in it found: a dig square at the
+  // find's layer.
+  function pinTo(pk, f) {
+    pk.pinned = true;
+    if (pk.steps) pk.pin = f.layer ?? pk.steps - 1;
   }
 
   // ---------- Whodunits ----------
