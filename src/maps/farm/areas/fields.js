@@ -37,7 +37,7 @@ export default {
   id: 'fields',
   name: 'The Fields',
   blurb: 'Long stripes of strawberries, an orchard, a pond full of Canada geese, and a tractor that has been waiting since noon.',
-  describe: 'Long striped fields of crops running back toward the marsh, a farm track along them, an orchard, and a small pond with Canada geese and lily pads. Strawberry pickers bend over the rows, dog walkers follow the trail, a scarecrow wears more lost things as the day goes on, and a tractor waits at the track for the wedding to move.',
+  describe: 'Long striped fields of crops running back toward the marsh, a farm track, an orchard, and a small pond with Canada geese and lily pads. Strawberry pickers bend over the rows, dog walkers follow the trail, a scarecrow wears more lost things as the day goes on, and a tractor waits for the wedding to move.',
 
   build(R) {
     drawLand(R, land);
@@ -55,7 +55,7 @@ export default {
     block(R, 77.2, 45.6, 0.3, 0.3, 1.2, C.white, 'EGRET', { z: LEVEL });
     R.decoy({ id: 'egret', at: [77.3, 45.7, 1.2], r: 0.8, say: 'Different department.' });
     R.rug((ctx) => { for (const [x, y] of [[82, 42.2], [82.8, 43.4], [78, 41.8]]) { ctx.beginPath(); ctx.ellipse(x - y, (x + y) / 2 - LEVEL * ZK, 0.4, 0.2, 0, 0, Math.PI * 2); paint(ctx, C.green, { lw: 0.03 }); } });
-    pin(R, { id: 'frog', label: 'A frog', at: [82, 42.2, LEVEL + 0.1], r: 0.6 }, 1);
+    pin(R, { id: 'frog', label: 'A frog', at: [82, 42.2, LEVEL + 0.1], r: 0.7 }, 1);
 
     // The strawberry pickers, and a basket.
     crowd(R, [[72, 56.6, 'sit', 'r'], [75.4, 60.4, 'sit', 'l'], [80.6, 57.6, 'sit', 'r']], during(7, 19), { seed: 50 });
@@ -64,7 +64,7 @@ export default {
     // The scarecrow, wearing the day's lost things. A sneaker in its coat.
     R.thing(86, 28, (ctx, t) => { drawBlock(ctx, 85.7, 27.7, footing(R, 85.7, 27.7), 0.6, 0.6, 2.6, INK.earth, null); if (Q.detail) tag(ctx, 86, 28, 3.6, dressed(t), { size: 0.32 }); }, { anim: true });
     const coat = R.poke({ id: 'scarecrow', at: [86, 28, 1.8], r: 0.9, say: 'The coat\'s pocket has something in it.' });
-    pin(R, { id: 'sneaker', label: 'A lost sneaker', kind: 'poke', inside: coat, at: [86.3, 28.2, 1.6], r: 0.6, hint: 'The scarecrow has been collecting.' }, 3);
+    pin(R, { id: 'sneaker', label: 'A lost sneaker', kind: 'poke', inside: coat, at: [86.3, 28.2, 1.6], r: 0.7, hint: 'The scarecrow has been collecting.' }, 3);
 
     // The tractor, waiting at the track to get past the wedding.
     block(R, 64.6, 49.6, 1.8, 2.6, 1.8, C.red, 'TRACTOR');
@@ -73,7 +73,7 @@ export default {
 
     // A square: a coin from the 1600s, in the 1690 layer. Another, empty.
     const coin = square(R, 'fields-square', 88.4, 40.2, { name: 'SQUARE' });
-    pin(R, { id: 'coin', label: 'A coin from the 1600s', kind: 'poke', inside: coin, layer: 3, at: [89.1, 40.9, 0.2], r: 0.6, hint: 'The bottom of the square east of the pond.' }, 4);
+    pin(R, { id: 'coin', label: 'A coin from the 1600s', kind: 'poke', inside: coin, layer: 3, at: [89.1, 40.9, 0.2], r: 0.7, hint: 'The bottom of the square east of the pond.' }, 4);
     square(R, 'fields-square-2', 70.6, 65.4, { name: 'SQUARE', say: ['A strawberry. Today\'s.', 'A plow blade. The 1800s.', '1690. Careful.', 'Filled back in.'] });
   },
 };

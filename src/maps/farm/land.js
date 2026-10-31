@@ -44,10 +44,11 @@ function height(x, y) {
   const toMarsh = smooth(8.5, 13.5, y);
   h = MARSHY + (h - MARSHY) * toMarsh;
   if (inRect(x, y, RUNWAY, -1) > 0) h = Math.max(h, 0.42 - 0.1 * smooth(0, 1.2, -inRect(x, y, RUNWAY)));
-  // The turnpike's causeway, a little proud of the marsh.
-  h = Math.max(h, 0.55 - 0.4 * smooth(0.8, 2.6, lineDist(x, y, PIKE)));
   // Creeks: down the middle under the water, gentle banks.
-  for (const c of CREEKS) h = Math.min(h, -0.5 + (h + 0.5) * smooth(0.35, 2.8, lineDist(x, y, c)));
+  for (const c of CREEKS) h = Math.min(h, -0.5 + (h + 0.5) * smooth(0.35, 3, lineDist(x, y, c)));
+  // The turnpike's causeway, a little proud of the marsh (over the creeks:
+  // the culverts are under it).
+  h = Math.max(h, 0.55 - 0.45 * smooth(0.8, 3.4, lineDist(x, y, PIKE)));
   // The Merrimack's flats in the back left corner, under the water.
   h = Math.min(h, -0.4 + 0.6 * smooth(-0.5, 3, y - FLATS(x)));
   // Bowman's Pond, a bowl.

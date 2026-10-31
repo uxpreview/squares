@@ -21,7 +21,7 @@ export default {
   id: 'wedding-field',
   name: 'The Wedding Field',
   blurb: 'A tent for 250 in the big lawn, a cake in its third repair and an ice swan leaving slowly. Foul balls arrive every few minutes.',
-  describe: 'A huge white pole tent on a lawn with woods behind it: round tables, a dance floor, a band, a bar and a three-tier cake. An ice swan melts on its table all day. Hens peck round a coop at the lawn\'s edge, caterers unload a truck, and a row of portable toilets waits. Base balls land from the game next door.',
+  describe: 'A huge white pole tent on a lawn with woods behind it: round tables, a dance floor, a band, a bar and a three-tier cake. An ice swan melts all day. Hens peck round a coop at the lawn\'s edge, caterers unload a truck, and portable toilets wait in a row. Base balls land from the game next door.',
 
   build(R) {
     drawLand(R, land);
@@ -36,20 +36,20 @@ export default {
     block(R, 22.4, 21.2, 3, 1.6, 0.4, C.navy, 'BAND');
     R.poke({ id: 'band', at: [23.9, 22, 1.6], r: 1, say: ['Testing. Testing. Is that a goose?', 'This one\'s for the sheep.'] });
     block(R, 8.6, 21, 2.6, 0.9, 1.1, C.white, 'BAR');
-    R.poke({ id: 'bar', at: [9.9, 21.4, 1.3], r: 0.9, say: 'Signature drink: the Foul Ball. Comes with a helmet.' });
+    R.poke({ id: 'bar', at: [9.9, 21.4, 1.3], r: 0.9, say: 'Tonight\'s drink: the Foul Ball.' });
     // A square under the dance floor, with a hatch: a dance card in the 1900s.
     block(R, 16.8, 24.2, 4.4, 3.2, 0.1, C.wood, 'DANCE FLOOR');
     const hatch = square(R, 'hatch', 18.2, 25.1, { s: 1.3, name: 'HATCH', say: ['The 1900s. A dance card.', 'The 1800s. More dancing.', '1690. Nobody danced.', 'Hatch shut.'] });
-    pin(R, { id: 'dance-card', label: 'A dance card', kind: 'poke', inside: hatch, layer: 1, at: [18.8, 25.7, 0.3], r: 0.6, hint: 'Under the dance floor, one layer down.' }, 1);
+    pin(R, { id: 'dance-card', label: 'A dance card', kind: 'poke', inside: hatch, layer: 1, at: [18.8, 25.7, 0.3], r: 0.7, hint: 'Under the dance floor, one layer down.' }, 1);
 
     // The cake table at the tent's open front, its skirt to the ground. The
     // goose is under it. From 3:40 a base ball is in the cake.
     block(R, 12.4, 28, 2.4, 1.2, 1.1, C.white, 'CAKE');
-    const skirt = R.poke({ id: 'skirt', at: [13.6, 29.4, 0.5], r: 0.9, say: 'The tablecloth honked.' });
+    const skirt = R.poke({ id: 'skirt', at: [13.6, 29.6, zt + 0.2], r: 0.9, say: 'The tablecloth honked.' });
     R.thing(13.6, 29.4, (ctx) => drawBlock(ctx, 12.4, 29.2, zt, 2.4, 0.2, 1 - skirt.k() * 0.7, C.pink, 'SKIRT'), { anim: true });
     R.goose((t) => ({ x: 13.4, y: 28.8, z: zt, dir: 'r', pose: 'sit', hidden: skirt.k() < 0.5 }),
       { kind: 'poke', inside: skirt, hint: 'The cake table\'s cloth goes all the way to the grass. Something\'s under it.' });
-    pin(R, { id: 'cake-ball', label: 'A base ball in the cake', when: since(15 + 40 / 60), note: 'from 3:40', at: [13.6, 28.6, zt + 1.6], r: 0.6 }, 2);
+    pin(R, { id: 'cake-ball', label: 'A base ball in the cake', when: since(15 + 40 / 60), note: 'from 3:40', at: [13.6, 28.6, zt + 2.1], r: 0.7 }, 2);
     // The ice swan, melting: a swan, a duck by dinner, a puddle by the dancing.
     R.thing(21.6, 28.6, (ctx, t) => {
       const h = hour(t) < 5 ? 24 : hour(t), k = Math.max(0.15, 1 - Math.max(0, h - 10) / 12);
@@ -82,7 +82,7 @@ export default {
 
     // The caterers' truck: a lost speech in it.
     blockWhile(R, 1.6, 28.4, 3.2, 1.8, 1.8, C.white, 'CATERERS', during(7, 25));
-    R.poke({ id: 'truck', at: [3.2, 30.3, 1.2], r: 0.9, when: during(7, 25), say: 'Found in the van: "Unaccustomed as I am to public speaking..."' });
+    R.poke({ id: 'truck', at: [3.2, 30.3, 1.2], r: 0.9, when: during(7, 25), say: 'A lost speech: "Unaccustomed as I am..."' });
     // The portable toilets, and a square by them.
     for (let i = 0; i < 5; i++) block(R, 27.6 + i * 1.2, 20, 1, 1, 2.2, C.sky, i ? null : 'TOILETS');
     square(R, 'toilet-square', 29.4, 23.6, { name: 'SQUARE', say: ['Not the toilets. Dirt.', 'Very old dirt.', '1690. Somebody\'s pot. Not that kind.', 'Filled back in.'] });
@@ -90,9 +90,10 @@ export default {
     // The hen coop by the house, its nest box (an egg), and the hens. A white
     // hen by the coop answers back: not the goose.
     block(R, COOP[0], COOP[1], COOP[2] - COOP[0], COOP[3] - COOP[1], 1.8, BLOCK.shed, 'COOP');
-    const nest = R.poke({ id: 'nest', at: [32.9, 33.2, 0.9], r: 0.8, say: 'Cluck. (That means no.)' });
+    const nest = R.poke({ id: 'nest', at: [32.9, 33.2, 0.9], r: 0.8, say: ['Cluck. (That means no.)', 'Empty. Try the lawn.'] });
     R.thing(33.2, 33.2, (ctx) => drawBlock(ctx, 33, 32.6, footing(R, 33, 32.6), 0.6, 1.2, 0.9 + nest.k() * 0.3, BLOCK.wood, 'NEST'), { anim: true });
-    pin(R, { id: 'egg', label: 'An egg', kind: 'poke', inside: nest, at: [33.3, 33.2, 0.9], r: 0.6, hint: 'Where the hens lay, by the house.' }, 4);
+    // The egg isn't in the nest box: one hen laid it out on the lawn.
+    pin(R, { id: 'egg', label: 'An egg', kind: 'hard', at: [28.1, 32.6, 0.6], r: 0.7, riddle: 'One hen didn\'t bother with the nest box.', hint: 'Out on the grass among the hens, by the coop.' }, 4);
     for (const [x, y, dir] of [[28.6, 31.4, 'r'], [29.6, 34.6, 'l'], [27, 33.4, 'r']]) beast(R, x, y, 'hen', null, { pose: 'peck', dir, phase: x });
     beast(R, 31.2, 35.2, 'hen', 'HEN', { pose: 'stand', color: C.white, dir: 'l' });
     R.decoy({ id: 'white-hen', at: [31.2, 35.2, 0.6], r: 0.7, say: 'That\'s a hen. She\'s heard of you.' });

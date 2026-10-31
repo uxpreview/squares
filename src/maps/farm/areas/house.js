@@ -29,7 +29,7 @@ export default {
 
     // The stone house, its roof (which lifts, for the attic) and chimney.
     block(R, HOUSE[0], HOUSE[1], HOUSE[2] - HOUSE[0], HOUSE[3] - HOUSE[1], 3.4, BLOCK.stone, null, { z: zh });
-    const roof = R.poke({ id: 'roof', at: [46, 43.5, zh + 4.4], r: 1.4, say: 'The attic. Dust, a trunk, and a name on a beam.' });
+    const roof = R.poke({ id: 'roof', at: [46, 43.5, zh + 4.4], r: 1.4, say: 'The attic. A name on a beam.' });
     R.thing(46, 43.5, (ctx) => {
       const up = roof.k() * 2.2;
       drawBlock(ctx, HOUSE[0] - 0.2, HOUSE[1] - 0.2, zh + 3.4 + up, HOUSE[2] - HOUSE[0] + 0.4, HOUSE[3] - HOUSE[1] + 0.4, 1.5, BLOCK.machine, '1690 HOUSE');
@@ -48,9 +48,10 @@ export default {
     R.poke({ id: 'pump', at: [54.6, 40.2, 1.3], r: 0.8, say: 'Squeak. Squeak. Water, 1690 style.' });
 
     // The ceremony: two blocks of chairs either side of the aisle, the arch.
-    for (let row = 0; row < 4; row++) {
-      block(R, AISLE - 5.6, 49.6 + row * 1.1, 4.8, 0.5, 0.5, C.white, row ? null : 'CHAIRS');
-      block(R, AISLE + 0.8, 49.6 + row * 1.1, 4.8, 0.5, 0.5, C.white, null);
+    // (A chair a seat, so whoever sits on one sorts in front of it.)
+    for (let row = 0; row < 4; row++) for (let i = 0; i < 4; i++) {
+      block(R, AISLE - 5.4 + i * 1.2, 49.6 + row * 1.1, 0.9, 0.5, 0.5, C.white, row || i ? null : 'CHAIRS');
+      block(R, AISLE + 1 + i * 1.2, 49.6 + row * 1.1, 0.9, 0.5, 0.5, C.white, null);
     }
     block(R, ARCH[0] - 1.3, ARCH[1] - 0.1, 0.25, 0.25, 2.8, C.pink, 'ARCH');
     block(R, ARCH[0] + 1.1, ARCH[1] - 0.1, 0.25, 0.25, 2.8, C.pink, null);
@@ -58,8 +59,8 @@ export default {
     const ceremony = during(15.9, 17);
     const seats = [];
     for (let row = 0; row < 4; row++) for (let i = 0; i < 4; i++) {
-      seats.push([AISLE - 5.1 + i * 1.2, 50.2 + row * 1.1, 'sit', 'r']);
-      seats.push([AISLE + 1.3 + i * 1.2, 50.2 + row * 1.1, 'sit', 'r']);
+      seats.push([AISLE - 4.95 + i * 1.2, 50.4 + row * 1.1, 'sit', 'r']);
+      seats.push([AISLE + 1.45 + i * 1.2, 50.4 + row * 1.1, 'sit', 'r']);
     }
     crowd(R, seats.filter((s, i) => i % 4 !== 3), ceremony, { seed: 90, back: true });
     figure(R, 46, 47.8, folk(901, { top: C.ink }), null, { dir: 'l' });
@@ -68,15 +69,16 @@ export default {
     const [ax0, ay0, ax1, ay1] = COCKTAILS;
     block(R, ax0 + 0.4, ay0 + 0.6, 2.4, 0.9, 1.1, C.white, 'BAR');
     const mingle = [];
-    for (let i = 0; i < 22; i++) mingle.push([ax0 + 1 + (i % 5) * 1.3 + (Math.floor(i / 5) % 2) * 0.6, ay0 + 2 + Math.floor(i / 5) * 1.25, i % 3 ? 'stand' : 'wave', i % 2 ? 'l' : 'r']);
+    // (Clear of the house's gable: closer, they'd stand behind it.)
+    for (let i = 0; i < 22; i++) mingle.push([ax0 + 0.8 + (i % 4) * 1.1 + (Math.floor(i / 4) % 2) * 0.5, ay0 + 1.8 + Math.floor(i / 4) * 1.1, i % 3 ? 'stand' : 'wave', i % 2 ? 'l' : 'r']);
     crowd(R, mingle, during(17, 18), { seed: 91 });
     // The tour guide, on the hour from eleven to four, and the ten-minute tours.
     figure(R, 43.5, 47.6, folk(902, { top: C.green }), 'TOURS', { dir: 'r' });
-    R.poke({ id: 'guide', at: [43.5, 47.6, 1.4], r: 0.9, say: ['Next tour on the hour. Mind the 1800s.', 'This is a ten-minute tour. It has been fifty.'] });
+    R.poke({ id: 'guide', at: [43.5, 47.6, 1.4], r: 0.9, say: ['Next tour on the hour. Mind the 1800s.', 'Ten-minute tour. Minute fifty.'] });
 
     // The dig. The sign, and the trench with its layers.
     block(R, 57.4, 49.8, 1.6, 0.2, 1.1, C.white, 'DO NOT STAND IN THE 1800s', { size: 0.3 });
-    R.poke({ id: 'dig-sign', at: [58.2, 49.9, 1], r: 0.8, say: ['DO NOT STAND IN THE 1800s.', 'Before the farm: the Pawtucket and Penacook peoples lived here first.'] });
+    R.poke({ id: 'dig-sign', at: [58.2, 49.9, 1], r: 0.8, say: ['DO NOT STAND IN THE 1800s.', 'The Pawtucket and Penacook lived here first.'] });
     R.thing(58, 47.4, (ctx) => {
       const z = footing(R, 55, 46.4, 6, 1.6);
       drawBlock(ctx, 55, 46.4, z - 0.9, 6, 1.6, 0.3, EARTH[3], null);
@@ -86,13 +88,15 @@ export default {
     // Squares in the real places: the West Yard by the scullery (a bone from
     // the 1788 dinner, in 1690), the East Yard (hair restorer, the 1800s),
     // the Flower Garden, the West Front (where the heel goes in at 3:30).
-    const scullery = square(R, 'scullery', 38.6, 38.4, { name: 'SCULLERY' });
-    pin(R, { id: 'bone', label: 'A bone from a 1788 dinner', kind: 'hard', inside: scullery, layer: 3, at: [39.3, 39.1, 0.2], r: 0.6, riddle: 'Three layers down, where the dishes were done.', hint: 'The bottom of the square by the scullery, under the old house\'s back.' }, 2);
+    // (Out past the house's west end: behind it, the house would hide it.)
+    const scullery = square(R, 'scullery', 35.2, 37, { name: 'SCULLERY' });
+    pin(R, { id: 'bone', label: 'A bone from a 1788 dinner', kind: 'hard', inside: scullery, layer: 3, at: [35.9, 37.7, 0.2], r: 0.7, riddle: 'Three layers down, where the dishes were done.', hint: 'The bottom of the square by the scullery, under the old house\'s back.' }, 2);
     const east = square(R, 'east-yard', 57.4, 41.6, { name: 'EAST YARD' });
     pin(R, { id: 'bottle', label: 'A hair restorer bottle', kind: 'poke', inside: east, layer: 2, at: [58.1, 42.3, 0.3], r: 0.7, hint: 'Two layers down in the yard east of the house.' }, 3);
     square(R, 'flower-garden', 55, 51.6, { name: 'FLOWER GARDEN', teach: true, say: ['The 1900s. A seed packet.', 'The 1800s. Somebody\'s good soil.', '1690. Careful.', 'Filled back in.'] });
     square(R, 'west-front', 38.6, 50.4, { name: 'WEST FRONT', say: ['The 1900s.', 'The 1800s. Somebody\'s heel is in here.', '1690. Careful.', 'Filled back in.'] });
-    pin(R, { id: 'heel', label: 'A bride\'s shoe', when: since(15.5), note: 'from half past three', at: [39.3, 51.1, 0.4], r: 0.7 }, 4);
+    // (The heel stays in the square; the shoe came off on the lawn.)
+    pin(R, { id: 'heel', label: 'A bride\'s shoe', when: since(15.5), note: 'from half past three', at: [36.8, 48.6, 0.8], r: 0.7 }, 4);
 
     // Boardman's privy (about 1800), the sifting screens, the maples.
     block(R, 57.6, 36.8, 1.6, 1.6, 2.2, BLOCK.wood, 'PRIVY 1800');
@@ -103,7 +107,7 @@ export default {
       { kind: 'poke', inside: screen, hint: 'Behind one of the sifting screens, two orange feet.' });
     figure(R, 58.4, 44.6, folk(903, { top: C.mustard, hat: 'sun' }), 'ARCHAEOLOGIST', { pose: 'point', dir: 'l' });
     figure(R, 56.2, 38.9, folk(904), null, { pose: 'sit', dir: 'l' });
-    treeAt(R, 36.4, 45.6, { h: 6, r: 2.2 });
+    treeAt(R, 40.6, 36.9, { h: 6, r: 2.2 });
     treeAt(R, 61.6, 52.4, { h: 6, r: 2.2 });
     treeAt(R, 62, 37.6, { h: 5.5, r: 2 });
   },

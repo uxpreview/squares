@@ -38,7 +38,7 @@ export default {
     // The woods between the farm and the turnpike.
     for (let x = 28; x < 64; x += 3.2) treeAt(R, x, 13.4 + (x % 2) * 1.4, { h: 6, r: 2 });
     // The kite stuck in one.
-    pin(R, { id: 'kite', label: 'A kite in a tree', at: [44.8, 14.2, 5.6], r: 0.8 }, 1);
+    pin(R, { id: 'kite', label: 'A kite', kind: 'hard', at: [44.8, 14.2, 5.6], r: 0.8, riddle: 'Caught a long way up, in the woods.', hint: 'Look up into the trees between the farm and the road.' }, 1);
 
     // Beach traffic on the turnpike, by day, both ways.
     R.mover((t) => { const [x, y] = along(((t * 0.012) % 1 + 1) % 1); return { x, y }; }, (ctx, t, p) => { if (during(6, 21)(t)) drawBlock(ctx, p.x - 1, p.y - 0.5, footing(R, p.x, p.y), 2, 1, 1, C.red, 'DAVE'); });
@@ -52,14 +52,14 @@ export default {
     figure(R, 22.4, 9.2, folk(202, { hat: 'cap' }), null, { pose: 'read', dir: 'r' });
     block(R, 21.4, 8.8, 0.2, 0.2, 1.5, C.ink, null);
     R.poke({ id: 'scope', at: [21.5, 8.9, 1.6], r: 0.8, say: ['Swing. Miss. Swing. Miss.', 'A goose! No. A gull.'] });
-    pin(R, { id: 'thermos', label: 'A birder\'s thermos', at: [23.4, 9.8, 0.75], r: 0.6 }, 2);
+    pin(R, { id: 'thermos', label: 'A birder\'s thermos', at: [24.6, 10, 0.75], r: 0.7 }, 2);
 
     // Salt hay on staddles out in the marsh (a hay fork in one), and a
     // greenhead trap (the first flies are out).
     block(R, 44, 4.4, 1.8, 1.8, 1.4, BLOCK.hay, 'STADDLE');
     const hay = R.poke({ id: 'staddle', at: [50.9, 6.1, 1.2], r: 1, say: 'Salt hay. Very salty. Very hay.' });
     R.thing(50.9, 6.1, (ctx) => drawBlock(ctx, 50, 5.2, footing(R, 50, 5.2, 1.8, 1.8), 1.8, 1.8, 1.4 - hay.k() * 0.6, BLOCK.hay, 'STADDLE'), { anim: true });
-    pin(R, { id: 'fork', label: 'A hay fork', kind: 'poke', inside: hay, at: [50.9, 6.1, 1], r: 0.6, hint: 'Out in the marsh, the haystacks on stilts.' }, 3);
+    pin(R, { id: 'fork', label: 'A hay fork', kind: 'poke', inside: hay, at: [50.9, 6.1, 1], r: 0.7, hint: 'Out in the marsh, the haystacks on stilts.' }, 3);
     block(R, 60, 7.4, 1, 1, 1.6, C.navy, 'TRAP');
     pin(R, { id: 'trap', label: 'A greenhead trap', at: [60.5, 7.9, 1.5], r: 0.8 }, 4);
     // A Canada goose on the marsh: not the goose.
@@ -71,7 +71,7 @@ export default {
     block(R, 84.4, 13.2, 0.2, 0.2, 2.2, C.white, 'WINDSOCK');
     R.poke({ id: 'windsock', at: [84.5, 13.3, 2], r: 0.8, say: 'Wind: from the wedding. Carrying cake.' });
     block(R, 91, 5, 4, 4.6, 0.1, C.grey, null);
-    const door = R.poke({ id: 'hangar', at: [93, 9.7, 1.6], r: 1.1, say: 'The hangar door rolls up. Someone\'s in the cockpit.' });
+    const door = R.poke({ id: 'hangar', at: [93, 9.7, 1.6], r: 1.1, say: 'Up it goes. Someone\'s in the cockpit.' });
     R.thing(93, 7.3, (ctx) => {
       const z = footing(R, 91, 5, 4, 4.6);
       drawBlock(ctx, 91, 5, z, 4, 4.6, 2.8, BLOCK.shed, 'HANGAR');

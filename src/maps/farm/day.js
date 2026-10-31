@@ -68,7 +68,7 @@ export const inPaddock = (t) => { const p = roger(t); return p.x > lx0 && p.x < 
 
 // The half-sheared sheep: by the shearer, then away at three to the wedding.
 const sheep = schedule([
-  [20.4, 42.2],
+  [20.6, 43],
   { until: at(15), pose: 'lie' },
   { speed: 2.4 },
   [21, 46], [33, 47.8], [40.4, 48.9], { until: at(17) },
@@ -86,12 +86,12 @@ const doors = [[8, 62.2], [11, 62.2], [14, 62.4], [11, 66.6], [8, 66.6], [5, 66.
 while (tc < at(18.6) - 12) {
   for (const d of doors) { carSteps.push(d); tc += 5; carSteps.push({ until: tc, pose: 'sit' }); tc += 2.5; }
 }
-carSteps.push([16.6, 66.6], [17.6, 65.2, 1.65], { until: at(24.5), pose: 'lie' }, [16.6, 66.6, 0]);
+carSteps.push([16.6, 66.2], [18.4, 66.2, 1.62], { until: at(24.5), pose: 'lie' }, [16.6, 66.2, 0]);
 const carCat = schedule(carSteps, { loop: LOOP, name: 'The car cat' });
 
 // The other cat, along the stone walls between the barn and the house.
 const wallSteps = [[30.4, 47]];
-for (let t = 10; t < LOOP - 40; t += 40) wallSteps.push([33.4, 41.2], { until: t + 10, pose: 'sit' }, [36.6, 37.4], { until: t + 24, pose: 'lie' }, [30.4, 47], { until: t + 36 });
+for (let t = 10; t < LOOP - 40; t += 40) wallSteps.push([33.4, 41.2], { until: t + 10, pose: 'sit' }, [37.6, 36.9], { until: t + 24, pose: 'lie' }, [30.4, 47], { until: t + 36 });
 const wallCat = schedule(wallSteps, { loop: LOOP, name: 'The barn cat' });
 
 // A dog walker and her dog round the fields' trail, dawn to dark.

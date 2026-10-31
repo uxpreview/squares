@@ -95,8 +95,8 @@ export const STRIPES = [[67.5, 17.5, 95, 36.5], [67.5, 52, 95, 72]]; // the leas
 // ---------- The marsh ----------
 // Creeks winding back into the marsh, and the Merrimack's flats at the back left.
 export const CREEKS = [
-  [[30, 9.6], [27, 6], [30, 2.5], [28, -1]],
-  [[54, 9.6], [56.6, 6.4], [53.8, 3], [55.5, -1]],
+  [[30, 8], [27, 5.2], [30, 2.5], [28, -1]],
+  [[54, 8], [56.6, 5.6], [53.8, 3], [55.5, -1]],
   [[72, 8.5], [70.4, 4.5], [73, 1], [72, -1]],
 ];
 export const FLATS = (x) => 6.5 - 0.22 * x + 1.1 * Math.sin(x / 3.1); // the flats' edge, y (back left)

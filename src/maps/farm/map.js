@@ -71,7 +71,7 @@ export default {
   // sides, a swipe along them; on its side and on a big screen, the whole farm.
   overview: (portrait, storey, short) => {
     const X0 = -D, X1 = W, Y0 = -6, Y1 = (W + D) / 2 + 2;
-    if (portrait) return [-4, 8, 10, 66];
+    if (portrait) return [-4, 8, 6, 70];
     if (short) return [X0 + 4, X1 - 4, (Y0 + Y1) / 2 - 1, (Y0 + Y1) / 2 + 1];
     return [X0 + 2, X1 - 2, Y0, Y1];
   },

@@ -35,7 +35,7 @@ export default {
     // The batter, a visitor (the art gives him a bat).
     crowd(R, [[39.6, 33.8, 'point', 'r']], game, { seed: 41, look: (s) => folk(s, { top: C.red, hat: 'cap', hatColor: C.red }) });
     figure(R, 39, 34.6, folk(402, { top: C.ink, hat: 'none' }), 'UMPIRE', { dir: 'r' });
-    R.poke({ id: 'umpire', at: [39, 34.6, 1.4], r: 0.9, say: ['Fair. Probably.', 'On one bound, he\'s out. Off a cake counts.'] });
+    R.poke({ id: 'umpire', at: [39, 34.6, 1.4], r: 0.9, say: ['Fair. Probably.', 'One bound. Off a cake counts.'] });
     // The fans in lawn chairs along both lines.
     const fans = [];
     for (let i = 0; i < 7; i++) fans.push([41.6 + i * 1.5, 35.2, 'sit', 'l']);
@@ -46,7 +46,7 @@ export default {
 
     // The scoreboard and the kid keeping it.
     block(R, 35.4, 18.6, 2.4, 0.3, 2, C.ink, 'SCORE');
-    R.poke({ id: 'scoreboard', at: [36.6, 18.8, 1.6], r: 1, say: 'HOME 7, VISITORS 7. The chalk is running out.' });
+    R.poke({ id: 'scoreboard', at: [36.6, 18.8, 1.6], r: 1, say: 'HOME 7, VISITORS 7. Low on chalk.' });
     figure(R, 36.6, 19.6, folk(403, { scale: 0.7 }), null, { dir: 'l' });
     // A kid in a goose costume, the team's mascot: not the goose.
     R.thing(38.4, 36, (ctx, t) => { goose(ctx, 38.4, 36, footing(R, 38.4, 36), t, { scale: 1.8, dir: 'r' }); if (Q.detail) tag(ctx, 38.4, 36, 3.2, 'MASCOT', { size: 0.3 }); }, { anim: true });
@@ -55,15 +55,15 @@ export default {
     // The players' bench: a fake beard on a string, a bag (a glove in it,
     // against the rules), a broken bat.
     block(R, 51.6, 34.4, 3.4, 0.6, 0.6, C.wood, 'BENCH');
-    pin(R, { id: 'beard', label: 'A fake beard', at: [52.4, 34.7, 0.9], r: 0.6 }, 1);
+    pin(R, { id: 'beard', label: 'A fake beard', at: [52.4, 34.7, 0.9], r: 0.7 }, 1);
     const bag = R.poke({ id: 'bag', at: [55.8, 35, 0.4], r: 0.8, say: 'A bag. It smells of leather and secrets.' });
     R.thing(55.8, 35, (ctx) => drawBlock(ctx, 55.2, 34.6, footing(R, 55.2, 34.6), 1.2, 0.8, 0.6 + bag.k() * 0.3, C.navy, 'BAG'), { anim: true });
-    pin(R, { id: 'glove', label: 'A glove', kind: 'poke', inside: bag, at: [55.8, 35, 0.7], r: 0.6, hint: 'Somebody packed something the rules don\'t allow.' }, 2);
+    pin(R, { id: 'glove', label: 'A glove', kind: 'poke', inside: bag, at: [55.8, 35, 0.7], r: 0.7, hint: 'Somebody packed something the rules don\'t allow.' }, 2);
     pin(R, { id: 'bat', label: 'A broken bat', at: [42.2, 34.4, 0.15], r: 0.7 }, 3);
 
     // A square in foul territory: an 1860s base ball in the 1800s.
     const foul = square(R, 'foul-square', 35.8, 29.6, { name: 'SQUARE' });
-    pin(R, { id: 'old-ball', label: 'An 1860s base ball', kind: 'poke', inside: foul, layer: 2, at: [36.5, 30.3, 0.3], r: 0.6, hint: 'Two layers down, in foul territory.' }, 4);
+    pin(R, { id: 'old-ball', label: 'An 1860s base ball', kind: 'poke', inside: foul, layer: 2, at: [36.5, 30.3, 0.3], r: 0.7, hint: 'Two layers down, in foul territory.' }, 4);
     square(R, 'outfield-square', 58.6, 19.4, { name: 'SQUARE', say: ['The 1900s. A bottle cap.', 'The 1800s. A marble.', '1690. Careful.', 'Filled back in.'] });
 
     // The last out at six: caught on one bound off the wedding cake.

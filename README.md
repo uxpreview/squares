@@ -156,6 +156,14 @@ src/
       ambient.js       Across the water: the skyline in blocks; the snow
       sound.js         The mix (the terminal, the roads, the harbor) and the jets on the clock
       areas/           Seven areas, in the plan's own units
+    farm/            The Farm: Spencer-Peirce-Little Farm in Newbury on a double-booked June Saturday (greybox)
+      plan.js          Where everything is: the lane, the barns, the house, the paddock, the tent, the diamond
+      clock.js         The day from 5am (the ceremony at four, the last out at six, the sparklers at ten)
+      land.js          The ground and water: nearly flat, the marsh at the back, the pond, no tide
+      style.js         The style sheet: the meadow through the day, the dig square, fences, crowds
+      day.js           On the clock across areas: the Courier, the couple, Roger, the sheep, the cats, a dog
+      ambient.js       Around it: the plane off the airfield on the hour
+      areas/           Eight areas, in the plan's own units
 index.html         The page: every screen's markup
 styles.css         Every screen's look
 tools/

@@ -53,7 +53,7 @@ export default {
     // The feed bin (a carrot in it), and the volunteers.
     const bin = R.poke({ id: 'bin', at: [52.6, 66.3, 0.7], r: 0.9, say: 'Donkey breakfast. Donkey lunch.' });
     R.thing(52.6, 66.3, (ctx) => drawBlock(ctx, 52, 65.8, footing(R, 52, 65.8, 1.2, 1), 1.2, 1, 1 + bin.k() * 0.4, BLOCK.machine, 'FEED'), { anim: true });
-    pin(R, { id: 'carrot', label: 'A carrot', kind: 'poke', inside: bin, at: [52.6, 66.3, 1.2], r: 0.6, hint: 'Where the donkeys\' food is kept.' }, 2);
+    pin(R, { id: 'carrot', label: 'A carrot', kind: 'poke', inside: bin, at: [52.6, 66.3, 1.2], r: 0.7, hint: 'Where the donkeys\' food is kept.' }, 2);
     figure(R, 50.4, 63.2, folk(801, { top: C.teal }), 'VOLUNTEER', { pose: 'carry' });
     R.poke({ id: 'volunteer', at: [50.4, 63.2, 1.4], r: 0.9, say: ['That\'s Roger. He\'s not in the mood.', 'The goats ate the T. And the O.'] });
     figure(R, 40.4, 61.3, folk(802, { top: C.coral }), null, { pose: 'carry', dir: 'l' });

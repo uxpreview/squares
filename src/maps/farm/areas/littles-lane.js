@@ -22,7 +22,7 @@ function trees(R) {
     for (let u = 2; u < L; u += 4.2) {
       for (const side of [-2.6, 2.6]) {
         const x = ax + ((bx - ax) * u) / L + nx * side, y = ay + ((by - ay) * u) / L + ny * side;
-        if (R.contains(x, y)) treeAt(R, x, y, { h: 5, r: 1.7 });
+        if (R.shape.some(([x0, y0, x1, y1]) => x > x0 + 0.5 && x < x1 - 0.5 && y > y0 + 0.5 && y < y1 - 0.5)) treeAt(R, x, y, { h: 5, r: 1.7 });
       }
     }
   }
@@ -32,7 +32,7 @@ export default {
   id: 'littles-lane',
   name: 'Little\'s Lane',
   blurb: 'The lane in from High Road, the parking field, and the bride\'s photos under the trees. Every photo has a goose in it.',
-  describe: 'A gravel lane under a double row of old trees, running in from the road to the farmhouse, with a mown parking field beside it and a volunteer waving three colored flags. A white pickup with cans on strings waits for the couple. In the afternoon the bride poses for photos on the lane; at ten the guests line it with sparklers.',
+  describe: 'A gravel lane under a double row of old trees, running in from the road to the farmhouse, with a mown parking field beside it and a volunteer waving three colored flags. A pickup with cans on strings waits for the couple. The bride poses for photos here in the afternoon; at ten the guests line it with sparklers.',
 
   build(R) {
     drawLand(R, land);
@@ -40,7 +40,7 @@ export default {
 
     // The farm's sign at the lane's mouth.
     block(R, 15.2, 69.2, 0.3, 2, 1.4, C.white, 'FARM SIGN');
-    R.poke({ id: 'sign', at: [15.3, 70.2, 1], r: 0.9, say: 'Spencer-Peirce-Little Farm. Since 1635. Booked solid.' });
+    R.poke({ id: 'sign', at: [15.3, 70.2, 1], r: 0.9, say: 'Since 1635. Booked solid.' });
 
     // The parking field: cars from nine till midnight, and the volunteer.
     const parked = during(9, 24);
@@ -74,8 +74,8 @@ export default {
     // spoil heap, where something round fell during the photos.
     const shoe = square(R, 'lane-square', 28.5, 65, { name: 'SQUARE' });
     pin(R, { id: 'horseshoe', label: 'A draft horse\'s shoe', kind: 'poke', inside: shoe, layer: 1, at: [29.2, 65.7, 0.3], r: 0.7, hint: 'One layer down by the lane, from when the Littles kept draft horses.' }, 2);
-    block(R, 30.4, 66.8, 1.2, 1, 0.5, INK.earth, 'SPOIL');
-    pin(R, { id: 'ring', label: 'A wedding ring', kind: 'hard', when: since(14), note: 'from two', at: [31, 67.3, 0.55], r: 0.6, riddle: 'Something round fell where the photographer said one more.', hint: 'It rolled off the lane into a heap of dug earth.' }, 3);
+    block(R, 27.6, 67.3, 1.2, 1, 0.5, INK.earth, 'SPOIL');
+    pin(R, { id: 'ring', label: 'A wedding ring', kind: 'hard', when: since(14), note: 'from two', at: [28.2, 67.8, 0.55], r: 0.7, riddle: 'Something round fell where the photographer said one more.', hint: 'It rolled off the lane into a heap of dug earth.' }, 3);
     square(R, 'lane-square-2', 3.5, 70, { name: 'SQUARE', say: ['Dirt. Very old dirt.', 'More dirt. The 1800s had plenty.', '1690. Still dirt.', 'Filled back in.'] });
 
     // A gatepost by the paddock's corner, where the bouquet lands from two.
